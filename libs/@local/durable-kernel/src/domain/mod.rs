@@ -24,12 +24,11 @@ use serde::{Serialize, de::DeserializeOwned};
 pub use self::{
     error::{FoldError, RecoveryError},
     hosted::{Hosted, KernelProjection, PreparedEvent, register},
-    partition::{InvalidPartitionKey, MAX_PARTITION_KEY_BYTES, PartitionKey, shard_of},
+    partition::{InvalidPartitionKey, MAX_PARTITION_KEY_BYTES, PartitionKey},
     query::{HostedQuery, ProjectionQuery},
     record::{EventRecord, EventRecordV1},
     snapshot::{ProjectionSnapshot, ProjectionSnapshotPayload, ProjectionSnapshotV1},
 };
-use crate::ids::{EffectId, content_digest_bytes};
 
 /// An application event stored in the journal.
 ///
@@ -103,8 +102,8 @@ pub struct Retry<E> {
 /// completed effect.
 ///
 /// A crash after an external write but before its completion event is saved can cause the
-/// effect to run again. Pass [`effect_id`] as an idempotency key to a system that stores the
-/// result and returns it for repeated requests.
+/// effect to run again. Pass [`EffectId::for_effect`](crate::ids::EffectId::for_effect) as an
+/// idempotency key to a system that stores the result and returns it for repeated requests.
 pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
     type Effect: Serialize + Clone + Send + Sync + 'static;
     type Error: Error + Send + Sync + 'static;
@@ -126,13 +125,4 @@ pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
         &self,
         effect: &Self::Effect,
     ) -> impl core::future::Future<Output = Result<Vec<S::Event>, Retry<Self::Error>>> + Send;
-}
-
-/// Computes an idempotency key from an effect’s serialized contents.
-///
-/// # Errors
-///
-/// Returns an error if the effect cannot be serialized as JSON.
-pub fn effect_id<T: Serialize>(effect: &T) -> Result<EffectId, serde_json::Error> {
-    content_digest_bytes("domain-effect:v1", effect).map(EffectId::from_bytes)
 }

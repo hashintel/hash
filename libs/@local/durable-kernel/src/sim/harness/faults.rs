@@ -86,11 +86,8 @@ impl Driver<'_> {
         );
 
         let durable_ids = self.reference_fold().event_ids;
-        properties::covered(
-            coverage,
-            &properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT,
-            durable_ids.contains(&record.event_id()),
-        );
+        properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT
+            .cover(coverage, durable_ids.contains(&record.event_id()));
         self.started = Self::open_loop(&self.journal, self.shard, Arc::clone(&self.registry)).await;
         self.observe_recovery(coverage);
     }
@@ -104,17 +101,9 @@ impl Driver<'_> {
                 .iter()
                 .any(|record| record.event_id() == *id)
         });
-        properties::covered(
-            coverage,
-            &properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT,
-            unacknowledged_durable,
-        );
+        properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT.cover(coverage, unacknowledged_durable);
         self.started = Self::open_loop(&self.journal, self.shard, Arc::clone(&self.registry)).await;
         self.observe_recovery(coverage);
-        properties::covered(
-            coverage,
-            &properties::RECOVERY_REPLAYED_NONEMPTY_PREFIX,
-            !durable_ids.is_empty(),
-        );
+        properties::RECOVERY_REPLAYED_NONEMPTY_PREFIX.cover(coverage, !durable_ids.is_empty());
     }
 }

@@ -113,13 +113,17 @@ impl JournalStream for SimStream {
     }
 }
 
-fn sim_key(key: &[u8]) -> Result<SimKey, Report<DurableError>> {
-    match key {
-        b"events" => Ok(SimKey::Events),
-        b"projection-snapshots" => Ok(SimKey::Snapshots),
-        _ => Err(Report::new(DurableError::UnsupportedJournalKey {
-            key: Bytes::copy_from_slice(key),
-        })),
+impl TryFrom<&[u8]> for SimKey {
+    type Error = DurableError;
+
+    fn try_from(key: &[u8]) -> Result<Self, Self::Error> {
+        match key {
+            b"events" => Ok(Self::Events),
+            b"projection-snapshots" => Ok(Self::Snapshots),
+            _ => Err(DurableError::UnsupportedJournalKey {
+                key: Bytes::copy_from_slice(key),
+            }),
+        }
     }
 }
 
@@ -131,34 +135,38 @@ impl JournalReader for SimLogHandle {
         key: Bytes,
         range: impl RangeBounds<JournalSequence> + Send,
     ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send {
-        ready(sim_key(&key).map(|key| {
-            let range = (range.start_bound().cloned(), range.end_bound().cloned());
-            let state = self.lock();
-            let end_exclusive = match range.1 {
-                Bound::Included(end) => end.saturating_next(),
-                Bound::Excluded(end) => end,
-                Bound::Unbounded => state.durable_end_exclusive,
-            }
-            .min(state.durable_end_exclusive);
-            let entries = state
-                .entries
-                .iter()
-                .filter(|entry| entry.key == key && range.contains(&entry.sequence))
-                .map(|entry| (entry.sequence, entry.bytes.clone()))
-                .collect::<Vec<_>>()
-                .into_iter();
-            drop(state);
-            let next_sequence = match range.0 {
-                Bound::Included(start) => start,
-                Bound::Excluded(start) => start.saturating_next(),
-                Bound::Unbounded => JournalSequence::new(0),
-            };
-            SimStream {
-                entries,
-                next_sequence,
-                end_exclusive,
-            }
-        }))
+        ready(
+            SimKey::try_from(key.as_ref())
+                .map_err(Report::new)
+                .map(|key| {
+                    let range = (range.start_bound().cloned(), range.end_bound().cloned());
+                    let state = self.lock();
+                    let end_exclusive = match range.1 {
+                        Bound::Included(end) => end.saturating_next(),
+                        Bound::Excluded(end) => end,
+                        Bound::Unbounded => state.durable_end_exclusive,
+                    }
+                    .min(state.durable_end_exclusive);
+                    let entries = state
+                        .entries
+                        .iter()
+                        .filter(|entry| entry.key == key && range.contains(&entry.sequence))
+                        .map(|entry| (entry.sequence, entry.bytes.clone()))
+                        .collect::<Vec<_>>()
+                        .into_iter();
+                    drop(state);
+                    let next_sequence = match range.0 {
+                        Bound::Included(start) => start,
+                        Bound::Excluded(start) => start.saturating_next(),
+                        Bound::Unbounded => JournalSequence::new(0),
+                    };
+                    SimStream {
+                        entries,
+                        next_sequence,
+                        end_exclusive,
+                    }
+                }),
+        )
     }
 
     fn close(self) -> impl Future<Output = Result<(), Report<DurableError>>> + Send {
@@ -194,7 +202,7 @@ impl JournalWriter for SimWriter {
     ) -> Result<JournalSequence, Report<ShardAppendError>> {
         let remaining = key.remaining();
         let key = key.copy_to_bytes(remaining);
-        let key = sim_key(&key).change_context(ShardAppendError {
+        let key = SimKey::try_from(key.as_ref()).change_context(ShardAppendError {
             kind: AppendFailureKind::DefinitelyNotCommitted,
         })?;
         let before = self.handle.lock().before_append.take();

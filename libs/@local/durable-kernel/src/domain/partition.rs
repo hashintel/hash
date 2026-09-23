@@ -53,6 +53,16 @@ impl PartitionKey {
         Ok(Self(value))
     }
 
+    /// Returns the routing-v1 shard for this key.
+    ///
+    /// Routing-v1 uses byte 7 of the SHA-256 digest to select the partition's journal.
+    #[must_use]
+    pub fn shard(&self) -> Shard {
+        let digest: [u8; 32] = Sha256::digest(self.0.as_bytes()).into();
+        let [_, _, _, _, _, _, _, shard, ..] = digest;
+        Shard::from_u8(shard)
+    }
+
     pub(super) fn derive_event_id<E: DomainEvent + Serialize>(
         &self,
         event: &E,
@@ -101,14 +111,4 @@ impl From<PartitionKey> for String {
     fn from(key: PartitionKey) -> Self {
         key.0
     }
-}
-
-/// Returns the routing-v1 shard for `key`.
-///
-/// Routing-v1 uses byte 7 of the SHA-256 digest to select the partition's journal.
-#[must_use]
-pub fn shard_of(key: &PartitionKey) -> Shard {
-    let digest: [u8; 32] = Sha256::digest(key.as_ref().as_bytes()).into();
-    let [_, _, _, _, _, _, _, shard, ..] = digest;
-    Shard::from_u8(shard)
 }

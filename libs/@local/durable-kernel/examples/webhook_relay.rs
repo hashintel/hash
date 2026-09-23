@@ -27,7 +27,8 @@ use core::{num::NonZeroU64, time::Duration};
 use std::sync::Mutex;
 
 use durable_kernel::{
-    domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain, effect_id, shard_of},
+    domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
+    ids::EffectId,
     keyspace::Namespace,
     runtime::{Kernel, KernelConfig, RunningKernel, SnapshotPolicy, Submitted},
 };
@@ -238,7 +239,7 @@ impl Executor<RelayDomain> for HttpDeliverer {
         &self,
         effect: &DeliveryAttempt,
     ) -> Result<Vec<RelayEvent>, Retry<Self::Error>> {
-        let key = effect_id(effect)
+        let key = EffectId::for_effect(effect)
             .expect("effect should serialize")
             .to_string();
         let delivery = effect.delivery.clone();
@@ -465,7 +466,7 @@ async fn main() {
         Namespace::parse("webhookrelay").expect("namespace should be valid"),
         format!("file://{}", state_dir().display()),
     );
-    config.shards = vec![shard_of(&key)];
+    config.shards = vec![key.shard()];
     config.snapshot_policy =
         SnapshotPolicy::Every(NonZeroU64::new(8).expect("snapshot interval should be nonzero"));
     config.poll_interval = Duration::from_millis(50);

@@ -24,7 +24,7 @@ use core::time::Duration;
 use std::path::{Path, PathBuf};
 
 use durable_kernel::{
-    domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain, effect_id, shard_of},
+    domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
     ids::EffectId,
     keyspace::Namespace,
     runtime::{Kernel, KernelConfig, RunningKernel, Submitted},
@@ -235,7 +235,7 @@ impl Executor<CustomerDomain> for CrmSync {
             });
         }
 
-        let key = effect_id(effect).expect("effect should serialize");
+        let key = EffectId::for_effect(effect).expect("effect should serialize");
         let outcome = upsert_crm(key, effect).expect("CRM write should succeed");
 
         if outcome.duplicate {
@@ -365,7 +365,7 @@ async fn main() {
         Namespace::parse("customersync").expect("namespace should be valid"),
         format!("file://{}", state_dir().join("journal").display()),
     );
-    config.shards = vec![shard_of(&key)];
+    config.shards = vec![key.shard()];
     config.poll_interval = Duration::from_millis(50);
 
     let running = Kernel::open(config)

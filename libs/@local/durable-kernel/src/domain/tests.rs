@@ -15,11 +15,11 @@ use serde_json::json;
 use super::{
     DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
     KernelProjection, MAX_PARTITION_KEY_BYTES, PartitionKey, ProjectionSnapshot, RecoveryError,
-    SimpleDomain, effect_id, register, shard_of, snapshot::MAX_SNAPSHOT_BYTES,
+    SimpleDomain, register, snapshot::MAX_SNAPSHOT_BYTES,
 };
 use crate::{
     DurableError,
-    ids::{EventId, JournalRecordDigest},
+    ids::{EffectId, EventId, JournalRecordDigest},
     port::{EventDomain as _, Prepared, SnapshotDomain as _},
     registry::{self, CompatError, DurableRecord as _, RecordRegistry, VersionedRecord as _},
     routing::Shard,
@@ -243,7 +243,7 @@ async fn start(
 #[test]
 fn effect_id_wire_format() {
     let effect = json!({ "customer_id": "customer-1", "name": "Ada Lovelace" });
-    let id = effect_id(&effect).expect("effect should serialize");
+    let id = EffectId::for_effect(&effect).expect("effect should serialize");
     let expected = "5617d66e306cb0d9b3a6abb95211f169521164124936452f321899df23264bc0";
     assert_eq!(
         id.to_string(),
@@ -285,7 +285,7 @@ fn wire_shape_is_frozen() {
 fn routing_v1_partition_assignment() {
     let key = PartitionKey::parse("orders").expect("partition should be valid");
     assert_eq!(
-        shard_of(&key),
+        key.shard(),
         Shard::from_u8(228),
         "routing-v1 should keep the journal assigned to a partition"
     );
@@ -475,11 +475,8 @@ async fn snapshot_restore_foreign_shard() {
 async fn snapshot_timestamp_recovery() {
     let journal = SimLogHandle::new(42, Vec::new());
     let record = incremented("orders", 5);
-    let location = ShardLogLocation::simulated(
-        shard_of(record.partition()),
-        journal.clone(),
-        Arc::default(),
-    );
+    let location =
+        ShardLogLocation::simulated(record.partition().shard(), journal.clone(), Arc::default());
     let (handle, started) = start(location.clone()).await;
     handle.propose(record).await.expect("event should apply");
     let snapshot = handle
@@ -555,7 +552,7 @@ fn replay_preserves_historical_admission() {
         "current admission should reject zero"
     );
     let record = EventRecordV1::new(event).expect("historical record should have a valid ID");
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let mut projection = KernelProjection::<Counters>::default();
     Toy::replay(
         &mut projection,
@@ -650,7 +647,7 @@ async fn record_decode_invalid_fields() {
             panic!("corrupt record fixture should append");
         };
         let opened = OpenedShard::open(ShardLogLocation::simulated(
-            shard_of(record.partition()),
+            record.partition().shard(),
             journal,
             Arc::default(),
         ))
@@ -690,7 +687,7 @@ async fn record_decode_invalid_fields() {
 #[tokio::test]
 async fn recovery_foreign_shard() {
     let record = incremented("orders", 5);
-    let actual = shard_of(record.partition());
+    let actual = record.partition().shard();
     let expected = Shard::from_u8(actual.get().wrapping_add(1));
     let journal = SimLogHandle::new(42, Vec::new());
     let bytes = encode(&EventRecord::V1(record)).expect("record should encode");
@@ -776,7 +773,7 @@ fn prepare_dedupes_rejects_and_admits() {
 #[test]
 fn replay_tolerates_double_append_and_refuses_conflicts() {
     let record = incremented("orders", 5);
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let mut projection = KernelProjection::<Counters>::default();
 
     Toy::replay(
@@ -837,7 +834,7 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
 #[test]
 fn recovered_prefix_cannot_regress_or_lose_events() {
     let record = incremented("orders", 5);
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let mut acknowledged = KernelProjection::<Counters>::default();
     Toy::replay(
         &mut acknowledged,
@@ -899,7 +896,7 @@ fn recovered_prefix_cannot_regress_or_lose_events() {
 async fn propose_read_dedupe_and_reject_through_the_real_loop() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
     let record = incremented("orders", 5);
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let location = local_location(shard, root.path());
 
     let (handle, started) = start(location).await;
@@ -957,7 +954,7 @@ async fn shutdown_full_queue() {
             let journal = SimLogHandle::new(42, Vec::new());
             let record = incremented("orders", 5);
             let location = ShardLogLocation::simulated(
-                shard_of(record.partition()),
+                record.partition().shard(),
                 journal.clone(),
                 Arc::default(),
             );
@@ -1059,7 +1056,7 @@ async fn owner_drop_idle_shard() {
         let journal = SimLogHandle::new(42, Vec::new());
         let record = incremented("orders", 5);
         let location = ShardLogLocation::simulated(
-            shard_of(record.partition()),
+            record.partition().shard(),
             journal.clone(),
             Arc::default(),
         );
@@ -1099,7 +1096,7 @@ async fn terminal_failure_reports() {
         let record = incremented("orders", 5);
         let event_id = record.event_id();
         let location = ShardLogLocation::simulated(
-            shard_of(record.partition()),
+            record.partition().shard(),
             journal.clone(),
             Arc::default(),
         );
@@ -1180,7 +1177,7 @@ async fn terminal_failure_dropped_caller() {
         let journal = SimLogHandle::new(42, Vec::new());
         let record = incremented("orders", 5);
         let location = ShardLogLocation::simulated(
-            shard_of(record.partition()),
+            record.partition().shard(),
             journal.clone(),
             Arc::default(),
         );
@@ -1225,7 +1222,7 @@ async fn prepared_change_append_failure() {
     let journal = SimLogHandle::new(42, Vec::new());
     let first = incremented("orders", 5);
     let location =
-        ShardLogLocation::simulated(shard_of(first.partition()), journal.clone(), Arc::default());
+        ShardLogLocation::simulated(first.partition().shard(), journal.clone(), Arc::default());
     let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location.clone())
         .await
         .expect("shard should open")
@@ -1317,7 +1314,7 @@ async fn prepared_change_append_failure() {
 async fn crash_replay_rebuilds_state_and_still_dedupes() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
     let first = incremented("orders", 5);
-    let shard = shard_of(first.partition());
+    let shard = first.partition().shard();
     let second = incremented("orders", 7);
     let reset = EventRecordV1::new(CounterEvent::Reset {
         counter: "orders".to_owned(),
@@ -1412,10 +1409,10 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
 async fn foreign_partition_is_rejected() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
     let record = incremented("orders", 5);
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let foreign = (0..1024_u32)
         .map(|attempt| incremented(&format!("other-{attempt}"), 1))
-        .find(|candidate| shard_of(candidate.partition()) != shard)
+        .find(|candidate| candidate.partition().shard() != shard)
         .expect("some key should route elsewhere");
 
     let location = local_location(shard, root.path());
@@ -1446,7 +1443,7 @@ async fn foreign_partition_is_rejected() {
 async fn snapshots_bound_recovery_and_roundtrip_state() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
     let record = incremented("orders", 5);
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let location = local_location(shard, root.path());
 
     let (handle, started) = start(location.clone()).await;
@@ -1573,11 +1570,8 @@ async fn snapshot_failure(
 ) {
     let journal = crate::sim::SimLogHandle::new(42, Vec::new());
     let record = incremented("orders", 5);
-    let location = ShardLogLocation::simulated(
-        shard_of(record.partition()),
-        journal.clone(),
-        Arc::default(),
-    );
+    let location =
+        ShardLogLocation::simulated(record.partition().shard(), journal.clone(), Arc::default());
     let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
         .await
         .expect("shard should open")
@@ -1627,7 +1621,7 @@ async fn snapshot_commit_unknown_continues() {
             ShardCommandErrorKind::CommitUnknown
         );
         let next = incremented("orders", 7);
-        let shard = shard_of(next.partition());
+        let shard = next.partition().shard();
         assert!(matches!(
             started
                 .handle
@@ -1722,7 +1716,7 @@ async fn snapshot_fenced_stops_shard() {
 async fn snapshot_failed_attempt_interval() {
     let root = tempfile::tempdir().expect("object store root should be created");
     let record = incremented("orders", 5);
-    let shard = shard_of(record.partition());
+    let shard = record.partition().shard();
     let location = local_location(shard, root.path());
     let (handle, started) = start(location).await;
     handle

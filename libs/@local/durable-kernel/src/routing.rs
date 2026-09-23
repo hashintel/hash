@@ -1,7 +1,8 @@
 //! Defines one-byte shard IDs for routing-v1.
 //!
 //! Each namespace has 256 shard addresses, and a process can own any subset.
-//! [`crate::domain::shard_of`] assigns a shard to each partition key.
+//! [`PartitionKey::shard`](crate::domain::PartitionKey::shard) assigns a shard to each partition
+//! key.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Shard(u8);

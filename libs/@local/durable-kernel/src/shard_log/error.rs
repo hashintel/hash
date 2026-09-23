@@ -20,11 +20,40 @@ pub enum AppendFailureKind {
     Fenced,
 }
 
+impl AppendFailureKind {
+    fn from_storage_message(message: &str) -> Self {
+        if message.to_ascii_lowercase().contains(PINNED_FENCE_MESSAGE) {
+            Self::Fenced
+        } else {
+            Self::CommitUnknown
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[display("shard append failed: {kind}")]
 /// Classifies an append failure returned in an [`error_stack::Report`].
 pub struct ShardAppendError {
     pub kind: AppendFailureKind,
+}
+
+impl ShardAppendError {
+    /// Classifies a failure returned after the storage call started.
+    pub(super) fn after_storage_call<E>(operation: DurableError, error: E) -> Report<Self>
+    where
+        E: core::error::Error + Send + Sync + 'static,
+    {
+        let kind = AppendFailureKind::from_storage_message(&error.to_string());
+        Report::new(error)
+            .change_context(operation)
+            .change_context(Self { kind })
+    }
+
+    /// Classifies a storage failure that is already a report.
+    pub(super) fn from_storage_report(report: Report<DurableError>) -> Report<Self> {
+        let kind = AppendFailureKind::from_storage_message(&format!("{report:?}"));
+        report.change_context(Self { kind })
+    }
 }
 
 /// Reports invalid storage options or a failure to create the local storage directory.
@@ -51,33 +80,4 @@ pub enum ShardLogOpenError {
     Reader { shard: Shard },
     #[display("opening reader for shard {} timed out after {timeout:?}", shard.get())]
     ReaderTimeout { shard: Shard, timeout: Duration },
-}
-
-pub(super) fn post_invocation_source<E>(
-    operation: DurableError,
-    error: E,
-) -> Report<ShardAppendError>
-where
-    E: core::error::Error + Send + Sync + 'static,
-{
-    let message = error.to_string();
-    let kind = post_invocation_failure_kind(&message);
-    Report::new(error)
-        .change_context(operation)
-        .change_context(ShardAppendError { kind })
-}
-
-pub(super) fn post_invocation_report(report: Report<DurableError>) -> Report<ShardAppendError> {
-    let message = format!("{report:?}");
-    report.change_context(ShardAppendError {
-        kind: post_invocation_failure_kind(&message),
-    })
-}
-
-fn post_invocation_failure_kind(message: &str) -> AppendFailureKind {
-    if message.to_ascii_lowercase().contains(PINNED_FENCE_MESSAGE) {
-        AppendFailureKind::Fenced
-    } else {
-        AppendFailureKind::CommitUnknown
-    }
 }

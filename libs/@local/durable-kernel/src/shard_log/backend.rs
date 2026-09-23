@@ -22,7 +22,7 @@ use tokio_util::sync::ReusableBoxFuture;
 
 use super::{
     APPEND_TIMEOUT, DURABILITY_WAIT_ATTEMPTS, ShardAppendError, flush_with_timeout,
-    post_invocation_report, post_invocation_source, wait_until_durable_with,
+    wait_until_durable_with,
 };
 use crate::{DurableError, sequence::JournalSequence};
 
@@ -257,7 +257,9 @@ impl JournalWriter for StorageWriter {
             .log
             .append_timeout(vec![Record { key, value }], APPEND_TIMEOUT)
             .await
-            .map_err(|error| post_invocation_source(DurableError::AppendRecord, error))?;
+            .map_err(|error| {
+                ShardAppendError::after_storage_call(DurableError::AppendRecord, error)
+            })?;
         flush_with_timeout(self.log.flush(), self.durability_timeout).await?;
         wait_until_durable_with(
             &self.log,
@@ -266,7 +268,7 @@ impl JournalWriter for StorageWriter {
             DURABILITY_WAIT_ATTEMPTS,
         )
         .await
-        .map_err(post_invocation_report)?;
+        .map_err(ShardAppendError::from_storage_report)?;
         Ok(JournalSequence::new(output.start_sequence))
     }
 }

@@ -7,8 +7,8 @@
 //! Keep property IDs stable so recorded failures remain useful. To change a property, retire
 //! its ID and add a new one.
 //!
-//! [`CATALOG`] lists the checks. Use [`check`] for safety conditions and [`covered`] to record
-//! exercised failure cases through a [`CoverageSink`].
+//! [`CATALOG`] lists the checks. Use [`Property::check`] for safety conditions and
+//! [`Property::cover`] to record exercised failure cases through a [`CoverageSink`].
 
 use core::fmt;
 
@@ -175,26 +175,29 @@ pub trait CoverageSink {
     fn observe(&mut self, property: &Property);
 }
 
-/// Checks a safety property. Failures include the property ID, statement, and supplied detail.
-///
-/// # Panics
-///
-/// Panics when `condition` is false.
-#[track_caller]
-pub fn check(property: &Property, condition: bool, detail: impl fmt::Display) {
-    debug_assert_eq!(property.class, PropertyClass::Safety);
-    assert!(
-        condition,
-        "property {} violated: {} — {detail}",
-        property.id, property.statement
-    );
-}
+impl Property {
+    /// Checks a safety property. Failures include the property ID, statement, and supplied
+    /// detail.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `condition` is false.
+    #[track_caller]
+    pub fn check(&self, condition: bool, detail: impl fmt::Display) {
+        debug_assert_eq!(self.class, PropertyClass::Safety);
+        assert!(
+            condition,
+            "property {} violated: {} — {detail}",
+            self.id, self.statement
+        );
+    }
 
-/// Records a coverage observation. The test checks for missing observations after all schedules
-/// finish.
-pub fn covered(sink: &mut dyn CoverageSink, property: &Property, condition: bool) {
-    debug_assert_eq!(property.class, PropertyClass::Coverage);
-    if condition {
-        sink.observe(property);
+    /// Records a coverage observation. The test checks for missing observations after all
+    /// schedules finish.
+    pub fn cover(&self, sink: &mut dyn CoverageSink, condition: bool) {
+        debug_assert_eq!(self.class, PropertyClass::Coverage);
+        if condition {
+            sink.observe(self);
+        }
     }
 }
