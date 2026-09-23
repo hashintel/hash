@@ -47,6 +47,7 @@ import {
   type PetrinautAiStopResult,
   type PetrinautAiVoiceMode,
   type PetrinautAiVoiceModeContext,
+  PetrinautPluginsProvider,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
@@ -54,9 +55,9 @@ import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
+import { sentryFeedbackPlugin } from "../../../sentry/sentry-feedback-plugin";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
-import { CommandPalette } from "../command-palette";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import { commandPalettePlugin } from "../command-palette";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
@@ -109,6 +110,10 @@ import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
+
+// The demo's plugins: a feedback button under the zoom controls and the ⌘K
+// palette with its top-bar button. The editor's built-ins stay installed.
+const demoPlugins = [sentryFeedbackPlugin, commandPalettePlugin];
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
@@ -357,7 +362,6 @@ export const LocalStorageDemoApp = ({
   ) => void;
   search: LocalStorageDemoSearch;
 }) => {
-  const sentryFeedbackAction = useSentryFeedbackAction();
   const routeIdentity = localStorageDemoRouteIdentity(search);
   const remoteRouteSelected =
     routeIdentity === "worked-model-bundle" && search.bundle !== undefined;
@@ -1006,35 +1010,36 @@ export const LocalStorageDemoApp = ({
           command and selector read the same persisted state the editor does. */}
       <UserSettingsProvider>
         <CommandRegistryProvider>
-          <WalkthroughProvider steps={walkthroughSteps}>
-            <Petrinaut
-              aiAssistant={aiAssistant}
-              handle={activeHandle.handle}
-              existingNets={existingNets}
-              createNewNet={createNewNet}
-              loadPetriNet={loadPetriNet}
-              navigation={navigation}
-              readonly={false}
-              setTitle={setTitle}
-              slots={{
-                settingsLabs: (
-                  <AssistantLabsSettings
-                    assistantReady={assistantSelectionReady}
-                    brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                    brunchSelected={brunchSelected}
-                    forceBrunch={remoteRouteSelected}
-                    openAIVoiceConfig={openAIVoiceConfig}
-                    selectAssistant={selectAssistant}
-                    setVoiceEnabled={setVoiceEnabled}
-                    voiceEnabled={voiceEnabled}
-                    voicePreferenceReady={voicePreferenceReady}
-                  />
-                ),
-              }}
-              title={currentDocument.title}
-              viewportActions={[sentryFeedbackAction]}
-            />
-          </WalkthroughProvider>
+          <PetrinautPluginsProvider plugins={demoPlugins}>
+            <WalkthroughProvider steps={walkthroughSteps}>
+              <Petrinaut
+                aiAssistant={aiAssistant}
+                handle={activeHandle.handle}
+                existingNets={existingNets}
+                createNewNet={createNewNet}
+                loadPetriNet={loadPetriNet}
+                navigation={navigation}
+                readonly={false}
+                setTitle={setTitle}
+                slots={{
+                  settingsLabs: (
+                    <AssistantLabsSettings
+                      assistantReady={assistantSelectionReady}
+                      brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                      brunchSelected={brunchSelected}
+                      forceBrunch={remoteRouteSelected}
+                      openAIVoiceConfig={openAIVoiceConfig}
+                      selectAssistant={selectAssistant}
+                      setVoiceEnabled={setVoiceEnabled}
+                      voiceEnabled={voiceEnabled}
+                      voicePreferenceReady={voicePreferenceReady}
+                    />
+                  ),
+                }}
+                title={currentDocument.title}
+              />
+            </WalkthroughProvider>
+          </PetrinautPluginsProvider>
           <DemoCommands
             createNewNet={createNewNet}
             createCleanNetProjection={
@@ -1044,7 +1049,6 @@ export const LocalStorageDemoApp = ({
             canSelectAssistant={!remoteRouteSelected}
             selectAssistant={selectAssistant}
           />
-          <CommandPalette />
         </CommandRegistryProvider>
       </UserSettingsProvider>
     </div>

@@ -21,7 +21,6 @@ import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
 import type { ExperimentRecord } from "../../../../../react/experiments/context";
-import type { PetrinautSlots } from "../../../../types/petrinaut-slots";
 
 const topBarStyle = css({
   display: "flex",
@@ -70,7 +69,6 @@ interface TopBarProps {
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
   onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
-  slots?: PetrinautSlots;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -83,7 +81,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   mode,
   onModeChange,
   onRunningExperimentClick,
-  slots,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
@@ -132,7 +129,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           items={menuItems}
         />
 
-        {slots?.topBarStart}
         <PluginToolbarItems placement="top-bar-start" />
 
         {hideNetManagementControls !== "all" && (
@@ -144,7 +140,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             placeholder="Process"
             className={titleStyles}
             size="sm"
-            style={slots?.titleStyle}
           />
         )}
       </div>
@@ -161,7 +156,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           onExperimentClick={onRunningExperimentClick}
         />
         {undoRedo && <VersionHistoryButton />}
-        {slots?.topBarEnd}
         <PluginToolbarItems placement="top-bar-end" />
       </div>
     </div>

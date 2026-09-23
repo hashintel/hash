@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState } from "react";
+import { Activity, use, useState, type ReactNode } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -49,7 +49,6 @@ import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { InstalledPlugins } from "../../plugins/installed-plugins";
 import { PluginContributionBoundary } from "../../plugins/plugin-boundary";
-import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
@@ -80,8 +79,6 @@ import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
-import type { PetrinautSlots } from "../../types/petrinaut-slots";
-import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -150,11 +147,6 @@ const openSubmenuStyle = css({
   },
 });
 
-const editViewSelectorSpaceStyle = css({
-  width: "[var(--edit-view-selector-width)]",
-  flexShrink: "0",
-});
-
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -169,18 +161,17 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
 const EditorViewContent = ({
   aiAssistant,
   hideNetManagementControls,
-  slots,
+  settingsLabs,
   titleEditable,
-  viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
   /**
    * See {@link TopBar} for the full semantics.
    */
   hideNetManagementControls?: "all" | "except-title";
-  slots?: PetrinautSlots;
+  /** The deprecated `slots.settingsLabs` content, until its host moves to a plugin. */
+  settingsLabs?: ReactNode;
   titleEditable: boolean;
-  viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
@@ -224,12 +215,8 @@ const EditorViewContent = ({
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
 
-  const {
-    installedEditViews,
-    activeEditView,
-    isDefinitionsWorkspace,
-    isCanvasWorkspace,
-  } = useEditWorkspace();
+  const { installedEditViews, activeEditView, isCanvasWorkspace } =
+    useEditWorkspace();
   const pluginEditViews = installedEditViews.map(({ view }) => view);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
@@ -581,7 +568,7 @@ const EditorViewContent = ({
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
-      <UserSettings settingsLabs={slots?.settingsLabs} />
+      <UserSettings settingsLabs={settingsLabs} />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}
@@ -614,7 +601,6 @@ const EditorViewContent = ({
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
         }
-        slots={slots}
       />
 
       {/* Voice session state is shared between the assistant panel that owns
@@ -627,7 +613,7 @@ const EditorViewContent = ({
               <SimulateView />
             ) : (
               <div className={workspaceStyle}>
-                {globalMode === "edit" && (
+                {globalMode === "edit" && pluginEditViews.length > 0 && (
                   <EditViewSelector editViews={pluginEditViews} />
                 )}
                 <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
@@ -639,10 +625,7 @@ const EditorViewContent = ({
                     <PropertiesPanel />
 
                     {/* SDCPN Visualization */}
-                    <SDCPNView
-                      onControllerChange={registerController}
-                      viewportActions={viewportActions}
-                    />
+                    <SDCPNView onControllerChange={registerController} />
 
                     {showEmptyAiHero && (
                       <AiCtaModal
@@ -668,14 +651,6 @@ const EditorViewContent = ({
                     {/* Bottom Panel */}
                     <BottomPanel />
                   </Box>
-                </Activity>
-                <Activity mode={isDefinitionsWorkspace ? "visible" : "hidden"}>
-                  <NotebookView
-                    key={petriNetId ?? "no-net"}
-                    toolbarStart={
-                      <div aria-hidden className={editViewSelectorSpaceStyle} />
-                    }
-                  />
                 </Activity>
                 {installedEditViews.map(({ pluginId, view }) => {
                   const EditView = view.component;

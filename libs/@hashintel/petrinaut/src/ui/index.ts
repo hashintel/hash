@@ -251,7 +251,10 @@ export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
 // Plugins — how a host adds buttons, commands, panel sections and edit views
 // to the editor. `<PetrinautPluginsProvider>` above `<Petrinaut>` installs them.
-export { petrinautBuiltInPlugins } from "./plugins/built-in-plugins";
+export {
+  definitionsViewPlugin,
+  petrinautBuiltInPlugins,
+} from "./plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./plugins/plugin";
 export type {
   PetrinautPlugin,
@@ -268,8 +271,7 @@ export type {
 export { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 export type { PetrinautPluginsProviderProps } from "./plugins/plugins-provider";
 export type { SubView, SubViewResizeConfig } from "./components/sub-view/types";
-// Superseded by plugin buttons and top-bar items; removed once every host has moved.
-export type { ViewportAction } from "./types/viewport-action";
+// Superseded by plugin settings groups; removed once the Labs host has moved.
 export type { PetrinautSlots } from "./types/petrinaut-slots";
 
 // Walkthrough — first-visit product tour. Exposed so embedders can drive it

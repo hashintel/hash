@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { Petrinaut, PetrinautPluginsProvider } from "@hashintel/petrinaut/ui";
 
+import { exampleTitlePlugin } from "./example-title-plugin";
 import { getOEmbedDiscoveryUrl } from "./oembed-discovery";
 import { getReadonlyExampleHandle } from "./readonly-example-handle";
 import { useSharedSearchNavigation } from "./use-shared-search-navigation";
@@ -18,15 +19,7 @@ const pageStyle = css({
   overflow: "hidden",
 });
 
-const titleStyle = css({
-  minWidth: "0",
-  overflow: "hidden",
-  color: "neutral.s90",
-  fontSize: "sm",
-  fontWeight: "medium",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
+const examplePlugins = [exampleTitlePlugin];
 
 export type FullExamplePageProps = {
   example: LoadedExample;
@@ -68,19 +61,16 @@ export const FullExamplePage = ({
         title={`${example.catalog.title} oEmbed profile`}
         type="application/json+oembed"
       />
-      <Petrinaut
-        handle={handle}
-        hideNetManagementControls="all"
-        navigation={navigation}
-        presentationProfile="review"
-        readonly
-        slots={{
-          topBarStart: (
-            <span className={titleStyle}>{example.catalog.title}</span>
-          ),
-        }}
-        title={example.catalog.title}
-      />
+      <PetrinautPluginsProvider plugins={examplePlugins}>
+        <Petrinaut
+          handle={handle}
+          hideNetManagementControls="all"
+          navigation={navigation}
+          presentationProfile="review"
+          readonly
+          title={example.catalog.title}
+        />
+      </PetrinautPluginsProvider>
     </main>
   );
 };
