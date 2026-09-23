@@ -278,15 +278,42 @@ where
 }
 
 impl Subcommand {
-    /// Returns `true` if this invocation probes a running service instead of running one.
-    pub(crate) fn is_healthcheck(&self) -> bool {
+    /// Runs the healthcheck this invocation asks for, or returns `None` if it asks for none.
+    ///
+    /// Call this before initializing Sentry and before [`Self::execute`].
+    pub(crate) fn healthcheck(&self) -> Option<Result<(), Report<GraphError>>> {
         match self {
-            Self::Server(args) => args.healthcheck.healthcheck,
-            Self::AdminServer(args) => args.healthcheck.healthcheck,
-            Self::TypeFetcher(args) => args.healthcheck.healthcheck,
-            Self::Atlas(args) => matches!(args.command, AtlasCommand::Healthcheck(_)),
+            Self::Server(args) => args.healthcheck.healthcheck.then(|| {
+                run_healthcheck(
+                    || server::healthcheck(args.config.http_address.clone()),
+                    &args.healthcheck,
+                )
+            }),
+            Self::AdminServer(args) => args.healthcheck.healthcheck.then(|| {
+                run_healthcheck(
+                    || admin_server::healthcheck(args.config.address.clone()),
+                    &args.healthcheck,
+                )
+            }),
+            Self::TypeFetcher(args) => args.healthcheck.healthcheck.then(|| {
+                run_healthcheck(
+                    || type_fetcher::healthcheck(args.config.address.clone()),
+                    &args.healthcheck,
+                )
+            }),
+            Self::Atlas(args) => match &args.command {
+                AtlasCommand::Healthcheck(healthcheck_args) => Some(run_healthcheck(
+                    || atlas::healthcheck(healthcheck_args.address.clone()),
+                    &HealthcheckArgs {
+                        healthcheck: true,
+                        wait: healthcheck_args.wait,
+                        timeout: healthcheck_args.timeout,
+                    },
+                )),
+                AtlasCommand::Serve(_) | AtlasCommand::Fit(_) => None,
+            },
             Self::Migrate(_) | Self::Completions(_) | Self::Snapshot(_) | Self::ReindexCache(_) => {
-                false
+                None
             }
         }
     }
@@ -297,19 +324,11 @@ impl Subcommand {
         worker_threads: WorkerThreads,
     ) -> Result<(), Report<GraphError>> {
         match self {
-            Self::Server(args) if args.healthcheck.healthcheck => run_healthcheck(
-                || server::healthcheck(args.config.http_address.clone()),
-                &args.healthcheck,
-            ),
             Self::Server(args) => block_on(
                 async |telemetry| server(*args, telemetry).await,
                 "Graph API",
                 tracing_config,
                 worker_threads,
-            ),
-            Self::AdminServer(args) if args.healthcheck.healthcheck => run_healthcheck(
-                || admin_server::healthcheck(args.config.address.clone()),
-                &args.healthcheck,
             ),
             Self::AdminServer(args) => block_on(
                 async |telemetry| admin_server(*args, telemetry).await,
@@ -322,10 +341,6 @@ impl Subcommand {
                 "Graph Migrations",
                 tracing_config,
                 worker_threads,
-            ),
-            Self::TypeFetcher(args) if args.healthcheck.healthcheck => run_healthcheck(
-                || type_fetcher::healthcheck(args.config.address.clone()),
-                &args.healthcheck,
             ),
             Self::TypeFetcher(args) => block_on(
                 async |_telemetry| type_fetcher(*args).await,
@@ -346,14 +361,9 @@ impl Subcommand {
                     tracing_config,
                     worker_threads,
                 ),
-                AtlasCommand::Healthcheck(healthcheck_args) => run_healthcheck(
-                    || atlas::healthcheck(healthcheck_args.address.clone()),
-                    &HealthcheckArgs {
-                        healthcheck: true,
-                        wait: healthcheck_args.wait,
-                        timeout: healthcheck_args.timeout,
-                    },
-                ),
+                AtlasCommand::Healthcheck(_) => {
+                    unreachable!("healthchecks should run through `Subcommand::healthcheck`")
+                }
             },
             Self::Completions(ref args) => {
                 completions(args);
