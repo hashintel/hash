@@ -77,55 +77,29 @@ pub struct StateChangeFeed<K> {
     pub receiver: mpsc::Receiver<K>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RecoveryMode {
-    LocalReopen,
-    FullLeaseHandshake,
-}
-
+/// Configures a shard's command loop.
+///
+/// A commit-unknown append stops the shard with [`ShardCommandError::LeaseRequired`]. The owner
+/// reopens the shard, and startup recovery finds whether the append is durable.
 #[derive(Debug, Clone, Copy)]
 pub struct ShardCommandConfig {
     channel_capacity: NonZeroUsize,
     safe_append_retries: u32,
-    recovery_mode: RecoveryMode,
 }
 
-/// [`Default`] permits local writer reopen for tests and callers that manage recovery without
-/// leases.
-///
-/// [`ShardCommandConfig::new`] requires lease reacquisition after a commit-unknown append.
 impl Default for ShardCommandConfig {
     fn default() -> Self {
-        Self {
-            channel_capacity: DEFAULT_CHANNEL_CAPACITY,
-            safe_append_retries: DEFAULT_SAFE_APPEND_RETRIES,
-            recovery_mode: RecoveryMode::LocalReopen,
-        }
+        Self::new(DEFAULT_CHANNEL_CAPACITY, DEFAULT_SAFE_APPEND_RETRIES)
     }
 }
 
 impl ShardCommandConfig {
-    /// Requires lease reacquisition after a commit-unknown append.
     #[must_use]
     pub const fn new(channel_capacity: NonZeroUsize, safe_append_retries: u32) -> Self {
         Self {
             channel_capacity,
             safe_append_retries,
-            recovery_mode: RecoveryMode::FullLeaseHandshake,
         }
-    }
-
-    #[must_use]
-    pub const fn require_full_lease_handshake(mut self) -> Self {
-        self.recovery_mode = RecoveryMode::FullLeaseHandshake;
-        self
-    }
-
-    /// Reopens the writer locally after a commit-unknown append, as [`Default`] does.
-    #[must_use]
-    pub const fn allow_local_reopen(mut self) -> Self {
-        self.recovery_mode = RecoveryMode::LocalReopen;
-        self
     }
 }
 
@@ -158,7 +132,6 @@ struct CommandLoop<D: Domain, S: JournalStorage> {
     last_snapshot_attempt_through_sequence: Option<JournalSequence>,
     snapshot_context: Option<D::SnapshotContext>,
     safe_append_retries: u32,
-    recovery_mode: RecoveryMode,
     receiver: mpsc::Receiver<Command<D>>,
     state_change_sender: mpsc::Sender<D::StateKey>,
     admission_closed: CancellationToken,

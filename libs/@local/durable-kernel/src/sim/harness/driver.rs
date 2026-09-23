@@ -30,7 +30,7 @@ impl Driver<'_> {
             .recover_with_snapshots::<Hosted<DstDomain>>(&())
             .await
             .expect("simulated shard should recover");
-        recovered.enable(ShardCommandConfig::default().allow_local_reopen())
+        recovered.enable(ShardCommandConfig::default())
     }
 
     pub(super) fn handle(&self) -> DstHandle {
@@ -63,7 +63,8 @@ impl Driver<'_> {
     }
 
     /// Proposes `record` and checks the outcome. Reopens the command loop after a terminal error
-    /// so the rest of the schedule can run.
+    /// so the rest of the schedule can run. After a commit-unknown failure, it proposes `record`
+    /// again, as a caller must once the shard is reopened.
     pub(super) async fn submit(
         &mut self,
         record: EventRecordV1<DstEvent>,
@@ -72,7 +73,15 @@ impl Driver<'_> {
     ) {
         self.proposed.insert(record.event_id());
         let outcome_index = self.journal.outcomes_drawn();
-        let result = self.handle().propose(record.clone()).await;
+        let mut result = self.handle().propose(record.clone()).await;
+        while let Err(error) = &result
+            && error.current_context().kind() == ShardCommandErrorKind::CommitUnknown
+        {
+            self.trace
+                .push("append commit status unknown; reopening and proposing again".into());
+            self.crash_and_recover(coverage).await;
+            result = self.handle().propose(record.clone()).await;
+        }
         let window = self.journal.outcomes_since(outcome_index);
         match result {
             Ok(ShardCommandOutcome::Applied { event_id, .. }) => {
@@ -113,8 +122,10 @@ impl Driver<'_> {
                     panic!("proposal validation should return a typed rejection: {error}")
                 }
                 ShardCommandErrorKind::DefinitelyNotCommitted => {}
+                ShardCommandErrorKind::CommitUnknown => {
+                    unreachable!("commit-unknown proposals should be retried until they resolve")
+                }
                 ShardCommandErrorKind::Fenced
-                | ShardCommandErrorKind::CommitUnknown
                 | ShardCommandErrorKind::Recovery
                 | ShardCommandErrorKind::Closed => {
                     properties::WRITER_FENCED.cover(

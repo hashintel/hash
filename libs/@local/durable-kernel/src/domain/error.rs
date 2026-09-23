@@ -102,11 +102,4 @@ pub enum RecoveryError {
         expected.path_segment()
     )]
     SnapshotShardMismatch { expected: Shard, actual: Shard },
-    #[display("recovered journal sequence {recovered:?} is below the previous {previous}")]
-    RegressedSequence {
-        previous: JournalSequence,
-        recovered: Option<JournalSequence>,
-    },
-    #[display("durable prefix lost or changed acknowledged event {event_id}")]
-    LostEvent { event_id: EventId },
 }

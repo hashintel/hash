@@ -198,7 +198,6 @@ impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
             last_snapshot_attempt_through_sequence: self.last_snapshot_through_sequence,
             snapshot_context: self.snapshot_context,
             safe_append_retries: config.safe_append_retries,
-            recovery_mode: config.recovery_mode,
             receiver,
             state_change_sender,
             admission_closed,
