@@ -108,6 +108,52 @@ export const canonicalPetrinautTools = CANONICAL_PETRINAUT_TOOL_NAMES.map(
   defineCanonicalPetrinautTool,
 );
 
+/** Only I uses in-band Flue outcomes; F/A/B retain the terminal client-result protocol. */
+type CanonicalJson =
+  | string
+  | number
+  | boolean
+  | null
+  | CanonicalJson[]
+  | { [key: string]: CanonicalJson };
+
+export const asyncCanonicalPetrinautTools = (
+  execute: (call: {
+    readonly toolName: keyof typeof petrinautAiTools;
+    readonly input: unknown;
+    readonly toolCallId: string;
+    readonly signal?: AbortSignal;
+  }) => Promise<{ readonly output: unknown; readonly metadata?: unknown }>,
+) =>
+  CANONICAL_PETRINAUT_TOOL_NAMES.map((toolName) => {
+    const canonicalTool = petrinautAiTools[toolName];
+    return defineTool({
+      name: toolName,
+      description: canonicalTool.description,
+      input: canonicalTool.inputSchema,
+      async run({ data, toolCallId, signal }) {
+        const result = await execute({
+          toolName,
+          input: data,
+          toolCallId,
+          signal,
+        });
+        return {
+          output: JSON.parse(
+            JSON.stringify({
+              brunchBrowserResult: true,
+              output: result.output,
+              ...(result.metadata === undefined
+                ? {}
+                : { metadata: result.metadata }),
+            }),
+          ) as CanonicalJson,
+          terminate: false,
+        };
+      },
+    });
+  });
+
 const issuePathFrom = (
   input: Record<string, unknown>,
   path: readonly PropertyKey[],

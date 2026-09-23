@@ -15,6 +15,7 @@ import {
   BRUNCH_DECLARED_PROJECTION_MODE,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_PETRINAUT_MODES,
+  INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
   isIntegratedPetrinautMode,
 } from "./construction-mode";
@@ -48,6 +49,7 @@ import {
   observedCompilationReadTool,
   observedLayoutCommandTool,
   canonicalPetrinautTools,
+  asyncCanonicalPetrinautTools,
   petrinautConstructionTools,
   type ObservedConstructionOptions,
   type WorkpieceAuthorityOptions,
@@ -136,8 +138,11 @@ const createDeclarePetrinautProjectionTool = (
 
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(
-  options?: WorkpieceAuthorityOptions &
-    Partial<Pick<ObservedConstructionOptions, "observationFor">> &
+  options?: WorkpieceAuthorityOptions & {
+    readonly executeCanonicalBrowserTool?: Parameters<
+      typeof asyncCanonicalPetrinautTools
+    >[0];
+  } & Partial<Pick<ObservedConstructionOptions, "observationFor">> &
     Partial<
       Pick<Parameters<typeof createDraftExperimentTool>[0], "authorizeDraft">
     >,
@@ -171,7 +176,10 @@ export function useSdcpnPlugin(
       );
       useTool(createDeclarePetrinautProjectionTool(options.currentRevision));
     }
-    for (const canonicalTool of canonicalPetrinautTools) {
+    for (const canonicalTool of initialData.mode === INTEGRATED_BRUNCH_MODE &&
+    options.executeCanonicalBrowserTool
+      ? asyncCanonicalPetrinautTools(options.executeCanonicalBrowserTool)
+      : canonicalPetrinautTools) {
       useTool(canonicalTool);
     }
     if (initialData.mode === BRUNCH_DEEP_CONSTRUCTION_MODE) {

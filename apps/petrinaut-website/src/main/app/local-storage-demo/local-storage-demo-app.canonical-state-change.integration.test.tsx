@@ -1,3 +1,5 @@
+import { once } from "node:events";
+import { createServer } from "node:http";
 /** @vitest-environment jsdom */
 // oxlint-disable-next-line typescript/triple-slash-reference -- The rendered editor imports CSS-only modules.
 /// <reference path="../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
@@ -63,7 +65,7 @@ vi.hoisted(() => {
 });
 
 const fixture = vi.hoisted(() => ({
-  fetchApplication: null as typeof fetch | null,
+  origin: null as string | null,
   client: null as FlueClient | null,
   handle: null as PetrinautDocHandle | null,
   repository: null as DocumentRepository | null,
@@ -77,11 +79,10 @@ vi.mock("@flue/sdk", async (importOriginal) => {
     ) => {
       // Preserve the server's private in-process history client.
       if (options.fetch !== undefined) return actual.createFlueClient(options);
-      if (!fixture.fetchApplication)
-        throw new Error("Brunch application is not ready");
+      if (!fixture.origin) throw new Error("Brunch application is not ready");
       const client = actual.createFlueClient({
         ...options,
-        fetch: fixture.fetchApplication,
+        url: `${fixture.origin}${new URL(options.url).pathname}`,
       });
       fixture.client = client;
       return client;
@@ -131,8 +132,18 @@ vi.mock("./brunch-principal", () => ({
 const originalFetch = globalThis.fetch;
 beforeAll(async () => {
   await import("monaco-editor");
-  globalThis.fetch = () =>
-    Promise.reject(new Error("External fetch forbidden"));
+  globalThis.fetch = (resource, options) => {
+    const request =
+      resource instanceof Request ? resource : new Request(resource, options);
+    const url = new URL(request.url);
+    if (
+      fixture.origin &&
+      url.origin === fixture.origin &&
+      url.pathname.startsWith("/agents/chat/")
+    )
+      return originalFetch(request);
+    return Promise.reject(new Error("External fetch forbidden"));
+  };
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -285,8 +296,40 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   };
   const server = await application.loadFlueNodeApplication();
   setProvider(faux.provider);
-  fixture.fetchApplication = async (input, init) =>
-    server.fetch(input instanceof Request ? input : new Request(input, init));
+  const httpServer = createServer((request, response) => {
+    void (async () => {
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of request) chunks.push(chunk as Uint8Array);
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(request.headers))
+        if (value !== undefined)
+          headers.set(name, Array.isArray(value) ? value.join(",") : value);
+      const body = Buffer.concat(chunks).toString("utf8");
+      const result = await server.fetch(
+        new Request(
+          `http://127.0.0.1:${(httpServer.address() as { port: number }).port}${request.url}`,
+          {
+            method: request.method,
+            headers,
+            ...(body ? { body } : {}),
+          },
+        ),
+      );
+      response.writeHead(result.status, Object.fromEntries(result.headers));
+      if (result.body) {
+        const reader = result.body.getReader();
+        for (;;) {
+          const next = await reader.read();
+          if (next.done) break;
+          if (!response.write(next.value)) await once(response, "drain");
+        }
+      }
+      response.end();
+    })().catch((error: unknown) => response.writeHead(500).end(String(error)));
+  });
+  httpServer.listen(0, "127.0.0.1");
+  await once(httpServer, "listening");
+  fixture.origin = `http://127.0.0.1:${(httpServer.address() as { port: number }).port}`;
   const documentId = "net-1";
   const initialRevisionId = "initial-revision";
   const storageWrites: { revisionId: string; definition: SDCPN }[] = [];
@@ -450,8 +493,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   } finally {
     unmount();
     storageSpy.mockRestore();
-    fixture.fetchApplication = null;
+    fixture.origin = null;
     fixture.client = null;
+    httpServer.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      httpServer.close((error) => (error ? reject(error) : resolve())),
+    );
     await server.stop();
   }
 }, 30_000);

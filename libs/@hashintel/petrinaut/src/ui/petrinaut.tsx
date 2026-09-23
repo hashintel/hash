@@ -113,6 +113,22 @@ export type PetrinautAiAssistant = {
    * Not called for read-only refusals, schema failures, title changes or commands.
    */
   executeMutation?: PetrinautAiMutationExecutor;
+  /** Host handoff for an issued in-band browser call. Omitted for Stock and legacy Flue modes. */
+  inBandBrowserTools?: {
+    has: (toolName: string) => boolean;
+    claim: (call: {
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      signal: AbortSignal;
+    }) => Promise<{
+      input: unknown;
+      prepare: () => void;
+      fail: (disposition?: "unstarted" | "failed") => Promise<void>;
+      release: () => void;
+      submit: (output: unknown) => Promise<void>;
+    }>;
+  };
   /** Host-owned dynamic tools executed automatically against the mounted editor. */
   automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Host-owned dynamic tools that render inline in the AI conversation. */

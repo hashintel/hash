@@ -299,9 +299,21 @@ try {
       ),
   );
   assert(beforeIndex > 0, "Missing separate canonical experiment call");
+  const experimentMessage = history.messages[beforeIndex];
+  assert(experimentMessage);
+  const experimentPartIndex = experimentMessage.parts.findIndex(
+    (part) =>
+      part.type === "dynamic-tool" && part.toolCallId === "experiment-1",
+  );
   const before = {
     ...history,
-    messages: history.messages.slice(0, beforeIndex),
+    messages: [
+      ...history.messages.slice(0, beforeIndex),
+      {
+        ...experimentMessage,
+        parts: experimentMessage.parts.slice(0, experimentPartIndex),
+      },
+    ],
   };
   assert.deepEqual(
     (await deriveNetLedger(before, { binding })).map(({ kind }) => kind),

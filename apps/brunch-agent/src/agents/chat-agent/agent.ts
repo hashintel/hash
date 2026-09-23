@@ -28,6 +28,7 @@ import {
 import {
   SDCPN_MODELLING_SKILL_NAME,
   STOCK_OVER_FLUE_MODE,
+  INTEGRATED_BRUNCH_MODE,
   isIntegratedPetrinautMode,
   sdcpnInitialDataSchema,
   useSdcpnPlugin,
@@ -53,9 +54,11 @@ import {
   ACTIVATE_SKILL_TOOL_NAME,
   isClientToolResultDelivery,
 } from "../../conversation/client-tools.ts";
+import { modelAdmissionScope } from "../../provider-admission.ts";
 import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
+import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
 import { verifyMutationResults } from "../../conversation/mutation-delivery.ts";
 import {
   deriveNetFreshness,
@@ -67,6 +70,7 @@ import {
   verifiedDraftReadBefore,
 } from "../../conversation/net-ledger.ts";
 import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
+import { verifyBrowserCallResult } from "../../conversation/verify-browser-call-result.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
@@ -105,6 +109,9 @@ const useStockOverFlueAgent = (): string => {
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
+  const admission = modelAdmissionScope.getStore();
+  if (admission)
+    admission.asyncBrowserTools = initialData?.mode === INTEGRATED_BRUNCH_MODE;
   if (initialData?.mode === STOCK_OVER_FLUE_MODE)
     return useStockOverFlueAgent();
 
@@ -214,6 +221,39 @@ export function ChatAgent({ id }: AgentProps) {
               },
             }
           : {}),
+        ...(initialData?.mode === INTEGRATED_BRUNCH_MODE && browserContext
+          ? {
+              executeCanonicalBrowserTool: async ({
+                toolName,
+                input,
+                toolCallId,
+                signal,
+              }) => {
+                const result = await issueBrowserCall({
+                  instanceId: id,
+                  toolCallId,
+                  toolName,
+                  canonicalInput: input,
+                  binding: JSON.stringify(browserContext.binding),
+                  signal,
+                  verify: async (call) => {
+                    const metadata = await verifyBrowserCallResult({
+                      call,
+                      canonicalInput: input,
+                      binding: browserContext.binding,
+                    });
+                    return {
+                      toolCallId: call.toolCallId,
+                      toolName: call.toolName,
+                      output: call.output,
+                      ...(metadata === undefined ? {} : { metadata }),
+                    };
+                  },
+                });
+                return { output: result.output, metadata: result.metadata };
+              },
+            }
+          : {}),
         ...(initialData?.construction
           ? {
               observationFor: async (callId: string) => {
@@ -239,12 +279,11 @@ export function ChatAgent({ id }: AgentProps) {
         );
       }
     },
-    ...(browserContext
-      ? ([
-          async (current: WorkpieceRevision | null) =>
-            workpieceEvidenceSources(await history(), current),
-        ] as const)
-      : []),
+    browserContext
+      ? async (current: WorkpieceRevision | null) =>
+          workpieceEvidenceSources(await history(), current)
+      : undefined,
+    initialData?.mode === INTEGRATED_BRUNCH_MODE,
   );
   useAgentStart(async ({ append }) => {
     if (browserContext && delivery.kind === "user") {
@@ -310,14 +349,17 @@ export function ChatAgent({ id }: AgentProps) {
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
-Submit browser tool calls separately from server tools, and wait for their correlated client results before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
-A client-tool-result signal carries canonical results as JSON [{ toolCallId, toolName, output, metadata? }], optionally inside a host envelope with transient diagnostics context. Treat output as the browser's canonical result for that call, keep host context distinct from user testimony and semantic evidence, and continue helping the user once; never reapply a completed mutation.
+${
+  initialData?.mode === INTEGRATED_BRUNCH_MODE
+    ? "Canonical browser tools return actual browser outputs in this Flue turn, under the output key with host-only metadata. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; use later turns for dependencies. Never repeat an attempted write whose outcome is unknown."
+    : "Submit browser tool calls separately from server tools, and wait for their correlated client results before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order. A client-tool-result signal carries canonical results as JSON [{ toolCallId, toolName, output, metadata? }], optionally inside a host envelope with transient diagnostics context. Treat output as the browser's canonical result for that call, keep host context distinct from user testimony and semantic evidence, and continue helping the user once; never reapply a completed mutation."
+}
 `.replace(/^\s+|\s+$/gu, ""),
   );
   useInstruction(
     `
 For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
-A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${netDefinitionReadToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${netDefinitionReadToolName} result in this conversation is the current net.
+A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${netDefinitionReadToolName} and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${netDefinitionReadToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   if (browserContext)

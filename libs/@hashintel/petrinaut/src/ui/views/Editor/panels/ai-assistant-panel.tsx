@@ -909,9 +909,10 @@ const ConversationAiAssistantPanel = ({
     if (!canContinue()) return;
   };
 
-  const executeToolCall: ChatOnToolCallCallback<PetrinautAiMessage> = async ({
-    toolCall,
-  }) => {
+  const executeToolCall = async (
+    { toolCall }: Parameters<ChatOnToolCallCallback<PetrinautAiMessage>>[0],
+    inBandSubmit?: (output: unknown) => Promise<void>,
+  ) => {
     const generation = submissionGenerationRef.current;
     const executionConversationId = toolHostIdentityRef.current;
     if (executionConversationId === null) {
@@ -920,11 +921,13 @@ const ConversationAiAssistantPanel = ({
     const addAutomaticToolOutput = (
       params: Parameters<typeof addAutomaticToolOutputForGeneration>[0],
     ) =>
-      addAutomaticToolOutputForGeneration(
-        params,
-        generation,
-        executionConversationId,
-      );
+      inBandSubmit
+        ? inBandSubmit(params.output)
+        : addAutomaticToolOutputForGeneration(
+            params,
+            generation,
+            executionConversationId,
+          );
     if (!instance) {
       throw new Error(
         "The AI assistant cannot run without an editor instance.",
@@ -974,12 +977,16 @@ const ConversationAiAssistantPanel = ({
         } as never);
         return;
       }
-      resolveDynamicInteractiveTool(
-        toolCall.toolName,
-        toolCall.input,
-        aiAssistant.interactiveTools ?? [],
-      );
-      return;
+      if (!aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
+        resolveDynamicInteractiveTool(
+          toolCall.toolName,
+          toolCall.input,
+          aiAssistant.interactiveTools ?? [],
+        );
+        return;
+      }
+      // I-mode canonical tools may be projected dynamically to execute while Flue is awaiting them.
+      // Petrinaut's existing static executor below still owns their behavior.
     }
 
     if (toolCall.toolName === createExperimentToolName) {
@@ -1203,6 +1210,95 @@ const ConversationAiAssistantPanel = ({
     });
   };
 
+  const inBandDocumentLaneRef = useRef<Promise<void>>(Promise.resolve());
+  const nonMutatingInBandToolNames: ReadonlySet<string> = new Set([
+    getLatestNetDefinitionToolName,
+    getNetCompilationErrorsToolName,
+    readPetrinautDocToolName,
+    createExperimentToolName,
+  ]);
+  const blockedInBandGenerationRef = useRef<number | null>(null);
+  const executeIssuedBrowserCall = (
+    toolCall: Parameters<
+      ChatOnToolCallCallback<PetrinautAiMessage>
+    >[0]["toolCall"],
+  ) => {
+    const host = aiAssistant.inBandBrowserTools;
+    if (!host?.has(toolCall.toolName)) return;
+    const controller = new AbortController();
+    const generation = submissionGenerationRef.current;
+    automaticToolAbortsRef.current.add(controller);
+    // Claim each issued input now, before it waits behind another document call.
+    // Its host-side experiment source is still captured only at the lane barrier.
+    const claim = host.claim({
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      input: toolCall.input,
+      signal: controller.signal,
+    });
+    void claim.catch(() => {});
+    const execute = async () => {
+      let issued: Awaited<typeof claim> | undefined;
+      let started = false;
+      try {
+        issued = await claim;
+        if (controller.signal.aborted) return;
+        if (blockedInBandGenerationRef.current === generation) {
+          await issued.fail("unstarted");
+          return;
+        }
+        issued.prepare();
+        started = true;
+        const execution = executeToolCall(
+          { toolCall: { ...toolCall, input: issued.input } as typeof toolCall },
+          issued.submit,
+        );
+        if (toolCall.toolName === createExperimentToolName) {
+          // The source was captured at this barrier; simulation need not hold the lane.
+          const experimentCall = issued;
+          void execution
+            .catch(async (error: unknown) => {
+              if (!controller.signal.aborted)
+                await experimentCall.fail().catch(() => {});
+              reportOperationalFailure(
+                error instanceof Error ? error : new Error(String(error)),
+                "browser-tool",
+              );
+            })
+            .finally(() => {
+              experimentCall.release();
+              automaticToolAbortsRef.current.delete(controller);
+            });
+          return;
+        }
+        await execution;
+      } catch (error) {
+        if (issued && !controller.signal.aborted)
+          await issued.fail(started ? "failed" : "unstarted").catch(() => {});
+        if (!nonMutatingInBandToolNames.has(toolCall.toolName))
+          blockedInBandGenerationRef.current = generation;
+        throw error;
+      } finally {
+        if (toolCall.toolName !== createExperimentToolName) issued?.release();
+      }
+    };
+    const scheduled = inBandDocumentLaneRef.current.then(execute);
+    // Rejections have a terminal server failure; they do not strand later issued calls.
+    inBandDocumentLaneRef.current = scheduled.then(
+      () => undefined,
+      () => undefined,
+    );
+    void scheduled
+      .finally(() => automaticToolAbortsRef.current.delete(controller))
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted)
+          reportOperationalFailure(
+            error instanceof Error ? error : new Error(String(error)),
+            "browser-tool",
+          );
+      });
+  };
+
   const {
     error,
     id: conversationId,
@@ -1327,6 +1423,10 @@ const ConversationAiAssistantPanel = ({
         `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
         submissionGenerationRef.current,
       );
+      if (aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
+        executeIssuedBrowserCall(toolCall);
+        return undefined;
+      }
       if (!toolCall.dynamic) return undefined;
       if (
         aiAssistant.automaticTools?.some(

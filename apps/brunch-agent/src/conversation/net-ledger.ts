@@ -38,6 +38,7 @@ import {
   type MutationEffects,
   type VerifiedExperimentRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
 import {
@@ -47,7 +48,8 @@ import {
   readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core";
 
-import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { BROWSER_CALL_UNSTARTED_ERROR } from "./browser-call-rendezvous.ts";
+import { isAwaitingClient } from "./client-tools.ts";
 import { verifyMutatePetrinetAttempts } from "./mutation-delivery.ts";
 import { retainedSettledRevision } from "./workpiece.ts";
 
@@ -150,17 +152,13 @@ export type NetLedgerEvent =
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const resultMessages = (snapshot: FlueConversationSnapshot) =>
-  snapshot.messages.filter(
-    (message) =>
-      message.role === "system" &&
-      message.purpose === "dispatch" &&
-      message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
-  );
-
 /** Browser-executed tools that observe the net without changing it. */
 const isNetDefinitionReadTool = (name: string): boolean =>
   isReadPetrinautNetToolName(name) || name === getLatestNetDefinitionToolName;
+
+const canonicalBrowserToolNames: ReadonlySet<string> = new Set(
+  CANONICAL_PETRINAUT_TOOL_NAMES,
+);
 
 const isNonMutatingBrowserTool = (name: string): boolean =>
   isNetDefinitionReadTool(name) ||
@@ -192,12 +190,13 @@ export const recordedBrowserObservation = async (
     call?.type !== "dynamic-tool" ||
     !isNetDefinitionReadTool(call.toolName) ||
     call.state !== "output-available" ||
-    !isAwaitingClient(call.output)
+    (!isAwaitingClient(call.output) &&
+      !(isRecord(call.output) && call.output.brunchBrowserResult === true))
   )
     throw new Error("Unknown admitted browser observation call.");
-  const results = clientToolHistoryFrom(
-    resultMessages(snapshot),
-  ).results.filter((result) => result.toolCallId === toolCallId);
+  const results = clientToolHistoryFrom(snapshot.messages).results.filter(
+    (result) => result.toolCallId === toolCallId,
+  );
   const first = results[0];
   const recorded = parseClientToolResultMetadata(first?.metadata)?.observation;
   if (
@@ -263,7 +262,7 @@ export const deriveNetLedger = async (
   snapshot: FlueConversationSnapshot,
   browser: NetLedgerBrowser,
 ): Promise<readonly NetLedgerEvent[]> => {
-  const results = clientToolHistoryFrom(resultMessages(snapshot)).results;
+  const results = clientToolHistoryFrom(snapshot.messages).results;
   const deliveriesFor = (toolCallId: string) =>
     results.filter((result) => result.toolCallId === toolCallId);
   const events: NetLedgerEvent[] = [];
@@ -336,9 +335,36 @@ export const deriveNetLedger = async (
         }
         continue;
       }
-      if (call.state !== "output-available" || !isAwaitingClient(call.output))
-        continue;
       const position: NetLedgerPosition = { messageIndex, partIndex };
+      if (call.state === "output-error") {
+        const potentiallyMutatingBrowserCall =
+          (canonicalBrowserToolNames.has(call.toolName) &&
+            !isNonMutatingBrowserTool(call.toolName)) ||
+          isLayoutPetrinautNetToolName(call.toolName) ||
+          isMutatePetrinautNetToolName(call.toolName) ||
+          call.toolName === applyPetrinautConstructionToolName;
+        if (potentiallyMutatingBrowserCall) {
+          pendingDeclaration = undefined;
+          if (!call.errorText.includes(BROWSER_CALL_UNSTARTED_ERROR))
+            events.push({
+              kind: "unrecorded",
+              toolCallId: call.toolCallId,
+              toolName: call.toolName,
+              position,
+              reason:
+                "A browser mutation failed without a verified terminal document observation; the effect may be unknown.",
+            });
+        }
+        continue;
+      }
+      if (
+        call.state !== "output-available" ||
+        !(
+          isAwaitingClient(call.output) ||
+          (isRecord(call.output) && call.output.brunchBrowserResult === true)
+        )
+      )
+        continue;
       const { toolCallId, toolName } = call;
       const expectedDeclaration =
         pendingDeclaration?.output.operations[pendingDeclaration.nextOperation];

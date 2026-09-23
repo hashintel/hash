@@ -98,6 +98,8 @@ export const EMPTY_CANONICAL_PETRINAUT_REPLAY: CanonicalPetrinautReplay = {
 export interface CanonicalPetrinautHostToolsInput {
   readonly handle: PetrinautDocHandle;
   readonly binding: BrowserToolBinding;
+  /** I-mode panel queues all same-document calls, including reads; legacy modes queue root mutations here. */
+  readonly orderedByPanel?: boolean;
   readonly readTitle: () => string;
   readonly replayReadiness: CanonicalPetrinautReplayReadiness;
   readonly settleRevision: (input: {
@@ -719,13 +721,14 @@ export const createCanonicalPetrinautHostTools = (
           : { status: "not-required" as const },
       } as BrowserCanonicalMutationRecord;
 
-      const execution = mutationQueue.then(() =>
-        runMutation(initialRecord, params),
-      );
-      mutationQueue = execution.then(
-        () => undefined,
-        () => undefined,
-      );
+      const execution = input.orderedByPanel
+        ? runMutation(initialRecord, params)
+        : mutationQueue.then(() => runMutation(initialRecord, params));
+      if (!input.orderedByPanel)
+        mutationQueue = execution.then(
+          () => undefined,
+          () => undefined,
+        );
       executingMutations.set(params.toolCallId, {
         toolName,
         input: structuredClone(parsedInput),

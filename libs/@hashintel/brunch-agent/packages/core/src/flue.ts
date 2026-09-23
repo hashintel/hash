@@ -65,6 +65,7 @@ export function useBrunchAgent(
   readEvidenceSources?: (
     current: WorkpieceRevision | null,
   ) => ReturnType<WorkpieceEvidenceServices["readSources"]>,
+  allowIndependentBrowserCalls = false,
 ): string {
   useModel(model, options);
   useSkill(elicitationSkill);
@@ -75,6 +76,7 @@ export function useBrunchAgent(
   useTool(
     createMutateWorkpieceTool(setRevision, {
       currentRevision: revision,
+      allowIndependentBrowserCalls,
       readSources: () => readEvidenceSources?.(revision) ?? Promise.resolve([]),
     }),
   );
@@ -141,12 +143,18 @@ const outputFromWorkpieceRevision = (
 
 export const createMutateWorkpieceTool = (
   setRevision: StateSetter<WorkpieceRevision | null>,
-  evidenceServices?: WorkpieceEvidenceServices,
+  evidenceServices?: WorkpieceEvidenceServices & {
+    readonly allowIndependentBrowserCalls?: boolean;
+  },
 ) =>
   defineTool({
     name: MUTATE_WORKPIECE_TOOL_NAME,
     description:
-      "Settle the Ledger in one direct call: create a first partial workpiece at the first consequential distinction, then settle after meaning-bearing input, at every correction, and before a topic change or delivery. Submit the full next Markdown account and the current baseRevisionId, using null only for the first revision; no read precedes a settlement. Carry the complete settled account forward: a replacement that drops a heading or more than 25% of the prior body is refused with nothing written. Retractions name the withdrawn material; list unique, non-overlapping prior-Ledger excerpts that the replacement removes and whose total length covers any large net reduction; quote the exact authorization text; and cite the true-user message containing it. Declare evidence by literal text copied from this submitted Markdown, citing the `[message <id>]` ids shown beside user messages in the conversation; the server resolves each text to an immutable span, and an absent or ambiguous text refuses the whole settlement with nothing written. Inspect `disposition`; after `refused`, correct the named problem and resubmit a separate call rather than treating it as a tool error. Correct every named evidence failure and resubmit the complete relation set rather than dropping valid relations. An applied result records the authoritative revisionId, sha256, resolved evidence locators and the minimal changed UTF-16 window; copy revisionId, sha256 and locators from it when a later basis needs them. The submitted Markdown remains the authoritative body, so do not read it back. This server tool does not end the response. Never combine it with browser construction in one batch. Valid linkage does not prove relevance or template quality.",
+      "Settle the Ledger in one direct call: create a first partial workpiece at the first consequential distinction, then settle after meaning-bearing input, at every correction, and before a topic change or delivery. Submit the full next Markdown account and the current baseRevisionId, using null only for the first revision; no read precedes a settlement. Carry the complete settled account forward: a replacement that drops a heading or more than 25% of the prior body is refused with nothing written. Retractions name the withdrawn material; list unique, non-overlapping prior-Ledger excerpts that the replacement removes and whose total length covers any large net reduction; quote the exact authorization text; and cite the true-user message containing it. Declare evidence by literal text copied from this submitted Markdown, citing the `[message <id>]` ids shown beside user messages in the conversation; the server resolves each text to an immutable span, and an absent or ambiguous text refuses the whole settlement with nothing written. Inspect `disposition`; after `refused`, correct the named problem and resubmit a separate call rather than treating it as a tool error. Correct every named evidence failure and resubmit the complete relation set rather than dropping valid relations. An applied result records the authoritative revisionId, sha256, resolved evidence locators and the minimal changed UTF-16 window; copy revisionId, sha256 and locators from it when a later basis needs them. The submitted Markdown remains the authoritative body, so do not read it back. This server tool does not end the response. " +
+      (evidenceServices?.allowIndependentBrowserCalls
+        ? "Independent browser calls may share this batch, but this revision cannot attest to an effect before its actual browser result; do not declare such a dependency."
+        : "Never combine it with browser construction in one batch.") +
+      " Valid linkage does not prove relevance or template quality.",
     input: updateWorkpieceInputSchema,
     output: updateWorkpieceOutputSchema,
     durable: true,

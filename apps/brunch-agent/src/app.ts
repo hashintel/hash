@@ -1,7 +1,6 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
 import "./telemetry-bootstrap.ts";
-import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
@@ -25,6 +24,12 @@ import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-br
 import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
+import {
+  claimBrowserCall,
+  failBrowserCall,
+  renewBrowserCall,
+  settleBrowserCall,
+} from "./conversation/browser-call-rendezvous.ts";
 import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
@@ -42,8 +47,8 @@ import { createStepARequestAccounting } from "./provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
   modelStreamIdleTimeoutDefaults,
+  modelAdmissionScope,
   withBufferedToolAdmission,
-  type ModelStreamIdleRetryScope,
 } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
 
@@ -88,9 +93,7 @@ instrument({
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
-const admissionScope = new AsyncLocalStorage<
-  ModelStreamIdleRetryScope | false
->();
+const admissionScope = modelAdmissionScope;
 const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   if (process.env.NODE_ENV !== "test") return productionMs;
   const configured = process.env[environmentName];
@@ -159,6 +162,14 @@ const browserToolNames = new Set([
   mutatePetrinautNetToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,
 ]);
+const integratedMixedToolNames = new Set([
+  ...CANONICAL_PETRINAUT_TOOL_NAMES,
+  "ping",
+  "mutate_workpiece",
+  "read_workpiece",
+  "activate_skill",
+  "read_skill_resource",
+]);
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(
     withBufferedToolAdmission(
@@ -170,6 +181,7 @@ const registerAdmittedProvider = (provider: Provider) => {
       browserToolNames,
       {
         cancellationTimeoutMs: modelStreamCancellationTimeoutMs,
+        mixedToolNames: integratedMixedToolNames,
         claimRetry: () => claimModelStreamIdleRetry(admissionScope.getStore()),
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
@@ -196,6 +208,107 @@ app.use(
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
 app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
+app.get(`${chatAgentMount}/:id/browser-calls/:callId`, (context) => {
+  context.header("Cache-Control", "no-store");
+  const binding = context.req.query("binding");
+  if (binding === undefined)
+    return context.json({ error: "invalid-binding" }, 400);
+  const issued = claimBrowserCall(
+    context.req.param("id"),
+    context.req.param("callId"),
+    binding,
+  );
+  return issued
+    ? context.json(issued)
+    : context.json({ error: "not-issued" }, 404);
+});
+app.post(
+  `${chatAgentMount}/:id/browser-calls/:callId/lease`,
+  async (context) => {
+    const body: unknown = await context.req.json().catch(() => undefined);
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("capability" in body) ||
+      !("binding" in body) ||
+      typeof body.capability !== "string" ||
+      typeof body.binding !== "string"
+    )
+      return context.json({ error: "invalid-result" }, 400);
+    const renewed = renewBrowserCall({
+      instanceId: context.req.param("id"),
+      toolCallId: context.req.param("callId"),
+      capability: body.capability,
+      binding: body.binding,
+    });
+    return renewed
+      ? context.json({ renewed: true })
+      : context.json({ error: "not-issued" }, 409);
+  },
+);
+app.post(`${chatAgentMount}/:id/browser-calls/:callId`, async (context) => {
+  const body: unknown = await context.req.json().catch(() => undefined);
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("capability" in body) ||
+    !("binding" in body) ||
+    !("toolName" in body) ||
+    !("canonicalInput" in body) ||
+    !("output" in body) ||
+    typeof body.capability !== "string" ||
+    typeof body.binding !== "string" ||
+    typeof body.toolName !== "string"
+  )
+    return context.json({ error: "invalid-result" }, 400);
+  const settled = await settleBrowserCall({
+    instanceId: context.req.param("id"),
+    toolCallId: context.req.param("callId"),
+    capability: body.capability,
+    binding: body.binding,
+    toolName: body.toolName,
+    canonicalInput: body.canonicalInput,
+    output: body.output,
+    ...("metadata" in body ? { metadata: body.metadata } : {}),
+  });
+  return settled === "settled"
+    ? context.json({ settled: true })
+    : settled === "invalid"
+      ? context.json({ error: "invalid-result" }, 422)
+      : context.json({ error: "not-issued" }, 409);
+});
+app.post(
+  `${chatAgentMount}/:id/browser-calls/:callId/fail`,
+  async (context) => {
+    const body: unknown = await context.req.json().catch(() => undefined);
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("capability" in body) ||
+      !("binding" in body) ||
+      !("toolName" in body) ||
+      !("canonicalInput" in body) ||
+      !("disposition" in body) ||
+      typeof body.capability !== "string" ||
+      typeof body.binding !== "string" ||
+      typeof body.toolName !== "string" ||
+      (body.disposition !== "unstarted" && body.disposition !== "failed")
+    )
+      return context.json({ error: "invalid-result" }, 400);
+    const failed = failBrowserCall({
+      instanceId: context.req.param("id"),
+      toolCallId: context.req.param("callId"),
+      capability: body.capability,
+      binding: body.binding,
+      toolName: body.toolName,
+      canonicalInput: body.canonicalInput,
+      disposition: body.disposition,
+    });
+    return failed
+      ? context.json({ failed: true })
+      : context.json({ error: "not-issued" }, 409);
+  },
+);
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.use(
   `${WORKED_MODELS_ROUTE}/*`,

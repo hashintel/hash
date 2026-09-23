@@ -343,6 +343,7 @@ export const createBrunchPanelTransport = (
     readonly initialData?: FlueChatTransportOptions["initialData"];
     /** Browser tools executed by Petrinaut's static panel registry. */
     readonly clientToolNames?: ReadonlySet<string>;
+    readonly asyncClientToolNames?: FlueChatTransportOptions["asyncClientToolNames"];
     readonly dynamicClientToolNames?: FlueChatTransportOptions["dynamicClientToolNames"];
     readonly validatedClientToolNames?: FlueChatTransportOptions["validatedClientToolNames"];
     readonly mapClientToolInput?: FlueChatTransportOptions["mapClientToolInput"];
@@ -365,6 +366,7 @@ export const createBrunchPanelTransport = (
             : { initialData: options.initialData }),
           clientToolNames:
             options?.clientToolNames ?? canonicalPetrinautClientToolNames,
+          asyncClientToolNames: options?.asyncClientToolNames,
           dynamicClientToolNames: options?.dynamicClientToolNames,
           validatedClientToolNames: options?.validatedClientToolNames,
           mapClientToolInput: options?.mapClientToolInput,

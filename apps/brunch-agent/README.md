@@ -136,7 +136,7 @@ Petrinaut `/api/chat` stays on the website; the accepted later website path is `
 Releasing `/agents/*` to production browser ingress requires separate authentication,
 authorization, ingress, and rate/spend gates. CORS, caller-supplied principals, and conversation
 hashes are not authentication. Desired count remains one until same-conversation ownership
-across replicas is separately proven.
+across replicas is separately proven. I-mode's direct browser-result handoff is ephemeral in that single owner: its one-use issued-call capability and existing conversation ownership headers do not authenticate a user or route callbacks across replicas. A lost result after a possible document effect is unknown; Stop aborts an active wait, while silent browser disappearance is detected only after the renewable 25-second lease expires. Production release still requires the external ingress authentication, authorization, routing and spend gates described above.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
 claims, leases, and settlement state in Postgres.
