@@ -6,7 +6,7 @@
 //!
 //! Parse a [`Namespace`], then use [`Keyspace`] to build paths for a [`Shard`].
 
-use crate::routing::{Shard, shard_path};
+use crate::routing::Shard;
 
 pub const MAX_NAMESPACE_BYTES: usize = 256;
 
@@ -100,7 +100,7 @@ impl Keyspace {
 
     #[must_use]
     pub fn known_shard(&self, shard: Shard) -> String {
-        format!("{}/{}.json", self.known_shards(), shard_path(shard))
+        format!("{}/{}.json", self.known_shards(), shard.path_segment())
     }
 
     #[must_use]
@@ -110,12 +110,12 @@ impl Keyspace {
 
     #[must_use]
     pub fn ready_shard(&self, shard: Shard) -> String {
-        format!("{}/{}", self.ready(), shard_path(shard))
+        format!("{}/{}", self.ready(), shard.path_segment())
     }
 
     #[must_use]
     pub fn requests(&self, shard: Shard) -> String {
-        format!("{}/requests/{}", self.control_root(), shard_path(shard))
+        format!("{}/requests/{}", self.control_root(), shard.path_segment())
     }
 
     #[must_use]
@@ -123,18 +123,22 @@ impl Keyspace {
         format!(
             "{}/request-results/{}",
             self.control_root(),
-            shard_path(shard)
+            shard.path_segment()
         )
     }
 
     #[must_use]
     pub fn lease(&self, shard: Shard) -> String {
-        format!("{}/leases/{}.json", self.control_root(), shard_path(shard))
+        format!(
+            "{}/leases/{}.json",
+            self.control_root(),
+            shard.path_segment()
+        )
     }
 
     #[must_use]
     pub fn shard_root(&self, shard: Shard) -> String {
-        format!("{}/shards/{}", self.control_root(), shard_path(shard))
+        format!("{}/shards/{}", self.control_root(), shard.path_segment())
     }
 
     #[must_use]

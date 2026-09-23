@@ -815,8 +815,8 @@ pub enum RecoveryError {
     InvalidRecord { sequence: u64 },
     #[display(
         "domain record at sequence {sequence} routes to shard {} instead of {}",
-        crate::routing::shard_path(*actual),
-        crate::routing::shard_path(*expected)
+        actual.path_segment(),
+        expected.path_segment()
     )]
     ForeignShard {
         sequence: u64,
@@ -829,8 +829,8 @@ pub enum RecoveryError {
     ConflictingReuse { event_id: EventId, sequence: u64 },
     #[display(
         "snapshot for shard {} was offered to shard {}",
-        crate::routing::shard_path(*actual),
-        crate::routing::shard_path(*expected)
+        actual.path_segment(),
+        expected.path_segment()
     )]
     SnapshotShardMismatch { expected: Shard, actual: Shard },
     #[display("durable prefix regressed from {previous} to {recovered:?}")]
@@ -1380,10 +1380,7 @@ mod tests {
     }
 
     fn toy_log_path(shard: Shard) -> String {
-        format!(
-            "domain-toy/control/v1/shards/{}/log",
-            crate::routing::shard_path(shard)
-        )
+        format!("domain-toy/control/v1/shards/{}/log", shard.path_segment())
     }
 
     async fn start(

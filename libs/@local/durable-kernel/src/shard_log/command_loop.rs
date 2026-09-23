@@ -621,7 +621,7 @@ impl<S: JournalStorage> OpenedShard<S> {
             .await
             .change_context(ShardCommandError::OpenWriter)?;
         tracing::info!(
-            shard = %crate::routing::shard_path(location.shard),
+            shard = %location.shard.path_segment(),
             durable_end_exclusive = writer.durable_end_exclusive(),
             elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
             "opened durable shard log"
@@ -850,7 +850,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         };
         let error = &failure.error;
         tracing::error!(
-            shard = %crate::routing::shard_path(self.location.shard),
+            shard = %self.location.shard.path_segment(),
             kind = ?error.current_context().kind(),
             ?error,
             "stopping shard command loop after terminal failure"
@@ -867,7 +867,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         self.reject_queued(&context);
         if let Err(error) = self.close_writer().await {
             tracing::error!(
-                shard = %crate::routing::shard_path(self.location.shard),
+                shard = %self.location.shard.path_segment(),
                 ?error,
                 "failed to close shard writer after terminal failure"
             );
@@ -1230,7 +1230,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             // Reopening obtains a new writer epoch even if closing the old writer fails.
             if let Err(error) = writer.close().await {
                 tracing::warn!(
-                    shard = %crate::routing::shard_path(self.location.shard),
+                    shard = %self.location.shard.path_segment(),
                     ?error,
                     "failed to close shard writer before recovery"
                 );
@@ -1333,7 +1333,7 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
                         Err(error) => {
                             corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                             tracing::warn!(
-                                shard = %crate::routing::shard_path(shard),
+                                shard = %shard.path_segment(),
                                 reference_sequence,
                                 error = ?error,
                                 "ignored malformed projection-snapshot reference"
@@ -1346,7 +1346,7 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
                         Err(error) => {
                             corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                             tracing::warn!(
-                                shard = %crate::routing::shard_path(shard),
+                                shard = %shard.path_segment(),
                                 reference_sequence,
                                 error = ?error,
                                 "ignored projection snapshot with invalid addressing"
@@ -1357,7 +1357,7 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
                     if through >= reference_sequence || through >= durable_end_exclusive {
                         corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                         tracing::warn!(
-                            shard = %crate::routing::shard_path(shard),
+                            shard = %shard.path_segment(),
                             reference_sequence,
                             through_log_sequence = through,
                             durable_end_exclusive,
@@ -1371,7 +1371,7 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
                             Err(error) => {
                                 corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                                 tracing::warn!(
-                                    shard = %crate::routing::shard_path(shard),
+                                    shard = %shard.path_segment(),
                                     reference_sequence,
                                     error = ?error,
                                     "ignored unusable projection snapshot"
@@ -1399,7 +1399,7 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
                         Err(error) => {
                             corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                             tracing::warn!(
-                                shard = %crate::routing::shard_path(shard),
+                                shard = %shard.path_segment(),
                                 reference_sequence,
                                 error = ?error,
                                 "replaying events after the snapshot failed; trying an older snapshot"
@@ -1411,7 +1411,7 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
             Err(error) => {
                 corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                 tracing::warn!(
-                    shard = %crate::routing::shard_path(shard),
+                    shard = %shard.path_segment(),
                     error = ?error,
                     "projection-snapshot discovery failed; replaying the complete journal"
                 );
@@ -1454,7 +1454,7 @@ async fn replay_durable_suffix<D: EventDomain>(
     let records = records?;
 
     tracing::info!(
-        shard = %crate::routing::shard_path(shard),
+        shard = %shard.path_segment(),
         from_sequence = through_sequence.map_or(0, |sequence| sequence.saturating_add(1)),
         durable_end_exclusive,
         records = records.len(),
