@@ -804,6 +804,70 @@ describe("the net ledger is a projection over Flue history", () => {
     ).rejects.toThrow(/already has a result delivery/iu);
   });
 
+  test("admits all six direct scenario and metric results without sidecars and projects each as unrecorded", async () => {
+    const scenario = {
+      id: "baseline",
+      name: "Baseline",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: { type: "per_place", content: {} },
+    };
+    const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
+    const calls = [
+      { toolCallId: "scenario-add", toolName: "addScenario", input: scenario },
+      { toolCallId: "metric-add", toolName: "addMetric", input: metric },
+      {
+        toolCallId: "scenario-update",
+        toolName: "updateScenario",
+        input: {
+          scenarioId: scenario.id,
+          update: { name: "Updated baseline" },
+        },
+      },
+      {
+        toolCallId: "metric-update",
+        toolName: "updateMetric",
+        input: { metricId: metric.id, update: { name: "Updated throughput" } },
+      },
+      {
+        toolCallId: "scenario-remove",
+        toolName: "removeScenario",
+        input: { scenarioId: scenario.id },
+      },
+      {
+        toolCallId: "metric-remove",
+        toolName: "removeMetric",
+        input: { metricId: metric.id },
+      },
+    ] as const;
+    const messages: FlueConversationMessage[] = [];
+    for (const { toolCallId, toolName, input } of calls) {
+      const call = assistantCall(toolCallId, toolName, input);
+      const delivery = resultDelivery(toolCallId, toolName, { applied: true });
+      messages.push(call, delivery);
+      const text = delivery.parts[0];
+      if (text?.type !== "text") throw new Error("Missing delivery fixture.");
+      await expect(
+        verifyMutationResults({
+          body: text.text,
+          snapshot: snapshotOf(messages),
+          binding,
+        }),
+      ).resolves.toBeUndefined();
+    }
+    const events = await deriveNetLedger(snapshotOf(messages), browser);
+    expect(events).toEqual(
+      calls.map(({ toolCallId, toolName }, index) => ({
+        kind: "unrecorded",
+        toolCallId,
+        toolName,
+        position: { messageIndex: index * 2, partIndex: 0 },
+        reason:
+          "The canonical mutation result carries no canonical mutation record.",
+      })),
+    );
+  });
+
   test("accepts unrecorded canonical mutations outside the host-recorded names and keeps them unrecorded in the ledger", async () => {
     const parameterInput = {
       id: "bloom-rate",
