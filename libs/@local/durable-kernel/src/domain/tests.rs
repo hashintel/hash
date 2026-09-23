@@ -20,9 +20,9 @@ use crate::{
     },
     routing::Shard,
     shard_log::{
-        AppendFailureKind, JournalStorage, OpenedShard, RecoveredShard, ShardAppendError,
-        ShardCommandConfig, ShardCommandError, ShardCommandErrorKind, ShardCommandOutcome,
-        ShardLogLocation, StartedShard,
+        AppendFailureKind, JournalStorage, OpenedShard, QueuedWhenStopped, RecoveredShard,
+        ShardAppendError, ShardCommandConfig, ShardCommandError, ShardCommandErrorKind,
+        ShardCommandOutcome, ShardLogLocation, StartedShard,
     },
     sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
 };
@@ -1110,7 +1110,7 @@ async fn terminal_failure_reports() {
             "queued callers should receive the event ID and classification that stopped the loop"
         );
         assert!(
-            format!("{stopped:?}").contains("command was queued"),
+            stopped.contains::<QueuedWhenStopped>(),
             "queued proposal should report that it was not executed"
         );
         let terminal = started

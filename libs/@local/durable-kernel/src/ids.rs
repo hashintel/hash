@@ -11,22 +11,24 @@ use sha2::{Digest as _, Sha256};
 
 pub const SHA256_HEX_BYTES: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("{kind} {reason}")]
-pub struct InvalidId {
-    kind: &'static str,
-    reason: &'static str,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
+pub enum IdKind {
+    #[display("event ID")]
+    Event,
+    #[display("effect ID")]
+    Effect,
+    #[display("journal-record digest")]
+    JournalRecordDigest,
 }
 
-impl InvalidId {
-    #[must_use]
-    pub const fn new(kind: &'static str, reason: &'static str) -> Self {
-        Self { kind, reason }
-    }
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("{kind} must be exactly 64 lowercase hexadecimal SHA-256 characters")]
+pub struct InvalidId {
+    pub kind: IdKind,
 }
 
 macro_rules! digest_id {
-    ($name:ident, $label:literal) => {
+    ($name:ident, $kind:expr) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name([u8; 32]);
 
@@ -57,14 +59,12 @@ macro_rules! digest_id {
                         .bytes()
                         .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
                 {
-                    return Err(InvalidId::new(
-                        $label,
-                        "must be exactly 64 lowercase hexadecimal SHA-256 characters",
-                    ));
+                    return Err(InvalidId { kind: $kind });
                 }
                 let mut bytes = [0; 32];
-                hex::decode_to_slice(value, &mut bytes)
-                    .map_err(|_invalid| InvalidId::new($label, "must contain hexadecimal bytes"))?;
+                hex::decode_to_slice(value, &mut bytes).unwrap_or_else(|_err| {
+                    unreachable!("64 lowercase hexadecimal characters should decode to 32 bytes")
+                });
                 Ok(Self(bytes))
             }
         }
@@ -99,9 +99,9 @@ macro_rules! digest_id {
     };
 }
 
-digest_id!(EventId, "event ID");
-digest_id!(EffectId, "effect ID");
-digest_id!(JournalRecordDigest, "journal-record digest");
+digest_id!(EventId, IdKind::Event);
+digest_id!(EffectId, IdKind::Effect);
+digest_id!(JournalRecordDigest, IdKind::JournalRecordDigest);
 
 /// Hashes the domain label, a zero byte, and the serialized JSON, in that order.
 ///
@@ -131,7 +131,7 @@ pub(crate) fn content_digest_bytes<T: Serialize>(
 
 #[cfg(test)]
 mod tests {
-    use super::EventId;
+    use super::{EventId, IdKind, InvalidId};
 
     #[test]
     fn digest_hex_roundtrip() {
@@ -145,9 +145,12 @@ mod tests {
             id
         );
         for invalid in [text.to_uppercase(), "0".repeat(63), "g".repeat(64)] {
-            assert!(
-                EventId::parse(invalid).is_err(),
-                "noncanonical digest should fail"
+            assert_eq!(
+                EventId::parse(&invalid),
+                Err(InvalidId {
+                    kind: IdKind::Event
+                }),
+                "{invalid:?} should be rejected as a noncanonical digest"
             );
         }
     }

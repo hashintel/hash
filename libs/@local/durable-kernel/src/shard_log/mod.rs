@@ -41,9 +41,9 @@ pub use backend::{
 #[cfg(any(test, feature = "test-util"))]
 pub use command_loop::start_recovered;
 pub use command_loop::{
-    ControlResolution, OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandError,
-    ShardCommandErrorKind, ShardCommandHandle, ShardCommandKind, ShardCommandOutcome, ShardOwner,
-    StartedShard, StartupRecovery, StateChangeFeed,
+    ControlResolution, OpenedShard, QueuedWhenStopped, RecoveredShard, ShardCommandConfig,
+    ShardCommandError, ShardCommandErrorKind, ShardCommandHandle, ShardCommandKind,
+    ShardCommandOutcome, ShardOwner, StartedShard, StartupRecovery, StateChangeFeed,
 };
 
 const EVENTS_KEY: &[u8] = b"events";

@@ -232,6 +232,12 @@ impl ShardCommandError {
     }
 }
 
+/// Marks a command that was still queued when the command loop stopped. The report's current
+/// context is the error that stopped the loop.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
+#[display("command was queued when the command loop stopped")]
+pub struct QueuedWhenStopped;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Holds the durable journal end, the restored snapshot, and the pending work that recovery found
 /// before startup.
@@ -1264,9 +1270,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
     }
 
     fn reject_queued(&mut self, error: &ShardCommandError) {
-        let stopped = || {
-            Report::new(error.clone()).attach("command was queued when the command loop stopped")
-        };
+        let stopped = || Report::new(error.clone()).attach(QueuedWhenStopped);
         while let Ok(command) = self.receiver.try_recv() {
             match command {
                 Command::Propose { reply, .. } => {
