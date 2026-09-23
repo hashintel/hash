@@ -1,7 +1,7 @@
 //! Validates SHA-256 IDs and hashes serialized record contents.
 //!
 //! [`EventId`] identifies an event. [`JournalRecordDigest`] detects conflicting record contents.
-//! Use [`crate::domain::effect_id`] to compute an [`EffectId`] for external operations,
+//! Use [`EffectId::for_effect`] to compute an [`EffectId`] for external operations,
 //! or [`content_digest`] to hash other serialized values with a domain label.
 
 use core::str::FromStr;
@@ -102,6 +102,17 @@ macro_rules! digest_id {
 digest_id!(EventId, IdKind::Event);
 digest_id!(EffectId, IdKind::Effect);
 digest_id!(JournalRecordDigest, IdKind::JournalRecordDigest);
+
+impl EffectId {
+    /// Computes an idempotency key from an effect’s serialized contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the effect cannot be serialized as JSON.
+    pub fn for_effect<T: Serialize>(effect: &T) -> Result<Self, serde_json::Error> {
+        content_digest_bytes("domain-effect:v1", effect).map(Self::from_bytes)
+    }
+}
 
 /// Hashes the domain label, a zero byte, and the serialized JSON, in that order.
 ///

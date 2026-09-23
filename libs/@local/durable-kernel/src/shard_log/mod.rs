@@ -42,8 +42,7 @@ pub use self::{
     location::{LogStorageOptions, read_journal, storage_for_path},
 };
 use self::{
-    error::{post_invocation_report, post_invocation_source},
-    scan::{recovery_range, scan_records, scan_snapshot_records},
+    scan::{scan_records, scan_snapshot_records},
     writer::{flush_with_timeout, wait_until_durable_with},
 };
 

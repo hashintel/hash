@@ -12,7 +12,7 @@ use tempfile::TempDir;
 use super::{
     AppendFailureKind, JournalReader as _, JournalStorage, JournalStream as _, JournalWriter,
     LogStorageOptions, OpenedShard, ShardAppendError, ShardLogLocation, ShardLogOpenError,
-    ShardLogWriter, post_invocation_source, read_journal, wait_until_durable_with,
+    ShardLogWriter, read_journal, wait_until_durable_with,
 };
 use crate::{
     DurableError,
@@ -625,7 +625,7 @@ async fn append_and_flush(log: &LogDb, body: &str) -> u64 {
 #[test]
 fn only_the_pinned_slate_fence_message_is_classified_as_fenced() {
     assert_eq!(
-        post_invocation_source(
+        ShardAppendError::after_storage_call(
             DurableError::FlushRecord,
             std::io::Error::other("storage error: Closed error: detected newer DB client")
         )
@@ -634,7 +634,7 @@ fn only_the_pinned_slate_fence_message_is_classified_as_fenced() {
         AppendFailureKind::Fenced
     );
     assert_eq!(
-        post_invocation_source(
+        ShardAppendError::after_storage_call(
             DurableError::FlushRecord,
             std::io::Error::other("unrelated fencing proxy timeout")
         )

@@ -7,7 +7,7 @@ use tokio::sync::oneshot;
 
 use super::{
     EventRecord, EventRecordV1, Fold, FoldError, HostedQuery, PartitionKey, ProjectionQuery,
-    ProjectionSnapshot, RecoveryError, SimpleDomain, shard_of,
+    ProjectionSnapshot, RecoveryError, SimpleDomain,
 };
 use crate::{
     ids::{EventId, JournalRecordDigest},
@@ -127,7 +127,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
     }
 
     fn record_shard(record: &Self::RecordCurrent) -> Shard {
-        shard_of(record.partition())
+        record.partition().shard()
     }
 
     fn reject_foreign_shard(record: &Self::RecordCurrent) -> Self::FoldError {
@@ -227,7 +227,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         let record = record
             .normalize()
             .change_context(RecoveryError::InvalidRecord { sequence })?;
-        let record_shard = shard_of(record.partition());
+        let record_shard = record.partition().shard();
         if record_shard != shard {
             return Err(Report::new(RecoveryError::ForeignShard {
                 sequence,

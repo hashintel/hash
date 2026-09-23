@@ -47,7 +47,7 @@ impl KernelConfig {
     ///
     /// ```
     /// use durable_kernel::{
-    ///     domain::{PartitionKey, shard_of},
+    ///     domain::PartitionKey,
     ///     keyspace::Namespace,
     ///     runtime::{Kernel, KernelConfig},
     /// };
@@ -55,7 +55,7 @@ impl KernelConfig {
     /// let key = PartitionKey::parse("customers").expect("key should be valid");
     /// let name = Namespace::parse("customer-sync").expect("namespace should be valid");
     /// let mut config = KernelConfig::new(name, "file:///tmp/customer-sync");
-    /// config.shards = vec![shard_of(&key)];
+    /// config.shards = vec![key.shard()];
     /// let kernel = Kernel::open(config).expect("configuration should be valid");
     /// ```
     pub fn new(name: Namespace, blob_url: impl Into<String>) -> Self {

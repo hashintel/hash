@@ -5,7 +5,7 @@ use alloc::{
 
 use super::{Driver, PlannedAction, ScheduleCoverage, SchedulePlan, SubmitKind};
 use crate::{
-    domain::{self, EventRecordV1, PartitionKey},
+    domain::{EventRecordV1, PartitionKey},
     registry::RecordRegistry,
     sequence::JournalSequence,
     sim::SimLogHandle,
@@ -19,7 +19,7 @@ const EFFECT_ROUND_LIMIT: u32 = 8;
 fn shared_shard_counters() -> (crate::routing::Shard, Vec<String>) {
     let anchor =
         PartitionKey::parse("alpha").expect("anchor counter should be a valid partition key");
-    let shard = domain::shard_of(&anchor);
+    let shard = anchor.shard();
     let mut counters = vec!["alpha".to_owned()];
     for candidate in 0_u32.. {
         if counters.len() == 3 {
@@ -28,7 +28,7 @@ fn shared_shard_counters() -> (crate::routing::Shard, Vec<String>) {
         let name = format!("counter-{candidate}");
         let key =
             PartitionKey::parse(&name).expect("candidate counter should be a valid partition key");
-        if domain::shard_of(&key) == shard {
+        if key.shard() == shard {
             counters.push(name);
         }
     }

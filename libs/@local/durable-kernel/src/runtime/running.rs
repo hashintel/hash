@@ -23,7 +23,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
         &self,
         key: &PartitionKey,
     ) -> Result<&ShardCommandHandle<Hosted<S>>, Report<KernelError>> {
-        let shard = domain::shard_of(key);
+        let shard = key.shard();
         self.shards
             .get(&shard.get())
             .ok_or_else(|| Report::new(KernelError::NotOwned { shard }))

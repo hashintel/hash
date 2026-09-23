@@ -1,6 +1,7 @@
 use super::{Driver, DstEffect, DstEvent, ReferenceState, ScheduleCoverage};
 use crate::{
-    domain::{EventRecord, effect_id},
+    domain::EventRecord,
+    ids::EffectId,
     properties::{self},
     registry::VersionedRecord as _,
     sim::SimKey,
@@ -45,16 +46,14 @@ impl Driver<'_> {
         let mut turns = 0_u32;
         while self.effect_turn(coverage).await > 0 {
             turns += 1;
-            properties::check(
-                &properties::PENDING_EFFECTS_COMPLETE,
+            properties::PENDING_EFFECTS_COMPLETE.check(
                 turns <= self.effect_round_limit,
                 format_args!("effects still pending after {turns} execution rounds"),
             );
         }
 
         let durable_end = self.journal.durable_end_exclusive();
-        properties::check(
-            &properties::DURABLE_END_MONOTONIC,
+        properties::DURABLE_END_MONOTONIC.check(
             durable_end >= self.last_durable_end,
             format_args!(
                 "durable end decreased from {} to {durable_end}",
@@ -65,21 +64,18 @@ impl Driver<'_> {
 
         let reference = self.reference_fold();
         let projection = self.read_projection(coverage).await;
-        properties::check(
-            &properties::PROJECTION_IS_FOLD_OF_DURABLE_PREFIX,
+        properties::PROJECTION_IS_FOLD_OF_DURABLE_PREFIX.check(
             projection.totals == reference.totals && projection.archives == reference.archives,
             format_args!(
                 "projection {projection:?} differs from the state rebuilt from the durable prefix"
             ),
         );
         for record in &self.acknowledged {
-            properties::check(
-                &properties::ACK_IMPLIES_DURABLE,
+            properties::ACK_IMPLIES_DURABLE.check(
                 reference.event_ids.contains(&record.event_id()),
                 format_args!("acknowledged event {} is not durable", record.event_id()),
             );
-            properties::check(
-                &properties::ACKED_EVENT_SURVIVES_RECOVERY,
+            properties::ACKED_EVENT_SURVIVES_RECOVERY.check(
                 reference.event_ids.contains(&record.event_id()),
                 format_args!(
                     "acknowledged event {} did not survive recovery",
@@ -88,16 +84,14 @@ impl Driver<'_> {
             );
         }
         for rejected in &self.rejected {
-            properties::check(
-                &properties::REJECTED_NEVER_DURABLE,
+            properties::REJECTED_NEVER_DURABLE.check(
                 !reference.event_ids.contains(rejected),
                 format_args!("rejected event {rejected} became durable"),
             );
         }
         for archive in &reference.archive_events {
-            let identity = effect_id(archive).expect("effect should serialize");
-            properties::check(
-                &properties::DURABLE_COMPLETION_IMPLIES_EXECUTED,
+            let identity = EffectId::for_effect(archive).expect("effect should serialize");
+            properties::DURABLE_COMPLETION_IMPLIES_EXECUTED.check(
                 self.executions.contains_key(&identity),
                 format_args!(
                     "durable completion for {}@{} has no recorded execution",
@@ -106,8 +100,7 @@ impl Driver<'_> {
             );
         }
         for durable in &reference.event_ids {
-            properties::check(
-                &properties::DURABLE_EVENTS_WERE_PROPOSED,
+            properties::DURABLE_EVENTS_WERE_PROPOSED.check(
                 self.proposed.contains(durable),
                 format_args!("durable event {durable} was never proposed"),
             );

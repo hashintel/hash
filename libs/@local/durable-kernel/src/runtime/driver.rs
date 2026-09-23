@@ -8,7 +8,7 @@ use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
 
 use super::{DriverSettings, KernelError, SnapshotPolicy};
 use crate::{
-    domain::{self, EventRecordV1, Executor, Hosted, PartitionKey, SimpleDomain, effect_id},
+    domain::{self, EventRecordV1, Executor, Hosted, PartitionKey, SimpleDomain},
     ids::EffectId,
     shard_log::{
         ShardCommandError, ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome,
@@ -138,7 +138,7 @@ where
 
         let effects = effects
             .into_iter()
-            .map(|effect| effect_id(&effect).map(|id| (id, effect)))
+            .map(|effect| EffectId::for_effect(&effect).map(|id| (id, effect)))
             .collect::<Result<Vec<_>, _>>()
             .change_context(KernelError::EncodeEffectId)?;
         retain_planned_effects(&effects, &mut executed, &mut retries);

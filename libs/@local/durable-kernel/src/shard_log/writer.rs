@@ -6,9 +6,9 @@ use error_stack::{Report, ResultExt as _};
 use opendata_log::{LogDb, Sequence};
 
 use super::{
-    AppendFailureKind, JournalStorage, JournalWriter, ShardAppendError, ShardLogLocation,
-    ShardLogOpenError, ShardLogWriter, SnapshotCandidate, post_invocation_source, recovery_range,
-    scan_records, scan_snapshot_records,
+    AppendFailureKind, JournalStorage, JournalWriter, RecoveryRange, ShardAppendError,
+    ShardLogLocation, ShardLogOpenError, ShardLogWriter, SnapshotCandidate, scan_records,
+    scan_snapshot_records,
 };
 use crate::{
     DurableError,
@@ -22,8 +22,10 @@ pub(super) async fn flush_with_timeout(
 ) -> Result<(), Report<ShardAppendError>> {
     tokio::time::timeout(timeout, flush)
         .await
-        .map_err(|error| post_invocation_source(DurableError::FlushTimeout { timeout }, error))?
-        .map_err(|error| post_invocation_source(DurableError::FlushRecord, error))
+        .map_err(|error| {
+            ShardAppendError::after_storage_call(DurableError::FlushTimeout { timeout }, error)
+        })?
+        .map_err(|error| ShardAppendError::after_storage_call(DurableError::FlushRecord, error))
 }
 
 /// Waits up to `attempts` times for `required` to become durable. It retries because the
@@ -108,7 +110,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
             .change_context(DurableError::RegisterRecord {
                 name: T::declaration().name,
             })?;
-        let range = recovery_range(through_sequence, durable_end_exclusive)?;
+        let range = RecoveryRange::new(through_sequence, durable_end_exclusive)?;
         scan_records(&self.backend, range.bounds, Some(range.window)).await
     }
 

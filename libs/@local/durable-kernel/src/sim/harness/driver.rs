@@ -5,7 +5,8 @@ use super::{
     model::plan_effects,
 };
 use crate::{
-    domain::{EventRecordV1, Hosted, effect_id},
+    domain::{EventRecordV1, Hosted},
+    ids::EffectId,
     properties::{self},
     registry::RecordRegistry,
     shard_log::{
@@ -37,16 +38,12 @@ impl Driver<'_> {
     }
 
     pub(super) fn observe_recovery(&self, coverage: &mut ScheduleCoverage) {
-        properties::covered(
+        properties::RECOVERY_BOUNDED_BY_SNAPSHOT.cover(
             coverage,
-            &properties::RECOVERY_BOUNDED_BY_SNAPSHOT,
             self.started.recovery.snapshot_through_sequence.is_some(),
         );
-        properties::covered(
-            coverage,
-            &properties::CORRUPT_SNAPSHOT_FELL_BACK,
-            self.journal.latest_snapshot_is_corrupt(),
-        );
+        properties::CORRUPT_SNAPSHOT_FELL_BACK
+            .cover(coverage, self.journal.latest_snapshot_is_corrupt());
     }
 
     pub(super) fn fresh_event(&mut self, counter: u8, amount: u64) -> DstEvent {
@@ -79,34 +76,27 @@ impl Driver<'_> {
         let window = self.journal.outcomes_since(outcome_index);
         match result {
             Ok(ShardCommandOutcome::Applied { event_id, .. }) => {
-                properties::check(
-                    &properties::EVENT_ACKED_APPLIED_ONCE,
+                properties::EVENT_ACKED_APPLIED_ONCE.check(
                     !self.applied.contains(&event_id),
                     format_args!("event {event_id} acknowledged Applied twice"),
                 );
-                properties::check(
-                    &properties::EVENT_ACKED_APPLIED_ONCE,
+                properties::EVENT_ACKED_APPLIED_ONCE.check(
                     kind != SubmitKind::Duplicate,
                     format_args!("duplicate submission of {event_id} acknowledged Applied"),
                 );
                 self.applied.insert(event_id);
                 self.acknowledged.push(record);
-                properties::covered(
+                properties::RECOVERY_RETRIES_MISSING_APPEND.cover(
                     coverage,
-                    &properties::RECOVERY_RETRIES_MISSING_APPEND,
                     window.contains(&SimAppendOutcome::CommitUnknownLost),
                 );
             }
             Ok(ShardCommandOutcome::AlreadyDurable { .. }) => {
                 self.acknowledged.push(record);
-                properties::covered(
+                properties::DUPLICATE_SUBMISSION_DETECTED
+                    .cover(coverage, kind == SubmitKind::Duplicate);
+                properties::RECOVERY_FINDS_UNACKNOWLEDGED_APPEND.cover(
                     coverage,
-                    &properties::DUPLICATE_SUBMISSION_DETECTED,
-                    kind == SubmitKind::Duplicate,
-                );
-                properties::covered(
-                    coverage,
-                    &properties::RECOVERY_FINDS_UNACKNOWLEDGED_APPEND,
                     kind != SubmitKind::Duplicate
                         && window.contains(&SimAppendOutcome::CommitUnknownDurable),
                 );
@@ -127,9 +117,8 @@ impl Driver<'_> {
                 | ShardCommandErrorKind::CommitUnknown
                 | ShardCommandErrorKind::Recovery
                 | ShardCommandErrorKind::Closed => {
-                    properties::covered(
+                    properties::WRITER_FENCED.cover(
                         coverage,
-                        &properties::WRITER_FENCED,
                         error.current_context().kind() == ShardCommandErrorKind::Fenced,
                     );
                     self.trace.push(format!(
@@ -192,20 +181,18 @@ impl Driver<'_> {
         let projection = self.read_projection(coverage).await;
         let effects = plan_effects(&projection);
         for effect in &effects {
-            let identity = effect_id(effect).expect("effect should serialize");
+            let identity = EffectId::for_effect(effect).expect("effect should serialize");
             let payload = serde_json::to_vec(effect).expect("effect should serialize");
             let executions = self.executions.entry(identity).or_default();
             if let Some(previous) = executions.first() {
-                properties::check(
-                    &properties::EFFECT_REPLAYS_ARE_IDENTICAL,
+                properties::EFFECT_REPLAYS_ARE_IDENTICAL.check(
                     *previous == payload,
                     format_args!("effect {identity} replayed with different payload"),
                 );
             }
             executions.push(payload);
-            properties::covered(
+            properties::EFFECT_EXECUTED_MORE_THAN_ONCE.cover(
                 coverage,
-                &properties::EFFECT_EXECUTED_MORE_THAN_ONCE,
                 self.executions
                     .get(&identity)
                     .expect("effect execution should have been recorded")

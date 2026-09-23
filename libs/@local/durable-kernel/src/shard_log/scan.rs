@@ -14,29 +14,31 @@ use crate::{
     sequence::JournalSequence,
 };
 
-pub(super) fn recovery_range(
-    through_sequence: Option<JournalSequence>,
-    durable_end_exclusive: JournalSequence,
-) -> Result<RecoveryRange, Report<DurableError>> {
-    let start = match through_sequence {
-        Some(sequence) => sequence
-            .checked_next()
-            .ok_or_else(|| Report::new(DurableError::RecoverySequenceOverflow { sequence }))?,
-        None => JournalSequence::new(0),
-    };
-    if start > durable_end_exclusive {
-        return Err(Report::new(DurableError::InvalidRecoveryRange {
-            start,
-            end: durable_end_exclusive,
-        }));
+impl RecoveryRange {
+    pub(super) fn new(
+        through_sequence: Option<JournalSequence>,
+        durable_end_exclusive: JournalSequence,
+    ) -> Result<Self, Report<DurableError>> {
+        let start = match through_sequence {
+            Some(sequence) => sequence
+                .checked_next()
+                .ok_or_else(|| Report::new(DurableError::RecoverySequenceOverflow { sequence }))?,
+            None => JournalSequence::new(0),
+        };
+        if start > durable_end_exclusive {
+            return Err(Report::new(DurableError::InvalidRecoveryRange {
+                start,
+                end: durable_end_exclusive,
+            }));
+        }
+        Ok(Self {
+            bounds: (
+                Bound::Included(start),
+                Bound::Excluded(durable_end_exclusive),
+            ),
+            window: (start, durable_end_exclusive),
+        })
     }
-    Ok(RecoveryRange {
-        bounds: (
-            Bound::Included(start),
-            Bound::Excluded(durable_end_exclusive),
-        ),
-        window: (start, durable_end_exclusive),
-    })
 }
 
 /// Reads and decodes the requested journal range, checking its sequence bounds.

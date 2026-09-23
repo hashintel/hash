@@ -11,8 +11,9 @@ use super::{Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Su
 use crate::{
     domain::{
         self, DomainEvent, EventRecordV1, Executor, Fold, PartitionKey, ProjectionQuery, Retry,
-        SimpleDomain, effect_id,
+        SimpleDomain,
     },
+    ids::EffectId,
     keyspace::Namespace,
     registry::CompatError,
     routing::Shard,
@@ -337,7 +338,7 @@ async fn registry_lives_until_running_kernel_shuts_down() {
     let partition = PartitionKey::parse("orders").expect("partition should parse");
     let kernel = Kernel::open(config(
         &format!("file://{}", blob.path().display()),
-        domain::shard_of(&partition).get(),
+        partition.shard().get(),
     ))
     .expect("kernel should open");
     let registry = Arc::downgrade(&kernel.registry);
@@ -370,7 +371,7 @@ async fn effect_reintroduced_after_completion() {
     let external = Arc::new(Mutex::new(Vec::new()));
     let kernel = Kernel::open(config(
         &format!("file://{}", blob.path().display()),
-        domain::shard_of(&partition).get(),
+        partition.shard().get(),
     ))
     .expect("kernel should open")
     .register::<RtDomain>()
@@ -437,7 +438,7 @@ async fn kernel_end_to_end_on_s3() {
 
 async fn exercise_end_to_end(blob_url: &str) {
     let orders = PartitionKey::parse("orders").expect("key should be valid");
-    let shard = domain::shard_of(&orders);
+    let shard = orders.shard();
     let external = Arc::new(Mutex::new(Vec::new()));
 
     let kernel = Kernel::open(config(blob_url, shard.get()))
@@ -565,7 +566,7 @@ async fn rejection_preserves_context_and_attachments() {
     let key = PartitionKey::parse("orders").expect("partition key should be valid");
     let kernel = Kernel::open(config(
         &format!("file://{}", blob.path().display()),
-        domain::shard_of(&key).get(),
+        key.shard().get(),
     ))
     .expect("kernel configuration should be valid")
     .register::<RtDomain>()
@@ -692,7 +693,7 @@ async fn check_retry_order(panic_first: bool) {
     let attempts = Arc::new(Mutex::new(Vec::new()));
     let mut settings = config(
         &format!("file://{}", blob.path().display()),
-        domain::shard_of(&key).get(),
+        key.shard().get(),
     );
     settings.poll_interval = Duration::from_millis(200);
     let running = Kernel::open(settings)
@@ -754,12 +755,12 @@ async fn completion_rejection_stops_affected_shard() {
     let blob = tempfile::tempdir().expect("blob directory should be created");
     let key = PartitionKey::parse("ready").expect("key should be valid");
     let other = PartitionKey::parse("orders").expect("key should be valid");
-    assert_ne!(domain::shard_of(&key), domain::shard_of(&other));
+    assert_ne!(key.shard(), other.shard());
     let mut settings = config(
         &format!("file://{}", blob.path().display()),
-        domain::shard_of(&key).get(),
+        key.shard().get(),
     );
-    settings.shards.push(domain::shard_of(&other));
+    settings.shards.push(other.shard());
     let running = Kernel::open(settings)
         .expect("kernel should open")
         .register::<RtDomain>()
@@ -790,11 +791,9 @@ async fn completion_rejection_stops_affected_shard() {
         .expect_err("shutdown should report the rejected completion");
     assert_eq!(
         report.current_context(),
-        &KernelError::ShardDriver {
-            shard: domain::shard_of(&key)
-        }
+        &KernelError::ShardDriver { shard: key.shard() }
     );
-    let expected_effect = effect_id(&()).expect("effect ID should encode");
+    let expected_effect = EffectId::for_effect(&()).expect("effect ID should encode");
     let expected_event = EventRecordV1::new(increment("ready", 2, 0))
         .expect("completion record should encode")
         .event_id();
@@ -961,11 +960,13 @@ async fn foreign_partitions_are_not_owned() {
     let blob = tempfile::tempdir().expect("blob root tempdir should be created");
     let blob_url = format!("file://{}", blob.path().display());
     let orders = PartitionKey::parse("orders").expect("key should be valid");
-    let shard = domain::shard_of(&orders);
+    let shard = orders.shard();
     let foreign = (0..1024_u32)
         .map(|attempt| format!("other-{attempt}"))
         .find(|candidate| {
-            domain::shard_of(&PartitionKey::parse(candidate.as_str()).expect("key should be valid"))
+            PartitionKey::parse(candidate.as_str())
+                .expect("key should be valid")
+                .shard()
                 != shard
         })
         .expect("some key should route elsewhere");

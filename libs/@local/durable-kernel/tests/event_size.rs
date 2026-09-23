@@ -7,7 +7,6 @@ use durable_kernel::{
     DurableError,
     domain::{
         DomainEvent, EventRecord, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
-        shard_of,
     },
     keyspace::Namespace,
     registry::CompatError,
@@ -135,7 +134,7 @@ async fn oversized_submission_preserves_recovery() {
         Namespace::parse("event-size-test").expect("test namespace should be valid"),
         format!("file://{}", directory.path().display()),
     );
-    config.shards = vec![shard_of(&key)];
+    config.shards = vec![key.shard()];
     config.snapshot_policy = SnapshotPolicy::Disabled;
     config.safe_append_retries = 0;
     let kernel = Kernel::open(config)

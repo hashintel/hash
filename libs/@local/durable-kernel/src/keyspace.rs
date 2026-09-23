@@ -71,10 +71,33 @@ impl Namespace {
         }
         Ok(Self(value))
     }
+}
 
-    #[must_use]
-    pub fn as_str(&self) -> &str {
+impl TryFrom<String> for Namespace {
+    type Error = InvalidNamespace;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::parse(value)
+    }
+}
+
+impl AsRef<str> for Namespace {
+    fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl core::str::FromStr for Namespace {
+    type Err = InvalidNamespace;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::parse(value)
+    }
+}
+
+impl From<Namespace> for String {
+    fn from(namespace: Namespace) -> Self {
+        namespace.0
     }
 }
 
