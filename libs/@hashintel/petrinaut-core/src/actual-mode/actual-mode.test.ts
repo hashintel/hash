@@ -56,7 +56,7 @@ describe("Actual mode recordings", () => {
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
 
-    expect(recording.version).toBe(3);
+    expect(recording.version).toBe(2);
     expect(parseActualModeRecording(recording)).toEqual(recording);
   });
 
@@ -75,7 +75,7 @@ describe("Actual mode recordings", () => {
     });
 
     expect(recording).toEqual({
-      version: 3,
+      version: 2,
       exportedAt: "2026-06-05T10:01:00.000Z",
       title: "Replay",
       source: null,
@@ -103,7 +103,7 @@ describe("Actual mode recordings", () => {
     expect(parseActualModeRecording(recording)).toEqual(recording);
   });
 
-  it.each([1, 2, 4])("rejects recording version %i", (version) => {
+  it.each([1, 3])("rejects recording version %i", (version) => {
     expect(() =>
       parseActualModeRecording({
         version,
@@ -153,7 +153,7 @@ describe("Actual mode recordings", () => {
   it("rejects transition firings with extra fields", () => {
     expect(() =>
       parseActualModeRecording({
-        version: 3,
+        version: 2,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,

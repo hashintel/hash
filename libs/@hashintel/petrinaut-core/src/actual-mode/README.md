@@ -80,7 +80,7 @@ Marking reconstruction consumes tokens by value:
   until the stream and the reconstruction re-converge.
 - Produced tokens are appended as recorded.
 
-Recordings carry `version: 3`.
+Recordings carry `version: 2`.
 
 The transition-firing log is retained unbounded for the life of a stream, and
 each firing holds one record per token moved, so a long-running stream's
