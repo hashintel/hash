@@ -214,7 +214,7 @@ const scenario = {
 };
 const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
-test("real panel scenario and metric calls produce persisted revisions and a Brunch continuation", async () => {
+test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
   process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
@@ -231,7 +231,49 @@ test("real panel scenario and metric calls produce persisted revisions and a Bru
       [fauxToolCall("addMetric", metric, { id: "metric-call" })],
       { stopReason: "toolUse" },
     ),
-    fauxAssistantMessage([fauxText("Scenario and metric tools returned.")]),
+    fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "updateScenario",
+          { scenarioId: scenario.id, update: { name: "Updated baseline" } },
+          { id: "update-scenario-call" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "updateMetric",
+          { metricId: metric.id, update: { name: "Updated throughput" } },
+          { id: "update-metric-call" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "removeScenario",
+          { scenarioId: scenario.id },
+          { id: "remove-scenario-call" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "removeMetric",
+          { metricId: metric.id },
+          { id: "remove-metric-call" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage([
+      fauxText("All six scenario and metric tools returned."),
+    ]),
   ]);
   const application = (await import(
     pathToFileURL(join(process.cwd(), "../brunch-agent/dist/app.mjs")).href
@@ -247,6 +289,24 @@ test("real panel scenario and metric calls produce persisted revisions and a Bru
     server.fetch(input instanceof Request ? input : new Request(input, init));
   const documentId = "net-1";
   const initialRevisionId = "initial-revision";
+  const storageWrites: { revisionId: string; definition: SDCPN }[] = [];
+  const originalSetItem = Storage.prototype.setItem;
+  const storageSpy = vi
+    .spyOn(Storage.prototype, "setItem")
+    .mockImplementation(function (this: Storage, key, value) {
+      originalSetItem.call(this, key, value);
+      if (this !== localStorage || key !== "petrinaut-sdcpn") return;
+      const written = JSON.parse(value) as Record<
+        string,
+        { revisionId: string; sdcpn: SDCPN }
+      >;
+      const document = written[documentId];
+      if (document)
+        storageWrites.push({
+          revisionId: document.revisionId,
+          definition: document.sdcpn,
+        });
+    });
   let unmount = () => {};
   try {
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -275,15 +335,17 @@ test("real panel scenario and metric calls produce persisted revisions and a Bru
     const changes: {
       previousRevisionId: string;
       revisionId: string;
-      scenarioIds: string[];
-      metricIds: string[];
+      scenarios: { id: string; name: string }[];
+      metrics: { id: string; name: string }[];
     }[] = [];
     const unsubscribe = handle.subscribe((event) =>
       changes.push({
         previousRevisionId: event.previousRevisionId,
         revisionId: event.revisionId,
-        scenarioIds: event.next.scenarios?.map(({ id }) => id) ?? [],
-        metricIds: event.next.metrics?.map(({ id }) => id) ?? [],
+        scenarios:
+          event.next.scenarios?.map(({ id, name }) => ({ id, name })) ?? [],
+        metrics:
+          event.next.metrics?.map(({ id, name }) => ({ id, name })) ?? [],
       }),
     );
     fireEvent.click(showPanel);
@@ -295,47 +357,61 @@ test("real panel scenario and metric calls produce persisted revisions and a Bru
     });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     expect(
-      await screen.findByText("Scenario and metric tools returned."),
+      await screen.findByText(
+        "All six scenario and metric tools returned.",
+        {},
+        { timeout: 15_000 },
+      ),
     ).not.toBeNull();
     const history = await fixture.client?.history();
     if (!history)
       throw new Error("The real Brunch conversation was not created");
+    const expectedCalls = [
+      ["scenario-call", "addScenario"],
+      ["metric-call", "addMetric"],
+      ["update-scenario-call", "updateScenario"],
+      ["update-metric-call", "updateMetric"],
+      ["remove-scenario-call", "removeScenario"],
+      ["remove-metric-call", "removeMetric"],
+    ] as const;
     const deliveries = clientToolHistoryFrom(history.messages).results.filter(
-      ({ toolCallId }) =>
-        toolCallId === "scenario-call" || toolCallId === "metric-call",
+      ({ toolCallId }) => expectedCalls.some(([id]) => id === toolCallId),
     );
-    expect(deliveries).toHaveLength(2);
-    expect(
-      deliveries.toSorted((left, right) =>
-        left.toolCallId.localeCompare(right.toolCallId),
-      ),
-    ).toMatchObject([
-      {
-        toolCallId: "metric-call",
-        toolName: "addMetric",
+    expect(deliveries).toHaveLength(6);
+    expect(deliveries).toMatchObject(
+      expectedCalls.map(([toolCallId, toolName]) => ({
+        toolCallId,
+        toolName,
         output: { applied: true },
-      },
-      {
-        toolCallId: "scenario-call",
-        toolName: "addScenario",
-        output: { applied: true },
-      },
-    ]);
-    expect(deliveries.map(({ metadata }) => metadata)).toEqual([
-      undefined,
-      undefined,
-    ]);
-    await waitFor(() => expect(changes).toHaveLength(2));
+      })),
+    );
+    expect(deliveries.map(({ metadata }) => metadata)).toEqual(
+      Array.from({ length: 6 }, () => undefined),
+    );
+    await waitFor(() => expect(changes).toHaveLength(6));
+    const originalScenario = { id: scenario.id, name: scenario.name };
+    const originalMetric = { id: metric.id, name: metric.name };
+    const updatedScenario = { ...originalScenario, name: "Updated baseline" };
+    const updatedMetric = { ...originalMetric, name: "Updated throughput" };
     expect(
-      changes.map(({ scenarioIds, metricIds }) => ({ scenarioIds, metricIds })),
+      changes.map(({ scenarios, metrics }) => ({ scenarios, metrics })),
     ).toEqual([
-      { scenarioIds: [scenario.id], metricIds: [] },
-      { scenarioIds: [scenario.id], metricIds: [metric.id] },
+      { scenarios: [originalScenario], metrics: [] },
+      { scenarios: [originalScenario], metrics: [originalMetric] },
+      { scenarios: [updatedScenario], metrics: [originalMetric] },
+      { scenarios: [updatedScenario], metrics: [updatedMetric] },
+      { scenarios: [], metrics: [updatedMetric] },
+      { scenarios: [], metrics: [] },
     ]);
     expect(changes[0]?.previousRevisionId).toBe(initialRevisionId);
-    expect(changes[0]?.revisionId).toBe(changes[1]?.previousRevisionId);
-    const lastRevisionId = changes[1]?.revisionId;
-    if (!lastRevisionId) throw new Error("The metric change had no revision");
+    for (let index = 1; index < changes.length; index++) {
+      expect(changes[index]?.previousRevisionId).toBe(
+        changes[index - 1]?.revisionId,
+      );
+    }
+    expect(new Set(changes.map(({ revisionId }) => revisionId)).size).toBe(6);
+    const lastRevisionId = changes.at(-1)?.revisionId;
+    if (!lastRevisionId) throw new Error("The final change had no revision");
     await waitFor(() => {
       const stored = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -347,9 +423,22 @@ test("real panel scenario and metric calls produce persisted revisions and a Bru
         }
       >;
       expect(stored[documentId]?.revisionId).toBe(lastRevisionId);
-      expect(stored[documentId]?.sdcpn.scenarios?.[0]?.id).toBe(scenario.id);
-      expect(stored[documentId]?.sdcpn.metrics?.[0]?.id).toBe(metric.id);
+      expect(stored[documentId]?.sdcpn.scenarios ?? []).toEqual([]);
+      expect(stored[documentId]?.sdcpn.metrics ?? []).toEqual([]);
     });
+    for (const change of changes) {
+      const saved = storageWrites.find(
+        ({ revisionId }) => revisionId === change.revisionId,
+      );
+      expect(saved).toBeDefined();
+      expect(
+        saved?.definition.scenarios?.map(({ id, name }) => ({ id, name })) ??
+          [],
+      ).toEqual(change.scenarios);
+      expect(
+        saved?.definition.metrics?.map(({ id, name }) => ({ id, name })) ?? [],
+      ).toEqual(change.metrics);
+    }
     const repository = fixture.repository;
     if (!repository)
       throw new Error("The real document repository was not mounted");
@@ -360,6 +449,7 @@ test("real panel scenario and metric calls produce persisted revisions and a Bru
     unsubscribe();
   } finally {
     unmount();
+    storageSpy.mockRestore();
     fixture.fetchApplication = null;
     fixture.client = null;
     await server.stop();
