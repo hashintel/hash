@@ -6,6 +6,7 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core";
 import {
   canonicalPetrinautClientToolNames,
   deepPetrinautClientToolNames,
+  integratedPetrinautClientToolNames,
 } from "./brunch-client-tools";
 
 test("keeps literal parity with the stock Petrinaut tool catalogue", () => {
@@ -14,9 +15,25 @@ test("keeps literal parity with the stock Petrinaut tool catalogue", () => {
   );
 });
 
+test("keeps canonical execution beside the distinct draft only in integrated modes", () => {
+  const canonicalNames = Object.keys(petrinautAiTools);
+  expect(canonicalNames).toContain("createExperiment");
+  expect(canonicalNames).not.toContain("draft_petrinaut_experiment");
+  expect(
+    canonicalPetrinautClientToolNames.has("draft_petrinaut_experiment"),
+  ).toBe(false);
+  for (const names of [
+    integratedPetrinautClientToolNames,
+    deepPetrinautClientToolNames,
+  ]) {
+    expect(names.has("createExperiment")).toBe(true);
+    expect(names.has("draft_petrinaut_experiment")).toBe(true);
+  }
+});
+
 test("adds only the deep Interface B tool to its separate catalogue", () => {
   expect([...deepPetrinautClientToolNames]).toEqual([
-    ...canonicalPetrinautClientToolNames,
+    ...integratedPetrinautClientToolNames,
     applyPetrinautConstructionToolName,
   ]);
   expect(
