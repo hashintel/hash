@@ -128,9 +128,11 @@ pub trait EventDomain: Send + Sync + 'static {
         recovered: &Self::Projection,
     ) -> Result<(), Report<Self::RecoveryError>>;
     /// Returns the planned or blocked work that the scheduler must resume.
-    fn live_work(projection: &Self::Projection) -> Vec<Self::WorkIntent>;
+    fn live_work(projection: &Self::Projection) -> impl IntoIterator<Item = Self::WorkIntent>;
     /// Returns the keys that receive one state-change notification at startup.
-    fn initial_state_keys(projection: &Self::Projection) -> Vec<Self::StateKey>;
+    fn initial_state_keys(
+        projection: &Self::Projection,
+    ) -> impl IntoIterator<Item = Self::StateKey>;
 }
 
 /// Reads state inside the command loop.

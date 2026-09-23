@@ -293,12 +293,12 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         Ok(())
     }
 
-    fn live_work(_projection: &Self::Projection) -> Vec<!> {
-        Vec::new()
+    fn live_work(_projection: &Self::Projection) -> impl IntoIterator<Item = !> {
+        core::iter::empty()
     }
 
-    fn initial_state_keys(projection: &Self::Projection) -> Vec<PartitionKey> {
-        projection.partitions.keys().cloned().collect()
+    fn initial_state_keys(projection: &Self::Projection) -> impl IntoIterator<Item = PartitionKey> {
+        projection.partitions.keys().cloned()
     }
 }
 
