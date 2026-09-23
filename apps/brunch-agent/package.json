@@ -26,6 +26,7 @@
     "test:anthropic-tools": "turbo run build --filter '@apps/brunch-agent...' && node --experimental-strip-types test/anthropic-tool-preflight.ts",
     "test:compiler-feedback": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/compiler-feedback.integration.ts",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
+    "test:draft-browser-boundary": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/draft-browser-boundary.integration.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:native-schema": "node --experimental-strip-types test/integration/native-schema-carriage.integration.ts",
     "test:passage-policy": "node --experimental-strip-types test/passage-policy.integration.ts",
