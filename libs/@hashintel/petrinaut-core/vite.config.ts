@@ -31,6 +31,9 @@ export default defineConfig(({ command }) => ({
           packageRoot,
           "src/browser-optimization.ts",
         ),
+        // The Zeroth reactive-modules export. Separate entry so a host loads
+        // the IR and Python emitters only when it shows the export.
+        "reactive-modules": resolve(packageRoot, "src/reactive-modules.ts"),
         // Dependency-free entry: the selection vocabulary alone, for hosts that
         // validate selection in a route or a server function.
         selection: resolve(packageRoot, "src/selection.ts"),

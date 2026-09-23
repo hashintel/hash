@@ -1,8 +1,9 @@
 import { definitionsViewPlugin } from "./built-in-plugins/definitions-view-plugin";
+import { reactiveModulesPlugin } from "./built-in-plugins/reactive-modules-plugin";
 
 import type { PetrinautPlugin } from "./plugin";
 
-export { definitionsViewPlugin };
+export { definitionsViewPlugin, reactiveModulesPlugin };
 
 /**
  * What `<Petrinaut>` installs before the host's plugins. A host replaces the
@@ -10,4 +11,5 @@ export { definitionsViewPlugin };
  */
 export const petrinautBuiltInPlugins: readonly PetrinautPlugin[] = [
   definitionsViewPlugin,
+  reactiveModulesPlugin,
 ];

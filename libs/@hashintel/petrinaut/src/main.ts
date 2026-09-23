@@ -28,6 +28,7 @@ export { PetrinautOptimizationContext } from "./react/optimization-context";
 export {
   definitionsViewPlugin,
   petrinautBuiltInPlugins,
+  reactiveModulesPlugin,
 } from "./ui/plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./ui/plugins/plugin";
 export type {

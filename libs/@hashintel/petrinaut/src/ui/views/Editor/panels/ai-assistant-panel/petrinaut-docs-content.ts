@@ -13,6 +13,7 @@ import examples from "../../../../../../docs/examples.md?raw";
 import experiments from "../../../../../../docs/experiments.md?raw";
 import petriNetExtensions from "../../../../../../docs/petri-net-extensions.md?raw";
 import preview from "../../../../../../docs/preview.md?raw";
+import reactiveModules from "../../../../../../docs/reactive-modules.md?raw";
 import scenarios from "../../../../../../docs/scenarios.md?raw";
 import simulationPanels from "../../../../../../docs/simulation-panels.md?raw";
 import simulation from "../../../../../../docs/simulation.md?raw";
@@ -46,6 +47,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   "visual-settings": visualSettings,
   "code-editor": codeEditor,
   "compilation-output": compilationOutput,
+  "reactive-modules": reactiveModules,
   examples,
 };
 
