@@ -12,6 +12,7 @@ import {
   getActualModeTransitionFiringTimesMs,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
+  validateActualModeInitialState,
 } from ".";
 import { compileHirArtifacts } from "../hir/compile";
 import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
@@ -182,6 +183,29 @@ describe("Actual mode recordings", () => {
             path: ["initialState"],
             message:
               'Initial marking holds token {"ticket_id":"a"} in place "queued", which lacks element "attempts" of colour "Ticket"',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("rejects a recording whose initial state holds a token count in a coloured place", () => {
+    const recording = createActualModeRecording({
+      title: "Replay",
+      source: null,
+      definition: ticketDefinition,
+      initialState: { queued: 2 },
+      transitionFirings: [],
+      exportedAt: "2026-06-05T10:01:00.000Z",
+    });
+
+    expect(() => parseActualModeRecording(recording)).toThrow(
+      expect.objectContaining({
+        issues: [
+          expect.objectContaining({
+            path: ["initialState"],
+            message:
+              'Initial marking holds a token count of 2 in place "queued", whose colour "Ticket" has elements, so the place needs a token record for each token',
           }),
         ],
       }),
@@ -586,7 +610,7 @@ describe("Actual mode recordings", () => {
     ]);
   });
 
-  it("keeps count-only coloured markings consistent for HIR metrics", () => {
+  it("gives HIR metrics the recorded tokens of a coloured place", () => {
     const colouredDefinition = {
       ...definition,
       places: [
@@ -614,15 +638,15 @@ describe("Actual mode recordings", () => {
       ],
       metrics: [
         {
-          id: "item-count",
-          name: "Item count",
-          code: "return state.places.Items.tokens.length;",
+          id: "item-total",
+          name: "Item total",
+          code: "return state.places.Items.tokens.reduce((sum, token) => sum + token.value, 0);",
         },
       ],
     } satisfies SDCPN;
     const reader = createActualModeTimelineFrameReader({
       definition: colouredDefinition,
-      initialState: { items: 2.9 },
+      initialState: { items: [{ value: 1.5 }, { value: 2.25 }] },
       transitionFirings: [],
       transitionFiringTimesMs: [],
       point: {
@@ -634,20 +658,22 @@ describe("Actual mode recordings", () => {
     });
     const { artifacts, failures } = compileHirArtifacts(colouredDefinition);
     expect(failures).toEqual([]);
-    const artifact = artifacts.metrics["item-count"];
+    const artifact = artifacts.metrics["item-total"];
     if (!artifact) {
-      throw new Error("Expected the item-count HIR artifact");
+      throw new Error("Expected the item-total HIR artifact");
     }
     const evaluate = createHirMetricEvaluator({
-      metricName: "Item count",
+      metricName: "Item total",
       artifact,
       places: colouredDefinition.places,
     });
 
-    const tokens = reader.getPlaceTokens(colouredDefinition.places[0]!);
     expect(reader.getPlaceTokenCount("items")).toBe(2);
-    expect(tokens).toEqual([{ value: 0 }, { value: 0 }]);
-    expect(evaluate(reader)).toBe(tokens.length);
+    expect(reader.getPlaceTokens(colouredDefinition.places[0]!)).toEqual([
+      { value: 1.5 },
+      { value: 2.25 },
+    ]);
+    expect(evaluate(reader)).toBe(3.75);
   });
 });
 
@@ -738,6 +764,56 @@ describe("Actual mode token record validation", () => {
     ).toThrow(
       'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a"} from place "queued", which carries attribute "ticket_id" although the place has no colour',
     );
+  });
+
+  it.each([0, 2])(
+    "rejects an initial token count of %d in a place whose colour has elements",
+    (count) => {
+      expect(() =>
+        validateActualModeInitialState(sampleDefinition, { samples: count }),
+      ).toThrow(
+        `Initial marking holds a token count of ${count} in place "samples", whose colour "Sample" has elements, so the place needs a token record for each token`,
+      );
+    },
+  );
+
+  it("accepts a token count in a place whose colour has no elements", () => {
+    const markerDefinition: SDCPN = {
+      ...definition,
+      places: [makePlace("flags", "marker")],
+      types: [{ ...sampleColour, id: "marker", name: "Marker", elements: [] }],
+    };
+
+    expect(
+      getActualModeMarkingAtTransitionFiringIndex({
+        definition: markerDefinition,
+        initialState: { flags: 2 },
+        transitionFirings: [firingAt("clear", { flags: [{}] }, {})],
+        transitionFiringIndex: 0,
+      }),
+    ).toEqual({ flags: 1 });
+  });
+
+  it("rejects a firing on a marking that holds a token count in a coloured place", () => {
+    expect(() =>
+      applyActualModeTransitionFiring(
+        sampleDefinition,
+        { samples: 1 },
+        firingAt("take", {}, { samples: [sample] }),
+      ),
+    ).toThrow(
+      'Marking holds a token count of 1 in place "samples", whose colour "Sample" has elements, so the place needs a token record for each token',
+    );
+  });
+
+  it("keeps a coloured place a token array when a firing moves no tokens there", () => {
+    expect(
+      applyActualModeTransitionFiring(
+        sampleDefinition,
+        {},
+        firingAt("noop", { samples: [] }, {}),
+      ),
+    ).toEqual({ samples: [] });
   });
 
   it("rejects a firing that names a place the net does not define", () => {

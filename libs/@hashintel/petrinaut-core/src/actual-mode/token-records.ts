@@ -86,6 +86,36 @@ const getPlaceColours = (
 };
 
 /**
+ * The colour of `placeId` when it declares elements, so that the place's
+ * tokens are records a firing consumes by value; null otherwise, including
+ * for a place the net does not define.
+ */
+export const getElementBearingPlaceColour = (
+  definition: ActualModeDefinition,
+  placeId: string,
+): Color | null => {
+  const placeColour = getPlaceColours(definition).get(placeId);
+  return placeColour?.kind === "coloured" &&
+    placeColour.colour.elements.length > 0
+    ? placeColour.colour
+    : null;
+};
+
+/**
+ * The error for a token count held by a place whose colour declares
+ * elements. `subject` names the marking, as in "Initial marking".
+ */
+export const createTokenCountOnColouredPlaceError = (
+  subject: string,
+  placeId: string,
+  count: number,
+  colour: Color,
+): Error =>
+  new Error(
+    `${subject} holds a token count of ${count} in place "${placeId}", whose colour "${colour.name}" has elements, so the place needs a token record for each token`,
+  );
+
+/**
  * What is wrong with `record` as a token of a place with `placeColour`, as a
  * clause that completes "… token {record} … place "p"", or null when the
  * record carries exactly the colour's elements, each an at-rest value of its
@@ -154,10 +184,13 @@ const validateTokenRecords = (
  * net: a place with a colour lists records carrying exactly the colour's
  * elements, each an at-rest value of the element's type (`uuid` values are
  * canonical lowercase strings), and an uncoloured place lists only `{}`
- * records. A token count is valid for any place the net defines.
+ * records. A place whose colour declares elements lists records, not a
+ * token count: a firing consumes a coloured token by its element values,
+ * which a count does not carry.
  *
  * @throws naming the place, the record and the element or attribute at
- * fault, or a place the net does not define.
+ * fault, a token count on a place whose colour declares elements, or a place
+ * the net does not define.
  */
 export const validateActualModeInitialState = (
   definition: ActualModeDefinition,
@@ -173,6 +206,15 @@ export const validateActualModeInitialState = (
         `Initial marking holds token ${JSON.stringify(record)} in place "${placeId}"`,
       "Initial marking",
     );
+    const recordColour = getElementBearingPlaceColour(definition, placeId);
+    if (!Array.isArray(markingValue) && recordColour) {
+      throw createTokenCountOnColouredPlaceError(
+        "Initial marking",
+        placeId,
+        markingValue,
+        recordColour,
+      );
+    }
   }
 };
 

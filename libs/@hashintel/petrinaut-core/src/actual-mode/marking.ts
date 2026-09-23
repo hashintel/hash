@@ -1,5 +1,7 @@
 import { createUserKeyedRecord } from "../validation/record-keys";
 import {
+  createTokenCountOnColouredPlaceError,
+  getElementBearingPlaceColour,
   validateActualModeInitialState,
   validateActualModeTransitionFiring,
 } from "./token-records";
@@ -118,12 +120,14 @@ const removeConsumedTokens = (
 /**
  * Applies one firing to a marking. A place stays a token count while every
  * token recorded for it is `{}`; the first token with attributes turns it
- * into an array.
+ * into an array. A place whose colour declares elements holds an array once
+ * a firing names it.
  *
  * @throws when a token record does not fit its place in `definition` (see
- * `validateActualModeTransitionFiring`), or when the firing consumes a token
- * the marking does not hold: more tokens than a place holds, or a recorded
- * token equal to none of them.
+ * `validateActualModeTransitionFiring`), when `marking` holds a token count
+ * on a place the firing names whose colour declares elements, or when the
+ * firing consumes a token the marking does not hold: more tokens than a
+ * place holds, or a recorded token equal to none of them.
  */
 export const applyActualModeTransitionFiring = (
   definition: ActualModeDefinition,
@@ -141,8 +145,19 @@ export const applyActualModeTransitionFiring = (
     const currentValue = next[placeId];
     const consumedTokens = firing.inputTokens[placeId] ?? [];
     const producedTokens = firing.outputTokens[placeId] ?? [];
+    const recordColour = getElementBearingPlaceColour(definition, placeId);
+
+    if (typeof currentValue === "number" && recordColour) {
+      throw createTokenCountOnColouredPlaceError(
+        "Marking",
+        placeId,
+        currentValue,
+        recordColour,
+      );
+    }
 
     if (
+      !recordColour &&
       !Array.isArray(currentValue) &&
       !consumedTokens.some(hasAttributes) &&
       !producedTokens.some(hasAttributes)
@@ -171,7 +186,8 @@ export const applyActualModeTransitionFiring = (
 
 /**
  * @throws when `initialState` or a replayed firing holds a token record that
- * does not fit its place in `definition`, or a firing consumes a token the
+ * does not fit its place in `definition`, `initialState` holds a token count
+ * on a place whose colour declares elements, or a firing consumes a token the
  * marking does not hold.
  */
 export const getActualModeMarkingAtTransitionFiringIndex = (params: {

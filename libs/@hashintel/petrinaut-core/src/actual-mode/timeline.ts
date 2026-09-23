@@ -246,8 +246,7 @@ export const createActualModeTimelineFrameReader = (params: {
     if (isActualModeTokenColourArray(placeMarking)) {
       // Recorded token values are at-rest JSON (uuid values are canonical
       // strings); coercion brings them to the runtime form simulation frames
-      // expose. Tokens expanded from a count carry no attributes and take
-      // type defaults, as count-only places do below.
+      // expose.
       tokensByPlaceId.set(
         place.id,
         placeMarking.map((token) =>
@@ -431,7 +430,8 @@ export type ActualModeFrameReplay = {
  * from-zero replay per frame.
  *
  * @throws when `initialState` holds a token record that does not fit its
- * place in `definition`; `readerAt` throws the same for a firing it applies,
+ * place in `definition`, or a token count on a place whose colour declares
+ * elements; `readerAt` throws for a firing record that does not fit its place,
  * and for a firing that consumes a token the marking does not hold.
  */
 export const createActualModeFrameReplay = (params: {

@@ -45,8 +45,8 @@ export const actualModeTokenValuesSchema = z.record(
  *
  * This validates `initial_state` stream frames and recording snapshots. A
  * place is either a token count or an array of token records; whether each
- * record fits its place needs the net, so `validateActualModeInitialState`
- * checks it.
+ * fits its place needs the net, so `validateActualModeInitialState` checks
+ * it.
  */
 export const actualModeMarkingSchema = z.record(
   z.string(),

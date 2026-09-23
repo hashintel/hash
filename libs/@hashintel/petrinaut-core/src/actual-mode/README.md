@@ -77,6 +77,9 @@ covers the token arrays of an initial marking:
   `real`, an integer for `integer`, a boolean for `boolean`, a string for
   `string`, and a canonical lowercase UUID string for `uuid`.
 - A record for an uncoloured place is `{}`.
+- A place whose colour declares elements lists its tokens as records. A
+  token count there is an error, because a firing consumes a coloured token
+  by its element values.
 - Every place a firing or marking names is defined by the net.
 
 `applyActualModeTransitionFiring` checks the firing's records before applying
