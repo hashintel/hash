@@ -17,7 +17,7 @@ import {
 } from "./linear-hir";
 import { attributeName, presentName } from "./shared/names";
 
-import type { HirFunction } from "../../hir/hir";
+import type { HirExpr, HirFunction } from "../../hir/hir";
 
 /**
  * A place's dynamics as one Euler step per slot, before the sweep, as the
@@ -62,19 +62,41 @@ export const lowerDynamics = (
   if (
     body.kind !== "arrayMap" ||
     body.target.kind !== "localRef" ||
-    body.target.name !== inputName ||
-    body.body.kind !== "recordLit"
+    body.target.name !== inputName
   ) {
     return refuse(
       "dynamics-shape",
       "dynamics map the tokens to a record of derivatives",
     );
   }
-  const record = body.body;
+  // The callback may bind consts before its record.
+  let callback = body.body;
+  const callbackBindings: { name: string; value: HirExpr }[] = [];
+  while (callback.kind === "let") {
+    callbackBindings.push(...callback.bindings);
+    callback = callback.body;
+  }
+  if (callback.kind !== "recordLit") {
+    return refuse(
+      "dynamics-shape",
+      "dynamics map the tokens to a record of derivatives",
+    );
+  }
+  const record = callback;
   const statements: ReactiveStatement[] = [];
   for (let slot = 0; slot < layout.slots; slot++) {
     const locals = new Map(rootLocals);
     locals.set(body.param.name, slotToken(layout, slot));
+    for (const binding of callbackBindings) {
+      try {
+        locals.set(binding.name, translateValue(binding.value, env, locals));
+      } catch (error) {
+        if (error instanceof LinearHirRefusal) {
+          return refuse(error.code, error.message);
+        }
+        throw error;
+      }
+    }
     for (const attribute of layout.attributes) {
       if (!attribute.integrates) {
         continue;

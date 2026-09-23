@@ -28,6 +28,7 @@ import {
   takeName,
 } from "./shared/names";
 
+import type { HirFunction } from "../../hir/hir";
 import type { PlannedArc, PlannedTransition, StepPlan } from "./step-plan";
 
 /**
@@ -104,8 +105,9 @@ const envFor = (
   context: BindingsContext,
   arcs: PlannedArc[],
   combination: number[][],
+  inputName = "input",
 ): LinearHirEnv => ({
-  inputName: "input",
+  inputName,
   token: (place, index) => {
     const position = arcs.findIndex((arc) => arc.place === place);
     const layout = context.plan.layouts.get(place);
@@ -148,15 +150,21 @@ const lambdaTerm = (
   env: LinearHirEnv,
 ): ReactiveExpr | null => {
   const { transition } = context;
+  const named = (fn: HirFunction): LinearHirEnv => ({
+    ...env,
+    inputName: fn.params[0]?.name ?? env.inputName,
+  });
   if (transition.guard !== null) {
-    return withRefusal(() => translateGuard(transition.guard!, env));
+    const guard = transition.guard;
+    return withRefusal(() => translateGuard(guard, named(guard)));
   }
   if (transition.rateCode !== null) {
+    const rate = transition.rateCode;
     // exp(-rate * dt) <= u  is  rate >= -ln(u) / dt, the exponential draw.
     return withRefusal(() =>
       binary(
         ">=",
-        translateRate(transition.rateCode!, env),
+        translateRate(rate, named(rate)),
         next(exponentialDrawName(transition.name)),
       ),
     );

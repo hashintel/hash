@@ -1,5 +1,8 @@
 import { mapHirChildren } from "../../hir/hir";
-import { printHirFunction } from "../../hir/print-function";
+import {
+  printHirFunction,
+  substituteHirParameters,
+} from "../../hir/print-function";
 
 import type { HirExpr, HirFunction } from "../../hir/hir";
 
@@ -77,8 +80,8 @@ export const renamePlacesInHir = (
 };
 
 export type PrintUserCodeOutcome =
-  | { ok: true; code: string }
-  | { ok: false; message: string };
+  /** The text, and the tree it prints: parameters inlined, places renamed. */
+  { ok: true; code: string; fn: HirFunction } | { ok: false; message: string };
 
 export const printUserCode = (
   fn: HirFunction,
@@ -86,10 +89,11 @@ export const printUserCode = (
   parameters: Readonly<Record<string, number | boolean>>,
 ): PrintUserCodeOutcome => {
   try {
-    return {
-      ok: true,
-      code: printHirFunction(renamePlacesInHir(fn, placeNames), { parameters }),
-    };
+    const inlined = substituteHirParameters(
+      renamePlacesInHir(fn, placeNames),
+      parameters,
+    );
+    return { ok: true, code: printHirFunction(inlined), fn: inlined };
   } catch (error) {
     return {
       ok: false,

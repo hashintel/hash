@@ -96,7 +96,13 @@ export type SdcpnToPetriNetIrInput = {
 };
 
 export type SdcpnToPetriNetIrOutcome =
-  | { ok: true; ir: PetriNetIr; warnings: PetriNetIrDiagnostic[] }
+  | {
+      ok: true;
+      ir: PetriNetIr;
+      /** The tree each code string of the IR was printed from, keyed by the text. */
+      code: ReadonlyMap<string, HirFunction>;
+      warnings: PetriNetIrDiagnostic[];
+    }
   | {
       ok: false;
       errors: PetriNetIrDiagnostic[];
@@ -316,6 +322,8 @@ type TransitionContext = {
   coloursById: ReadonlyMap<string, Color>;
   names: IrNamePool;
   evidence: StringEvidence;
+  /** Every code string written so far, to the tree it prints. */
+  code: Map<string, HirFunction>;
 };
 
 type EvaluatedCondition =
@@ -436,6 +444,7 @@ const codeOf = (
     });
     return null;
   }
+  context.code.set(printed.code, printed.fn);
   return printed.code;
 };
 
@@ -603,7 +612,7 @@ const lowerDynamics = (
     parameters: ParameterValues | null;
   },
   diagnostics: Diagnostics,
-): PetriNetIrDynamics | null => {
+): { entry: PetriNetIrDynamics; fn: HirFunction } | null => {
   const item: PetriNetIrDiagnosticItem = {
     kind: "dynamics",
     id: equation.id,
@@ -646,7 +655,7 @@ const lowerDynamics = (
     });
     return null;
   }
-  return { colour, code: printed.code };
+  return { entry: { colour, code: printed.code }, fn: printed.fn };
 };
 
 /**
@@ -732,6 +741,7 @@ export const sdcpnToPetriNetIr = (
     }
   }
   const evidence = createStringEvidence();
+  const code = new Map<string, HirFunction>();
 
   const places: Record<string, PetriNetIrPlace> = {};
   const marking: PetriNetIrMarking = {};
@@ -811,7 +821,8 @@ export const sdcpnToPetriNetIr = (
       diagnostics,
     );
     if (lowered !== null) {
-      dynamics[name] = lowered;
+      dynamics[name] = lowered.entry;
+      code.set(lowered.entry.code, lowered.fn);
     }
   }
 
@@ -832,6 +843,7 @@ export const sdcpnToPetriNetIr = (
         coloursById,
         names,
         evidence,
+        code,
       },
       diagnostics,
     );
@@ -847,6 +859,7 @@ export const sdcpnToPetriNetIr = (
   const description = sdcpn.description?.trim();
   return {
     ok: true,
+    code,
     ir: {
       name: toIrNetName(input.title),
       ...(description === undefined || description === ""

@@ -72,7 +72,10 @@ export const compileReactiveModuleExport = ({
     ...outcome.ir,
     ...(target === undefined ? {} : { zeroth: target }),
   };
-  const compiled = compilePetriNetIr(document);
+  // The compiler reads the code back from the trees the IR was printed from.
+  const compiled = compilePetriNetIr(document, {
+    parseCode: (text) => outcome.code.get(text),
+  });
   return {
     document,
     ir: renderPetriNetIr(document),

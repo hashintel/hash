@@ -147,7 +147,7 @@ const cycle = net(
 
 describe("sdcpnToPetriNetIr", () => {
   it("lowers a plain net with the given initial marking and UpperCamelCase names", () => {
-    expect(compile(cycle, { initialMarking: { a: 1 } })).toEqual({
+    expect(compile(cycle, { initialMarking: { a: 1 } }))).toMatchObject({
       ok: true,
       warnings: [],
       ir: {
