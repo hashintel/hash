@@ -22,6 +22,7 @@ import {
 
 import {
   applyPetrinautConstructionToolName,
+  draftPetrinautExperimentToolName,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -80,11 +81,16 @@ import {
 import {
   canonicalPetrinautClientToolNames,
   deepPetrinautClientToolNames,
+  integratedPetrinautClientToolNames,
 } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "./brunch-conversation-id";
+import {
+  createBrunchDraftExperimentInteractiveTool,
+  resolveDraftAuthorityFromHistory,
+} from "./brunch-draft-experiment-interactive-tool";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -793,6 +799,7 @@ export const LocalStorageDemoApp = ({
       "addTransition",
       "addArc",
     ]);
+    names.add(draftPetrinautExperimentToolName);
     if (deepModeSelected) names.add(applyPetrinautConstructionToolName);
     return names;
   }, [deepModeSelected, integratedConstructionBrowser]);
@@ -806,7 +813,9 @@ export const LocalStorageDemoApp = ({
   const constructionClientTools = brunchSelected
     ? deepModeSelected
       ? deepPetrinautClientToolNames
-      : canonicalPetrinautClientToolNames
+      : integratedBrunchSelected
+        ? integratedPetrinautClientToolNames
+        : canonicalPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
@@ -1024,6 +1033,24 @@ export const LocalStorageDemoApp = ({
     transportClientPromise,
   ]);
 
+  const draftInteractiveTool = useMemo(
+    () =>
+      integratedConstructionBrowser && activeHandle && flueClientPromise
+        ? createBrunchDraftExperimentInteractiveTool({
+            readTitle: () => activeHandle.document.title,
+            readDraftAuthority: async (toolCallId, input) => {
+              const client = await flueClientPromise;
+              return resolveDraftAuthorityFromHistory(
+                await client.history(),
+                integratedConstructionBrowser.binding,
+                toolCallId,
+                input,
+              );
+            },
+          })
+        : undefined,
+    [activeHandle, flueClientPromise, integratedConstructionBrowser],
+  );
   const aiAssistant = useMemo(() => {
     const activityIdentities =
       integratedConstructionBrowser && flueHistory.ready
@@ -1065,7 +1092,7 @@ export const LocalStorageDemoApp = ({
         ...(canonicalHostTools?.tools ?? []),
         ...(deepHostTool === undefined ? [] : [deepHostTool.tool]),
       ],
-      interactiveTools: [],
+      interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
         ? {}
@@ -1118,6 +1145,7 @@ export const LocalStorageDemoApp = ({
     brunchVoiceMode,
     canonicalHostTools,
     deepHostTool,
+    draftInteractiveTool,
     observedLiveHash,
     integratedConstructionBrowser,
     conversationTracker,

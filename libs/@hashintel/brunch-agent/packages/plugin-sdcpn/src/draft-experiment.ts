@@ -2,8 +2,6 @@ import { z } from "zod";
 
 import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core";
 
-import { declaredBasisSchema, sha256Schema } from "./declared-basis";
-
 export const draftPetrinautExperimentToolName = "draft_petrinaut_experiment";
 
 export const isDraftPetrinautExperimentToolName = (name: string): boolean =>
@@ -25,7 +23,9 @@ const declarationSchema = z.strictObject({
   ),
 });
 
-/** A workpiece condition the request cannot carry, disclosed rather than dropped. */
+/** Core's AI request schema has no constraints field. Preparation currently forwards
+ * constraints: [] and constraintPolicy: null downstream; that is not AI constraint carriage.
+ * A workpiece condition is disclosed rather than silently dropped. */
 const unsupportedConditionSchema = z.strictObject({
   condition: nonempty.describe(
     "The restriction, threshold or condition in the person's words.",
@@ -48,24 +48,12 @@ const unsupportedConditionSchema = z.strictObject({
 
 /**
  * The drafted proposal. `experiment` is core's request, unchanged and
- * separable; the other fields are Brunch's provenance and disclosure.
+ * separable; the other fields disclose the proposal, not host protocol identity.
  */
 export const draftPetrinautExperimentInputSchema = z
   .strictObject({
-    observation: z
-      .strictObject({
-        toolCallId: nonempty.describe(
-          "The read_petrinaut_net call whose output supplied every identifier below.",
-        ),
-        baseHash: sha256Schema.describe(
-          "That read's `observation.sha256`; the model the identifiers were copied from.",
-        ),
-      })
-      .describe(
-        "The verified current net observation the identifiers were copied from.",
-      ),
     experiment: petrinautExperimentRequestSchema.describe(
-      "The experiment to draft, in Petrinaut's own request shape. Copy `scenarioId`, `metricIds`, `objectiveMetricId` and scenario parameter identifiers from the cited observation; do not compose them from names. Drafting does not run it.",
+      "The experiment to draft, in Petrinaut's own request shape. Use identifiers from the verified current canonical getLatestNetDefinition result; the host resolves and verifies that read, not a model-supplied hash or call ID. Drafting does not run it.",
     ),
     declarations: z
       .array(declarationSchema)
@@ -73,9 +61,6 @@ export const draftPetrinautExperimentInputSchema = z
       .describe(
         "Mandatory disclosures the person reads beside the settings: every numeric field's unit and conversion, every metric's kind and role, every budget number's inference, and what the result must not claim.",
       ),
-    basis: declaredBasisSchema.describe(
-      "The settled workpiece passages the experiment derives from, in the same declared-basis shape mutate_petrinaut_net uses.",
-    ),
     unsupported: z
       .array(unsupportedConditionSchema)
       .describe(
@@ -84,14 +69,6 @@ export const draftPetrinautExperimentInputSchema = z
   })
   .superRefine((draft, context) => {
     for (const [index, condition] of draft.unsupported.entries()) {
-      if (!condition.blocksRun && draft.basis.kind !== "declared") {
-        context.addIssue({
-          code: "custom",
-          path: ["unsupported", index, "blocksRun"],
-          message:
-            "A reporting-only run requires recorded acceptance in a declared workpiece basis.",
-        });
-      }
       if (
         condition.reportedByMetricId &&
         !draft.experiment.metricIds.includes(condition.reportedByMetricId)
@@ -106,7 +83,7 @@ export const draftPetrinautExperimentInputSchema = z
     }
   })
   .describe(
-    "Draft one experiment for this session from the settled workpiece and the current net. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",
+    "Draft one experiment for this conversation from the settled Ledger and the verified current canonical net read. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",
   );
 
 export type DraftPetrinautExperimentInput = z.output<

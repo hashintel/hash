@@ -1,6 +1,9 @@
 import {
   applyPetrinautConstructionToolName,
   canonicalContent,
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentOutputSchema,
+  draftPetrinautExperimentToolName,
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
@@ -359,14 +362,16 @@ export const verifyMutationResults = async (input: {
   const history = clientToolHistoryFrom(input.snapshot.messages);
   await Promise.all(
     deliveries.map(async (delivery) => {
-      const call = input.snapshot.messages
+      const matchingCalls = input.snapshot.messages
         .flatMap((message) => message.parts)
-        .find(
+        .filter(
           (part) =>
             part.type === "dynamic-tool" &&
             part.toolCallId === delivery.toolCallId,
         );
+      const call = matchingCalls[0];
       if (
+        matchingCalls.length !== 1 ||
         !call ||
         call.type !== "dynamic-tool" ||
         call.toolName !== delivery.toolName ||
@@ -376,6 +381,25 @@ export const verifyMutationResults = async (input: {
         throw new Error(
           "The browser result has no matching admitted canonical call.",
         );
+      if (call.toolName === draftPetrinautExperimentToolName) {
+        draftPetrinautExperimentInputSchema.parse(call.input);
+        draftPetrinautExperimentOutputSchema.parse(delivery.output);
+        const recorded = history.results.filter(
+          (result) => result.toolCallId === call.toolCallId,
+        );
+        if (
+          recorded.length !== 1 ||
+          recorded[0]?.toolName !== call.toolName ||
+          canonicalContent(recorded[0].output) !==
+            canonicalContent(delivery.output) ||
+          deliveries.filter((result) => result.toolCallId === call.toolCallId)
+            .length !== 1
+        )
+          throw new Error(
+            "The experiment draft has a missing, conflicting or duplicate result delivery.",
+          );
+        return;
+      }
       if (call.toolName === createExperimentToolName) {
         await verifyExperimentDelivery({
           delivery,

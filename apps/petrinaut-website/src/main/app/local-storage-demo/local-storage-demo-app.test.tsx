@@ -21,6 +21,7 @@ import {
 
 import {
   applyPetrinautConstructionToolName,
+  draftPetrinautExperimentToolName,
   BRUNCH_DECLARED_PROJECTION_MODE,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
@@ -41,7 +42,7 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
-import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
+import { integratedPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -578,7 +579,9 @@ describe("local storage demo Brunch voice integration", () => {
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect(aiAssistant.executeMutation).toBeUndefined();
-    expect(aiAssistant.interactiveTools).toEqual([]);
+    expect(
+      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual([draftPetrinautExperimentToolName]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1448,8 +1451,11 @@ describe("local storage demo Brunch controls", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
-      [...canonicalPetrinautClientToolNames].toSorted(),
+      [...integratedPetrinautClientToolNames].toSorted(),
     );
+    expect(
+      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual([draftPetrinautExperimentToolName]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     expectExperimentRecord(transportOptions, "integrated-experiment");
     expect(
@@ -1458,6 +1464,7 @@ describe("local storage demo Brunch controls", () => {
       "addArc",
       "addPlace",
       "addTransition",
+      "draft_petrinaut_experiment",
       "getLatestNetDefinition",
       "getNetCompilationErrors",
     ]);
@@ -2435,6 +2442,7 @@ describe("assistant selection", () => {
       ),
     );
     expect(currentAssistant().automaticTools).toEqual([]);
+    expect(currentAssistant().interactiveTools).toEqual([]);
     expect(currentAssistant().additionalTab).toBeUndefined();
     expect(
       (
@@ -2494,6 +2502,15 @@ describe("assistant selection", () => {
       }) => unknown;
     };
     expect(
+      currentAssistant().interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual([draftPetrinautExperimentToolName]);
+    expect(options.clientToolNames?.has(draftPetrinautExperimentToolName)).toBe(
+      true,
+    );
+    expect(
+      options.dynamicClientToolNames?.has(draftPetrinautExperimentToolName),
+    ).toBe(true);
+    expect(
       options.clientToolNames?.has(applyPetrinautConstructionToolName),
     ).toBe(false);
     expect(
@@ -2533,6 +2550,15 @@ describe("assistant selection", () => {
         output: unknown;
       }) => unknown;
     };
+    expect(
+      currentAssistant().interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual([draftPetrinautExperimentToolName]);
+    expect(options.clientToolNames?.has(draftPetrinautExperimentToolName)).toBe(
+      true,
+    );
+    expect(
+      options.dynamicClientToolNames?.has(draftPetrinautExperimentToolName),
+    ).toBe(true);
     expect(
       options.clientToolNames?.has(applyPetrinautConstructionToolName),
     ).toBe(true);

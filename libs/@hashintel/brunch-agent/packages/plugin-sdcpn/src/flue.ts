@@ -30,6 +30,7 @@ import {
   declaredProjectionOutputSchema,
   resolveDeclaredProjectionOutput,
 } from "./declared-basis";
+import { draftPetrinautExperimentToolName } from "./draft-experiment";
 import { batchedConstructionMode } from "./mutate-petrinet";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { browserBindingSchema } from "./root-arc";
@@ -37,6 +38,7 @@ import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnModellingSkill,
 } from "./skills/sdcpn-modelling/skill";
+import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
   applyPetrinautConstructionTool,
   createMutatePetrinetTool,
@@ -135,7 +137,10 @@ const createDeclarePetrinautProjectionTool = (
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(
   options?: WorkpieceAuthorityOptions &
-    Partial<Pick<ObservedConstructionOptions, "observationFor">>,
+    Partial<Pick<ObservedConstructionOptions, "observationFor">> &
+    Partial<
+      Pick<Parameters<typeof createDraftExperimentTool>[0], "authorizeDraft">
+    >,
 ): void {
   const initialData = useInitialData<SdcpnInitialData>();
 
@@ -147,13 +152,24 @@ export function useSdcpnPlugin(
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
     useSkill(sdcpnModellingSkill);
+    if (!options?.authorizeDraft)
+      throw new Error(
+        "Integrated Brunch requires draft history authorization.",
+      );
+    useTool(
+      createDraftExperimentTool({
+        ...options,
+        authorizeDraft: options.authorizeDraft,
+      }),
+    );
+    useInstruction(
+      "For Ledger-derived experiment proposals, prefer draft_petrinaut_experiment after a verified canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
+    );
     if (initialData.mode === BRUNCH_DECLARED_PROJECTION_MODE) {
       useInstruction(
         "Before bounded direct addPlace, addTransition, or addArc construction, call declare_petrinaut_projection in its own server-tool proposal and wait for its result. Then issue the matching canonical browser calls in declaration order. Use other canonical tools directly for reads, documentation, experiments, layout, and capabilities outside this bounded tracer.",
       );
-      useTool(
-        createDeclarePetrinautProjectionTool(options?.currentRevision ?? null),
-      );
+      useTool(createDeclarePetrinautProjectionTool(options.currentRevision));
     }
     for (const canonicalTool of canonicalPetrinautTools) {
       useTool(canonicalTool);
@@ -207,6 +223,7 @@ export {
 export {
   createDeclarePetrinautProjectionTool,
   declarePetrinautProjectionToolName,
+  draftPetrinautExperimentToolName,
   SDCPN_MODELLING_SKILL_NAME,
 };
 export {

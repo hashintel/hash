@@ -4,6 +4,7 @@ import {
   INTEGRATED_BRUNCH_MODE,
   applyPetrinautConstructionToolName,
   declarePetrinautProjectionToolName,
+  draftPetrinautExperimentToolName,
   STOCK_OVER_FLUE_MODE,
   type CanonicalPetrinautMode,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -28,6 +29,7 @@ export type ToolCapabilityClass =
   | "petrinaut-mutation"
   | "petrinaut-command"
   | "petrinaut-experiment"
+  | "petrinaut-experiment-draft"
   | "petrinaut-declaration"
   | "explanation"
   | "diagnostic";
@@ -118,6 +120,13 @@ export const canonicalPetrinautToolCatalogue = Object.keys(
   }),
 );
 
+const draftBrunchTool: BrunchToolCatalogueEntry = {
+  name: draftPetrinautExperimentToolName,
+  definitionOwner: "sdcpn-plugin",
+  executionOwner: "petrinaut-website",
+  capability: "petrinaut-experiment-draft",
+};
+
 const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
   {
     name: "task",
@@ -162,6 +171,7 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
     capability: "diagnostic",
   },
   ...canonicalPetrinautToolCatalogue,
+  draftBrunchTool,
 ];
 
 const deepConstructionTool: BrunchToolCatalogueEntry = {
@@ -172,7 +182,10 @@ const deepConstructionTool: BrunchToolCatalogueEntry = {
 };
 
 const declaredProjectionTools: readonly BrunchToolCatalogueEntry[] = [
-  ...integratedBrunchTools.slice(0, -canonicalPetrinautToolCatalogue.length),
+  ...integratedBrunchTools.slice(
+    0,
+    -(canonicalPetrinautToolCatalogue.length + 1),
+  ),
   {
     name: declarePetrinautProjectionToolName,
     definitionOwner: "sdcpn-plugin",
@@ -180,6 +193,7 @@ const declaredProjectionTools: readonly BrunchToolCatalogueEntry[] = [
     capability: "petrinaut-declaration",
   },
   ...canonicalPetrinautToolCatalogue,
+  draftBrunchTool,
 ];
 
 /**

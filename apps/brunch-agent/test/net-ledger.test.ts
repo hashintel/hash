@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import {
   applyPetrinautConstructionToolName,
   declarePetrinautProjectionToolName,
+  draftPetrinautExperimentToolName,
   layoutPetrinautNetToolName,
   deriveMutationEffects,
   expectedNodeDefinition,
@@ -913,6 +914,166 @@ describe("the net ledger is a projection over Flue history", () => {
         },
       },
     ]);
+  });
+
+  test("validates a distinct draft continuation against the issued semantic input without a mutation record", async () => {
+    const issued = {
+      experiment: experimentInput,
+      declarations: [{ subject: "result", statement: "No guarantee." }],
+      unsupported: [],
+    };
+    const issuedCall = assistantCall(
+      "draft-delivery",
+      draftPetrinautExperimentToolName,
+      issued,
+    );
+    const deliver = (
+      results: { toolCallId: string; toolName: string; output: unknown }[],
+    ) =>
+      verifyMutationResults({
+        body: clientToolResultSignal(results).body,
+        snapshot: snapshotOf([
+          issuedCall,
+          ...results.map((result) =>
+            resultDelivery(result.toolCallId, result.toolName, result.output),
+          ),
+        ]),
+        binding,
+      });
+    const valid = {
+      toolCallId: "draft-delivery",
+      toolName: draftPetrinautExperimentToolName,
+      output: { status: "drafted", summary: "Ready", diagnostics: [] },
+    };
+    await expect(deliver([valid])).resolves.toBeUndefined();
+    await expect(
+      deliver([
+        {
+          ...valid,
+          output: { status: "running", summary: "", diagnostics: [] },
+        },
+      ]),
+    ).rejects.toThrow(/Invalid option/u);
+    await expect(
+      deliver([{ ...valid, toolName: createExperimentToolName }]),
+    ).rejects.toThrow(/matching admitted/u);
+    await expect(deliver([valid, valid])).rejects.toThrow(/duplicate result/u);
+    const forgedInput = snapshotOf([
+      assistantCall("draft-delivery", draftPetrinautExperimentToolName, {
+        ...issued,
+        observation: { toolCallId: "read", baseHash: "x" },
+      }),
+      resultDelivery(
+        "draft-delivery",
+        draftPetrinautExperimentToolName,
+        valid.output,
+      ),
+    ]);
+    await expect(
+      verifyMutationResults({
+        body: clientToolResultSignal([valid]).body,
+        snapshot: forgedInput,
+        binding,
+      }),
+    ).rejects.toThrow(/Unrecognized key/u);
+  });
+
+  test("ignores the reviewed draft as a document cause, retaining verified canonical experiments", async () => {
+    const snapshot = snapshotOf([
+      ...canonicalReadTurn("read-draft", emptyNet),
+      ...experimentTurn("canonical-experiment"),
+      assistantCall("draft-1", draftPetrinautExperimentToolName),
+      resultDelivery("draft-1", draftPetrinautExperimentToolName, {
+        status: "drafted",
+        summary: "Ready",
+        diagnostics: [],
+      }),
+    ]);
+    expect(
+      (await deriveNetLedger(snapshot, browser)).map(({ kind }) => kind),
+    ).toEqual(["read", "experiment"]);
+    await expect(
+      netLedger.verifiedDraftReadBefore(snapshot, browser, "draft-1"),
+    ).resolves.toMatchObject({ sha256: sha256Of(emptyNet) });
+    const unverifiedExperiment = snapshotOf([
+      ...canonicalReadTurn("read-draft", emptyNet),
+      assistantCall(
+        "unverified-experiment",
+        createExperimentToolName,
+        experimentInput,
+      ),
+      resultDelivery("unverified-experiment", createExperimentToolName, {
+        status: "complete",
+      }),
+      assistantCall("draft-1", draftPetrinautExperimentToolName),
+    ]);
+    expect(
+      (await deriveNetLedger(unverifiedExperiment, browser)).map(
+        ({ kind }) => kind,
+      ),
+    ).toEqual(["read", "unrecorded"]);
+    await expect(
+      netLedger.verifiedDraftReadBefore(
+        unverifiedExperiment,
+        browser,
+        "draft-1",
+      ),
+    ).rejects.toThrow(/latest verified canonical net read/u);
+    await expect(
+      netLedger.verifiedDraftReadBefore(snapshot, browser, "missing"),
+    ).rejects.toThrow(/absent or ambiguous/u);
+    await expect(
+      netLedger.verifiedDraftReadBefore(
+        snapshot,
+        { binding: { ...binding, conversationId: "other" } },
+        "draft-1",
+      ),
+    ).rejects.toThrow(/latest verified canonical net read/u);
+    const duplicateRead = snapshotOf([
+      ...canonicalReadTurn("read-draft", emptyNet),
+      resultDelivery("read-draft", getLatestNetDefinitionToolName, {
+        title: "Net",
+        definition: emptyNet,
+      }),
+      assistantCall("draft-1", draftPetrinautExperimentToolName),
+    ]);
+    await expect(
+      netLedger.verifiedDraftReadBefore(duplicateRead, browser, "draft-1"),
+    ).rejects.toThrow(/latest verified canonical net read/u);
+    const staleRead = snapshotOf([
+      ...canonicalReadTurn("read-draft", emptyNet),
+      ...mutationTurn("later-mutation", emptyNet, oneHopNet),
+      assistantCall("draft-1", draftPetrinautExperimentToolName),
+    ]);
+    await expect(
+      netLedger.verifiedDraftReadBefore(staleRead, browser, "draft-1"),
+    ).rejects.toThrow(/latest verified canonical net read/u);
+    const harmlessReads = snapshotOf([
+      ...canonicalReadTurn("read-draft", emptyNet),
+      assistantCall("diagnostics", "getNetCompilationErrors"),
+      assistantCall("documentation", "readPetrinautDoc"),
+      assistantCall("draft-1", draftPetrinautExperimentToolName),
+    ]);
+    await expect(
+      netLedger.verifiedDraftReadBefore(harmlessReads, browser, "draft-1"),
+    ).resolves.toMatchObject({ sha256: sha256Of(emptyNet) });
+    await Promise.all(
+      [
+        "applyAutoLayout",
+        "setNetTitle",
+        "createExperiment",
+        "mutate_petrinaut_net",
+      ].map((toolName) => {
+        const unknownChange = snapshotOf([
+          ...canonicalReadTurn("read-draft", emptyNet),
+          assistantCall("unrecorded-change", toolName),
+          assistantCall("draft-1", draftPetrinautExperimentToolName),
+        ]);
+        return expect(
+          netLedger.verifiedDraftReadBefore(unknownChange, browser, "draft-1"),
+        ).rejects.toThrow(/latest verified canonical net read/u);
+      }),
+    );
   });
 
   test("recognizes canonical reads and verified canonical mutation records", async () => {
