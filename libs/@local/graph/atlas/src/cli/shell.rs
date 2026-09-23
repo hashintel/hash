@@ -338,7 +338,6 @@ async fn fit_logged(
 /// installed. After parsing, [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline)
 /// rejects a CPU below the compiled baseline, on the conditions it documents.
 #[cfg(feature = "cli")]
-#[must_use]
 #[tokio::main]
 pub async fn main() -> std::process::ExitCode {
     let cli = <Cli as Parser>::parse();

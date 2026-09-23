@@ -1,8 +1,4 @@
 #![expect(
-    clippy::indexing_slicing,
-    reason = "Benchmark code with known array bounds"
-)]
-#![expect(
     clippy::integer_division_remainder_used,
     reason = "Benchmark uses modulo for cycling through arrays"
 )]

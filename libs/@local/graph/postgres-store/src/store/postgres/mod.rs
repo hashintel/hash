@@ -243,8 +243,7 @@ where
                 let (principal_id, actor_type) = policy
                     .principal
                     .as_ref()
-                    .map(PrincipalConstraint::to_parts)
-                    .unwrap_or_default();
+                    .map_or_default(PrincipalConstraint::to_parts);
 
                 if policy.actions.is_empty() {
                     return Err(Report::new(CreatePolicyError::PolicyHasNoActions));

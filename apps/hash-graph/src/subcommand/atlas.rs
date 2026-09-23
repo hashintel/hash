@@ -260,10 +260,6 @@ fn print_verdict(verdict: &cli::FitVerdict) {
 }
 
 /// Standalone `atlas` subcommand entrypoint.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
 #[expect(clippy::significant_drop_tightening, reason = "false positive")]
 #[expect(
     clippy::exit,

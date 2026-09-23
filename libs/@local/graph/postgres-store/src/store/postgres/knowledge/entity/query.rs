@@ -147,11 +147,10 @@ impl QueryRecordDecode for Entity {
 
         let property_metadata = row
             .get::<_, Option<serde_json::Value>>(indices.property_metadata)
-            .map(|value| {
+            .map_or_default(|value| {
                 PropertyObjectMetadata::deserialize(value)
                     .expect("Failed to deserialize property metadata")
-            })
-            .unwrap_or_default();
+            });
 
         Self {
             properties: row.get(indices.properties),

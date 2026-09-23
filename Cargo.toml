@@ -4,6 +4,7 @@ default-members = [
 ]
 exclude = [
     ".github/scripts/rust",
+    "libs/@local/hashql/docs",
 ]
 members = [
     "apps/hash-graph",
