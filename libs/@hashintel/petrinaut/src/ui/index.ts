@@ -249,11 +249,27 @@ export { DefaultChatTransport } from "ai";
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
-// Viewport action — shape consumers use to add custom buttons to the
-// viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.
+// Plugins — how a host adds buttons, commands, panel sections and edit views
+// to the editor. `<PetrinautPluginsProvider>` above `<Petrinaut>` installs them.
+export { petrinautBuiltInPlugins } from "./plugins/built-in-plugins";
+export { definePetrinautPlugin } from "./plugins/plugin";
+export type {
+  PetrinautPlugin,
+  PetrinautPluginButton,
+  PetrinautPluginButtonPlacement,
+  PetrinautPluginEditView,
+  PetrinautPluginSettingsGroup,
+  PetrinautPluginSettingsSection,
+  PetrinautPluginSubView,
+  PetrinautPluginSubViewPlacement,
+  PetrinautPluginTopBarItem,
+  PetrinautPluginTopBarPlacement,
+} from "./plugins/plugin";
+export { PetrinautPluginsProvider } from "./plugins/plugins-provider";
+export type { PetrinautPluginsProviderProps } from "./plugins/plugins-provider";
+export type { SubView, SubViewResizeConfig } from "./components/sub-view/types";
+// Superseded by plugin buttons and top-bar items; removed once every host has moved.
 export type { ViewportAction } from "./types/viewport-action";
-
-// Slots — named locations into which the host can inject arbitrary React components.
 export type { PetrinautSlots } from "./types/petrinaut-slots";
 
 // Walkthrough — first-visit product tour. Exposed so embedders can drive it
