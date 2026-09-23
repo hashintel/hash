@@ -41,13 +41,19 @@ use tokio::{
 const ENDPOINT: &str = "127.0.0.1:8929";
 const MAX_ATTEMPTS: u32 = 4;
 
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, derive_more::Display,
+)]
+#[serde(transparent)]
+struct DeliveryId(String);
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum RelayEvent {
-    Accepted { delivery: String, body: String },
-    AttemptFailed { delivery: String, attempt: u32 },
-    Delivered { delivery: String, attempt: u32 },
-    Abandoned { delivery: String, attempts: u32 },
+    Accepted { delivery: DeliveryId, body: String },
+    AttemptFailed { delivery: DeliveryId, attempt: u32 },
+    Delivered { delivery: DeliveryId, attempt: u32 },
+    Abandoned { delivery: DeliveryId, attempts: u32 },
 }
 
 impl DomainEvent for RelayEvent {
@@ -68,34 +74,34 @@ struct Pending {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct RelayQueue {
-    pending: BTreeMap<String, Pending>,
-    delivered: BTreeMap<String, u32>,
-    abandoned: BTreeMap<String, u32>,
+    pending: BTreeMap<DeliveryId, Pending>,
+    delivered: BTreeMap<DeliveryId, u32>,
+    abandoned: BTreeMap<DeliveryId, u32>,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 enum DeliveryRejection {
     #[display("delivery {delivery} is already delivered or abandoned")]
-    AlreadySettled { delivery: String },
+    AlreadySettled { delivery: DeliveryId },
     #[display("delivery {delivery} is not pending")]
-    NotPending { delivery: String },
+    NotPending { delivery: DeliveryId },
 }
 
 enum RelayChange {
     Queue {
-        delivery: String,
+        delivery: DeliveryId,
         pending: Pending,
     },
     RecordFailure {
-        delivery: String,
+        delivery: DeliveryId,
         failed_attempts: u32,
     },
     Deliver {
-        delivery: String,
+        delivery: DeliveryId,
         attempt: u32,
     },
     Abandon {
-        delivery: String,
+        delivery: DeliveryId,
         attempts: u32,
     },
 }
@@ -206,7 +212,7 @@ impl SimpleDomain for RelayDomain {
 
 #[derive(Debug, Clone, Serialize)]
 struct DeliveryAttempt {
-    delivery: String,
+    delivery: DeliveryId,
     body: String,
     attempt: u32,
 }
@@ -431,7 +437,7 @@ async fn submit_demo_webhooks(running: &RunningKernel<RelayDomain>) {
     let mut deduplicated = 0;
     for (delivery, body) in WEBHOOKS {
         let event = RelayEvent::Accepted {
-            delivery: delivery.to_owned(),
+            delivery: DeliveryId((*delivery).to_owned()),
             body: body.to_owned(),
         };
         match running.submit(event).await {
