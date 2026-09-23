@@ -37,14 +37,14 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
+import {
+  getBrunchVoiceMode,
+  requestFlueStop,
+} from "./assistants/brunch/brunch-assistant";
 import { brunchClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
-import {
-  getBrunchVoiceMode,
-  LocalStorageDemoApp,
-  requestFlueStop,
-} from "./local-storage-demo-app";
+import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import {
   localStorageDemoRouteIdentity,
   withLocalStorageDemoIdentity,
@@ -134,7 +134,6 @@ vi.mock("./brunch-preview-config", () => ({
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
-    aiAssistant?: unknown;
     createNewNet?: (params: {
       petriNetDefinition: unknown;
       title: string;
@@ -143,7 +142,6 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
-    slots?: { settingsLabs?: ReactNode };
     title?: string;
   } | null,
 }));
@@ -216,10 +214,31 @@ vi.mock("./brunch-panel-transport", async (importOriginal) => {
 
 vi.mock("@hashintel/petrinaut/ui", async () => {
   const { createContext, use } = await import("react");
-  type MockPlugin = { id: string; component?: ComponentType };
-  // The editor mounts the installed plugins' components; the mock does the
-  // same, so the palette plugin renders under the mocked editor.
+  const { UserSettingsContext, useCommand } =
+    await import("@hashintel/petrinaut/react");
+  type MockAssistant = { id: string; label: string; component: ComponentType };
+  type MockPlugin = {
+    id: string;
+    component?: ComponentType;
+    assistants?: readonly MockAssistant[];
+    settingsGroups?: readonly { id: string; component: ComponentType }[];
+  };
+  // The editor mounts the installed plugins' components, the active
+  // assistant's component and the settings groups; the mock does the same,
+  // and resolves the active assistant as the editor does: the one chosen in
+  // User settings, else the first installed.
   const PluginsContext = createContext<readonly MockPlugin[]>([]);
+  const ActiveAssistantIdContext = createContext<string | undefined>(undefined);
+  const SwitchCommand = ({ assistant }: { assistant: MockAssistant }) => {
+    const { setAiAssistantId } = use(UserSettingsContext);
+    useCommand({
+      id: `petrinaut.ai-assistant.use:${assistant.id}`,
+      label: `Use the ${assistant.label} assistant`,
+      category: "Editor",
+      run: () => setAiAssistantId(assistant.id),
+    });
+    return null;
+  };
   return {
     DefaultChatTransport: class {
       public constructor(options: unknown) {
@@ -228,20 +247,43 @@ vi.mock("@hashintel/petrinaut/ui", async () => {
     },
     Petrinaut: (props: Record<string, unknown>) => {
       editorProps.current = props;
-      renderedPetrinaut.aiAssistant = props.aiAssistant;
-      renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
       const plugins = use(PluginsContext);
+      const { aiAssistantId } = use(UserSettingsContext);
+      const assistants = plugins.flatMap((plugin) => plugin.assistants ?? []);
+      const active =
+        assistants.find((assistant) => assistant.id === aiAssistantId) ??
+        assistants[0];
+      const Assistant = active?.component;
       return (
-        <>
+        <ActiveAssistantIdContext value={active?.id}>
           {plugins.map((plugin) => {
             const PluginComponent = plugin.component;
             return PluginComponent ? <PluginComponent key={plugin.id} /> : null;
           })}
-          {(props.slots as { settingsLabs?: ReactNode } | undefined)
-            ?.settingsLabs ?? null}
-        </>
+          {Assistant ? <Assistant key={active.id} /> : null}
+          {assistants.length > 1
+            ? assistants
+                .filter((assistant) => assistant !== active)
+                .map((assistant) => (
+                  <SwitchCommand key={assistant.id} assistant={assistant} />
+                ))
+            : null}
+          {plugins
+            .flatMap((plugin) => plugin.settingsGroups ?? [])
+            .map((group) => {
+              const Group = group.component;
+              return <Group key={group.id} />;
+            })}
+        </ActiveAssistantIdContext>
       );
     },
+    usePetrinautAiAssistant: (assistant: PetrinautAiAssistant | null) => {
+      renderedPetrinaut.aiAssistant = assistant;
+      if (assistant !== null) {
+        renderedAssistants.push(assistant);
+      }
+    },
+    usePetrinautActiveAssistantId: () => use(ActiveAssistantIdContext),
     WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
     PetrinautPluginsProvider: ({
       plugins,
@@ -552,9 +594,6 @@ describe("local storage demo Brunch voice integration", () => {
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual(["draft_petrinaut_experiment"]);
-    expect(editorProps.current?.slots).not.toHaveProperty(
-      "simulateModeIndicator",
-    );
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1372,9 +1411,8 @@ describe("local storage demo Brunch controls", () => {
     };
 
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
-    const aiAssistant = editorProps.current
-      ?.aiAssistant as PetrinautAiAssistant;
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
     const transportOptions = brunchPanelTransportOptions.current as {
       readonly initialData?: {
         readonly mode?: string;
@@ -1476,9 +1514,8 @@ describe("worked-model net-projection selection", () => {
     await waitFor(() =>
       expect(editorProps.current?.title).toBe("Inventory purchasing"),
     );
-    const assistant = editorProps.current?.aiAssistant as
-      | PetrinautAiAssistant
-      | undefined;
+    const assistant =
+      renderedPetrinaut.aiAssistant as PetrinautAiAssistant | null;
     expect(assistant?.conversationId).toBe("bundle-conversation");
     expect(assistant?.executeMutation).toBeDefined();
     const handle = editorProps.current?.handle as PetrinautDocHandle;
@@ -1607,7 +1644,7 @@ describe("worked-model net-projection selection", () => {
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     expect(
       screen.queryByRole("button", {
-        name: /stock Petrinaut assistant|Use Brunch/,
+        name: /Use the (Petrinaut|Brunch) assistant/,
       }),
     ).toBeNull();
   });
@@ -1823,7 +1860,7 @@ describe("worked-model net-projection selection", () => {
 
     await waitFor(() =>
       expect(
-        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+        (renderedPetrinaut.aiAssistant as PetrinautAiAssistant | null)
           ?.automaticTools,
       ).toEqual([]),
     );
@@ -1958,14 +1995,17 @@ describe("assistant selection", () => {
     fireEvent.click(screen.getByRole("button", { name: label }));
   };
   const currentAssistant = () =>
-    editorProps.current?.aiAssistant as PetrinautAiAssistant;
-  const currentVoiceCapability = () => {
-    const settingsLabs = editorProps.current?.slots?.settingsLabs;
-    if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
-      throw new Error("Expected the website Labs settings to render.");
-    }
-    return settingsLabs.props.openAIVoiceConfig;
-  };
+    renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
+  /** What Brunch's Labs group says about Voice, which follows its capability check. */
+  const voiceDescription = () =>
+    screen.getByText("Enable Voice", { selector: "span" }).nextElementSibling
+      ?.textContent;
+  const chosenAssistantId = () =>
+    (
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}") as {
+        aiAssistantId?: string | null;
+      }
+    ).aiAssistantId;
 
   afterEach(() => {
     cleanup();
@@ -2012,20 +2052,15 @@ describe("assistant selection", () => {
     const firstView = render(
       <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
     );
-    const firstBrunchToggle = await screen.findByRole("checkbox", {
-      name: "Use Brunch",
-    });
-    const firstVoiceToggle = screen.getByRole("checkbox", {
+    const firstVoiceToggle = await screen.findByRole("checkbox", {
       name: "Enable Voice",
     });
-    await waitFor(() =>
-      expect(firstBrunchToggle).toHaveProperty("disabled", false),
-    );
     expect(firstVoiceToggle).toHaveProperty("checked", false);
+    expect(firstVoiceToggle).toHaveProperty("disabled", true);
 
-    fireEvent.click(firstBrunchToggle);
+    switchAssistant(/Use the Brunch assistant/);
     await waitFor(() => {
-      expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
+      expect(chosenAssistantId()).toBe("website.brunch");
       expect(firstVoiceToggle).toHaveProperty("disabled", false);
     });
     fireEvent.click(firstVoiceToggle);
@@ -2035,14 +2070,11 @@ describe("assistant selection", () => {
 
     firstView.unmount();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    const restoredBrunchToggle = await screen.findByRole("checkbox", {
-      name: "Use Brunch",
-    });
-    const restoredVoiceToggle = screen.getByRole("checkbox", {
+    const restoredVoiceToggle = await screen.findByRole("checkbox", {
       name: "Enable Voice",
     });
     await waitFor(() => {
-      expect(restoredBrunchToggle).toHaveProperty("checked", true);
+      expect(currentAssistant().executeMutation).toBeDefined();
       expect(restoredVoiceToggle).toHaveProperty("checked", true);
       expect(restoredVoiceToggle).toHaveProperty("disabled", false);
     });
@@ -2060,7 +2092,7 @@ describe("assistant selection", () => {
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
     const brunchTransport = currentAssistant().transport;
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    switchAssistant(/Use the Petrinaut assistant/);
 
     await waitFor(() =>
       expect(currentAssistant().executeMutation).toBeUndefined(),
@@ -2080,8 +2112,10 @@ describe("assistant selection", () => {
     expect(stock.requestStop).toBeUndefined();
     expect(stock.followMessages).toBeUndefined();
     expect(stock.canClearMessages).toBe(true);
-    // The preference persists as the host's own key.
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
+    // The choice persists in Petrinaut's User settings; the site's earlier
+    // key is only read.
+    expect(chosenAssistantId()).toBe("website.stock-assistant");
+    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
     // Brunch demo affordances are gone with it.
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     expect(
@@ -2103,10 +2137,9 @@ describe("assistant selection", () => {
     );
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledOnce();
-      expect(currentVoiceCapability()).toEqual({
-        available: true,
-        connectionTimeoutMs: 10_000,
-      });
+      expect(voiceDescription()).toBe(
+        "Make Voice mode available for Brunch conversations.",
+      );
     });
     expect(currentAssistant().renderVoiceMode).toBeUndefined();
 
@@ -2118,7 +2151,7 @@ describe("assistant selection", () => {
     );
     renderedAssistants.length = 0;
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    switchAssistant(/Use the Petrinaut assistant/);
 
     expect(renderedAssistants.length).toBeGreaterThan(0);
     expect(
@@ -2145,9 +2178,9 @@ describe("assistant selection", () => {
 
     expect(currentAssistant().renderVoiceMode).toBeUndefined();
     renderedAssistants.length = 0;
-    switchAssistant(/Use Brunch/);
+    switchAssistant(/Use the Brunch assistant/);
     await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-    expect(currentVoiceCapability()).toBeUndefined();
+    expect(voiceDescription()).toBe("Checking whether Voice is available…");
     expect(currentAssistant().renderVoiceMode).toBeUndefined();
     expect(renderedAssistants.length).toBeGreaterThan(0);
     expect(
@@ -2163,14 +2196,14 @@ describe("assistant selection", () => {
       expect(currentAssistant().renderVoiceMode).toBeDefined(),
     );
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    switchAssistant(/Use the Petrinaut assistant/);
     await waitFor(() =>
       expect(currentAssistant().renderVoiceMode).toBeUndefined(),
     );
     renderedAssistants.length = 0;
-    switchAssistant(/Use Brunch/);
+    switchAssistant(/Use the Brunch assistant/);
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    expect(currentVoiceCapability()).toBeUndefined();
+    expect(voiceDescription()).toBe("Checking whether Voice is available…");
     expect(currentAssistant().renderVoiceMode).toBeUndefined();
     expect(renderedAssistants.length).toBeGreaterThan(0);
     expect(
@@ -2212,7 +2245,7 @@ describe("assistant selection", () => {
       "net-1": [stockMessage],
     });
 
-    switchAssistant(/Use Brunch/);
+    switchAssistant(/Use the Brunch assistant/);
     await waitFor(() =>
       expect(currentAssistant().executeMutation).toBeDefined(),
     );
@@ -2231,7 +2264,7 @@ describe("assistant selection", () => {
       "net-1": [stockMessage],
     });
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    switchAssistant(/Use the Petrinaut assistant/);
     await waitFor(() =>
       expect(currentAssistant().executeMutation).toBeUndefined(),
     );
@@ -2249,7 +2282,7 @@ describe("assistant selection", () => {
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     expect(
       screen.queryByRole("button", {
-        name: /stock Petrinaut assistant|Use Brunch/,
+        name: /Use the (Petrinaut|Brunch) assistant/,
       }),
     ).toBeNull();
     fireEvent.keyDown(window, { key: "Escape" });
