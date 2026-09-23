@@ -35,9 +35,15 @@ export type AttributeValue = {
   codes?: readonly string[];
 };
 
+/** An attribute the theories cannot hold, refused where the code reads it. */
+export type AttributeRefusal = { refused: string; message: string };
+
 export type TokenBinding = {
-  /** The value of one attribute, or `undefined` when the colour has no such attribute. */
-  attribute: (name: string) => AttributeValue | undefined;
+  /**
+   * The value of one attribute, its refusal when the theories cannot hold
+   * it, or `undefined` when the colour has no such attribute.
+   */
+  attribute: (name: string) => AttributeValue | AttributeRefusal | undefined;
 };
 
 export type LinearHirEnv = {
@@ -93,7 +99,7 @@ const constantOf = (expr: ReactiveExpr): number | undefined =>
   expr.kind === "num" ? expr.value : undefined;
 
 /** `factor * operand`, folding a scale of a scale and of a constant. */
-const scaled = (factor: number, operand: ReactiveExpr): ReactiveExpr => {
+export const scaled = (factor: number, operand: ReactiveExpr): ReactiveExpr => {
   if (operand.kind === "num") {
     return num(factor * operand.value);
   }
@@ -261,12 +267,15 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
         );
       }
       const value = token.attribute(node.field);
-      return value === undefined
-        ? refuse(
-            "unknown-attribute",
-            `the token has no attribute ${node.field}`,
-            node,
-          )
+      if (value === undefined) {
+        return refuse(
+          "unknown-attribute",
+          `the token has no attribute ${node.field}`,
+          node,
+        );
+      }
+      return "refused" in value
+        ? refuse(value.refused, value.message, node)
         : value;
     }
     case "indexAccess":

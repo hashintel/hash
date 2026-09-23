@@ -46,3 +46,70 @@ export const netModuleNames = (netName: string) => ({
       .join("") || "Net",
   instance: "marking",
 });
+
+/** A slot of a coloured place holds a token. */
+export const presentName = (place: string, slot: number): string =>
+  `${place}_${slot}_present`;
+
+/** One attribute of the token in a slot. */
+export const attributeName = (
+  place: string,
+  slot: number,
+  attribute: string,
+): string => `${place}_${slot}_${attribute}`;
+
+/** The exponential draw a token-dependent rate is tested against: `-ln(u) / dt`. */
+export const exponentialDrawName = (transition: string): string =>
+  `e_${transition}`;
+
+/** The k-th standard-normal or uniform draw a kernel takes. */
+export const kernelDrawName = (
+  transition: string,
+  kind: "z" | "v",
+  index: number,
+): string => `${kind}_${transition}_${index}`;
+
+/** A transition's structural enablement, shared by its binding combinations. */
+export const enabledName = (transition: string): string => `ok_${transition}`;
+
+/** Combination `index` of a transition's bindings passes. */
+export const bindName = (transition: string, index: number): string =>
+  `bind_${transition}_${index}`;
+
+/** Combination `index` is the first that passes. */
+export const selectName = (transition: string, index: number): string =>
+  `sel_${transition}_${index}`;
+
+/** Some combination up to here passed. */
+export const seenName = (transition: string): string => `seen_${transition}`;
+
+/** The transition takes the token in a slot. */
+export const takeName = (
+  transition: string,
+  place: string,
+  slot: number,
+): string => `take_${transition}_${place}_${slot}`;
+
+/** An attribute of the m-th token a transition produces into a place. */
+export const outName = (
+  transition: string,
+  place: string,
+  index: number,
+  attribute: string,
+): string => `out_${transition}_${place}_${index}_${attribute}`;
+
+/** Present slots below a slot, once the sweep is done. */
+export const rankName = (place: string, slot: number): string =>
+  `rank_${place}_${slot}`;
+
+/** Tokens a place keeps after the sweep. */
+export const keptName = (place: string): string => `kept_${place}`;
+
+/** The slot the next produced token lands in. */
+export const landedName = (place: string): string => `landed_${place}`;
+
+/** An attribute's value once the survivors have closed up. */
+export const nextName = (variable: string): string => `next_${variable}`;
+
+/** A produced token found no free slot, at some step. */
+export const overflowName = (place: string): string => `overflow_${place}`;

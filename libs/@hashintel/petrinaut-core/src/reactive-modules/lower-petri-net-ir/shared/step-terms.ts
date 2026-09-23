@@ -18,13 +18,18 @@ import type { PlannedTransition, StepPlan } from "../step-plan";
  * transition and the choice of a controllable one. Both shapes read them.
  */
 
+/** A coloured net or one with dynamics holds Reals, so it is lowered in LRA. */
+const needsReals = (plan: StepPlan): boolean => plan.coloured || plan.dynamic;
+
 /** Whether the draw tests live in modules of their own, with Int places. */
 export const drawsAreModules = (plan: StepPlan): boolean =>
-  plan.stochastic && plan.target.marking === "int";
+  plan.stochastic && plan.target.marking === "int" && !needsReals(plan);
 
 /** The theory the places and the transitions are typed in. */
 export const markingTheory = (plan: StepPlan): ReactiveTheory =>
-  plan.stochastic && plan.target.marking === "real" ? "LRA" : "LIA";
+  needsReals(plan) || (plan.stochastic && plan.target.marking === "real")
+    ? "LRA"
+    : "LIA";
 
 export const choiceApplies = (
   plan: StepPlan,

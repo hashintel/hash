@@ -154,8 +154,16 @@ export type ZerothTarget = {
    * module is open to a controller.
    */
   control?: "closed" | "open";
-  /** Stochastic nets only: step length a rate is tested over. */
+  /**
+   * Step length: a rate is tested over it, and dynamics take one Euler
+   * step of it. Stochastic nets and nets with dynamics.
+   */
   dt?: number;
+  /**
+   * Coloured nets only: the slots a coloured place without a capacity gets.
+   * A produced token that finds no free slot sets the place's overflow flag.
+   */
+  slots?: number;
 };
 
 export type ResolvedZerothTarget = Required<ZerothTarget>;
@@ -165,6 +173,7 @@ export const ZEROTH_TARGET_DEFAULTS: ResolvedZerothTarget = {
   marking: "real",
   control: "closed",
   dt: 1,
+  slots: 8,
 };
 
 /** Every flag, the document's value or the default. */
@@ -175,20 +184,25 @@ export const resolveZerothTarget = (
   marking: target?.marking ?? ZEROTH_TARGET_DEFAULTS.marking,
   control: target?.control ?? ZEROTH_TARGET_DEFAULTS.control,
   dt: target?.dt ?? ZEROTH_TARGET_DEFAULTS.dt,
+  slots: target?.slots ?? ZEROTH_TARGET_DEFAULTS.slots,
 });
 
 /**
  * The flags a document carries for a net: the ones off their default, and
- * only those that apply to the net. `marking` and `dt` belong to a
- * stochastic net, `control` to a net with a controllable transition.
+ * only those that apply to the net. `marking` belongs to a stochastic net
+ * without colours, `dt` to a net with rates or dynamics, `control` to a net
+ * with a controllable transition, `slots` to a net with a coloured place.
  * `undefined` when every flag is at its default.
  */
 export const zerothTargetForNet = (
   target: ZerothTarget | undefined,
-  net: Pick<PetriNetIr, "kind" | "transitions">,
+  net: Pick<PetriNetIr, "kind" | "places" | "transitions">,
 ): ZerothTarget | undefined => {
   const resolved = resolveZerothTarget(target);
-  const stochastic = net.kind === "stochastic";
+  const stochastic = net.kind !== "plain";
+  const places = Object.values(net.places);
+  const coloured = places.some((place) => place?.colour !== undefined);
+  const dynamic = places.some((place) => place?.dynamics !== undefined);
   const controllable = Object.values(net.transitions).some(
     (transition) => transition.controllable === true,
   );
@@ -196,14 +210,19 @@ export const zerothTargetForNet = (
     ...(resolved.shape === ZEROTH_TARGET_DEFAULTS.shape
       ? {}
       : { shape: resolved.shape }),
-    ...(stochastic && resolved.marking !== ZEROTH_TARGET_DEFAULTS.marking
+    ...(stochastic &&
+    !coloured &&
+    resolved.marking !== ZEROTH_TARGET_DEFAULTS.marking
       ? { marking: resolved.marking }
       : {}),
     ...(controllable && resolved.control !== ZEROTH_TARGET_DEFAULTS.control
       ? { control: resolved.control }
       : {}),
-    ...(stochastic && resolved.dt !== ZEROTH_TARGET_DEFAULTS.dt
+    ...((stochastic || dynamic) && resolved.dt !== ZEROTH_TARGET_DEFAULTS.dt
       ? { dt: resolved.dt }
+      : {}),
+    ...(coloured && resolved.slots !== ZEROTH_TARGET_DEFAULTS.slots
+      ? { slots: resolved.slots }
       : {}),
   };
   return Object.keys(section).length === 0 ? undefined : section;

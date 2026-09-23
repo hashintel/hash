@@ -229,12 +229,14 @@ describe("petriNetIrKindOf", () => {
 });
 
 describe("zerothTargetForNet", () => {
-  const stochastic: Pick<PetriNetIr, "kind" | "transitions"> = {
+  const stochastic: Pick<PetriNetIr, "kind" | "places" | "transitions"> = {
     kind: "stochastic",
+    places: { Arrived: null },
     transitions: { Arrive: { rate: 2 } },
   };
-  const controllable: Pick<PetriNetIr, "kind" | "transitions"> = {
+  const controllable: Pick<PetriNetIr, "kind" | "places" | "transitions"> = {
     kind: "plain",
+    places: { A: null },
     transitions: { Go: { controllable: true } },
   };
 
@@ -269,6 +271,7 @@ describe("zerothTargetForNet", () => {
       marking: "real",
       control: "closed",
       dt: 1,
+      slots: 8,
     });
     expect(resolveZerothTarget({ shape: "modular" }).shape).toBe("modular");
   });
