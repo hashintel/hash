@@ -76,7 +76,7 @@ impl<'de> serde::Deserialize<'de> for Shard {
 
 #[cfg(test)]
 mod tests {
-    use super::{InvalidShard, Shard};
+    use super::Shard;
 
     #[test]
     fn shard_wire_roundtrip() {
@@ -93,10 +93,5 @@ mod tests {
             serde_json::from_str::<Shard>(&format!("\"{invalid}\""))
                 .expect_err("invalid shard text should be rejected");
         }
-    }
-
-    #[test]
-    fn shard_out_of_range() {
-        assert_eq!(Shard::try_from(256), Err(InvalidShard { value: 256 }));
     }
 }

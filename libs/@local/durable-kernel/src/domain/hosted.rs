@@ -66,11 +66,6 @@ impl<P> KernelProjection<P> {
             domain,
         }
     }
-
-    #[cfg(test)]
-    pub(super) const fn seen_mut(&mut self) -> &mut BTreeMap<EventId, JournalRecordDigest> {
-        &mut self.seen
-    }
 }
 
 /// Adapts [`SimpleDomain`] to the [`crate::port::Domain`] interface used by the command loop.

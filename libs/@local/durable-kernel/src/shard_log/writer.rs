@@ -5,10 +5,6 @@ use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
 use opendata_log::{LogDb, Sequence};
 
-#[cfg(any(test, feature = "test-util"))]
-use super::EVENTS_KEY;
-#[cfg(test)]
-use super::StorageWriter;
 use super::{
     AppendFailureKind, JournalStorage, JournalWriter, ShardAppendError, ShardLogLocation,
     ShardLogOpenError, ShardLogWriter, SnapshotCandidate, post_invocation_source, recovery_range,
@@ -98,14 +94,6 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         })
     }
 
-    #[cfg(any(test, feature = "test-util"))]
-    pub(super) async fn append<T: UntrimmedJournalRecord + Sync>(
-        &self,
-        value: &T,
-    ) -> Result<JournalSequence, Report<ShardAppendError>> {
-        self.append_registered(EVENTS_KEY, value).await
-    }
-
     pub(super) fn durable_end_exclusive(&self) -> JournalSequence {
         self.backend.durable_end_exclusive()
     }
@@ -139,16 +127,6 @@ impl<W: JournalWriter> ShardLogWriter<W> {
             durable_end_exclusive,
         )
         .await
-    }
-
-    #[cfg(any(test, feature = "test-util"))]
-    pub(super) async fn append_registered<T: DurableRecord + Sync>(
-        &self,
-        key: &'static [u8],
-        value: &T,
-    ) -> Result<JournalSequence, Report<ShardAppendError>> {
-        let bytes = self.encode_registered::<T>(|writer| value.encode(writer))?;
-        self.append_encoded(key, bytes).await
     }
 
     pub(super) fn encode_registered<T: DurableRecord>(
@@ -189,12 +167,5 @@ impl<W: JournalWriter> ShardLogWriter<W> {
             .change_context(DurableError::CloseTimeout {
                 timeout: durability_timeout,
             })?
-    }
-}
-
-#[cfg(test)]
-impl ShardLogWriter<StorageWriter> {
-    pub(super) const fn raw_log(&self) -> &LogDb {
-        self.backend.raw_log()
     }
 }

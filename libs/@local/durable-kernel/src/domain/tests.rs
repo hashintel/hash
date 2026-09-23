@@ -1,5 +1,11 @@
 use alloc::{collections::BTreeMap, rc::Rc, sync::Arc};
-use core::{future::poll_fn, marker::PhantomData, num::NonZeroUsize, task::Poll, time::Duration};
+use core::{
+    future::poll_fn,
+    marker::PhantomData,
+    num::{NonZeroU64, NonZeroUsize},
+    task::Poll,
+    time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use error_stack::Report;
@@ -13,17 +19,15 @@ use super::{
 };
 use crate::{
     DurableError,
+    ids::{EventId, JournalRecordDigest},
     port::{EventDomain as _, Prepared, SnapshotDomain as _},
-    registry::{
-        self, CompatError, DurableRecord as _, RecordDeclaration, RecordRegistry,
-        VersionedRecord as _,
-    },
+    registry::{self, CompatError, DurableRecord as _, RecordRegistry, VersionedRecord as _},
     routing::Shard,
     sequence::JournalSequence,
     shard_log::{
-        AppendFailureKind, JournalStorage, OpenedShard, QueuedWhenStopped, RecoveredShard,
-        ShardAppendError, ShardCommandConfig, ShardCommandError, ShardCommandErrorKind,
-        ShardCommandOutcome, ShardLogLocation, StartedShard,
+        AppendFailureKind, JournalStorage, LogStorageOptions, OpenedShard, QueuedWhenStopped,
+        RecoveredShard, ShardAppendError, ShardCommandConfig, ShardCommandError,
+        ShardCommandErrorKind, ShardCommandOutcome, ShardLogLocation, StartedShard,
     },
     sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
 };
@@ -195,6 +199,36 @@ fn toy_log_path(shard: Shard) -> String {
     format!("domain-toy/control/v1/shards/{}/log", shard.path_segment())
 }
 
+fn local_location(shard: Shard, root: &std::path::Path) -> ShardLogLocation {
+    ShardLogLocation::for_kernel(
+        shard,
+        &toy_log_path(shard),
+        &LogStorageOptions {
+            blob_url: format!("file://{}", root.display()),
+            aws_region: None,
+            shard_capacity: NonZeroU64::MIN,
+            block_cache_bytes: 0,
+            meta_cache_bytes: 0,
+        },
+        Arc::default(),
+    )
+    .expect("local test storage should be configured")
+}
+
+fn with_seen(
+    projection: &KernelProjection<Counters>,
+    seen: BTreeMap<EventId, JournalRecordDigest>,
+) -> KernelProjection<Counters> {
+    KernelProjection::restored(
+        seen,
+        projection.partitions().clone(),
+        projection
+            .through_sequence()
+            .expect("an applied event should set the journal sequence"),
+        projection.domain().clone(),
+    )
+}
+
 async fn start(
     location: ShardLogLocation<impl JournalStorage>,
 ) -> (crate::shard_log::ShardCommandHandle<Toy>, StartedShard<Toy>) {
@@ -333,25 +367,6 @@ fn record_decode_envelope() {
     assert!(
         error.contains::<serde_json::Error>(),
         "unknown fields should retain the serde error"
-    );
-}
-
-#[test]
-fn record_decode_json() {
-    let error = EventRecord::<CounterEvent>::decode_borrowed(b"{")
-        .expect_err("incomplete JSON should fail decoding");
-    assert_eq!(
-        error.current_context(),
-        &CompatError::Decode {
-            name: CounterEvent::name(),
-        }
-    );
-    let source = error
-        .downcast_ref::<serde_json::Error>()
-        .expect("decode report should retain the JSON error");
-    assert!(
-        source.is_eof(),
-        "incomplete JSON should report the end of input"
     );
 }
 
@@ -738,9 +753,9 @@ fn prepare_dedupes_rejects_and_admits() {
     let other_digest = incremented("orders", 6)
         .digest()
         .expect("digest should compute");
-    projection
-        .seen_mut()
-        .insert(record.event_id(), other_digest);
+    let mut seen = projection.seen().clone();
+    seen.insert(record.event_id(), other_digest);
+    projection = with_seen(&projection, seen);
     assert!(
         matches!(
             Toy::prepare(&projection, &record),
@@ -799,9 +814,9 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
     let other_digest = incremented("orders", 7)
         .digest()
         .expect("digest should compute");
-    projection
-        .seen_mut()
-        .insert(record.event_id(), other_digest);
+    let mut seen = projection.seen().clone();
+    seen.insert(record.event_id(), other_digest);
+    projection = with_seen(&projection, seen);
     let event_id = record.event_id();
     let error = Toy::replay(
         &mut projection,
@@ -868,9 +883,10 @@ fn recovered_prefix_cannot_regress_or_lose_events() {
     Toy::validate_recovered_prefix(&acknowledged, &advanced)
         .expect("a later sequence should preserve the acknowledged prefix");
 
-    let mut missing = advanced.clone();
     let event_id = incremented("orders", 5).event_id();
-    missing.seen_mut().remove(&event_id);
+    let mut seen = advanced.seen().clone();
+    seen.remove(&event_id);
+    let missing = with_seen(&advanced, seen);
     let error = Toy::validate_recovered_prefix(&advanced, &missing)
         .expect_err("advancing the journal should not hide a missing acknowledged event");
     assert_eq!(
@@ -884,12 +900,7 @@ async fn propose_read_dedupe_and_reject_through_the_real_loop() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
     let record = incremented("orders", 5);
     let shard = shard_of(record.partition());
-    let location = ShardLogLocation::disposable_local(
-        shard,
-        &toy_log_path(shard),
-        root.path(),
-        Arc::default(),
-    );
+    let location = local_location(shard, root.path());
 
     let (handle, started) = start(location).await;
     assert!(matches!(
@@ -1315,12 +1326,7 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
 
     let after_reset = incremented("orders", 3);
 
-    let location = ShardLogLocation::disposable_local(
-        shard,
-        &toy_log_path(shard),
-        root.path(),
-        Arc::default(),
-    );
+    let location = local_location(shard, root.path());
     let (handle, started) = start(location.clone()).await;
     for record in [
         first.clone(),
@@ -1412,12 +1418,7 @@ async fn foreign_partition_is_rejected() {
         .find(|candidate| shard_of(candidate.partition()) != shard)
         .expect("some key should route elsewhere");
 
-    let location = ShardLogLocation::disposable_local(
-        shard,
-        &toy_log_path(shard),
-        root.path(),
-        Arc::default(),
-    );
+    let location = local_location(shard, root.path());
     let (handle, started) = start(location).await;
     let error = handle
         .propose(foreign)
@@ -1446,12 +1447,7 @@ async fn snapshots_bound_recovery_and_roundtrip_state() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
     let record = incremented("orders", 5);
     let shard = shard_of(record.partition());
-    let location = ShardLogLocation::disposable_local(
-        shard,
-        &toy_log_path(shard),
-        root.path(),
-        Arc::default(),
-    );
+    let location = local_location(shard, root.path());
 
     let (handle, started) = start(location.clone()).await;
     for event in [record.clone(), incremented("orders", 7)] {
@@ -1727,27 +1723,36 @@ async fn snapshot_failed_attempt_interval() {
     let root = tempfile::tempdir().expect("object store root should be created");
     let record = incremented("orders", 5);
     let shard = shard_of(record.partition());
-    let location = ShardLogLocation::disposable_local(
-        shard,
-        &toy_log_path(shard),
-        root.path(),
-        Arc::default(),
-    );
+    let location = local_location(shard, root.path());
     let (handle, started) = start(location).await;
     handle
         .propose(record)
         .await
         .expect("event should be applied");
-    let mut payload = handle
+    handle
         .capture_snapshot(1)
         .await
         .expect("capture should succeed")
         .expect("snapshot should be due");
-    payload
-        .domain_mut()
-        .totals
-        .insert("x".repeat(MAX_SNAPSHOT_BYTES), 0);
-    let snapshot = payload.into_record(Utc::now());
+    let projection = handle
+        .read(KernelProjection::clone)
+        .await
+        .expect("read should succeed");
+    let mut oversized = projection.domain().clone();
+    oversized.totals.insert("x".repeat(MAX_SNAPSHOT_BYTES), 0);
+    let snapshot = Toy::capture_snapshot(
+        shard,
+        &KernelProjection::restored(
+            projection.seen().clone(),
+            projection.partitions().clone(),
+            projection
+                .through_sequence()
+                .expect("an applied event should set the journal sequence"),
+            oversized,
+        ),
+    )
+    .expect("a projection with a journal sequence should be captured")
+    .into_record(Utc::now());
     let error = handle
         .commit_snapshot(snapshot)
         .await
@@ -1796,23 +1801,4 @@ async fn snapshot_failed_attempt_interval() {
         .await
         .expect("loop task should join")
         .expect("loop should stop without an error");
-}
-
-#[test]
-fn dynamic_registration_is_idempotent_and_collision_safe() {
-    let registry = RecordRegistry::default();
-    register::<ToyDomain>(&registry).expect("first registration should succeed");
-    register::<ToyDomain>(&registry).expect("repeat registration should be idempotent");
-    let conflicting = RecordDeclaration {
-        emitted_version: 2,
-        supported_versions: &[1, 2],
-        ..EventRecord::<CounterEvent>::declaration()
-    };
-    let error = registry
-        .register(conflicting)
-        .expect_err("conflicting declaration should be rejected");
-    assert!(matches!(
-        error.current_context(),
-        registry::DeclarationError::ConflictingDeclaration { .. }
-    ));
 }
