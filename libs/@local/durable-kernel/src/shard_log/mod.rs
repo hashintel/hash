@@ -55,6 +55,9 @@ const DURABILITY_TIMEOUT: Duration = Duration::from_secs(60);
 const DURABILITY_WAIT_ATTEMPTS: u32 = 3;
 const PINNED_FENCE_MESSAGE: &str = "detected newer db client";
 
+/// A snapshot reference's log sequence and the snapshot record it points to.
+type SnapshotCandidate<T> = (u64, Result<T, Report<crate::registry::CompatError>>);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
 /// Determines whether an append can be retried or its writer must be replaced.
 pub enum AppendFailureKind {
@@ -377,8 +380,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
     async fn scan_projection_snapshots<T: DurableRecord>(
         &self,
         durable_end_exclusive: u64,
-    ) -> Result<Vec<(u64, Result<T, Report<crate::registry::CompatError>>)>, Report<DurableError>>
-    {
+    ) -> Result<Vec<SnapshotCandidate<T>>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
             .change_context(DurableError::RegisterRecord {
@@ -595,7 +597,7 @@ async fn scan_snapshot_records<T, R>(
     reader: &R,
     range: (Bound<Sequence>, Bound<Sequence>),
     expected_end: u64,
-) -> Result<Vec<(u64, Result<T, Report<crate::registry::CompatError>>)>, Report<DurableError>>
+) -> Result<Vec<SnapshotCandidate<T>>, Report<DurableError>>
 where
     T: DurableRecord,
     R: JournalReader,
