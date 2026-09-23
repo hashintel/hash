@@ -20,7 +20,7 @@ export const scrollingAttribute = "data-ds-scrolling";
  * selector outside the panda pipeline so that it loses to vendor scroll styles (Monaco, uPlot, MUI, etc)
  */
 const thumbColor = "--ds-scrollbar-thumb";
-export const scrollbarFadeCss = `:where(:root.${customScrollbarsClassName}, :root.${customScrollbarsClassName} *) { transition: ${thumbColor} 200ms ease; }`;
+export const scrollbarFadeCss = `@layer base { :where(:root.${customScrollbarsClassName}, :root.${customScrollbarsClassName} *) { transition: ${thumbColor} 200ms ease; } }`;
 
 /**
  * Registered so the thumb reveal can animate: only a registered custom
