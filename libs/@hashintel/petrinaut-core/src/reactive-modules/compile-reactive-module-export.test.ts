@@ -59,7 +59,7 @@ describe("compileReactiveModuleExport", () => {
       initialMarking: {},
       parameterValues: {},
       lambdaHir,
-      dt: 1,
+      zeroth: { dt: 1 },
     });
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
@@ -71,6 +71,60 @@ describe("compileReactiveModuleExport", () => {
     );
     expect(result.python).toContain(
       "net = Arrivals(theory=LRA, ctrl=(Arrived,), extl=(u_Arrive,))",
+    );
+  });
+
+  it("writes the flags that apply to the net into the IR and compiles from them", () => {
+    const result = compileReactiveModuleExport({
+      sdcpn,
+      title: "Arrivals",
+      initialMarking: {},
+      parameterValues: {},
+      lambdaHir,
+      zeroth: { shape: "modular", marking: "int", control: "open", dt: 0.5 },
+    });
+    expect(result.errors).toEqual([]);
+    // No transition is controllable, so the control flag does not apply.
+    expect(result.document?.zeroth).toEqual({
+      shape: "modular",
+      marking: "int",
+      dt: 0.5,
+    });
+    expect(result.ir).toContain(
+      "\nzeroth:\n  shape: modular\n  marking: int\n  dt: 0.5\n",
+    );
+    expect(result.python).toContain("Arrived = Var(INT)");
+    expect(result.python).toContain("class Draw_Arrive(Module):");
+    expect(result.python).toContain(
+      "net = compose(draw_Arrive, transition_Arrive, place_Arrived)",
+    );
+  });
+
+  it("marks a transition controllable from its metadata", () => {
+    const result = compileReactiveModuleExport({
+      sdcpn: {
+        ...sdcpn,
+        transitions: [
+          {
+            ...sdcpn.transitions[0]!,
+            metadata: { control: "controllable", action: "dispatch" },
+          },
+        ],
+      },
+      title: "Arrivals",
+      initialMarking: {},
+      parameterValues: {},
+      lambdaHir,
+      zeroth: { control: "open" },
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.document?.transitions.Arrive?.controllable).toBe(true);
+    expect(result.document?.zeroth).toEqual({ control: "open" });
+    expect(result.python).toContain(
+      "go_Arrive = Var(BOOL)  # choice for Arrive, each step: it fires only when chosen",
+    );
+    expect(result.python).toContain(
+      "& X(go_Arrive)  # Arrive: nothing -> Arrived",
     );
   });
 
@@ -105,6 +159,7 @@ describe("compileReactiveModuleExport", () => {
       lambdaHir,
     });
     expect(result).toMatchObject({
+      document: null,
       ir: null,
       python: null,
       errors: [
