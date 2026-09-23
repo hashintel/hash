@@ -1,6 +1,6 @@
 ---
 title: Usage manual
-description: Writing a Petrinaut plugin, installing it with the plugins provider, and the places in the editor that render its buttons, panel sections, edit views, settings groups and commands.
+description: Writing a Petrinaut plugin, installing it with the plugins provider, and the places in the editor that render its buttons, panel sections, edit views, settings groups, AI assistants and commands.
 attachTo: ui.plugins
 sidebar_order: 10
 ---
@@ -34,6 +34,7 @@ renders. Nothing else adds buttons or views to the chrome. The types live in
 | `bottom-panel`      | `subViews`               | a tab after the built-ins                     |
 | edit views          | `editViews`              | the Canvas / … selector in Edit mode          |
 | settings `labs`     | `settingsGroups`         | a titled group after the built-in Labs groups |
+| AI assistant        | `assistants`             | the AI panel, for the active assistant        |
 | command registry    | `commands`, `component`  | the ambient `CommandRegistryProvider`         |
 
 Buttons take the toolbar's size and variant, so a plugin button looks like the
@@ -52,7 +53,14 @@ type PetrinautPlugin = {
   subViews?: readonly PetrinautPluginSubView[]; // SubView + placement
   editViews?: readonly PetrinautPluginEditView[]; // { id, label, component }
   settingsGroups?: readonly PetrinautPluginSettingsGroup[];
+  assistants?: readonly PetrinautPluginAssistant[];
   component?: ComponentType; // mounted once per editor while installed
+};
+
+type PetrinautPluginAssistant = {
+  id: string; // stored as the user's choice
+  label: string; // the selector and the "Use the … assistant" command
+  component: ComponentType; // builds the assistant, passes it, renders nothing
 };
 
 type PetrinautPluginSettingsGroup = {
@@ -109,6 +117,21 @@ type PetrinautPluginButton = {
 - A component that needs the host's own state reads it from a context the
   host provides above `PetrinautPluginsProvider`. The plugin object stays a
   module constant; only the context value changes.
+- One assistant is active per editor: the one chosen in User settings while
+  its plugin is installed, otherwise the first installed. No assistant hides
+  the AI panel, its bottom-bar button, the first-run prompt and the toggle
+  command. Several add an **AI assistant** selector to the General settings
+  and a "Use the … assistant" palette command for each inactive one.
+- Only the active assistant's `component` is mounted. It runs beside the
+  editor, inside every editor provider, builds a `PetrinautAiAssistant` with
+  hooks and passes it to `usePetrinautAiAssistant`; the editor renders the
+  panel from it. Passing `null` keeps the panel hidden until the assistant
+  is ready. Switching unmounts one component and mounts the other, so each
+  keeps its own conversation, and the editor itself never remounts.
+- The panel creates its chat once per assistant and document, so a changed
+  `transport` reaches the next conversation. `usePetrinautActiveAssistantId`
+  tells a plugin's other contributions, such as its settings group, whether
+  its assistant is the active one.
 
 ## Write a plugin
 
@@ -247,6 +270,42 @@ import fetches the chunk again depends on the host's bundler and browser.
 `loadOnce` and `PluginContributionBoundary` are internal: a host plugin that
 wants the same behaviour brings its own loader and error boundary.
 
+An AI assistant whose conversation history stays with the host:
+
+```tsx
+const transport = new DefaultChatTransport({ api: "/api/chat" });
+
+const HostAssistant = () => {
+  const history = use(HostHistoryContext);
+  const assistant = useMemo(
+    () => ({
+      transport,
+      messages: history.messages,
+      onMessages: history.setMessages,
+      onClearMessages: history.clear,
+    }),
+    [history],
+  );
+  usePetrinautAiAssistant(assistant);
+  return null;
+};
+
+export const hostAssistantPlugin = definePetrinautPlugin({
+  id: "website.stock-assistant",
+  assistants: [
+    {
+      id: "website.stock-assistant",
+      label: "Petrinaut",
+      component: HostAssistant,
+    },
+  ],
+});
+```
+
+The website installs its stock assistant and Brunch this way, with Brunch
+first when that is the site's default, and a Brunch Labs group for Voice
+that reads `usePetrinautActiveAssistantId`.
+
 An edit view, which is how the built-in Definitions view is installed:
 
 ```tsx
@@ -281,9 +340,9 @@ const demoPlugins = [sentryFeedbackPlugin, commandPalettePlugin];
   there.
 - Keep the plugin objects and the list at module scope or otherwise stable.
   The provider re-renders its consumers when the list changes identity.
-- The deprecated `slots` prop carries only `settingsLabs` now: host content
-  rendered after the built-in Labs groups, before any plugin group. Move it
-  to a `settingsGroups` entry.
+- The deprecated `aiAssistant` prop still provides one assistant: the
+  editor serves it as the first installed assistant, labelled "AI". Move it
+  to an `assistants` entry.
 
 ## What is not here yet
 
@@ -293,17 +352,19 @@ Brunch-specific library code, so each of its next needs becomes a place here.
 
 - No availability predicate on a contribution: a button, subview or
   settings group shows whenever its plugin is installed. Gate a group of
-  contributions by installing their plugin from host state, for example an
-  assistant's plugin only while that assistant is selected, and a single
-  command with `useCommand`'s `when`.
+  contributions by installing their plugin from host state, for example a
+  feature's plugin only while its flag is on, and a single command with
+  `useCommand`'s `when`. Keep a plugin whose contribution lets the user turn
+  it off installed, or that control disappears with it.
 - No menu place. The New submenu's assistant entry stays in the editor until
   a command can open the assistant with an initial message and start
   prompts. A `menuItems` place that runs registry commands follows that.
-- No assistant contribution. The AI panel, its transport, tools, Voice mode
-  and extra tabs come through the `aiAssistant` prop. Moving them needs one
-  active assistant per editor, per-assistant conversation state, and hooks
-  that register automatic and interactive tools from a plugin component, in
-  the way `useCommand` registers commands.
+- No tool registry. An assistant's automatic and interactive tools come
+  with that assistant; another plugin cannot add tools to it. Registering
+  them from any plugin component, as `useCommand` registers commands, waits
+  for a second consumer.
+- No busy state for the assistant switch. Switching mid-response stops
+  observing the old assistant's turn.
 - No notices place. Hosts position their own banners under the top bar.
 - No `windows` place. A floating window is a plugin `component` that owns its
   frame, as the built-in Zeroth Reactive Modules window does. The editor
