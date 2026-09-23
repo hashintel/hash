@@ -263,6 +263,27 @@ impl PartitionKey {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    fn derive_event_id<E: DomainEvent + Serialize>(
+        &self,
+        event: &E,
+    ) -> Result<EventId, Report<CompatError>> {
+        #[derive(Serialize)]
+        struct EventIdentity<'a, E> {
+            partition: &'a PartitionKey,
+            event: &'a E,
+        }
+
+        content_digest_bytes(
+            "domain-event:v1",
+            &EventIdentity {
+                partition: self,
+                event,
+            },
+        )
+        .map(EventId::from_bytes)
+        .change_context(CompatError::Encode { name: E::name() })
+    }
 }
 
 impl TryFrom<String> for PartitionKey {
@@ -344,21 +365,6 @@ impl<'de, E: DomainEvent + Serialize + Deserialize<'de>> Deserialize<'de> for Ev
     }
 }
 
-fn derive_event_id<E: DomainEvent + Serialize>(
-    partition: &PartitionKey,
-    event: &E,
-) -> Result<EventId, Report<CompatError>> {
-    #[derive(Serialize)]
-    struct EventIdentity<'a, E> {
-        partition: &'a PartitionKey,
-        event: &'a E,
-    }
-
-    content_digest_bytes("domain-event:v1", &EventIdentity { partition, event })
-        .map(EventId::from_bytes)
-        .change_context(CompatError::Encode { name: E::name() })
-}
-
 impl<E> EventRecordV1<E> {
     pub const fn event_id(&self) -> EventId {
         self.event_id
@@ -385,7 +391,7 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
     /// Returns an error if the event cannot be serialized to derive its identity.
     pub fn new(event: E) -> Result<Self, Report<CompatError>> {
         let partition = event.partition();
-        let event_id = derive_event_id(&partition, &event)?;
+        let event_id = partition.derive_event_id(&event)?;
         Ok(Self {
             event_id,
             partition,
