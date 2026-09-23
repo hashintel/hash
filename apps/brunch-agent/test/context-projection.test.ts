@@ -12,6 +12,66 @@ import {
 
 import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
 
+test("projects in-band canonical output without exposing host sidecars or altering Flue history", () => {
+  const sidecar = {
+    observation: { binding: "private-incarnation", sha256: "private-hash" },
+  };
+  const canonical = { definition: { places: [] }, title: "Queue" };
+  const input: ContextProjectionEntry[] = [
+    {
+      id: "read",
+      message: {
+        role: "toolResult",
+        toolCallId: "read-1",
+        toolName: "getLatestNetDefinition",
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              brunchBrowserResult: true,
+              output: canonical,
+              metadata: sidecar,
+            }),
+          },
+        ],
+      },
+    },
+    {
+      id: "doc",
+      message: {
+        role: "toolResult",
+        toolCallId: "doc-1",
+        toolName: "readPetrinautDoc",
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              brunchBrowserResult: true,
+              output: "Petrinaut guide",
+              metadata: sidecar,
+            }),
+          },
+        ],
+      },
+    },
+  ];
+  const projected = projectBrunchContext(input);
+  assert.deepEqual(
+    projected.map(({ message }) =>
+      message.role === "toolResult" ? message.content : undefined,
+    ),
+    [
+      [{ type: "text", text: JSON.stringify(canonical) }],
+      [{ type: "text", text: JSON.stringify("Petrinaut guide") }],
+    ],
+  );
+  assert(JSON.stringify(input).includes("private-incarnation"));
+  assert(!JSON.stringify(projected).includes("private-incarnation"));
+  assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
+});
+
 const markdown = "# Account\n\nAuthoritative content.";
 const sha256 = createHash("sha256").update(markdown).digest("hex");
 

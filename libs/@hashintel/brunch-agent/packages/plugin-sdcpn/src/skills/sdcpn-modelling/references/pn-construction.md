@@ -1,12 +1,12 @@
 # SDCPN Construction
 
-Read this only when constructing, revising, or checking a net. Consume the current process-model workpiece; do not reread the transcript as the primary model.
+Read this only when constructing, revising, or checking a net. Use the current process-model workpiece as the account when one is settled; in integrated I mode, a direct user-authorized live-document request can precede it. Do not use conversation recollection to invent missing operational facts.
 
 Construction translates recorded operational meaning into SDCPN structure. It may choose a representation, introduce a visibly named approximation, or report a loss. It may not invent operational facts to make the net complete unless the person explicitly authorizes purpose-bounded assumptions; label every authorized assumption rather than presenting it as elicited evidence.
 
 ## Construction boundary
 
-Before constructing a fragment, confirm that the workpiece states the model's purpose and supports an activity with an adjacent state or relationship. Check the flow, ordering, enabling conditions, resource use and quantities that determine that fragment's meaning. The whole process's admission, outcomes and exception paths need not yet be known.
+Before constructing a fragment, confirm that the settled workpiece (when the mode requires one) or the person's direct authorization in integrated I mode states the model's purpose and supports an activity with an adjacent state or relationship. Check the flow, ordering, enabling conditions, resource use and quantities that determine that fragment's meaning. The whole process's admission, outcomes and exception paths need not yet be known.
 
 If a missing operational distinction would materially change this fragment, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path. Continue with independently supported fragments. Keep unresolved boundaries explicit; never invent a trigger, source, sink, release rule or numeric default to close them without explicit authorization to use sensible defaults, decide on the person's behalf, make up a suitable example, or equivalent. Any authorized default must remain purpose-bounded and labelled.
 
@@ -33,7 +33,7 @@ A physical location becomes target structure only through its recorded operation
 
 Use the exact mounted schemas and wait for results before depending on them. In integrated canonical modes, call canonical Petrinaut tools directly; do not translate them into a legacy or invented batch envelope. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, workpiece revisions, observation call IDs, or Ledger locators into canonical tool inputs.
 
-1. Settle the supported account with one `mutate_workpiece` call that declares its evidence by literal text. Wait for the result and reuse the submitted Markdown as the authoritative account for that settlement. Complete required skill-resource reads before browser tools.
+1. In modes requiring a Ledger basis, settle the supported account with one `mutate_workpiece` call that declares its evidence by literal text and wait for its result before dependent construction. In integrated I mode, canonical construction may act on the authorized live document first; a simultaneous Ledger revision does not describe its effect until verified. Complete required skill-resource reads before depending on their content.
 2. Call the mounted canonical definition-read tool before changes that depend on current structure. Inspect its `title`, complete definition, and `extensions` before authoring extension-specific content.
 3. Apply one bounded connected fragment with canonical mutation calls. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Use stable IDs and the exact canonical input schemas.
 4. After code or code-dependency changes, call the canonical diagnostics tool. Repeat a pending read until settled; repair reported errors after inspecting current state. Structural acceptance is not compiler success.
@@ -53,7 +53,7 @@ The mounted schemas, not this prose, govern exact payload fields.
 
 ## Construction patterns
 
-Patterns are candidate transformations whose premises must already be present in the workpiece. They do not supply missing facts.
+Patterns are candidate transformations whose premises must already be present in the settled workpiece or the person's direct authorization in integrated I mode. They do not supply missing facts.
 
 ### Timed work
 

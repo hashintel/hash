@@ -50,6 +50,8 @@ test("the production ChatAgent passes the local configuration to its core hook",
     "anthropic/claude-sonnet-4-6",
     { compaction: { keepRecentTokens: 256 } },
     expect.any(Function),
+    undefined,
+    false,
   );
   expect(renderChatAgent.agentName).toBe("brunch-chat-agent");
 });
@@ -62,6 +64,8 @@ test("the production ChatAgent supplies no compaction override when unset", asyn
     "anthropic/claude-sonnet-4-6",
     undefined,
     expect.any(Function),
+    undefined,
+    false,
   );
 });
 
@@ -131,6 +135,8 @@ test("the production ChatAgent forwards an independent OpenAI specifier and thin
     "openai/gpt-5.6-sol",
     { thinkingLevel: "low" },
     expect.any(Function),
+    undefined,
+    false,
   );
 });
 

@@ -42,7 +42,10 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
-import { integratedPetrinautClientToolNames } from "./brunch-client-tools";
+import {
+  canonicalPetrinautClientToolNames,
+  integratedPetrinautClientToolNames,
+} from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -1406,6 +1409,7 @@ describe("local storage demo Brunch controls", () => {
         readonly construction?: { readonly binding?: unknown };
       };
       readonly clientToolNames?: ReadonlySet<string>;
+      readonly asyncClientToolNames?: ReadonlySet<string>;
       readonly dynamicClientToolNames?: ReadonlySet<string>;
       readonly mapClientToolInput?: (call: {
         input: unknown;
@@ -1457,17 +1461,24 @@ describe("local storage demo Brunch controls", () => {
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual([draftPetrinautExperimentToolName]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
-    expectExperimentRecord(transportOptions, "integrated-experiment");
+    expect(
+      [...(transportOptions.asyncClientToolNames ?? [])].toSorted(),
+    ).toEqual([...canonicalPetrinautClientToolNames].toSorted());
+    expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(
+      true,
+    );
+    expect(
+      aiAssistant.inBandBrowserTools?.has(draftPetrinautExperimentToolName),
+    ).toBe(false);
+    // I captures the experiment source at the browser lane barrier, not while projecting transport input.
     expect(
       [...(transportOptions.dynamicClientToolNames ?? [])].toSorted(),
-    ).toEqual([
-      "addArc",
-      "addPlace",
-      "addTransition",
-      "draft_petrinaut_experiment",
-      "getLatestNetDefinition",
-      "getNetCompilationErrors",
-    ]);
+    ).toEqual(
+      [
+        ...canonicalPetrinautClientToolNames,
+        draftPetrinautExperimentToolName,
+      ].toSorted(),
+    );
   });
 });
 

@@ -24,6 +24,7 @@ import {
   applyPetrinautConstructionToolName,
   draftPetrinautExperimentToolName,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
+  INTEGRATED_BRUNCH_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
@@ -112,6 +113,7 @@ import {
 } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
+import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { readLiveDocumentHash } from "./live-document-hash";
 import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
 import {
@@ -813,6 +815,9 @@ export const LocalStorageDemoApp = ({
       "addArc",
     ]);
     names.add(draftPetrinautExperimentToolName);
+    if (brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE)
+      for (const toolName of canonicalPetrinautClientToolNames)
+        names.add(toolName);
     if (deepModeSelected) names.add(applyPetrinautConstructionToolName);
     return names;
   }, [deepModeSelected, integratedConstructionBrowser]);
@@ -836,6 +841,9 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
     validatedClientToolNames,
+    brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE
+      ? canonicalPetrinautClientToolNames
+      : undefined,
   );
   const replayBindingKey = integratedConstructionBrowser
     ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
@@ -873,6 +881,7 @@ export const LocalStorageDemoApp = ({
     return createCanonicalPetrinautHostTools({
       handle: activeHandle.handle,
       binding: integratedConstructionBrowser.binding,
+      orderedByPanel: brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
       settleRevision: settleConstructionRevision,
@@ -994,6 +1003,9 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
+                ...(brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE
+                  ? { asyncClientToolNames: canonicalPetrinautClientToolNames }
+                  : {}),
                 dynamicClientToolNames,
                 validatedClientToolNames,
                 ...(canonicalHostTools === undefined &&
@@ -1002,8 +1014,11 @@ export const LocalStorageDemoApp = ({
                   : {
                       mapClientToolInput: (call) => {
                         const canonicalInput =
-                          canonicalHostTools?.mapClientToolInput(call) ??
-                          call.input;
+                          brunchPreviewConfig.serverMode ===
+                          INTEGRATED_BRUNCH_MODE
+                            ? call.input
+                            : (canonicalHostTools?.mapClientToolInput(call) ??
+                              call.input);
                         return (
                           deepHostTool?.mapClientToolInput({
                             ...call,
@@ -1048,6 +1063,28 @@ export const LocalStorageDemoApp = ({
     reportBrunchFailure,
     transportClientPromise,
   ]);
+
+  const inBandBrowserTools = useMemo(
+    () =>
+      brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE &&
+      integratedConstructionBrowser &&
+      flueClientPromise
+        ? createInBandBrowserCalls({
+            client: flueClientPromise,
+            principalKey: brunchPrincipal,
+            binding: integratedConstructionBrowser.binding,
+            metadataFor: (toolCallId, output) =>
+              canonicalHostTools?.clientToolResultMetadataFor(
+                toolCallId,
+                output,
+              ),
+            prepareInput: (call) => {
+              canonicalHostTools?.mapClientToolInput(call);
+            },
+          })
+        : undefined,
+    [integratedConstructionBrowser, flueClientPromise, canonicalHostTools],
+  );
 
   const draftInteractiveTool = useMemo(
     () =>
@@ -1104,6 +1141,7 @@ export const LocalStorageDemoApp = ({
       canClearMessages: flueClientPromise === null,
       // These exact-name tools override the static registry only in integrated
       // modes. Every other canonical capability remains on Petrinaut's registry.
+      inBandBrowserTools,
       automaticTools: [
         ...(canonicalHostTools?.tools ?? []),
         ...(deepHostTool === undefined ? [] : [deepHostTool.tool]),
@@ -1161,6 +1199,7 @@ export const LocalStorageDemoApp = ({
     brunchVoiceMode,
     canonicalHostTools,
     deepHostTool,
+    inBandBrowserTools,
     draftInteractiveTool,
     observedLiveHash,
     integratedConstructionBrowser,

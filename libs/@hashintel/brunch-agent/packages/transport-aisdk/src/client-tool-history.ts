@@ -55,7 +55,26 @@ const resultsFrom = (
 ): readonly ClientToolHistoryResult[] =>
   messages.flatMap((message) => {
     if (message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL) {
-      return [];
+      return message.parts.flatMap((part): ClientToolHistoryResult[] => {
+        if (
+          part.type !== "dynamic-tool" ||
+          part.state !== "output-available" ||
+          !isRecord(part.output) ||
+          part.output.brunchBrowserResult !== true ||
+          !("output" in part.output)
+        )
+          return [];
+        return [
+          {
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: part.output.output,
+            ...("metadata" in part.output
+              ? { metadata: part.output.metadata }
+              : {}),
+          },
+        ];
+      });
     }
     const body = message.parts
       .flatMap((part) => (part.type === "text" ? [part.text] : []))

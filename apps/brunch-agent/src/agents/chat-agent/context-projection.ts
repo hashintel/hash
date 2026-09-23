@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isClientToolResult,
@@ -143,6 +144,36 @@ const readAuthority = (
 const contentKey = (
   content: Pick<SettlementAuthority | ReadAuthority, "revisionId" | "sha256">,
 ) => `${content.revisionId}\u0000${content.sha256}`;
+
+const inBandBrowserToolNames: ReadonlySet<string> = new Set(
+  CANONICAL_PETRINAUT_TOOL_NAMES,
+);
+
+/** Flue retains the verified sidecar, but the provider sees only Petrinaut's exact canonical result. */
+const projectInBandBrowserResult = (
+  entry: ContextProjectionEntry,
+): ContextProjectionEntry => {
+  const { message } = entry;
+  if (
+    message.role !== "toolResult" ||
+    message.isError ||
+    !inBandBrowserToolNames.has(message.toolName)
+  )
+    return entry;
+  const envelope = parseTextJson(message);
+  if (
+    envelope?.brunchBrowserResult !== true ||
+    !Object.hasOwn(envelope, "output")
+  )
+    return entry;
+  return {
+    ...entry,
+    message: {
+      ...message,
+      content: [{ type: "text", text: JSON.stringify(envelope.output) }],
+    },
+  };
+};
 
 const withTextJson = (
   message: ContextProjectionMessage,
@@ -491,14 +522,16 @@ export const createBrunchContextProjection = (
         (candidate) => candidate.resultEntryIndex === entryIndex,
       );
       if (settlement)
-        return compactClientToolSignal(
-          projectMutationResult(
-            withProjectedArguments,
-            settlement,
-            retainedEntryIds.get(contentKey(settlement)),
+        return projectInBandBrowserResult(
+          compactClientToolSignal(
+            projectMutationResult(
+              withProjectedArguments,
+              settlement,
+              retainedEntryIds.get(contentKey(settlement)),
+            ),
+            entryIndex,
+            latestNetRead,
           ),
-          entryIndex,
-          latestNetRead,
         );
       const read = reads.find(
         (candidate) => candidate.entryIndex === entryIndex,
@@ -506,12 +539,14 @@ export const createBrunchContextProjection = (
       const retainedEntryId = read
         ? retainedEntryIds.get(contentKey(read))
         : undefined;
-      return compactClientToolSignal(
-        read && retainedEntryId
-          ? projectReadResult(withProjectedArguments, read, retainedEntryId)
-          : withProjectedArguments,
-        entryIndex,
-        latestNetRead,
+      return projectInBandBrowserResult(
+        compactClientToolSignal(
+          read && retainedEntryId
+            ? projectReadResult(withProjectedArguments, read, retainedEntryId)
+            : withProjectedArguments,
+          entryIndex,
+          latestNetRead,
+        ),
       );
     });
   };

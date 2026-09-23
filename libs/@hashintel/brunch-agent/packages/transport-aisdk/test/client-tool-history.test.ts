@@ -50,6 +50,44 @@ describe("client-tool-result delivery identity", () => {
 });
 
 describe("clientToolHistoryFrom", () => {
+  test("projects an in-band Flue browser outcome without synthesizing a client-result signal", () => {
+    const messages: readonly ClientToolHistoryMessage[] = [
+      {
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "getLatestNetDefinition",
+            toolCallId: "issued-read",
+            state: "output-available",
+            input: {},
+            output: {
+              brunchBrowserResult: true,
+              output: { definition: { places: [] } },
+              metadata: { observation: "host" },
+            },
+          },
+        ],
+      },
+    ];
+    expect(clientToolHistoryFrom(messages)).toEqual({
+      calls: [
+        {
+          input: {},
+          toolCallId: "issued-read",
+          toolName: "getLatestNetDefinition",
+        },
+      ],
+      results: [
+        {
+          toolCallId: "issued-read",
+          toolName: "getLatestNetDefinition",
+          output: { definition: { places: [] } },
+          metadata: { observation: "host" },
+        },
+      ],
+    });
+  });
+
   test("projects generic calls and correlated client result envelopes", () => {
     const messages: readonly ClientToolHistoryMessage[] = [
       {

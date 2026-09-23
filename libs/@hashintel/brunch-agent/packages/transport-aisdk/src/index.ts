@@ -503,6 +503,7 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        asyncClientToolNames: options.asyncClientToolNames,
         dynamicClientToolNames: options.dynamicClientToolNames,
         validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,

@@ -86,7 +86,9 @@ const toolPartFrom = (
   options: SnapshotToUiMessagesOptions,
   clientResults: ReadonlyMap<string, ReconciledClientToolResult>,
 ): UiMessagePart => {
-  const isClientTool = options.clientToolNames.has(part.toolName);
+  const isClientTool =
+    options.clientToolNames.has(part.toolName) &&
+    !options.asyncClientToolNames?.has(part.toolName);
   const hasClientOutput = clientResults.has(part.toolCallId);
   const toolIdentity =
     options.dynamicClientToolNames?.has(part.toolName) === true
@@ -147,7 +149,13 @@ const toolPartFrom = (
   const output = isClientTool
     ? clientResults.get(part.toolCallId)?.output
     : part.state === "output-available"
-      ? part.output
+      ? typeof part.output === "object" &&
+        part.output !== null &&
+        "brunchBrowserResult" in part.output &&
+        part.output.brunchBrowserResult === true &&
+        "output" in part.output
+        ? part.output.output
+        : part.output
       : undefined;
   if (output !== undefined || hasClientOutput) {
     return {

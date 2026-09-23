@@ -7,6 +7,8 @@ import type { UIMessageChunk } from "ai";
 /** How client-executed tools project into the AI SDK UI, live or from history. */
 export interface ClientToolProjectionOptions {
   readonly clientToolNames: ReadonlySet<string>;
+  /** Calls executed during the same Flue turn; their outcome is provider-executed for AI SDK. */
+  readonly asyncClientToolNames?: ReadonlySet<string>;
   /** Host-defined tools that are not part of the AI SDK's static tool registry. */
   readonly dynamicClientToolNames?: ReadonlySet<string>;
   /** These client calls are not executable until their server tool has succeeded. */
@@ -398,7 +400,11 @@ export const createFlueUiStream = (
           toolNamesByCallId.set(chunk.toolCallId, chunk.toolName);
           admittedToolCallIds.add(chunk.toolCallId);
           const isClientTool = options.clientToolNames.has(chunk.toolName);
-          if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
+          if (
+            isClientTool &&
+            !options.asyncClientToolNames?.has(chunk.toolName)
+          )
+            pendingClientToolCallIds.add(chunk.toolCallId);
           if (
             isClientTool &&
             options.validatedClientToolNames?.has(chunk.toolName)
@@ -445,10 +451,18 @@ export const createFlueUiStream = (
             return;
           }
           if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
+          const result = chunk.output;
           options.write({
             type: "tool-output-available",
             toolCallId: chunk.toolCallId,
-            output: chunk.output,
+            output:
+              typeof result === "object" &&
+              result !== null &&
+              "brunchBrowserResult" in result &&
+              result.brunchBrowserResult === true &&
+              "output" in result
+                ? result.output
+                : result,
             providerExecuted: true,
           });
           return;

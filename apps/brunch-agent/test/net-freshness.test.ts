@@ -13,8 +13,10 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
 
+import { BROWSER_CALL_UNSTARTED_ERROR } from "../src/conversation/browser-call-rendezvous.ts";
 import { AWAITING_CLIENT } from "../src/conversation/client-tools.ts";
 import { deriveNetFreshness } from "../src/conversation/net-freshness.ts";
+import { deriveNetLedger } from "../src/conversation/net-ledger.ts";
 
 import type {
   FlueConversationMessage,
@@ -75,6 +77,24 @@ const assistantCall = (
       state: "output-available",
       input,
       output: { awaiting: AWAITING_CLIENT },
+    },
+  ],
+});
+
+const failedCall = (
+  toolCallId: string,
+  toolName: string,
+  errorText: string,
+): FlueConversationMessage => ({
+  ...assistantCall(toolCallId, toolName),
+  parts: [
+    {
+      type: "dynamic-tool",
+      toolCallId,
+      toolName,
+      state: "output-error",
+      input: {},
+      errorText,
     },
   ],
 });
@@ -282,6 +302,73 @@ test("one verified read is current", async () => {
   expect(
     await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), browser),
   ).toEqual({ kind: "current", hash: sha256Of(emptyNet) });
+});
+
+test.each([
+  "addPlace",
+  "addScenario",
+  layoutPetrinautNetToolName,
+  mutatePetrinautNetToolName,
+])(
+  "an uncertain %s tool error invalidates a previous verified read without inventing cause",
+  async (toolName) => {
+    const toolCallId = `failed-${toolName}`;
+    await Promise.all(
+      [undefined, "read-revision"].map(async (reportedRevisionId) => {
+        const snapshot = snapshotOf([
+          ...readTurn("read-1", emptyNet, reportedRevisionId),
+          failedCall(
+            toolCallId,
+            toolName,
+            "Browser result lost; effect unknown.",
+          ),
+        ]);
+        const ledger = await deriveNetLedger(snapshot, browser);
+        expect(ledger.map(({ kind }) => kind)).toEqual(["read", "unrecorded"]);
+        expect(ledger.at(-1)).toMatchObject({
+          kind: "unrecorded",
+          toolCallId,
+          toolName,
+        });
+        expect(
+          await deriveNetFreshness(snapshot, browser, reportedRevisionId),
+        ).toMatchObject({ kind: "stale", lastKnownHash: undefined });
+      }),
+    );
+  },
+);
+
+test.each([
+  "getLatestNetDefinition",
+  "readPetrinautDoc",
+  "draft_petrinaut_experiment",
+  "ping",
+])("an output-error for %s is not a document mutation", async (toolName) => {
+  const snapshot = snapshotOf([
+    ...readTurn("read-1", emptyNet),
+    failedCall(`failed-${toolName}`, toolName, "Tool failed."),
+  ]);
+  expect(
+    (await deriveNetLedger(snapshot, browser)).map(({ kind }) => kind),
+  ).toEqual(["read"]);
+  expect(await deriveNetFreshness(snapshot, browser)).toEqual({
+    kind: "current",
+    hash: sha256Of(emptyNet),
+  });
+});
+
+test("a browser mutation proved unstarted by its negative result does not stale the prior read", async () => {
+  const snapshot = snapshotOf([
+    ...readTurn("read-1", emptyNet),
+    failedCall("unstarted-place", "addPlace", BROWSER_CALL_UNSTARTED_ERROR),
+  ]);
+  expect(
+    (await deriveNetLedger(snapshot, browser)).map(({ kind }) => kind),
+  ).toEqual(["read"]);
+  expect(await deriveNetFreshness(snapshot, browser)).toEqual({
+    kind: "current",
+    hash: sha256Of(emptyNet),
+  });
 });
 
 test("a caller-reported direct edit makes an otherwise hash-invisible revision stale", async () => {
