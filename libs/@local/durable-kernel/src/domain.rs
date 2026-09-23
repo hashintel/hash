@@ -259,11 +259,6 @@ impl PartitionKey {
         Ok(Self(value))
     }
 
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
     fn derive_event_id<E: DomainEvent + Serialize>(
         &self,
         event: &E,
@@ -294,6 +289,12 @@ impl TryFrom<String> for PartitionKey {
     }
 }
 
+impl AsRef<str> for PartitionKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl core::str::FromStr for PartitionKey {
     type Err = InvalidPartitionKey;
 
@@ -313,7 +314,7 @@ impl From<PartitionKey> for String {
 /// Routing-v1 uses byte 7 of the SHA-256 digest to select the partition's journal.
 #[must_use]
 pub fn shard_of(key: &PartitionKey) -> Shard {
-    let digest: [u8; 32] = Sha256::digest(key.as_str().as_bytes()).into();
+    let digest: [u8; 32] = Sha256::digest(key.as_ref().as_bytes()).into();
     let [_, _, _, _, _, _, _, shard, ..] = digest;
     Shard::from_u8(shard)
 }
