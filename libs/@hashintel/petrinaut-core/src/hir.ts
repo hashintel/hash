@@ -115,6 +115,12 @@ export {
   hirExpressionToTypeScript,
 } from "./hir/print";
 export {
+  type HirParameterSubstitutions,
+  type PrintHirFunctionOptions,
+  printHirFunction,
+  substituteHirParameters,
+} from "./hir/print-function";
+export {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
