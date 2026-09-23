@@ -27,7 +27,12 @@ const packageRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
  * `hir`, `compiled-model` and `diagnostics` are deliberately absent: they are
  * Node/worker entries and are *expected* to bundle the compiler.
  */
-const BROWSER_SAFE_ENTRIES = ["index.js", "webgpu.js", "hir-runtime.js"];
+const BROWSER_SAFE_ENTRIES = [
+  "index.js",
+  "webgpu.js",
+  "hir-runtime.js",
+  "reactive-modules.js",
+];
 
 /** Bare specifiers that mean "this cannot run in a browser". */
 const NODE_ONLY = new Set([

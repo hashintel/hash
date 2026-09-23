@@ -62,6 +62,10 @@
       "types": "./dist/optimization.d.ts",
       "import": "./dist/optimization.js"
     },
+    "./reactive-modules": {
+      "types": "./dist/reactive-modules.d.ts",
+      "import": "./dist/reactive-modules.js"
+    },
     "./selection": {
       "types": "./dist/selection.d.ts",
       "import": "./dist/selection.js"

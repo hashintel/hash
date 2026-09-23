@@ -360,3 +360,35 @@ export const WithLsp: Story = {
   name: "Multi-line (with LSP)",
   render: () => <WithLspExample />,
 };
+
+// -- Viewer -------------------------------------------------------------------
+
+const VIEWER_SOURCE = `export default Lambda((input, parameters) => {
+  // Mass-action infection: one Susceptible meets one Infected.
+  const encounters = input.Susceptible.length * input.Infected.length;
+  return parameters.rate * encounters;
+});
+`;
+
+export const Viewer: Story = {
+  name: "Read-only viewer",
+  render: () => (
+    <Frame>
+      <div style={{ height: 200 }}>
+        <CodeEditor
+          viewer
+          language="typescript"
+          value={VIEWER_SOURCE}
+          height="100%"
+          options={{
+            readOnly: true,
+            domReadOnly: true,
+            lineNumbers: "on",
+            renderLineHighlight: "none",
+            showFoldingControls: "always",
+          }}
+        />
+      </div>
+    </Frame>
+  ),
+};
