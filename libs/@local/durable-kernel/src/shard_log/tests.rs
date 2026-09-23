@@ -1,17 +1,18 @@
 use alloc::sync::Arc;
-use core::{pin::pin, time::Duration};
+use core::{num::NonZeroU64, pin::pin, time::Duration};
 use std::io::Write;
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
 use futures_util::TryStreamExt as _;
+use opendata_log::LogDb;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 
 use super::{
-    AppendFailureKind, JournalReader as _, JournalStorage, JournalStream as _, OpenedShard,
-    ShardLogLocation, ShardLogOpenError, ShardLogRecovery, ShardLogWriter, post_invocation_source,
-    read_journal, wait_until_durable_with,
+    AppendFailureKind, JournalReader as _, JournalStorage, JournalStream as _, JournalWriter,
+    LogStorageOptions, OpenedShard, ShardAppendError, ShardLogLocation, ShardLogOpenError,
+    ShardLogWriter, post_invocation_source, read_journal, wait_until_durable_with,
 };
 use crate::{
     DurableError,
@@ -108,6 +109,45 @@ fn record(body: &str) -> TestRecord {
     }
 }
 
+impl<W: JournalWriter> ShardLogWriter<W> {
+    async fn append<T: UntrimmedJournalRecord + Sync>(
+        &self,
+        value: &T,
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
+        self.append_registered(super::EVENTS_KEY, value).await
+    }
+
+    async fn append_registered<T: DurableRecord + Sync>(
+        &self,
+        key: &'static [u8],
+        value: &T,
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
+        let bytes = self.encode_registered::<T>(|writer| value.encode(writer))?;
+        self.append_encoded(key, bytes).await
+    }
+}
+
+fn local_location(
+    shard: Shard,
+    log_path: &str,
+    root: &std::path::Path,
+    registry: Arc<RecordRegistry>,
+) -> ShardLogLocation {
+    ShardLogLocation::for_kernel(
+        shard,
+        log_path,
+        &LogStorageOptions {
+            blob_url: format!("file://{}", root.display()),
+            aws_region: None,
+            shard_capacity: NonZeroU64::MIN,
+            block_cache_bytes: 0,
+            meta_cache_bytes: 0,
+        },
+        registry,
+    )
+    .expect("local test storage should be configured")
+}
+
 struct TestPrefixCapability {
     root: TempDir,
     object_store_root: std::path::PathBuf,
@@ -136,7 +176,7 @@ impl TestPrefixCapability {
     }
 
     fn location(&self, shard: Shard) -> ShardLogLocation {
-        ShardLogLocation::disposable_local(
+        local_location(
             shard,
             &Self::log_path(shard),
             &self.object_store_root,
@@ -154,13 +194,14 @@ async fn open_invalid_storage() {
     let capability = TestPrefixCapability::new();
     let shard = Shard::from_u8(7);
     let blocked = capability.root().join("blocked");
-    std::fs::write(&blocked, b"not a directory").expect("storage root should be blocked");
-    let location = ShardLogLocation::disposable_local(
+    let location = local_location(
         shard,
         &TestPrefixCapability::log_path(shard),
         &blocked,
         Arc::clone(&capability.registry),
     );
+    std::fs::remove_dir(&blocked).expect("storage root should be removable");
+    std::fs::write(&blocked, b"not a directory").expect("storage root should be blocked");
 
     let writer_error = OpenedShard::open(location.clone())
         .await
@@ -213,24 +254,14 @@ async fn shards_append_independently_and_each_append_is_one_physical_record() {
     zero.close().await.expect("writer should close");
     one.close().await.expect("writer should close");
 
-    let zero_reader = ShardLogRecovery::open(&zero_location)
+    let zero_records = read_journal::<TestRecord>(&zero_location)
         .await
-        .expect("recovery reader should open");
-    let one_reader = ShardLogRecovery::open(&one_location)
+        .expect("journal should be readable");
+    let one_records = read_journal::<TestRecord>(&one_location)
         .await
-        .expect("recovery reader should open");
-    let zero_records = zero_reader
-        .scan::<TestRecord>()
-        .await
-        .expect("records should scan");
-    let one_records = one_reader
-        .scan::<TestRecord>()
-        .await
-        .expect("records should scan");
+        .expect("journal should be readable");
     assert_eq!(zero_records, vec![(zero_sequence, record("zero"))]);
     assert_eq!(one_records, vec![(one_sequence, record("one"))]);
-    zero_reader.close().await;
-    one_reader.close().await;
 }
 
 async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
@@ -403,7 +434,7 @@ async fn journal_registration_conflict() {
             ..TEST_RECORD_DECLARATION
         })
         .expect("conflicting codec should register first");
-    let location = ShardLogLocation::disposable_local(
+    let location = local_location(
         Shard::from_u8(1),
         "registration-conflict",
         directory.path(),
@@ -537,35 +568,30 @@ async fn unregistered_record_is_refused_before_any_append_side_effect() {
 async fn durability_wait_retries_after_timeout() {
     let capability = TestPrefixCapability::new();
     let location = capability.location(Shard::try_from(41).expect("test shard should be in range"));
-    let writer = ShardLogWriter::open(&location)
-        .await
-        .expect("writer should open");
-    let first = writer
-        .append(&record("stall-probe"))
-        .await
-        .expect("record should append");
+    let log = LogDb::open(opendata_log::Config {
+        storage: location.storage.clone(),
+        read_visibility: opendata_log::ReadVisibility::Remote,
+        ..opendata_log::Config::default()
+    })
+    .await
+    .expect("journal should open");
+    let first = append_and_flush(&log, "stall-probe").await;
 
     // After the second append, the exclusive durable end is `first + 2`.
-    let required = first.get() + 2;
-    let (waited, appended) = tokio::join!(
-        wait_until_durable_with(writer.raw_log(), required, Duration::from_millis(20), 50,),
+    let required = first + 2;
+    let (waited, ()) = tokio::join!(
+        wait_until_durable_with(&log, required, Duration::from_millis(20), 50),
         async {
             tokio::time::sleep(Duration::from_millis(150)).await;
-            writer.append(&record("stall-probe-second")).await
+            append_and_flush(&log, "stall-probe-second").await;
         }
     );
-    appended.expect("delayed record should append");
     waited.expect("a timed-out wait should retry until the append is durable");
 
     let started = std::time::Instant::now();
-    let error = wait_until_durable_with(
-        writer.raw_log(),
-        required + 1_000,
-        Duration::from_millis(10),
-        3,
-    )
-    .await
-    .expect_err("waiting for a sequence that is never stored should fail");
+    let error = wait_until_durable_with(&log, required + 1_000, Duration::from_millis(10), 3)
+        .await
+        .expect_err("waiting for a sequence that is never stored should fail");
     assert_eq!(
         error.current_context(),
         &DurableError::DurabilityTimeout {
@@ -578,7 +604,22 @@ async fn durability_wait_retries_after_timeout() {
         started.elapsed() >= Duration::from_millis(30),
         "all three attempts should time out before the wait fails"
     );
-    writer.close().await.expect("writer should close");
+    log.close().await.expect("journal should close");
+}
+
+async fn append_and_flush(log: &LogDb, body: &str) -> u64 {
+    let output = log
+        .append_timeout(
+            vec![opendata_log::Record {
+                key: Bytes::from_static(super::EVENTS_KEY),
+                value: Bytes::copy_from_slice(body.as_bytes()),
+            }],
+            Duration::from_secs(5),
+        )
+        .await
+        .expect("record should append");
+    log.flush().await.expect("record should flush");
+    output.start_sequence
 }
 
 #[test]
@@ -630,15 +671,10 @@ async fn newer_writer_fences_old_writer_with_typed_failure_kind() {
 
     let _: Result<_, _> = first.close().await;
     second.close().await.expect("writer should close");
-    let reader = ShardLogRecovery::open(&location)
+    let records = read_journal::<TestRecord>(&location)
         .await
-        .expect("recovery reader should open");
-    let records = reader
-        .scan::<TestRecord>()
-        .await
-        .expect("records should scan");
+        .expect("journal should be readable");
     assert_eq!(records.len(), 2);
     assert_eq!(records[0].1, record("first"));
     assert_eq!(records[1].1, record("second"));
-    reader.close().await;
 }

@@ -201,7 +201,6 @@ impl<D: Domain> ShardCommandHandle<D> {
     }
 
     /// Returns the number of commands the channel can accept without waiting.
-    #[cfg(any(test, feature = "test-util"))]
     #[must_use]
     pub fn queue_capacity(&self) -> usize {
         self.sender.capacity()

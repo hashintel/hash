@@ -19,8 +19,6 @@ use tokio::sync::mpsc;
 use tokio_util::sync::{CancellationToken, DropGuard};
 
 use self::handle::Command;
-#[cfg(any(test, feature = "test-util"))]
-pub use self::startup::start_recovered;
 pub use self::{
     error::{QueuedWhenStopped, ShardCommandError, ShardCommandErrorKind, ShardCommandKind},
     startup::{OpenedShard, RecoveredShard, StartedShard},
@@ -123,8 +121,7 @@ impl ShardCommandConfig {
         self
     }
 
-    /// Allows tests to reopen the writer locally after a commit-unknown append.
-    #[cfg(any(test, feature = "test-util"))]
+    /// Reopens the writer locally after a commit-unknown append, as [`Default`] does.
     #[must_use]
     pub const fn allow_local_reopen(mut self) -> Self {
         self.recovery_mode = RecoveryMode::LocalReopen;

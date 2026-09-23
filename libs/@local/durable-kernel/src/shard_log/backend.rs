@@ -304,10 +304,3 @@ impl JournalStorage for StorageConfig {
         })
     }
 }
-
-#[cfg(test)]
-impl StorageWriter {
-    pub(super) const fn raw_log(&self) -> &LogDb {
-        &self.log
-    }
-}

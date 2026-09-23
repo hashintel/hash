@@ -146,35 +146,6 @@ impl ShardLogLocation {
             registry,
         })
     }
-
-    #[cfg(any(test, feature = "test-util"))]
-    #[must_use]
-    pub fn disposable_local(
-        shard: crate::routing::Shard,
-        log_path: &str,
-        object_store_root: &std::path::Path,
-        registry: Arc<RecordRegistry>,
-    ) -> Self {
-        use opendata_common::storage::config::{
-            LocalObjectStoreConfig, ObjectStoreConfig, SlateDbStorageConfig,
-        };
-
-        Self {
-            shard,
-            registry,
-            read_timeout: DURABILITY_TIMEOUT,
-            durability_timeout: DURABILITY_TIMEOUT,
-            storage: StorageConfig::SlateDb(SlateDbStorageConfig {
-                path: log_path.to_owned(),
-                object_store: ObjectStoreConfig::Local(LocalObjectStoreConfig {
-                    path: object_store_root.display().to_string(),
-                }),
-                settings_path: None,
-                block_cache: None,
-                meta_cache: None,
-            }),
-        }
-    }
 }
 
 impl<S: JournalStorage> ShardLogLocation<S> {

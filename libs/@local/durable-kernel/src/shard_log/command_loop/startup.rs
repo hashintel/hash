@@ -53,9 +53,8 @@ impl<S: JournalStorage> OpenedShard<S> {
         })
     }
 
-    /// Replays the full journal for tests. Leased startup uses
-    /// [`Self::recover_with_snapshots`].
-    #[cfg(any(test, feature = "test-util"))]
+    /// Replays the full journal without loading snapshots.
+    ///
     /// # Errors
     ///
     /// Returns an error when the durable journal cannot be read, decoded, or replayed.
@@ -230,22 +229,4 @@ impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
         }
         Ok(())
     }
-}
-
-/// Opens and recovers a shard for tests, then enables commands.
-///
-/// The returned handle includes all records below the writer’s durable journal end and the work
-/// recovered from them. Production callers must complete lease acquisition before
-/// enabling a shard.
-#[cfg(any(test, feature = "test-util"))]
-/// # Errors
-///
-/// Returns an error when opening or recovering the shard fails.
-pub async fn start_recovered<D: Domain>(
-    location: ShardLogLocation<impl JournalStorage>,
-    config: ShardCommandConfig,
-) -> Result<StartedShard<D>, Report<ShardCommandError>> {
-    let opened = OpenedShard::open(location).await?;
-    let recovered = opened.recover::<D>().await?;
-    Ok(recovered.enable(config))
 }

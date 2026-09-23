@@ -68,11 +68,6 @@ pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
 }
 
 impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
-    #[cfg(test)]
-    pub(super) const fn domain_mut(&mut self) -> &mut S::Projection {
-        &mut self.domain
-    }
-
     pub fn into_record(self, created_at: DateTime<Utc>) -> ProjectionSnapshot<S> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
             shard: self.shard,

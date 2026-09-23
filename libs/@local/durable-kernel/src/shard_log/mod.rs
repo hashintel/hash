@@ -22,10 +22,6 @@ mod backend;
 mod command_loop;
 mod error;
 mod location;
-#[cfg(any(test, feature = "test-util"))]
-mod raw;
-#[cfg(any(test, feature = "test-util"))]
-mod reader;
 mod scan;
 #[cfg(test)]
 mod tests;
@@ -35,18 +31,12 @@ pub use backend::{
     JournalReader, JournalStorage, JournalStream, JournalWriter, StorageReader, StorageStream,
     StorageWriter,
 };
-#[cfg(any(test, feature = "test-util"))]
-pub use command_loop::start_recovered;
 pub use command_loop::{
     ControlResolution, OpenedShard, QueuedWhenStopped, RecoveredShard, ShardCommandConfig,
     ShardCommandError, ShardCommandErrorKind, ShardCommandHandle, ShardCommandKind,
     ShardCommandOutcome, ShardOwner, StartedShard, StartupRecovery, StateChangeFeed,
 };
 
-#[cfg(any(test, feature = "test-util"))]
-pub use self::raw::RawShardLog;
-#[cfg(any(test, feature = "test-util"))]
-pub use self::reader::ShardLogRecovery;
 pub use self::{
     error::{AppendFailureKind, ShardAppendError, ShardLogOpenError, StorageConfigError},
     location::{LogStorageOptions, read_journal, storage_for_path},
