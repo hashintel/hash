@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
-    "codegen": "openapi-typescript ../../../apps/petrinaut-opt/openapi/openapi.json --default-non-nullable false --output src/openapi.gen.ts && oxfmt --write --ignore-path /dev/null src/openapi.gen.ts",
+    "codegen": "openapi-typescript ../../../apps/petrinaut-opt/openapi/openapi.json --default-non-nullable false --output src/openapi.gen.ts && oxfmt --write --ignore-path ../../../.config/oxfmt/empty-ignore src/openapi.gen.ts",
     "lint:tsc": "tsc --noEmit",
     "test:unit": "vitest --run src"
   },
