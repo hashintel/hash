@@ -1,0 +1,7 @@
+[package]
+authors     = ["Bilal Mahmoud"]
+description = "railroad diagrams for typst"
+entrypoint  = "lib.typ"
+license     = "MIT"
+name        = "railroad"
+version     = "0.3.0"

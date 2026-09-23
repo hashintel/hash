@@ -1,0 +1,24 @@
+{
+  "package": "railroad-plugin",
+  "dependencies": [],
+  "tasks": {
+    "build:wasm": {
+      "dependsOn": []
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@local/hashql-docs",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "HashQL language specification",
+  "scripts": {
+    "build": "mkdir -p dist && typst compile --root ../../../.. --features html main.typ dist/main.html",
+    "dev": "mkdir -p dist && typst watch --root ../../../.. --features html --no-serve main.typ dist/main.html"
+  }
+}
