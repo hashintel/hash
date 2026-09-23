@@ -1,0 +1,273 @@
+---
+title: Usage manual
+description: Writing a Petrinaut plugin, installing it with the plugins provider, and the places in the editor that render its buttons, panel sections, edit views, settings groups and commands.
+attachTo: ui.plugins
+sidebar_order: 10
+---
+
+A plugin is plain data: an id and the contributions it makes to named places
+in the editor. The host installs plugins by wrapping the editor in
+`PetrinautPluginsProvider`; the editor reads them back where each place
+renders. Nothing else adds buttons or views to the chrome. The types live in
+`petrinaut/src/ui/plugins/plugin.ts` and are exported from
+`@hashintel/petrinaut/ui` and the root entry.
+
+```text
+ host                              editor
+ ┌───────────────────────────┐     ┌──────────────────────────────────────┐
+ │ <PetrinautPluginsProvider │     │ top bar   [start ▸]  title  [◂ end]  │
+ │   plugins={[a, b]}>       │ ──▶ │ canvas          ┌─ viewport controls │
+ │   <Petrinaut />           │     │ left sidebar    │  bottom panel tabs │
+ │ </PetrinautPluginsProvider>     │ edit views      │  command registry  │
+ └───────────────────────────┘     └──────────────────────────────────────┘
+      built-ins first, then a, then b — each place renders in that order
+```
+
+## The places
+
+| Place               | Contribution             | Rendered by                                   |
+| ------------------- | ------------------------ | --------------------------------------------- |
+| `top-bar-start`     | `buttons`, `topBarItems` | the top bar, after the menu, before the title |
+| `top-bar-end`       | `buttons`, `topBarItems` | the top bar's trailing edge                   |
+| `viewport-controls` | `buttons`                | the column under the canvas zoom controls     |
+| `left-sidebar`      | `subViews`               | a collapsible section after the built-ins     |
+| `bottom-panel`      | `subViews`               | a tab after the built-ins                     |
+| edit views          | `editViews`              | the Canvas / … selector in Edit mode          |
+| settings `labs`     | `settingsGroups`         | a titled group after the built-in Labs groups |
+| command registry    | `commands`, `component`  | the ambient `CommandRegistryProvider`         |
+
+Buttons take the toolbar's size and variant, so a plugin button looks like the
+built-in one beside it. A `topBarItems` entry renders its own component
+inline for content that is not a button, such as a breadcrumb.
+
+## The model
+
+```ts
+type PetrinautPlugin = {
+  id: string; // stable and namespaced: "website.sentry-feedback"
+  name?: string;
+  buttons?: readonly PetrinautPluginButton[];
+  topBarItems?: readonly PetrinautPluginTopBarItem[];
+  commands?: readonly Command[];
+  subViews?: readonly PetrinautPluginSubView[]; // SubView + placement
+  editViews?: readonly PetrinautPluginEditView[]; // { id, label, component }
+  settingsGroups?: readonly PetrinautPluginSettingsGroup[];
+  component?: ComponentType; // mounted once per editor while installed
+};
+
+type PetrinautPluginSettingsGroup = {
+  id: string;
+  section: "labs";
+  title: string; // the group heading the dialog draws
+  component: ComponentType; // the group's rows
+};
+
+type PetrinautPluginButton = {
+  id: string;
+  placement: "top-bar-start" | "top-bar-end" | "viewport-controls";
+  label: string; // accessible name; the tooltip unless one is given
+  icon: ReactNode;
+  tooltip?: string;
+  command?: string; // a registry command to execute on click
+  onClick?: () => void;
+  className?: string;
+  ref?: Ref<HTMLButtonElement>;
+};
+```
+
+- Every id is namespaced and stable. A plugin id installed twice throws at
+  render, rather than letting the later plugin replace the earlier one. The
+  same holds for two contributions with one id at one place, and for an edit
+  view named `canvas`. Contribution ids are React keys, command ids, URL
+  values and persisted settings keys, so renaming one resets its saved
+  state.
+- A `subViews` entry is the panels' own `SubView` contract plus a placement.
+  Its collapsed state and height persist under its id.
+- An `editViews` entry's id is what the navigation state and host URLs carry
+  as `editView`. A view the location names but no plugin provides falls back
+  to the Canvas.
+- A `settingsGroups` entry gets the dialog's own group frame and its heading
+  from `title`; the component renders the rows. The dialog's arrow keys walk
+  its enabled controls with the built-in ones.
+- `component` is where stateful work lives: overlays, `useCommand`
+  declarations, subscriptions. It mounts inside the editor's workspace row,
+  below the top bar and inside every editor provider, so every
+  `@hashintel/petrinaut/react` hook is available and an absolutely
+  positioned overlay lands where the editor's own floating windows do. Render
+  nothing, a portal, or such an overlay: in-flow content would become an item
+  of the row. The component remounts when the editor switches to another
+  document, so keep state that must outlive a document with the host.
+- Any contribution that renders a component renders it behind its own error
+  and Suspense boundary. A lazy component, `lazy(() => import("./tab"))`, is
+  safe at every place. A failure removes that contribution alone and reaches
+  the host's `ErrorTrackerContext` with `source: "plugin.contribution"` and
+  the `pluginId`, `contributionId` and `place` tags. Declared `commands` sit
+  behind a separate boundary, so a failing `component` keeps them.
+- Declared `commands` register like `useCommand`: the registration is
+  replaced only when a command's id, label, category, keywords or shortcut
+  change. `shortcut` is display metadata; the registry binds no keys.
+- A component that needs the host's own state reads it from a context the
+  host provides above `PetrinautPluginsProvider`. The plugin object stays a
+  module constant; only the context value changes.
+
+## Write a plugin
+
+A button that attaches a third-party widget to its element:
+
+```tsx
+export const sentryFeedbackPlugin = definePetrinautPlugin({
+  id: "website.sentry-feedback",
+  buttons: [
+    {
+      id: "website.sentry-feedback.give-feedback",
+      placement: "viewport-controls",
+      label: "Give feedback",
+      icon: <MdBugReport size={14} />,
+      ref: (node) => node && Sentry.getFeedback()?.attachTo(node),
+    },
+  ],
+});
+```
+
+A stateful overlay with a button that runs its command:
+
+```tsx
+const toggleCommandId = "website.command-palette.toggle";
+
+const CommandPalette = () => {
+  const [isOpen, setOpen] = useState(false);
+  useCommand({
+    id: toggleCommandId,
+    label: "Toggle the command palette",
+    shortcut: "mod+k", // shown in the palette; bind the key yourself
+    run: () => setOpen((open) => !open),
+  });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+  return isOpen ? <PaletteOverlay onClose={() => setOpen(false)} /> : null;
+};
+
+export const commandPalettePlugin = definePetrinautPlugin({
+  id: "website.command-palette",
+  buttons: [
+    {
+      id: "website.command-palette.toggle-button",
+      placement: "top-bar-end",
+      label: "Command palette",
+      icon: <MdKeyboardCommandKey size={16} />,
+      command: toggleCommandId,
+    },
+  ],
+  component: CommandPalette,
+});
+```
+
+A Labs settings group whose state stays with the host:
+
+```tsx
+const HostSettingsContext = createContext<HostSettings | null>(null);
+
+const AssistantRows = () => {
+  const settings = use(HostSettingsContext);
+  return settings ? (
+    <Toggle
+      aria-label="Use the experimental assistant"
+      value={settings.experimental}
+      onChange={settings.setExperimental}
+    />
+  ) : null;
+};
+
+export const assistantSettingsPlugin = definePetrinautPlugin({
+  id: "website.assistant-settings",
+  settingsGroups: [
+    {
+      id: "website.assistant-settings.labs",
+      section: "labs",
+      title: "Assistant",
+      component: AssistantRows,
+    },
+  ],
+});
+```
+
+An edit view, which is how the built-in Definitions view is installed:
+
+```tsx
+export const definitionsViewPlugin = definePetrinautPlugin({
+  id: "petrinaut.definitions-view",
+  editViews: [
+    { id: "definitions", label: "Definitions", component: DefinitionsView },
+  ],
+});
+```
+
+## Install plugins
+
+```tsx
+const demoPlugins = [sentryFeedbackPlugin, commandPalettePlugin];
+
+<PetrinautPluginsProvider plugins={demoPlugins}>
+  <Petrinaut handle={handle} />
+</PetrinautPluginsProvider>;
+```
+
+- The editor installs `petrinautBuiltInPlugins` first, then the host's list.
+  `builtInPlugins` replaces that set: a subset drops a built-in, `[]` leaves
+  only the host's plugins.
+- Plugin commands need a command registry. The provider creates one when the
+  host has not mounted its own `CommandRegistryProvider` above it; the
+  [command registry manual](doc:commands/usage-manual) covers rendering a
+  palette over it.
+- `PetrinautPreview` runs the same host plugins without the built-ins. Its
+  only toolbar is the viewport controls, so other placements render nothing
+  there.
+- Keep the plugin objects and the list at module scope or otherwise stable.
+  The provider re-renders its consumers when the list changes identity.
+- The deprecated `slots` prop carries only `settingsLabs` now: host content
+  rendered after the built-in Labs groups, before any plugin group. Move it
+  to a `settingsGroups` entry.
+
+## What is not here yet
+
+Each item below waits for the consumer named with it. Brunch is the main
+one: it reaches Petrinaut only through generic host extensions, never through
+Brunch-specific library code, so each of its next needs becomes a place here.
+
+- No availability predicate on a contribution: a button, subview or
+  settings group shows whenever its plugin is installed. Gate a group of
+  contributions by installing their plugin from host state, for example an
+  assistant's plugin only while that assistant is selected, and a single
+  command with `useCommand`'s `when`.
+- No menu place. The New submenu's assistant entry stays in the editor until
+  a command can open the assistant with an initial message and start
+  prompts. A `menuItems` place that runs registry commands follows that.
+- No assistant contribution. The AI panel, its transport, tools, Voice mode
+  and extra tabs come through the `aiAssistant` prop. Moving them needs one
+  active assistant per editor, per-assistant conversation state, and hooks
+  that register automatic and interactive tools from a plugin component, in
+  the way `useCommand` registers commands.
+- No notices place. Hosts position their own banners under the top bar.
+- No `windows` place. A floating window is a plugin `component` that owns its
+  frame. The editor takes the frame over when a second window, owned by a
+  host, needs the same chrome.
+- No exported settings rows. A settings group styles its own rows until the
+  dialog's row and toggle components are public.
+- No public hook for the Voice session. Plugin components mount inside its
+  provider, so a built-in can read it; a host plugin cannot yet.
+- One registry per page. Two editors that share a command registry register
+  the same built-in command ids, and unmounting one can remove a command the
+  other still declares.
+- No runtime registration hook for host components; the provider's list is
+  the only install path.
+- No plugin-owned document data, renderers, simulators or analyzers. The
+  places above are the editor chrome; the compute contracts stay where they
+  are.
