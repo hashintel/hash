@@ -122,6 +122,10 @@ export const lowerDynamics = (
           `the derivative of ${attribute.name} is not a number`,
         );
       }
+      if (derivative.expr.kind === "num" && derivative.expr.value === 0) {
+        // A zero derivative moves nothing.
+        continue;
+      }
       const variable = attributeName(layout.place, slot, attribute.name);
       statements.push(
         assign(
