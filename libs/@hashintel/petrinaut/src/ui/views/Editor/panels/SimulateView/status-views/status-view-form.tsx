@@ -10,10 +10,12 @@ import {
   TextInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { statusViewSchema } from "@hashintel/petrinaut-core";
 
 import { Section, SectionList } from "../../../../../components/section";
 import { ColorSelect } from "../../shared/color-select";
 import { defaultStatusLabelColor } from "./status-view-form-defaults";
+import { buildStatusViewFromFormState } from "./status-view-mapping";
 
 import type { StatusViewPlaceOption } from "./status-view-place-options";
 import type { Identity } from "@hashintel/petrinaut-core";
@@ -39,6 +41,11 @@ export interface StatusViewFormState {
 
 // -- Validation ---------------------------------------------------------------
 
+/**
+ * Change-time validation. Checks that need the editor's context (other views'
+ * names, the place picker's ids) live here; label invariants come from the
+ * core schema, the same one the mutations and file import apply.
+ */
 function validateStatusViewForm(
   value: StatusViewFormState,
   existingNames: ReadonlySet<string>,
@@ -57,30 +64,25 @@ function validateStatusViewForm(
   if (value.labels.length === 0) {
     return "Add at least one label.";
   }
-  const labelNames = new Set<string>();
-  let exitLabelSeen = false;
-  for (const label of value.labels) {
-    const labelName = label.name.trim();
-    if (labelName === "") {
-      return "Every label needs a name.";
-    }
-    if (labelNames.has(labelName)) {
-      return `Two labels are named "${labelName}". Label names must be unique.`;
-    }
-    labelNames.add(labelName);
-    if (label.isExit) {
-      if (exitLabelSeen) {
-        return "A status view may declare at most one exit label.";
-      }
-      exitLabelSeen = true;
-      continue;
-    }
-    if (knownPlaceIds) {
-      const danglingPlaceId = label.places.find(
-        (placeId) => !knownPlaceIds.has(placeId),
-      );
+
+  const parsed = statusViewSchema.safeParse(
+    buildStatusViewFromFormState(value, "draft"),
+  );
+  const issue = parsed.error?.issues[0];
+  if (issue) {
+    const [field, labelIndex] = issue.path;
+    return field === "labels" && typeof labelIndex === "number"
+      ? `Label ${labelIndex + 1}: ${issue.message}`
+      : issue.message;
+  }
+
+  if (knownPlaceIds) {
+    for (const label of value.labels) {
+      const danglingPlaceId = label.isExit
+        ? undefined
+        : label.places.find((placeId) => !knownPlaceIds.has(placeId));
       if (danglingPlaceId !== undefined) {
-        return `Label "${labelName}" references a place (\`${danglingPlaceId}\`) that does not exist in the net.`;
+        return `Label "${label.name.trim()}" references a place (\`${danglingPlaceId}\`) that does not exist in the net.`;
       }
     }
   }
