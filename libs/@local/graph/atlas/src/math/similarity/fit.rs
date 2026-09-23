@@ -288,14 +288,20 @@ impl FitSums {
             // running accumulation can round. Double precision reduces these errors but does not
             // prevent cancellation during centring.
             let weight: Simd<f64, 4> = weight.cast();
-            let source = DVec2x4T::from(Vec2x4T::from(source));
-            let target = DVec2x4T::from(Vec2x4T::from(target));
+
+            let source = Vec2x4T::from(source);
+            let target = Vec2x4T::from(target);
+
+            let perp_dot = source.perp_dot_wide(target);
+
+            let source = DVec2x4T::from(source);
+            let target = DVec2x4T::from(target);
 
             weight_sum += weight;
             source_sum = source.mul_add(weight, source_sum);
             target_sum = target.mul_add(weight, target_sum);
             dot_sum += weight * source.dot(target);
-            perp_sum += weight * source.perp_dot(target);
+            perp_sum += weight * perp_dot;
             norm_sum += weight * source.length_squared();
         }
 
@@ -360,13 +366,18 @@ impl FitSums {
         for (source, target) in source_batches.iter().zip(target_batches) {
             // Finite f32 products are exact in f64. The within-pair dot/norm sums and the running
             // additions can still round.
-            let source = DVec2x4T::from(Vec2x4T::from(Vec2x4::from(*source)));
-            let target = DVec2x4T::from(Vec2x4T::from(Vec2x4::from(*target)));
+            let source = Vec2x4T::from(Vec2x4::from(*source));
+            let target = Vec2x4T::from(Vec2x4::from(*target));
+
+            let perp_dot = source.perp_dot_wide(target);
+
+            let source = DVec2x4T::from(source);
+            let target = DVec2x4T::from(target);
 
             source_sum += source;
             target_sum += target;
             dot_sum += source.dot(target);
-            perp_sum += source.perp_dot(target);
+            perp_sum += perp_dot;
             norm_sum += source.length_squared();
         }
 

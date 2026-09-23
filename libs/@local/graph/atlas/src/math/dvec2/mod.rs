@@ -98,14 +98,22 @@ impl DVec2 {
         Derivation::raw(self.dot_impl(other))
     }
 
-    /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
+    /// Returns the determinant x₁y₂ − y₁x₂ as an unvalidated [`Derivation`].
     ///
-    /// Approximates x₁y₂ − y₁x₂ with a rounded y₁x₂ product followed by a fused multiply-add.
-    /// Cancellation can change the sign near zero or leave a nonzero value for parallel inputs. Use
-    /// a predicate with a guaranteed orientation sign when orientation decides topology.
+    /// # Numerical guarantees
+    ///
+    /// Rounding can erase a nonzero determinant, and finite components can produce infinity or NaN.
+    ///
+    /// For every pair producing a non-NaN result, swapping operands negates the result under
+    /// floating-point equality. Positive and negative zero compare equal.
+    #[expect(
+        clippy::suboptimal_flops,
+        reason = "fusing rounds a different product in each operand order, which breaks the \
+                  antisymmetry that orientation predicates rely on"
+    )]
     #[inline]
     pub(crate) fn perp_dot(self, other: Self) -> Derivation<DFinite> {
-        Derivation::raw(self.x().mul_add(other.y(), -(self.y() * other.x())))
+        Derivation::raw(self.x() * other.y() - self.y() * other.x())
     }
 
     /// Returns the squared Euclidean length of the vector.
@@ -115,6 +123,10 @@ impl DVec2 {
     }
 
     /// Returns the squared Euclidean distance to `other`.
+    ///
+    /// # Numerical guarantees
+    ///
+    /// Finite coordinates can still produce an infinite result.
     #[inline]
     #[must_use]
     pub const fn distance_squared(self, other: Self) -> f64 {
@@ -410,12 +422,13 @@ impl DVec2x4T {
 
     /// Returns the four pairwise perpendicular dot products as SIMD lanes.
     ///
-    /// Each lane uses [`DVec2::perp_dot`]'s expression and numerical limits. For arbitrary `f64`
-    /// components, cancellation can leave a nonzero result even for parallel inputs.
+    /// # Numerical guarantees
+    ///
+    /// Each lane follows [`DVec2::perp_dot`]'s numerical contract.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f64, 4> {
-        mul_add_f64x4(*self.xs(), *other.ys(), -(self.ys() * other.xs()))
+        self.xs() * other.ys() - self.ys() * other.xs()
     }
 
     /// Returns the four squared lengths as SIMD lanes.
@@ -427,17 +440,19 @@ impl DVec2x4T {
 
     /// Returns the four pairwise squared Euclidean distances.
     ///
-    /// Component `i` holds `self[i].distance_squared(other[i])`. Separate subtraction, squaring and
-    /// addition preserve the rounding sequence of [`DVec2::distance_squared`]. Fusing the final
-    /// multiply-add can change the result even for coordinates widened from `f32`. NaN payload
+    /// # Numerical guarantees
+    ///
+    /// Each component matches [`DVec2::distance_squared`] for the corresponding pair. NaN payload
     /// equality is not guaranteed.
     #[inline]
     #[must_use]
     pub fn distance_squared(self, other: Self) -> DVecN<4> {
-        let difference = self.to_simd() - other.to_simd();
-        let squared = Self::from(difference * difference);
+        let dxy = self - other;
 
-        DVecN::new((*squared.xs() + *squared.ys()).to_array())
+        let dy = dxy.ys();
+        let dx = dxy.xs();
+
+        DVecN::new(mul_add_f64x4(*dy, *dy, dx * dx).to_array())
     }
 
     /// Returns `self * factor + accumulator`.

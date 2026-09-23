@@ -155,13 +155,51 @@ impl Vec2 {
 
     /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
     ///
-    /// The real determinant x₁y₂ − y₁x₂ is positive for counterclockwise orientation, negative for
-    /// clockwise orientation and zero for parallel vectors. The returned `f32` approximation can
-    /// lose this distinction through rounding, underflow or overflow.
+    /// The exact determinant x₁y₂ − y₁x₂ is positive for counterclockwise orientation from `self`
+    /// to `other`, negative for clockwise orientation and zero for parallel vectors.
+    ///
+    /// # Numerical guarantees
+    ///
+    /// Rounding can erase a nonzero determinant, and finite inputs can overflow. Use
+    /// [`Self::perp_dot_wide`] to preserve the determinant's sign and zero classification for
+    /// finite inputs.
+    ///
+    /// For every pair producing a non-NaN result, `a.perp_dot(b) == -b.perp_dot(a)` under
+    /// floating-point equality. Positive and negative zero compare equal.
+    #[expect(
+        clippy::suboptimal_flops,
+        reason = "fusing rounds a different product in each operand order, which breaks the \
+                  antisymmetry that orientation predicates rely on"
+    )]
     #[inline]
     #[must_use]
     pub const fn perp_dot(self, other: Self) -> f32 {
-        self.y().mul_add(-other.x(), self.x() * other.y())
+        self.x() * other.y() - self.y() * other.x()
+    }
+
+    /// Returns the determinant x₁y₂ − y₁x₂ in double precision.
+    ///
+    /// # Numerical guarantees
+    ///
+    /// For finite inputs, the result is finite and correctly rounded, with the sign and zero
+    /// classification of the exact determinant.
+    ///
+    /// For every finite input pair, `a.perp_dot_wide(b) == -b.perp_dot_wide(a)` under
+    /// floating-point equality. Positive and negative zero compare equal.
+    #[inline]
+    #[must_use]
+    pub const fn perp_dot_wide(self, other: Self) -> f64 {
+        // Finite f32 products need at most 48 significand bits and fit in f64. Widening makes both
+        // products exact, leaving only the final subtraction to round. A nonzero determinant is an
+        // integer multiple of 2⁻²⁹⁸ and cannot underflow in f64. Therefore fusion preserves the
+        // determinant's sign and zero classification.
+        let x = f64::from(self.x());
+        let y = f64::from(self.y());
+
+        let other_x = f64::from(other.x());
+        let other_y = f64::from(other.y());
+
+        y.mul_add(-other_x, x * other_y)
     }
 
     /// Returns the squared length of the vector.
@@ -211,17 +249,17 @@ impl Vec2 {
 
     /// Returns the squared Euclidean distance to `other`, accumulated in `f64`.
     ///
-    /// Both points must be finite. Their components widen exactly before subtraction, with every
-    /// arithmetic operation rounded separately in `f64`. Coordinate differences need not be exact,
-    /// but the squared distance remains finite and non-negative throughout the finite `f32` input
-    /// range.
+    /// # Numerical guarantees
+    ///
+    /// Both points must be finite. The result remains finite and non-negative throughout the finite
+    /// `f32` coordinate range.
     #[inline]
     #[must_use]
     pub(crate) const fn distance_squared_wide(self, other: Self) -> DNonNegative {
         // Finite f32 coordinates have magnitude below 2¹²⁸. Widened differences have magnitude at
         // most 2¹²⁹ and their squared sum at most 2²⁵⁹, far below f64 overflow. Each nonzero
         // difference is at least 2⁻¹⁴⁹ in magnitude, also keeping its square in the normal f64
-        // range. Therefore the separately rounded sum satisfies DNonNegative's domain.
+        // range. Therefore the fused sum satisfies DNonNegative's domain.
         DNonNegative::new_unchecked(DVec2::from(self).distance_squared(DVec2::from(other)))
     }
 
