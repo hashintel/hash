@@ -607,7 +607,7 @@ async fn rejection_preserves_context_and_attachments() {
     let through = running
         .handle_for(&key)
         .expect("shard should be owned")
-        .read(domain::KernelProjection::through_log_sequence)
+        .read(domain::KernelProjection::through_sequence)
         .await
         .expect("read should succeed");
     assert_eq!(

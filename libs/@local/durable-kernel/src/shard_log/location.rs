@@ -18,6 +18,7 @@ use super::{
 use crate::{
     DurableError,
     registry::{RecordRegistry, UntrimmedJournalRecord},
+    sequence::JournalSequence,
 };
 
 /// Holds the storage location and cache budgets that the owned shards share.
@@ -200,7 +201,7 @@ impl<S: JournalStorage> ShardLogLocation<S> {
 /// Returns an error if opening, scanning, decoding, sequence validation, or closing fails.
 pub async fn read_journal<T: UntrimmedJournalRecord>(
     location: &ShardLogLocation<impl JournalStorage>,
-) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>> {
     location
         .registry
         .register(T::declaration())

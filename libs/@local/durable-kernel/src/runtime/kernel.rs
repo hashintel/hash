@@ -112,7 +112,7 @@ impl Kernel {
             let handle = started.handle.clone();
             running
                 .recovered_snapshots
-                .insert(shard.get(), started.recovery.snapshot_through_log_sequence);
+                .insert(shard.get(), started.recovery.snapshot_through_sequence);
             feeds.push((handle.clone(), started.state_changes));
             running.loops.push(started.task);
             running.owners.push(started.owner);

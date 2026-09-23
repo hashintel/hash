@@ -10,6 +10,7 @@ use super::{
 use crate::{
     port::{Domain, SnapshotRecoveryStats},
     registry::DurableRecord as _,
+    sequence::JournalSequence,
     shard_log::{JournalStorage, ShardLogLocation, ShardLogWriter},
 };
 
@@ -42,7 +43,7 @@ impl<S: JournalStorage> OpenedShard<S> {
             .change_context(ShardCommandError::OpenWriter)?;
         tracing::info!(
             shard = %location.shard.path_segment(),
-            durable_end_exclusive = writer.durable_end_exclusive(),
+            durable_end_exclusive = %writer.durable_end_exclusive(),
             elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
             "opened durable shard log"
         );
@@ -128,7 +129,7 @@ impl<S: JournalStorage> OpenedShard<S> {
         let projection = recovered.projection;
         let recovery = StartupRecovery {
             durable_end_exclusive,
-            snapshot_through_log_sequence: recovered.snapshot_through_log_sequence,
+            snapshot_through_sequence: recovered.snapshot_through_sequence,
             live_work: D::live_work(&projection).into_iter().collect(),
         };
         let initial_state_changes = D::initial_state_keys(&projection).into_iter().collect();
@@ -136,7 +137,7 @@ impl<S: JournalStorage> OpenedShard<S> {
             location: self.location,
             writer: Some(writer),
             projection,
-            last_snapshot_through_log_sequence: recovered.snapshot_through_log_sequence,
+            last_snapshot_through_sequence: recovered.snapshot_through_sequence,
             snapshot_context,
             recovery,
             initial_state_changes,
@@ -163,7 +164,7 @@ pub struct RecoveredShard<D: Domain, S: JournalStorage = StorageConfig> {
     location: ShardLogLocation<S>,
     writer: Option<ShardLogWriter<S::Writer>>,
     projection: D::Projection,
-    last_snapshot_through_log_sequence: Option<u64>,
+    last_snapshot_through_sequence: Option<JournalSequence>,
     snapshot_context: Option<D::SnapshotContext>,
     recovery: StartupRecovery<D::WorkIntent>,
     initial_state_changes: Vec<D::StateKey>,
@@ -195,7 +196,7 @@ impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
             location: self.location,
             writer: self.writer.take(),
             projection: self.projection,
-            last_snapshot_attempt_through_log_sequence: self.last_snapshot_through_log_sequence,
+            last_snapshot_attempt_through_sequence: self.last_snapshot_through_sequence,
             snapshot_context: self.snapshot_context,
             safe_append_retries: config.safe_append_retries,
             recovery_mode: config.recovery_mode,

@@ -118,14 +118,14 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                 } => {
                     let capture = D::through_sequence(&self.projection)
                         .filter(|through| {
-                            let span = self.last_snapshot_attempt_through_log_sequence.map_or_else(
-                                || through.saturating_add(1),
-                                |previous| through.saturating_sub(previous),
+                            let span = self.last_snapshot_attempt_through_sequence.map_or_else(
+                                || through.get().saturating_add(1),
+                                |previous| through.get().saturating_sub(previous.get()),
                             );
                             span >= minimum_sequence_span.max(1)
                         })
                         .and_then(|through| {
-                            self.last_snapshot_attempt_through_log_sequence = Some(through);
+                            self.last_snapshot_attempt_through_sequence = Some(through);
                             D::capture_snapshot(self.location.shard, &self.projection)
                         });
                     send_reply(reply, Ok(capture))

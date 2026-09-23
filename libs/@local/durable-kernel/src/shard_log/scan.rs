@@ -3,7 +3,6 @@ use core::{ops::Bound, pin::pin};
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
 use futures_util::TryStreamExt as _;
-use opendata_log::Sequence;
 
 use super::{
     EVENTS_KEY, JournalReader, JournalStream as _, PROJECTION_SNAPSHOTS_KEY, RecoveryRange,
@@ -12,17 +11,18 @@ use super::{
 use crate::{
     DurableError,
     registry::{DurableRecord, UntrimmedJournalRecord},
+    sequence::JournalSequence,
 };
 
 pub(super) fn recovery_range(
-    through_log_sequence: Option<u64>,
-    durable_end_exclusive: u64,
+    through_sequence: Option<JournalSequence>,
+    durable_end_exclusive: JournalSequence,
 ) -> Result<RecoveryRange, Report<DurableError>> {
-    let start = match through_log_sequence {
+    let start = match through_sequence {
         Some(sequence) => sequence
-            .checked_add(1)
+            .checked_next()
             .ok_or_else(|| Report::new(DurableError::RecoverySequenceOverflow { sequence }))?,
-        None => 0,
+        None => JournalSequence::new(0),
     };
     if start > durable_end_exclusive {
         return Err(Report::new(DurableError::InvalidRecoveryRange {
@@ -42,9 +42,9 @@ pub(super) fn recovery_range(
 /// Reads and decodes the requested journal range, checking its sequence bounds.
 pub(super) async fn scan_records<T, R>(
     reader: &R,
-    range: (Bound<Sequence>, Bound<Sequence>),
-    expected_window: Option<(u64, u64)>,
-) -> Result<Vec<(u64, T)>, Report<DurableError>>
+    range: (Bound<JournalSequence>, Bound<JournalSequence>),
+    expected_window: Option<(JournalSequence, JournalSequence)>,
+) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>>
 where
     T: UntrimmedJournalRecord,
     R: JournalReader,
@@ -83,8 +83,8 @@ where
 
 pub(super) async fn scan_snapshot_records<T, R>(
     reader: &R,
-    range: (Bound<Sequence>, Bound<Sequence>),
-    expected_end: u64,
+    range: (Bound<JournalSequence>, Bound<JournalSequence>),
+    expected_end: JournalSequence,
 ) -> Result<Vec<SnapshotCandidate<T>>, Report<DurableError>>
 where
     T: DurableRecord,
@@ -101,7 +101,7 @@ where
             return Err(Report::new(DurableError::RecordOutsideRecoveryRange {
                 name: T::declaration().name,
                 sequence,
-                start: 0,
+                start: JournalSequence::new(0),
                 end: expected_end,
             }));
         }

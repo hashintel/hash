@@ -5,6 +5,7 @@ use error_stack::{Report, ResultExt as _};
 use super::{KernelError, RunningKernel};
 use crate::{
     domain::{self, EventRecordV1, Hosted, PartitionKey, SimpleDomain},
+    sequence::JournalSequence,
     shard_log::{ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome},
 };
 
@@ -105,7 +106,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
     /// Returns the journal sequence of the snapshot each shard restored during recovery, keyed by
     /// shard ID. `None` means the shard replayed its full journal.
     #[must_use]
-    pub const fn recovery_snapshots(&self) -> &BTreeMap<u8, Option<u64>> {
+    pub const fn recovery_snapshots(&self) -> &BTreeMap<u8, Option<JournalSequence>> {
         &self.recovered_snapshots
     }
 

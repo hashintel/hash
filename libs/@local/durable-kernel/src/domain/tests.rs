@@ -19,6 +19,7 @@ use crate::{
         VersionedRecord as _,
     },
     routing::Shard,
+    sequence::JournalSequence,
     shard_log::{
         AppendFailureKind, JournalStorage, OpenedShard, QueuedWhenStopped, RecoveredShard,
         ShardAppendError, ShardCommandConfig, ShardCommandError, ShardCommandErrorKind,
@@ -358,7 +359,7 @@ fn toy_snapshot(shard: &str, padding: usize) -> ProjectionSnapshot<ToyDomain> {
     let projection = KernelProjection::restored(
         BTreeMap::new(),
         BTreeMap::new(),
-        0,
+        JournalSequence::new(0),
         Counters {
             totals: BTreeMap::from([(format!("counter{}", "x".repeat(padding)), 0)]),
         },
@@ -407,7 +408,7 @@ fn snapshot_shard_decode() {
         "version": "v1",
         "data": {
             "shard": "00f",
-            "through_log_sequence": 0,
+            "through_sequence": 0,
             "created_at": "1970-01-01T00:00:00Z",
             "seen": {},
             "partitions": {},
@@ -419,7 +420,7 @@ fn snapshot_shard_decode() {
         ProjectionSnapshot::<ToyDomain>::decode(&bytes).expect("stored snapshot should decode");
     assert_eq!(
         Toy::snapshot_bounds(&snapshot).expect("snapshot bounds should be valid"),
-        (Shard::from_u8(15), 0)
+        (Shard::from_u8(15), JournalSequence::new(0))
     );
     assert_eq!(
         encode(&snapshot).expect("snapshot should encode"),
@@ -505,7 +506,7 @@ async fn snapshot_timestamp_recovery() {
     assert!(
         recovered
             .startup_recovery()
-            .snapshot_through_log_sequence
+            .snapshot_through_sequence
             .is_none(),
         "recovery should skip the snapshot with an invalid timestamp"
     );
@@ -541,8 +542,13 @@ fn replay_preserves_historical_admission() {
     let record = EventRecordV1::new(event).expect("historical record should have a valid ID");
     let shard = shard_of(record.partition());
     let mut projection = KernelProjection::<Counters>::default();
-    Toy::replay(&mut projection, shard, 0, EventRecord::V1(record))
-        .expect("historical replay should bypass current admission rules");
+    Toy::replay(
+        &mut projection,
+        shard,
+        JournalSequence::new(0),
+        EventRecord::V1(record),
+    )
+    .expect("historical replay should bypass current admission rules");
     assert_eq!(projection.domain().totals.get("orders"), Some(&0));
 }
 
@@ -716,9 +722,13 @@ fn prepare_dedupes_rejects_and_admits() {
     else {
         panic!("fresh event should be a mutation");
     };
-    Toy::finalize(&mut projection, delta, 0).expect("finalize at sequence zero should succeed");
+    Toy::finalize(&mut projection, delta, JournalSequence::new(0))
+        .expect("finalize at sequence zero should succeed");
     assert_eq!(projection.domain().totals["orders"], 5);
-    assert_eq!(projection.partition_sequence(record.partition()), Some(0));
+    assert_eq!(
+        projection.partition_sequence(record.partition()),
+        Some(JournalSequence::new(0))
+    );
 
     assert!(matches!(
         Toy::prepare(&projection, &record),
@@ -754,25 +764,35 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
     let shard = shard_of(record.partition());
     let mut projection = KernelProjection::<Counters>::default();
 
-    Toy::replay(&mut projection, shard, 0, EventRecord::V1(record.clone()))
-        .expect("first replay should apply");
-    Toy::replay(&mut projection, shard, 1, EventRecord::V1(record.clone()))
-        .expect("duplicate replay should be a no-op");
+    Toy::replay(
+        &mut projection,
+        shard,
+        JournalSequence::new(0),
+        EventRecord::V1(record.clone()),
+    )
+    .expect("first replay should apply");
+    Toy::replay(
+        &mut projection,
+        shard,
+        JournalSequence::new(1),
+        EventRecord::V1(record.clone()),
+    )
+    .expect("duplicate replay should be a no-op");
     assert_eq!(projection.domain().totals["orders"], 5);
-    assert_eq!(projection.through_log_sequence(), Some(1));
+    assert_eq!(projection.through_sequence(), Some(JournalSequence::new(1)));
 
     let error = Toy::replay(
         &mut projection,
         shard,
-        1,
+        JournalSequence::new(1),
         EventRecord::V1(incremented("orders", 7)),
     )
     .expect_err("a non-advancing sequence should be rejected");
     assert_eq!(
         error.current_context(),
         &RecoveryError::NonIncreasingSequence {
-            previous: 1,
-            proposed: 1,
+            previous: JournalSequence::new(1),
+            proposed: JournalSequence::new(1),
         }
     );
 
@@ -783,13 +803,18 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
         .seen_mut()
         .insert(record.event_id(), other_digest);
     let event_id = record.event_id();
-    let error = Toy::replay(&mut projection, shard, 2, EventRecord::V1(record))
-        .expect_err("an event ID stored with different content should be rejected");
+    let error = Toy::replay(
+        &mut projection,
+        shard,
+        JournalSequence::new(2),
+        EventRecord::V1(record),
+    )
+    .expect_err("an event ID stored with different content should be rejected");
     assert_eq!(
         error.current_context(),
         &RecoveryError::ConflictingReuse {
             event_id,
-            sequence: 2,
+            sequence: JournalSequence::new(2),
         }
     );
 }
@@ -799,8 +824,13 @@ fn recovered_prefix_cannot_regress_or_lose_events() {
     let record = incremented("orders", 5);
     let shard = shard_of(record.partition());
     let mut acknowledged = KernelProjection::<Counters>::default();
-    Toy::replay(&mut acknowledged, shard, 0, EventRecord::V1(record))
-        .expect("acknowledged record should replay");
+    Toy::replay(
+        &mut acknowledged,
+        shard,
+        JournalSequence::new(0),
+        EventRecord::V1(record),
+    )
+    .expect("acknowledged record should replay");
 
     let empty = KernelProjection::<Counters>::default();
     let error = Toy::validate_recovered_prefix(&acknowledged, &empty)
@@ -808,7 +838,7 @@ fn recovered_prefix_cannot_regress_or_lose_events() {
     assert_eq!(
         error.current_context(),
         &RecoveryError::RegressedSequence {
-            previous: 0,
+            previous: JournalSequence::new(0),
             recovered: None,
         }
     );
@@ -819,15 +849,20 @@ fn recovered_prefix_cannot_regress_or_lose_events() {
 
     let mut advanced = acknowledged.clone();
     let record = incremented("orders", 5);
-    Toy::replay(&mut advanced, shard, 1, EventRecord::V1(record))
-        .expect("duplicate replay should advance the sequence");
+    Toy::replay(
+        &mut advanced,
+        shard,
+        JournalSequence::new(1),
+        EventRecord::V1(record),
+    )
+    .expect("duplicate replay should advance the sequence");
     let error = Toy::validate_recovered_prefix(&advanced, &acknowledged)
         .expect_err("a lower recovered sequence should be a regression");
     assert_eq!(
         error.current_context(),
         &RecoveryError::RegressedSequence {
-            previous: 1,
-            recovered: Some(0),
+            previous: JournalSequence::new(1),
+            recovered: Some(JournalSequence::new(0)),
         }
     );
     Toy::validate_recovered_prefix(&acknowledged, &advanced)
@@ -1319,7 +1354,7 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
 
     let (handle, started) = start(location).await;
     let through = handle
-        .read(KernelProjection::through_log_sequence)
+        .read(KernelProjection::through_sequence)
         .await
         .expect("recovered sequence read should succeed")
         .expect("recovered projection should have a durable sequence");
@@ -1456,7 +1491,7 @@ async fn snapshots_bound_recovery_and_roundtrip_state() {
         .expect("recovery with snapshots should succeed");
     let restarted = recovered.enable(ShardCommandConfig::default());
     assert!(
-        restarted.recovery.snapshot_through_log_sequence.is_some(),
+        restarted.recovery.snapshot_through_sequence.is_some(),
         "recovery should load the saved snapshot"
     );
     let totals = restarted

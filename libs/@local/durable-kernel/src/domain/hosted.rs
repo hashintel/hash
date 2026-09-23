@@ -16,6 +16,7 @@ use crate::{
         CompatError, DeclarationError, DurableRecord as _, RecordRegistry, VersionedRecord as _,
     },
     routing::Shard,
+    sequence::JournalSequence,
     shard_log::{ShardCommandError, ShardCommandHandle},
 };
 
@@ -26,8 +27,8 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct KernelProjection<P> {
     seen: BTreeMap<EventId, JournalRecordDigest>,
-    partitions: BTreeMap<PartitionKey, u64>,
-    through_log_sequence: Option<u64>,
+    partitions: BTreeMap<PartitionKey, JournalSequence>,
+    through_sequence: Option<JournalSequence>,
     domain: P,
 }
 
@@ -36,11 +37,11 @@ impl<P> KernelProjection<P> {
         &self.domain
     }
 
-    pub const fn through_log_sequence(&self) -> Option<u64> {
-        self.through_log_sequence
+    pub const fn through_sequence(&self) -> Option<JournalSequence> {
+        self.through_sequence
     }
 
-    pub fn partition_sequence(&self, key: &PartitionKey) -> Option<u64> {
+    pub fn partition_sequence(&self, key: &PartitionKey) -> Option<JournalSequence> {
         self.partitions.get(key).copied()
     }
 
@@ -48,20 +49,20 @@ impl<P> KernelProjection<P> {
         &self.seen
     }
 
-    pub(super) const fn partitions(&self) -> &BTreeMap<PartitionKey, u64> {
+    pub(super) const fn partitions(&self) -> &BTreeMap<PartitionKey, JournalSequence> {
         &self.partitions
     }
 
     pub(super) const fn restored(
         seen: BTreeMap<EventId, JournalRecordDigest>,
-        partitions: BTreeMap<PartitionKey, u64>,
-        through_log_sequence: u64,
+        partitions: BTreeMap<PartitionKey, JournalSequence>,
+        through_sequence: JournalSequence,
         domain: P,
     ) -> Self {
         Self {
             seen,
             partitions,
-            through_log_sequence: Some(through_log_sequence),
+            through_sequence: Some(through_sequence),
             domain,
         }
     }
@@ -125,7 +126,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         KernelProjection {
             seen: BTreeMap::new(),
             partitions: BTreeMap::new(),
-            through_log_sequence: None,
+            through_sequence: None,
             domain: S::empty_projection(),
         }
     }
@@ -188,7 +189,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
     fn finalize(
         projection: &mut Self::Projection,
         delta: Self::Delta,
-        shard_sequence: u64,
+        shard_sequence: JournalSequence,
     ) -> Result<(), Self::FoldError> {
         let PreparedEvent {
             event_id,
@@ -196,7 +197,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
             digest,
             change,
         } = delta;
-        if let Some(previous) = projection.through_log_sequence
+        if let Some(previous) = projection.through_sequence
             && shard_sequence <= previous
         {
             return Err(FoldError::NonIncreasingSequence {
@@ -206,23 +207,26 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         }
         projection.seen.insert(event_id, digest);
         projection.partitions.insert(partition, shard_sequence);
-        projection.through_log_sequence = Some(shard_sequence);
+        projection.through_sequence = Some(shard_sequence);
         projection.domain.apply(change);
         Ok(())
     }
 
-    fn state_sequence(projection: &Self::Projection, key: &PartitionKey) -> Option<u64> {
+    fn state_sequence(
+        projection: &Self::Projection,
+        key: &PartitionKey,
+    ) -> Option<JournalSequence> {
         projection.partitions.get(key).copied()
     }
 
-    fn through_sequence(projection: &Self::Projection) -> Option<u64> {
-        projection.through_log_sequence
+    fn through_sequence(projection: &Self::Projection) -> Option<JournalSequence> {
+        projection.through_sequence
     }
 
     fn replay(
         projection: &mut Self::Projection,
         shard: Shard,
-        sequence: u64,
+        sequence: JournalSequence,
         record: Self::Record,
     ) -> Result<(), Report<RecoveryError>> {
         let record = record
@@ -236,7 +240,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
                 actual: record_shard,
             }));
         }
-        if let Some(previous) = projection.through_log_sequence
+        if let Some(previous) = projection.through_sequence
             && sequence <= previous
         {
             return Err(Report::new(RecoveryError::NonIncreasingSequence {
@@ -250,7 +254,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         match projection.seen.get(&record.event_id()) {
             // A lost acknowledgement can leave duplicate records in the journal.
             Some(seen) if *seen == digest => {
-                projection.through_log_sequence = Some(sequence);
+                projection.through_sequence = Some(sequence);
                 Ok(())
             }
             Some(_seen) => Err(Report::new(RecoveryError::ConflictingReuse {
@@ -262,7 +266,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
                 projection
                     .partitions
                     .insert(record.partition().clone(), sequence);
-                projection.through_log_sequence = Some(sequence);
+                projection.through_sequence = Some(sequence);
                 projection.domain.replay(record.event());
                 Ok(())
             }
@@ -273,14 +277,12 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         previous: &Self::Projection,
         recovered: &Self::Projection,
     ) -> Result<(), Report<RecoveryError>> {
-        if let Some(previous) = previous.through_log_sequence
-            && recovered
-                .through_log_sequence
-                .is_none_or(|new| new < previous)
+        if let Some(previous) = previous.through_sequence
+            && recovered.through_sequence.is_none_or(|new| new < previous)
         {
             return Err(Report::new(RecoveryError::RegressedSequence {
                 previous,
-                recovered: recovered.through_log_sequence,
+                recovered: recovered.through_sequence,
             }));
         }
         for (event_id, digest) in &previous.seen {

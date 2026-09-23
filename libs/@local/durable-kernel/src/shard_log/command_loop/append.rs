@@ -5,6 +5,7 @@ use crate::{
     DurableError,
     port::{Domain, Prepared},
     registry::DurableRecord as _,
+    sequence::JournalSequence,
     shard_log::{
         AppendFailureKind, EVENTS_KEY, JournalStorage, PROJECTION_SNAPSHOTS_KEY, ShardAppendError,
     },
@@ -97,7 +98,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
     pub(super) async fn process_snapshot(
         &mut self,
         snapshot: D::Snapshot,
-    ) -> Result<u64, Report<ShardCommandError>> {
+    ) -> Result<JournalSequence, Report<ShardCommandError>> {
         let (snapshot_shard, snapshot_through) =
             D::snapshot_bounds(&snapshot).change_context(ShardCommandError::ReadSnapshotBounds)?;
         if snapshot_shard != self.location.shard {
@@ -141,8 +142,8 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                 .await
             {
                 Ok(sequence) => {
-                    self.last_snapshot_attempt_through_log_sequence = self
-                        .last_snapshot_attempt_through_log_sequence
+                    self.last_snapshot_attempt_through_sequence = self
+                        .last_snapshot_attempt_through_sequence
                         .max(Some(snapshot_through));
                     return Ok(sequence);
                 }
@@ -162,7 +163,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         }
     }
 
-    fn checkpoint_state_sequence(&self, integration_id: &D::StateKey) -> Option<u64> {
+    fn checkpoint_state_sequence(&self, integration_id: &D::StateKey) -> Option<JournalSequence> {
         D::state_sequence(&self.projection, integration_id)
     }
 
@@ -177,7 +178,8 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
     fn append(
         &self,
         record: &D::RecordCurrent,
-    ) -> impl core::future::Future<Output = Result<u64, Report<ShardAppendError>>> + Send {
+    ) -> impl core::future::Future<Output = Result<JournalSequence, Report<ShardAppendError>>> + Send
+    {
         let encoded = self
             .writer
             .as_ref()

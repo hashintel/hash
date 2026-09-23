@@ -28,6 +28,7 @@ pub use self::{
 use crate::{
     ids::EventId,
     port::{Domain, EventDomain},
+    sequence::JournalSequence,
     shard_log::{JournalStorage, ShardLogLocation, ShardLogWriter},
 };
 
@@ -43,7 +44,7 @@ pub enum ShardCommandOutcome<R = Infallible> {
     },
     Applied {
         event_id: EventId,
-        shard_sequence: u64,
+        shard_sequence: JournalSequence,
     },
     AlreadyDurable {
         event_id: EventId,
@@ -60,10 +61,10 @@ pub struct ControlResolution<D: Domain> {
 /// Holds the durable journal end, the restored snapshot, and the pending work that recovery found
 /// before startup.
 pub struct StartupRecovery<W> {
-    pub durable_end_exclusive: u64,
+    pub durable_end_exclusive: JournalSequence,
     /// The last journal sequence that the restored snapshot includes, or `None` when startup
     /// replayed the complete journal.
-    pub snapshot_through_log_sequence: Option<u64>,
+    pub snapshot_through_sequence: Option<JournalSequence>,
     pub live_work: Vec<W>,
 }
 
@@ -157,7 +158,7 @@ struct CommandLoop<D: Domain, S: JournalStorage> {
     location: ShardLogLocation<S>,
     writer: Option<ShardLogWriter<S::Writer>>,
     projection: D::Projection,
-    last_snapshot_attempt_through_log_sequence: Option<u64>,
+    last_snapshot_attempt_through_sequence: Option<JournalSequence>,
     snapshot_context: Option<D::SnapshotContext>,
     safe_append_retries: u32,
     recovery_mode: RecoveryMode,
@@ -169,7 +170,7 @@ struct CommandLoop<D: Domain, S: JournalStorage> {
 
 struct RecoveredProjection<D: EventDomain> {
     projection: D::Projection,
-    snapshot_through_log_sequence: Option<u64>,
+    snapshot_through_sequence: Option<JournalSequence>,
     snapshot_created_at: Option<DateTime<Utc>>,
     replayed_events: u64,
     corruption_fallbacks: u64,

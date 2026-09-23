@@ -14,6 +14,7 @@ use crate::{
     port::SnapshotDomain,
     registry::{CompatError, DurabilityClass, DurableRecord, MigrationPolicy, RecordDeclaration},
     routing::Shard,
+    sequence::JournalSequence,
 };
 
 pub(super) const MAX_SNAPSHOT_BYTES: usize = 15 * 1024 * 1024;
@@ -34,10 +35,10 @@ pub(super) const DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclarat
 #[serde(deny_unknown_fields, bound = "")]
 pub struct ProjectionSnapshotV1<S: SimpleDomain> {
     shard: Shard,
-    through_log_sequence: u64,
+    through_sequence: JournalSequence,
     created_at: DateTime<Utc>,
     seen: BTreeMap<EventId, JournalRecordDigest>,
-    partitions: BTreeMap<PartitionKey, u64>,
+    partitions: BTreeMap<PartitionKey, JournalSequence>,
     domain: S::Projection,
 }
 
@@ -60,9 +61,9 @@ pub enum ProjectionSnapshot<S: SimpleDomain> {
 /// outside the command loop.
 pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
     shard: Shard,
-    through_log_sequence: u64,
+    through_sequence: JournalSequence,
     seen: BTreeMap<EventId, JournalRecordDigest>,
-    partitions: BTreeMap<PartitionKey, u64>,
+    partitions: BTreeMap<PartitionKey, JournalSequence>,
     domain: S::Projection,
 }
 
@@ -75,7 +76,7 @@ impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
     pub fn into_record(self, created_at: DateTime<Utc>) -> ProjectionSnapshot<S> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
             shard: self.shard,
-            through_log_sequence: self.through_log_sequence,
+            through_sequence: self.through_sequence,
             created_at,
             seen: self.seen,
             partitions: self.partitions,
@@ -125,10 +126,10 @@ impl<S: SimpleDomain> SnapshotDomain for Hosted<S> {
         shard: Shard,
         projection: &Self::Projection,
     ) -> Option<ProjectionSnapshotPayload<S>> {
-        let through_log_sequence = projection.through_log_sequence()?;
+        let through_sequence = projection.through_sequence()?;
         Some(ProjectionSnapshotPayload {
             shard,
-            through_log_sequence,
+            through_sequence,
             seen: projection.seen().clone(),
             partitions: projection.partitions().clone(),
             domain: projection.domain().clone(),
@@ -137,10 +138,10 @@ impl<S: SimpleDomain> SnapshotDomain for Hosted<S> {
 
     fn snapshot_bounds(
         snapshot: &ProjectionSnapshot<S>,
-    ) -> Result<(Shard, u64), Report<RecoveryError>> {
+    ) -> Result<(Shard, JournalSequence), Report<RecoveryError>> {
         let ProjectionSnapshot::V1(record) = snapshot;
         let shard = record.shard;
-        Ok((shard, record.through_log_sequence))
+        Ok((shard, record.through_sequence))
     }
 
     fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> DateTime<Utc> {
@@ -168,7 +169,7 @@ impl<S: SimpleDomain> SnapshotDomain for Hosted<S> {
         Ok(KernelProjection::restored(
             record.seen.clone(),
             record.partitions.clone(),
-            record.through_log_sequence,
+            record.through_sequence,
             record.domain.clone(),
         ))
     }

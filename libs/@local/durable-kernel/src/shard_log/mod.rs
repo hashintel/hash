@@ -15,9 +15,8 @@ use core::{ops::Bound, time::Duration};
 
 use error_stack::Report;
 use opendata_common::StorageConfig;
-use opendata_log::Sequence;
 
-use crate::registry::RecordRegistry;
+use crate::{registry::RecordRegistry, sequence::JournalSequence};
 
 mod backend;
 mod command_loop;
@@ -68,7 +67,10 @@ const DURABILITY_WAIT_ATTEMPTS: u32 = 3;
 const PINNED_FENCE_MESSAGE: &str = "detected newer db client";
 
 /// The journal sequence of a snapshot reference and the snapshot record it points to.
-type SnapshotCandidate<T> = (u64, Result<T, Report<crate::registry::CompatError>>);
+type SnapshotCandidate<T> = (
+    JournalSequence,
+    Result<T, Report<crate::registry::CompatError>>,
+);
 
 #[derive(Debug, Clone)]
 /// Holds a journal's storage configuration and shared record registry.
@@ -90,6 +92,6 @@ struct ShardLogWriter<W: JournalWriter = StorageWriter> {
 }
 
 struct RecoveryRange {
-    bounds: (Bound<Sequence>, Bound<Sequence>),
-    window: (u64, u64),
+    bounds: (Bound<JournalSequence>, Bound<JournalSequence>),
+    window: (JournalSequence, JournalSequence),
 }

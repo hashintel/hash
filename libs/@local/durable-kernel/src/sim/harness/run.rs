@@ -7,6 +7,7 @@ use super::{Driver, PlannedAction, ScheduleCoverage, SchedulePlan, SubmitKind};
 use crate::{
     domain::{self, EventRecordV1, PartitionKey},
     registry::RecordRegistry,
+    sequence::JournalSequence,
     sim::SimLogHandle,
 };
 
@@ -72,7 +73,7 @@ pub async fn run_plan(
         proposed: BTreeSet::new(),
         effect_round_limit: EFFECT_ROUND_LIMIT
             + u32::try_from(plan.outcomes.len()).unwrap_or(u32::MAX),
-        last_durable_end: 0,
+        last_durable_end: JournalSequence::new(0),
         next_request: 0,
         trace,
     };

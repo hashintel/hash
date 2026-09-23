@@ -20,6 +20,7 @@ use crate::{
         RecordRegistry, UntrimmedJournalRecord, VersionedRecord,
     },
     routing::Shard,
+    sequence::JournalSequence,
 };
 
 #[tokio::test]
@@ -254,7 +255,7 @@ async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
             .backend
             .scan(
                 bytes::Bytes::from_static(super::EVENTS_KEY),
-                end + 5..end + 10,
+                JournalSequence::new(end.get() + 5)..JournalSequence::new(end.get() + 10),
             )
             .await
             .expect("a range beyond the durable end should scan")
@@ -268,12 +269,12 @@ async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
     );
     assert_eq!(
         beyond_end.next_sequence(),
-        end + 5,
+        JournalSequence::new(end.get() + 5),
         "an empty scan should keep its cursor at the requested start"
     );
     assert_eq!(
         writer
-            .scan_suffix::<TestRecord>(None, first + 1)
+            .scan_suffix::<TestRecord>(None, JournalSequence::new(first.get() + 1))
             .await
             .expect("bounded scan should succeed"),
         vec![(first, record("first"))],
@@ -299,7 +300,7 @@ async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
         vec![(snapshot, record("snapshot"))]
     );
     let error = writer
-        .scan_suffix::<TestRecord>(Some(last), end + 1)
+        .scan_suffix::<TestRecord>(Some(last), JournalSequence::new(end.get() + 1))
         .await
         .expect_err("recovery should reject a scan that stops before its expected end");
     assert_eq!(
@@ -307,12 +308,12 @@ async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
         &DurableError::IncompleteScan {
             name: TestRecord::declaration().name,
             observed_end: end,
-            expected_end: end + 1
+            expected_end: JournalSequence::new(end.get() + 1)
         },
         "recovery should report the incomplete range"
     );
     let error = writer
-        .scan_projection_snapshots::<TestRecord>(end + 1)
+        .scan_projection_snapshots::<TestRecord>(JournalSequence::new(end.get() + 1))
         .await
         .expect_err("snapshot scan should reject an incomplete range");
     assert_eq!(
@@ -320,7 +321,7 @@ async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
         &DurableError::IncompleteScan {
             name: TestRecord::declaration().name,
             observed_end: end,
-            expected_end: end + 1
+            expected_end: JournalSequence::new(end.get() + 1)
         },
         "snapshot recovery should report the incomplete range"
     );
@@ -545,7 +546,7 @@ async fn durability_wait_retries_after_timeout() {
         .expect("record should append");
 
     // After the second append, the exclusive durable end is `first + 2`.
-    let required = first + 2;
+    let required = first.get() + 2;
     let (waited, appended) = tokio::join!(
         wait_until_durable_with(writer.raw_log(), required, Duration::from_millis(20), 50,),
         async {
@@ -568,7 +569,7 @@ async fn durability_wait_retries_after_timeout() {
     assert_eq!(
         error.current_context(),
         &DurableError::DurabilityTimeout {
-            required: required + 1_000,
+            required: JournalSequence::new(required + 1_000),
             attempts: 3,
             attempt_timeout: Duration::from_millis(10),
         }
