@@ -1,4 +1,6 @@
-use crate::{ids::EventId, routing::Shard, shard_log::AppendFailureKind};
+use crate::{
+    ids::EventId, routing::Shard, sequence::JournalSequence, shard_log::AppendFailureKind,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
 pub enum ShardCommandErrorKind {
@@ -49,7 +51,7 @@ pub enum ShardCommandError {
     },
     #[display("could not append snapshot through sequence {through_sequence}: {kind}")]
     AppendSnapshot {
-        through_sequence: u64,
+        through_sequence: JournalSequence,
         kind: AppendFailureKind,
     },
     #[display("shard command loop stopped before replying to {command}")]
@@ -95,7 +97,10 @@ pub enum ShardCommandError {
     #[display("could not read stored control outcome for event {event_id}")]
     ReadControlOutcome { event_id: EventId },
     #[display("could not apply durable event {event_id} at sequence {sequence}")]
-    FinalizeRecord { event_id: EventId, sequence: u64 },
+    FinalizeRecord {
+        event_id: EventId,
+        sequence: JournalSequence,
+    },
     #[display("acknowledged event {event_id} is absent after recovery")]
     MissingRecoveredEvent { event_id: EventId },
     #[display("acknowledged event {event_id} conflicts after recovery")]
@@ -111,8 +116,8 @@ pub enum ShardCommandError {
          projection at {current_sequence}"
     )]
     SnapshotAheadOfProjection {
-        snapshot_through: u64,
-        current_sequence: u64,
+        snapshot_through: JournalSequence,
+        current_sequence: JournalSequence,
     },
     #[display("could not validate snapshot registration for {name}")]
     ValidateSnapshotRegistration { name: &'static str },
@@ -129,7 +134,7 @@ pub enum ShardCommandError {
     #[display("could not read stored journal events")]
     ReadJournal,
     #[display("could not replay stored event at sequence {sequence}")]
-    ReplayRecord { sequence: u64 },
+    ReplayRecord { sequence: JournalSequence },
 }
 
 impl ShardCommandError {

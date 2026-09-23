@@ -17,6 +17,7 @@ use super::{
 use crate::{
     DurableError,
     registry::{DurableRecord, UntrimmedJournalRecord},
+    sequence::JournalSequence,
 };
 
 pub(super) async fn flush_with_timeout(
@@ -45,10 +46,11 @@ pub(super) async fn wait_until_durable_with(
         let mut changes = log.subscribe_durable();
         let wait = tokio::time::timeout(attempt_timeout, async {
             while *changes.borrow_and_update() < required {
-                changes
-                    .changed()
-                    .await
-                    .change_context(DurableError::DurabilitySubscriptionClosed { required })?;
+                changes.changed().await.change_context(
+                    DurableError::DurabilitySubscriptionClosed {
+                        required: JournalSequence::new(required),
+                    },
+                )?;
             }
             Ok::<(), Report<DurableError>>(())
         })
@@ -66,7 +68,7 @@ pub(super) async fn wait_until_durable_with(
         }
     }
     Err(Report::new(DurableError::DurabilityTimeout {
-        required,
+        required: JournalSequence::new(required),
         attempts,
         attempt_timeout,
     }))
@@ -100,31 +102,31 @@ impl<W: JournalWriter> ShardLogWriter<W> {
     pub(super) async fn append<T: UntrimmedJournalRecord + Sync>(
         &self,
         value: &T,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         self.append_registered(EVENTS_KEY, value).await
     }
 
-    pub(super) fn durable_end_exclusive(&self) -> u64 {
+    pub(super) fn durable_end_exclusive(&self) -> JournalSequence {
         self.backend.durable_end_exclusive()
     }
 
     pub(super) async fn scan_suffix<T: UntrimmedJournalRecord>(
         &self,
-        through_log_sequence: Option<u64>,
-        durable_end_exclusive: u64,
-    ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+        through_sequence: Option<JournalSequence>,
+        durable_end_exclusive: JournalSequence,
+    ) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
             .change_context(DurableError::RegisterRecord {
                 name: T::declaration().name,
             })?;
-        let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
+        let range = recovery_range(through_sequence, durable_end_exclusive)?;
         scan_records(&self.backend, range.bounds, Some(range.window)).await
     }
 
     pub(super) async fn scan_projection_snapshots<T: DurableRecord>(
         &self,
-        durable_end_exclusive: u64,
+        durable_end_exclusive: JournalSequence,
     ) -> Result<Vec<SnapshotCandidate<T>>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
@@ -144,7 +146,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         &self,
         key: &'static [u8],
         value: &T,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         let bytes = self.encode_registered::<T>(|writer| value.encode(writer))?;
         self.append_encoded(key, bytes).await
     }
@@ -176,7 +178,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         &self,
         key: &'static [u8],
         bytes: Bytes,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         self.backend.append(Bytes::from_static(key), bytes).await
     }
 

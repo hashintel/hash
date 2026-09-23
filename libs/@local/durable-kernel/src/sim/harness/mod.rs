@@ -33,6 +33,7 @@ use crate::{
     domain::{EventRecordV1, Hosted},
     ids::{EffectId, EventId},
     registry::RecordRegistry,
+    sequence::JournalSequence,
     shard_log::{ShardCommandHandle, StartedShard},
 };
 
@@ -77,7 +78,7 @@ struct Driver<'a> {
     /// Allows one executor iteration per scheduled append outcome, plus the iterations needed
     /// to finish successful effects.
     effect_round_limit: u32,
-    last_durable_end: u64,
+    last_durable_end: JournalSequence,
     next_request: u64,
     /// The caller owns the trace, so it survives a panic during the schedule.
     trace: &'a mut Vec<String>,

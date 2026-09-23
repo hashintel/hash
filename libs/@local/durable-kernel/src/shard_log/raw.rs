@@ -7,6 +7,7 @@ use super::{
 use crate::{
     DurableError,
     registry::{DurableRecord, UntrimmedJournalRecord},
+    sequence::JournalSequence,
 };
 
 /// Provides direct append access for tests that seed journals or open competing writers.
@@ -28,7 +29,7 @@ impl<W: JournalWriter> RawShardLog<W> {
     pub async fn append<T: UntrimmedJournalRecord + Sync>(
         &self,
         value: &T,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         self.0
             .registry
             .register(T::declaration())
@@ -47,7 +48,7 @@ impl<W: JournalWriter> RawShardLog<W> {
     pub async fn append_projection_snapshot<T: DurableRecord + Sync>(
         &self,
         value: &T,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         self.0
             .registry
             .register(T::declaration())
@@ -63,7 +64,7 @@ impl<W: JournalWriter> RawShardLog<W> {
     }
 
     #[must_use]
-    pub fn durable_end_exclusive(&self) -> u64 {
+    pub fn durable_end_exclusive(&self) -> JournalSequence {
         self.0.durable_end_exclusive()
     }
 

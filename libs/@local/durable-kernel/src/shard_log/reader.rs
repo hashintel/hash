@@ -10,6 +10,7 @@ use super::{
 use crate::{
     DurableError,
     registry::{RecordRegistry, UntrimmedJournalRecord},
+    sequence::JournalSequence,
 };
 
 /// Reads journal records without acquiring a writer. Production recovery uses the active
@@ -37,7 +38,7 @@ impl<R: JournalReader> ShardLogRecovery<R> {
     /// Returns an error when journal scanning, decoding, or sequence validation fails.
     pub async fn scan<T: UntrimmedJournalRecord>(
         &self,
-    ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+    ) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
             .change_context(DurableError::RegisterRecord {
@@ -51,15 +52,15 @@ impl<R: JournalReader> ShardLogRecovery<R> {
     /// Returns an error when journal scanning, decoding, or sequence validation fails.
     pub async fn scan_suffix<T: UntrimmedJournalRecord>(
         &self,
-        through_log_sequence: Option<u64>,
-        durable_end_exclusive: u64,
-    ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+        through_sequence: Option<JournalSequence>,
+        durable_end_exclusive: JournalSequence,
+    ) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
             .change_context(DurableError::RegisterRecord {
                 name: T::declaration().name,
             })?;
-        let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
+        let range = recovery_range(through_sequence, durable_end_exclusive)?;
         scan_records(&self.reader, range.bounds, Some(range.window)).await
     }
 

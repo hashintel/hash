@@ -40,10 +40,7 @@ impl Driver<'_> {
         properties::covered(
             coverage,
             &properties::RECOVERY_BOUNDED_BY_SNAPSHOT,
-            self.started
-                .recovery
-                .snapshot_through_log_sequence
-                .is_some(),
+            self.started.recovery.snapshot_through_sequence.is_some(),
         );
         properties::covered(
             coverage,

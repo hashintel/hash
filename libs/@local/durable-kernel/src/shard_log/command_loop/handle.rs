@@ -5,7 +5,7 @@ use super::{
     ControlResolution, ShardCommandError, ShardCommandHandle, ShardCommandKind,
     ShardCommandOutcome, ShardOwner,
 };
-use crate::port::Domain;
+use crate::{port::Domain, sequence::JournalSequence};
 
 pub(super) enum Command<D: Domain> {
     Propose {
@@ -28,7 +28,7 @@ pub(super) enum Command<D: Domain> {
     },
     CommitSnapshot {
         snapshot: D::Snapshot,
-        reply: oneshot::Sender<Result<u64, Report<ShardCommandError>>>,
+        reply: oneshot::Sender<Result<JournalSequence, Report<ShardCommandError>>>,
     },
     Query {
         query: D::Query,
@@ -151,7 +151,7 @@ impl<D: Domain> ShardCommandHandle<D> {
     pub async fn commit_snapshot(
         &self,
         snapshot: D::Snapshot,
-    ) -> Result<u64, Report<ShardCommandError>> {
+    ) -> Result<JournalSequence, Report<ShardCommandError>> {
         let (reply, response) = oneshot::channel();
         self.send(Command::CommitSnapshot { snapshot, reply })
             .await?;

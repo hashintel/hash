@@ -14,6 +14,8 @@ use std::sync::Mutex;
 
 use bytes::Bytes;
 
+use crate::sequence::JournalSequence;
+
 mod harness;
 mod storage;
 
@@ -139,7 +141,7 @@ const CORRUPTION_MARKER: &[u8] = b"corrupted-snapshot";
 
 #[derive(Debug, Clone)]
 struct SimEntry {
-    sequence: u64,
+    sequence: JournalSequence,
     key: SimKey,
     bytes: Bytes,
 }
@@ -147,8 +149,8 @@ struct SimEntry {
 #[derive(Debug)]
 struct SimLogState {
     entries: Vec<SimEntry>,
-    next_sequence: u64,
-    durable_end_exclusive: u64,
+    next_sequence: JournalSequence,
+    durable_end_exclusive: JournalSequence,
     /// The active writer’s epoch. Appends from older epochs are rejected.
     writer_epoch: u64,
     /// Generates sequence gaps independently of append outcomes.
@@ -173,8 +175,8 @@ impl SimLogHandle {
         Self {
             state: Arc::new(Mutex::new(SimLogState {
                 entries: Vec::new(),
-                next_sequence: 0,
-                durable_end_exclusive: 0,
+                next_sequence: JournalSequence::new(0),
+                durable_end_exclusive: JournalSequence::new(0),
                 writer_epoch: 0,
                 gap_rng: SplitMix64::new(gap_seed),
                 pending: outcomes.into(),
@@ -212,7 +214,7 @@ impl SimLogHandle {
     /// Returns the stored journal sequences and bytes for `key` in sequence order, independently
     /// of the command loop’s state.
     #[must_use]
-    pub fn durable_entries(&self, key: SimKey) -> Vec<(u64, Bytes)> {
+    pub fn durable_entries(&self, key: SimKey) -> Vec<(JournalSequence, Bytes)> {
         self.lock()
             .entries
             .iter()
@@ -222,7 +224,7 @@ impl SimLogHandle {
     }
 
     #[must_use]
-    pub fn durable_end_exclusive(&self) -> u64 {
+    pub fn durable_end_exclusive(&self) -> JournalSequence {
         self.lock().durable_end_exclusive
     }
 
@@ -284,7 +286,7 @@ pub struct SimWriter {
 }
 
 pub(crate) enum SimAppendResult {
-    Acked(u64),
+    Acked(JournalSequence),
     DefinitelyNotCommitted,
     CommitUnknown,
     Fenced,
@@ -322,17 +324,17 @@ impl SimWriter {
 }
 
 impl SimLogState {
-    fn store(&mut self, key: SimKey, bytes: Vec<u8>) -> u64 {
+    fn store(&mut self, key: SimKey, bytes: Vec<u8>) -> JournalSequence {
         // Real journal sequences increase and can have gaps.
         let gap = self.gap_rng.between(1, 3);
         let sequence = self.next_sequence;
-        self.next_sequence += gap;
+        self.next_sequence = JournalSequence::new(sequence.get() + gap);
         self.entries.push(SimEntry {
             sequence,
             key,
             bytes: Bytes::from(bytes),
         });
-        let advanced = sequence + 1;
+        let advanced = sequence.saturating_next();
         assert!(
             advanced >= self.durable_end_exclusive,
             "durable end should not decrease: {advanced} < {}",

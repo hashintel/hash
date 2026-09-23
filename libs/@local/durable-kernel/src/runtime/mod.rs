@@ -40,6 +40,7 @@ use crate::{
     keyspace::Keyspace,
     registry::RecordRegistry,
     routing::Shard,
+    sequence::JournalSequence,
     shard_log::{ShardCommandError, ShardCommandHandle, ShardOwner},
 };
 
@@ -58,7 +59,7 @@ pub struct Kernel {
 /// [`shutdown`](Self::shutdown) waits for active effects. Dropping the handle cancels them.
 pub struct RunningKernel<S: SimpleDomain> {
     shards: BTreeMap<u8, ShardCommandHandle<Hosted<S>>>,
-    recovered_snapshots: BTreeMap<u8, Option<u64>>,
+    recovered_snapshots: BTreeMap<u8, Option<JournalSequence>>,
     drivers: Vec<JoinHandle<Result<(), Report<KernelError>>>>,
     loops: Vec<JoinHandle<Result<(), ShardCommandError>>>,
     owners: Vec<ShardOwner<Hosted<S>>>,

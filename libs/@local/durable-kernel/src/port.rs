@@ -19,6 +19,7 @@ use crate::{
     ids::EventId,
     registry::{CompatError, DurableRecord, UntrimmedJournalRecord},
     routing::Shard,
+    sequence::JournalSequence,
     shard_log::ShardCommandError,
 };
 
@@ -98,13 +99,16 @@ pub trait EventDomain: Send + Sync + 'static {
     fn finalize(
         projection: &mut Self::Projection,
         delta: Self::Delta,
-        shard_sequence: u64,
+        shard_sequence: JournalSequence,
     ) -> Result<(), Self::FoldError>;
 
-    fn state_sequence(projection: &Self::Projection, key: &Self::StateKey) -> Option<u64>;
+    fn state_sequence(
+        projection: &Self::Projection,
+        key: &Self::StateKey,
+    ) -> Option<JournalSequence>;
 
     /// Returns the last journal sequence applied to the projection.
-    fn through_sequence(projection: &Self::Projection) -> Option<u64>;
+    fn through_sequence(projection: &Self::Projection) -> Option<JournalSequence>;
     /// Validates and applies a stored record during startup or append recovery.
     ///
     /// # Errors
@@ -114,7 +118,7 @@ pub trait EventDomain: Send + Sync + 'static {
     fn replay(
         projection: &mut Self::Projection,
         shard: Shard,
-        sequence: u64,
+        sequence: JournalSequence,
         record: Self::Record,
     ) -> Result<(), Report<Self::RecoveryError>>;
     /// Checks that recovered state includes all acknowledged events.
@@ -202,14 +206,14 @@ pub trait SnapshotDomain: EventDomain {
         projection: &Self::Projection,
     ) -> Option<Self::SnapshotCapture>;
     /// Checks a saved snapshot’s shard and journal sequence and returns
-    /// `(shard, through_log_sequence)`. An error rejects the candidate.
+    /// `(shard, through_sequence)`. An error rejects the candidate.
     ///
     /// # Errors
     ///
     /// Returns an error when the snapshot’s shard or journal sequence is invalid.
     fn snapshot_bounds(
         snapshot: &Self::Snapshot,
-    ) -> Result<(Shard, u64), Report<Self::RecoveryError>>;
+    ) -> Result<(Shard, JournalSequence), Report<Self::RecoveryError>>;
     /// Returns the timestamp recorded in the snapshot. Recovery reports it.
     fn snapshot_created_at(snapshot: &Self::Snapshot) -> DateTime<Utc>;
     /// Loads state from a snapshot. An error makes recovery try an older snapshot, then the

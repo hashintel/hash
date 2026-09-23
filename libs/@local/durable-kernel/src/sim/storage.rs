@@ -19,6 +19,7 @@ use crate::{
     DurableError,
     registry::RecordRegistry,
     routing::Shard,
+    sequence::JournalSequence,
     shard_log::{
         AppendFailureKind, JournalReader, JournalStorage, JournalStream, JournalWriter,
         ShardAppendError, ShardLogLocation,
@@ -88,26 +89,26 @@ impl ShardLogLocation<SimLogHandle> {
 
 /// Streams the stored records returned by one scan of the simulated journal.
 pub struct SimStream {
-    entries: alloc::vec::IntoIter<(u64, Bytes)>,
-    next_sequence: u64,
-    end_exclusive: u64,
+    entries: alloc::vec::IntoIter<(JournalSequence, Bytes)>,
+    next_sequence: JournalSequence,
+    end_exclusive: JournalSequence,
 }
 
 impl Stream for SimStream {
-    type Item = Result<(u64, Bytes), Report<DurableError>>;
+    type Item = Result<(JournalSequence, Bytes), Report<DurableError>>;
 
     fn poll_next(mut self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let entry = self.entries.next();
         self.next_sequence = entry.as_ref().map_or_else(
             || self.next_sequence.max(self.end_exclusive),
-            |(sequence, _)| sequence + 1,
+            |(sequence, _)| sequence.saturating_next(),
         );
         Poll::Ready(entry.map(Ok))
     }
 }
 
 impl JournalStream for SimStream {
-    fn next_sequence(&self) -> u64 {
+    fn next_sequence(&self) -> JournalSequence {
         self.next_sequence
     }
 }
@@ -128,13 +129,13 @@ impl JournalReader for SimLogHandle {
     fn scan(
         &self,
         key: Bytes,
-        range: impl RangeBounds<u64> + Send,
+        range: impl RangeBounds<JournalSequence> + Send,
     ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send {
         ready(sim_key(&key).map(|key| {
             let range = (range.start_bound().cloned(), range.end_bound().cloned());
             let state = self.lock();
             let end_exclusive = match range.1 {
-                Bound::Included(end) => end.saturating_add(1),
+                Bound::Included(end) => end.saturating_next(),
                 Bound::Excluded(end) => end,
                 Bound::Unbounded => state.durable_end_exclusive,
             }
@@ -149,8 +150,8 @@ impl JournalReader for SimLogHandle {
             drop(state);
             let next_sequence = match range.0 {
                 Bound::Included(start) => start,
-                Bound::Excluded(start) => start.saturating_add(1),
-                Bound::Unbounded => 0,
+                Bound::Excluded(start) => start.saturating_next(),
+                Bound::Unbounded => JournalSequence::new(0),
             };
             SimStream {
                 entries,
@@ -171,7 +172,7 @@ impl JournalReader for SimWriter {
     async fn scan(
         &self,
         key: Bytes,
-        range: impl RangeBounds<u64> + Send,
+        range: impl RangeBounds<JournalSequence> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
         JournalReader::scan(&self.handle, key, range).await
     }
@@ -182,7 +183,7 @@ impl JournalReader for SimWriter {
 }
 
 impl JournalWriter for SimWriter {
-    fn durable_end_exclusive(&self) -> u64 {
+    fn durable_end_exclusive(&self) -> JournalSequence {
         self.handle.durable_end_exclusive()
     }
 
@@ -190,7 +191,7 @@ impl JournalWriter for SimWriter {
         &self,
         mut key: impl Buf + Send,
         value: Bytes,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         let remaining = key.remaining();
         let key = key.copy_to_bytes(remaining);
         let key = sim_key(&key).change_context(ShardAppendError {

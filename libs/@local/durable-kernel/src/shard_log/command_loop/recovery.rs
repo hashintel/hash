@@ -7,6 +7,7 @@ use super::{
 use crate::{
     ids::EventId,
     port::{Domain, EventDomain, SnapshotDomain},
+    sequence::JournalSequence,
     shard_log::{JournalStorage, JournalWriter, ShardLogWriter, SnapshotCandidate},
 };
 
@@ -59,9 +60,9 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         D::validate_recovered_prefix(&self.projection, &recovered.projection)
             .change_context(ShardCommandError::ValidateRecoveredPrefix)?;
         self.projection = recovered.projection;
-        self.last_snapshot_attempt_through_log_sequence = self
-            .last_snapshot_attempt_through_log_sequence
-            .max(recovered.snapshot_through_log_sequence);
+        self.last_snapshot_attempt_through_sequence = self
+            .last_snapshot_attempt_through_sequence
+            .max(recovered.snapshot_through_sequence);
         Ok(())
     }
 
@@ -108,7 +109,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
 pub(super) async fn replay_with_snapshots<D: SnapshotDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
-    durable_end_exclusive: u64,
+    durable_end_exclusive: JournalSequence,
     context: Option<&D::SnapshotContext>,
 ) -> Result<RecoveredProjection<D>, Report<ShardCommandError>> {
     let mut corruption_fallbacks = 0_u64;
@@ -145,7 +146,7 @@ pub(super) async fn replay_with_snapshots<D: SnapshotDomain>(
         .await
         .map(|(projection, replayed_events)| RecoveredProjection {
             projection,
-            snapshot_through_log_sequence: None,
+            snapshot_through_sequence: None,
             snapshot_created_at: None,
             replayed_events,
             corruption_fallbacks,
@@ -159,7 +160,7 @@ pub(super) async fn replay_with_snapshots<D: SnapshotDomain>(
 async fn replay_from_snapshots<D: SnapshotDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
-    durable_end_exclusive: u64,
+    durable_end_exclusive: JournalSequence,
     context: &D::SnapshotContext,
     candidates: Vec<SnapshotCandidate<D::Snapshot>>,
     corruption_fallbacks: &mut u64,
@@ -171,7 +172,7 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
                 *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                 tracing::warn!(
                     shard = %shard.path_segment(),
-                    reference_sequence,
+                    %reference_sequence,
                     error = ?error,
                     "ignored malformed projection-snapshot reference"
                 );
@@ -184,7 +185,7 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
                 *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                 tracing::warn!(
                     shard = %shard.path_segment(),
-                    reference_sequence,
+                    %reference_sequence,
                     error = ?error,
                     "ignored projection snapshot with invalid addressing"
                 );
@@ -195,9 +196,9 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
             *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
             tracing::warn!(
                 shard = %shard.path_segment(),
-                reference_sequence,
-                through_log_sequence = through,
-                durable_end_exclusive,
+                %reference_sequence,
+                through_sequence = %through,
+                %durable_end_exclusive,
                 "ignored projection snapshot with an impossible journal range"
             );
             continue;
@@ -208,7 +209,7 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
                 *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                 tracing::warn!(
                     shard = %shard.path_segment(),
-                    reference_sequence,
+                    %reference_sequence,
                     error = ?error,
                     "ignored unusable projection snapshot"
                 );
@@ -219,7 +220,7 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
             Ok((projection, replayed_events)) => {
                 return Some(RecoveredProjection {
                     projection,
-                    snapshot_through_log_sequence: Some(through),
+                    snapshot_through_sequence: Some(through),
                     snapshot_created_at: Some(D::snapshot_created_at(&snapshot)),
                     replayed_events,
                     corruption_fallbacks: *corruption_fallbacks,
@@ -229,7 +230,7 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
                 *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
                 tracing::warn!(
                     shard = %shard.path_segment(),
-                    reference_sequence,
+                    %reference_sequence,
                     error = ?error,
                     "replaying events after the snapshot failed; trying an older snapshot"
                 );
@@ -242,7 +243,7 @@ async fn replay_from_snapshots<D: SnapshotDomain>(
 async fn replay_durable_prefix<D: EventDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
-    durable_end_exclusive: u64,
+    durable_end_exclusive: JournalSequence,
 ) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
     replay_durable_suffix::<D>(writer, shard, durable_end_exclusive, D::empty_projection()).await
 }
@@ -250,7 +251,7 @@ async fn replay_durable_prefix<D: EventDomain>(
 async fn replay_durable_suffix<D: EventDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
-    durable_end_exclusive: u64,
+    durable_end_exclusive: JournalSequence,
     mut recovered: D::Projection,
 ) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
     // The scan uses the writer that reported `durable_end_exclusive`, so the scan and its bounds
@@ -265,8 +266,8 @@ async fn replay_durable_suffix<D: EventDomain>(
 
     tracing::info!(
         shard = %shard.path_segment(),
-        from_sequence = through_sequence.map_or(0, |sequence| sequence.saturating_add(1)),
-        durable_end_exclusive,
+        from_sequence = through_sequence.map_or(0, |sequence| sequence.saturating_next().get()),
+        %durable_end_exclusive,
         records = records.len(),
         elapsed_ms = u64::try_from(scan_started.elapsed().as_millis()).unwrap_or(u64::MAX),
         "read journal events after the snapshot"

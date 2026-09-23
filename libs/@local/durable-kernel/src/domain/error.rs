@@ -3,7 +3,7 @@ use core::{error::Error, fmt};
 use error_stack::Report;
 
 use super::PartitionKey;
-use crate::{ids::EventId, registry::CompatError, routing::Shard};
+use crate::{ids::EventId, registry::CompatError, routing::Shard, sequence::JournalSequence};
 
 /// A rejected record or state update. Application validation reports retain their typed
 /// context and attachments in [`Self::Rejected`].
@@ -22,8 +22,8 @@ pub enum FoldError<R> {
     },
     InvalidRecord(Report<CompatError>),
     NonIncreasingSequence {
-        previous: u64,
-        proposed: u64,
+        previous: JournalSequence,
+        proposed: JournalSequence,
     },
 }
 
@@ -75,21 +75,27 @@ impl<R> From<Report<CompatError>> for FoldError<R> {
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum RecoveryError {
     #[display("domain record at sequence {sequence} is invalid")]
-    InvalidRecord { sequence: u64 },
+    InvalidRecord { sequence: JournalSequence },
     #[display(
         "domain record at sequence {sequence} routes to shard {} instead of {}",
         actual.path_segment(),
         expected.path_segment()
     )]
     ForeignShard {
-        sequence: u64,
+        sequence: JournalSequence,
         expected: Shard,
         actual: Shard,
     },
     #[display("domain record sequence {proposed} does not advance {previous}")]
-    NonIncreasingSequence { previous: u64, proposed: u64 },
+    NonIncreasingSequence {
+        previous: JournalSequence,
+        proposed: JournalSequence,
+    },
     #[display("event ID {event_id} was reused with different content at sequence {sequence}")]
-    ConflictingReuse { event_id: EventId, sequence: u64 },
+    ConflictingReuse {
+        event_id: EventId,
+        sequence: JournalSequence,
+    },
     #[display(
         "snapshot for shard {} was offered to shard {}",
         actual.path_segment(),
@@ -98,8 +104,8 @@ pub enum RecoveryError {
     SnapshotShardMismatch { expected: Shard, actual: Shard },
     #[display("recovered journal sequence {recovered:?} is below the previous {previous}")]
     RegressedSequence {
-        previous: u64,
-        recovered: Option<u64>,
+        previous: JournalSequence,
+        recovered: Option<JournalSequence>,
     },
     #[display("durable prefix lost or changed acknowledged event {event_id}")]
     LostEvent { event_id: EventId },

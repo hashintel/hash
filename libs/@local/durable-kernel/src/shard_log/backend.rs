@@ -4,7 +4,7 @@
 //! and scan boundaries for each backend. [`StorageConfig`] opens the object-storage backend.
 
 use core::{
-    ops::RangeBounds,
+    ops::{Bound, RangeBounds},
     pin::Pin,
     task::{Context, Poll, ready},
     time::Duration,
@@ -24,18 +24,21 @@ use super::{
     APPEND_TIMEOUT, DURABILITY_WAIT_ATTEMPTS, ShardAppendError, flush_with_timeout,
     post_invocation_report, post_invocation_source, wait_until_durable_with,
 };
-use crate::DurableError;
+use crate::{DurableError, sequence::JournalSequence};
 
-/// Reads durable records as `(journal sequence, stored bytes)` in increasing sequence order.
+/// Reads durable records as pairs of [`JournalSequence`] and stored bytes, in increasing sequence
+/// order.
 ///
 /// The journal assigns each record its journal sequence at append time. All keys in one journal
 /// share one sequence, and it can have gaps. The stream yields an error if storage cannot supply
 /// the next record.
-pub trait JournalStream: Stream<Item = Result<(u64, Bytes), Report<DurableError>>> + Send {
+pub trait JournalStream:
+    Stream<Item = Result<(JournalSequence, Bytes), Report<DurableError>>> + Send
+{
     /// Returns the exclusive end of the journal sequences read, including sequences with no record
     /// for the requested key. After the stream returns `None`, this must report how far storage was
     /// read, even if the scan stopped before the requested end.
-    fn next_sequence(&self) -> u64;
+    fn next_sequence(&self) -> JournalSequence;
 }
 
 /// Scans a journal without changing its contents.
@@ -51,7 +54,7 @@ pub trait JournalReader: Send + Sync + 'static {
     fn scan(
         &self,
         key: Bytes,
-        range: impl RangeBounds<u64> + Send,
+        range: impl RangeBounds<JournalSequence> + Send,
     ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send;
 
     /// Releases the reader or writer's storage resources.
@@ -65,7 +68,7 @@ pub trait JournalReader: Send + Sync + 'static {
 /// Appends through one writer epoch. Opening a replacement must invalidate older writers.
 pub trait JournalWriter: JournalReader {
     /// Returns the exclusive end of the durable journal sequences visible to this writer.
-    fn durable_end_exclusive(&self) -> u64;
+    fn durable_end_exclusive(&self) -> JournalSequence;
 
     /// Stores a record under the bytes remaining in `key`. Returns its journal sequence once the
     /// record is durable. Journal sequences increase across all keys and writer epochs and can have
@@ -81,7 +84,7 @@ pub trait JournalWriter: JournalReader {
         &self,
         key: impl Buf + Send,
         value: Bytes,
-    ) -> impl Future<Output = Result<u64, Report<ShardAppendError>>> + Send;
+    ) -> impl Future<Output = Result<JournalSequence, Report<ShardAppendError>>> + Send;
 }
 
 /// Opens journal readers and writers over the same storage.
@@ -122,13 +125,13 @@ pub struct StorageWriter {
 pub struct StorageStream {
     read: Option<ReusableBoxFuture<'static, (LogIterator, opendata_log::Result<Option<LogEntry>>)>>,
     key: Bytes,
-    next_sequence: u64,
+    next_sequence: JournalSequence,
 }
 
 impl StorageStream {
     fn new(inner: LogIterator, key: Bytes) -> Self {
         Self {
-            next_sequence: inner.next_sequence(),
+            next_sequence: JournalSequence::new(inner.next_sequence()),
             read: Some(ReusableBoxFuture::new(Self::read_next(inner))),
             key,
         }
@@ -143,7 +146,7 @@ impl StorageStream {
 }
 
 impl Stream for StorageStream {
-    type Item = Result<(u64, Bytes), Report<DurableError>>;
+    type Item = Result<(JournalSequence, Bytes), Report<DurableError>>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.get_mut();
@@ -151,7 +154,7 @@ impl Stream for StorageStream {
             return Poll::Ready(None);
         };
         let (inner, entry) = ready!(read.poll(cx));
-        this.next_sequence = inner.next_sequence();
+        this.next_sequence = JournalSequence::new(inner.next_sequence());
         let entry = entry.change_context_lazy(|| DurableError::ReadRecord {
             key: this.key.clone(),
             next_sequence: this.next_sequence,
@@ -163,14 +166,23 @@ impl Stream for StorageStream {
         }
         Poll::Ready(
             entry
-                .map(|entry| entry.map(|entry| (entry.sequence, entry.value)))
+                .map(|entry| entry.map(|entry| (JournalSequence::new(entry.sequence), entry.value)))
                 .transpose(),
         )
     }
 }
 
+fn storage_range(
+    range: (Bound<JournalSequence>, Bound<JournalSequence>),
+) -> (Bound<u64>, Bound<u64>) {
+    (
+        range.0.map(JournalSequence::get),
+        range.1.map(JournalSequence::get),
+    )
+}
+
 impl JournalStream for StorageStream {
-    fn next_sequence(&self) -> u64 {
+    fn next_sequence(&self) -> JournalSequence {
         self.next_sequence
     }
 }
@@ -181,12 +193,12 @@ impl JournalReader for StorageReader {
     async fn scan(
         &self,
         key: Bytes,
-        range: impl RangeBounds<u64> + Send,
+        range: impl RangeBounds<JournalSequence> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
         let range = (range.start_bound().cloned(), range.end_bound().cloned());
         let inner = self
             .0
-            .scan(key.clone(), range)
+            .scan(key.clone(), storage_range(range))
             .await
             .change_context_lazy(|| DurableError::Scan {
                 key: key.clone(),
@@ -207,12 +219,12 @@ impl JournalReader for StorageWriter {
     async fn scan(
         &self,
         key: Bytes,
-        range: impl RangeBounds<u64> + Send,
+        range: impl RangeBounds<JournalSequence> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
         let range = (range.start_bound().cloned(), range.end_bound().cloned());
         let inner = self
             .log
-            .scan(key.clone(), range)
+            .scan(key.clone(), storage_range(range))
             .await
             .change_context_lazy(|| DurableError::Scan {
                 key: key.clone(),
@@ -230,15 +242,15 @@ impl JournalReader for StorageWriter {
 }
 
 impl JournalWriter for StorageWriter {
-    fn durable_end_exclusive(&self) -> u64 {
-        self.log.durable_sequence()
+    fn durable_end_exclusive(&self) -> JournalSequence {
+        JournalSequence::new(self.log.durable_sequence())
     }
 
     async fn append(
         &self,
         mut key: impl Buf + Send,
         value: Bytes,
-    ) -> Result<u64, Report<ShardAppendError>> {
+    ) -> Result<JournalSequence, Report<ShardAppendError>> {
         let remaining = key.remaining();
         let key = key.copy_to_bytes(remaining);
         let output = self
@@ -255,7 +267,7 @@ impl JournalWriter for StorageWriter {
         )
         .await
         .map_err(post_invocation_report)?;
-        Ok(output.start_sequence)
+        Ok(JournalSequence::new(output.start_sequence))
     }
 }
 
