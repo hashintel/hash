@@ -6,6 +6,7 @@
 mod defaults;
 mod error;
 mod file;
+mod schema;
 
 use core::fmt;
 use std::path::PathBuf;
@@ -15,7 +16,7 @@ use figment::Figment;
 use serde_core::{Serialize, de::DeserializeOwned};
 
 use self::{defaults::Defaults, error::load_report, file::FileSource};
-pub use self::{error::LoadError, file::FileFormat};
+pub use self::{error::LoadError, file::FileFormat, schema::partial_json_schema};
 
 /// Builds a configuration from layered sources.
 ///

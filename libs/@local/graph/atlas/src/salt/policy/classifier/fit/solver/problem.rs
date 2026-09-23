@@ -4,7 +4,7 @@
 //! and the corpus's [`GramView`], and exposes the physical evaluations transformed into the
 //! solver's scaled coordinates. With the preparation diagonal `D`, points map as `θ(ζ) = D⁻¹ζ`,
 //! gradients as `gζ = D⁻¹gθ`, and Hessian-vector products as `Hζ[v] = D⁻¹·Hθ[D⁻¹v]`. Physical
-//! evaluation receives `θ(ζ)` only at this boundary, so every quantity the loop compares or
+//! evaluation receives `θ(ζ)` only at this boundary, and every quantity the loop compares or
 //! accumulates lives in one coordinate system.
 //!
 //! The underlying evaluations charge all the work themselves, and the coordinate transformations
@@ -28,7 +28,7 @@ pub(crate) struct ScaledProblem<'corpus> {
 }
 
 impl ScaledProblem<'_> {
-    /// The physical contrast point `θ(ζ) = D⁻¹ζ`.
+    /// Returns the physical contrast point `θ(ζ) = D⁻¹ζ`.
     pub(crate) fn point(&self, zeta: &AlignedDVecN<SOLVER_DIMENSIONS>) -> ContrastVector {
         ContrastVector::from_flat(&self.prepared.scaling.divide(zeta))
     }

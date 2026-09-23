@@ -32,7 +32,7 @@ use crate::{
 /// A degree decile, `D1` (lowest participating degrees) through `D10` (highest).
 ///
 /// `Option<Decile>` is one row's participation state: rows without attraction evidence have no
-/// decile at all, so no sentinel value exists to misread as a bucket.
+/// decile at all, and no sentinel value exists to misread as a bucket.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 #[expect(
@@ -59,11 +59,13 @@ impl Decile {
         reason = "the index ranges over the ten variants"
     )]
     const ALL: [Self; Self::COUNT] = core::array::from_fn(const |index| {
-        // SAFETY: `index` ranges over `0..COUNT`, so `index + 1` ranges over `1..=COUNT` -
-        // exactly the enum's `repr(u8)` discriminants `D1 = 1` through `D10 = COUNT`, which
-        // `variant_count` ties to the variant list itself.
+        // SAFETY: `Decile` is `repr(u8)` with discriminants `D1 = 1` through `D10 = COUNT`, and
+        // `variant_count` ties `COUNT` to the variant list itself. `index` ranges over
+        // `0..COUNT`, and `index + 1` therefore ranges over `1..=COUNT`, exactly those
+        // discriminants.
         unsafe { core::mem::transmute::<u8, Self>(index as u8 + 1) }
     });
+    /// The decile count, tied to the variant list.
     const COUNT: usize = mem::variant_count::<Self>();
 
     /// Returns the 0-based bucket position, [`D1`](Self::D1) at zero.
@@ -92,7 +94,7 @@ where
     /// # Panics
     ///
     /// This panics when an attraction edge references a row at or beyond `rows`. The index and the
-    /// row domain come from one generation, so a mismatch is a wiring defect.
+    /// row domain come from one generation, and a mismatch is therefore a wiring defect.
     #[must_use]
     pub(crate) fn new<E>(index: &AttractionIndex<N, E>, rows: usize) -> Self
     where
@@ -188,8 +190,8 @@ impl BudgetBreakdown {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn overall(&self) -> &BudgetSummary {
@@ -201,8 +203,8 @@ impl BudgetBreakdown {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &BudgetSummary)> {
@@ -218,8 +220,8 @@ impl BudgetBreakdown {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn deciles(&self) -> &[BudgetSummary; Decile::COUNT] {
@@ -231,7 +233,7 @@ impl BudgetBreakdown {
 ///
 /// A row participates in a type when any attraction instance of that type touches it, and repeated
 /// instances count once. Construction happens once per training run and every telemetry tick reuses
-/// the result, so the per-tick cost is the participant lists rather than the edge lists.
+/// the result, and the per-tick cost is the participant lists rather than the edge lists.
 #[derive(Debug)]
 pub(crate) struct TypeParticipants<N> {
     types: Vec<(OntologyRowId, Box<[N]>)>,
@@ -292,8 +294,8 @@ impl DisplacementMoments {
     pub(crate) const fn record(&mut self, displacement: NonNegative) {
         self.count += 1;
         self.sum += DNonNegative::from(displacement);
-        // The widened square is exact, so adding it matches the fused form bit for bit, and a
-        // sum of at most 2⁶⁴ squares of `f32`-born values stays far inside the `f64` range.
+        // The widened square is exact: adding it matches the fused form bit for bit. A sum of
+        // at most 2⁶⁴ squares of `f32`-born values stays far inside the `f64` range.
         self.sum_squares += displacement.square_wide();
         self.maximum = self.maximum.max(displacement);
     }
@@ -305,8 +307,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn count(&self) -> u64 {
@@ -320,8 +322,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn sum(&self) -> DNonNegative {
@@ -335,8 +337,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn sum_squares(&self) -> DNonNegative {
@@ -350,8 +352,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn maximum(&self) -> NonNegative {
@@ -365,9 +367,11 @@ pub(crate) const EXPONENT_BUCKETS: usize = 256;
 /// A displacement histogram over the `f32` exponent grid.
 ///
 /// Bucket `b` counts displacements whose biased exponent is `b`: bucket 0 holds exact zeros and
-/// subnormals, and bucket `b` for `1 ≤ b ≤ 254` holds values in `[2^(b - 127), 2^(b - 126))`. The
-/// format's own grid needs no configured edges and resolves nine decades to within a factor of two,
-/// which is the resolution the telemetry questions ask at.
+/// subnormals, bucket `b` for `1 ≤ b ≤ 254` holds values in `[2^(b - 127), 2^(b - 126))`, and
+/// bucket 255 holds `+∞`. The format's own grid needs no configured edges and resolves every
+/// normal magnitude to within a factor of two, which is the resolution the telemetry questions ask
+/// at. Bucket 0 spans zero and the whole subnormal range, whose positive values differ by up to
+/// a factor of `2²³ − 1`.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct DisplacementHistogram {
     counts: [u64; EXPONENT_BUCKETS],
@@ -392,8 +396,8 @@ impl DisplacementHistogram {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn counts(&self) -> &[u64; EXPONENT_BUCKETS] {
@@ -407,8 +411,8 @@ impl DisplacementHistogram {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn moments(&self) -> &DisplacementMoments {
@@ -427,7 +431,7 @@ impl Default for DisplacementHistogram {
 
 /// One refresh tick's displacement field, per reporting bucket.
 ///
-/// The overall and per-decile buckets carry full histograms; the per-type buckets carry summary
+/// The overall and per-decile buckets carry full histograms. The per-type buckets carry summary
 /// moments only, because a corpus has thousands of relation types and the per-type question - is a
 /// type moving nodes it has little evidence for - reads from location and spread, not shape. Rows
 /// without attraction evidence enter the overall bucket only, because the lens can move them
@@ -447,8 +451,8 @@ impl DisplacementSummary {
     /// # Panics
     ///
     /// This panics when the frames disagree in length or a participant row lies outside them. The
-    /// frames, the participants, and the deciles all describe one corpus, so a mismatch is a wiring
-    /// defect.
+    /// frames, the participants, and the deciles all describe one corpus, and a mismatch is
+    /// therefore a wiring defect.
     #[must_use]
     pub(crate) fn measure<N>(
         low: &FinitePointField<N>,
@@ -497,8 +501,8 @@ impl DisplacementSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn overall(&self) -> &DisplacementHistogram {
@@ -510,8 +514,8 @@ impl DisplacementSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &DisplacementMoments)> {
@@ -527,8 +531,8 @@ impl DisplacementSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn deciles(&self) -> &[DisplacementHistogram; Decile::COUNT] {

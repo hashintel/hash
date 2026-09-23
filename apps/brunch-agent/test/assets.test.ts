@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/no-await-in-loop -- Asset cases retain deterministic request and assertion order. */
+
 /**
  * The production asset route, driven as a real Hono route over a real
  * directory. In dev, vite serves the module graph and this route is never

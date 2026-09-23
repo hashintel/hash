@@ -5,17 +5,17 @@
 //! force-mass-weighted 25th percentile of the locally normalized distance `z` over the
 //! reviewed-Proximal attraction pairs, measured against the boundary's own coordinates - composes
 //! the relation energy, and opens the step ladder, round-robining the steps across the lens steps
-//! with the relation term scaled by each step's step. Refresh ticks at a configured cadence
+//! with the relation term scaled by each step's lens step. Refresh ticks at a configured cadence
 //! re-measure everything defined over current coordinates: per-step local scales, hard negatives
 //! mined at both lens extremes, and the displacement telemetry.
 //!
 //! Optimization is Adam under a cosine learning-rate schedule, with one backward pass per step
-//! through the budget surrogate. A seed fixes every batch draw, so draws are deterministic. The
+//! through the budget surrogate. A seed fixes every batch draw, and draws are deterministic. The
 //! backend's gradient accumulation need not be deterministic.
 //!
 //! The boundary measures the frozen radius from reviewed evidence, and the full measurement -
 //! per-type quantiles, mass shares, leave-one-type-out radii, and the evaluated stability
-//! certificate - persists in generation evidence, so a reader judges the freeze against data
+//! certificate - persists in generation evidence, and a reader judges the freeze against data
 //! from the published artifact alone. Each scale-bearing tick also re-measures the weighted
 //! fraction of reviewed mass inside the frozen radius, the drift series beside the freeze.
 //! A corpus whose attraction index carries no force at all trains vacuously: the relation term
@@ -26,7 +26,7 @@
 //! measures on, every ladder step enforces the band constraint and folds the batch estimator at
 //! the estimand's two steps, and every post-boundary tick reads the per-evaluation evidence.
 //! [`mod@objective`] owns that machinery, and its whole configuration is optional: a released run
-//! passes none of it and trains exactly as before.
+//! passes none of it and trains exactly as a run without a target objective.
 
 mod error;
 mod evidence;
@@ -58,7 +58,10 @@ pub(crate) use self::{
     error::{TargetRefusal, TargetRefusalCause, TrainError},
     evidence::{BoundaryEvidence, FrozenRadius, RefreshFraction, TickTelemetry, TrainingEvidence},
     inputs::TrainerInputs,
-    options::{RelationLens, TrainOptions, TrainingSchedule},
+    options::{
+        RelationLens, TrainOptions, TrainingSchedule, TrainingScheduleError,
+        TrainingScheduleOptions,
+    },
 };
 use super::metrics::BudgetBreakdown;
 use crate::{
@@ -89,8 +92,8 @@ pub(crate) struct Model<N, B: AutodiffBackend> {
 #[derive(Debug)]
 #[expect(
     clippy::large_enum_variant,
-    reason = "the outcome is constructed and consumed once per run, so the size difference never \
-              rides a hot path"
+    reason = "the outcome is constructed and consumed once per run, and the size difference is \
+              never on a hot path"
 )]
 pub(crate) enum FitOutcome<N, B: AutodiffBackend> {
     /// A completed run's trained model beside its evidence.
@@ -114,10 +117,10 @@ pub(crate) struct ResumePoint<N, B: AutodiffBackend<FloatElem = f32>> {
 
 /// The resume checkpoint's record of the training state at entry of the boundary step.
 ///
-/// The schedule rides in full so a resumed run can verify it trains under the schedule the opening
-/// segment ran under. The scheduler position is redundant with the boundary by construction, and
-/// the open path rejects a record where the two disagree. The generator rides as the generator's
-/// own 32 state bytes, which pins the pipeline's generator algorithm.
+/// The schedule is recorded in full so a resumed run can verify it trains under the schedule the
+/// opening segment ran under. The scheduler position is redundant with the boundary by
+/// construction, and the open path rejects a record where the two disagree. The generator is
+/// recorded as its own 32 state bytes, which pins the pipeline's generator algorithm.
 #[cfg_attr(
     not(test),
     expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
@@ -138,14 +141,18 @@ struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
 /// The training state at entry of the boundary step.
 ///
 /// This is the fork point of a run. The opening segment produces the state and the ladder consumes
-/// it. [`Self::write_checkpoint`] serializes it with the caller's generator position, so a resumed
+/// it. [`Self::write_checkpoint`] serializes it with the caller's generator position, and a resumed
 /// ladder starts from the same boundary. The state is opaque and exists only as the output of
-/// [`fit_to_boundary`] or of [`Self::open_checkpoint`], so no ladder ever starts from a state no
-/// opening segment produced.
+/// [`fit_to_boundary`] or of [`Self::open_checkpoint`]. The open path validates the record's
+/// structure, schedule and scheduler position, which is what a ladder can check about the state it
+/// starts from.
 ///
 /// The state excludes the boundary work itself, the radius freeze and the opening refresh. That
-/// work happens at entry of [`fit_from_boundary`] and derives from the model alone, so every ladder
-/// resumed from one boundary state freezes the bit-equal radius on a deterministic backend.
+/// work happens at entry of [`fit_from_boundary`] over the state's model together with the run's
+/// inputs (the supplied columns, the neighbour table, the attraction index, the verdicts) and lens
+/// settings, which [`fit_from_boundary`] lets a fork vary. Ladders resumed from one boundary state
+/// freeze the bit-equal radius when those inputs and settings are equal and the backend executes
+/// deterministically.
 // No Debug: the optimizer adaptor does not implement it.
 pub(crate) struct BoundaryState<N, B: AutodiffBackend<FloatElem = f32>> {
     training: Training<N, B>,
@@ -161,7 +168,7 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
     /// ladder records its own from the boundary on.
     ///
     /// The written bytes are not canonical. The optimizer record is a map whose serialization
-    /// order may differ between processes, so two writes of one training state need not be
+    /// order may differ between processes, and two writes of one training state need not be
     /// byte-equal. Identity lives in the decoded state and round-trips exactly.
     ///
     /// # Errors
@@ -209,9 +216,10 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
     ///
     /// The open path verifies the parameters against `architecture`, the schedule against its
     /// own validity domain, and the scheduler position against the boundary before it returns
-    /// the state. The record type fixes the generator state's length. The state round-trip is
-    /// exact: a generator captured from a live stream is never the all-zero state the
-    /// generator's seeding remaps.
+    /// the state. Those checks validate the record's structure and cannot tell whether an
+    /// opening segment produced it. The record type fixes the generator state's length. The
+    /// state round-trip is exact: a generator captured from a live stream is never the all-zero
+    /// state the generator's seeding remaps.
     ///
     /// The reopened state's evidence starts fresh and covers the segment it runs, including the
     /// boundary measurement. The opening segment's evidence belongs to the run that produced the
@@ -236,20 +244,28 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
         let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
         let record: ResumeRecord<B> = recorder.load(bytes, device)?;
 
-        let schedule = NonZero::new(record.steps)
+        let schedule_options = NonZero::new(record.steps)
             .zip(NonZero::new(record.refresh_interval))
             .zip(
                 PositiveUnitFraction::new(record.initial_learning_rate)
                     .zip(UnitFraction::new(record.minimum_learning_rate)),
             )
-            .and_then(|((steps, refresh_interval), (initial, minimum))| {
-                TrainingSchedule::new(steps, record.boundary, refresh_interval, initial, minimum)
-            })
-            .ok_or(CheckpointError::InvalidSchedule)?;
+            .map(
+                |((steps, refresh_interval), (initial, minimum))| TrainingScheduleOptions {
+                    steps,
+                    boundary: record.boundary,
+                    refresh_interval,
+                    initial_learning_rate: initial,
+                    minimum_learning_rate: minimum,
+                },
+            )
+            .ok_or(CheckpointError::MalformedSchedule)?;
+        let schedule = TrainingSchedule::new(schedule_options)?;
 
-        // The scheduler advances once per step and reads its position before use, so after the
-        // opening segment's `boundary` steps it sits at `boundary - 1`. A boundary of zero
-        // leaves the pre-first-step sentinel, which is what the wrapping subtraction produces.
+        // The scheduler advances once per step and reads its position before use. After the
+        // opening segment's `boundary` steps it is therefore at `boundary - 1`. A boundary of
+        // zero leaves the pre-first-step sentinel, which is what the wrapping subtraction
+        // produces.
         if record.scheduler != schedule.boundary().wrapping_sub(1) {
             return Err(CheckpointError::SchedulerPosition {
                 position: record.scheduler,
@@ -287,10 +303,12 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
 /// `rng`. Equal models, inputs, options, and seeds draw equal batches. Coordinate-level
 /// reproducibility additionally depends on the backend's own determinism.
 ///
-/// Every step reports its loss to `progress` on evaluation. The run behaves identically under any
-/// observer.
+/// Every step reports its loss to `progress` on evaluation. The observer's snapshot appetite
+/// selects reported rows without consuming training randomness, and the batch draws are the same
+/// under every observer. What the observer's callbacks do, and whether the backend executes
+/// identically, lie outside that guarantee.
 ///
-/// The run is the composition of [`fit_to_boundary`] and [`fit_from_boundary`]; call the phases
+/// The run is the composition of [`fit_to_boundary`] and [`fit_from_boundary`]. Call the phases
 /// directly to checkpoint or fork at the boundary.
 ///
 /// A target objective's refusal is not an error: it returns as [`FitOutcome::TargetRefused`]
@@ -307,7 +325,7 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
 /// # Panics
 ///
 /// This panics when the inputs disagree about the corpus row domain or an anchor references a row
-/// outside it. All inputs come from one generation, so a mismatch is a wiring defect.
+/// outside it. All inputs come from one generation, and a mismatch is therefore a wiring defect.
 pub(crate) fn fit<
     N: Id,
     E: Id,

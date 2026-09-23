@@ -47,22 +47,12 @@ const reasoningHeaderStyle = css({
   },
 });
 
-const reasoningLabelGroupStyle = css({
-  display: "flex",
-  flex: "[1]",
-  alignItems: "baseline",
-  gap: "[6px]",
-  minWidth: "[0]",
-});
-
-const reasoningHeadingStyle = css({
+const reasoningTitleStyle = css({
   flex: "[1]",
   minWidth: "[0]",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  color: "neutral.s80",
-  fontWeight: "normal",
 });
 
 // The elapsed-time span sits between two flexible siblings; without an
@@ -184,7 +174,7 @@ const useReasoningElapsed = ({
  * If the convention is not matched (different provider, OpenAI changes the
  * format, or the model just produced an unheaded summary), we fall back to
  * returning the original text as the body and let the trigger render the
- * plain "Reasoning" label.
+ * plain "Thinking" label.
  */
 const reasoningHeadingPattern =
   /^\s*(?:\*\*([^*\n]+?)\*\*|#+\s+([^\n]+))\s*(?:\n|$)/u;
@@ -252,13 +242,8 @@ export const AiAssistantReasoning = ({
     >
       <Collapsible.Trigger className={reasoningHeaderStyle}>
         <Icon name="list" size="sm" />
-        <span className={reasoningLabelGroupStyle}>
-          <span>Reasoning</span>
-          {heading && (
-            <span className={reasoningHeadingStyle}>
-              ({heading.toLowerCase()})
-            </span>
-          )}
+        <span className={reasoningTitleStyle}>
+          {heading ? `Thinking: ${heading}` : "Thinking"}
         </span>
         {elapsedTime !== undefined && (
           <span

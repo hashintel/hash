@@ -1,0 +1,187 @@
+{
+  "observation": {
+    "toolCallId": "read-empty-canvas",
+    "baseHash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "bases": [
+    {
+      "basisId": "inventory-slice",
+      "basis": {
+        "kind": "absent",
+        "reason": "Frozen Inventory-derived slice: one coloured type, parameters, places, arcs, one stochastic transition and one differential equation on the batched carrier."
+      }
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "add-type-lot",
+      "basisId": "inventory-slice",
+      "type": "addType",
+      "input": {
+        "id": "lot",
+        "name": "Lot",
+        "iconSlug": "package",
+        "displayColor": "#2563EB",
+        "elements": [
+          { "elementId": "quantity", "name": "quantity", "type": "real" },
+          { "elementId": "age_days", "name": "age_days", "type": "real" }
+        ]
+      }
+    },
+    {
+      "operationId": "add-parameter-reorder-point",
+      "basisId": "inventory-slice",
+      "type": "addParameter",
+      "input": {
+        "id": "reorder_point",
+        "name": "Reorder point",
+        "variableName": "reorder_point",
+        "type": "real",
+        "defaultValue": "40"
+      }
+    },
+    {
+      "operationId": "add-parameter-lead-time",
+      "basisId": "inventory-slice",
+      "type": "addParameter",
+      "input": {
+        "id": "lead_time_days",
+        "name": "Supplier lead time (days)",
+        "variableName": "lead_time_days",
+        "type": "real",
+        "defaultValue": "5"
+      }
+    },
+    {
+      "operationId": "add-parameter-daily-demand",
+      "basisId": "inventory-slice",
+      "type": "addParameter",
+      "input": {
+        "id": "daily_demand",
+        "name": "Daily demand",
+        "variableName": "daily_demand",
+        "type": "real",
+        "defaultValue": "8"
+      }
+    },
+    {
+      "operationId": "add-dynamics-drawdown",
+      "basisId": "inventory-slice",
+      "type": "addDifferentialEquation",
+      "input": {
+        "id": "on_hand_drawdown",
+        "name": "On-hand drawdown",
+        "colorId": "lot",
+        "code": "export default Dynamics((tokens, parameters) =>\n  tokens.map(() => ({ quantity: -parameters.daily_demand, age_days: 1 })),\n);"
+      }
+    },
+    {
+      "operationId": "add-place-on-order",
+      "basisId": "inventory-slice",
+      "type": "addPlace",
+      "input": {
+        "id": "on_order",
+        "name": "OnOrder",
+        "colorId": "lot",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "operationId": "add-place-on-hand",
+      "basisId": "inventory-slice",
+      "type": "addPlace",
+      "input": {
+        "id": "on_hand",
+        "name": "OnHand",
+        "colorId": "lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "on_hand_drawdown",
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "operationId": "add-transition-receive-delivery",
+      "basisId": "inventory-slice",
+      "type": "addTransition",
+      "input": {
+        "id": "receive_delivery",
+        "name": "Receive delivery",
+        "metadata": {},
+        "inputArcs": [],
+        "outputArcs": [],
+        "lambdaType": "stochastic",
+        "lambdaCode": "export default Lambda((input, parameters) => 1 / parameters.lead_time_days);",
+        "transitionKernelCode": "export default TransitionKernel((input) => ({\n  OnHand: [{ quantity: input.OnOrder[0].quantity, age_days: 0 }],\n}));",
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "operationId": "add-transition-place-order",
+      "basisId": "inventory-slice",
+      "type": "addTransition",
+      "input": {
+        "id": "place_order",
+        "name": "Place order",
+        "metadata": {},
+        "inputArcs": [],
+        "outputArcs": [],
+        "lambdaType": "predicate",
+        "lambdaCode": "export default Lambda((input, parameters) =>\n  input.OnHand[0].quantity < parameters.reorder_point,\n);",
+        "transitionKernelCode": "export default TransitionKernel((input, parameters) => ({\n  OnOrder: [{ quantity: parameters.reorder_point * 2, age_days: 0 }],\n}));",
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "operationId": "arc-on-order-to-receive",
+      "basisId": "inventory-slice",
+      "type": "addArc",
+      "input": {
+        "transitionId": "receive_delivery",
+        "arcDirection": "input",
+        "placeId": "on_order",
+        "weight": 1,
+        "type": "standard"
+      }
+    },
+    {
+      "operationId": "arc-receive-to-on-hand",
+      "basisId": "inventory-slice",
+      "type": "addArc",
+      "input": {
+        "transitionId": "receive_delivery",
+        "arcDirection": "output",
+        "placeId": "on_hand",
+        "weight": 1
+      }
+    },
+    {
+      "operationId": "arc-on-hand-reads-place-order",
+      "basisId": "inventory-slice",
+      "type": "addArc",
+      "input": {
+        "transitionId": "place_order",
+        "arcDirection": "input",
+        "placeId": "on_hand",
+        "weight": 1,
+        "type": "read"
+      }
+    },
+    {
+      "operationId": "arc-place-order-to-on-order",
+      "basisId": "inventory-slice",
+      "type": "addArc",
+      "input": {
+        "transitionId": "place_order",
+        "arcDirection": "output",
+        "placeId": "on_order",
+        "weight": 1
+      }
+    }
+  ]
+}

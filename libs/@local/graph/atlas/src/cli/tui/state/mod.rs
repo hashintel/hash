@@ -4,15 +4,15 @@
 //! placement, the admission probe's readings, and the log tail. It absorbs [`Observation`]s and
 //! answers the questions the renderer asks - what is each stage doing, how far the paid embedding
 //! has come, how the placement is descending, where its rows currently sit, and what the run has
-//! said lately. The model holds no terminal and no channel, and its only clock is the run's start,
-//! so the whole reduction is exercisable without drawing anything.
+//! said lately. The model holds no terminal and no channel, and its only clock is the run's start.
+//! The whole reduction is exercisable without drawing anything.
 
 use alloc::collections::VecDeque;
 use core::time::Duration;
 use std::time::Instant;
 
 use crate::{
-    math::Vec2,
+    math::{DFinite, Vec2},
     progress::{Batch, DescentIteration, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -20,9 +20,12 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Log lines the dashboard keeps behind the visible tail.
 ///
-/// A tall terminal shows a few dozen; the rest are scrollback the pane does not offer yet, kept
+/// A tall terminal shows a few dozen. The rest are scrollback the pane does not offer yet, kept
 /// bounded so a long run cannot grow the model without limit.
 const LOG_CAPACITY: usize = 256;
 
@@ -39,8 +42,8 @@ pub(super) enum StageStatus {
 
 /// One card-embedding workload, with the split that sized it and what the provider has returned.
 ///
-/// `reused` and `embedded` partition the run's distinct card texts; `done` counts the `embedded`
-/// share that has come back, so a workload served entirely from the prior generation is complete at
+/// `reused` and `embedded` partition the run's distinct card texts. `done` counts the `embedded`
+/// share that has come back. A workload served entirely from the prior generation is complete at
 /// `embedded == 0`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct EmbeddingWorkload {
@@ -54,14 +57,14 @@ pub(super) struct EmbeddingWorkload {
 
 /// Training steps the loss curve keeps.
 ///
-/// A schedule is a few thousand steps, so the whole curve normally fits and the chart shows the
-/// run's entire descent; a longer schedule scrolls, oldest first, rather than growing the model.
+/// A schedule is a few thousand steps. The whole curve normally fits and the chart shows the run's
+/// entire descent. A longer schedule scrolls, oldest first, rather than growing the model.
 const LOSS_CAPACITY: usize = 4_096;
 
 /// One classifier fit's cross-validation folds, how many there are and how many have completed.
 ///
-/// The folds fit in parallel and report in completion order, so the model counts arrivals rather
-/// than tracking which index is outstanding.
+/// The folds fit in parallel and report in completion order. The model counts arrivals rather than
+/// tracking which index is outstanding.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct ClassifierFolds {
     /// Cross-validation folds the fit will run.
@@ -72,8 +75,8 @@ pub(super) struct ClassifierFolds {
 
 /// One placement training run, how far it has come and the loss curve it has drawn.
 ///
-/// `losses` is the retained tail of the composite objective, oldest first, so the window is the
-/// curve: `done` places it on the schedule, and the chart draws its offsets.
+/// `losses` is the retained tail of the composite objective, oldest first. The window is the curve:
+/// `done` places it on the schedule, and the chart draws its offsets.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct ProjectorTraining {
     /// Steps the schedule will run.
@@ -88,11 +91,13 @@ pub(super) struct ProjectorTraining {
 
 /// What the neighbour-table construction is doing, from its latest observation.
 ///
-/// A construction runs one part at a time and always in the same order. Every row goes into the
-/// search backend, the backend does its own linking (or NN-Descent runs its iterations, which need
-/// no backend), every row's list comes back out, and the recall verdict arrives last. Each
-/// observation therefore replaces the last instead of accumulating. The model carries the
-/// construction's newest word, which is what the stage is doing.
+/// A construction runs one part at a time and always in the same order, and the configuration picks
+/// which construction runs. An index-backed one sends every row into the search backend, the
+/// backend does its own linking, and every row's list comes back out. NN-Descent needs no backend
+/// and runs its iterations instead. A run reports the loops or the iterations, never both. The
+/// recall verdict arrives last either way. Each observation therefore replaces the last instead of
+/// accumulating. The model carries the construction's newest word, which is what the stage is
+/// doing.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum KnnActivity {
     /// Rows entering the search backend.
@@ -123,9 +128,9 @@ pub(super) struct PlacementMap {
 /// One thing the run reported, either a progress observation or a line it logged.
 ///
 /// This is the model's whole input vocabulary. Each variant owns what the run handed one
-/// [`Progress`] method, so a reporting thread parts with it and never waits on the renderer -
-/// except [`Knn`](Self::Knn), where one stage's five observations arrive as the one activity
-/// vocabulary they fold into.
+/// [`Progress`] method, except [`Knn`](Self::Knn): the kNN stage's five reporting methods share
+/// that one variant, whose activity vocabulary they fold into. A reporting thread parts with its
+/// observation and never waits on the renderer.
 ///
 /// [`Progress`]: crate::progress::Progress
 #[derive(Debug)]
@@ -165,7 +170,7 @@ pub(super) enum Observation {
         /// The metric the probe measured.
         metric: QualityMetric,
         /// The reading its control turns on.
-        reading: f64,
+        reading: DFinite,
     },
     /// A pipeline stage completed.
     StageCompleted(Stage),
@@ -196,10 +201,10 @@ pub(super) struct RunState {
     placement: Option<PlacementMap>,
     /// The admission probe's readings, indexed as [`QualityMetric::ALL`].
     ///
-    /// A control whose evidence is absent reports nothing, so a slot stays empty for a metric the
+    /// A control whose evidence is absent reports nothing. The slot stays empty for a metric the
     /// probe could not measure as well as for one it has not measured yet. The rail draws what
     /// landed and invents nothing for the rest.
-    quality: [Option<f64>; QualityMetric::ALL.len()],
+    quality: [Option<DFinite>; core::mem::variant_count::<QualityMetric>()],
     /// The run's log tail, oldest first.
     log: VecDeque<String>,
 }
@@ -261,8 +266,8 @@ impl RunState {
 
     /// Advances the open workload to a completed request's position.
     ///
-    /// This drops a batch without a split rather than guessing at it: the provider's count
-    /// describes its own workload, and nothing here may invent the reuse the split reported.
+    /// This drops a batch without a split rather than guessing at it: a batch carries its own
+    /// totals alone, and the reuse split arrives with the workload that opened it.
     pub(super) const fn advance_embedding(&mut self, batch: Batch) {
         let Some(workload) = self.embedding.as_mut() else {
             return;
@@ -305,15 +310,17 @@ impl RunState {
     /// Records what the neighbour-table construction is doing now.
     ///
     /// Each activity replaces the last. The construction's loops, phases and verdict happen in one
-    /// order, so nothing behind the newest one is still in flight.
+    /// order. Nothing behind the newest one is still in flight.
     pub(super) fn report_knn(&mut self, activity: KnnActivity) {
         self.knn = Some(activity);
     }
 
     /// Records one training step of the placement.
     ///
-    /// The first step opens the curve; a later step with a different schedule length opens a fresh
-    /// one, so a second training run cannot inherit the first one's descent.
+    /// The first step opens the curve, and so does any later step carrying a different schedule
+    /// length or an index below the steps already counted. A repeated or out-of-order step from
+    /// the run in progress opens one as well. A second training run that reports from step zero
+    /// therefore begins its own descent instead of extending the first.
     pub(super) fn advance_projector(&mut self, step: usize, steps: usize, loss: &LossBreakdown) {
         let training = match self.projector.as_mut() {
             Some(training) if training.steps == steps && step >= training.done => training,
@@ -330,8 +337,8 @@ impl RunState {
         }
         training.losses.push_back(loss.total());
         training.last = *loss;
-        // Steps are zero-based and `done` counts them, so the step that
-        // reports index `n` is the `n + 1`th of the schedule.
+        // Steps are zero-based and `done` counts them. The step that reports index `n` is the `n +
+        // 1`th of the schedule.
         training.done = step + 1;
     }
 
@@ -349,15 +356,16 @@ impl RunState {
     /// Records one measured quality metric of the admission probe.
     ///
     /// A second reading of the same metric replaces the first: the reading a control turns on is
-    /// one reduction over the probe's steps, so a repeat is a fresher answer to the same question
+    /// one reduction over the probe's steps. A repeat is a fresher answer to the same question
     /// rather than a second measurement.
-    pub(super) fn probe_quality(&mut self, metric: QualityMetric, reading: f64) {
+    pub(super) fn probe_quality(&mut self, metric: QualityMetric, reading: DFinite) {
         let Some(index) = QualityMetric::ALL
             .into_iter()
             .position(|candidate| candidate == metric)
         else {
             return;
         };
+
         self.quality[index] = Some(reading);
     }
 
@@ -397,6 +405,10 @@ impl RunState {
     /// Spans are differences between completions: a stage's own span is the gap between its
     /// completion and its predecessor's, and the running stage's span is the gap since the last
     /// completion. The rail's numbers therefore always sum to the wall clock.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `index` is not a position in [`Stage::ALL`].
     pub(super) fn status(&self, index: usize, elapsed: Duration) -> StageStatus {
         let previous = index
             .checked_sub(1)
@@ -451,13 +463,14 @@ impl RunState {
         self.placement.as_ref()
     }
 
-    /// The admission probe's readings, in [`QualityMetric::ALL`] order, skipping what it has not
-    /// measured.
+    /// Returns the admission probe's readings in [`QualityMetric::ALL`] order.
     ///
-    /// Every reading arrives in one burst as the probe's report reduces its steps, so the sequence
-    /// is normally empty or whole; a short one is a battery whose evidence was absent for the
-    /// missing controls.
-    pub(super) fn quality(&self) -> impl Iterator<Item = (QualityMetric, f64)> + use<> {
+    /// The iterator skips what the probe has not measured.
+    ///
+    /// Every reading arrives in one burst as the probe's report reduces its steps. The sequence is
+    /// normally empty or whole. A short one is a battery whose evidence was absent for the missing
+    /// controls.
+    pub(super) fn quality(&self) -> impl Iterator<Item = (QualityMetric, DFinite)> + use<> {
         QualityMetric::ALL
             .into_iter()
             .zip(self.quality)
@@ -474,6 +487,3 @@ impl RunState {
         self.log.iter().map(String::as_str)
     }
 }
-
-#[cfg(test)]
-mod tests;

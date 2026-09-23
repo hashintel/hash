@@ -1,9 +1,9 @@
 //! Candidate census and draw expectations.
 //!
-//! The oracles restate the draw as a full sort over independently recollected candidate
-//! domains, so the bounded selection is checked against a plain statement of the same order.
-//! The subject keys are the rule's own ([`DrawRule::pair_order_key`],
-//! [`DrawRule::row_order_key`]), whose encodings identity's own tests pin independently.
+//! Full-sort oracles independently collect both candidate domains and compare their ordered
+//! prefixes with bounded selection. The subject keys are the rule's own
+//! ([`DrawRule::pair_order_key`], [`DrawRule::row_order_key`]), whose encodings identity's own
+//! tests pin independently.
 //!
 //! [`DrawRule::pair_order_key`]: crate::salt::ladder::paired::identity::DrawRule::pair_order_key
 //! [`DrawRule::row_order_key`]: crate::salt::ladder::paired::identity::DrawRule::row_order_key
@@ -20,6 +20,7 @@ use crate::{
     },
 };
 
+/// Builds a source-target pair from literal row numbers.
 fn pair(source: u64, target: u64) -> Pair {
     Pair {
         source: node(source),
@@ -27,7 +28,7 @@ fn pair(source: u64, target: u64) -> Pair {
     }
 }
 
-/// An index of two Proximal-bearing groups around one Coincident-only group.
+/// Builds two Proximal-bearing groups around one Coincident-only group.
 ///
 /// The Proximal groups duplicate one pair across groups and carry one orientation-reversed pair
 /// and one self-pair. The Coincident-only group's endpoints participate without pairing. The
@@ -49,7 +50,11 @@ fn mixed_index() -> (Vec<GroupRecord>, Vec<EdgeRecord<NodeRowId, EdgeRowId>>) {
     )
 }
 
-/// Restates the pair draw as a full sort: gate, dedup, key, prefix.
+/// Selects distinct oriented Proximal pairs by full sort and prefix.
+///
+/// # Panics
+///
+/// Panics if a group offset does not fit `usize` or its edge range is invalid.
 fn oracle_pairs(
     salt: DrawSalt,
     groups: &[GroupRecord],
@@ -177,14 +182,14 @@ fn an_empty_pair_domain_draws_no_controls() {
         Draw::over(rule(), salt(), 10, &groups, &edges).expect("the fixture index is well-formed");
 
     assert_eq!(draw.pair_candidates(), 0);
-    assert!(draw.pairs().is_empty());
+    assert_eq!(draw.pairs(), []);
     assert_eq!(
         draw.control_candidates(),
         0,
         "the P = 0 outcome constructs no control population",
     );
-    assert!(draw.controls().is_empty());
-    assert!(draw.anchors().is_empty());
+    assert_eq!(draw.controls(), []);
+    assert_eq!(draw.anchors(), [] as [NodeRowId; 0]);
 }
 
 #[test]
@@ -202,7 +207,7 @@ fn saturated_participation_draws_pairs_and_zero_controls() {
         0,
         "Q = 0 while P > 0 measures pairs and leaves no controls",
     );
-    assert!(draw.controls().is_empty());
+    assert_eq!(draw.controls(), []);
 }
 
 #[test]
@@ -267,7 +272,8 @@ fn one_index_one_draw_and_a_rotated_salt_permutes() {
     let rotated = Draw::over(rule(), rotated_salt, rows, &groups, &edges)
         .expect("the fixture index is well-formed");
 
-    // Both pools are thin, so a rotated salt permutes each whole domain rather than reselecting.
+    // both pools fit within their quotas. These salts change the order, while each selected set
+    // remains the full domain.
     assert_ne!(
         rotated.pairs(),
         first.pairs(),

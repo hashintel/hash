@@ -3,11 +3,178 @@
  * append-only conversation projection.
  */
 
-export const preparedWorkpieceSignalType = "brunch.fixture.prepared";
-export const preparedWorkpieceSignalTag = "prepared-fixture";
-export const preparedWorkpieceAuthorship = "test-authored";
-export const preparedWorkpieceClaimBoundary = "prepared-not-model-produced";
-export const preparedWorkpieceInitialDataMode = "validated-fixture-mutation";
+import * as v from "valibot";
+
+import { JsonValueSchema } from "./json-value";
+
+import type { ReadonlyDeep } from "./readonly-deep";
+
+export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
+
+/** Locators have meaning only within their immutable revision's Markdown. */
+export const evidenceRelationSchema = v.strictObject({
+  locator: v.strictObject({
+    start: v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(0),
+      v.description(
+        "Inclusive UTF-16 offset of the cited passage in this revision's Markdown, resolved by the server from the declared text.",
+      ),
+    ),
+    end: v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(1),
+      v.description(
+        "Exclusive UTF-16 end offset of the same passage; greater than start and within the revision's Markdown.",
+      ),
+    ),
+  }),
+  messageIds: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1))),
+    v.description(
+      "Authorized true-user message ids, copied from the `[message <id>]` line above each user message in the conversation. Elicited evidence requires at least one; never substitute assistant or tool-call ids.",
+    ),
+  ),
+  kind: v.pipe(
+    v.picklist([
+      "elicited",
+      "inference",
+      "default",
+      "formalism-constraint",
+      "external",
+      "correction",
+    ]),
+    v.description(
+      "Standing of this passage: user testimony (elicited), representational reasoning (inference), a chosen default, a formalism constraint, external material, or a correction. Linkage does not establish semantic support.",
+    ),
+  ),
+});
+
+export type WorkpieceEvidenceRelation = ReadonlyDeep<
+  v.InferOutput<typeof evidenceRelationSchema>
+>;
+
+/**
+ * Core stays substrate-neutral, so these finite unions are owned here; the app
+ * pins its substrate projection against them at the producer.
+ */
+export type WorkpieceMessageRole = "user" | "assistant" | "system";
+export type WorkpieceMessagePurpose =
+  | "user"
+  | "assistant"
+  | "dispatch"
+  | "advisory";
+
+/** The app acquires these from this instance's authorized public history. */
+export interface WorkpieceEvidenceSource {
+  readonly id: string;
+  readonly role: WorkpieceMessageRole;
+  readonly purpose: WorkpieceMessagePurpose;
+  readonly text: string;
+}
+
+export interface WorkpieceEvidenceServices {
+  readonly currentRevision: WorkpieceRevision | null;
+  readonly readSources: () => Promise<readonly WorkpieceEvidenceSource[]>;
+}
+
+export const workpieceRetractionSchema = v.strictObject({
+  withdrawn: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Concise identification of the material the user explicitly withdrew.",
+    ),
+  ),
+  authorizationText: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Literal excerpt copied exactly from the cited true-user message that explicitly authorizes this withdrawal.",
+    ),
+  ),
+  removedText: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
+    v.minLength(1),
+    v.maxLength(16),
+    v.description(
+      "Exact prior-Ledger excerpts this revision removes. Each must occur exactly once in the prior body, be non-overlapping, and be absent from the replacement; for a large shrink their total length must cover the net character reduction.",
+    ),
+  ),
+  messageIds: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1))),
+    v.minLength(1),
+    v.maxLength(8),
+    v.description(
+      "Authorized true-user message ids that explicitly retract the named material.",
+    ),
+  ),
+});
+
+export type WorkpieceRetraction = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRetractionSchema>
+>;
+
+/** Tool-call identity and content hash; ordinal is presentation only, never citation identity. */
+export const workpieceRevisionPointerSchema = v.object({
+  revisionId: v.string(),
+  sha256: v.string(),
+  ordinal: v.number(),
+});
+
+export type WorkpieceRevisionPointer = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRevisionPointerSchema>
+>;
+
+export const workpieceRefusalCodes = [
+  "replay-conflict",
+  "stale-base",
+  "concurrent-revision",
+  "evidence-invalid",
+  "retraction-invalid",
+  "silent-shrink",
+] as const;
+
+export type WorkpieceRefusalCode = (typeof workpieceRefusalCodes)[number];
+
+export const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
+
+export const updateWorkpieceRefusedOutputSchema = v.object({
+  disposition: v.literal("refused"),
+  applied: v.literal(false),
+  correctable: v.literal(true),
+  code: workpieceRefusalCodeSchema,
+  message: v.string(),
+  currentRevision: v.nullable(workpieceRevisionPointerSchema),
+});
+
+export type WorkpieceRefusedOutput = ReadonlyDeep<
+  v.InferOutput<typeof updateWorkpieceRefusedOutputSchema>
+>;
+
+/** Recognize only the complete canonical refusal output; partial lookalikes fail closed. */
+export const isWorkpieceRefusedOutput = (
+  output: unknown,
+): output is WorkpieceRefusedOutput =>
+  v.safeParse(updateWorkpieceRefusedOutputSchema, output).success;
+
+/** Current settled artifact. Retained legacy carriage is not verified unless evidenceValidated is true. */
+export const workpieceRevisionSchema = v.object({
+  ...workpieceRevisionPointerSchema.entries,
+  markdown: v.string(),
+  evidence: v.optional(JsonValueSchema),
+  evidenceValidated: v.optional(v.literal(true)),
+  retraction: v.optional(workpieceRetractionSchema),
+});
+
+export type WorkpieceRevision = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRevisionSchema>
+>;
+
 export const runbookIrFence = "runbook-ir";
 
 type WorkpieceTextPart = {
@@ -22,10 +189,10 @@ export interface WorkpieceHistoryMessage {
     | WorkpieceTextPart
     | { readonly type: string; readonly [key: string]: unknown }
   )[];
-  readonly purpose: string;
-  readonly role: string;
+  readonly purpose: WorkpieceMessagePurpose;
+  readonly role: WorkpieceMessageRole;
   readonly signal?: {
-    readonly attributes?: Readonly<Record<string, unknown>>;
+    readonly attributes?: Readonly<Record<string, string>>;
     readonly tagName?: string;
     readonly type?: string;
   };
@@ -37,32 +204,14 @@ export interface WorkpieceHistory {
   readonly messages: readonly WorkpieceHistoryMessage[];
 }
 
-export interface PreparedWorkpieceDelivery {
-  readonly idempotencyKey: string;
-  readonly message: {
-    readonly attributes: {
-      readonly authorship: typeof preparedWorkpieceAuthorship;
-      readonly claimBoundary: typeof preparedWorkpieceClaimBoundary;
-      readonly fixtureId: string;
-    };
-    readonly body: string;
-    readonly kind: "signal";
-    readonly tagName: typeof preparedWorkpieceSignalTag;
-    readonly type: typeof preparedWorkpieceSignalType;
-  };
-}
-
 export interface SelectedRunbookWorkpiece {
-  readonly authorship: "model-produced" | "test-authored";
   readonly content: string;
-  readonly fixtureId?: string;
   /**
    * Position in the append-only revision sequence, derived from the history
-   * itself rather than from whoever observed it: a prepared source is always
-   * revision zero and each later eligible assistant workpiece adds one.
+   * itself: the first eligible assistant workpiece is revision zero and each
+   * later one adds one.
    */
   readonly revision: number;
-  readonly sourceKind: "assistant" | "prepared-signal";
   readonly sourceMessage: WorkpieceHistoryMessage;
   readonly sourceMessageId: string;
   readonly sourceSubmissionId?: string;
@@ -112,37 +261,15 @@ const textFrom = (message: WorkpieceHistoryMessage): string =>
     .map((part) => part.text)
     .join("\n");
 
-const preparedFixtureIdFrom = (
-  message: WorkpieceHistoryMessage,
-): string | undefined => {
-  const fixtureId = message.signal?.attributes?.fixtureId;
-  return typeof fixtureId === "string" && fixtureId.length > 0
-    ? fixtureId
-    : undefined;
-};
-
-const isPreparedWorkpieceMessage = (
-  message: WorkpieceHistoryMessage,
-): boolean =>
-  message.role === "system" &&
-  message.purpose === "dispatch" &&
-  message.signal?.tagName === preparedWorkpieceSignalTag &&
-  message.signal.attributes?.authorship === preparedWorkpieceAuthorship &&
-  message.signal.attributes.claimBoundary === preparedWorkpieceClaimBoundary &&
-  preparedFixtureIdFrom(message) !== undefined;
-
 const selectedFrom = (
   message: WorkpieceHistoryMessage,
-  source: Pick<
-    SelectedRunbookWorkpiece,
-    "authorship" | "revision" | "sourceKind"
-  >,
+  revision: number,
 ): SelectedRunbookWorkpiece | undefined => {
   const content = latestRunbookIrBlock(textFrom(message));
   if (content === undefined) return undefined;
 
   return {
-    ...source,
+    revision,
     content,
     sourceMessage: message,
     sourceMessageId: message.id,
@@ -152,100 +279,20 @@ const selectedFrom = (
   };
 };
 
-export const createPreparedWorkpieceDelivery = (input: {
-  readonly body: string;
-  readonly fixtureId: string;
-  readonly revision: number;
-}): PreparedWorkpieceDelivery => {
-  if (input.fixtureId.length === 0) {
-    throw new Error("A prepared workpiece delivery requires a fixture id.");
-  }
-  if (latestRunbookIrBlock(input.body) === undefined) {
-    throw new Error(
-      "A prepared workpiece delivery requires a full runbook-ir block.",
-    );
-  }
-
-  return {
-    idempotencyKey: `${preparedWorkpieceSignalTag}:${input.fixtureId}:revision-${input.revision}`,
-    message: {
-      kind: "signal",
-      type: preparedWorkpieceSignalType,
-      tagName: preparedWorkpieceSignalTag,
-      body: input.body,
-      attributes: {
-        fixtureId: input.fixtureId,
-        authorship: preparedWorkpieceAuthorship,
-        claimBoundary: preparedWorkpieceClaimBoundary,
-      },
-    },
-  };
-};
-
-/**
- * Prepared revision zero is a tagged dispatch record. Later assistant
- * workpieces win in log order, except for the assistant reply produced by the
- * preparation submission itself.
- */
+/** The latest assistant reply carrying a fenced runbook-ir block wins in log order. */
 export const selectRunbookWorkpiece = (
   history: WorkpieceHistory,
 ): SelectedRunbookWorkpiece | undefined => {
-  const preparedCandidates = history.messages.filter(
-    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
-  );
-  if (preparedCandidates.length > 1) {
-    throw new Error(
-      `Conversation ${history.conversationId} has more than one prepared workpiece source.`,
-    );
-  }
-
-  const preparedMessage = preparedCandidates.at(0);
-  if (
-    preparedMessage !== undefined &&
-    !isPreparedWorkpieceMessage(preparedMessage)
-  ) {
-    throw new Error(
-      `Conversation ${history.conversationId} has a malformed prepared workpiece source.`,
-    );
-  }
-
-  const preparationSubmissionId = preparedMessage?.submissionId;
   let selected: SelectedRunbookWorkpiece | undefined;
 
   for (const message of history.messages) {
-    if (message === preparedMessage) {
-      const preparedWorkpiece = selectedFrom(message, {
-        authorship: preparedWorkpieceAuthorship,
-        revision: 0,
-        sourceKind: "prepared-signal",
-      });
-      if (preparedWorkpiece === undefined) {
-        throw new Error(
-          `Conversation ${history.conversationId} has a prepared source without a runbook-ir block.`,
-        );
-      }
-      const fixtureId = preparedFixtureIdFrom(message);
-      if (fixtureId === undefined) {
-        throw new Error(
-          `Conversation ${history.conversationId} has a malformed prepared workpiece source.`,
-        );
-      }
-      selected = { ...preparedWorkpiece, fixtureId };
+    if (message.purpose !== "assistant" || message.role !== "assistant") {
       continue;
     }
-    if (
-      message.purpose !== "assistant" ||
-      message.role !== "assistant" ||
-      (preparationSubmissionId !== undefined &&
-        message.submissionId === preparationSubmissionId)
-    ) {
-      continue;
-    }
-    const assistantWorkpiece = selectedFrom(message, {
-      authorship: "model-produced",
-      revision: selected === undefined ? 0 : selected.revision + 1,
-      sourceKind: "assistant",
-    });
+    const assistantWorkpiece = selectedFrom(
+      message,
+      selected === undefined ? 0 : selected.revision + 1,
+    );
     if (assistantWorkpiece !== undefined) selected = assistantWorkpiece;
   }
 

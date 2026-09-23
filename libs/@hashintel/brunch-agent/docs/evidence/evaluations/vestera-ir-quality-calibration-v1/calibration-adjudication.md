@@ -4,7 +4,9 @@ Date: 2026-08-28
 Scope: two historical Vestera Mission 3 conversations through recovered Markdown IR only.
 Petri-net construction did not influence any judgment.
 
-## Inputs retained
+## Historical inputs
+
+The raw reports and transcripts below were retired after this adjudication. Their filenames identify the original reviews, not retained files. Only the second run's IR survives as a [headless-construction input](../../../../evaluations/cases/vestera-scheduling/filled-runbook.ir.md); it does not make this historical calibration rerunnable.
 
 | Run | Omniscient report | Cold report |
 | --- | --- | --- |

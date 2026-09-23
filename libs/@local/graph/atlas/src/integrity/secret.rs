@@ -1,5 +1,25 @@
-use alloc::{alloc::Allocator, sync::Arc};
-use core::{error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr};
+//! Secrets that redact themselves and zero their buffers.
+//!
+//! [`SecretString`] accepts arbitrary strings and compares their bytes in constant time, while
+//! [`PasswordString`] trims its input and rejects an empty result. Their clones share guarded
+//! allocations, which zeroize when the last guarded owner drops.
+//! [`SecretString::into_unguarded`] returns an allocation without that guarantee. Both types'
+//! [`fmt::Debug`] output reveals the byte length, and [`SecretString`]'s [`fmt::Display`] output is
+//! a fixed redaction.
+//!
+//! [`SecretHexBytes`] accepts a fixed-width key in canonical lowercase hexadecimal and compares in
+//! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
+//! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
+
+use alloc::sync::Arc;
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    error::Error,
+    fmt,
+    marker::PhantomData,
+    mem::MaybeUninit,
+    str::FromStr,
+};
 use std::alloc::Global;
 
 use clap::builder::TypedValueParser;
@@ -10,16 +30,15 @@ use super::{ParseHexError, hex::HexBytes};
 
 /// A variable-length secret string.
 ///
-/// The bytes zero on drop, and no path encodes them back out. [`fmt::Debug`] prints the length
-/// alone, [`fmt::Display`] prints a fixed placeholder, and the type has no `Serialize`, so logging
-/// or dumping a held secret discloses nothing. [`expose`](Self::expose) hands the buffer onward
-/// under a guard that zeroizes it in turn, and [`into_unguarded`](Self::into_unguarded) is the one
-/// exit that ends zeroizing custody.
+/// The guarded allocation zeroizes when its last guarded owner drops, and equality compares its
+/// bytes in constant time. [`fmt::Debug`] reveals the byte length, [`fmt::Display`] prints a fixed
+/// placeholder, and the type has no `Serialize`. [`expose`](Self::expose) returns the shared
+/// allocation under its zeroizing guard. [`into_unguarded`](Self::into_unguarded) returns an
+/// allocation without that guarantee.
 ///
 /// The zeroing covers buffers this type and its guard own, never copies made from them. A consumer
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
-#[derive(Clone)]
 pub struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
 
 impl<A: Allocator> SecretString<A> {
@@ -75,6 +94,23 @@ impl<A: Allocator> SecretString<A> {
             // preserves layout and slice metadata.
             unsafe { Arc::from_raw_in(ptr as *const str, alloc) }
         }
+    }
+}
+
+impl<A> Clone for SecretString<A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self(inner) = self;
+
+        inner.clone_from(&source.0);
     }
 }
 
@@ -190,9 +226,8 @@ impl Error for EmptyPasswordError {}
 /// A non-empty, trimmed password.
 ///
 /// Parsing trims surrounding whitespace and refuses an input that is empty afterwards. The
-/// bytes zero on drop, and [`fmt::Debug`] prints the length alone, so logging a held password
-/// discloses nothing.
-#[derive(Clone)]
+/// guarded allocation zeroizes when its last guarded owner drops. [`fmt::Debug`] reveals the
+/// trimmed byte length, and the type has no `Serialize`.
 pub struct PasswordString<A: Allocator = Global>(SecretString<A>);
 
 impl<A: Allocator> fmt::Debug for PasswordString<A> {
@@ -206,6 +241,22 @@ impl<A: Allocator> fmt::Debug for PasswordString<A> {
 impl<A: Allocator> From<PasswordString<A>> for SecretString<A> {
     fn from(PasswordString(secret): PasswordString<A>) -> Self {
         secret
+    }
+}
+
+impl<A> Clone for PasswordString<A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self(secret) = self;
+        secret.clone_from(&source.0);
     }
 }
 
@@ -225,13 +276,13 @@ impl FromStr for PasswordString {
 
 /// An `N`-byte secret configured in the canonical hexadecimal encoding.
 ///
-/// The bytes zero on drop, and this type's own renderings redact: [`fmt::Debug`] prints the width
-/// alone and [`fmt::Display`] prints a fixed placeholder. The type has no `Serialize`, so logging
-/// or serializing the value discloses nothing.
+/// Its buffer zeroizes on drop, and equality compares its bytes in constant time. This type's
+/// [`fmt::Debug`] reveals the fixed width, while [`fmt::Display`] prints a fixed placeholder. The
+/// type has no `Serialize`.
 ///
-/// The redaction covers this value, not everything reachable through it: [`HexBytes`] renders every
-/// byte, so rendering the dereferenced inner value writes the key in full. Code that holds a secret
-/// renders the secret, never its target.
+/// Redaction covers only this type's formatting implementations. [`Self::as_bytes`], [`AsRef`],
+/// and [`AsMut`] expose the complete secret bytes to their callers. Every `N`-byte pattern is a
+/// valid value.
 ///
 /// Parsing and deserialization accept exactly the canonical lowercase form.
 #[derive(Clone, zerocopy::ByteHash, zerocopy::Immutable, zerocopy::KnownLayout)]
@@ -239,12 +290,10 @@ impl FromStr for PasswordString {
 pub(crate) struct SecretHexBytes<const N: usize>(HexBytes<N>);
 
 impl<const N: usize> SecretHexBytes<N> {
-    /// Wraps raw secret bytes.
-    #[cfg(test)] // required by `WireSecret`
-    pub(crate) const fn new(bytes: [u8; N]) -> Self {
-        Self(HexBytes::new(bytes))
-    }
-
+    /// Returns `N` zero bytes: the buffer a key derivation fills through [`AsMut`].
+    ///
+    /// The value is a placeholder awaiting the derivation's output. Reading it before something
+    /// has written the derived bytes over it reads zeros.
     pub(crate) const fn zeroed() -> Self {
         Self(HexBytes::new([0_u8; N]))
     }
@@ -321,6 +370,10 @@ impl<'de, const N: usize> serde::Deserialize<'de> for SecretHexBytes<N> {
     where
         D: serde::Deserializer<'de>,
     {
+        /// A canonical hexadecimal string decoder for [`SecretHexBytes`].
+        ///
+        /// The decoded buffer zeroes on drop. Deserialization leaves the borrowed input text
+        /// unchanged.
         struct SecretHexVisitor<const N: usize>;
 
         impl<const N: usize> serde::de::Visitor<'_> for SecretHexVisitor<N> {
@@ -393,6 +446,7 @@ impl<T, const N: usize> Clone for SecretHexBytesValueParser<T, N> {
     }
 }
 
+/// Certificates for the redaction, refusal and custody rules.
 #[cfg(test)]
 mod tests {
     use core::{assert_matches, str::FromStr as _};

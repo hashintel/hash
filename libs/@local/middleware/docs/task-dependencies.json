@@ -1,17 +1,20 @@
 {
-  "package": "@rust/hash-middleware",
+  "package": "hash-middleware",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack"
+    "error-stack",
+    "problematic",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -21,12 +24,18 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

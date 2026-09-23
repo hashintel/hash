@@ -1,4 +1,4 @@
-//! Translations of 2D space.
+//! Fixed offsets for moving points and composing translations.
 
 use core::simd::Simd;
 
@@ -9,13 +9,18 @@ mod tests;
 
 /// A translation of 2D space by a fixed offset.
 ///
-/// A `translation: Translation` in a signature promises that the value moves points and composes by
-/// adding offsets. Composition via [`then`](Self::then) adds the offsets, and
-/// [`inverse`](Self::inverse) negates them, which is exact: no rounding occurs at all.
+/// With offset t, application computes p + t. [`then`](Self::then) adds offsets in application
+/// order. Both operations round in `f32` and can overflow. [`inverse`](Self::inverse) negates
+/// finite offsets without rounding, but cannot recover information lost during application.
+/// Construction accepts arbitrary components, including non-finite ones.
 ///
-/// # Examples
+/// # Example
+///
+/// This example is ignored because the math module is crate-private.
 ///
 /// ```ignore
+/// use crate::math::{Vec2, translation::Translation};
+///
 /// let right = Translation::new(10.0, 0.0);
 /// let up = Translation::new(0.0, 2.0);
 ///
@@ -43,7 +48,7 @@ mod tests;
 pub struct Translation(Vec2);
 
 impl Translation {
-    /// The translation that moves nothing.
+    /// The zero offset.
     pub const IDENTITY: Self = Self(Vec2::new(0.0, 0.0));
 
     /// Creates a translation from its `x` and `y` offsets.
@@ -60,10 +65,11 @@ impl Translation {
         self.0
     }
 
-    /// Returns the translation equivalent to applying `self` first, then `next`.
+    /// Adds the offsets to compose `self` followed by `next`.
     ///
-    /// Translations commute, so the order only matters for consistency with the other transform
-    /// types. This adds the two offsets.
+    /// Real-arithmetic translations commute. The composed offset rounds once per component, while
+    /// sequential application rounds after each offset. Composed and sequential evaluations can
+    /// differ.
     #[inline]
     #[must_use]
     pub const fn then(self, next: Self) -> Self {
@@ -72,8 +78,9 @@ impl Translation {
 
     /// Returns the translation by the negated offset.
     ///
-    /// Negation is exact, so a translation followed by its inverse reproduces the input bit for bit
-    /// whenever the intermediate sum is exactly representable.
+    /// Negation of finite offsets is exact. For finite input and offset, an exactly representable
+    /// intermediate sum allows the reverse addition to recover the numerical input value. This does
+    /// not promise preservation of a zero's sign.
     #[inline]
     #[must_use]
     pub const fn inverse(self) -> Self {
@@ -87,7 +94,7 @@ impl Translation {
         Vec2::new(vec.x() + self.0.x(), vec.y() + self.0.y())
     }
 
-    /// Moves four vectors at once, entirely in SIMD registers.
+    /// Adds the offset to four vectors with lane-wise SIMD arithmetic.
     #[inline]
     #[must_use]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {

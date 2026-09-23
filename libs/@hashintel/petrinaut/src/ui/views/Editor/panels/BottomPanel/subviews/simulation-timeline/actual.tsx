@@ -1,6 +1,7 @@
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../../react/execution-frame/context";
+import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { UPlotChart } from "./chart";
 import { TimelineLegend } from "./legend";
@@ -18,7 +19,15 @@ const ActualTimelineContent: React.FC = () => {
     timelineView,
   } = use(EditorContext);
   const source = use(ExecutionFrameSourceContext);
-  const { store, metricError } = useStreamingData(source);
+
+  // The timeline keeps reading frames and repainting while it is mounted, so
+  // a panel that has been slid off the viewport holds still instead.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onScreen = useElementOnScreen(containerRef);
+
+  const { store, metricError } = useStreamingData(source, {
+    paused: !onScreen,
+  });
 
   const [isFollowingLive, setIsFollowingLive] = useState(true);
   const { currentFrameIndex, scrubToFrame, totalFrames } = source;
@@ -41,41 +50,34 @@ const ActualTimelineContent: React.FC = () => {
     setIsFollowingLive(frameIndex >= lastFrameIndex);
   };
 
-  if (metricError) {
-    return (
-      <div className={containerStyle}>
+  return (
+    <div className={containerStyle} ref={containerRef}>
+      {metricError ? (
         <span style={{ fontSize: 12, color: "#b91c1c" }}>{metricError}</span>
-      </div>
-    );
-  }
-
-  if (store.length === 0 || totalFrames === 0) {
-    return (
-      <div className={containerStyle}>
+      ) : store.length === 0 || totalFrames === 0 ? (
         <span style={{ fontSize: 12, color: "#999" }}>
           No actual execution data available
         </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={containerStyle}>
-      <UPlotChart
-        className={chartAreaStyle}
-        store={store}
-        chartType={chartType}
-        hiddenSeries={hiddenSeries}
-        totalFrames={totalFrames}
-        currentFrameIndex={currentFrameIndex}
-        onScrub={handleScrub}
-      />
-      {store.series.length > 1 && (
-        <TimelineLegend
-          series={store.series}
-          hiddenSeries={hiddenSeries}
-          onHiddenSeriesChange={setHiddenSeries}
-        />
+      ) : (
+        <>
+          <UPlotChart
+            className={chartAreaStyle}
+            store={store}
+            chartType={chartType}
+            hiddenSeries={hiddenSeries}
+            totalFrames={totalFrames}
+            currentFrameIndex={currentFrameIndex}
+            onScrub={handleScrub}
+            paused={!onScreen}
+          />
+          {store.series.length > 1 && (
+            <TimelineLegend
+              series={store.series}
+              hiddenSeries={hiddenSeries}
+              onHiddenSeriesChange={setHiddenSeries}
+            />
+          )}
+        </>
       )}
     </div>
   );

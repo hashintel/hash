@@ -1,0 +1,226 @@
+/**
+ * The optimizer behind a parameter sweep: the study manifest built from the
+ * experiment record, the hook that starts a study during creation or later,
+ * and the hook that reads the current study for the results drawer.
+ * The study evaluates its trials through the sweep's
+ * own compute (`createOptimization` with `sweep`), so this file only
+ * describes the search and reads the record.
+ */
+import { use } from "react";
+
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
+
+import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
+import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import {
+  currentTrialNumber,
+  isOptimizationActive,
+  OptimizationsContext,
+} from "../../../../../../react/optimizations/context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { directionWord } from "../shared/study-labels";
+
+import type {
+  ExperimentMetricSpecInput,
+  ExperimentRecord,
+} from "../../../../../../react/experiments/context";
+import type {
+  OptimizationRecord,
+  OptimizationsContextValue,
+} from "../../../../../../react/optimizations/context";
+import type { Metric, SDCPN } from "@hashintel/petrinaut-core";
+import type { PetrinautOptimizationDirection } from "@hashintel/petrinaut-core/optimization";
+
+/** The metric, direction and budget selected for a sweep's search. */
+export type SweepObjective = {
+  metricId: string;
+  direction: PetrinautOptimizationDirection;
+  /** Optimizer steps: one sweep point each, 1..PETRINAUT_OPTIMIZATION_MAX_TRIALS. */
+  steps: number;
+};
+
+/**
+ * Runs each step's point computes before the optimizer reads its value: the
+ * ladder's first rung, so a step's batch boundary — and with it the seeds —
+ * matches a point the user climbs to. Exported for the form's budget
+ * pre-check and the story harness.
+ */
+export const SWEEP_OPTIMIZATION_RUNS_PER_STEP: number =
+  EXPERIMENT_RUN_LADDER[0];
+
+/**
+ * The experiment metric as the study's objective `Metric`. The study never
+ * runs this code — the sweep measures the metric at each point — but the
+ * manifest requires a metric with a body, so the body says what is measured:
+ * an expression metric's own code, a place count as the metric reads it,
+ * and a stub for a transition count, which metric code cannot express.
+ */
+export const sweepOptimizationMetric = (
+  spec: ExperimentMetricSpecInput,
+  definition: SDCPN,
+): Metric => {
+  if (spec.kind === "expression") {
+    return { id: spec.id, name: spec.label, code: spec.code };
+  }
+  if (spec.kind === "placeTokenCountMean") {
+    const place = definition.places.find(
+      (candidate) => candidate.id === spec.placeId,
+    );
+    return {
+      id: spec.id,
+      name: spec.label,
+      code:
+        place === undefined
+          ? "return 0;"
+          : `return state.places.${place.name}.count;`,
+    };
+  }
+  return {
+    id: spec.id,
+    name: spec.label,
+    code: "// The sweep measures this transition count at each point.\nreturn 0;",
+  };
+};
+
+/** What starting a study reads beside the experiment: the net, its title and the optimizations action. */
+export type SweepStudyStarter = {
+  title: string;
+  definition: SDCPN;
+  createOptimization: OptimizationsContextValue["createOptimization"];
+};
+
+/**
+ * Starts the study that drives an experiment's sweep. Calls
+ * `createOptimization` with no await before it, so the study record lands in
+ * the same flush as whatever the caller does next. Rejects with the reason
+ * before any record exists: no scenario, unknown metric, optimizer
+ * unavailable or not connected, a schema cap.
+ */
+export const startSweepStudy = async (
+  { title, definition, createOptimization }: SweepStudyStarter,
+  experiment: ExperimentRecord,
+  objective: SweepObjective,
+): Promise<void> => {
+  if (experiment.scenario === null) {
+    throw new Error("The experiment sweeps nothing");
+  }
+  const spec = experiment.metricSpecs.find(
+    (candidate) => candidate.id === objective.metricId,
+  );
+  if (spec === undefined) {
+    throw new Error("Pick a metric to optimize");
+  }
+  const experimentDefinition = experiment.definition ?? definition;
+  const input = buildSweepOptimizationInput({
+    title,
+    definition: experimentDefinition,
+    experiment: { ...experiment, scenario: experiment.scenario },
+    name: `${experiment.name} · ${directionWord(objective.direction)} ${spec.label}`,
+    metric: sweepOptimizationMetric(spec, experimentDefinition),
+    objective,
+    runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
+  });
+  await createOptimization(input, {
+    sweep: {
+      experimentId: experiment.id,
+      axes: experiment.parameterAxes,
+      metricId: objective.metricId,
+    },
+  });
+};
+
+/** {@link startSweepStudy} over the net and the optimizations context. */
+export const useStartSweepStudy = (): ((
+  experiment: ExperimentRecord,
+  objective: SweepObjective,
+) => Promise<void>) => {
+  const { petriNetDefinition, title } = use(SDCPNContext);
+  const { createOptimization } = use(OptimizationsContext);
+  return (experiment, objective) =>
+    startSweepStudy(
+      { title, definition: petriNetDefinition, createOptimization },
+      experiment,
+      objective,
+    );
+};
+
+/** The step a driving study is on, of those requested. */
+export type SweepStepProgress = { step: number; total: number };
+
+const studyStepProgress = (
+  study: Pick<
+    OptimizationRecord,
+    "completedTrials" | "prunedTrials" | "failedTrials" | "requestedTrials"
+  >,
+): SweepStepProgress => ({
+  step: currentTrialNumber(study),
+  total: study.requestedTrials,
+});
+
+/** The one study of this sweep, read back from the optimizations context. */
+export type SweepOptimizer = {
+  /** Starts or replaces a settled study; null while unavailable or locked. */
+  start: ((objective: SweepObjective) => Promise<void>) | null;
+  /**
+   * The latest study, or null before optimization starts. Read for its
+   * outcome and its error once `driving` is null.
+   */
+  study: OptimizationRecord | null;
+  /** The step the study is on while it drives the sweep; null otherwise. */
+  driving: SweepStepProgress | null;
+  /** Stops the driving study; the sweep keeps its last point. */
+  stop: () => void;
+  /** Removes the study with the experiment. */
+  discard: () => void;
+};
+
+export const useSweepOptimizer = (
+  experiment: ExperimentRecord,
+): SweepOptimizer => {
+  const { optimizations, cancelOptimization, removeOptimization } =
+    use(OptimizationsContext);
+  const source = use(PetrinautOptimizationContext);
+  const startStudy = useStartSweepStudy();
+
+  const study =
+    optimizations.find(
+      (optimization) => optimization.origin.experimentId === experiment.id,
+    ) ?? null;
+  const canStart =
+    source !== null &&
+    isConnectedOptimization(source) &&
+    experiment.sweep !== null &&
+    experiment.scenario !== null &&
+    experiment.parameterAxes.length > 0 &&
+    experiment.metricSpecs.length > 0 &&
+    experiment.status !== "cancelled" &&
+    !experiment.requestActive &&
+    (study === null || !isOptimizationActive(study));
+
+  return {
+    start: canStart
+      ? async (objective) => {
+          await startStudy(experiment, objective);
+          if (study !== null) {
+            removeOptimization(study.id);
+          }
+        }
+      : null,
+    study,
+    driving:
+      study !== null && isOptimizationActive(study)
+        ? studyStepProgress(study)
+        : null,
+    stop: () => {
+      if (study !== null && isOptimizationActive(study)) {
+        cancelOptimization(study.id);
+      }
+    },
+    discard: () => {
+      if (study !== null) {
+        removeOptimization(study.id);
+      }
+    },
+  };
+};

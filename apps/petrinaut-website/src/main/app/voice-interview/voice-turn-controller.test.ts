@@ -36,6 +36,8 @@ const createHarness = () => {
     disconnect: vi.fn(async () => undefined),
     setInterruptionBySpeaking: vi.fn(),
     setMicrophoneEnabled: vi.fn(),
+    setSpeakerMuted: vi.fn(),
+    setSpeakerVolume: vi.fn(),
     speakCanonical: vi.fn(),
     subscribe: vi.fn(
       (listener: (event: OpenAIRealtimeSessionEvent) => void) => {
@@ -270,6 +272,51 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "idle",
     });
+  });
+
+  test("records question visibility only when finalized-turn identity changes", async () => {
+    const harness = createHarness();
+    const initial = markedQuestion("finalized-turn-1", "First response?");
+    const next = markedQuestion(
+      "finalized-turn-2",
+      "Explanation.\n\nNext question?",
+    );
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [initial],
+      questionSegment: initial,
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "An answer.",
+      deliveryId: "delivery-1",
+      type: "submission-started",
+    });
+    harness.advanceTime(25);
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [initial, next],
+      questionSegment: next,
+      status: "ready",
+    });
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [initial, next],
+      questionSegment: next,
+      status: "ready",
+    });
+
+    expect(harness.latencyEvents).toContainEqual({
+      correlationId: next.id,
+      elapsedMs: 25,
+      name: "question-visible",
+    });
+    expect(
+      harness.latencyEvents.filter(({ name }) => name === "question-visible"),
+    ).toHaveLength(1);
+    expect(harness.controller.getSnapshot().currentQuestion).toBe(next.text);
   });
 
   test("tracks assistant playback without admitting automatic barge-in", async () => {
@@ -2134,6 +2181,103 @@ describe("VoiceTurnController", () => {
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
+    });
+  });
+
+  test("forwards speaker settings and resets them on each new connection", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.session.setMicrophoneEnabled.mockClear();
+    harness.session.cancelOutput.mockClear();
+    harness.bridge.cancelPendingSpeech.mockClear();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(1.5);
+    harness.controller.setSpeakerVolume(-0.2);
+
+    expect(harness.session.setSpeakerMuted).toHaveBeenLastCalledWith(true);
+    expect(harness.session.setSpeakerVolume.mock.calls.slice(-2)).toEqual([
+      [1],
+      [0],
+    ]);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      speakerMuted: true,
+      speakerVolume: 0,
+    });
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    expect(harness.bridge.cancelPendingSpeech).not.toHaveBeenCalled();
+
+    await harness.controller.reconnect();
+    expect(harness.session.setSpeakerMuted).toHaveBeenLastCalledWith(false);
+    expect(harness.session.setSpeakerVolume).toHaveBeenLastCalledWith(1);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    await harness.controller.end();
+    await harness.controller.start();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+  });
+
+  test("ignores speaker settings unless Realtime is connected", async () => {
+    const harness = createHarness();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    expect(harness.session.setSpeakerMuted).not.toHaveBeenCalled();
+    expect(harness.session.setSpeakerVolume).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+
+    let finishConnection: ((epoch: number) => void) | undefined;
+    harness.session.connect.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishConnection = resolve;
+        }),
+    );
+    const start = harness.controller.start();
+    harness.session.setSpeakerMuted.mockClear();
+    harness.session.setSpeakerVolume.mockClear();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    expect(harness.session.setSpeakerMuted).not.toHaveBeenCalled();
+    expect(harness.session.setSpeakerVolume).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      connection: "connecting",
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+
+    finishConnection?.(1);
+    await start;
+    harness.emitSession({
+      code: "network",
+      message: "Voice connection unavailable.",
+      requestId: "request-speaker",
+      type: "error",
+    });
+    harness.session.setSpeakerMuted.mockClear();
+    harness.session.setSpeakerVolume.mockClear();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    expect(harness.session.setSpeakerMuted).not.toHaveBeenCalled();
+    expect(harness.session.setSpeakerVolume).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      connection: "error",
+      speakerMuted: false,
+      speakerVolume: 1,
     });
   });
 

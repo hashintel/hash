@@ -26,11 +26,11 @@
 //! ```
 //!
 //! A Coincident prediction that fails admission becomes Overlay, never Proximal. The policy row
-//! keeps the Coincident and Proximal components alone. Overlay is the remainder, so the mix reduces
-//! to scaling both stored components by `a`. An override asserts its distribution and has
-//! applicability 1. [`Classification`] admits exactly one outcome, a classifier prediction, so
-//! no fallback source sits below the classifier.
-//! Strength is the unit multiplier while the strength head is off.
+//! keeps the Coincident and Proximal components alone. Overlay is the remainder. The mix therefore
+//! reduces to scaling both stored components by `a`. An override asserts its distribution and has
+//! applicability 1. [`Classification`] admits exactly one outcome, a classifier prediction, and
+//! no fallback source lies below the classifier. Strength is the unit multiplier while the
+//! strength head is off.
 //!
 //! Resolution is where policy values leave the solver's double precision and narrow to
 //! working-precision data.
@@ -97,7 +97,9 @@ pub(crate) enum Classification {
 /// A higher-precedence policy record, declared in descending precedence.
 ///
 /// The lowest variant present wins.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub(crate) enum PolicySource {
     /// An explicit human override.
     Human,
@@ -118,7 +120,7 @@ impl fmt::Display for PolicySource {
 }
 
 /// One supplied policy record above the classifier in precedence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolicyOverride {
     /// The relation type the record covers.
     pub relation: OntologyRowId,
@@ -130,11 +132,11 @@ pub(crate) struct PolicyOverride {
 
 /// The generation's global Coincident admission criteria.
 ///
-/// Only generations that enable Coincident geometry enforce admission; unenforced, the attraction
+/// Only generations that enable Coincident geometry enforce admission. Unenforced, the attraction
 /// distribution passes through the mix unchanged and the Coincident force coefficient governs
 /// downstream. The default thresholds are maximally conservative placeholders: a generation
 /// enforcing admission configures them from its precision release evidence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct CoincidentAdmission {
     /// Whether the generation enforces admission.
     pub enforced: bool = false,
@@ -204,15 +206,15 @@ pub(crate) fn resolve(
         })
         .collect();
 
-    // Sorted above with duplicates refused, and the map preserves order, so the table is
-    // strictly ascending by construction.
+    // Sorted above with duplicates refused, and the map preserves order. The table is
+    // therefore strictly ascending by construction.
     Ok(CertifiedPolicies(policies))
 }
 
 /// Applies the applicability mix and Coincident admission.
 ///
-/// Overlay is the unstored remainder, so mixing toward it scales the stored components by `a`;
-/// admission then reroutes a failing mixed Coincident mass to that remainder.
+/// Overlay is the unstored remainder, and mixing toward it scales the stored components by `a`.
+/// Admission then reroutes a failing mixed Coincident mass to that remainder.
 const fn attraction(
     selected: ClassProbabilities,
     applicability: UnitFraction,

@@ -24,8 +24,8 @@ const packageRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
 /**
  * Entries a browser bundle may import, and what they must never reach.
  *
- * `hir` and `compiled-model` are deliberately absent: they are Node/worker
- * entries and are *expected* to bundle the compiler.
+ * `hir`, `compiled-model` and `diagnostics` are deliberately absent: they are
+ * Node/worker entries and are *expected* to bundle the compiler.
  */
 const BROWSER_SAFE_ENTRIES = ["index.js", "webgpu.js", "hir-runtime.js"];
 

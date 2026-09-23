@@ -27,6 +27,7 @@ const containerStyle = css({
 
 const transitionFiringTimeSubView = createDeferredSubView({
   id: "transition-firing-time",
+  canMaximize: true,
   headerActionMutates: true,
   title: "Firing Time",
   defaultCollapsed: true,
@@ -45,6 +46,7 @@ const transitionFiringTimeSubView = createDeferredSubView({
 
 const transitionResultsSubView = createDeferredSubView({
   id: "transition-results",
+  canMaximize: true,
   headerActionMutates: true,
   title: "Transition Results",
   defaultCollapsed: true,
@@ -93,7 +95,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   );
 
   const subViews: SubView[] = [
-    transitionMainContentSubView,
+    {
+      ...transitionMainContentSubView,
+      title: `${transitionMainContentSubView.title} ${transition.name}`,
+    },
     ...(presentation.showSourceCode && logicAvailability.lambda
       ? [transitionFiringTimeSubView]
       : []),
@@ -118,6 +123,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         removeArc={removeArc}
       >
         <VerticalSubViewsContainer
+          key={transition.id}
           name="transition-properties"
           subViews={subViews}
         />

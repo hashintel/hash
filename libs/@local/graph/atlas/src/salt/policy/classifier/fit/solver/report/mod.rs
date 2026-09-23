@@ -1,6 +1,6 @@
-//! Diagnosis instruments for the solver over frozen classifier corpora.
+//! Diagnostic probes for the solver over frozen classifier corpora.
 //!
-//! Nothing here is pipeline machinery: a report observes a solve, it never participates in one.
+//! A report observes a solve and never participates in one.
 
 mod probe;
 

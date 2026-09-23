@@ -45,8 +45,9 @@ pub(crate) enum SolverFailure {
         /// The solve stage that produced the non-finite value.
         stage: NewtonStage,
     },
-    /// The intercept Schur system is not positive-definite: no row carries interior probabilities,
-    /// so the corpus offers the intercepts no curvature.
+    /// The intercept Schur system is not positive-definite.
+    ///
+    /// No row carries interior probabilities, and the corpus offers the intercepts no curvature.
     SingularInterceptCurvature,
     /// The boundary search found no finite positive crossing.
     NoFiniteBoundaryStep,

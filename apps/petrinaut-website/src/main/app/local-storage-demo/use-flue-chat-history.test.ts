@@ -389,3 +389,64 @@ test("projects fixture client-tool results from canonical signal history", async
   });
   expect(harness.refresh).toHaveBeenCalledTimes(1);
 });
+
+test("keeps the server's current-net freshness marker out of the rendered history", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          purpose: "user",
+          display: "visible",
+          parts: [{ type: "text", text: "Explain this model.", state: "done" }],
+        },
+        {
+          id: "stale-1",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: {
+            tagName: "brunch.net-stale",
+            attributes: { kind: "never-read" },
+          },
+          parts: [
+            {
+              type: "text",
+              text: "No verified read of the current net exists in this conversation.",
+              state: "done",
+            },
+          ],
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            { type: "text", text: "Reading the net first.", state: "done" },
+          ],
+        },
+      ],
+    },
+    offset: "offset-stale",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(
+    result.current.messages?.map(({ id, role }) => ({ id, role })),
+  ).toEqual([
+    { id: "user-1", role: "user" },
+    { id: "assistant-1", role: "assistant" },
+  ]);
+  expect(JSON.stringify(result.current.messages)).not.toContain(
+    "brunch.net-stale",
+  );
+});

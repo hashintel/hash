@@ -3,7 +3,7 @@ use core::{error::Error, fmt};
 use super::table::KnnValidationError;
 use crate::math::OpenUnitFraction;
 
-/// Building or spot-checking against a backend failed.
+/// A failure to construct, validate or score a neighbour table.
 #[derive(Debug)]
 pub(crate) enum KnnError<N, E> {
     /// The backend reported an error.
@@ -14,7 +14,7 @@ pub(crate) enum KnnError<N, E> {
     TooManyRows { rows: usize },
     /// The requested table shape overflows the entry count.
     TooManyEntries { rows: usize, neighbours: usize },
-    /// A confidence level at or below one half sizes no one-sided sample.
+    /// The confidence level gives a negative normal quantile.
     SampleConfidence { confidence: OpenUnitFraction },
     /// Constructed lists are narrower than the table's stored width.
     ListsWidth { width: usize, neighbours: usize },

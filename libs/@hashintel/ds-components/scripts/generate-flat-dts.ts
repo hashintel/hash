@@ -11,7 +11,7 @@ import { globSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const componentFiles = globSync("./src/components/*/*.tsx", {
-  exclude: ["**/*.stories.tsx"],
+  exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
 });
 
 for (const file of componentFiles) {

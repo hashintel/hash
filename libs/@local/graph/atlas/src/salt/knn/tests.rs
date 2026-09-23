@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are contracts; fixtures use exactly representable values or \
-              compare cross-path results of the same kernel"
-)]
 use alloc::sync::Arc;
 use core::{assert_matches, num::NonZero, time::Duration};
 use std::sync::Mutex;
@@ -33,7 +28,7 @@ use crate::{
     },
     identity::NodeRowId,
     math::{
-        AlignedVecN, BoxedVecN, d_non_negative, non_negative, open_unit_fraction, unit_fraction,
+        AlignedVecN, BoxedVecN, d_non_negative, non_negative, nz, open_unit_fraction, unit_fraction,
     },
     progress::{Batch, DescentIteration, NoProgress, Progress},
     random::normal_quantile,
@@ -51,6 +46,11 @@ struct Matrix {
 }
 
 impl Matrix {
+    /// Copies `rows` into the head of the aligned storage.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `rows` exceeds the fixture capacity of 128.
     fn new(rows: &[[f32; PROJECTOR_DIMENSIONS]]) -> Self {
         let mut storage = BoxedVecN::zero();
         let (chunks, _) = storage
@@ -66,6 +66,7 @@ impl Matrix {
         }
     }
 
+    /// Borrows the initialized fixture rows as a SIMD-aligned, row-indexed slice.
     fn view(&self) -> &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> {
         IdSlice::from_raw(
             AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
@@ -75,11 +76,15 @@ impl Matrix {
 }
 
 /// A brute-force reference backend over resident rows.
+///
+/// Insertion requires consecutive dense ids starting at the next stored row. Id queries require an
+/// already-stored row. Violating either fixture condition panics.
 struct ExactIndex {
     rows: Vec<BoxedVecN<PROJECTOR_DIMENSIONS>>,
 }
 
 impl ExactIndex {
+    /// Creates an index already holding `rows`.
     fn from_rows(rows: &[[f32; PROJECTOR_DIMENSIONS]]) -> Self {
         Self {
             rows: rows
@@ -117,6 +122,11 @@ impl ExactIndex {
         all
     }
 
+    /// Ranks every other stored row against the stored row `id`.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `id` is not a resident row.
     fn ranked_by_id(&self, id: NodeRowId) -> Vec<Neighbour<NodeRowId>> {
         let row = usize::try_from(id.as_u64()).expect("test rows fit usize");
         self.ranked(&self.rows[row], Some(row))
@@ -184,6 +194,8 @@ struct FarthestIndex(ExactIndex);
 struct ShortIndex(ExactIndex);
 
 /// A misbehaving backend repeating its nearest neighbour.
+///
+/// Id searches panic when fewer than two results remain after truncation.
 struct DoubledIndex(ExactIndex);
 
 /// A misbehaving backend naming rows outside the domain.
@@ -191,10 +203,14 @@ struct EscapingIndex(ExactIndex);
 
 /// A backend degraded by a per-row offset.
 ///
-/// Row `i` skips the nearest `i & 7` candidates, so per-row recall spans a linear ramp and any
-/// non-degenerate sample measures real spread.
+/// Row `i` skips the nearest `i & 7` candidates. At depth 50 with at least 57 non-self candidates,
+/// its recall is `1 - (i & 7) / 50`, ranging from 0.86 to 1.0.
 struct MixedIndex(ExactIndex);
 
+/// Delegates every index operation except `search_by_id` to [`ExactIndex`].
+///
+/// Expands to an uninhabited `Error` and implementations of `insert_many`, `build`, and
+/// `search_by_vector`. A degraded backend supplies only `search_by_id`.
 macro_rules! delegate_all_but_search_by_id {
     () => {
         type Error = !;
@@ -302,14 +318,18 @@ impl NearestNeighboursIndex<NodeRowId> for MixedIndex {
     }
 }
 
+/// Creates a row that is zero except for `value` at `component`.
+///
+/// # Panics
+///
+/// This panics when `component` is outside the projector width.
 fn axis(component: usize, value: f32) -> [f32; PROJECTOR_DIMENSIONS] {
     let mut row = [0.0; PROJECTOR_DIMENSIONS];
     row[component] = value;
     row
 }
 
-/// The vectors `e0`, `e1`, `e0 + e1`, and `-e0`, where known geometry gives every pairwise
-/// distance.
+/// Creates `e0`, `e1`, `e0 + e1` and `-e0` for hand-derived cosine distances.
 fn plane_fixture() -> [[f32; PROJECTOR_DIMENSIONS]; 4] {
     let mut mix = [0.0; PROJECTOR_DIMENSIONS];
     mix[0] = 1.0;
@@ -317,15 +337,16 @@ fn plane_fixture() -> [[f32; PROJECTOR_DIMENSIONS]; 4] {
     [axis(0, 1.0), axis(1, 1.0), mix, axis(0, -1.0)]
 }
 
-/// Distinct unit vectors fanned through the `(0, 1)` plane.
+/// Builds planar directions at angular increments of `step`.
 ///
-/// Distance is strictly monotone in index separation.
+/// In real arithmetic, cosine distance increases with angular separation within a half turn. The
+/// trigonometric rows and distances here retain floating-point rounding.
 fn fan_fixture(rows: usize, step: f32) -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
     (0..rows)
         .map(|index| {
             #[expect(
                 clippy::cast_precision_loss,
-                reason = "test indices are tiny exact integers"
+                reason = "fixture indices below 128 are exactly representable in f32"
             )]
             let angle = index as f32 * step;
             let mut row = [0.0; PROJECTOR_DIMENSIONS];
@@ -336,10 +357,12 @@ fn fan_fixture(rows: usize, step: f32) -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
         .collect()
 }
 
+/// Returns the neighbour width `2` for the small plane fixtures.
 fn two_neighbours() -> NonZero<usize> {
-    NonZero::new(2).expect("two is nonzero")
+    nz!(2)
 }
 
+/// Creates the fixed-seed generator for neighbour-construction fixtures.
 fn test_rng() -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(0x0A75)
 }
@@ -359,9 +382,8 @@ enum Reported {
 
 /// An observer keeping every observation a construction reported, in arrival order.
 ///
-/// Cloneable and shareable because the seam hands the backend an observer of its own: every clone
-/// records into the one log, so the backend's phases and the loops around it arrive interleaved as
-/// the construction reported them.
+/// Every clone, including a detached observer, appends to one shared log. The log preserves the
+/// interleaving of backend phases with insertion and readback observations.
 #[derive(Debug, Clone, Default)]
 struct RecordingProgress(Arc<Mutex<Vec<Reported>>>);
 
@@ -374,7 +396,7 @@ impl RecordingProgress {
             .push(reported);
     }
 
-    /// Every observation so far, in arrival order.
+    /// Copies every observation so far in arrival order.
     fn reported(&self) -> Vec<Reported> {
         self.0
             .lock()
@@ -382,14 +404,13 @@ impl RecordingProgress {
             .clone()
     }
 
-    /// The batches one loop reported, in arrival order.
+    /// Selects one loop's batches in arrival order.
     fn batches(&self, select: fn(&Reported) -> Option<Batch>) -> Vec<Batch> {
         self.reported().iter().filter_map(select).collect()
     }
 }
 
 impl Progress for RecordingProgress {
-    /// A detached half shares the log, so it records into the same fixture.
     type Detached = Self;
 
     fn detach(&self) -> Self {
@@ -413,7 +434,7 @@ impl Progress for RecordingProgress {
     }
 }
 
-/// The insertion's batch, when the observation is one.
+/// Extracts a batch from an insertion observation.
 const fn inserted(reported: &Reported) -> Option<Batch> {
     match reported {
         Reported::Insert(batch) => Some(*batch),
@@ -421,7 +442,7 @@ const fn inserted(reported: &Reported) -> Option<Batch> {
     }
 }
 
-/// The readback's batch, when the observation is one.
+/// Extracts a batch from a readback observation.
 const fn readback(reported: &Reported) -> Option<Batch> {
     match reported {
         Reported::Readback(batch) => Some(*batch),
@@ -429,8 +450,7 @@ const fn readback(reported: &Reported) -> Option<Batch> {
     }
 }
 
-/// The smallest lists `Knn::from_lists` accepts: one neighbour per row over three rows, each
-/// column distinct from its own row.
+/// Creates a three-row cycle with one non-self neighbour per row.
 fn tiny_neighbour_lists() -> NeighbourLists<NodeRowId> {
     let entries: Box<[Neighbour<NodeRowId>]> = Box::new([
         Neighbour {
@@ -449,35 +469,27 @@ fn tiny_neighbour_lists() -> NeighbourLists<NodeRowId> {
     NeighbourLists::new(entries, 1)
 }
 
-/// `Knn::from_lists` iterates rows through rayon's `par_chunks_mut`, and rayon's thread pool runs
-/// under miri at real cost. This measures the smallest fixture's miri wall time so the review
-/// letter can cite it, rather than assume it.
-///
-/// Measured: under miri this fails rather than merely running slowly. Rayon's crossbeam-epoch
-/// registry trips the same known Stacked Borrows false positive already worked around on
-/// `build_matches_hand_computed_neighbours` above, about 1m46s wall clock in, at the failing
-/// retag. The site is downgraded to out-with-reason on this measurement; the ignore below is the
-/// existing crate pattern for the same false positive, not a new one.
 #[test]
 fn from_lists_over_the_smallest_fixture_measures_the_miri_cost() {
     let lists = tiny_neighbour_lists();
 
     let start = std::time::Instant::now();
-    let knn = Knn::from_lists::<!>(&lists, NonZero::new(1).expect("one is nonzero"))
-        .expect("the fixture is well-formed");
+    let knn = Knn::from_lists::<!>(&lists, nz!(1)).expect("the fixture is well-formed");
     let elapsed = start.elapsed();
 
     assert_eq!(knn.view().rows(), 3);
     assert_eq!(knn.view().neighbours(), 1);
 
-    // Not a correctness assertion: printed so the harness's transcript carries the measurement
-    // whether or not `--nocapture` is passed by the caller measuring it under miri.
     if std::env::var_os("MIRI_KNN_TIMING").is_some() {
         eprintln!("from_lists_over_the_smallest_fixture_measures_the_miri_cost: {elapsed:?}");
     }
 }
 
 /// Constructs lists over `embeddings` through an initially empty backend.
+///
+/// # Errors
+///
+/// Returns [`KnnError`] when construction fails.
 fn lists_via<I>(
     index: I,
     embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -490,6 +502,8 @@ where
     IndexConstruction::new(index).construct(embeddings, width, test_rng(), &NoProgress)
 }
 
+// the diagonal angle is π/4, giving cosine distance 1 − 1/√2. Stored distances are the crate
+// kernel's rounded values, compared bit-exactly below.
 #[test]
 fn build_matches_hand_computed_neighbours() {
     let rows = plane_fixture();
@@ -547,15 +561,11 @@ fn build_rejects_unsatisfiable_shapes() {
 
     // Construction clamps the width to the corpus; the table's stored
     // count still must stay below the row domain.
-    let lists = lists_via(
-        ExactIndex::from_rows(&[]),
-        matrix.view(),
-        NonZero::new(4).expect("four is nonzero"),
-    )
-    .expect("the clamped construction succeeds");
+    let lists = lists_via(ExactIndex::from_rows(&[]), matrix.view(), nz!(4))
+        .expect("the clamped construction succeeds");
     assert_eq!(lists.width(), 3);
     assert_matches!(
-        Knn::from_lists::<!>(&lists, NonZero::new(4).expect("four is nonzero")),
+        Knn::from_lists::<!>(&lists, nz!(4)),
         Err(KnnError::Invalid(KnnValidationError::NeighbourBounds {
             neighbours: 4,
             rows: 4,
@@ -566,7 +576,7 @@ fn build_rejects_unsatisfiable_shapes() {
     let narrow = lists_via(ExactIndex::from_rows(&[]), matrix.view(), two_neighbours())
         .expect("the fixture is well-formed");
     assert_matches!(
-        Knn::from_lists::<!>(&narrow, NonZero::new(3).expect("three is nonzero")),
+        Knn::from_lists::<!>(&narrow, nz!(3)),
         Err(KnnError::ListsWidth {
             width: 2,
             neighbours: 3,
@@ -616,7 +626,7 @@ fn descent_converges_on_known_geometry() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
     let embeddings = matrix.view();
-    let width = NonZero::new(4).expect("four is nonzero");
+    let width = nz!(4);
 
     let lists = NnDescent::new(NnDescentOptions::default())
         .construct(embeddings, width, test_rng(), &NoProgress)
@@ -655,10 +665,8 @@ fn descent_converges_on_known_geometry() {
         matched += ids.iter().filter(|id| reference.contains(id)).count();
     }
 
-    // The join's update application is parallel and unordered, so the
-    // converged lists are not replayable; on this smooth fan geometry
-    // the join converges to (near-)exact lists under any order, and
-    // the bound leaves room for the residual variance.
+    // parallel update order can change the selected lists. The match threshold allows residual
+    // variation while requiring near-exact recovery on this fan.
     assert!(
         matched >= 230,
         "descent matched {matched}/256 exact neighbours",
@@ -667,9 +675,7 @@ fn descent_converges_on_known_geometry() {
 
 #[test]
 fn descent_passes_the_admission_gate() {
-    // l2-normalized, honouring the construction's input contract: the
-    // production pipeline admits representations through the norm spot
-    // check before any construction sees them.
+    // l2-normalize the fixture to satisfy the construction's input contract.
     let rows: Vec<[f32; PROJECTOR_DIMENSIONS]> = {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
         core::iter::repeat_with(|| {
@@ -693,8 +699,7 @@ fn descent_passes_the_admission_gate() {
     let matrix = Matrix::new(&rows);
     let embeddings = matrix.view();
 
-    // The width is the wider of the spot check's depth and the stored count, so the admitted lists
-    // and the persisted table are the same lists.
+    // one construction supplies the full recall depth and the narrower stored prefix.
     let width = recall::SpotCheckOptions::default()
         .neighbours
         .max(DEFAULT_NEIGHBOURS);
@@ -744,12 +749,7 @@ fn descent_clamps_the_width_to_the_corpus() {
     let matrix = Matrix::new(&rows);
 
     let lists = NnDescent::new(NnDescentOptions::default())
-        .construct(
-            matrix.view(),
-            NonZero::new(16).expect("sixteen is nonzero"),
-            test_rng(),
-            &NoProgress,
-        )
+        .construct(matrix.view(), nz!(16), test_rng(), &NoProgress)
         .expect("the clamped construction succeeds");
     assert_eq!(lists.width(), 3, "the width clamps to every non-self row");
 }
@@ -762,16 +762,11 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
 
     // The backend starts empty, and the construction fills it.
     IndexConstruction::new(ExactIndex::from_rows(&[]))
-        .construct(
-            matrix.view(),
-            NonZero::new(4).expect("four is nonzero"),
-            test_rng(),
-            &progress,
-        )
+        .construct(matrix.view(), nz!(4), test_rng(), &progress)
         .expect("the fixture is well-formed");
 
-    // A corpus below the report cadence reports each loop once, as its last row lands. This backend
-    // names no build phases, so the whole log is the two loops' completions, insertion first.
+    // below the cadence, each loop reports exactly once at its last row. This backend names no
+    // build phases between the loops.
     let complete = Batch {
         done: 64,
         total: 64,
@@ -782,11 +777,13 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
     );
 }
 
+// the exact fixture backend is deterministic, isolating the observer's effect from parallel
+// construction variability.
 #[test]
 fn watching_a_construction_does_not_change_its_lists() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
-    let width = NonZero::new(4).expect("four is nonzero");
+    let width = nz!(4);
 
     let watched = IndexConstruction::new(ExactIndex::from_rows(&[]))
         .construct(
@@ -819,12 +816,7 @@ fn an_observed_descent_reports_every_iteration_it_ran() {
     let progress = RecordingProgress::default();
 
     NnDescent::new(options)
-        .construct(
-            matrix.view(),
-            NonZero::new(4).expect("four is nonzero"),
-            test_rng(),
-            &progress,
-        )
+        .construct(matrix.view(), nz!(4), test_rng(), &progress)
         .expect("the fixture is well-formed");
 
     let iterations: Vec<DescentIteration> = progress
@@ -854,9 +846,7 @@ fn an_observed_descent_reports_every_iteration_it_ran() {
         );
     }
 
-    // The reading is a convergence reading: the join accepts less as
-    // the lists sharpen, and the last iteration is the one that met the
-    // termination threshold.
+    // compare only the endpoints: parallel joins need not produce a monotone accepted rate.
     let [first, last] = [iterations.first(), iterations.last()].map(|reading| {
         reading
             .expect("the construction ran at least one iteration")
@@ -1002,8 +992,7 @@ fn spot_check_fails_a_degraded_backend() {
 
 #[test]
 fn spot_check_honours_configured_options() {
-    // The same degraded backend passes under a laxer minimum: the
-    // criterion travels with the options, and the evidence records it.
+    // the farthest-50 backend has recall 41/50 = 0.82 on 60 rows, above this 0.8 minimum.
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
     let index = FarthestIndex(ExactIndex::from_rows(&rows));
@@ -1032,7 +1021,7 @@ fn spot_check_honours_configured_options() {
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            neighbours: NonZero::new(3).expect("three is nonzero"),
+            neighbours: nz!(3),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
@@ -1076,10 +1065,7 @@ fn spot_check_sizes_a_decisive_verdict_sample_at_the_pilot_floor() {
     let check = recall::spot_check(
         &index,
         matrix.view(),
-        recall::SpotCheckOptions {
-            pilot: NonZero::new(4).expect("four is nonzero"),
-            ..
-        },
+        recall::SpotCheckOptions { pilot: nz!(4), .. },
         Xoshiro256PlusPlus::seed_from_u64(42),
     )
     .expect("the exact backend answers every query");
@@ -1098,18 +1084,16 @@ fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
     let matrix = Matrix::new(&rows);
     let index = MixedIndex(ExactIndex::from_rows(&rows));
 
-    // Row `i` matches exactly `50 - (i & 7)` of its exact top 50, so
-    // per-row recall ramps 0.86..1.0 and any pilot mixing residues
-    // measures real spread. Against a minimum a third of a percent
-    // below the aggregate, the clearance the pilot measures sizes a
-    // sample far past the corpus, so the verdict sample is exhaustive:
-    // ids 0..59 sum their residues to 7 · 28 + 6 = 202 skipped rows.
+    // row `i` matches exactly `50 - (i & 7)` of its exact top 50, giving per-row recall 0.86..1.0.
+    // Across ids 0..59, residues sum to 7 · 28 + 6 = 202 skipped rows. Aggregate recall is (3000 −
+    // 202) / 3000 ≈ 0.9327. The seeded pilot's clearance from 0.93 requests at least the corpus
+    // size.
     let check = recall::spot_check(
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
             minimum_recall: unit_fraction!(0.93),
-            pilot: NonZero::new(4).expect("four is nonzero"),
+            pilot: nz!(4),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
@@ -1120,14 +1104,11 @@ fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
     assert_eq!(check.matched, 60 * 50 - 202);
     assert_eq!(check.expected, 60 * 50);
     assert!(check.deviation > d_non_negative!(0.0));
-    // A census of the corpus leaves no sampling error to bound, so the
-    // aggregate itself clears the minimum.
+    // a census has zero sampling width.
     assert_eq!(check.resolution, d_non_negative!(0.0));
     assert_eq!(check.admission(), recall::RecallAdmission::Admitted);
 }
 
-/// A budget that buys nothing leaves the verdict sample at the pilot's size, and a shortfall it
-/// cannot demonstrate reads as unresolved rather than refused.
 #[test]
 fn spot_check_stops_at_the_sampling_budget() {
     let rows = fan_fixture(60, 0.02);
@@ -1142,7 +1123,7 @@ fn spot_check_stops_at_the_sampling_budget() {
         matrix.view(),
         recall::SpotCheckOptions {
             minimum_recall: unit_fraction!(0.94),
-            pilot: NonZero::new(4).expect("four is nonzero"),
+            pilot: nz!(4),
             budget: Duration::ZERO,
             ..
         },
@@ -1154,10 +1135,8 @@ fn spot_check_stops_at_the_sampling_budget() {
         check.sampled_rows, 4,
         "the budget buys no rows past the pilot"
     );
-    // Those four rows skip 18 of their 200 exact neighbours, so the
-    // aggregate reads 0.91 - below the minimum, and by less than the
-    // 0.047 such a sample resolves. A shortfall the sample cannot
-    // demonstrate is not a refusal.
+    // four rows skip 18 of their 200 exact neighbours: recall is 182/200 = 0.91. The achieved width
+    // below exceeds the 0.94 − 0.91 = 0.03 shortfall. This sample cannot demonstrate a refusal.
     assert_eq!(check.matched, 200 - 18);
     assert_eq!(check.recall(), 0.91);
     assert!(check.recall() < check.minimum_recall.get());
@@ -1330,8 +1309,8 @@ fn hannoy_honours_the_seam_contract() {
             (0.0..=2.0).contains(&neighbour.distance),
             "distances arrive on the [0, 2] cosine scale",
         );
-        // hannoy accumulates in f32; the rescaled seam distance agrees
-        // with the crate kernel to vector-sum rounding.
+        // hannoy and the crate kernel accumulate separately in f32. Allow their rounded distances
+        // to differ within this fixture's tolerance.
         assert!(
             (neighbour.distance - exact).abs() < 1e-4,
             "backend distance {} disagrees with exact distance {exact}",
@@ -1359,7 +1338,7 @@ fn hannoy_honours_the_seam_contract() {
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
 
-/// 128 fixture rows, each component drawn uniformly from `[-1, 1)` under seed 7.
+/// Draws 128 fixture rows with components uniform in `[-1, 1)` under seed 7.
 fn uniform_rows() -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
     core::iter::repeat_with(|| {
@@ -1375,8 +1354,13 @@ fn uniform_rows() -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
 
 /// Asserts the production path admits the fixture rows.
 ///
-/// The production path puts a fresh backend behind the construction wrapper. Exact recall admits
-/// the lists, and the table comes from those same lists.
+/// A fresh backend supplies the lists for both the recall check and the table.
+///
+/// # Panics
+///
+/// This panics when the fixture directory or index cannot be prepared, construction or table
+/// validation fails, the fixture counts differ from 128 rows and 50-wide lists, or the recall check
+/// does not admit the lists.
 #[track_caller]
 fn assert_construction_path_admits(
     base: &camino::Utf8Path,
@@ -1453,7 +1437,7 @@ fn a_watched_hannoy_construction_reports_its_phases_between_the_loops() {
     )
     .construct(
         matrix.view(),
-        NonZero::new(4).expect("four is nonzero"),
+        nz!(4),
         Xoshiro256PlusPlus::seed_from_u64(42),
         &progress,
     )

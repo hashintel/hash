@@ -1,0 +1,792 @@
+.petrinaut-root.petricon-page {
+  --petricon-paper: #f7f6f2;
+  --petricon-ink: #20201e;
+  --petricon-muted: #73736a;
+  --petricon-rule: #d8d7cf;
+  --petricon-red: #e43a25;
+  /* Petrinaut's bundled base styles have specificity from flattened layers. */
+  background: var(--petricon-paper) !important;
+  color: var(--petricon-ink);
+  height: 100dvh;
+  overflow: auto;
+  scroll-behavior: smooth;
+  font-family: "Inter Variable", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  accent-color: var(--petricon-red);
+}
+.petricon-page *,
+.petricon-page *::before,
+.petricon-page *::after {
+  box-sizing: border-box;
+}
+.petricon-page :is(h1, h2, h3, p, pre) {
+  margin: 0;
+}
+.petricon-page a {
+  color: inherit;
+  text-decoration: none;
+}
+.petricon-page button {
+  font: inherit;
+  color: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.petricon-page :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--petricon-red);
+  outline-offset: 4px;
+}
+.petricon-page a:hover {
+  color: var(--petricon-red);
+}
+.petricon-sheet {
+  max-width: 1600px;
+  margin: auto;
+  padding: 0 56px;
+}
+.petricon-nav {
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--petricon-ink);
+}
+.petricon-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 650;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.petricon-nav-slash {
+  color: #a8a79f;
+}
+.petricon-mark {
+  width: 10px;
+  height: 10px;
+  background: var(--petricon-red);
+  display: inline-block;
+}
+.petricon-nav nav {
+  display: flex;
+  gap: 28px;
+  font-size: 12px;
+}
+.petricon-hero {
+  padding-top: 28px;
+}
+.petricon-kicker {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--petricon-muted);
+}
+.petricon-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.petricon-hero h1 {
+  font-size: clamp(100px, 15vw, 218px);
+  font-weight: 550;
+  line-height: 1.16;
+  letter-spacing: -0.078em;
+  margin: 12px 0 20px -10px;
+}
+.petricon-hero h1 > span {
+  color: var(--petricon-red);
+}
+.petricon-hero-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 32px;
+  align-items: end;
+  padding: 0 0 36px;
+}
+.petricon-hero-bottom h2 {
+  font-size: clamp(25px, 3vw, 42px);
+  font-weight: 450;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+.petricon-hero-bottom p {
+  font-size: 14px;
+  color: var(--petricon-muted);
+  line-height: 1.65;
+}
+.petricon-cta {
+  display: inline-flex;
+  gap: 38px;
+  margin-top: 18px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--petricon-ink);
+  padding-bottom: 6px;
+}
+.petricon-edition {
+  font-size: 50px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  text-align: right;
+}
+.petricon-edition small {
+  display: block;
+  font-family: monospace;
+  font-size: 9px;
+  letter-spacing: 0.025em;
+  margin-top: 8px;
+  color: var(--petricon-muted);
+}
+.petricon-hero-demos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-block: 1px solid var(--petricon-ink);
+}
+.petricon-page .petricon-glyph-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  min-height: 186px;
+  padding: 32px 22px 14px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.petricon-hero-demos > button + button {
+  border-left: 1px solid var(--petricon-rule);
+}
+.petricon-glyph-demo > span {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  text-align: left;
+}
+.petricon-glyph-demo > span > span {
+  color: var(--petricon-muted);
+}
+.petricon-page .petricon-glyph-demo:hover {
+  background: #eeede7;
+  color: var(--petricon-red);
+}
+.petricon-principles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 36px;
+  padding-block: 24px;
+  border-bottom: 1px solid var(--petricon-rule);
+}
+.petricon-principles p {
+  font-size: 11px;
+}
+.petricon-principles span {
+  display: block;
+  font-family: monospace;
+  font-size: 9px;
+  color: var(--petricon-muted);
+  margin-bottom: 8px;
+}
+.petricon-section {
+  padding: 88px 0 0;
+  scroll-margin-top: 24px;
+}
+.petricon-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 40px;
+  padding-bottom: 32px;
+}
+.petricon-section h2 {
+  font-size: clamp(32px, 4.4vw, 58px);
+  font-weight: 450;
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+  margin-top: 18px;
+}
+.petricon-section-heading > p {
+  color: var(--petricon-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  min-width: 280px;
+}
+.petricon-collection-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 18px 0;
+  border-block: 1px solid var(--petricon-ink);
+}
+.petricon-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 450px;
+}
+.petricon-search input {
+  background: transparent;
+  border: 0;
+  color: var(--petricon-ink);
+  font: inherit;
+  padding: 3px;
+  min-width: 0;
+  width: 100%;
+}
+.petricon-search > span {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--petricon-muted);
+}
+.petricon-motion-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.petricon-filters {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 18px 0;
+}
+.petricon-page .petricon-filters button {
+  padding: 0 0 6px;
+  border-bottom: 1px solid transparent;
+  font-size: 11px;
+  color: var(--petricon-muted);
+}
+.petricon-page .petricon-filters button[aria-pressed="true"] {
+  color: var(--petricon-ink);
+  border-color: var(--petricon-red);
+}
+.petricon-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  align-items: start;
+  gap: 32px;
+}
+.petricon-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-left: 1px solid var(--petricon-rule);
+  border-top: 1px solid var(--petricon-rule);
+}
+.petricon-page .petricon-icon-tile {
+  position: relative;
+  min-width: 0;
+  height: 106px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  padding: 15px 5px 10px;
+  border-bottom: 1px solid var(--petricon-rule);
+  border-right: 1px solid var(--petricon-rule);
+  transition:
+    background 0.16s,
+    color 0.16s;
+}
+.petricon-icon-tile > span:first-of-type {
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.petricon-page .petricon-icon-tile:hover {
+  background: #eeede7;
+}
+.petricon-page .petricon-icon-tile[aria-pressed="true"] {
+  color: var(--petricon-red);
+  background: #f0e9e2;
+  box-shadow: inset 0 0 0 1px var(--petricon-red);
+}
+.petricon-study-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  height: 3px;
+  width: 3px;
+  background: var(--petricon-red);
+}
+.petricon-page .petricon-show-all {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--petricon-ink);
+}
+.petricon-inspector {
+  position: sticky;
+  top: 24px;
+  border: 1px solid var(--petricon-ink);
+  padding: 20px;
+  background: var(--petricon-paper);
+}
+.petricon-inspector-heading {
+  display: flex;
+  justify-content: space-between;
+}
+.petricon-page .petricon-specimen {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 182px;
+  margin: 12px 0;
+}
+.petricon-specimen > svg {
+  position: relative;
+  z-index: 1;
+}
+.petricon-crosshair {
+  position: absolute;
+  inset: 15px 36px 26px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent calc(50% - 0.5px),
+      var(--petricon-rule) 50%,
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      transparent calc(50% - 0.5px),
+      var(--petricon-rule) 50%,
+      transparent calc(50% + 0.5px)
+    );
+  border: 1px solid var(--petricon-rule);
+  opacity: 0.6;
+}
+.petricon-specimen-hint {
+  position: absolute;
+  bottom: 0;
+  font-size: 9px;
+  color: var(--petricon-muted);
+}
+.petricon-inspector-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block: 10px 18px;
+  gap: 10px;
+}
+.petricon-inspector-title h3 {
+  font-size: 18px;
+  letter-spacing: -0.035em;
+  font-weight: 500;
+}
+.petricon-inspector-title > span {
+  font-size: 10px;
+  color: var(--petricon-muted);
+}
+.petricon-sliders {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--petricon-rule);
+  padding-top: 18px;
+}
+.petricon-sliders label {
+  display: block;
+}
+.petricon-sliders label > span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.petricon-sliders output {
+  font-family: monospace;
+  color: var(--petricon-muted);
+}
+.petricon-sliders input {
+  display: block;
+  width: 100%;
+  height: 12px;
+  cursor: ew-resize;
+}
+.petricon-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+.petricon-selects label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--petricon-muted);
+}
+.petricon-selects select {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--petricon-rule);
+  background: transparent;
+  color: var(--petricon-ink);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 0;
+}
+.petricon-inspector-actions {
+  display: flex;
+  gap: 16px;
+  margin: 20px 0 16px;
+}
+.petricon-page .petricon-inspector-actions button {
+  font-size: 11px;
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--petricon-ink);
+  padding-bottom: 7px;
+}
+.petricon-code {
+  border-top: 1px solid var(--petricon-rule);
+  padding: 16px 0 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px !important;
+  line-height: 1.8;
+  overflow: auto;
+}
+.petricon-code code,
+.petricon-usage-code code {
+  font: inherit !important;
+}
+.petricon-page .petricon-copy {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 10px;
+  color: var(--petricon-muted);
+  padding-block: 4px;
+  text-align: left;
+}
+.petricon-empty {
+  padding: 40px 0;
+  color: var(--petricon-muted);
+}
+.petricon-study-tabs {
+  display: flex;
+  border-block: 1px solid var(--petricon-ink);
+  margin-bottom: 24px;
+}
+.petricon-page .petricon-study-tabs button {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 20px;
+  font-size: 13px;
+  border-right: 1px solid var(--petricon-rule);
+}
+.petricon-page .petricon-study-tabs button:last-child {
+  border-right: 0;
+}
+.petricon-page .petricon-study-tabs button[aria-pressed="true"] {
+  color: var(--petricon-paper);
+  background: var(--petricon-ink);
+}
+.petricon-studies-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 40px;
+}
+.petricon-study {
+  border-bottom: 1px solid var(--petricon-rule);
+}
+.petricon-study-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.petricon-study-heading h3 {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.petricon-study-pair {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin-top: 20px;
+}
+.petricon-study-motion {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  font-size: 12px;
+}
+.petricon-study-motion > span {
+  margin-right: auto;
+  color: var(--petricon-muted);
+}
+.petricon-study-motion button {
+  padding: 8px 12px;
+  border: 1px solid var(--petricon-rule);
+}
+.petricon-study-motion button[aria-pressed="true"] {
+  border-color: var(--petricon-ink);
+}
+.petricon-draw-controls {
+  margin-top: 20px;
+}
+.petricon-study-pair > div {
+  min-width: 0;
+}
+.petricon-study-pair > div + div {
+  border-left: 1px solid var(--petricon-rule);
+  padding-left: 16px;
+}
+.petricon-study-pair > div > span {
+  color: var(--petricon-red);
+}
+.petricon-study .petricon-glyph-demo {
+  min-height: 122px;
+  padding: 12px 12px 16px;
+  gap: 24px;
+}
+.petricon-study .petricon-glyph-demo > span {
+  font-size: 10px;
+}
+.petricon-study p {
+  font-size: 11px;
+  color: var(--petricon-muted);
+  margin: 14px 0 22px;
+}
+.petricon-studies-note {
+  color: var(--petricon-muted);
+  font-size: 11px;
+  padding-top: 20px;
+}
+.petricon-usage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  padding-bottom: 80px;
+}
+.petricon-usage h2 {
+  margin-bottom: 24px;
+}
+.petricon-usage p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--petricon-muted);
+}
+.petricon-usage .petricon-usage-note {
+  font-size: 11px;
+  margin-top: 20px;
+}
+.petricon-text-link {
+  display: inline-block;
+  margin-top: 26px;
+  border-bottom: 1px solid var(--petricon-ink);
+  font-size: 12px;
+  padding-bottom: 6px;
+}
+.petricon-usage > div + div {
+  border-top: 1px solid var(--petricon-ink);
+  padding-top: 16px;
+}
+.petricon-usage-code {
+  overflow: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px !important;
+  line-height: 1.8;
+  padding-top: 22px;
+}
+.petricon-footer {
+  border-top: 1px solid var(--petricon-ink);
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 30px 0 36px;
+}
+.petricon-footer > span {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+.petricon-footer > span > span {
+  color: var(--petricon-red);
+}
+.petricon-footer small {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0;
+  color: var(--petricon-muted);
+  padding-top: 6px;
+}
+.petricon-footer p,
+.petricon-footer > a {
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--petricon-muted);
+}
+.petricon-footer p a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.petricon-sr-only,
+.petricon-skip:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.petricon-skip:focus {
+  display: block;
+  padding: 12px;
+}
+@media (min-width: 1450px) {
+  .petricon-icon-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1100px) {
+  .petricon-sheet {
+    padding-inline: 32px;
+  }
+  .petricon-workbench {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 24px;
+  }
+  .petricon-icon-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .petricon-sheet {
+    padding-inline: 20px;
+  }
+  .petricon-nav {
+    height: 68px;
+    gap: 12px;
+  }
+  .petricon-home {
+    font-size: 9px;
+    gap: 8px;
+  }
+  .petricon-nav nav {
+    font-size: 10px;
+    gap: 12px;
+  }
+  .petricon-hero-top > span:last-child {
+    display: none;
+  }
+  .petricon-hero h1 {
+    font-size: clamp(84px, 20vw, 150px);
+    margin-left: -4px;
+  }
+  .petricon-hero-bottom {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+  .petricon-hero-bottom h2 {
+    font-size: 28px;
+  }
+  .petricon-hero-bottom p {
+    font-size: 11px;
+  }
+  .petricon-cta {
+    font-size: 10px;
+    gap: 12px;
+  }
+  .petricon-edition {
+    display: none;
+  }
+  .petricon-hero-demos {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .petricon-hero-demos > button:nth-child(3) {
+    border-left: 0;
+  }
+  .petricon-hero-demos > button:nth-child(n + 3) {
+    border-top: 1px solid var(--petricon-rule);
+  }
+  .petricon-principles {
+    gap: 18px;
+  }
+  .petricon-principles p {
+    font-size: 10px;
+  }
+  .petricon-principles span {
+    font-size: 8px;
+  }
+  .petricon-section {
+    padding-top: 56px;
+  }
+  .petricon-section-heading {
+    display: block;
+  }
+  .petricon-section-heading > p {
+    margin-top: 20px;
+    font-size: 11px;
+    min-width: 0;
+  }
+  .petricon-workbench {
+    grid-template-columns: 1fr;
+  }
+  .petricon-inspector {
+    position: static;
+    grid-row: 1;
+  }
+  .petricon-specimen {
+    max-height: 160px;
+  }
+  .petricon-sliders {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .petricon-icon-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .petricon-filters {
+    gap: 15px;
+  }
+  .petricon-filters button {
+    font-size: 10px;
+  }
+  .petricon-studies-grid {
+    grid-template-columns: 1fr;
+  }
+  .petricon-usage {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .petricon-footer {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .petrinaut-root.petricon-page {
+    scroll-behavior: auto;
+  }
+  .petricon-page *,
+  .petricon-page *::before,
+  .petricon-page *::after {
+    transition: none !important;
+  }
+}

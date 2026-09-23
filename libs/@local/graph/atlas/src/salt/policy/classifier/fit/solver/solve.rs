@@ -6,7 +6,7 @@
 //! ratio. The accepted point moves only on acceptance. Rejection shrinks the trust radius toward
 //! its minimum and an expanded radius requires a validated boundary step. Success is [`Converged`]
 //! (a fresh final joint evaluation re-proving the certificate) and every other terminal is a
-//! typed [`SolverFailure`] in the normative precedence order: validation, accepted-gradient
+//! typed [`SolverFailure`] in this precedence order: validation, accepted-gradient
 //! success, outer budget, inner Newton, invalid predicted reduction, resolution construction,
 //! resolution stall, candidate numerical failure, ratio classification, then radius underflow.
 
@@ -35,8 +35,7 @@ pub(crate) struct AcceptedPoint {
     pub zeta: BoxedDVecN<SOLVER_DIMENSIONS>,
     /// The normalized objective at the point.
     // Raw on purpose: initialization admits a non-finite origin objective - the certificate
-    // tests only the gradient - and resolution and final certification refuse it by name where
-    // the design says so.
+    // tests only the gradient - and resolution and final certification refuse it by name.
     pub objective: f64,
     /// The scaled gradient at the point.
     pub scaled_gradient: BoxedDVecN<SOLVER_DIMENSIONS>,
@@ -59,7 +58,7 @@ pub(crate) struct SolverControl {
 }
 
 impl SolverControl {
-    /// Fresh control state carrying the preparation-charged counters.
+    /// Creates fresh control state carrying the preparation-charged counters.
     const fn new(radius: DPositive, counters: WorkCounters) -> Self {
         Self {
             radius,
@@ -86,8 +85,9 @@ pub(crate) struct Converged {
     pub point: AcceptedPoint,
 }
 
-/// Everything one solve reports: the terminal, the last accepted state, control, evidence, and
-/// receipts.
+/// Everything one solve reports.
+///
+/// The terminal, the last accepted state, control, evidence, and receipts.
 #[derive(Debug)]
 pub(crate) struct SolverRun {
     /// The certified solution or the typed failure.
@@ -106,11 +106,13 @@ pub(crate) struct SolverRun {
         )
     )]
     pub certificate: Option<CertificateEvidence>,
-    /// One receipt per started outer iteration under a debugging request. A routine fit leaves
-    /// this empty.
+    /// One receipt per started outer iteration under a debugging request.
+    ///
+    /// A routine fit leaves this empty.
     pub receipts: Vec<OuterReceipt>,
-    /// The coordinate/version identity of the receipts and their digests, present only under a
-    /// debugging request, with the receipts it describes.
+    /// The coordinate/version identity of the receipts and their digests.
+    ///
+    /// Present only under a debugging request, with the receipts it describes.
     pub coordinates: Option<ReceiptCoordinates>,
 }
 
@@ -125,12 +127,7 @@ pub(crate) fn solve(
     counters: WorkCounters,
     detail: ReceiptDetail,
 ) -> SolverRun {
-    debug_assert!(
-        problem.config.validate().is_ok(),
-        "the solver configuration is validated",
-    );
-
-    let mut control = SolverControl::new(problem.config.radius_initial, counters);
+    let mut control = SolverControl::new(problem.config.radius_initial(), counters);
     let mut receipts = Vec::new();
     let mut certificate = None;
 
@@ -189,7 +186,7 @@ fn run(
             return certify(problem, accepted, control, threshold);
         }
 
-        if control.outer_iterations_started == config.maximum_outer_iterations.get() {
+        if control.outer_iterations_started == config.maximum_outer_iterations().get() {
             return Err(SolverFailure::OuterIterationBudget);
         }
         control.outer_iterations_started += 1;
@@ -205,8 +202,9 @@ fn run(
             return Err(SolverFailure::InvalidPredictedReduction);
         };
 
-        let resolution = objective_resolution(accepted.objective, config.objective_resolution_ulps)
-            .ok_or(SolverFailure::ResolutionScaleOverflow)?;
+        let resolution =
+            objective_resolution(accepted.objective, config.objective_resolution_ulps())
+                .ok_or(SolverFailure::ResolutionScaleOverflow)?;
         if predicted <= resolution {
             return Err(SolverFailure::ResolutionStall);
         }
@@ -233,7 +231,7 @@ fn run(
             return Err(SolverFailure::InvalidAcceptanceRatio);
         };
 
-        if ratio < config.eta_accept {
+        if ratio < config.eta_accept() {
             if let Some(recorded) = recorded.as_deref_mut() {
                 recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
             }
@@ -243,7 +241,7 @@ fn run(
             continue;
         }
 
-        // Acceptance commits only after the candidate gradient proves finite; a rejected
+        // Acceptance commits only after the candidate gradient proves finite. A rejected
         // request and a non-finite gradient share the terminal.
         let Some(trial_gradient) = problem
             .gradient(&trial_point, &mut control.counters)
@@ -276,13 +274,13 @@ fn run(
         control.consecutive_rejections = 0;
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
-        if inner.is_boundary() && ratio >= config.eta_expand {
-            // A product of positives above the ceiling, +∞ included, lands on the finite
-            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
+        if inner.is_boundary() && ratio >= config.eta_expand() {
+            // A product of positives above the ceiling, +∞ included, clamps to the finite
+            // maximum, and the clamp re-enters the domain. Growth by a factor above one never
             // falls to zero.
             control.radius = DPositive::new_unchecked(
-                (config.expansion_factor.get() * control.radius.get())
-                    .min(config.radius_maximum.get()),
+                (config.expansion_factor().get() * control.radius.get())
+                    .min(config.radius_maximum().get()),
             );
         }
     }
@@ -309,7 +307,7 @@ const fn gradient_threshold(
 /// Stores the started outer iteration's receipt and returns the outcome it records into.
 ///
 /// A debugging request stores one receipt per started outer iteration and the returned outcome
-/// collects the iteration's diagnostics. The routine posture stores none and returns [`None`], so
+/// collects the iteration's diagnostics. The routine posture stores none and returns [`None`], and
 /// the diagnostic-only arithmetic never runs.
 fn start_receipt<'receipts>(
     receipts: &'receipts mut Vec<OuterReceipt>,
@@ -348,11 +346,13 @@ pub(super) const fn derive_certificate(
     }
 }
 
-/// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product alone,
-/// recording the inner-step summaries when the solve stores a receipt.
+/// Returns the predicted model reduction from the returned step and product alone.
+///
+/// The reduction is `−g·p − ½·p·Hp`. When the solve stores a receipt, it records the inner-step
+/// summaries.
 ///
 /// The dots are algorithm inputs and always compute. The norms are diagnostic-only and compute
-/// solely for a stored receipt. The reduction rides as an unclaimed derivation, and the caller's
+/// solely for a stored receipt. The reduction returns as an unclaimed derivation, and the caller's
 /// finish refuses a non-finite value.
 fn record_inner_step(
     recorded: Option<&mut OuterOutcome>,
@@ -394,11 +394,15 @@ pub(super) const fn rejected(
 
     // The typed equality is exact: the minimum radius is reached only through an exact clip to
     // its bytes.
-    if control.radius == config.radius_minimum {
+    if control.radius == config.radius_minimum() {
         return Err(SolverFailure::RadiusUnderflow);
     }
 
-    control.radius = (config.shrink_factor * control.radius).max(config.radius_minimum);
+    control.radius = match (config.shrink_factor() * control.radius).finish() {
+        Ok(radius) => radius.max(config.radius_minimum()),
+        // a positive fraction cannot overflow the radius. A rejected product rounded to zero.
+        Err(_) => config.radius_minimum(),
+    };
     Ok(())
 }
 
@@ -433,7 +437,10 @@ pub(super) fn certify(
     })
 }
 
-/// The accepted-step curvature diagnostic `p·y` and `(p·y) / (p·p)` with `y = g_trial − g`.
+/// Computes the accepted step's curvature diagnostic.
+///
+/// The readings are `p·y` and `(p·y) / (p·p)` with `y = g_trial − g`, or the first non-finite
+/// intermediate that prevented them.
 fn curvature_diagnostic(
     step: &AlignedDVecN<SOLVER_DIMENSIONS>,
     trial_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
@@ -455,4 +462,37 @@ fn curvature_diagnostic(
         return CurvatureDiagnostic::NonFiniteNormalization;
     };
     CurvatureDiagnostic::Value { along, normalized }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::{
+        super::config::SolverOptions, SolverConfig, SolverControl, SolverFailure, WorkCounters,
+        rejected,
+    };
+    use crate::math::{d_positive, open_unit_fraction};
+
+    #[test]
+    fn rejected_product_underflow() {
+        let config = SolverConfig::new(SolverOptions {
+            radius_minimum: d_positive!(1e-300),
+            radius_initial: d_positive!(1e-200),
+            shrink_factor: open_unit_fraction!(1e-200),
+            ..
+        })
+        .expect("should satisfy the radius and threshold constraints");
+        let mut control = SolverControl::new(config.radius_initial(), WorkCounters::default());
+
+        assert_eq!(rejected(&mut control, &config), Ok(()));
+        assert_eq!(control.radius, config.radius_minimum());
+        assert_eq!(control.consecutive_rejections, 1);
+        assert_matches!(
+            rejected(&mut control, &config),
+            Err(SolverFailure::RadiusUnderflow)
+        );
+        assert_eq!(control.radius, config.radius_minimum());
+        assert_eq!(control.consecutive_rejections, 2);
+    }
 }

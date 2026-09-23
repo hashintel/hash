@@ -49,6 +49,7 @@ const place = (index: number) => ({
   name: `Place ${index}`,
   colorId: null,
   dynamicsEnabled: false,
+  showAsInitialState: true,
   differentialEquationId: null,
   x: 0,
   y: 0,
@@ -93,6 +94,40 @@ const languageClient = {
 };
 
 describe("ExperimentScenarioRun", () => {
+  it("shows the computed value and reveals its source on keyboard focus", async () => {
+    render(
+      <LanguageClientContext value={languageClient}>
+        <ExperimentScenarioRun
+          scenario={parameterizedScenario}
+          context={context}
+          inputs={{ rate: { mode: "fixed", value: "7" } }}
+          selection="none"
+          onInputsChange={() => {}}
+        />
+      </LanguageClientContext>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle Computed state section" }),
+    );
+    const value = await screen.findByRole("button", {
+      name: "Place 1 › count",
+    });
+    expect(value.textContent).toBe("7");
+    fireEvent.mouseEnter(value);
+    expect(screen.queryByText("scenario.rate")).toBeNull();
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    value.focus();
+    const expression = await screen.findByText("scenario.rate");
+    expect(value.contains(expression)).toBe(false);
+    expect(expression.closest("[data-computed-expression]")).not.toBeNull();
+    expect(value.getAttribute("aria-describedby")).toBe(expression.id);
+    expect(value.textContent).toBe("7");
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    fireEvent.blur(value);
+    await waitFor(() => expect(screen.queryByText("scenario.rate")).toBeNull());
+    expect(screen.queryByLabelText("Expression")).toBeNull();
+  });
+
   it("renders the computed initial state in a bounded scroll region", async () => {
     render(
       <LanguageClientContext value={languageClient}>
@@ -100,7 +135,7 @@ describe("ExperimentScenarioRun", () => {
           scenario={scenario}
           context={context}
           inputs={{}}
-          sweepable={false}
+          selection="none"
           onInputsChange={() => {}}
         />
       </LanguageClientContext>,
@@ -117,7 +152,9 @@ describe("ExperimentScenarioRun", () => {
     // A net with many places — or one coloured place with many token rows —
     // would otherwise push Metrics and the drawer's footer out of view.
     expect(region).not.toBeNull();
-    expect(region!.className).toContain("ov-y_auto");
+    expect(
+      region!.querySelector('[data-part="viewport"]')?.getAttribute("style"),
+    ).toContain("overflow: auto");
     expect(region!.className).toMatch(/max-h_\[\d+px\]/);
     // Parameters and initial state scroll together inside it, and it reads as
     // a panel rather than more form.
@@ -125,7 +162,7 @@ describe("ExperimentScenarioRun", () => {
     expect(region!.querySelector("[aria-label='Place 1 › count']")).not.toBe(
       null,
     );
-    expect(region!.className).toContain("bg-c_neutral.s20");
+    expect(region!.className).toContain("bg-c_neutral.s00");
     expect(region!.className).toContain("bd-c_neutral.bd.subtle");
   });
 
@@ -136,7 +173,7 @@ describe("ExperimentScenarioRun", () => {
           scenario={current}
           context={context}
           inputs={{}}
-          sweepable={false}
+          selection="none"
           onInputsChange={() => {}}
         />
       </LanguageClientContext>
@@ -163,42 +200,49 @@ describe("ExperimentScenarioRun", () => {
     expect(toggle()).not.toBe(mounted);
   });
 
-  it("seeds a swept parameter's Sweep from its range and previews the range start", async () => {
-    render(
-      <LanguageClientContext value={languageClient}>
-        <ExperimentScenarioRun
-          scenario={parameterizedScenario}
-          context={context}
-          inputs={{ rate: { mode: "range", min: 20, max: 30 } }}
-          sweepable
-          onInputsChange={() => {}}
-        />
-      </LanguageClientContext>,
-    );
+  it.each([
+    { selection: "sweep" as const, word: "Sweep" },
+    { selection: "optimize" as const, word: "Optimize" },
+  ])(
+    "seeds a ranged parameter's $word toggle from its range and previews the range start",
+    async ({ selection, word }) => {
+      render(
+        <LanguageClientContext value={languageClient}>
+          <ExperimentScenarioRun
+            scenario={parameterizedScenario}
+            context={context}
+            inputs={{ rate: { mode: "range", min: 20, max: 30 } }}
+            selection={selection}
+            onInputsChange={() => {}}
+          />
+        </LanguageClientContext>,
+      );
 
-    // The range seeds the Variable's Sweep, so a reseed keeps every sweep
-    // instead of rebuilding the Variables from fixed values alone.
-    expect(
-      screen
-        .getByRole("button", { name: "Sweep rate" })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
+      // The range seeds the Variable's interval selection under either word,
+      // so a reseed keeps every sweep instead of rebuilding the Variables
+      // from fixed values alone.
+      expect(
+        screen
+          .getByRole("button", { name: `${word} rate` })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle Computed state section" }),
-    );
-    await waitFor(() => screen.getByText("Initial state"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Toggle Computed state section" }),
+      );
+      await waitFor(() => screen.getByText("Initial state"));
 
-    // A swept parameter previews at the start of its range — the first
-    // combination the sweep runs — not at the scenario's default, and the
-    // notice says which value stood in.
-    expect(
-      screen.getByText(
-        /Swept parameters shown at the start of their ranges: rate = 20/,
-      ),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Place 1 › count").textContent).toContain(
-      "20",
-    );
-  });
+      // A swept parameter previews at the start of its range — the first
+      // combination the sweep runs — not at the scenario's default, and the
+      // notice says which value stood in.
+      expect(
+        screen.getByText(
+          /Swept parameters shown at the start of their ranges: rate = 20/,
+        ),
+      ).toBeTruthy();
+      expect(screen.getByLabelText("Place 1 › count").textContent).toContain(
+        "20",
+      );
+    },
+  );
 });

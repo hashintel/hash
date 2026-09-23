@@ -2,7 +2,6 @@ import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { metricSchema, type Metric } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -165,7 +164,7 @@ const ViewMetricContent = ({
   return (
     <Drawer showBackdrop={false} onClose={onClose} swapKey="metric">
       <Drawer.Header title={metric.name} />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+      <Drawer.Body>
         <MetricFormBody form={form} metricSessionId={metricSessionId} />
       </Drawer.Body>
       <ViewMetricFooter

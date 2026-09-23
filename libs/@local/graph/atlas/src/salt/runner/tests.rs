@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{future::ready, num::NonZero};
+use core::future::ready;
 use std::{collections::HashMap, sync::Mutex};
 
 use camino::Utf8PathBuf;
@@ -19,14 +19,15 @@ use crate::{
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN, positive},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, DFinite, UnitFraction, VecN, nz, positive},
     progress::{NoProgress, Progress},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions},
         landmark::select::SelectionOptions,
         policy::classifier::{
-            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
+            FitConfig as ClassifierFitConfig, FitOptions as ClassifierFitOptions, TrainingRow,
+            TrainingSet, fit as fit_classifier,
         },
         quality::{
             QualityMetric, probe::ProbeOptions, report::QualityThresholds,
@@ -35,8 +36,14 @@ use crate::{
     },
 };
 
+/// Row count of the runner fixture corpus.
 const NODES: usize = 48;
 
+/// Returns a per-process scratch path after attempting to remove its previous directory.
+///
+/// # Panics
+///
+/// This panics if the system temporary directory's path is not UTF-8.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -48,10 +55,11 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A probe-scale corpus for the real fit.
+/// Builds a small corpus with seeded representations and typed rows.
 ///
-/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
-/// node type alternating between two ontology rows, and one link type.
+/// Canonical embeddings zero-extend the normalized representations. Normalization computes in
+/// double precision before rounding the components to `f32`. Nodes alternate between two direct
+/// ontology types, and the link uses a third type.
 fn dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x27A);
     let mut canonical = HashMap::new();
@@ -159,12 +167,16 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus.
+/// Fits the fixture's supplied classifier from a fixed synthetic corpus.
 ///
-/// The supplied model input of the fixture runs.
+/// # Panics
+///
+/// This panics if the synthetic training fixture fails validation or fitting.
 fn classifier() -> ClassifierInput {
     const ROWS: usize = 4;
-    // Coprime to the dimension, so no two corpus rows repeat.
+    // A period coprime to the row width visits every pattern offset before repeating. This
+    // 13-element pattern spans four 3,072-component rows. Therefore each row starts at a distinct
+    // pattern offset and has a distinct embedding.
     const PATTERN: [f32; 13] = [
         -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
     ];
@@ -200,9 +212,14 @@ fn classifier() -> ClassifierInput {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
-        .expect("the fixture classifier fits")
-        .classifier;
+    let classifier = fit_classifier(
+        training,
+        ClassifierFitConfig::new(ClassifierFitOptions { folds: 2, .. })
+            .expect("the fixture classifier fit config is valid"),
+        &NoProgress,
+    )
+    .expect("the fixture classifier fits")
+    .classifier;
 
     let mut hasher = Sha256::new();
     hasher.update(b"fixture classifier artifact");
@@ -212,32 +229,31 @@ fn classifier() -> ClassifierInput {
     }
 }
 
-/// Fixture-sized runner options over the given thresholds.
+/// Configures a small landmark-baseline run with the given seed and thresholds.
 fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     RunnerOptions {
         fit: FitConfig {
             seed,
             selection: SelectionOptions {
-                maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
+                maximum_count: nz!(8),
                 ..
             },
             curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
                 .expect("the reference falloff is well-conditioned"),
-            neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
-            // The runner fixtures probe the run protocol, not the
-            // placement: they opt out of the default's training run.
+            neighbours: nz!(4),
+            // the landmark baseline keeps these protocol fixtures independent of projector
+            // training.
             placement: PlacementOptions::LandmarkBaseline,
             ..
         },
         quality: QualityRunOptions {
             probe: ProbeOptions {
-                anchors: NonZero::new(8).expect("nonzero"),
-                comparisons: NonZero::new(16).expect("nonzero"),
-                // Step 2 is all-degenerate on this 8-node landmark-baseline fixture (coincident map
-                // placements zero the radii), and the verdict fails closed on absent density
-                // evidence. The quality tests pin the fail-closed arm itself, while the runner
-                // fixtures probe the run protocol, so they read the step where evidence exists.
-                neighbourhoods: Cow::Owned(vec![NonZero::new(4).expect("nonzero")]),
+                anchors: nz!(8),
+                comparisons: nz!(16),
+                // the fixture caps landmarks at eight for 48 rows. Coincident placements can
+                // remove density-spread evidence at small neighbourhood sizes. Size 4 is the
+                // selected neighbourhood for the passing admission case.
+                neighbourhoods: Cow::Owned(vec![nz!(4)]),
                 triplet_pairs: 8,
                 ..
             },
@@ -249,16 +265,19 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     }
 }
 
-/// An observer keeping every admission reading the battery reported, in arrival order.
+/// A shared log of admission readings in reporting order.
 ///
-/// Cloneable and shareable because a detached half records into the same log: the readings arrive
-/// exactly as the run reported them.
+/// Detached observers append to the same log. Reading or appending panics if its mutex is poisoned.
 #[derive(Debug, Clone, Default)]
-struct RecordingBattery(Arc<Mutex<Vec<(QualityMetric, f64)>>>);
+struct RecordingBattery(Arc<Mutex<Vec<(QualityMetric, DFinite)>>>);
 
 impl RecordingBattery {
-    /// Every reading so far, in arrival order.
-    fn readings(&self) -> Vec<(QualityMetric, f64)> {
+    /// Copies the recorded readings in reporting order.
+    ///
+    /// # Panics
+    ///
+    /// This panics if the log's mutex is poisoned.
+    fn readings(&self) -> Vec<(QualityMetric, DFinite)> {
         self.0
             .lock()
             .expect("no reporter panicked holding the log")
@@ -267,14 +286,13 @@ impl RecordingBattery {
 }
 
 impl Progress for RecordingBattery {
-    /// Both halves share the log, so a detached half records into the same fixture.
     type Detached = Self;
 
     fn detach(&self) -> Self {
         self.clone()
     }
 
-    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+    fn quality_probe(&self, metric: QualityMetric, value: DFinite) {
         self.0
             .lock()
             .expect("no reporter panicked holding the log")
@@ -282,7 +300,6 @@ impl Progress for RecordingBattery {
     }
 }
 
-/// A run whose report passes activates what it publishes.
 #[tokio::test]
 async fn passing_run_activates_the_generation() {
     let root = GenerationRoot::new(scratch("activates")).expect("the root should open");
@@ -304,15 +321,12 @@ async fn passing_run_activates_the_generation() {
     .expect("the run should reach a verdict");
 
     assert_eq!(outcome.admission, Admission::Active);
-    // The battery reports the readings its own verdict turns on, one per control. They are the same
-    // numbers the report reduces, so an observer and the verdict can never disagree about the
-    // measurement.
     assert_eq!(
         outcome
             .report
             .controls()
             .into_iter()
-            .filter_map(|control| control.reading.map(|reading| (control.metric, reading)))
+            .filter_map(|control| control.reading().map(|reading| (control.metric, reading)))
             .collect::<Vec<_>>(),
         battery.readings(),
     );
@@ -341,16 +355,13 @@ async fn passing_run_activates_the_generation() {
     );
 }
 
-/// A run whose report refuses admission publishes a candidate and leaves the pointer alone.
 #[tokio::test]
 async fn refused_run_leaves_a_candidate() {
     let root = GenerationRoot::new(scratch("candidate")).expect("the root should open");
     let dataset = dataset();
     let classifier = classifier();
 
-    // A 2D projection of 48 pseudo-random unit vectors cannot carry
-    // near-perfect neighbourhoods: the floor refuses admission on a
-    // real reading, not on a rigged fixture.
+    // raise the recall floor to exercise refusal on this fixture's measured neighbourhood loss.
     let outcome = run(
         &dataset,
         &HashEmbedder,
@@ -382,7 +393,6 @@ async fn refused_run_leaves_a_candidate() {
     );
 }
 
-/// The second run reuses the active generation as its prior, while a fresh run ignores it.
 #[tokio::test]
 async fn prior_modes_route_reuse() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
@@ -451,10 +461,6 @@ async fn prior_modes_route_reuse() {
     );
 }
 
-/// Witnesses the replay half of [`probe_rng`]'s contract.
-///
-/// Equal seeds deriving equal draws is what lets a whole run replay from the one fit seed; the
-/// inequality is the complement that a constant generator would otherwise satisfy.
 #[test]
 fn the_admission_probe_derives_its_draws_from_the_fit_seed() {
     let draws = |seed| {

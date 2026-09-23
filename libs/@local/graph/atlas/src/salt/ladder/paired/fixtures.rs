@@ -1,12 +1,7 @@
-//! Shared inputs of the paired-movement acceptance tests.
+//! Common metadata and geometry fixtures for paired-movement tests.
 //!
-//! The identity pins freeze the exact bytes [`snapshot`] and [`reproducibility`] serialize
-//! into, and the writer pins record the salt they derive, so every sibling's tests must agree
-//! on one definition of these inputs. A definition that drifted in one test module and not
-//! another would fail a byte pin far from the drift, so the shared inputs live here and each
-//! test module keeps the fixtures it alone consumes.
-
-use core::num::NonZero;
+//! Identity and writer tests use the same [`snapshot`] and [`reproducibility`] values to compare
+//! their serialized bytes and derived salts.
 
 use hashql_core::id::IdSlice;
 
@@ -19,7 +14,8 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AffinityCurve, FinitePointField, NonNegative, PositiveUnitFraction, UnitFraction, Vec2,
+        AffinityCurve, FinitePointField, NonNegative, PositiveUnitFraction, UnitFraction, Vec2, nz,
+        positive,
     },
     salt::{embedding::EmbedderFingerprint, fit::FitConfig, landmark::select::SelectionOptions},
 };
@@ -31,21 +27,22 @@ pub(super) fn digest(seed: &str) -> Sha256Digest {
     hasher.finalize()
 }
 
-/// The frozen configuration half of the preimage inputs.
+/// Builds a seeded fit configuration with a 512-landmark capacity.
+///
+/// Unspecified fields use the current defaults and contribute to the pinned preimage bytes.
 pub(super) fn config() -> FitConfig {
     FitConfig {
         seed: 0xC2,
         selection: SelectionOptions {
-            maximum_count: NonZero::new(512).expect("the fixture capacity is nonzero"),
+            maximum_count: nz!(512),
             ..
         },
-        curve: AffinityCurve::new(1.5, 0.9)
-            .expect("the fixture parameters are finite and strictly positive"),
+        curve: AffinityCurve::new(positive!(1.5), positive!(0.9)),
         ..
     }
 }
 
-/// The frozen snapshot half of the preimage inputs.
+/// Builds snapshot metadata for 1,000 nodes and 4,000 edges.
 pub(super) fn snapshot() -> Snapshot {
     Snapshot {
         axes: None,
@@ -55,7 +52,7 @@ pub(super) fn snapshot() -> Snapshot {
     }
 }
 
-/// The frozen reproducibility half of the preimage inputs.
+/// Builds the configuration and embedder echo with no prior generation.
 pub(super) fn reproducibility() -> Reproducibility {
     Reproducibility {
         config: config(),
@@ -64,14 +61,18 @@ pub(super) fn reproducibility() -> Reproducibility {
     }
 }
 
-/// The recognized initial draw rule.
+/// Returns the recognized initial draw rule.
 pub(super) fn rule() -> DrawRule {
     RuleIdentity::INITIAL
         .recognize()
         .expect("the crate carries its own initial identity")
 }
 
-/// The salt the frozen inputs derive.
+/// Derives the fixture metadata's draw salt.
+///
+/// # Panics
+///
+/// Panics if the fixture metadata does not serialize.
 pub(super) fn salt() -> DrawSalt {
     rule()
         .derive_salt(&snapshot(), &reproducibility())
@@ -83,7 +84,11 @@ pub(super) fn node(value: u64) -> NodeRowId {
     NodeRowId::new(value)
 }
 
-/// Builds one attraction group record with the given Proximal class weight.
+/// Builds a group with the supplied Proximal weight and fixed Coincident weight and strength.
+///
+/// # Panics
+///
+/// Panics when `proximal` is negative or non-finite.
 pub(super) fn group(relation: u64, edge_offset: u64, proximal: f32) -> GroupRecord {
     let weight = |value: f32| NonNegative::new(value).expect("the fixture weights are in domain");
     GroupRecord::new(
@@ -107,7 +112,9 @@ pub(super) fn edge(source: u64, target: u64) -> EdgeRecord<NodeRowId, EdgeRowId>
     )
 }
 
-/// Views a finite point slice as a proven corpus-row frame.
+/// Interprets fixture points as a corpus-row frame.
+///
+/// Every coordinate must be finite.
 pub(super) fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }

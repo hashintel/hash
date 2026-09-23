@@ -12,18 +12,25 @@ use super::{
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    file::quad::Node,
+    file::{ArtifactFile as _, quad::Node},
     identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, FinitePointField, Log2, Vec2},
-    morton::{Depth, MortonCell, MortonKey},
+    morton::{Depth, MortonCell, MortonKey, Zoom},
     postgres::id::ArchivedEntityId,
 };
 
-/// Pins raw fixture coordinates as the proven-finite corpus field.
+/// Borrows fixture coordinates as a finite point field.
+///
+/// # Panics
+///
+/// Panics if a coordinate is not finite.
 fn finite(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
     FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture coordinates are finite")
 }
 
+/// Derives distinct entity identities from the index's UUID representation.
+///
+/// The web UUID encodes `index` and the entity UUID encodes 31 · `index` modulo 2¹²⁸.
 fn identity(index: u128) -> ArchivedEntityId {
     ArchivedEntityId {
         web_id: Uuid::from_u128(index).into(),
@@ -31,11 +38,12 @@ fn identity(index: u128) -> ArchivedEntityId {
     }
 }
 
+/// Generates `count` distinct identities from consecutive indexes.
 fn identities(count: u128) -> Vec<ArchivedEntityId> {
     (0..count).map(identity).collect()
 }
 
-/// Typed rank columns over raw fixture slices.
+/// Checks raw fixture columns with [`RankInputs::new`].
 fn rank_inputs<'columns>(
     importance: &'columns [f32],
     priority: &'columns [f32],
@@ -48,7 +56,13 @@ fn rank_inputs<'columns>(
     )
 }
 
-/// A ranking straight from a hand-written rank order.
+/// Constructs both ranking directions from a hand-written row permutation.
+///
+/// `row_of_rank` must contain each row exactly once.
+///
+/// # Panics
+///
+/// Panics when a row index is at or beyond `row_of_rank.len()`.
 fn ranking_of(row_of_rank: &[u32]) -> Ranking<NodeRowId> {
     let row_of_rank: Vec<NodeRowId> = row_of_rank
         .iter()
@@ -68,12 +82,31 @@ fn ranking_of(row_of_rank: &[u32]) -> Ranking<NodeRowId> {
     }
 }
 
+/// Checks a literal subdivision depth.
+///
+/// # Panics
+///
+/// Panics above [`Depth::MAX`].
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
+/// Checks a literal span exponent.
+///
+/// # Panics
+///
+/// Panics at or above the 64-bit shift width.
 fn log2(value: u8) -> Log2 {
     Log2::new(value).expect("test spans lie below the shift width")
+}
+
+/// Checks a literal tile zoom.
+///
+/// # Panics
+///
+/// Panics above [`Zoom::MAX`].
+fn zoom(value: u8) -> Zoom {
+    Zoom::new(value).expect("test zooms lie within the key width")
 }
 
 #[test]
@@ -109,7 +142,7 @@ fn rank_orders_by_importance_then_priority_then_tiebreak() {
 
 #[test]
 fn seed_reshuffles_ties() {
-    // All scores tie, so the order is the seeded hash's alone.
+    // equal score columns leave only the seeded hashes to order these rows
     let importance = [1.0_f32; 8];
     let priority = [1.0_f32; 8];
     let ids = identities(8);
@@ -136,8 +169,7 @@ fn rank_inputs_reject_disagreeing_columns() {
 
 #[test]
 fn non_finite_scores_rank_deterministically() {
-    // The dataset contract keeps scores finite. `totalOrder` keeps the pass total and reproducible
-    // even when a dataset breaks that contract.
+    // total_cmp orders NaNs and infinities without requiring finite scores
     let importance = [f32::NAN, 1.0, f32::NAN, f32::INFINITY];
     let priority = [0.0_f32; 4];
     let ids = identities(4);
@@ -167,7 +199,7 @@ fn keys_quantize_the_frame_corners_center_and_degenerate_axis() {
     assert_eq!(keys[0].coordinates(), [1 << 31, 0]);
 }
 
-/// Keys whose depth-1 and depth-2 cells are hand-picked.
+/// Constructs keys with prescribed depth-1 and depth-2 cells.
 ///
 /// Axis values place their top two bits at (depth-1 quadrant, depth-2 sub-cell).
 fn hand_keys() -> [MortonKey; 4] {
@@ -251,9 +283,7 @@ fn base_order_sorts_buckets_then_keys_then_ranks() {
         [0, 1, 2, 3].map(BasePosition::from_u32),
     );
 
-    // Reversing the two catch-all rows' keys is invisible to the sort
-    // only if rank breaks the tie: give them one key and check rank
-    // order decides.
+    // equal catch-all keys leave rank as the deciding component
     let tied = [keys[0], keys[1], keys[2], keys[2]];
     let tied = IdSlice::<NodeRowId, _>::from_raw(&tied);
     let ranking = ranking_of(&[0, 1, 3, 2]);
@@ -283,8 +313,8 @@ fn separation_assigns_the_hand_computed_natural_buckets() {
 
     let buckets = cascade::separation_buckets(&points, |point| point.0, |point| point.1);
 
-    // a claims the whole domain. c shares a's cells through depth 31, so it first claims at 32.
-    // d shares depth 1 with a and c and claims depth 2. b parts from everything at the first
+    // a claims the whole domain. For c, the deepest shared grid with a is D = 31, giving bucket D +
+    // 1 = 32. For d, D = 1 gives bucket 2. b separates from every other point at the first
     // subdivision and claims depth 1.
     assert_eq!(*buckets, [depth(0), depth(32), depth(2), depth(1)]);
 
@@ -298,7 +328,6 @@ fn separation_assigns_the_hand_computed_natural_buckets() {
     assert_eq!(*buckets, [depth(0), depth(32), depth(1)]);
 }
 
-/// The neighbour-separation closed form is the cascade at the full key width.
 #[property_test]
 fn separation_is_the_cascade_at_the_key_width(
     #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
@@ -322,9 +351,6 @@ fn separation_is_the_cascade_at_the_key_width(
     }
 }
 
-/// Coverage holds for every input.
-///
-/// Each occupied cell at each depth of the schedule keeps a representative in the delivered prefix.
 #[property_test]
 fn cascade_coverage_is_total(
     #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
@@ -341,7 +367,6 @@ fn cascade_coverage_is_total(
     prop_assert_eq!(cascade::verify_coverage(keyed, &buckets, deepest), Ok(()));
 }
 
-/// Below the catch-all, a bucket holds at most one point per cell of its own grid.
 #[property_test]
 fn buckets_claim_cells_once(
     #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
@@ -376,9 +401,6 @@ fn buckets_claim_cells_once(
     }
 }
 
-/// The base order is the unique (bucket, key, rank) sort.
-///
-/// Its permutations invert each other.
 #[property_test]
 fn base_order_is_the_unique_total_sort(
     #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
@@ -411,9 +433,11 @@ fn base_order_is_the_unique_total_sort(
     }
 }
 
-/// A deterministic ranking for property tests.
+/// Ranks equal-score rows by seeded identity hashes.
 ///
-/// Rows ranked by the seeded tiebreak alone, through the real rank pass.
+/// # Panics
+///
+/// Panics when `rows` exceeds `u32::MAX`.
 fn seeded_ranking(rows: usize, seed: u64) -> Ranking<NodeRowId> {
     let importance = vec![0.0_f32; rows];
     let priority = vec![0.0_f32; rows];
@@ -425,22 +449,22 @@ fn seeded_ranking(rows: usize, seed: u64) -> Ranking<NodeRowId> {
 
 #[test]
 fn lod_config_carries_the_key_width_bound() {
-    // The default schedule reaches the f32 resolution depth.
+    // the default grid reaches depth 24, with wire-axis cell width 2⁻²³
     let config = LodConfig::default();
     assert_eq!(config.span.get(), 6);
-    assert_eq!(config.max_tile_depth, 18);
+    assert_eq!(config.max_tile_depth, zoom(18));
     assert_eq!(config.deepest(), Some(depth(24)));
 
     // The inequality z_max + m ≤ 32 binds exactly at the key width.
     let at_width = LodConfig {
         span: log2(6),
-        max_tile_depth: 26,
+        max_tile_depth: zoom(26),
     };
     assert_eq!(at_width.deepest(), Some(depth(32)));
 
     let beyond = LodConfig {
         span: log2(6),
-        max_tile_depth: 27,
+        max_tile_depth: zoom(27),
     };
     assert_eq!(beyond.deepest(), None);
 
@@ -456,12 +480,10 @@ fn lod_config_carries_the_key_width_bound() {
     );
 }
 
-/// The hand stage fixture.
+/// Builds a layout with one regular depth-2 claim and one co-resident catch-all point.
 ///
-/// The comments below compute the wire positions and cascade buckets of its four points.
-///
-/// World frame [0, 1] x [0, 1]; `span` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and the
-/// catch-all is bucket 2.
+/// The world frame is [0, 1] × [0, 1]. With `span` = 1 and `max_tile_depth` = 1, the deepest grid
+/// and catch-all bucket are both 2. The table gives the exact fixture coordinates and cells:
 ///
 /// ```text
 /// row  world         wire           depth-1 quadrant  depth-2 cell
@@ -471,10 +493,10 @@ fn lod_config_carries_the_key_width_bound() {
 /// 3    (0.375, 0.25) (-0.25, -0.5)  (0, 0)            (1, 1)
 /// ```
 ///
-/// Importance ranks the rows in index order. In the cascade, row 0 claims the domain, row 1 its
-/// depth-1 quadrant, row 2 the (1, 1) depth-2 cell, and row 3 - co-resident with row 2 at the
-/// deepest grid - takes the catch-all. Buckets [0, 1, 2, 2]; the base order is the row order (row
-/// 2's key sorts below row 3's).
+/// Importance ranks the rows in index order. Row 0 claims the domain and row 1 its depth-1
+/// quadrant. Row 2 claims the (1, 1) depth-2 cell, while co-resident row 3 takes the catch-all. The
+/// buckets are [0, 1, 2, 2]. Row 2's key sorts below row 3's, keeping the base order equal to the
+/// row order.
 fn hand_stage() -> (Lod, LodConfig) {
     let coordinates = [
         Vec2::new(0.0, 0.0),
@@ -487,7 +509,7 @@ fn hand_stage() -> (Lod, LodConfig) {
     let ids = identities(4);
     let config = LodConfig {
         span: log2(1),
-        max_tile_depth: 1,
+        max_tile_depth: zoom(1),
     };
 
     let lod = Lod::build(
@@ -510,9 +532,7 @@ fn build_produces_the_hand_computed_columns() {
         Bounds2::new(Vec2::new(0.0, 0.0), Vec2::new(1.0, 1.0)).expect("a real frame"),
     );
 
-    // Wire coordinates in base order, exact: the normalization is a
-    // single f64 rounding per component and every fixture value is a
-    // dyadic rational.
+    // every fixture value and its image 2x − 1 are exactly representable dyadic rationals
     assert_eq!(
         *lod.coordinates.as_raw(),
         [
@@ -704,9 +724,6 @@ fn columns_round_trip_through_the_morton_file() {
     );
 }
 
-/// Every finite point set builds.
-///
-/// The result upholds the serving contract's structural laws.
 #[property_test]
 fn built_columns_uphold_the_contract_laws(
     #[strategy = proptest::collection::vec(
@@ -724,7 +741,7 @@ fn built_columns_uphold_the_contract_laws(
     let ids = identities(rows.len() as u128);
     let config = LodConfig {
         span: log2(span_log2),
-        max_tile_depth,
+        max_tile_depth: zoom(max_tile_depth),
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
@@ -783,14 +800,10 @@ fn built_columns_uphold_the_contract_laws(
         Ok(()),
     );
 
-    // At most one delivered point per depth-d cell at every cut
-    // d below the deepest grid, jointly across buckets - the
-    // uniqueness claim the mass channel leans on. The
-    // cascade's represented rule guarantees it. A claim never
-    // lands in a cell holding an earlier-assigned point, so two
-    // points sharing a depth-d cell cannot both carry buckets at
-    // or below d unless the later one is a catch-all leftover
-    // (bucket = deepest, never delivered below the deepest cut).
+    // A depth-d cell lies inside every shallower cell containing its points. The cascade never
+    // assigns a point in a cell already represented by an earlier-assigned point. Two depth-d
+    // co-residents cannot both claim at or below d. Therefore every cut below the catch-all has at
+    // most one delivered representative per cell, jointly across buckets.
     for cut in 0..deepest.get() {
         let cut = depth(cut);
         let mut occupied = std::collections::HashSet::new();
@@ -829,7 +842,7 @@ fn built_columns_uphold_the_contract_laws(
     prop_assert!(evidence.max_tile_delta >= 1);
 }
 
-/// Direct types for the hand-stage rows: distinct enough that every union is distinguishable.
+/// Assigns hand-stage direct types that distinguish the expected cell unions.
 fn hand_types() -> IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> {
     vec![
         smallvec![OntologyRowId::new(5)],
@@ -843,12 +856,10 @@ fn hand_types() -> IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> {
 
 #[test]
 fn quad_build_produces_the_hand_computed_tree() {
-    // The hand-stage cut at span = 1: the root's cut is bucket 1,
-    // so its run carries buckets 0..=1 (positions 0..2) and only
-    // quadrant (0, 0) - holding the two bucket-2 points - gets a
-    // child. That child's cut is the deepest grid: a leaf whose run
-    // is the catch-all pair (positions 2..4) and whose subtree also
-    // contains the origin point delivered by the root.
+    // the root's span-1 cut carries buckets 0..=1 (positions 0..2). Only quadrant (0, 0), holding
+    // the two bucket-2 points, gets a child. That child's deepest-grid cut delivers the catch-all
+    // pair (positions 2..4). Its whole-cell population also includes the origin point delivered by
+    // the root.
     let (lod, config) = hand_stage();
     let tree = QuadTree::build(&lod, &hand_types(), config).expect("the fixture builds");
 
@@ -875,9 +886,8 @@ fn quad_build_produces_the_hand_computed_tree() {
 
 #[test]
 fn quad_build_gathers_types_through_the_base_order() {
-    // The hand-stage points with their rows permuted. Importance travels with each point, so the
-    // cascade and the tree are identical. The base order is no longer the row order
-    // (row_of_position = [1, 0, 3, 2]), and the builder must gather the type column through it.
+    // the permuted rows retain each point's distinct importance. The cascade and tree remain
+    // identical, but row_of_position = [1, 0, 3, 2] requires gathering the type column.
     let coordinates = [
         Vec2::new(1.0, 1.0),
         Vec2::new(0.0, 0.0),
@@ -889,7 +899,7 @@ fn quad_build_gathers_types_through_the_base_order() {
     let ids = identities(4);
     let config = LodConfig {
         span: log2(1),
-        max_tile_depth: 1,
+        max_tile_depth: zoom(1),
     };
     let lod = Lod::build(
         finite(&coordinates),
@@ -937,14 +947,14 @@ fn quad_build_rejects_what_no_tree_covers() {
             &hand_types(),
             LodConfig {
                 span: log2(32),
-                max_tile_depth: 1,
+                max_tile_depth: zoom(1),
             },
         )
         .expect_err("a schedule beyond the key width must not build"),
         QuadError::Schedule {
             config: LodConfig {
                 span: log2(32),
-                max_tile_depth: 1,
+                max_tile_depth: zoom(1),
             },
         },
     );
@@ -964,7 +974,7 @@ fn quad_build_rejects_what_no_tree_covers() {
             &hand_types(),
             LodConfig {
                 span: log2(1),
-                max_tile_depth: 0,
+                max_tile_depth: zoom(0),
             },
         )
         .expect_err("a mismatched configuration must not build"),
@@ -1004,18 +1014,13 @@ fn quad_tree_round_trips_through_the_quad_file() {
     let file = QuadFile::open(&path).expect("the written file reopens");
     assert_eq!(file.nodes(), tree.nodes.as_slice());
 
-    // The child tile locates, its pruned siblings do not, and its type set reads back.
-    let quadrant = MortonCell::new(depth(1), 0, 0).expect("the quadrant exists");
-    assert_eq!(file.locate(quadrant), Some(1));
-    let sibling = MortonCell::new(depth(1), 1, 0).expect("the quadrant exists");
-    assert_eq!(file.locate(sibling), None);
+    // The written child pointers and type set match the fitted tree.
+    assert_eq!(file.nodes()[0].children()[0], Some(1));
+    assert_eq!(file.nodes()[0].children()[1], None);
     let stored: Vec<u32> = file.type_set(1).iter().map(|id| id.get()).collect();
     assert_eq!(stored, [2, 5, 9]);
 }
 
-/// Every built lod cuts into a tree upholding the serving contract's structural laws.
-///
-/// Certified against linear-scan references.
 #[property_test]
 fn quad_trees_uphold_the_contract_laws(
     #[strategy = proptest::collection::vec(
@@ -1037,7 +1042,7 @@ fn quad_trees_uphold_the_contract_laws(
         .collect();
     let config = LodConfig {
         span: log2(span_log2),
-        max_tile_depth,
+        max_tile_depth: zoom(max_tile_depth),
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
@@ -1095,8 +1100,7 @@ fn quad_trees_uphold_the_contract_laws(
         })
         .collect();
 
-    // The runs partition the base order, so the incremental tile pyramid delivers every point
-    // exactly once.
+    // a partition requires exactly one delivery of each base position
     let mut delivered = vec![0_u32; lod.codes.len()];
     for node in &tree.nodes {
         for position in node.run() {
@@ -1173,7 +1177,7 @@ fn quad_trees_uphold_the_contract_laws(
     prop_assert!(evidence.depth.get() <= max_tile_depth);
 }
 
-/// A deterministic xorshift64* stream for adversarial cases without new dependencies.
+/// Advances a xorshift64 state and returns its multiplied output.
 fn harness_rng(state: &mut u64) -> u64 {
     *state ^= *state << 13;
     *state ^= *state >> 7;
@@ -1181,7 +1185,11 @@ fn harness_rng(state: &mut u64) -> u64 {
     state.wrapping_mul(0x2545_F491_4F6C_DD1D)
 }
 
-/// Draws a value below `bound` from the stream.
+/// Reduces a stream word modulo `bound`, with possible modulo bias.
+///
+/// # Panics
+///
+/// Panics when `bound` is zero.
 #[expect(
     clippy::integer_division_remainder_used,
     clippy::cast_possible_truncation,
@@ -1191,7 +1199,7 @@ fn harness_draw(state: &mut u64, bound: usize) -> usize {
     (harness_rng(state) as usize) % bound
 }
 
-/// The deepest depth at which both keys' prefixes agree, computed through `prefix` alone.
+/// Finds the deepest grid where both keys' prefixes agree.
 fn oracle_shared_depth(left: MortonKey, right: MortonKey) -> u8 {
     (0..=32_u8)
         .rev()
@@ -1202,8 +1210,10 @@ fn oracle_shared_depth(left: MortonKey, right: MortonKey) -> u8 {
         .expect("depth zero prefixes are always equal")
 }
 
-/// Computes each point's bucket quadratically, as one past the deepest grid the point
-/// shares with ANY better-ranked point, clamped to `deepest`. The best point takes zero.
+/// Computes first-separation buckets by comparing every pair of points.
+///
+/// For each point, the result is min(D + 1, `deepest`), where D is its deepest shared grid with any
+/// better-ranked point. The best-ranked point takes zero.
 fn oracle_natural_buckets(points: &[(MortonKey, ImportanceRank)], deepest: Depth) -> Vec<Depth> {
     points
         .iter()
@@ -1217,30 +1227,31 @@ fn oracle_natural_buckets(points: &[(MortonKey, ImportanceRank)], deepest: Depth
             }
 
             best.map_or(Depth::MIN, |shared| {
-                depth(shared).saturating_add(1).min(deepest)
+                depth(shared).saturating_add(Log2::ONE).min(deepest)
             })
         })
         .collect()
 }
 
-/// Builds adversarial key pools that force heavy duplication, deep shared prefixes,
-/// splits at even and at odd bit positions, and full-width randoms.
+/// Builds duplicate-heavy key pools with prescribed shared-prefix boundaries.
+///
+/// Pools include equal keys, low-bit and high-bit splits on both axes, and full-width stream words.
 fn harness_key_pools(state: &mut u64) -> Vec<Vec<MortonKey>> {
     let base = harness_rng(state);
     vec![
         // Every point drawn from here is co-resident at the full width.
         vec![MortonKey::from_bits(base)],
-        // The pair differs in the lowest bit, so the shared depth is 31.
+        // differing only in bit 0 leaves 31 complete leading bit pairs in common
         vec![
             MortonKey::from_bits(base | 1),
             MortonKey::from_bits(base & !1),
         ],
-        // The pair differs at bit 62, x's top bit, so the shared depth is 0.
+        // differing in bit 62, x's top bit, leaves no complete leading bit pair in common
         vec![
             MortonKey::from_bits(base | (1 << 62)),
             MortonKey::from_bits(base & !(1 << 62)),
         ],
-        // The pair differs at bit 63, y's top bit, so the shared depth is 0.
+        // differing in bit 63, y's top bit, leaves no complete leading bit pair in common
         vec![
             MortonKey::from_bits(base | (1 << 63)),
             MortonKey::from_bits(base & !(1 << 63)),
@@ -1256,8 +1267,6 @@ fn harness_key_pools(state: &mut u64) -> Vec<Vec<MortonKey>> {
     ]
 }
 
-/// `separation_buckets` equals both the quadratic closed form and `cascade::buckets` at the
-/// key width, over adversarial duplicate-heavy inputs.
 #[test]
 fn separation_buckets_matches_oracle_and_cascade_adversarially() {
     let mut state = 0x0BAD_5EED_0BAD_5EED_u64;
@@ -1336,8 +1345,6 @@ fn separation_buckets_matches_oracle_and_cascade_adversarially() {
     assert!(cases >= 2_000, "the sweep exercised the pools");
 }
 
-/// `cascade::buckets` itself realizes the min(D + 1, deepest) closed form at EVERY deepest,
-/// not only the key width: the analytic reading the replacement rests on.
 #[test]
 fn cascade_buckets_matches_the_closed_form_at_every_deepest() {
     let mut state = 0xFEED_FACE_FEED_FACE_u64;

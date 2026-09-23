@@ -1,24 +1,20 @@
 //! Card embedding through an external provider.
 //!
-//! [`ExternalEmbeddingProvider`] makes any [`EmbeddingGenerator`] usable as a [`CardEmbedder`]. The
-//! generator family already pins the vector type, the error type, and the input-order contract, so
-//! backends differ only in data. The [`EmbeddingContract`] names the configuration the fingerprint
-//! commits to, and the [`RequestLimits`] set the ceilings the proxy packs requests under. One
-//! request never exceeds the document ceiling or the summed token ceiling, and token counts are
-//! exact `cl100k_base` counts, the encoding of the embedding models this crate targets. The
-//! provider additionally gates admission on a byte estimate of the token count (UTF-8 bytes divided
-//! by four, measured bit-exact against its rejections), so requests stay under the token ceiling in
-//! both accountings.
+//! [`ExternalEmbeddingProvider`] adapts an [`EmbeddingGenerator`] to [`CardEmbedder`] with
+//! sequential request batches and completed-batch progress. [`EmbeddingContract`] identifies the
+//! declared vector configuration, while [`RequestLimits`] controls batch size.
 //!
-//! The request boundary is also the workload's only observable progress, so the proxy carries the
-//! run's [`Progress`] observer and reports each request it completes against the workload the
-//! caller handed it. Nothing above it observes those boundaries, because a caller hands over the
-//! whole workload in one call.
+//! For a batch of texts, let tᵢ be the `cl100k_base` token count and bᵢ its UTF-8 byte length.
+//! Admission requires both Σtᵢ ≤ L and ⌈Σbᵢ/4⌉ ≤ L, where L is the token limit, together with the
+//! document limit. The byte estimate supplements the tokenizer count. These are local sizing rules,
+//! and a provider can impose additional restrictions.
 //!
-//! Because the workload arrives whole, the first request is also the first proof that the provider
-//! is reachable under the configured credentials, by which point a run has already read the store
-//! and assembled its cards. [`ExternalEmbeddingProvider::preflight`] buys that proof up front, for
-//! one text.
+//! The adapter calls [`Progress::embedding_batch`] after each batch returns the expected number of
+//! canonical-width vectors. The report counts completed texts against the whole workload. A
+//! generator can retry internally, and batch reports do not count HTTP attempts.
+//!
+//! [`ExternalEmbeddingProvider::preflight`] checks one short text before committing to a workload.
+//! Success establishes that this call returned one canonical-width vector.
 
 use core::{error::Error, fmt, iter::Peekable, num::NonZero, ops::ControlFlow};
 
@@ -39,10 +35,10 @@ mod tests;
 
 /// The configuration an [`EmbedderFingerprint`] commits to.
 ///
-/// The fields name everything that determines the vector a text embeds to, as the caller configured
-/// the generator. The adapter adds the dimension it enforces. Stating a contract that differs from
-/// the generator's actual configuration poisons cross-generation reuse, so construct it beside the
-/// generator, from the same values.
+/// The fields must describe the generator's actual configuration. The adapter adds
+/// [`CANONICAL_DIMENSIONS`] to the fingerprint preimage. Use a model identity that changes when the
+/// vector-producing contract changes. A declared model name alone cannot detect provider-side model
+/// updates.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EmbeddingContract<'text> {
     /// The provider organization, e.g. `openai`.
@@ -58,8 +54,9 @@ pub(crate) struct EmbeddingContract<'text> {
 impl EmbeddingContract<'_> {
     /// Returns the fingerprint of this contract.
     ///
-    /// Every field is length-prefixed in the preimage, so fingerprints distinguish contracts that
-    /// concatenate to equal bytes.
+    /// Each text field has a little-endian byte-length prefix. The preimage therefore distinguishes
+    /// field boundaries even when raw field concatenations are equal. SHA-256 hashes that
+    /// domain-separated preimage together with the canonical dimension.
     #[expect(
         clippy::little_endian_bytes,
         reason = "the preimage is pinned to canonical little-endian length prefixes on every \
@@ -86,48 +83,48 @@ impl EmbeddingContract<'_> {
     }
 }
 
+/// The default maximum of 2,048 texts per batch.
 const DEFAULT_DOCUMENT_LIMIT: NonZero<usize> = const { NonZero::new(2_048).unwrap() };
+/// The default ceiling of 300,000 tokens under each local accounting.
 const DEFAULT_TOKEN_LIMIT: NonZero<usize> = const { NonZero::new(300_000).unwrap() };
 
-/// The text a preflight request carries.
-///
-/// Its content is immaterial, because the only question under test is whether the provider answers
-/// at all. The text is one short word, the cheapest request the endpoint accepts.
+/// A short input for checking the generator response count and vector width.
 const PREFLIGHT_TEXT: &str = "preflight";
 
-/// Ceilings one provider request must stay under.
+/// Document and token ceilings for each embedding batch.
 ///
-/// The defaults are the OpenAI embeddings API's published per-request ceilings.
+/// Custom limits must keep accumulated token and byte counts, including the next candidate text,
+/// representable as `usize`. The default token limit leaves room for these additions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct RequestLimits {
-    /// Maximum texts per request.
+    /// Maximum texts per batch, 2,048 by default.
     pub documents: NonZero<usize> = DEFAULT_DOCUMENT_LIMIT,
-    /// Maximum summed tokens per request.
+    /// Maximum batch cost under each token accounting, 300,000 by default.
     ///
-    /// Held in both provider accountings: the exact `cl100k_base` count and the admission gate's
-    /// byte estimate (UTF-8 bytes divided by four).
+    /// Applies separately to the sum of `cl100k_base` token counts and the total UTF-8 byte length divided by four, rounded up.
     pub tokens: NonZero<usize> = DEFAULT_TOKEN_LIMIT,
 }
 
-/// The running cost of the request under assembly, in both provider accountings.
+/// Accumulated tokenizer and byte counts for the batch under assembly.
 #[derive(Default)]
 struct RequestCost {
     /// Exact `cl100k_base` tokens.
     tokens: usize,
     /// UTF-8 bytes.
     ///
-    /// The admission gate estimates tokens as bytes divided by four.
+    /// The admission estimate rounds the batch's total bytes divided by four up to an integer.
     bytes: usize,
 }
 
-/// A [`CardEmbedder`] over an external [`EmbeddingGenerator`].
+/// A card embedder with sequential batching and completed-batch progress.
 ///
-/// The proxy sizes the requests. It splits a workload into requests that respect both
-/// [`RequestLimits`] ceilings, measuring each text's cost by its exact `cl100k_base` token count.
-/// It re-validates returned vectors to the canonical width and hands them back in input order.
+/// Under [`RequestLimits`], the workload splits into batches with validated response counts and
+/// vector widths. Output retains the order promised by [`EmbeddingGenerator`], and each completed
+/// batch reports to the supplied observer. [`super::embed_cards`] checks vector finiteness
+/// separately.
 ///
-/// Sizing the requests here makes the proxy the only place a workload's advance is visible, so it
-/// reports every completed request to the run's observer.
+/// The adapter collects the input text references and all output vectors before returning. A
+/// failure returns no partial vector collection, even if earlier batches completed.
 #[derive(Debug)]
 pub(crate) struct ExternalEmbeddingProvider<G, P> {
     generator: G,
@@ -137,7 +134,11 @@ pub(crate) struct ExternalEmbeddingProvider<G, P> {
 }
 
 impl<G, P> ExternalEmbeddingProvider<G, P> {
-    /// Creates a provider embedding under `contract` within `limits`, reporting to `progress`.
+    /// Configures batching, reuse identity, and progress for `generator`.
+    ///
+    /// `contract` must describe the generator's configuration. The constructor records its
+    /// fingerprint without changing or inspecting that configuration. `limits` must satisfy
+    /// [`RequestLimits`]'s arithmetic requirement.
     #[must_use]
     pub(crate) fn new(
         generator: G,
@@ -153,26 +154,17 @@ impl<G, P> ExternalEmbeddingProvider<G, P> {
         }
     }
 
-    /// Proves the provider answers, before anything expensive happens.
+    /// Checks one generator call for a single canonical-width response.
     ///
-    /// One request for one short text, through the same generator, contract and canonical
-    /// validation the workload uses. It settles what a run cannot recover from and otherwise
-    /// discovers late, namely credentials the provider refuses, an endpoint that does not answer,
-    /// and a model whose vectors are not the canonical width.
-    ///
-    /// The check is unconditional, including for runs that turn out to reuse every card. A run
-    /// learns whether anything needs embedding only after it reads the store and assembles the
-    /// cards, which is exactly the work whose cost this exists to avoid paying twice.
+    /// Use this before expensive input preparation to detect provider refusal or incompatible
+    /// response shape early. The generator receives one short text and may retry internally. This
+    /// check bypasses [`RequestLimits`] and emits no batch progress. It checks only response count
+    /// and width. Success does not guarantee that later requests succeed.
     ///
     /// # Errors
     ///
-    /// Returns the same [`ExternalEmbeddingError`] a workload would: [`Provider`] when the request
-    /// fails, [`BatchCount`] when one text does not return one vector, and [`Dimensions`] when the
-    /// returned vector is not [`CANONICAL_DIMENSIONS`] wide.
-    ///
-    /// [`Provider`]: ExternalEmbeddingError::Provider
-    /// [`BatchCount`]: ExternalEmbeddingError::BatchCount
-    /// [`Dimensions`]: ExternalEmbeddingError::Dimensions
+    /// Returns [`ExternalEmbeddingError`] for generator failure, response-count mismatch, or
+    /// noncanonical width, in that order.
     pub(crate) async fn preflight(&self) -> Result<(), ExternalEmbeddingError>
     where
         G: EmbeddingGenerator,
@@ -194,13 +186,18 @@ impl<G, P> ExternalEmbeddingProvider<G, P> {
         Ok(())
     }
 
-    /// Admits the workload's next text into the request under assembly, or breaks.
+    /// Admits the next text or finishes the batch with a stop reason.
     ///
-    /// Breaks with `Ok` when the request is full, either because a further text would cross a
-    /// ceiling or because the workload holds no more texts. Breaks with the workload-stopping error
-    /// when the next text cannot embed at all. An empty request admits any text that fits the token
-    /// ceiling alone, so a break with texts on the iterator always leaves a non-empty request.
-    /// `index` locates the next text in the workload for error reports.
+    /// `cost` must describe `batch`, under [`RequestLimits`]'s arithmetic requirement. `index`
+    /// identifies the next text in the workload. Successful admission consumes that text and
+    /// returns [`ControlFlow::Continue`], while a break leaves the text unconsumed.
+    ///
+    /// The break contains `Ok(())` at the document ceiling, iterator exhaustion, or when another
+    /// text would exceed an accumulated cost ceiling. An error reports a reserved token or a text
+    /// that exceeds the token limit by itself. The batch and cost remain unchanged on a break.
+    ///
+    /// A nonempty iterator and empty batch either admit a text or return an error. This ensures
+    /// that a successful break with remaining texts supplies a nonempty batch.
     fn admit<'text>(
         &self,
         batch: &mut Vec<&'text str>,
@@ -262,16 +259,14 @@ impl<G: EmbeddingGenerator + Sync, P: Progress + Sync> CardEmbedder
         &self,
         texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error> {
-        // The provider counts the workload before the first request goes
-        // out. Every report then states its position against the whole.
+        // collecting references fixes the denominator for every completed-batch report.
         let texts: Vec<&str> = texts.into_iter().collect();
         let total = texts.len();
 
         let mut iter = texts.into_iter().peekable();
         let mut embeddings = Vec::new();
-        // One request buffer serves the whole workload, cleared between
-        // requests. Every text shares the workload lifetime, so reuse
-        // costs nothing.
+        // reusing the batch buffer retains its capacity between requests. Its text references
+        // borrow the workload.
         let mut batch: Vec<&str> = Vec::new();
         let mut offset = 0;
 
@@ -287,8 +282,9 @@ impl<G: EmbeddingGenerator + Sync, P: Progress + Sync> CardEmbedder
                 }
             }
 
-            // Texts were on the iterator, so the admission contract
-            // guarantees a non-empty request here.
+            // With a nonempty iterator, admission either accepts a text or returns an error before
+            // a successful break. This loop began with remaining texts and propagated admission
+            // errors. Therefore the batch is nonempty.
             let generated = self
                 .generator
                 .create_embeddings(&batch)
@@ -316,7 +312,15 @@ impl<G: EmbeddingGenerator + Sync, P: Progress + Sync> CardEmbedder
     }
 }
 
-/// Converts one provider vector to the canonical width.
+/// Copies a canonical-width provider vector into aligned storage.
+///
+/// `index` identifies the text for error reporting. Component values copy unchanged, including
+/// non-finite values.
+///
+/// # Errors
+///
+/// Returns [`ExternalEmbeddingError::Dimensions`] when the width differs from
+/// [`CANONICAL_DIMENSIONS`].
 fn canonical(
     embedding: Embedding<'static>,
     index: usize,
@@ -332,7 +336,7 @@ fn canonical(
     Ok(BoxedVecN::new(VecN::from_ref(components)))
 }
 
-/// An [`ExternalEmbeddingProvider`] workload failed.
+/// A batching, generator, or response-shape failure during card embedding.
 #[derive(Debug)]
 pub enum ExternalEmbeddingError {
     /// The generator failed a request.
@@ -343,7 +347,9 @@ pub enum ExternalEmbeddingError {
     Dimensions { index: usize, actual: usize },
     /// A text contains a token the encoding reserves for protocol use.
     ReservedToken { index: usize, token: &'static str },
-    /// A single text exceeds the per-request token ceiling in the stricter provider accounting.
+    /// A single text exceeds the token ceiling under the stricter local accounting.
+    ///
+    /// `tokens` is the larger of its tokenizer count and rounded-up byte estimate.
     OversizedText { index: usize, tokens: usize },
 }
 

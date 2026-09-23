@@ -8,6 +8,26 @@ export type PromptChip = {
 };
 
 /**
+ * Offered after File → New → Build with Brunch, before a conversation starts.
+ * Careful elicitation interviews first; a quick preview may fill gaps only
+ * after making those assumptions visible and waiting for assent.
+ */
+export const START_POSTURE_CHIPS: PromptChip[] = [
+  {
+    id: "careful-elicitation",
+    label: "Interview first",
+    prompt:
+      "I want to build this process carefully. Interview me before you invent missing details or start drawing the net.",
+  },
+  {
+    id: "quick-preview",
+    label: "Quick preview",
+    prompt:
+      "I need a quick preview of this process. Fill reasonable gaps yourself, mark every assumption as provisional in the workpiece, and wait for my assent before treating those as decided.",
+  },
+];
+
+/**
  * Quick-action chips shown when the net is empty — they kick off a
  * domain-shaped build with the AI's interview-first behaviour taking over.
  */

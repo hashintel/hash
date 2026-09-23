@@ -159,12 +159,60 @@ return {
           param__recovery_rate: "0.8",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place__susceptible:
-              "scenario.population * (1 - scenario.infected_ratio)",
-            place__infected: "scenario.population * scenario.infected_ratio",
-            place__recovered: "0",
+            variables: [
+              {
+                name: "population",
+                type: "integer",
+                expression: "1000",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "infected_ratio",
+                type: "ratio",
+                expression: "0.01",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param__infection_rate",
+                expression: "1.5",
+                optimize: null,
+              },
+              {
+                parameterId: "param__recovery_rate",
+                expression: "0.8",
+                optimize: null,
+              },
+            ],
+            places: {
+              place__susceptible: {
+                kind: "uncoloured",
+                count: {
+                  expression:
+                    "scenario.population * (1 - scenario.infected_ratio)",
+                  optimize: null,
+                },
+              },
+              place__infected: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.population * scenario.infected_ratio",
+                  optimize: null,
+                },
+              },
+              place__recovered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },
@@ -182,12 +230,60 @@ return {
           param__recovery_rate: "0.5",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place__susceptible:
-              "scenario.population * (1 - scenario.infected_ratio)",
-            place__infected: "scenario.population * scenario.infected_ratio",
-            place__recovered: "0",
+            variables: [
+              {
+                name: "population",
+                type: "integer",
+                expression: "10000",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "infected_ratio",
+                type: "ratio",
+                expression: "0.0001",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param__infection_rate",
+                expression: "6",
+                optimize: null,
+              },
+              {
+                parameterId: "param__recovery_rate",
+                expression: "0.5",
+                optimize: null,
+              },
+            ],
+            places: {
+              place__susceptible: {
+                kind: "uncoloured",
+                count: {
+                  expression:
+                    "scenario.population * (1 - scenario.infected_ratio)",
+                  optimize: null,
+                },
+              },
+              place__infected: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.population * scenario.infected_ratio",
+                  optimize: null,
+                },
+              },
+              place__recovered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },
@@ -205,12 +301,60 @@ return {
           param__recovery_rate: "1.2",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place__susceptible:
-              "scenario.population * (1 - scenario.infected_ratio)",
-            place__infected: "scenario.population * scenario.infected_ratio",
-            place__recovered: "0",
+            variables: [
+              {
+                name: "population",
+                type: "integer",
+                expression: "1000",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "infected_ratio",
+                type: "ratio",
+                expression: "0.05",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param__infection_rate",
+                expression: "0.6",
+                optimize: null,
+              },
+              {
+                parameterId: "param__recovery_rate",
+                expression: "1.2",
+                optimize: null,
+              },
+            ],
+            places: {
+              place__susceptible: {
+                kind: "uncoloured",
+                count: {
+                  expression:
+                    "scenario.population * (1 - scenario.infected_ratio)",
+                  optimize: null,
+                },
+              },
+              place__infected: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.population * scenario.infected_ratio",
+                  optimize: null,
+                },
+              },
+              place__recovered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },
@@ -228,12 +372,60 @@ return {
           param__recovery_rate: "0.5",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place__susceptible:
-              "scenario.population * (1 - scenario.infected_ratio)",
-            place__infected: "scenario.population * scenario.infected_ratio",
-            place__recovered: "0",
+            variables: [
+              {
+                name: "population",
+                type: "integer",
+                expression: "100000",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "infected_ratio",
+                type: "ratio",
+                expression: "0.00005",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param__infection_rate",
+                expression: "2.5",
+                optimize: null,
+              },
+              {
+                parameterId: "param__recovery_rate",
+                expression: "0.5",
+                optimize: null,
+              },
+            ],
+            places: {
+              place__susceptible: {
+                kind: "uncoloured",
+                count: {
+                  expression:
+                    "scenario.population * (1 - scenario.infected_ratio)",
+                  optimize: null,
+                },
+              },
+              place__infected: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.population * scenario.infected_ratio",
+                  optimize: null,
+                },
+              },
+              place__recovered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },

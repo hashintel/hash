@@ -52,7 +52,13 @@ export {
 } from "./components/Filter/sort-menu-util";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
-export { Icon, type IconName, iconNames } from "./components/Icon/icon";
+export {
+  Icon,
+  type IconName,
+  iconNames,
+  type IconPack,
+  IconProvider,
+} from "./components/Icon/icon";
 export {
   LoadingSpinner,
   type LoadingSpinnerVariant,
@@ -74,7 +80,11 @@ export {
   Select,
   type SelectItem,
 } from "./components/Select/select";
-export { Slider, type SliderProps } from "./components/Slider/slider";
+export {
+  Slider,
+  type SliderProps,
+  type SliderVariant,
+} from "./components/Slider/slider";
 export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";

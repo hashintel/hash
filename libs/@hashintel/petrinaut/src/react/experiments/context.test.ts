@@ -1,7 +1,12 @@
+import { createElement, use } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import {
+  type CreateExperimentInput,
   type ExperimentRecord,
+  ExperimentsContext,
+  type ExperimentsContextValue,
   type ExperimentStatus,
   getExperimentElapsedMs,
   isExperimentActive,
@@ -32,6 +37,10 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
     parameterAxes: [],
     sweep: null,
     latestMetricFramesById: {},
+    scenarioParameterValues: {},
+    constraints: [],
+    constraintPolicy: null,
+    scenario: null,
     ...overrides,
   };
 }
@@ -39,28 +48,27 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
 const ALL_STATUSES: ExperimentStatus[] = [
   "initializing",
   "running",
+  "idle",
   "complete",
   "error",
   "cancelled",
 ];
 
-describe("isTerminalExperimentStatus", () => {
-  it("partitions every status into exactly active or terminal", () => {
-    // The two must stay exact complements: `isExperimentActive` is defined as the
-    // negation, and the provider stamps `finishedAt` off the terminal side.
+describe("experiment status predicates", () => {
+  it("keeps an idle sweep outside the computing and terminal sets", () => {
     const terminal = ALL_STATUSES.filter(isTerminalExperimentStatus);
-    const active = ALL_STATUSES.filter(
-      (status) => !isTerminalExperimentStatus(status),
+    const active = ALL_STATUSES.filter((status) =>
+      isExperimentActive(makeRecord({ status })),
     );
 
     expect(terminal).toStrictEqual(["complete", "error", "cancelled"]);
     expect(active).toStrictEqual(["initializing", "running"]);
+  });
 
-    for (const status of ALL_STATUSES) {
-      expect(isExperimentActive(makeRecord({ status }))).toBe(
-        !isTerminalExperimentStatus(status),
-      );
-    }
+  it("keeps a host-owned idle sweep active until the request settles", () => {
+    expect(
+      isExperimentActive(makeRecord({ status: "idle", requestActive: true })),
+    ).toBe(true);
   });
 });
 
@@ -99,5 +107,35 @@ describe("getExperimentElapsedMs", () => {
     const experiment = makeRecord({ startedAt: 5_000 });
 
     expect(getExperimentElapsedMs(experiment, 4_000)).toBe(0);
+  });
+});
+
+describe("ExperimentsContext default value", () => {
+  /** The value a consumer reads with no provider above it. */
+  const readDefaultValue = (): ExperimentsContextValue => {
+    let value: ExperimentsContextValue | null = null;
+    const Consumer = () => {
+      value = use(ExperimentsContext);
+      return null;
+    };
+    renderToStaticMarkup(createElement(Consumer));
+    return value!;
+  };
+
+  it("rejects creation instead of resolving a record nobody holds", async () => {
+    const input: CreateExperimentInput = {
+      name: "Orphan",
+      scenarioId: null,
+      scenarioParameterValues: {},
+      runCount: 1,
+      seed: 1,
+      dt: 1,
+      maxTime: 10,
+      metricSpecs: [],
+    };
+
+    await expect(readDefaultValue().createExperiment(input)).rejects.toThrow(
+      "createExperiment was called outside an ExperimentsProvider",
+    );
   });
 });

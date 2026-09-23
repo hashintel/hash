@@ -20,19 +20,29 @@ pub(crate) struct QualityArgs {
     #[command(flatten)]
     store: crate::cli::PostgresArgs,
 
-    /// The probe seed. Equal seeds replay the sampling.
+    /// The probe seed, which its sampling derives from.
+    ///
+    /// Defaults to the seed [`live::Options`] carries, a compiled-in value rather than the fit's:
+    /// the assessment builds its generator from this option and reads no seed from the
+    /// generation's metadata.
     #[arg(long, default_value_t = live::Options::default().seed)]
     seed: u64,
 
-    /// Sampled anchor rows.
+    /// Upper bound on sampled anchor rows.
+    ///
+    /// Defaults to the anchor count [`live::Options`] carries.
     #[arg(long, default_value_t = live::Options::default().anchors)]
     anchors: NonZero<usize>,
 
-    /// Sampled comparison rows.
+    /// Upper bound on sampled comparison rows.
+    ///
+    /// Defaults to the comparison count [`live::Options`] carries.
     #[arg(long, default_value_t = live::Options::default().comparisons)]
     comparisons: NonZero<usize>,
 
     /// Where the report JSON lands.
+    ///
+    /// Defaults to `quality-report.json` in the working directory.
     #[arg(long, default_value = "quality-report.json", value_hint = ValueHint::FilePath)]
     output: Utf8PathBuf,
 }
@@ -75,7 +85,8 @@ impl QualityArgs {
         .await
         .map_err(ReportError::Assess)?;
 
-        std::fs::write(&self.output, &assessment.report).map_err(ReportError::Io)?;
+        let report = serde_json::to_string_pretty(&assessment.report)?;
+        std::fs::write(&self.output, report).map_err(ReportError::Io)?;
 
         Ok(QualityVerdict {
             assessment,

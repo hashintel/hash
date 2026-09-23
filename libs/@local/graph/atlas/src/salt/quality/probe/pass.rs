@@ -1,11 +1,11 @@
 //! Per-anchor ranking workers over the probe's shared inputs.
 //!
-//! Each pass is a context binding its shared inputs once; running one ranks the anchors
-//! independently and in parallel under one total order - distances by [`f32::total_cmp`], ties by
-//! ascending row - and yields per-anchor cells cloned from a prevalidated template. The corpus pass
-//! counts ranks against bounded threshold sets, so its per-thread memory follows the search depth,
-//! never the corpus; the sampled pass sorts whole comparison universes, whose size the probe design
-//! bounds.
+//! Both passes rank anchors independently in parallel, ordering [`NonNegative`] distances first and
+//! breaking ties by ascending row. They produce per-anchor cells from shape-validated templates.
+//! The corpus pass counts ranks against bounded threshold sets, using O(K) ranking scratch for
+//! search depth K and a shared corpus-sized anchor mask. The sampled pass sorts its whole
+//! comparison universe, with O(m) ranking scratch for m comparisons. Output cells are additional to
+//! that scratch.
 #![expect(
     clippy::cast_possible_truncation,
     reason = "the corpus row domain is checked against the crate's u32 row encoding at probe entry"
@@ -15,17 +15,11 @@
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
 
-// PERF: at the default search depth (K = 50) the linear threshold-
-// counting loops in the corpus pass cost cycles comparable to the
-// 512-component distance kernel itself. The corpus pass is then
-// plausibly 30-40% scalar counting. If the suite's runtime ever
-// matters, the algorithmic fix comes before SIMD. Sort the K
-// thresholds once per anchor. Then binary-search each candidate's
-// insertion point for log K compares instead of K and suffix-sum a
-// small histogram into the per-threshold counts. That stays exact and
-// costs less than vectorizing compares whose order is lexicographic
-// over distance and row rather than a plain float compare. Measure at
-// live shape (1M rows x 256 anchors) before acting.
+// PERF: threshold counting compares every candidate with K thresholds. A possible alternative sorts
+// thresholds, binary-searches the first threshold greater than each candidate and accumulates those
+// suffix increments into per-threshold counts. This uses O(log K) comparisons per candidate under
+// the same lexicographic distance/row order. Measure counting and distance-kernel costs at live
+// shape (1M rows and 256 anchors) before choosing this change or vectorizing comparisons.
 
 use alloc::{borrow::Cow, collections::BinaryHeap};
 use core::{cmp::Ordering, num::NonZero};
@@ -110,12 +104,18 @@ fn push_bounded<N, A: Allocator>(
     };
 
     if candidate < *farthest {
-        // `PeekMut` sifts the replacement into place on drop.
+        // PeekMut restores heap order on drop
         *farthest = candidate;
     }
 }
 
 /// Sorts universe indices nearest-first, ties by ascending row.
+///
+/// `rows` must cover the distance array, whose length must fit u32.
+///
+/// # Panics
+///
+/// Panics when a compared row index lies outside `rows`.
 fn order_into<A: Allocator>(
     order: &mut Vec<u32, A>,
     distances: &[NonNegative],
@@ -132,8 +132,7 @@ fn order_into<A: Allocator>(
 
 /// One anchor's corpus-pass output across the neighbourhood sizes.
 ///
-/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the ranking
-/// intermediates live in the arena.
+/// Readings own their storage independently of the reusable ranking scratch.
 pub(super) struct AnchorReading {
     /// Rank aggregates, one per neighbourhood size.
     pub cells: Vec<NeighbourhoodAggregate>,
@@ -146,6 +145,11 @@ pub(super) struct AnchorReading {
 }
 
 /// Shared inputs for ranking every anchor against every non-anchor row.
+///
+/// Row-aligned inputs must cover the mask domain. `search` must reach every neighbourhood size and
+/// fit the non-anchor universe. Templates must match the neighbourhood list and universe, with
+/// capacity for the intended aggregate totals. These relationships are established by the probe's
+/// construction, except for arithmetic capacity, which it does not check.
 pub(super) struct CorpusPass<'pass, N> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -155,10 +159,12 @@ pub(super) struct CorpusPass<'pass, N> {
     pub anchor_mask: &'pass DenseBitSet<N>,
     /// Nearest rows kept per space: the largest neighbourhood size.
     pub search: usize,
-    /// Prevalidated empty aggregates, one per neighbourhood size.
+    /// Shape-validated empty aggregates, one per neighbourhood size.
     pub template: &'pass [NeighbourhoodAggregate],
     /// The neighbourhood sizes, in the template's order.
     pub neighbourhoods: &'pass [NonZero<usize>],
+    /// Density radius sizes, also bounded by `search`.
+    pub density_neighbourhoods: &'pass [NonZero<usize>],
     /// Clump labels over the corpus rows.
     ///
     /// When the probe reads recall collapsed onto clump ids beside the plain reading.
@@ -170,6 +176,11 @@ where
     N: Id,
 {
     /// Ranks every anchor, yielding per-neighbourhood readings in anchor order.
+    ///
+    /// # Panics
+    ///
+    /// Evaluating the iterator panics when an anchor or scanned row exceeds an input's row domain,
+    /// or the search depth cannot supply a requested neighbourhood.
     pub(super) fn run<'call>(
         &'call self,
         anchor_rows: &'call [N],
@@ -188,7 +199,13 @@ where
     ///
     /// The rank of a neighbour is the count of universe rows strictly nearer under the total order,
     /// accumulated against the opposite space's nearest [`search`](Self::search) rows during each
-    /// scan. The pass scans the representation matrix once and the coordinate frame twice.
+    /// scan. The pass scans the representation matrix once and the coordinate frame twice, with
+    /// additional distance evaluations for the retained thresholds.
+    ///
+    /// # Panics
+    ///
+    /// Panics on an out-of-domain row or when retained neighbours cannot cover a requested size.
+    /// Aggregate shape mismatches also panic during observation.
     fn anchor(
         &self,
         anchor: N,
@@ -200,7 +217,7 @@ where
         let anchor_point = self.coordinates[anchor];
         let anchor_embedding = &self.representations[anchor];
 
-        // The map's nearest rows, from the first coordinate scan.
+        // the first coordinate scan supplies map neighbours whose reference ranks are needed
         let mut heap = BinaryHeap::new_in(&*scratch);
 
         for row in negated_anchor_mask {
@@ -215,8 +232,8 @@ where
 
         let nearest = heap.into_sorted_vec();
 
-        // Representation scan: the reference nearest rows, and each map
-        // neighbour's reference rank counted against its distance.
+        // one representation scan finds its nearest rows and counts the opposite ranks of map
+        // neighbours
         let mut thresholds = Vec::with_capacity_in(nearest.len(), &*scratch);
         thresholds.extend(nearest.iter().map(|member| Ranked {
             distance: anchor_embedding.cosine_distance(&self.representations[member.row]),
@@ -248,7 +265,7 @@ where
         let reference_nearest = heap.into_sorted_vec();
         let reference_ranks = counts.clone();
 
-        // Second coordinate scan: each reference neighbour's map rank.
+        // the second coordinate scan counts the map ranks of reference neighbours
         thresholds.clear();
         thresholds.extend(reference_nearest.iter().map(|member| Ranked {
             distance: anchor_point.distance_squared(self.coordinates[member.row]),
@@ -274,17 +291,19 @@ where
         }
 
         let mut cells = self.template.to_vec();
-        let mut radii = Vec::with_capacity(self.neighbourhoods.len());
-
         for (aggregate, &k) in cells.iter_mut().zip(self.neighbourhoods) {
             aggregate.observe_ranks(&reference_ranks[..k.get()], &counts[..k.get()]);
-            radii.push(RadiusPair {
-                // The map scans rank by squared distance; the radius is
-                // the distance itself.
+        }
+
+        let radii = self
+            .density_neighbourhoods
+            .iter()
+            .map(|k| RadiusPair {
+                // rankings use squared distance, but density ratios use Euclidean radii
                 map: nearest[k.get() - 1].distance.sqrt(),
                 representation: reference_nearest[k.get() - 1].distance,
-            });
-        }
+            })
+            .collect();
 
         AnchorReading {
             cells,
@@ -293,10 +312,15 @@ where
         }
     }
 
-    /// Reads the clump-collapsed cells from the anchor's nearest lists, empty without a grouping.
+    /// Computes collapsed recall from nearest-first row lists.
     ///
-    /// Both nearest lists arrive nearest-first from the anchor's scans, so the collapsed reading
-    /// costs two small label sweeps per neighbourhood size.
+    /// Returns an empty vector without a grouping. For each neighbourhood size k, label collection
+    /// and overlap cost O(k log k) time, including sorting the label lists.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a nearest list is shorter than a requested neighbourhood or a row lies outside
+    /// the grouping.
     fn clump_cells(
         &self,
         map_nearest: &[Ranked<N>],
@@ -335,8 +359,7 @@ where
 
 /// One anchor's sampled-pass output across the space pairs.
 ///
-/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the ranking
-/// intermediates live in the arena.
+/// Readings own their storage independently of the reusable ranking scratch.
 pub(super) struct SampledReading {
     /// Rank aggregates per space pair, one cell per neighbourhood size.
     pub cells: SpacePairArray<Vec<NeighbourhoodAggregate>>,
@@ -348,10 +371,12 @@ pub(super) struct SampledReading {
     pub baseline_clumps: Vec<ClumpAggregate>,
 }
 
-/// Shared inputs for ranking every anchor against the comparison rows in all three spaces.
+/// Shared inputs for ranking anchors against sampled comparisons in all three spaces.
 ///
-/// The canonical embeddings arrive as the dataset served them: borrowed straight out of a
-/// mapped dump, or owned where the source decodes rows.
+/// Canonical arrays must align with their respective anchor and comparison rows. Other row-indexed
+/// inputs must cover those rows. Templates must match the comparison universe and neighbourhood
+/// sizes, with supported totals. Pair indices must address distinct comparison rows. Canonical
+/// embeddings may borrow dataset storage or own decoded vectors.
 pub(super) struct SampledPass<'pass> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -363,7 +388,7 @@ pub(super) struct SampledPass<'pass> {
     pub comparison_canonical: &'pass [Cow<'pass, AlignedVecN<CANONICAL_DIMENSIONS>>],
     /// The pass's shared universe of comparison rows.
     pub comparison_rows: &'pass [NodeRowId],
-    /// Prevalidated empty aggregates, one per neighbourhood size.
+    /// Shape-validated empty aggregates, one per neighbourhood size.
     pub template: &'pass [NeighbourhoodAggregate],
     /// The neighbourhood sizes, in the template's order.
     pub neighbourhoods: &'pass [NonZero<usize>],
@@ -378,6 +403,11 @@ pub(super) struct SampledPass<'pass> {
 
 impl SampledPass<'_> {
     /// Ranks every anchor, yielding per-space-pair and clump-collapsed readings in anchor order.
+    ///
+    /// # Panics
+    ///
+    /// Evaluating the iterator panics when a row or pair index exceeds its input domain, or a
+    /// template disagrees with the comparison universe.
     pub(super) fn run<'call>(
         &'call self,
         anchor_rows: &'call [NodeRowId],
@@ -392,7 +422,12 @@ impl SampledPass<'_> {
 
     /// Ranks one anchor's comparison universe in all three spaces.
     ///
-    /// Reads the space pairs, the triplet verdicts, and the clump-collapsed baseline.
+    /// Produces neighbourhood cells, triplet verdicts and the clump-collapsed baseline.
+    ///
+    /// # Panics
+    ///
+    /// Panics on an out-of-domain row, anchor ordinal or pair index, or a template universe
+    /// inconsistent with the comparison count.
     fn anchor(&self, index: usize, anchor: NodeRowId, scratch: &mut Scratch) -> SampledReading {
         scratch.reset();
 
@@ -444,9 +479,7 @@ impl SampledPass<'_> {
         let representation_canonical =
             observed(&canonical_order, &representation_order, &mut ranks);
 
-        // Triplet verdicts: whether each space orders the pair's two
-        // points the same way from this anchor, under the shared
-        // (distance, row) total order. Distinct rows leave no ties.
+        // distinct rows resolve equal distances, giving each space one order for the pair
         let mut triplets = SpacePairArray::from_elem(TripletAggregate::default());
         for &[first, second] in self.pairs {
             let nearer_first = |distances: &[NonNegative]| {
@@ -482,14 +515,17 @@ impl SampledPass<'_> {
         }
     }
 
-    /// Reads the clump-collapsed representation-versus-canonical cells from the anchor's orderings.
+    /// Computes collapsed baseline recall from nearest-first comparison orderings.
     ///
-    /// Empty without a grouping.
+    /// Returns an empty vector without a grouping. The canonical ordering is the reference.
+    /// Relabeling measures how much of its neighbourhood the representation keeps with row identity
+    /// relaxed to the component. Label collection and overlap cost O(k log k) per size k, including
+    /// sorting.
     ///
-    /// Both orderings arrive whole-universe nearest-first, so the collapsed baseline costs two
-    /// small label sweeps per neighbourhood size. The canonical ordering is the reference: the
-    /// collapse reads how much of each exact canonical neighbourhood the representation keeps after
-    /// relabeling rows by their connected-component id.
+    /// # Panics
+    ///
+    /// Panics when an ordering is shorter than a requested neighbourhood, an index exceeds the
+    /// comparison universe, or a row lies outside the grouping.
     fn clump_cells(
         &self,
         canonical_order: &[u32],

@@ -1,19 +1,21 @@
 /**
- * Histogram windows: which count range each metric's bins cover.
+ * Histogram windows: which value range each metric's bins cover.
  *
  * Bins used to be zero-anchored — bin `i` meant count `i` — which coupled the
  * representable range to the bin budget: a place living in [1000, 1200]
  * wasted a thousand bins and a count past the budget clamped into the top
  * bin, surfacing as a warning the user could do nothing about. A window maps
- * bin `i` to count `lo + i × stride` instead, and the window is a *uniform*,
- * so moving it needs no shader recompile.
+ * bin `i` to the value `lo + i × stride` instead, and the window is a
+ * *uniform*, so moving it needs no shader recompile.
  *
  * The window is planned, observed, and replanned:
  *
- * 1. The first attempt anchors on what is known exactly — a sampled place's
- *    initial count, and its capacity ceiling when it has one.
- * 2. The shader tracks each metric's observed min/max on the device and
- *    counts values that escaped the window (clamped into an edge bin).
+ * 1. The first attempt is exact for a ceiling-bounded place count; any other
+ *    metric gets a blind `lo 0, stride 1` window, which the handle always
+ *    probes before the full run.
+ * 2. The shader tracks each metric's observed min/max on the device — as
+ *    order-preserving u32 keys, so the u32 atomics reduce floats — and counts
+ *    values that escaped the window (clamped into an edge bin).
  * 3. Any escape recalibrates: the handle replans from the observed range and
  *    re-runs. Seeds derive from absolute run indices, so a re-run reproduces
  *    the same trajectories and the observed range is exact — one re-run
@@ -23,15 +25,26 @@
  */
 
 export type MetricWindow = {
-  /** Count the first bin represents. */
+  /** Value at the first bin's lower edge. */
   lo: number;
-  /** Counts per bin; 1 is exact, wider strides trade resolution for range. */
+  /**
+   * Values per bin: an integer ≥ 1 for integer windows, any positive f32
+   * otherwise.
+   */
   stride: number;
+  /**
+   * Whether samples are whole numbers: integer windows label a bin by its
+   * middle integer, real ones by its centre.
+   */
+  integer: boolean;
 };
 
 /** What the device observed for one metric across every run and frame. */
 export type ObservedMetricRange = {
-  /** Smallest and largest sampled count; `min > max` means no samples. */
+  /**
+   * Smallest and largest sampled value, decoded from the device's order keys;
+   * `min > max` (±Infinity) means no samples.
+   */
   min: number;
   max: number;
   /** Samples clamped into an edge bin because they fell outside the window. */
@@ -41,35 +54,33 @@ export type ObservedMetricRange = {
 
 /** What window planning knows about one metric before any run. */
 export type MetricWindowInput = {
-  /** The sampled place's initial token count. */
-  initialCount: number;
+  integer: boolean;
   /**
-   * Largest count the place can reach, or null when unbounded. A ceiling
-   * makes the window exact and escape-free by construction.
+   * Largest value the metric can reach, or null. Only a declared place
+   * capacity provides one; it makes the window exact and escape-free by
+   * construction.
    */
-  countCeiling: number | null;
+  ceiling: number | null;
 };
 
 const spanStride = (lo: number, hi: number, bins: number): number =>
   Math.max(1, Math.ceil((hi - lo + 1) / bins));
 
 /**
- * First-attempt windows: exact for ceiling-bounded metrics, a generous
- * anchored guess for unbounded ones. The guess trades resolution, not
- * memory — a wider window is a larger stride over the same bins — so
- * guessing large is cheap and the calibrated re-run restores resolution.
+ * First-attempt windows: exact for ceiling-bounded metrics, blind otherwise.
+ * A blind window is always probed, and the probe's observed range replans it
+ * whatever the blind window clamped — range tracking is independent of the
+ * window.
  */
 export function planInitialWindows(
   inputs: readonly MetricWindowInput[],
   bins: number,
 ): MetricWindow[] {
-  return inputs.map(({ initialCount, countCeiling }) => {
-    if (countCeiling !== null) {
-      return { lo: 0, stride: spanStride(0, countCeiling, bins) };
-    }
-    const hi = Math.max(2 * initialCount, initialCount + bins - 1, bins - 1);
-    return { lo: 0, stride: spanStride(0, hi, bins) };
-  });
+  return inputs.map(({ integer, ceiling }) =>
+    ceiling === null
+      ? { lo: 0, stride: 1, integer }
+      : { lo: 0, stride: spanStride(0, ceiling, bins), integer: true },
+  );
 }
 
 /**
@@ -78,7 +89,9 @@ export function planInitialWindows(
  * A probe's extremes understate a larger run's (more runs, wider tails), so
  * `marginFraction` widens the observed span on both sides; the escape
  * counters catch an undershoot and trigger one more calibration. A metric
- * the run never sampled (`min > max`) keeps its previous window.
+ * the run never sampled (`min > max`) keeps its previous window. `lo` clamps
+ * at zero only when no negative value was observed, so a count metric never
+ * spends bins below zero and a signed metric keeps its margin.
  */
 export function windowsFromObserved(
   observed: readonly ObservedMetricRange[],
@@ -87,17 +100,28 @@ export function windowsFromObserved(
   marginFraction: number,
 ): MetricWindow[] {
   return observed.map((range, index) => {
-    const fallback = previous[index] ?? { lo: 0, stride: 1 };
+    const fallback = previous[index] ?? { lo: 0, stride: 1, integer: true };
     if (range.min > range.max) {
       return fallback;
     }
-    const margin = Math.max(
-      2,
-      Math.ceil((range.max - range.min + 1) * marginFraction),
-    );
-    const lo = Math.max(0, range.min - margin);
-    const hi = range.max + margin;
-    return { lo, stride: spanStride(lo, hi, bins) };
+    if (fallback.integer) {
+      const margin = Math.max(
+        2,
+        Math.ceil((range.max - range.min + 1) * marginFraction),
+      );
+      const lo =
+        range.min >= 0 ? Math.max(0, range.min - margin) : range.min - margin;
+      const hi = range.max + margin;
+      return { lo, stride: spanStride(lo, hi, bins), integer: true };
+    }
+    const pad = (range.max - range.min) * marginFraction;
+    const lo = range.min >= 0 ? Math.max(0, range.min - pad) : range.min - pad;
+    const stride = Math.fround((range.max + pad - lo) / bins);
+    if (stride > 0) {
+      return { lo: Math.fround(lo), stride, integer: false };
+    }
+    // A constant metric: one bin, centred on the value.
+    return { lo: Math.fround(range.min - 0.5), stride: 1, integer: false };
   });
 }
 
@@ -105,6 +129,28 @@ export function windowsFromObserved(
 export function anyEscapes(observed: readonly ObservedMetricRange[]): boolean {
   return observed.some((range) => range.below > 0 || range.above > 0);
 }
+
+const keyView = new DataView(new ArrayBuffer(4));
+
+/* eslint-disable no-bitwise -- the order key is bit arithmetic */
+/**
+ * The shader's `f32_order_key`: the f32's bits as a u32 whose order matches
+ * the float's, so the device's u32 min/max atomics reduce a float range.
+ * Positives set the sign bit, negatives flip every bit.
+ */
+export const f32OrderKey = (value: number): number => {
+  keyView.setFloat32(0, value);
+  const bits = keyView.getUint32(0);
+  return ((bits & 0x80000000) === 0 ? bits | 0x80000000 : ~bits) >>> 0;
+};
+
+/** Inverse of `f32OrderKey`, for the device's range readback. */
+export const decodeF32OrderKey = (key: number): number => {
+  const bits = ((key & 0x80000000) === 0 ? ~key : key & 0x7fffffff) >>> 0;
+  keyView.setUint32(0, bits);
+  return keyView.getFloat32(0);
+};
+/* eslint-enable no-bitwise */
 
 /**
  * The cache key for a batch's calibration (windows + derived capacities).

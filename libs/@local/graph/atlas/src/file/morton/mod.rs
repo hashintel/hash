@@ -46,7 +46,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::{fmt, marker::PhantomData, ops::Range};
@@ -66,7 +66,7 @@ use crate::file::region::{PAGE, header::header, machine::Machine, padded_size};
 
 /// A fencepost breaks a structural rule of the segmentation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum FencepostError {
+pub(crate) enum FencepostError {
     /// The first post is not zero.
     Anchor,
     /// The post at this index is smaller than its predecessor.
@@ -112,6 +112,15 @@ pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
 pub(crate) struct Fenceposts<I>([U64<LE>; POSTS], PhantomData<fn(&I)>);
 
 impl<I> Fenceposts<I> {
+    /// Checks the two structural rules every fencepost array obeys.
+    ///
+    /// The array anchors at zero and never decreases, which together make each consecutive pair
+    /// a well-formed range.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FencepostError::Anchor`] when the first post is not zero, and
+    /// [`FencepostError::Order`] naming the first post smaller than its predecessor.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "fencepost indices are bounded by the 34 posts"
@@ -170,10 +179,12 @@ impl<I> Fenceposts<I> {
         Ok(Self(posts, PhantomData))
     }
 
+    /// Returns the persisted words, giving up the validated wrapper.
     const fn into_raw(self) -> [U64<LE>; POSTS] {
         self.0
     }
 
+    /// Borrows the persisted words without giving up the wrapper.
     const fn as_raw(&self) -> &[U64<LE>; POSTS] {
         &self.0
     }
@@ -216,6 +227,7 @@ impl<I: Id> Fenceposts<I> {
     /// Returns the exclusive upper bound of the position domain: one past the last position.
     #[inline]
     #[must_use]
+    #[cfg(test)] // used in `salt::lod` to verify coverage
     pub(crate) fn bound(&self) -> I {
         self.post(POSTS - 1)
     }
@@ -247,8 +259,10 @@ impl<I: Id> Fenceposts<I> {
     }
 }
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,

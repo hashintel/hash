@@ -5,6 +5,7 @@
 The editor is organized around a central canvas where you build your net:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
+- **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar.
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
 - **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
@@ -17,8 +18,30 @@ free side, keeping clear of the left sidebar, the properties panel and the
 viewport controls. Where even that leaves too little room it shrinks to the
 cursor, the panel toggle, the diagnostics status and Play; point at it, or tab
 into it, and the rest comes back for as long as you stay on it.
+When resizing makes room again, the hidden controls return automatically.
+While hovered, the toolbar appears above the surrounding panels so its expanded controls stay accessible.
+Opening or closing the bottom panel keeps the toolbar's horizontal position stable, including while its controls are revealed on hover.
+The toolbar blurs the canvas behind it. Chromium browsers also show a refractive glass effect; Firefox and Safari use the blur alone.
 
 <img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
+
+## Properties panel
+
+Select an entity to inspect its properties. Subtle lines separate section headers from their content. Places use the same Name and Description fields as transitions and types.
+
+Place settings include an **Options** section for **Component port**, **Token capacity**, and **Default starting place**. Click a checkbox or its label to toggle the setting. Enabling Token capacity expands a compact **Maximum tokens** row beneath it. Point at the info icons for an explanation of each option.
+
+Click **View type** or **View equation** to open the assigned definition. These navigation actions are available when the net is read-only.
+
+The **State** and **Visualizer** section headers have visible expand arrows. Click a header to expand its content and drag the divider to give it more room. The Visualizer switch remains available while its section is collapsed.
+
+Code sections always show their **Fill panel** action, including while collapsed. Use it to open the editor directly in the full panel; returning restores the section's previous collapsed or open state.
+
+In the full panel, code editors meet the left, right, and bottom edges with square corners and no visible border. Their frame and spacing transition smoothly when entering or leaving this view.
+
+The lighter parent name in the header returns to the property's sections and highlights when hovered.
+
+Differential equations already occupy the full properties panel. Their code editor uses the same edge-to-edge layout and stays visible, read-only, during simulation.
 
 ## Top bar
 
@@ -27,8 +50,8 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
-- **Net title** -- editable inline title for the current net. Whether the title field is shown depends on the host application; the demo site shows it, but a Petrinaut embedded in another product may hide it.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**. When the host enables its experimental Brunch demo mode and provides an AI assistant, **New** opens a submenu: **Build with Brunch** starts a fresh empty net and opens the assistant with a choice of careful interview or a quick preview; **Start blank** starts a fresh empty net and keeps the assistant closed. Otherwise **New** directly starts a blank net.
+- **Net title** -- inline title for the current net. The host application decides whether the title is editable or read-only, and may hide it entirely.
 
 **Center**
 
@@ -44,17 +67,45 @@ Spans the full editor width and has three sections.
 
 Petrinaut global modes are switched via the centre control in the top bar.
 
-| Mode         | Workspace                                                                                                                                                                                            |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations.            |
-| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views, plus [Optimizations](optimization.md) when the host application provides an optimizer. |
-| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                            |
+| Mode         | Workspace                                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**     | Canvas or Definitions. Draw and connect nodes on Canvas, or edit the same net as expandable cells in Definitions. Canvas also provides single-run simulation controls. |
+| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                          |
+| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                              |
 
-In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments and, when enabled by the host, run optimizations. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
+In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
 In Actual mode the net is also read-only. It shows the Petri net supplied by the live source, with an Actual timeline and Events tab in the bottom panel when execution data is available.
 
 Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from any mode.
+
+## Canvas and Definitions
+
+In **Edit**, use **Canvas / Definitions** to switch views. On Canvas, the selector
+floats below the main header, beside the Entities sidebar when it is open. Its
+outlined background has a light translucent tint and blurs the canvas behind it.
+The selected tab has a stronger fill to distinguish it from the other view.
+The selector follows manual sidebar resizing immediately and moves smoothly when
+the sidebar opens or closes, if animations are enabled.
+In Definitions, it shares the search and filter toolbar. The controls
+become fully opaque when hovered or focused. Both views work on
+the same net and share the selected entity.
+Switching between them keeps the canvas position and zoom, and the Definitions view’s
+scroll position, expanded cells, search, and filters.
+
+**Canvas** shows the diagram, sidebars, Properties Panel, and simulation
+controls. Use it to add or remove nodes and arcs and to arrange the net.
+
+**Definitions** lists places, transitions, types, differential equations, and
+parameters as expandable cells. Open a cell to edit its name, fields, arc
+weights, type assignments, or code. Use the search and kind filters to narrow
+the list, or switch its order between document and dependency order. The graph
+on the right shows how the selected entity connects to the rest of the net.
+
+On the website, the URL
+records the selected view; Back and Forward switch views, and reloading a
+Definitions link opens Definitions again. Simulate and Actual keep their own
+workspaces.
 
 ## Adding places and transitions
 
@@ -78,9 +129,21 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
+### Automatic arc connections
+
+Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections) to connect nodes directly through their outlines:
+
+1. Hover over a place or transition to reveal its outgoing handle.
+2. Drag the handle onto the target node. A blue outline shows a valid target.
+3. Release to create the arc. Its endpoints follow the node outlines when you move either node.
+
+Drag from the source: place to transition creates an input arc; transition to place creates an output arc. Release on empty space or press **Escape** to cancel. Dropping onto a subnet does not create an arc in this mode.
+
+You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.
+
 ## Component ports
 
-Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **Settings → Net Components** first.
+Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **User settings → Labs → Net Components** first.
 
 Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
 
@@ -101,7 +164,7 @@ See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-
 
 ## Token capacity
 
-Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded.
+Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded. The capacity setting is saved with the net and kept when you reopen it.
 
 A capacity works like an arc weight on the receiving side. A transition needs enough tokens in its input places to fire; with a capacity set, it also needs enough _room_ in its output places. If firing would take a place above its capacity, that transition simply is not enabled -- so a full place blocks the transitions feeding it, and the limit is never exceeded.
 
@@ -124,7 +187,7 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 | **Pan**    | H        | Click and drag to pan the canvas. This is the default. |
 | **Select** | V        | Click and drag to draw a selection box around nodes.   |
 
-The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen.
+The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
 
 With a selection, you can:
 
@@ -136,6 +199,24 @@ With a selection, you can:
 Whether a node must be fully inside or only partially inside the selection box is configurable in [visual settings](visual-settings.md).
 
 <img width="941" height="296" alt="selection" src="https://github.com/user-attachments/assets/174dd165-1be9-45a4-bccf-ffdd2e419d44" />
+
+### Neighbourhood highlight
+
+Selecting a node, or resting the pointer on one, rings it and colours everything one arc away from it:
+
+| Colour     | Meaning                                                                         |
+| ---------- | ------------------------------------------------------------------------------- |
+| **Blue**   | Feeds the node -- the places it consumes from, or the transitions filling it.   |
+| **Orange** | Fed by the node -- the places it produces into, or the transitions draining it. |
+| **Purple** | Both at once, so tokens cycle through the node.                                 |
+
+The arcs joining them are cased in the same colours, keeping their own colour inside the casing, so you can read which way tokens flow without tracing arrowheads. Hovering an arc rings the node at each of its ends the same way.
+
+Each highlighted node and arc also carries a white band between its own edge and the colour, lifting it off the canvas. A place keeps its own outline visible throughout the fade, including places without a token type. The [minimap](visual-settings.md) rings and fades its shapes to match, so you can see where the neighbourhood sits in a net larger than the screen.
+
+Nodes and arcs further away fade back smoothly, keeping their shape and position so the net still reads as a whole. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. Dragging a node starts its highlight immediately and keeps it highlighted until you drop it, even while the pointer is moving. These fades respect the **Animations** setting and your system's reduced-motion preference.
+
+A selected node stays ringed while you point at something else. If you would rather the pointer left the net alone, turn off **Highlight on hover** in [visual settings](visual-settings.md); selecting a node still highlights it.
 
 ## Left sidebar
 
@@ -164,8 +245,8 @@ ArrowDown moves from the search input into the results; arrows then walk the res
 
 On hosts with app navigation enabled, Browser **Back** and **Forward** move
 through the app locations you visited. This includes switching global
-modes or Simulate sections, opening an existing scenario, metric, experiment,
-or optimization, opening or closing their creation drawers, changing subnet,
+modes or Simulate sections, opening an existing scenario, metric or
+experiment, opening or closing their creation drawers, changing subnet,
 committing a selection, and opening or closing Viewport Settings. Creation
 drawers opened from Simulation Settings or the timeline are included too. A
 drag-selection gesture creates one location after you finish drawing the
@@ -182,6 +263,8 @@ The recent history is displayed in the top-right corner. Click on a history entr
 
 ## Keyboard shortcuts
 
+Menus, toolbar tooltips, and the command palette show shortcuts as compact outlined keys beside the action label. Modifier keys match your operating system: ⌘ on macOS and Ctrl on Windows/Linux.
+
 | Shortcut           | Action                                 |
 | ------------------ | -------------------------------------- |
 | N                  | Add Place mode                         |
@@ -195,6 +278,9 @@ The recent history is displayed in the top-right corner. Click on a history entr
 | Cmd+Z              | Undo                                   |
 | Cmd+Shift+Z        | Redo                                   |
 | Cmd+F              | Search                                 |
+| Cmd+Shift+K        | Toggle the AI assistant                |
+| Cmd+,              | Open user settings                     |
+| Cmd+Shift+L        | Auto-layout and fit the net            |
 | Delete / Backspace | Delete selection                       |
 
 On Windows/Linux, use Ctrl instead of Cmd.
@@ -216,4 +302,6 @@ From the top-bar menu (hamburger icon), under **Export**:
 
 ## Auto-layout
 
-From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes. Useful after importing a net without positions or when a net has become cluttered. This will not always be an improvement! The item is hidden on a read-only net, which cannot accept the move.
+From the hamburger menu, select **Layout**, or press **Cmd+Shift+L** (Ctrl+Shift+L on Windows/Linux) on the canvas, to apply an automatic graph layout (ELK) that rearranges all nodes, then fit the result inside the visible canvas around open side and bottom panels. The command-palette action and assistant layout action use the same sequence. The shortcut leaves text fields and code editors alone. Importing a net without positions also lays it out and fits it after the new canvas appears.
+
+Layout changes node positions and therefore creates an ordinary document change when positions move. The following fit changes only the saved viewport, not the document, mutation history, or provenance. This is useful after importing a net without positions or when a net has become cluttered, but it will not always be an improvement. The item is hidden on a read-only net, which cannot accept the move.

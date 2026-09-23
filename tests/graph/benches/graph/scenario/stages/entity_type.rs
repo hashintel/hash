@@ -584,8 +584,7 @@ impl BuildEntityTypeRegistryStage {
 
         let (data_types, property_types) = get_entity_types_response
             .definitions
-            .map(|definitions| (definitions.data_types, definitions.property_types))
-            .unwrap_or_default();
+            .map_or_default(|definitions| (definitions.data_types, definitions.property_types));
 
         let data_types_len = data_types.len();
         let property_types_len = property_types.len();
@@ -619,7 +618,7 @@ impl BuildEntityTypeRegistryStage {
         let entity_object_registry = InMemoryEntityObjectRegistry {
             entities: get_entity_types_response
                 .closed_entity_types
-                .map(|entity_types| {
+                .map_or_default(|entity_types| {
                     entity_types
                         .into_iter()
                         .map(|entity_type| {
@@ -632,8 +631,7 @@ impl BuildEntityTypeRegistryStage {
                             )
                         })
                         .collect::<HashMap<_, _>>()
-                })
-                .unwrap_or_default(),
+                }),
         };
 
         let len = entity_object_registry.entities.len();

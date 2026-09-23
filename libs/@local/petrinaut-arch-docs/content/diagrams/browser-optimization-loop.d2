@@ -5,7 +5,7 @@ provider: Optimizations provider
 capability: Browser capability
 worker: Pyodide worker
 optuna: Optuna (optimizer-core)
-channel: Channel
+channel: Sweep evaluator (channel)
 experiments: Experiments provider
 
 one study: {
@@ -20,12 +20,11 @@ one trial, up to parallelism at a time: {
   optuna -> worker: ask and suggest values
   worker -> capability: "evaluate { runId, requestId, trial, suggestedValues }"
   capability -> channel: evaluateTrial(request) with the run's seeds and the segment's signal
-  channel -> experiments: "runDetachedObjective (cacheKey = runId, queueKey per trial, runSeeds pinned on the CPU)"
-  channel -> provider: trialStarted(trial, values, run, runCount)
+  channel -> channel: "snap to the sweep's axes; an infeasible parameter constraint prunes here"
+  channel -> experiments: "navigateSweep(experimentId, point, { runCap: seeds.length })"
   experiments -> provider: frames and progress stream into the followed selection
-  experiments -> channel: "outcome: the result, or { reason, cancelled } when refused, failed or cancelled"
-  channel -> provider: trialSettled(trial, outcome)
-  channel -> capability: "{ objective: mean } or { pruned, reason }"
+  experiments -> channel: "the visited cell's means once the point folded that many runs, or null when superseded"
+  channel -> capability: "{ objective: mean, constraints } or { pruned, reason }"
   capability -> worker: "evaluated { requestId, outcome }"
   worker -> optuna: tell
   optuna -> worker: trial event with the running best
@@ -51,7 +50,7 @@ Stop: {
   capability -> provider: cancelled error event through attachOptimizationRun
 }
 
-Continue: {
+Extension (no editor surface calls it since the fold): {
   provider -> capability: extendOptimizationRun(runId, trials) after Complete or Stop
   capability -> capability: "started { requestedTrials } with the new total"
   capability -> worker: "extend { runId, trials }"

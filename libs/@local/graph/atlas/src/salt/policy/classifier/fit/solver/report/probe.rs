@@ -5,7 +5,7 @@
 //! a supplied directory, re-runs the bounded solver over one fold subset, and dumps every receipt.
 //! The terminal is the observation, and each receipt reports the outer's Newton residual, the
 //! per-outer certificate of the factorization against the oracle. The caller owns the
-//! fold-assignment seed and the regularization strength, so the probe accepts any assignment and
+//! fold-assignment seed and the regularization strength, and the probe accepts any assignment and
 //! any candidate strength, the production CV candidates included.
 //!
 //! The per-row curvature-scale census prints at the origin and at the final accepted point, and a
@@ -48,6 +48,7 @@ pub(crate) enum ProbeCorpus<'caller> {
         generation: GenerationId,
     },
     /// Supplied artifact files under their staged names, under the compiled deployment defaults.
+    ///
     /// The corpus of a fit that never published probes through this form.
     Supplied {
         /// The directory holding the three annotation artifacts.
@@ -81,7 +82,7 @@ pub(crate) struct ProbeSettings {
     clippy::print_stdout,
     clippy::use_debug,
     clippy::too_many_lines,
-    reason = "the probe's receipt dump is its whole output; terminals and outcomes format through \
+    reason = "the probe's receipt dump is its whole output, terminals and outcomes format through \
               their debug forms, and the dump is one linear script"
 )]
 pub(crate) async fn probe_fold(
@@ -103,21 +104,20 @@ pub(crate) async fn probe_fold(
             DPositive::new(strength).expect("the strength override is positive and finite");
         println!(
             "regularization: configured {:e} overridden to {:e}",
-            config.solver.preparation.regularization.get(),
-            strength.get(),
+            config.solver.preparation.regularization, strength,
         );
         config.solver.preparation.regularization = strength;
     } else {
         println!(
             "regularization: configured {:e}",
-            config.solver.preparation.regularization.get(),
+            config.solver.preparation.regularization,
         );
     }
 
     let folds =
         grouped_folds(rows, config.folds, settings.seed).expect("the corpus has enough groups");
     // The gather re-bases the fold complement into the solo solve's own
-    // positional row space, mirroring the production fold gather; the
+    // positional row space, mirroring the production fold gather. The
     // card-row domain ends here.
     let members: Vec<CardRow> = folds
         .iter_enumerated()
@@ -141,7 +141,7 @@ pub(crate) async fn probe_fold(
         &mut counters,
     )
     .expect("the fold corpus prepares");
-    // A solo solve assembles its own Gram over the fold subset; the entries equal the
+    // A solo solve assembles its own Gram over the fold subset. The entries equal the
     // production fold view's bit for bit, one independent dot per pair either way.
     let gram = Gram::assemble(fold_embeddings.rows(), &mut counters);
     // The replay of a census outer re-enters the solve with these exact charges.
@@ -245,13 +245,14 @@ pub(crate) async fn probe_fold(
     );
 }
 
-/// Replays the production outer trajectory to the start of `target`, certifying every replayed
-/// outer against its production receipt.
+/// Replays the production outer trajectory to the start of `target`.
+///
+/// The replay certifies every replayed outer against its production receipt.
 ///
 /// Returns the accepted state entering `target` and its trust radius. The replay re-runs the
-/// production functions over the same problem from the same charged counters, so equality of radii,
-/// objectives, counters, and start-state digests at every outer proves the replayed trajectory is
-/// the production trajectory.
+/// production functions over the same problem from the same charged counters. Equality of radii,
+/// objectives, counters, and start-state digests at every outer then identifies the replayed
+/// trajectory with the production trajectory, up to the digest's collision resistance.
 ///
 /// # Panics
 ///
@@ -265,7 +266,7 @@ fn replay_to_outer(
 ) -> (AcceptedPoint, DPositive) {
     let config = &problem.config;
     let mut control = SolverControl {
-        radius: config.radius_initial,
+        radius: config.radius_initial(),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
@@ -329,7 +330,7 @@ fn replay_to_outer(
         let actual = accepted.objective - trial_objective;
         let ratio = actual / predicted;
 
-        if ratio < config.eta_accept {
+        if ratio < config.eta_accept() {
             control.counters.reject_finite_candidate();
             rejected(&mut control, config)
                 .expect("the production solve continued past this rejection");
@@ -348,13 +349,13 @@ fn replay_to_outer(
         control.counters.accept_candidate();
         control.consecutive_rejections = 0;
 
-        if inner.is_boundary() && ratio >= config.eta_expand {
-            // A product of positives above the ceiling, +∞ included, lands on the finite
-            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
-            // falls to zero.
+        if inner.is_boundary() && ratio >= config.eta_expand() {
+            // A product of positives above the ceiling, +∞ included, clamps to the finite
+            // maximum, and the clamp therefore re-enters the domain. Growth by a factor above
+            // one never falls to zero.
             control.radius = DPositive::new_unchecked(
-                (config.expansion_factor.get() * control.radius.get())
-                    .min(config.radius_maximum.get()),
+                (config.expansion_factor().get() * control.radius.get())
+                    .min(config.radius_maximum().get()),
             );
         }
     }
@@ -363,6 +364,10 @@ fn replay_to_outer(
 }
 
 /// Prints the cumulative decade census of one curvature-scale reading.
+///
+/// # Panics
+///
+/// This panics on a census without readings: the median indexes the sorted scales.
 #[expect(
     clippy::print_stdout,
     reason = "the probe's receipt dump is its whole output"

@@ -1,29 +1,29 @@
-//! Force-bearing instances grouped by relation.
+//! Retained link instances grouped by relation.
 //!
-//! [`AttractionIndex`] stores every admitted instance that survives force pruning, contiguously per
-//! relation type. A group carries the factors shared by its relation (class weights, frozen
-//! strength); its edges carry the per-instance factors (effective confidence, degree
-//! normalization). Training weights one edge by multiplying the group and edge factors into its
-//! class energies, so every factor of the relation-attraction objective enters exactly once by
-//! construction.
+//! [`AttractionIndex`] groups retained non-self instances by relation type for per-type sampling. A
+//! group supplies class weights and frozen strength. Each edge supplies effective confidence and
+//! share-weighted degree normalization. The [relation weight model](super#weights) defines how
+//! these factors combine.
 
 use super::EffectiveConfidence;
 use crate::{
     identity::OntologyRowId,
     math::{NonNegative, PositiveUnitFraction},
+    salt::projector::verdict::{PlacementClass, ResolvedVerdict},
 };
 
-/// Shared attraction settings of one generation, valid by construction.
+/// Shared class scaling and attraction-pruning settings of one generation.
 ///
-/// The Coincident coefficient `κ_C` scales the Coincident energy relative to Proximal's unit scale.
-/// It stays 0 until the generation meets its Coincident release criterion; after that, tuning grids
-/// ratios in `2..=8` (the composite-objective tuning protocol), so enabling runs start there.
+/// The Coincident coefficient `κ_C` scales Coincident relative to Proximal's unit scale. It is zero
+/// by default. A nonzero coefficient is accepted without checking any release criterion. The
+/// calibration starting grid is `2..=8`, to be judged against the generation's quality evidence.
 ///
-/// The pruning threshold `η_F` drops instances whose force mass `c · s · s+` cannot move the
-/// layout, and 0 retains every instance. The omitted-mass fraction a threshold produces
-/// ([`super::BuildMeasurements::omitted_mass_fraction`]) audits it, and the threshold controls only
-/// attraction sampling. Protection masses never pass through it.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// The pruning threshold `η_F` drops instances whose mass `c · s · s+` is strictly below it. It is
+/// zero by default, retaining every non-self instance, including zero-mass ones. Evaluate a chosen
+/// threshold through [`super::BuildMeasurements::omitted_mass_fraction`] and quality measurements.
+/// The mass excludes degree normalization, strength and class-energy derivatives, and is not a
+/// movement bound. Protection masses never pass through this predicate.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AttractionOptions {
     coincident_coefficient: NonNegative = NonNegative::ZERO,
     pruning_threshold: NonNegative = NonNegative::ZERO,
@@ -38,9 +38,9 @@ const impl Default for AttractionOptions {
 impl AttractionOptions {
     /// Creates settings from a Coincident coefficient and a pruning threshold.
     ///
-    /// Both values carry their domain in the type, so construction validates nothing. The
-    /// default is `κ_C = 0` (the Coincident class exerts no pull until the generation meets its
-    /// release criterion) and `η_F = 0` (every admitted instance survives).
+    /// Both values must be finite and non-negative. The defaults are `κ_C = 0` and `η_F = 0`,
+    /// disabling Coincident weighting and attraction pruning.
+    #[cfg(any(test, feature = "bench"))]
     #[must_use]
     pub(crate) const fn new(
         coincident_coefficient: NonNegative,
@@ -67,10 +67,10 @@ impl AttractionOptions {
     }
 }
 
-/// One force-bearing link instance under its group's relation.
+/// One retained link instance under its group's relation.
 ///
-/// The stored factors are the ones that vary per instance; the class weights and strength
-/// multiplier live on the owning [`AttractionGroup`].
+/// These factors vary per instance. [`AttractionGroup`] supplies shared class weights and strength.
+/// Retention alone does not imply positive force.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionEdge<N, E> {
     /// The edge row that produced the instance.
@@ -81,9 +81,9 @@ pub(crate) struct AttractionEdge<N, E> {
     pub target: N,
     /// The instance's effective confidence `c` with score provenance.
     pub confidence: EffectiveConfidence,
-    /// The degree normalization `ν`.
+    /// The combined degree normalization and reading share, `ν · s`.
     ///
-    /// Computed over the complete admitted instance set of the group's relation.
+    /// Degrees cover the group's complete non-self instance set before pruning.
     pub normalization: PositiveUnitFraction,
 }
 
@@ -105,8 +105,8 @@ pub(crate) struct AttractionWeights {
 impl AttractionWeights {
     /// Returns the positive force scale `s+`, the sum of the class weights.
     ///
-    /// An instance's force mass is its confidence times its reading share times this scale; the
-    /// pruning predicate compares that mass against the threshold.
+    /// The pruning mass is confidence times reading share times this scale. Strength remains
+    /// separate. Arbitrary weights can overflow the `f32` sum to infinity.
     #[inline]
     #[must_use]
     pub(crate) const fn scale(self) -> NonNegative {
@@ -115,6 +115,8 @@ impl AttractionWeights {
 }
 
 /// One relation type's retained instances and shared weights.
+///
+/// Edges are strictly ascending by `(source, target, edge)`.
 #[derive(Debug, Clone)]
 pub(crate) struct AttractionGroup<N, E> {
     relation: OntologyRowId,
@@ -123,9 +125,9 @@ pub(crate) struct AttractionGroup<N, E> {
 }
 
 impl<N, E> AttractionGroup<N, E> {
-    /// Assembles a group.
+    /// Assembles one relation's retained instances and shared weights.
     ///
-    /// The builder upholds the documented edge order.
+    /// `edges` must be strictly ascending by `(source, target, edge)`.
     pub(super) const fn new(
         relation: OntologyRowId,
         weights: AttractionWeights,
@@ -152,36 +154,49 @@ impl<N, E> AttractionGroup<N, E> {
         self.weights
     }
 
-    /// Borrows the retained instances, ascending by `(source, target, edge)`.
+    /// Borrows the retained instances in strictly ascending `(source, target, edge)` order.
     #[inline]
     #[must_use]
     pub(crate) const fn edges(&self) -> &[AttractionEdge<N, E>] {
         self.edges.as_slice()
     }
+
+    /// Returns whether the group has retained edges and positive strength.
+    ///
+    /// Individual class weights and edge confidences may still be zero.
+    pub(crate) const fn exerts_force(&self) -> bool {
+        !self.edges().is_empty() && !self.weights().strength.is_zero()
+    }
+
+    /// Returns whether retained edges have positive strength and Proximal weight.
+    const fn exerts_proximal_force(&self) -> bool {
+        self.exerts_force() && !self.weights().proximal.is_zero()
+    }
 }
 
-/// Force-bearing instances of one generation, grouped by relation type.
+/// Retained link instances of one generation, grouped by relation type.
 ///
-/// Groups ascend by relation row; a relation none of whose instances survived pruning stores no
-/// group. Within a group, edges ascend by `(source, target, edge)`. Both orders are total, so the
-/// index is identical for any input order of the same instances.
+/// Groups ascend strictly by relation row, omitting empty groups. Within a group, edges ascend
+/// strictly by `(source, target, edge)`. Under the [instance uniqueness
+/// contract](super#input-contract), [`super::RelationIndexes::build`] produces the same index for
+/// any input order at the same floating-point implementation.
 #[derive(Debug, Clone)]
 pub(crate) struct AttractionIndex<N, E> {
     groups: Vec<AttractionGroup<N, E>>,
 }
 
 impl<N, E> AttractionIndex<N, E> {
-    /// Assembles the index.
+    /// Assembles nonempty groups in strictly ascending relation order.
     ///
-    /// The builder upholds the documented group order.
+    /// Each group must satisfy [`AttractionGroup`]'s edge-order contract.
     pub(super) const fn new(groups: Vec<AttractionGroup<N, E>>) -> Self {
         Self { groups }
     }
 
-    /// Returns the index carrying no force at all.
+    /// Returns an empty attraction index.
     ///
-    /// The trainer's vacuous run consumes it. A placement configured to withhold the relation
-    /// evidence trains against every other term while the published relation artifacts stay real.
+    /// Use this to disable relation attraction while retaining the other objective terms. It does
+    /// not alter protection evidence.
     #[must_use]
     pub(crate) const fn vacuous() -> Self {
         Self { groups: Vec::new() }
@@ -198,5 +213,21 @@ impl<N, E> AttractionIndex<N, E> {
     #[must_use]
     pub(crate) fn edge_count(&self) -> usize {
         self.groups.iter().map(|group| group.edges.len()).sum()
+    }
+
+    /// Returns whether a reviewed Proximal verdict covers a group with Proximal force.
+    ///
+    /// The verdict's relation must have retained edges, positive strength and positive Proximal
+    /// weight. Edge confidence does not affect this structural check. Calibration measures the
+    /// radius separately and may fail even when this check returns true.
+    pub(crate) fn has_resolved_proximal_verdict(&self, verdicts: &[ResolvedVerdict]) -> bool {
+        verdicts
+            .iter()
+            .filter(|verdict| verdict.placement == PlacementClass::Proximal)
+            .any(|verdict| {
+                self.groups
+                    .binary_search_by_key(&verdict.relation, AttractionGroup::relation)
+                    .is_ok_and(|position| self.groups[position].exerts_proximal_force())
+            })
     }
 }

@@ -32,11 +32,11 @@ fn default_legend(ontology: &[OntologyRowId]) -> OwnedLegend {
 /// A [`Dataset`] held entirely in memory.
 ///
 /// The dataset is a fixture. It serves exactly the rows the caller supplies, and [`new`](Self::new)
-/// validates the structural contracts once, so every stream is consistent by construction. Ids in
-/// all three domains are plain little-endian integers chosen by the caller, and the streams serve
-/// them as the typed memory ids.
+/// validates the structural contracts once. Every stream is consistent by construction. Ids in all
+/// three domains are plain little-endian integers chosen by the caller, and the streams serve them
+/// as the typed memory ids.
 ///
-/// Malformed lookups are programmer errors and panic, so the streams are infallible and
+/// Malformed lookups are programmer errors and panic. The streams are infallible and
 /// [`Dataset::Error`] is `!`.
 pub(crate) struct MemoryDataset {
     nodes: Vec<Node<'static, MemoryNodeId>>,
@@ -58,7 +58,7 @@ pub(crate) struct MemoryDataset {
     pub edge_legends: Vec<OwnedLegend>,
     /// Display icons by ontology row, one entry per type.
     ///
-    /// Empty by construction, replaceable, and one entry per ontology row, as for
+    /// Empty icons by construction, replaceable, and one entry per ontology row, as for
     /// [`node_legends`](Self::node_legends).
     pub ontology_icons: Vec<OwnedIcon>,
 }
@@ -255,8 +255,8 @@ impl Dataset for MemoryDataset {
     ///
     /// # Panics
     ///
-    /// The stream panics when [`node_legends`](Self::node_legends) does not hold exactly one
-    /// entry per node row.
+    /// This panics at the call, not at the first poll, when [`node_legends`](Self::node_legends)
+    /// does not hold exactly one entry per node row.
     fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_> {
         assert_eq!(
             self.node_legends.len(),
@@ -270,8 +270,8 @@ impl Dataset for MemoryDataset {
     ///
     /// # Panics
     ///
-    /// The stream panics when [`edge_legends`](Self::edge_legends) does not hold exactly one
-    /// entry per edge row.
+    /// This panics at the call, not at the first poll, when [`edge_legends`](Self::edge_legends)
+    /// does not hold exactly one entry per edge row.
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_> {
         assert_eq!(
             self.edge_legends.len(),
@@ -285,8 +285,8 @@ impl Dataset for MemoryDataset {
     ///
     /// # Panics
     ///
-    /// The stream panics when [`ontology_icons`](Self::ontology_icons) does not hold exactly
-    /// one entry per ontology row.
+    /// This panics at the call, not at the first poll, when
+    /// [`ontology_icons`](Self::ontology_icons) does not hold exactly one entry per ontology row.
     fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_> {
         assert_eq!(
             self.ontology_icons.len(),

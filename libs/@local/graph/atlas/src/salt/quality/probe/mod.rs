@@ -5,25 +5,31 @@
 //! feed one kernel set:
 //!
 //! - The corpus pass ranks every non-anchor row against each anchor in the map and the
-//!   representation. The pass counts ranks instead of materializing sorted orderings, so the
-//!   map-versus-representation readings are exact at corpus scale while per-anchor memory stays
-//!   bounded by the largest neighbourhood.
-//! - The sampled pass ranks a shared comparison universe - a bounded uniform sample whose canonical
-//!   embeddings arrive through the dataset's probe-scoped stream - in all three spaces, and reads
-//!   every space pair over that one universe. Canonical readings are never corpus-exact, because
-//!   the full canonical corpus stays at the source. The sampled pass measures the representation
-//!   baseline under the identical design, so comparing a map reading against it is like for like.
+//!   representation. Counting ranks over the full non-anchor universe avoids materializing sorted
+//!   orderings. Per-anchor ranking scratch grows with the largest neighbourhood.
+//! - The sampled pass ranks a shared comparison universe in all three spaces. It fetches canonical
+//!   embeddings only for the sampled rows. The representation baseline and map-versus-canonical
+//!   reading share this universe, making their neighbourhood scales directly comparable. With fewer
+//!   comparisons than non-anchor rows, these rankings cover a sample of the corpus.
 //!
-//! At equal `k`, a sampled reading covers a coarser neighbourhood than a corpus reading, because
-//! the `k` nearest of a uniform sample of `m` rows sit at a corpus-scale depth of about `k · rows /
-//! m` neighbours. The passes therefore answer different questions - fine placement against the
-//! representation, coarse placement against the canonical space - and [`ProbeReadings`] keeps them
-//! apart.
+//! At equal k, a smaller uniform comparison sample measures a coarser neighbourhood. Among n
+//! non-anchor rows, the expected full-universe rank of the k-th nearest of m sampled rows is:
 //!
-//! Every ranking resolves distance ties by ascending row, so equal inputs produce equal readings.
-//! The probe keeps readings per anchor ([`ReadingGrid`]), so whole-probe and per-subgroup roll-ups
-//! merge cells instead of re-ranking. Anchors rank independently and in parallel; the corpus pass
-//! performs `anchors · rows` representation-kernel evaluations and dominates the probe's runtime.
+//! `k · (n + 1)/(m + 1)`, approximately `k · n/m`.
+//!
+//! [`ProbeReadings`] keeps the corpus and sampled grids separate.
+//!
+//! Rankings use computed distances, with row order breaking ties. Replaying requires equal corpus
+//! and canonical values, options and initial generator state, together with the same numerical
+//! environment. The distance kernels round to f32. Representation and canonical kernels accumulate
+//! in f64, while squared map distances use f32 arithmetic. Finite coordinates alone still permit
+//! overflow in that arithmetic.
+//!
+//! Anchors rank independently in parallel. Per-anchor cells ([`ReadingGrid`]) support whole-probe
+//! and subgroup merges without re-ranking. For a anchors, n non-anchor rows and maximum
+//! neighbourhood K, the corpus pass evaluates a · (n + K) representation distances and counts ranks
+//! against K thresholds per scanned row. It shares an O(rows) anchor mask and uses O(K) ranking
+//! scratch per worker, in addition to output grids.
 #![expect(
     clippy::cast_possible_truncation,
     reason = "the corpus row domain is checked against the crate's u32 row encoding at entry"
@@ -41,18 +47,7 @@ use hashql_core::id::{Id, IdSlice, bit_vec::DenseBitSet};
 use rand::Rng;
 use rayon::iter::IndexedParallelIterator as _;
 
-pub(crate) use self::{
-    error::{DeliveryError, ProbeError},
-    options::ProbeOptions,
-    readings::{
-        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair,
-        SpacePairArray, Step, TypedReadings,
-    },
-};
-use self::{
-    options::validate_design,
-    pass::{CorpusPass, SampledPass},
-};
+use self::pass::{CorpusPass, SampledPass};
 use super::{
     clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, TripletAggregate},
@@ -69,12 +64,21 @@ mod options;
 mod pass;
 mod readings;
 
+pub(crate) use self::{
+    error::{DeliveryError, ProbeError},
+    options::ProbeOptions,
+    readings::{
+        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair,
+        SpacePairArray, Step, TypedReadings,
+    },
+};
+
 /// One generation's row-aligned probe inputs.
 ///
-/// The slices describe the same rows in the same order; mapped `f32[N, 512]` and `f32[N, 2]`
-/// artifacts yield the representation and coordinate slices directly.
-/// [`with_clumps`](Self::with_clumps) attaches a clump grouping over the same rows when the probe
-/// reads recall collapsed onto clump ids.
+/// The inputs must describe the same rows in the same order, with unique byte-encoded source ids
+/// and finite representations. Construction checks equal lengths. Coordinates have a finite-point
+/// type, but squared map distances must also remain finite for finite radius statistics.
+/// [`with_clumps`](Self::with_clumps) attaches labels over the same row domain.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ProbeCorpus<'corpus, N> {
     node_ids: &'corpus IdSlice<NodeRowId, N>,
@@ -88,8 +92,7 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     ///
     /// # Panics
     ///
-    /// This panics when the slices disagree about the row count; all three describe one generation,
-    /// so a mismatch is a wiring defect.
+    /// Panics when the inputs disagree about the row count.
     #[must_use]
     pub(crate) fn new(
         node_ids: &'corpus IdSlice<NodeRowId, N>,
@@ -115,12 +118,11 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
         }
     }
 
-    /// Attaches a clump grouping, enabling the collapsed corpus reading.
+    /// Attaches clump labels for corpus and sampled-baseline recall.
     ///
     /// # Panics
     ///
-    /// This panics when the grouping labels a different row count; both describe one generation, so
-    /// a mismatch is a wiring defect.
+    /// Panics when the grouping labels a different row count.
     #[must_use]
     pub(crate) fn with_clumps(mut self, clumps: &'corpus Clumps<NodeRowId>) -> Self {
         assert_eq!(
@@ -133,6 +135,28 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
         self
     }
 
+    /// Checks embedding components when the population cannot support rank measurements.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProbeError::NonFiniteEmbedding`] for a non-finite component below the rank domain.
+    fn validate_small_embeddings<E>(
+        &self,
+        canonical: &[Cow<'_, AlignedVecN<CANONICAL_DIMENSIONS>>],
+    ) -> Result<(), ProbeError<E>> {
+        if self.rows() < 3
+            && (self
+                .representations
+                .iter()
+                .any(|embedding| !embedding.is_finite())
+                || canonical.iter().any(|embedding| !embedding.is_finite()))
+        {
+            return Err(ProbeError::NonFiniteEmbedding);
+        }
+
+        Ok(())
+    }
+
     /// Returns the corpus row count.
     const fn rows(&self) -> usize {
         self.node_ids.len()
@@ -141,23 +165,26 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 
 /// Matches an unordered delivery stream against the requested rows' ids.
 ///
-/// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
-/// so this function matches deliveries by id bytes and checks completeness - every requested id
-/// exactly once, nothing else - before returning the payloads in `rows` order. It reads the
-/// requests straight off the `(node_ids, rows)` pair, so no caller materializes a request list.
+/// Matches source ids by their byte encoding and returns payloads in `rows` order. The requested
+/// rows must identify distinct byte encodings, and the request count must fit u32. Success requires
+/// every requested id exactly once, with no additional id.
 ///
-/// This function enforces exactly-once rather than assuming it, because a violation damages the
-/// reading it feeds. An unrequested id refuses, a short stream refuses, and a repeated id refuses
-/// before its payload can replace the one already accepted.
+/// # Errors
+///
+/// Returns [`DeliveryError`] for a failed stream, an unrequested or repeated id, or incomplete
+/// delivery. An identical repeated payload still fails. No payload collection is returned on
+/// failure.
+///
+/// # Panics
+///
+/// Panics when a requested row lies outside `node_ids`.
 pub(super) async fn match_deliveries<I, R, T, E>(
     node_ids: &IdSlice<R, I>,
     rows: &[R],
     deliveries: impl Stream<Item = Result<(I, T), E>>,
 ) -> Result<Vec<T>, DeliveryError<E>>
 where
-    // Matching is on byte identity, not semantic order: `IntoBytes` totally
-    // orders exactly the encoding the stream echoes back, where an ordering
-    // bound on the id type would owe neither totality nor byte fidelity.
+    // matching compares the delivered byte encoding rather than an id type's semantic ordering
     I: zerocopy::IntoBytes + zerocopy::Immutable,
     R: Id,
 {
@@ -175,8 +202,7 @@ where
         .await
         .map_err(DeliveryError::Dataset)?
     {
-        // `Err` from the search carries the insertion point, so a miss means
-        // the id was never requested.
+        // a failed search identifies a delivery outside the requested id set
         let position = order
             .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
             .map_err(|_insertion| DeliveryError::Unrequested)?;
@@ -200,13 +226,17 @@ where
         .collect())
 }
 
-/// Draws the probe's row sample: `anchors + comparisons` distinct rows in draw order.
+/// Samples disjoint anchor and comparison rows in draw order.
 ///
-/// The sample is its generator's first draw. The probe and the offline dump's coverage request
-/// both draw through this function from equally seeded generators
-/// ([`probe_rng`](crate::salt::runner::probe_rng)) over equal-length populations, so the two
-/// agree on the sampled rows by construction, and a draw inserted ahead of this one would make
-/// the probe request rows existing dumps never covered.
+/// The result contains `anchors + comparisons` distinct rows, with anchors first. The count sum
+/// must fit usize. Sampling is the first generator operation, preserving agreement with offline
+/// coverage when population length, counts and initial generator state match. Use
+/// [`probe_rng`](crate::salt::runner::probe_rng) for the fit runner's seed derivation.
+///
+/// # Panics
+///
+/// Panics when the requested count exceeds the population length, or the count sum overflows with
+/// integer overflow checks enabled.
 pub(crate) fn probe_sample<T>(
     mut rng: impl Rng,
     population: &IdSlice<NodeRowId, T>,
@@ -217,6 +247,10 @@ pub(crate) fn probe_sample<T>(
 }
 
 /// Fetches the sampled rows' canonical embeddings, in sample order.
+///
+/// # Errors
+///
+/// Returns [`ProbeError`] for a failed canonical stream or a delivery mismatch.
 async fn fetch_canonical<'data, D: Dataset>(
     dataset: &'data D,
     node_ids: &IdSlice<NodeRowId, D::NodeId>,
@@ -246,13 +280,18 @@ async fn fetch_canonical<'data, D: Dataset>(
 ///
 /// This samples anchor and comparison rows disjointly without replacement, then fetches both
 /// samples' canonical embeddings through the dataset's probe-scoped stream before any ranking
-/// begins.
+/// begins. The dataset must supply the same canonical values as the corpus represents, with finite
+/// components. Sample counts are upper bounds resolved against the corpus. All aggregate totals and
+/// normalization products must fit their integer carriers.
 ///
 /// # Errors
 ///
-/// Returns an error when the corpus cannot host the probe design, a neighbourhood size violates an
-/// aggregate domain, the row count exceeds the crate's `u32` row encoding, or the canonical stream
-/// fails, misdelivers, or ends short.
+/// Returns [`ProbeError`] for an invalid probe design, a failed or mismatched canonical delivery,
+/// or non-finite embeddings in a population below the rank domain.
+///
+/// # Panics
+///
+/// Overflowing aggregate arithmetic can panic with integer overflow checking.
 pub(crate) async fn probe<D: Dataset>(
     dataset: &D,
     corpus: ProbeCorpus<'_, D::NodeId>,
@@ -260,24 +299,30 @@ pub(crate) async fn probe<D: Dataset>(
     mut rng: impl Rng,
 ) -> Result<ProbeReadings<NodeRowId>, ProbeError<D::Error>> {
     let rows = corpus.rows();
-    validate_design(rows, options)?;
+    let design = options.resolve(rows)?;
 
-    let anchors = options.anchors.get();
-    let comparisons = options.comparisons.get();
-    let corpus_template = aggregate_template(rows - anchors, options)?;
-    let sampled_template = aggregate_template(comparisons, options)?;
-    let search = options
-        .neighbourhoods
+    let anchors = design.anchors;
+    let comparisons = design.comparisons;
+    let corpus_template = aggregate_template(
+        rows - anchors,
+        &design.neighbourhoods,
+        options.horizon_factor,
+    )?;
+    let sampled_template =
+        aggregate_template(comparisons, &design.neighbourhoods, options.horizon_factor)?;
+    let search = design
+        .density_neighbourhoods
         .iter()
         .map(|k| k.get())
         .max()
-        .expect("the options name at least one neighbourhood size");
+        .unwrap_or(0);
 
     let sample = probe_sample(&mut rng, corpus.node_ids, anchors, comparisons);
     let (anchor_rows, comparison_rows) = sample.split_at(anchors);
     let pairs = sample_pairs(&mut rng, comparisons, options.triplet_pairs);
 
     let canonical = fetch_canonical(dataset, corpus.node_ids, &sample).await?;
+    corpus.validate_small_embeddings(&canonical)?;
     let (anchor_canonical, comparison_canonical) = canonical.split_at(anchors);
 
     let mut anchor_mask = DenseBitSet::new_empty(rows);
@@ -292,12 +337,13 @@ pub(crate) async fn probe<D: Dataset>(
         anchor_mask: &anchor_mask,
         search,
         template: &corpus_template,
-        neighbourhoods: &options.neighbourhoods,
+        neighbourhoods: &design.neighbourhoods,
+        density_neighbourhoods: &design.density_neighbourhoods,
         clumps: corpus.clumps,
     }
     .run(anchor_rows)
     .collect_into_vec(&mut sampled_readings);
-    let anchors = AnchorColumns::new(sampled_readings.into_iter());
+    let anchor_columns = AnchorColumns::new(sampled_readings.into_iter());
 
     let mut sampled_readings = Vec::new();
     SampledPass {
@@ -307,7 +353,7 @@ pub(crate) async fn probe<D: Dataset>(
         comparison_canonical,
         comparison_rows,
         template: &sampled_template,
-        neighbourhoods: &options.neighbourhoods,
+        neighbourhoods: &design.neighbourhoods,
         pairs: &pairs,
         clumps: corpus.clumps,
     }
@@ -315,11 +361,10 @@ pub(crate) async fn probe<D: Dataset>(
     .collect_into_vec(&mut sampled_readings);
     let sampled = SampledColumns::new(sampled_readings.into_iter());
 
-    let steps = options.neighbourhoods.len();
+    let steps = design.neighbourhoods.len();
     let mut triplet_columns = transpose_triplets(sampled.triplets);
 
-    // The pair-indexed arrays move into named fields through the enum, so
-    // reordering the pair schema cannot mismatch a reading with its field.
+    // use typed pair indices when assigning the named result fields
     let mut sampled_grids = transpose_pairs(sampled.cells)
         .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, steps)));
     let mut sampled_grid = |pair: SpacePair| {
@@ -333,14 +378,17 @@ pub(crate) async fn probe<D: Dataset>(
     Ok(ProbeReadings {
         anchors: anchor_rows.iter().copied().collect(),
         comparisons: comparison_rows.iter().copied().collect(),
-        neighbourhoods: IdSlice::from_boxed_slice(options.neighbourhoods.iter().copied().collect()),
-        map_representation: ReadingGrid::from_anchor_cells(anchors.cells, steps),
+        corpus_universe: rows - anchors,
+        neighbourhoods: IdSlice::from_boxed_slice(design.neighbourhoods.into_boxed_slice()),
+        density_neighbourhoods: design.density_neighbourhoods.into_boxed_slice(),
+        triplet_pairs_requested: options.triplet_pairs,
+        map_representation: ReadingGrid::from_anchor_cells(anchor_columns.cells, steps),
         clumps: corpus.clumps.map(|clumps| ClumpReadings {
             epsilon: clumps.epsilon(),
             count: clumps.clumps(),
             groups: clumps.groups(),
             grouped_rows: clumps.grouped_rows(),
-            map_representation: ReadingGrid::from_anchor_cells(anchors.clumps, steps),
+            map_representation: ReadingGrid::from_anchor_cells(anchor_columns.clumps, steps),
             representation_canonical: ReadingGrid::from_anchor_cells(
                 sampled.baseline_clumps,
                 steps,
@@ -349,7 +397,7 @@ pub(crate) async fn probe<D: Dataset>(
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
         sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
         sampled_representation_canonical: sampled_grid(SpacePair::RepresentationCanonical),
-        radii: anchors.radii.into_boxed_slice(),
+        radii: anchor_columns.radii.into_boxed_slice(),
         triplet_pairs: pairs,
         triplet_map_representation: triplet_column(SpacePair::MapRepresentation),
         triplet_map_canonical: triplet_column(SpacePair::MapCanonical),
@@ -419,31 +467,38 @@ impl SampledColumns {
     }
 }
 
-/// Builds one empty aggregate per neighbourhood size over `universe`.
+/// Builds one shape-validated empty aggregate per neighbourhood size.
+///
+/// Arithmetic capacity for the eventual query count remains unchecked.
+///
+/// # Errors
+///
+/// Returns [`ProbeError::Neighbourhood`] for the first size outside the aggregate's domain over
+/// `universe`.
 fn aggregate_template<E>(
     universe: usize,
-    options: &ProbeOptions,
+    neighbourhoods: &[NonZero<usize>],
+    horizon_factor: NonZero<usize>,
 ) -> Result<Vec<NeighbourhoodAggregate>, ProbeError<E>> {
-    options
-        .neighbourhoods
+    neighbourhoods
         .iter()
         .map(|&k| {
-            NeighbourhoodAggregate::clamped(universe, k, options.horizon_factor)
+            NeighbourhoodAggregate::clamped(universe, k, horizon_factor)
                 .ok_or(ProbeError::Neighbourhood { k, universe })
         })
         .collect()
 }
 
-/// Samples distinct comparison-index pairs, uniform over ordered pairs.
+/// Samples ordered pairs of distinct comparison indices, with replacement.
 ///
-/// A universe of fewer than two comparison points holds no ordered pair and yields none regardless
+/// The comparison count must fit u32. Each pair is uniform over distinct indices, and pairs may
+/// repeat across draws. A universe of fewer than two comparison points yields no pairs regardless
 /// of the requested count.
 pub(super) fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u32; 2]]> {
     let Some(choices) = NonZero::new(comparisons as u64) else {
         return Box::new([]);
     };
-    // The second draw runs over a universe one smaller than the first,
-    // which is what leaves a single-point universe with no pair to draw.
+    // a single-point universe has no distinct second point
     let Some(second_choices) = NonZero::new(choices.get() - 1) else {
         return Box::new([]);
     };
@@ -451,11 +506,10 @@ pub(super) fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) 
     core::iter::repeat_with(|| {
         let first = uniform_below(&mut rng, choices) as u32;
         let mut second = uniform_below(&mut rng, second_choices) as u32;
-        // Skip-over-self, in place of a rejection loop: `second` comes from
-        // a universe one smaller, and shifting the values at or above
-        // `first` up by one maps them onto everything except `first`. The
-        // largest shifted value is `comparisons - 1`, so the pair is
-        // distinct and in bounds by construction.
+        // A uniform index mapped bijectively onto a finite set remains uniform. The second draw
+        // covers 0..comparisons-1, and shifting at first maps that range onto every index except
+        // first. The largest result is comparisons-1, within the u32 domain. Therefore this draw is
+        // uniform over distinct second indices without rejection.
         if second >= first {
             second += 1;
         }

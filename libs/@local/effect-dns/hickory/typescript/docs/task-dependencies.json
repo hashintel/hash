@@ -10,7 +10,7 @@
         "@local/eslint#build"
       ],
       "affectedBy": [
-        "@rust/effect-dns-hickory"
+        "effect-dns-hickory"
       ]
     },
     "fix:eslint": {
@@ -26,7 +26,7 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@rust/effect-dns-hickory"
+        "effect-dns-hickory"
       ]
     },
     "lint:tsc": {
@@ -34,7 +34,7 @@
         "build"
       ],
       "affectedBy": [
-        "@rust/effect-dns-hickory"
+        "effect-dns-hickory"
       ]
     },
     "test:unit": {
@@ -45,7 +45,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/effect-dns-hickory"
+        "effect-dns-hickory"
       ]
     }
   }

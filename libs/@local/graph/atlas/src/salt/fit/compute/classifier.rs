@@ -30,10 +30,10 @@ use crate::{
     },
 };
 
-/// The classifier stage failed and acquired no deployable model.
+/// A classifier-stage failure, leaving the run without a deployable model.
 ///
-/// One variant per way the stage refuses, so a classifier failure attributes to this stage by
-/// construction.
+/// One variant per way the stage refuses. A classifier failure therefore attributes to this
+/// stage by construction.
 #[derive(Debug)]
 pub(crate) enum ClassifierError {
     /// The assembled corpus violates the classifier's training-set contract.
@@ -79,10 +79,14 @@ impl Error for ClassifierError {
 
 /// The staged annotation artifacts of one in-run classifier fit.
 ///
-/// The corpus document beside the embedding table it assembled to.
+/// The corpus document beside the embedding table it assembled to and that table's card text
+/// hashes.
 pub(super) struct AnnotationArtifacts {
+    /// The corpus document, staged verbatim.
     pub corpus: Binding<artifact::AnnotationCorpus>,
+    /// The card embedding matrix, row-aligned with the assembled corpus.
     pub embeddings: Binding<artifact::AnnotationEmbeddings>,
+    /// The card text hashes, one SHA-256 per assembled row.
     pub hashes: Binding<artifact::AnnotationHashes>,
 }
 
@@ -108,10 +112,8 @@ impl AcquiredClassifier {
     ///
     /// # Errors
     ///
-    /// Returns [`ClassifierError::Training`] when the assembled corpus violates the classifier's
-    /// training-set contract, [`ClassifierError::Fit`] when the fit fails,
-    /// [`ClassifierError::Holdout`] when a holdout prediction overflows, and an I/O error when a
-    /// staged annotation artifact does not write.
+    /// A supplied model cannot fail. Fitting one returns a [`ClassifierError`], reached in the
+    /// order [`fit`](Self::fit) documents.
     pub(super) fn acquire<P: Progress + Sync>(
         context: &Context,
         plan: &ClassifierPlan,
@@ -132,6 +134,12 @@ impl AcquiredClassifier {
     }
 
     /// Fits the classifier from the assembled corpus and evaluates it on the holdout cards.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ClassifierError`]. The body writes the two staged annotation artifacts (the
+    /// embedding table, then the hashes) before it checks the training-set contract and runs the
+    /// fit, and it predicts the holdout cards last.
     #[tracing::instrument(name = "classifier-fit", skip_all)]
     fn fit<P: Progress + Sync>(
         context: &Context,
@@ -151,7 +159,7 @@ impl AcquiredClassifier {
                 corpus.table().write_hashes_into(writer)
             })?;
 
-        // The trained rows lead the embedding table; the holdout rows
+        // The trained rows lead the embedding table, and the holdout rows
         // after them are evaluation material. The pin claims the corpus's
         // card-row domain over the table's domain-neutral rows, and the
         // trained prefix keeps that domain.
@@ -210,7 +218,7 @@ impl AcquiredClassifier {
                 corpus: source,
                 assembly: Box::new(*evidence),
                 fit: ClassifierFitSummary {
-                    folds: context.config.policy.classifier_fit.folds,
+                    folds: context.config.policy.classifier_fit.folds(),
                     regularization: fitted.evidence.regularization,
                     selection: fitted
                         .evidence

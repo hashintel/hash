@@ -10,8 +10,9 @@ import {
   ReactFlowProvider,
   SelectionMode,
   useStore,
+  useStoreApi,
 } from "@xyflow/react";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -23,6 +24,7 @@ import { CanvasViewportContext } from "../../../../../react/state/canvas-viewpor
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
+import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
 import { readDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import {
@@ -39,6 +41,7 @@ import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
 import { MiniMap } from "./react-flow-canvas/mini-map";
+import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
@@ -48,6 +51,7 @@ import { useReactFlowController } from "./react-flow-canvas/use-react-flow-contr
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
+import type { Connection, IsValidConnection } from "@xyflow/react";
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
@@ -70,46 +74,130 @@ const MIN_ZOOM_DEBOUNCE_MS = 100;
 const paneStyle = css({
   width: "[100%]",
   height: "[100%]",
+  "&[data-animated=false]": {
+    "--canvas-focus-duration": "0ms",
+  },
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
   },
-});
-
-const fadeBgStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  background: "[rgba(255, 255, 255, 0.3)]",
-  pointerEvents: "none",
+  "& .react-flow__node, & .arc-strokes, & .minimap-shape": {
+    transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  // A node outside the neighbourhood recedes from here, whole: card, label,
+  // token count and handles together, so nothing of it stays at full strength
+  // while the neighbourhood carries the colour. A node React Flow has marked
+  // selected is kept out of the fade as well: a drag-selection marks nodes
+  // before the change reaches the editor's selection, and until it does they
+  // wear the focus ring, so they must not be faded under it.
+  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role):not(.selected)":
+    {
+      opacity: "[0.4]",
+    },
+  // An arc outside the neighbourhood recedes from here, so a hover leaves
+  // every arc it did not touch alone. Only the strokes fade: an arc's weight
+  // is worth reading whether or not the arc carrying it is in focus.
+  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-strokes":
+    {
+      opacity: "[0.45]",
+    },
+  // A minimap shape outside the neighbourhood drops right back: the map is
+  // small enough that anything short of that competes with the neighbourhood.
+  "&[data-focus-active] .minimap-shape:not(.canvas-focus-role)": {
+    opacity: "[0.12]",
+  },
 });
 
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
   containerSize,
   viewportActions,
+  registerController,
 }) => {
   const presentation = usePetrinautPresentation();
-  const { compactNodes, showMinimap, partialSelection } =
-    use(UserSettingsContext);
-  const { hasCanvasSelection, globalMode } = use(EditorContext);
+  const {
+    compactNodes,
+    showMinimap,
+    showAnimations,
+    partialSelection,
+    enableAutomaticArcConnections,
+  } = use(UserSettingsContext);
+  const { globalMode } = use(EditorContext);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
 
   const interactions = useCanvasInteractions(scene);
-  const controller = useReactFlowController();
+  const flowStore = useStoreApi();
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
+  const insets = useCanvasInsets();
 
-  useRecenterOnPanelOpen(controller, containerSize, scene.nodes);
-  useMonacoKeyboardIsolation();
+  useEffect(() => {
+    const cancel = () => {
+      flowStore.getState().cancelConnection();
+      flowStore.setState({ connectionClickStartHandle: null });
+    };
+    cancel();
+    if (!enableAutomaticArcConnections) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      const { connection, connectionClickStartHandle } = flowStore.getState();
+      if (
+        event.key === "Escape" &&
+        (connection.inProgress || connectionClickStartHandle)
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        cancel();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [enableAutomaticArcConnections, flowStore]);
+
+  const isValidOutlineConnection: IsValidConnection = (connection) => {
+    const canvasConnection = toCanvasConnection(connection);
+    return (
+      !canvasConnection.sourcePortId &&
+      !canvasConnection.targetPortId &&
+      interactions.isValidConnection(canvasConnection)
+    );
+  };
+
+  const connect = (connection: Connection) => {
+    const { connection: gesture, connectionClickStartHandle } =
+      flowStore.getState();
+    if (
+      (!gesture.inProgress && !connectionClickStartHandle) ||
+      (enableAutomaticArcConnections && !isValidOutlineConnection(connection))
+    ) {
+      return;
+    }
+    interactions.connect(toCanvasConnection(connection));
+  };
 
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
+  const controller = useReactFlowController({
+    bounds,
+    containerSize,
+    insets,
+  });
+
+  useEffect(() => {
+    registerController(controller);
+    return () => registerController(null);
+  }, [controller, registerController]);
+
+  useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
+  useMonacoKeyboardIsolation();
 
   // The viewport at mount: where this net was last left, or centered on the
-  // net. ReactFlow owns the viewport from then on, so later bounds or
-  // container changes must not recompute it.
+  // net. Bounds and container changes must not recompute it. The saved
+  // viewport also restores the camera when the canvas resumes from Activity.
   const [initialViewport] = useState(
-    () => savedViewport ?? getInitialViewport(bounds, containerSize),
+    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets),
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable
@@ -154,6 +242,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     <CanvasControllerContext value={controller}>
       <div
         className={paneStyle}
+        data-animated={showAnimations}
+        data-focus-active={scene.focusActive ? "" : undefined}
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
           "--pane-cursor": interactions.paneCursor,
@@ -166,12 +256,13 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           edgeTypes={REACTFLOW_EDGE_TYPES}
           onNodesChange={applyChanges}
           onEdgesChange={applyChanges}
-          onConnect={
-            interactions.readonly
-              ? undefined
-              : (connection) =>
-                  interactions.connect(toCanvasConnection(connection))
+          connectionLineComponent={
+            enableAutomaticArcConnections ? OutlineConnectionLine : undefined
           }
+          isValidConnection={
+            enableAutomaticArcConnections ? isValidOutlineConnection : undefined
+          }
+          onConnect={interactions.readonly ? undefined : connect}
           onEdgeClick={(_event, edge) => interactions.selectArc(edge.id)}
           // Node click selection is handled by ReactFlow's internal
           // handleNodeClick, which fires select changes through
@@ -183,6 +274,12 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             })
           }
           onNodeMouseLeave={interactions.clearHover}
+          onNodeDragStart={(_event, node) =>
+            interactions.hoverNode({
+              id: node.id,
+              kind: node.type as CanvasNodeKind,
+            })
+          }
           onEdgeMouseEnter={(_event, edge) => interactions.hoverArc(edge.id)}
           onEdgeMouseLeave={interactions.clearHover}
           onSelectionStart={interactions.beginSelectionGesture}
@@ -193,7 +290,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           onMoveEnd={(_event, viewport) => rememberViewport(viewport)}
           onDrop={interactions.readonly ? undefined : onDrop}
           onDragOver={interactions.readonly ? undefined : onDragOver}
-          defaultViewport={initialViewport}
+          defaultViewport={savedViewport ?? initialViewport}
           proOptions={{ hideAttribution: true }}
           panOnDrag={
             interactions.isPanMode
@@ -217,7 +314,6 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           minZoom={minZoom}
         >
           <Background gap={SNAP_GRID_SIZE} size={1} />
-          {hasCanvasSelection && <div className={fadeBgStyle} />}
           {showMinimap && presentation.showMinimap && (
             <MiniMap pannable zoomable />
           )}

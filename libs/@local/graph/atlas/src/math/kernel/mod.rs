@@ -1,17 +1,13 @@
-//! Shared portable-SIMD operations.
+//! Shared fused arithmetic and approximate transcendental functions for SIMD lanes.
 //!
-//! The multiply-add wrappers keep the fusion semantic, rounding once per lane to the result IEEE
-//! 754 defines on every target, so content-hashed artifacts reproduce across platforms by
-//! construction. The vendored SLEEF kernels in [`self::sleef`] vectorize the transcendentals. Each
-//! wrapper documents its own accuracy bound, picked per kernel by measuring the consumers'
-//! requirements against instruction counts, from the 1.0-ulp `u10` tier down to compositions of the
-//! cheaper 3.5-ulp `u35` tier. These wrappers are the crate's single seam onto the vendored
-//! kernels. Every consumer routes through here, and the `math::kernel` tests bound each wrapper's
-//! error against scalar libm.
-// `StdFloat` also exposes vector `exp`/`ln`, but the compiler lowers them
-// to one libm call per lane on every current target (verified against the
-// emitted assembly), which is why the bodies below call the vendored
-// kernels instead.
+//! The multiply-add wrappers round each product-plus-sum once. The vendored kernels in
+//! [`self::sleef`] evaluate lane arithmetic with fixed coefficients and evaluation order, avoiding
+//! a scalar transcendental call per lane. These choices specify arithmetic operations rather than
+//! instruction counts or cross-platform NaN payloads.
+//!
+//! SLEEF's accuracy tiers distinguish 1.0-ULP (`u10`) and 3.5-ULP (`u35`) approximations. A
+//! composition such as [`pow_f32x4`] does not inherit either bound. The tests compare samples
+//! against scalar libm, with the reference precision and coverage described in [`self::sleef`].
 
 use core::simd::{f32x4, f32x8, f64x4, f64x8};
 
@@ -23,17 +19,16 @@ mod sleef;
 #[cfg(test)]
 mod ulp_sweep;
 
-/// Refuses to run on a CPU below the x86-64-v3 baseline the crate is compiled for.
+/// Checks selected CPU feature bits required by the crate's x86-64 build.
 ///
-/// The check reads the processor's own feature bits, so it stays live in a build that already
-/// assumes the baseline, and a mismatched machine reports what it lacks instead of faulting on its
-/// first vector instruction. Call it before anything else in `main`, ahead of argument parsing. On
-/// targets whose baseline needs no runtime support (aarch64) it compiles to nothing.
+/// Reads AVX, AVX2, FMA, BMI2 and OSXSAVE directly from CPUID. Call it before other work in `main`
+/// to report missing features early. The function performs no check on other architectures.
 ///
 /// # Panics
 ///
-/// This panics when the CPU reports no AVX, AVX2, FMA or BMI2 support, or no operating-system XSAVE
-/// support. Whether the operating system has enabled YMM register state is outside the check.
+/// On x86-64, this panics for `target_env = "sgx"` before reading CPUID. It also panics when the
+/// CPU reports no AVX, AVX2, FMA or BMI2 support, or no operating-system XSAVE support. Whether the
+/// operating system has enabled YMM register state is outside the check.
 #[cfg_attr(
     not(target_arch = "x86_64"),
     expect(
@@ -52,9 +47,9 @@ pub(crate) fn verify_cpu_baseline() {
         let max_basic_leaf = __cpuid_count(0, 0).eax;
         let processor_info = __cpuid_count(1, 0);
         let extended_features = __cpuid_count(7, 0);
-        // The AVX and OSXSAVE bits guard the AVX2 reading: SKL052 leaves BMI bits set on Skylake
-        // parts with AVX disabled in firmware, and AVX2 is meaningless without OS-enabled extended
-        // state.
+        // Some Skylake parts that lack AVX falsely report BMI1/BMI2 support (SKL052). Checking AVX
+        // alongside BMI2 rejects that combination. AVX2 also requires operating-system support for
+        // extended state.
         let avx = processor_info.ecx & (1 << 28) != 0;
         let osxsave = processor_info.ecx & (1 << 27) != 0;
         let fma = processor_info.ecx & (1 << 12) != 0;
@@ -68,11 +63,11 @@ pub(crate) fn verify_cpu_baseline() {
     }
 }
 
-/// Fused multiply-add, correctly rounded on every target.
+/// Computes a fused multiply-add in each lane.
 ///
-/// The fusion is semantic. Each lane rounds once, so every lane matches scalar [`f32::mul_add`] bit
-/// for bit. Both baselines the crate builds for lower it in hardware (aarch64 FMLA, x86-64 the
-/// workspace's x86-64-v3 FMA), and lowering changes speed, never bits.
+/// Each lane rounds the exact product-plus-sum once, as [`f32::mul_add`] does. This is an
+/// arithmetic guarantee, including when the target implements fusion in software. NaN payloads
+/// are not part of the guarantee.
 #[inline(always)]
 pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4 {
     use std::simd::StdFloat as _;
@@ -80,9 +75,9 @@ pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4
     lhs.mul_add(rhs, accumulator)
 }
 
-/// Fused multiply-add, correctly rounded on every target.
+/// Computes a fused multiply-add in each double-precision lane.
 ///
-/// The `f64x4` counterpart of [`mul_add_f32x4`].
+/// The four-lane counterpart of [`mul_add_f32x4`], with the same rounding contract.
 #[inline(always)]
 pub(crate) fn mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
     use std::simd::StdFloat as _;
@@ -90,9 +85,9 @@ pub(crate) fn mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4
     lhs.mul_add(rhs, accumulator)
 }
 
-/// Fused multiply-add, correctly rounded on every target.
+/// Computes a fused multiply-add in each double-precision lane.
 ///
-/// The `f64x8` counterpart of [`mul_add_f32x4`].
+/// The eight-lane counterpart of [`mul_add_f32x4`], with the same rounding contract.
 #[inline(always)]
 pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
     use std::simd::StdFloat as _;
@@ -100,7 +95,10 @@ pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8
     lhs.mul_add(rhs, accumulator)
 }
 
-/// Exponential of each lane, accurate to 1.0 unit in the last place.
+/// Approximates the base-e exponential of each double-precision lane.
+///
+/// Uses [`sleef::exp_f64`]. Its sampled agreement with scalar libm does not establish a
+/// worst-case ULP bound over every input.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
@@ -111,9 +109,10 @@ pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
     sleef::exp_f64(values)
 }
 
-/// Exponential of each lane, accurate to 1.0 unit in the last place.
+/// Approximates the base-e exponential of each single-precision lane.
 ///
-/// A zero lane yields exactly one, and a negative-infinity lane yields exactly zero.
+/// Uses the `u10`-tier [`sleef::exp_f32`]. A zero lane yields exactly one, and a negative-infinity
+/// lane yields exactly zero.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
@@ -124,29 +123,25 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
     sleef::exp_f32(values)
 }
 
-/// Raises each lane of `base` to the matching lane of `exponent`, for strictly positive bases.
+/// Approximates each lane's power for strictly positive finite bases.
 ///
-/// This evaluates the power as `exp2(exponent · log2(base))` through the vendored SLEEF 3.5-ulp
-/// stages. The relative error grows with the magnitude of the result's binary exponent, from a few
-/// units in the last place for results near one to the order of `1e-4` at the edges of the normal
-/// range. Gradient kernels tolerate far more. For 1-ulp powers, take the scalar [`f32::powf`] per
-/// lane instead.
+/// Evaluates exp₂(p · log₂ b) for base b and exponent p through `u35`-tier stages. If the logarithm
+/// has absolute error δₗ and multiplication contributes δₘ, the exponential's argument error is Δz
+/// = pδₗ + δₘ. For a finite positive normal result, an exp₂ relative error δₑ gives composed
+/// relative error 2^Δz · (1 + δₑ) − 1. For small errors this is approximately ln(2) · Δz + δₑ. The
+/// exponent can amplify logarithm error before exp₂ is evaluated.
 ///
-/// A `base` of zero yields zero for positive exponents, infinity for negative exponents, and NaN
-/// when the exponent is also zero. Negative bases yield NaN.
-// Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf, fused ladders): this
-// composition 68 instructions / 18 cycles, four scalar libm `powf` calls 311 / 36. The scalar
-// near-tie in standalone cycles vanishes under load. Embedded in the attraction-coefficient
-// arithmetic, the composition occupies idle issue slots while the scalar bodies compete for them.
-// The tie also does not generalize across machines. It needs an out-of-order engine wide and deep
-// enough to overlap four independent libm bodies (IPC ≈8.6 here) and Apple's branch-free `powf`.
-// Production Linux targets have neither, and glibc's `powf` is a different, branchier function with
-// different rounding. The composition's cost is the same wherever the binary runs, because the same
-// vendored code produces bit-identical results on every platform, and that also keeps
-// content-hashed fits reproducible across dev and prod. Inside the fused gradient kernels the
-// instruction count also becomes the shared resource, and the composition leaves three quarters of
-// the issue slots to the surrounding batch arithmetic while staying in vector registers. `StdFloat`
-// offers no vector `pow`, and its `exp2`/`log2` scalarize to one libm call per lane.
+/// This composition has no fixed ULP bound inherited from its stages. The tests allow relative
+/// error `2e-4` on their finite sample grid. Scalar [`f32::powf`] is an alternative with
+/// platform-dependent accuracy.
+///
+/// A `base` of zero yields zero for positive finite exponents, infinity for negative finite
+/// exponents, and NaN when the exponent is also zero. Negative bases yield NaN. Infinite bases or
+/// exponents follow the intermediate logarithm and product, including NaN for an infinite base
+/// raised to zero.
+// measured on an M5 Max per four-lane call with Criterion and darwin-kperf: this composition used
+// 68 instructions / 18 cycles, versus 311 / 36 for four scalar libm powf calls. The isolated
+// comparison does not measure the complete gradient or predict another CPU's cost.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
@@ -158,24 +153,17 @@ pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
 }
 
 #[cfg(test)]
-#[expect(
-    clippy::float_cmp,
-    reason = "exactness assertions are the point: sleef guarantees exact values at special points \
-              such as exp(0) and pow(x, 0)"
-)]
 mod tests {
     use core::simd::Simd;
 
     use super::{exp_f32x8, exp_f64x4, mul_add_f32x4, mul_add_f64x4, mul_add_f64x8, pow_f32x4};
 
-    /// `mul_add_f32x4` rounds once per lane, against scalar [`f32::mul_add`] as the reference.
+    /// Distinguishes fused cancellation from separately rounded multiplication.
     ///
-    /// Lane 0 discriminates the fusion, so an unfused `lhs * rhs + accumulator` body fails here: `a
-    /// = b = 1 + 2⁻¹²` and `c = -(1 + 2⁻¹¹)` make `a·b` round to `1 + 2⁻¹¹` under tie-to-even
-    /// before the add (the exact product carries a `2⁻²⁴` term, exactly half the `f32` ulp at this
-    /// magnitude), so `a * b + c` gives `0.0` where the fused result is `2⁻²⁴`. Lane 1 is its
-    /// sign-negated twin, mirroring the same tie around zero. Lanes 2 and 3 are ordinary non-dyadic
-    /// values.
+    /// For a = b = 1 + 2⁻¹² and c = −(1 + 2⁻¹¹), the exact product contains a 2⁻²⁴ term, half the
+    /// binary32 ULP at this magnitude. Ties-to-even rounds a · b to 1 + 2⁻¹¹ before a separate
+    /// addition. Therefore the separate result is zero while the fused result is 2⁻²⁴. Lane 1
+    /// negates the product and addend, giving the corresponding negative residual.
     #[test]
     fn mul_add_f32x4_rounds_once_per_lane() {
         let factor = 1.0_f32 + (-12.0_f32).exp2();
@@ -198,13 +186,11 @@ mod tests {
         }
     }
 
-    /// `mul_add_f64x4` rounds once per lane, against scalar [`f64::mul_add`] as the reference.
+    /// Distinguishes fused cancellation in double precision.
     ///
-    /// Lane 0 discriminates the fusion, so an unfused `lhs * rhs + accumulator` body fails here: `a
-    /// = b = 1 + 2⁻²⁷` and `c = -(1 + 2⁻²⁶)` make the exact product's `2⁻⁵⁴` term round away (a
-    /// quarter of the `f64` ulp at this magnitude) before the add, so `a * b + c` gives `0.0` where
-    /// the fused result is `2⁻⁵⁴`. Lane 1 is its sign-negated twin. Lanes 2 and 3 are ordinary
-    /// non-dyadic values.
+    /// For a = b = 1 + 2⁻²⁷ and c = −(1 + 2⁻²⁶), the exact product's 2⁻⁵⁴ term is one quarter of a
+    /// binary64 ULP and rounds away before a separate addition. Therefore the separate result is
+    /// zero while the fused result is 2⁻⁵⁴. Lane 1 gives the sign-negated residual.
     #[test]
     fn mul_add_f64x4_rounds_once_per_lane() {
         let factor = 1.0_f64 + (-27.0_f64).exp2();
@@ -227,10 +213,9 @@ mod tests {
         }
     }
 
-    /// `mul_add_f64x8` rounds once per lane, against scalar [`f64::mul_add`] as the reference.
+    /// Extends the double-precision cancellation fixture to eight lanes.
     ///
-    /// Lanes 0 and 1 repeat the `f64x4` fusion-discriminating pair and its sign-negated twin; the
-    /// remaining six lanes are ordinary non-dyadic values.
+    /// Lanes 0 and 1 use the ±2⁻⁵⁴ residuals derived in [`mul_add_f64x4_rounds_once_per_lane`].
     #[test]
     fn mul_add_f64x8_rounds_once_per_lane() {
         let factor = 1.0_f64 + (-27.0_f64).exp2();
@@ -307,10 +292,8 @@ mod tests {
                     continue;
                 }
 
-                // The composed error scales with the result's binary
-                // exponent; 2e-4 relative covers the extreme corner of the
-                // sample grid (3.4e37 squared) with margin, and results
-                // near one land far inside it.
+                // the tolerance applies to this finite sample grid. Overflowing powers,
+                // including 3.4e37 squared, took the classification branch above.
                 assert!(
                     (vectorized - reference).abs() <= reference.abs() * 2e-4,
                     "pow({base}, {exponent}): sleef {vectorized} vs libm {reference}",
@@ -318,8 +301,7 @@ mod tests {
             }
         }
 
-        // A zero exponent is exact for any positive base: the exponent
-        // product is zero and exp2(0) is one.
+        // A finite logarithm multiplied by zero gives zero, and exp2(0) is exactly one.
         assert_eq!(
             pow_f32x4(Simd::splat(7.5), Simd::splat(0.0)).to_array(),
             [1.0; 4]
@@ -348,9 +330,6 @@ mod tests {
             }
         }
 
-        // Exact special points: the smooth-kNN kernel encodes "at or
-        // below rho" as an adjusted distance of zero and padding lanes
-        // as negative infinity, so these must not merely be close.
         assert_eq!(exp_f32x8(Simd::splat(0.0)).to_array(), [1.0; 8]);
         assert_eq!(
             exp_f32x8(Simd::splat(f32::NEG_INFINITY)).to_array(),
@@ -358,13 +337,13 @@ mod tests {
         );
     }
 
-    /// The distance to the next representable `f64` above `value`.
+    /// Returns the spacing above the finite magnitude of `value`.
     fn ulp_f64(value: f64) -> f64 {
         let bits = value.abs().to_bits();
         f64::from_bits(bits + 1) - f64::from_bits(bits)
     }
 
-    /// The distance to the next representable `f32` above `value`.
+    /// Returns the spacing above the finite magnitude of `value`.
     fn ulp_f32(value: f32) -> f32 {
         let bits = value.abs().to_bits();
         f32::from_bits(bits + 1) - f32::from_bits(bits)

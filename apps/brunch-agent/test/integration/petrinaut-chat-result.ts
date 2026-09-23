@@ -21,10 +21,7 @@ export interface PetrinautChatResult {
   readonly resumedStatus: number;
   readonly resumedText: string;
   readonly resumedFinish: UIMessageChunk | undefined;
-  readonly questionMarkerLive: unknown;
-  readonly questionMarkerHistory: unknown;
-  readonly questionToolVisibleLive: boolean;
-  readonly questionToolVisibleHistory: boolean;
+  readonly questionResponseProviderCalls: number;
   readonly historyUserEntryCount: number;
   readonly historyClientToolResultCount: number;
   readonly historyGetStatus: number;
@@ -44,18 +41,10 @@ export interface PetrinautChatResult {
     { type: "tool-input-available" }
   > | null;
   readonly interviewerToolNames: readonly string[];
-  readonly captureUserText: string;
-  readonly captureIds: readonly string[];
-  readonly recaptureIds: readonly string[];
-  readonly skippedDedupKeys: readonly string[];
-  readonly capturePayloads: readonly unknown[];
-  readonly captureExcerpts: readonly string[];
 }
 
 export interface PetrinautResumeResult {
   readonly historyGetStatus: number;
   readonly historyUserText: string;
-  readonly questionMarkerHistory: unknown;
-  readonly questionToolVisibleHistory: boolean;
   readonly transcript: string;
 }

@@ -1,40 +1,32 @@
-//! Compressed runs of items over dense key domains.
+//! Packed variable-length lists indexed by dense keys.
 //!
-//! [`Runs`] is the shared form of a recurring artifact and pipeline shape: many
-//! short item lists, one per key of a dense domain, stored as two flat columns.
-//! The items column holds every list back to back in key order, and the
-//! fencepost column records where each list begins, so key `i`'s list is the
-//! contiguous stretch `items[posts[i]..posts[i + 1]]`. Storage stays two
-//! allocations at any key count. A run borrows as one slice, and either column
-//! writes to an artifact region as it is.
+//! [`Runs`] stores each key's list, called a run, in a shared items column. An offset column
+//! locates the runs without allocating a separate buffer for each key. [`RunsView`] borrows the
+//! same representation, including from mapped artifact regions.
 //!
-//! # Vocabulary and invariants
+//! # Representation
 //!
-//! A run is one key's item list. The fencepost column carries one offset per
-//! run plus a closing offset. It anchors at zero, never decreases, and closes
-//! at the items column's length. Construction establishes these rules once,
-//! so accessors index on them without rechecking.
+//! The offset column, `posts`, contains one start offset per run and a final end offset. Key `i`
+//! selects `items[posts[i]..posts[i + 1]]`. Equal adjacent offsets represent an empty run.
+//!
+//! For example, `posts = [0, 2, 2, 5]` and `items = [4, 7, 1, 6, 8]` represent the runs `[4, 7]`,
+//! `[]` and `[1, 6, 8]` at keys 0, 1 and 2.
+//!
+//! Valid offsets start at zero, never decrease, and end at the items column's length. An empty key
+//! domain still has the offset column `[0]`. Offsets are little-endian 64-bit values, ready for
+//! writing to an artifact region.
 //!
 //! # Construction
 //!
-//! [`Runs::from_pairs`] counting-sorts unsorted `(key, item)` pairs into runs
-//! in linear time. [`RunsBuilder`] appends whole runs when the producer
-//! already visits keys in order. [`Runs::from_parts`] validates columns that
-//! already exist.
+//! - Use [`Runs::from_pairs`] to group `(key, item)` pairs supplied in any order.
+//! - Use [`RunsBuilder`] to append whole runs in key order.
+//! - Use [`Runs::from_parts`] or [`RunsView::from_parts`] to validate existing columns.
 //!
-//! # Value columns
+//! # Parallel columns
 //!
-//! Per-item values live in parallel columns beside the items column, never
-//! inside it. [`Runs::span`] returns a run's index range, and slicing a
-//! parallel column with it yields the values of exactly that run. One
-//! structure thereby serves any number of aligned columns, and each column
-//! stays a plain array in memory and on disk.
-//!
-//! # Mapped artifacts
-//!
-//! [`RunsView`] is the borrowed counterpart over a mapped artifact's regions:
-//! the same fencepost law over columns a read-only file mapping owns, with
-//! the fenceposts at their persisted little-endian width.
+//! [`Runs::span`] returns a run's range of item positions. Apply that range to any parallel column
+//! with one value per item, such as weights paired with neighbour IDs. The columns can remain
+//! separate arrays in memory and on disk while sharing the same run boundaries.
 
 #[cfg(test)]
 mod tests;
@@ -44,13 +36,10 @@ use core::{fmt, ops::Range};
 use hashql_core::id::{Id, IdSlice, IdVec};
 use zerocopy::{LE, U64};
 
-/// Why two columns are not a valid run structure.
-///
-/// Each variant names one broken fencepost rule. The rules are structural,
-/// and what the items mean stays the consumer's contract.
+/// An invalid boundary in a packed list representation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum RunsError {
-    /// The fencepost column is empty, so not even an empty key domain exists.
+    /// The offset column is empty, lacking the zero offset required even for no runs.
     Missing,
     /// The first fencepost is not zero.
     Anchor,
@@ -86,11 +75,13 @@ impl fmt::Display for RunsError {
 
 impl core::error::Error for RunsError {}
 
-/// Checks the fencepost law over one post column: anchored at zero, never
-/// decreasing, closing at `items`.
+/// Checks that the offsets partition exactly `items` elements into runs.
+///
+/// # Errors
+///
+/// Returns [`RunsError`] for invalid offsets, with the same check order as [`Runs::from_parts`].
 fn validate_posts(posts: &[U64<LE>], items: u64) -> Result<(), RunsError> {
-    // `[first, ..]` rather than `[first, .., last]`: the lone anchoring post of an empty key
-    // domain is a valid column, and it is its own closing post.
+    // an empty key domain has one offset, serving as both the start and end.
     let &[first, ..] = posts else {
         return Err(RunsError::Missing);
     };
@@ -99,9 +90,7 @@ fn validate_posts(posts: &[U64<LE>], items: u64) -> Result<(), RunsError> {
         return Err(RunsError::Anchor);
     }
 
-    // Strict `>` only: equal neighbouring posts are exactly how an empty run is spelled. The
-    // window at `index` pairs a post with its successor, so the offending post - the one smaller
-    // than its predecessor - sits at `index + 1`.
+    // equal offsets allow empty runs. The decreasing offset is the window's second element.
     if let Some(index) = posts
         .array_windows::<2>()
         .position(|&[lhs, rhs]| lhs.get() > rhs.get())
@@ -117,20 +106,19 @@ fn validate_posts(posts: &[U64<LE>], items: u64) -> Result<(), RunsError> {
     Ok(())
 }
 
-/// Items grouped into per-key runs over one shared column.
+/// Immutable per-key lists stored in shared offset and item columns.
 ///
-/// `I` is the key domain, dense ids sharing the [`Id`] contract, and `T` is
-/// the item element. Key `i` owns the `i`-th run. The structure is immutable
-/// after construction, and every run borrows from the one items allocation.
+/// `I` numbers the runs from zero under the [`Id`] contract. Every constructor establishes the
+/// offset invariants described in the [module documentation](crate::runs). Lookup borrows a
+/// contiguous slice without allocating or rescanning the offsets.
 ///
-/// The fencepost column holds one offset per run plus a closing offset. It
-/// anchors at zero, never decreases, and closes at the item count. Every
-/// constructor establishes or validates these rules, so the accessors index
-/// without rechecking them.
+/// Keys supplied for lookup must convert losslessly to [`usize`]. Direct lookup also requires `I`
+/// to represent the key's successor, which indexes the run's end offset.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Runs<I, T> {
-    /// Fenceposts: one offset per run plus a closing offset equal to
-    /// `items.len()`. The column anchors at zero and never decreases.
+    /// Fenceposts: one offset per run plus a closing offset equal to `items.len()`.
+    ///
+    /// The column anchors at zero and never decreases.
     posts: IdVec<I, U64<LE>>,
     /// Every run's items, back to back in key order.
     items: Box<[T]>,
@@ -140,22 +128,19 @@ impl<I, T> Runs<I, T>
 where
     I: Id,
 {
-    /// Returns the run count: the key domain's size.
+    /// Returns the number of keys, including keys with empty runs.
     #[inline]
     #[must_use]
     pub(crate) const fn runs(&self) -> usize {
         self.posts.len() - 1
     }
 
-    /// Wraps existing fencepost and items columns as a validated structure.
+    /// Validates and takes ownership of existing offset and item columns.
     ///
     /// # Errors
     ///
-    /// Returns the first violated rule: [`RunsError::Missing`] when the
-    /// fencepost column is empty, [`RunsError::Anchor`] when the first
-    /// fencepost is not zero, [`RunsError::Order`] when a fencepost is
-    /// smaller than its predecessor, and [`RunsError::Close`] when the last
-    /// fencepost does not equal the items column's length.
+    /// Returns [`RunsError`] for invalid offsets, in the order [`Missing`](RunsError::Missing),
+    /// [`Anchor`](RunsError::Anchor), [`Order`](RunsError::Order), [`Close`](RunsError::Close).
     pub(crate) fn from_parts(posts: IdVec<I, U64<LE>>, items: Vec<T>) -> Result<Self, RunsError> {
         validate_posts(posts.as_raw(), items.len() as u64)?;
 
@@ -165,10 +150,9 @@ where
         })
     }
 
-    /// Borrows the whole items column, every run back to back in key order.
+    /// Borrows all items in key order.
     ///
-    /// Its length is the total item count, which is also the length every
-    /// parallel value column matches.
+    /// Every parallel value column must match this slice's length and item order.
     #[inline]
     #[must_use]
     pub(crate) fn items(&self) -> &[T] {
@@ -176,6 +160,11 @@ where
     }
 
     /// Iterates the runs in key order.
+    ///
+    /// # Panics
+    ///
+    /// Creating or advancing the iterator panics if `I` cannot represent a run index. An empty
+    /// domain also requires `I` to represent zero.
     pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = (I, &[T])> + '_ {
         self.posts
             .windows_enumerated()
@@ -189,31 +178,31 @@ where
             })
     }
 
-    /// Borrows the fencepost and items columns as raw slices.
+    /// Borrows the stored columns for serialization.
     ///
-    /// The fenceposts are usable directly as a file's pointer region and the
-    /// items as its index or payload region. Reading runs goes through
-    /// [`run`](Self::run) and [`span`](Self::span) instead.
+    /// The offsets retain their little-endian representation. Use [`run`](Self::run) or
+    /// [`span`](Self::span) to look up an individual key.
     #[must_use]
     pub(crate) fn as_raw_parts(&self) -> (&IdSlice<I, U64<LE>>, &[T]) {
         (&self.posts, &self.items)
     }
 
-    /// Counting-sorts `(key, item)` pairs into runs.
+    /// Groups unordered pairs into runs while preserving each key's item order.
     ///
-    /// The pairs arrive in any order over a key domain of `runs` keys. A run
-    /// collects its key's pairs in arrival order, so a stream that ascends
-    /// within each key yields runs that ascend. Time and memory are linear in
-    /// the key and pair counts, over one counting pass, one prefix sum, and
-    /// one placement pass.
+    /// Keys cover `0..runs`, including empty runs for keys absent from `pairs`. A clone of the
+    /// iterator supplies the per-key counts. The original iterator supplies the items and their
+    /// order within each run. Both iterations must yield the same number of items per key.
     ///
-    /// The constructor walks the iterator twice through its clone, once to
-    /// count and once to place.
+    /// # Complexity
+    ///
+    /// For `n` pairs, construction takes O(`runs` + `n`) time and space. Counting sort uses a
+    /// counting pass, a prefix sum over keys, and a placement pass over the pairs.
     ///
     /// # Panics
     ///
-    /// This panics when a pair names a key at or beyond `runs`, and when the
-    /// cloned iterator does not repeat its sequence.
+    /// Panics if either iteration names a key outside `0..runs` or the per-key counts differ. The
+    /// key type must represent every index in `0..=runs` and also `1` for an empty domain. Keys
+    /// must meet [`Runs`]'s lossless-conversion requirement.
     pub(crate) fn from_pairs(runs: usize, pairs: impl Iterator<Item = (I, T)> + Clone) -> Self
     where
         T: Copy,
@@ -225,15 +214,14 @@ where
             posts[key.plus(1)] += 1;
         }
 
-        // The anchor at id 0 stays zero. Every later post accumulates its predecessor.
+        // prefix sums turn per-key counts into end offsets, retaining zero as the first start.
         for index in posts.ids().skip(1) {
             let prev = posts[index.minus(1)];
             posts[index] += prev;
         }
 
-        // The first pair's item seeds the whole buffer, and the placement
-        // overwrites every slot when the two passes agree, which the closing
-        // assertion checks, so no seeded value survives into the result.
+        // initialize with an actual item to avoid uninitialized storage. Placement replaces every
+        // slot when the per-key counts agree, which the final cursor comparison checks.
         let mut items: Vec<T> = Vec::new();
         let mut cursors = posts.prefix(I::from_usize(runs)).to_vec();
         for (key, item) in pairs {
@@ -262,15 +250,14 @@ where
         }
     }
 
-    /// Returns run `key`'s index range in the items column.
+    /// Returns the item positions belonging to `key`.
     ///
-    /// The range slices the columns riding beside the structure: a parallel
-    /// column keeps one value per item, and indexing it with this range
-    /// yields run `key`'s stretch of it.
+    /// The range also selects exactly this run's values from any aligned parallel column.
     ///
     /// # Panics
     ///
-    /// This panics when `key` is not below [`runs`](Self::runs).
+    /// Panics when `key` is not below [`runs`](Self::runs), or when `I` cannot represent its
+    /// successor. Keys must meet [`Runs`]'s lossless-conversion requirement.
     #[inline]
     #[must_use]
     pub(crate) fn span(&self, key: I) -> Range<usize> {
@@ -282,11 +269,11 @@ where
         start..end
     }
 
-    /// Borrows run `key`: its items, contiguous in the shared column.
+    /// Borrows the items belonging to `key`.
     ///
     /// # Panics
     ///
-    /// This panics when `key` is not below [`runs`](Self::runs).
+    /// Panics under the key conditions of [`Self::span`], including an unrepresentable successor.
     #[inline]
     #[must_use]
     pub(crate) fn run(&self, key: I) -> &[T] {
@@ -294,18 +281,20 @@ where
     }
 }
 
-/// Runs borrowed from a mapped artifact's fencepost and items regions.
+/// Per-key lists borrowed from existing offset and item columns.
 ///
-/// The borrowed counterpart of [`Runs`]: the same fencepost law over columns
-/// a read-only file mapping owns, with the fenceposts at their persisted
-/// little-endian width. [`RunsView::from_parts`] validates the law where an
-/// artifact opens, and [`RunsView::from_parts_unchecked`] re-borrows the same
-/// regions afterwards, so an archive that owns its mapping serves runs
-/// without storing a self-referential view.
+/// The columns have the same representation and lookup requirements as [`Runs`]. Item borrows
+/// retain the columns' lifetime and can outlive the view itself.
+///
+/// For mapped artifacts, use [`from_parts`](Self::from_parts) to validate the regions when opening
+/// the file. [`from_parts_unchecked`](Self::from_parts_unchecked) can reconstruct the view over
+/// those unchanged regions for later reads. The mapping owner can then return run slices without
+/// storing a self-referential view.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RunsView<'map, I, T> {
-    /// Fenceposts: one offset per run plus a closing offset equal to
-    /// `items.len()`. The column anchors at zero and never decreases.
+    /// Fenceposts: one offset per run plus a closing offset equal to `items.len()`.
+    ///
+    /// The column anchors at zero and never decreases.
     posts: &'map IdSlice<I, U64<LE>>,
     /// Every run's items, back to back in key order.
     items: &'map [T],
@@ -315,13 +304,12 @@ impl<'map, I, T> RunsView<'map, I, T>
 where
     I: Id,
 {
-    /// Wraps mapped fencepost and items columns as a validated view.
+    /// Validates and borrows existing offset and item columns.
     ///
     /// # Errors
     ///
-    /// Returns the first violated rule, exactly as [`Runs::from_parts`]
-    /// reports it: [`RunsError::Missing`], [`RunsError::Anchor`],
-    /// [`RunsError::Order`], or [`RunsError::Close`].
+    /// Returns [`RunsError`] for invalid offsets, with the same check order as
+    /// [`Runs::from_parts`].
     pub(crate) fn from_parts(posts: &'map [U64<LE>], items: &'map [T]) -> Result<Self, RunsError> {
         validate_posts(posts, items.len() as u64)?;
 
@@ -331,12 +319,11 @@ where
         })
     }
 
-    /// Re-wraps columns [`Self::from_parts`] validated when the artifact
-    /// opened.
+    /// Borrows offset and item columns whose run boundaries already passed validation.
     ///
-    /// The caller owns the proof that this exact pair passed validation. The
-    /// debug assertions catch the realistic misuse - one region's fenceposts
-    /// paired with another's items - through the anchor and close rules.
+    /// `posts` and `items` must be the exact pair that passed [`Self::from_parts`]. The validated
+    /// fenceposts and item count must remain unchanged.
+    // the fencepost invariant concerns correctness rather than memory safety
     #[must_use]
     pub(crate) fn from_parts_unchecked(posts: &'map [U64<LE>], items: &'map [T]) -> Self {
         debug_assert_eq!(
@@ -356,21 +343,21 @@ where
         }
     }
 
-    /// Borrows the whole items column, every run back to back in key order.
+    /// Borrows all items in key order for the columns' lifetime.
     #[inline]
     #[must_use]
     pub(crate) const fn items(&self) -> &'map [T] {
         self.items
     }
 
-    /// Borrows run `key`: its items, contiguous in the mapped column.
-    ///
-    /// The borrow carries the mapping's lifetime rather than the view's, so a
-    /// run outlives the view value that served it.
+    /// Borrows the items belonging to `key` for the columns' lifetime.
     ///
     /// # Panics
     ///
-    /// This panics when `key` is not below the view's run count.
+    /// Panics when `key` is not below the view's run count, or when `I` cannot represent its
+    /// successor. Keys must meet [`Runs`]'s lossless-conversion requirement. Invalid columns
+    /// supplied through [`Self::from_parts_unchecked`] can also panic during fencepost conversion
+    /// or slicing.
     #[inline]
     #[must_use]
     pub(crate) fn run(&self, key: I) -> &'map [T] {
@@ -383,6 +370,12 @@ where
     }
 
     /// Iterates the runs in key order.
+    ///
+    /// # Panics
+    ///
+    /// Creating or advancing the iterator panics if `I` cannot represent a run index. An empty
+    /// domain also requires `I` to represent zero. Invalid columns supplied through
+    /// [`Self::from_parts_unchecked`] can panic during fencepost conversion or slicing.
     pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = (I, &'map [T])> + '_ {
         let items = self.items;
         self.posts
@@ -397,11 +390,11 @@ where
     }
 }
 
-/// Builds [`Runs`] one whole run at a time, in key order.
+/// An append-only builder for per-key lists.
 ///
-/// Each [`push_run`](Self::push_run) call appends one run and returns its key. The fenceposts
-/// follow from the pushes alone, so the finished structure satisfies the fencepost rules by
-/// construction and [`finish`](Self::finish) validates nothing.
+/// Each [`push_run`](Self::push_run) assigns the next key, starting at zero. Push an empty iterator
+/// for a key with no items. [`finish`](Self::finish) makes the accumulated lists available as
+/// immutable [`Runs`].
 #[derive(Debug)]
 pub(crate) struct RunsBuilder<I, T> {
     /// Fenceposts so far: seeded with the zero anchor, one push per run.
@@ -414,9 +407,13 @@ impl<I, T> RunsBuilder<I, T>
 where
     I: Id,
 {
-    /// Creates a builder with room for `runs` runs over `items` items.
+    /// Reserves space for `runs` lists containing `items` items in total.
     ///
-    /// The counts are allocation hints. Pushing beyond either grows the columns.
+    /// The counts are capacity hints. Pushing beyond either grows the columns.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `I` cannot represent zero.
     pub(crate) fn with_capacity(runs: usize, items: usize) -> Self {
         let mut posts = IdVec::with_capacity(runs + 1);
         posts.push(U64::new(0));
@@ -431,14 +428,14 @@ where
     ///
     /// # Panics
     ///
-    /// This panics when the finished run count leaves the key domain's encoding.
+    /// Panics if `I` cannot represent the new run count, which indexes the closing offset.
     pub(crate) fn push_run(&mut self, run: impl IntoIterator<Item = T>) -> I {
         self.items.extend(run);
-        // The pushed fencepost closes the run, so its id sits one past the run's own key.
+        // the end offset has the next key's index.
         self.posts.push(U64::new(self.items.len() as u64)).minus(1)
     }
 
-    /// Wraps the columns as the finished structure.
+    /// Makes the accumulated runs available for indexed lookup.
     #[must_use]
     pub(crate) fn finish(self) -> Runs<I, T> {
         Runs {

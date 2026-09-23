@@ -2,13 +2,11 @@
  * @vitest-environment jsdom
  */
 import { cleanup, render, screen } from "@testing-library/react";
-import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import { SimulateView } from "./simulate-view";
+import { SimulateViewTabs } from "./simulate-view";
 
 import type { PetrinautOptimization } from "@hashintel/petrinaut-core";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
@@ -40,9 +38,6 @@ vi.mock("./experiments/experiments-view", () => ({
 vi.mock("./metrics/metrics-view", () => ({
   MetricsView: () => <div>Metrics view</div>,
 }));
-vi.mock("./optimizations/optimizations-view", () => ({
-  OptimizationsView: () => <div>Optimizations view</div>,
-}));
 vi.mock("./scenarios/scenarios-view", () => ({
   ScenariosView: () => <div>Scenarios view</div>,
 }));
@@ -65,76 +60,41 @@ const connectedSource: PetrinautConnectedOptimization = {
   }),
 };
 
-/** Overrides the In-browser optimization setting below the default context. */
-const InBrowserOptimizationSetting = ({
-  enabled,
-  children,
-}: {
-  enabled: boolean;
-  children: ReactNode;
-}) => {
-  const value = use(UserSettingsContext);
-  return (
-    <UserSettingsContext
-      value={{ ...value, enableInBrowserOptimization: enabled }}
-    >
-      {children}
-    </UserSettingsContext>
-  );
-};
-
 afterEach(cleanup);
 
-describe("SimulateView optimization capability", () => {
-  it("hides Optimizations without a host capability", () => {
-    render(
+/** The tab list, whatever optimization source the host provides. */
+const tabsUnder = (wrap: (view: ReactNode) => ReactNode): string[] => {
+  const { container, unmount } = render(
+    wrap(
       <FakeEditorProvider>
-        <SimulateView />
+        <SimulateViewTabs />
       </FakeEditorProvider>,
-    );
+    ),
+  );
+  const tabs = [...container.querySelectorAll("span")].map(
+    (tab) => tab.textContent,
+  );
+  unmount();
+  return tabs;
+};
 
-    expect(screen.queryByText("Optimizations")).toBeNull();
-    expect(screen.getByText("Experiments")).toBeTruthy();
-    expect(screen.getByText("Scenarios")).toBeTruthy();
-  });
-
-  it("shows Optimizations with a host capability", () => {
-    render(
-      <PetrinautOptimizationContext value={capability}>
-        <FakeEditorProvider>
-          <SimulateView />
-        </FakeEditorProvider>
-      </PetrinautOptimizationContext>,
-    );
-
-    expect(screen.getByText("Optimizations")).toBeTruthy();
-  });
-
-  it("hides Optimizations for a connected source while In-browser optimization is off", () => {
-    render(
-      <InBrowserOptimizationSetting enabled={false}>
-        <PetrinautOptimizationContext value={connectedSource}>
-          <FakeEditorProvider>
-            <SimulateView />
-          </FakeEditorProvider>
+describe("SimulateView tabs", () => {
+  it("are Experiments and Scenarios whatever the optimization source", () => {
+    expect(tabsUnder((view) => view)).toEqual(["Experiments", "Scenarios"]);
+    expect(
+      tabsUnder((view) => (
+        <PetrinautOptimizationContext value={capability}>
+          {view}
         </PetrinautOptimizationContext>
-      </InBrowserOptimizationSetting>,
-    );
-
-    expect(screen.queryByText("Optimizations")).toBeNull();
-  });
-
-  it("shows Optimizations for a connected source once In-browser optimization is on", () => {
-    render(
-      <InBrowserOptimizationSetting enabled>
+      )),
+    ).toEqual(["Experiments", "Scenarios"]);
+    expect(
+      tabsUnder((view) => (
         <PetrinautOptimizationContext value={connectedSource}>
-          <FakeEditorProvider>
-            <SimulateView />
-          </FakeEditorProvider>
+          {view}
         </PetrinautOptimizationContext>
-      </InBrowserOptimizationSetting>,
-    );
-
-    expect(screen.getByText("Optimizations")).toBeTruthy();
+      )),
+    ).toEqual(["Experiments", "Scenarios"]);
+    expect(screen.queryByText("Optimizations")).toBeNull();
   });
 });

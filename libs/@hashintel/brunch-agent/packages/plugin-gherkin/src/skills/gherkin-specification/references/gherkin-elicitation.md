@@ -12,7 +12,7 @@ Ask about situations, actors or external systems, events, actions, rules, and ob
 
 ### Keep intended and current behavior distinct
 
-Normative language may be the desired product, not a defective report of practice. Establish whether the person is describing what happens now, what should happen, or a discrepancy that matters. Do not force a proposed rule through a last-occurrence test as though only observed behavior were legitimate.
+Apply core's normative-language distinction to proposed software rules. Do not force a proposed rule through a last-occurrence test as though only observed behavior were legitimate.
 
 ### Let examples illustrate rules
 

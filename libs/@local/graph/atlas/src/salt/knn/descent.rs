@@ -1,41 +1,45 @@
 //! NN-Descent k-nearest-neighbour list construction.
 //!
-//! [`NnDescent`] derives every row's neighbour list directly, without a search structure: lists
-//! start random and improve by local joins - each row introduces its current neighbours to each
-//! other, and every introduction that beats a list's worst entry displaces it. The join converges
-//! because similarity is locally transitive: when `a` and `b` are both near `x`, `a` and `b` are
-//! likely near each other, so a row's own list is a high-yield candidate source for its
-//! neighbours' lists. Random lists seed that feedback everywhere at once, and each accepted
-//! displacement sharpens the candidate source for the next round; the audited cost on
-//! generic-similarity corpora is far below the brute-force quadratic.
+//! [`NnDescent`] starts every row with random non-self neighbours and improves its list by local
+//! joins. Each row introduces its current neighbours to each other. A distinct candidate displaces
+//! a list's worst entry only when its distance is strictly smaller. Neighbours of the same row can
+//! be useful candidates for one another, which motivates the join as a search heuristic. Cosine
+//! similarity is not transitive, and this heuristic does not guarantee exact nearest neighbours.
 //!
 //! # Shape of one iteration
 //!
 //! 1. **Candidate sampling.** Each row splits its list by the *new* flag (set on entries that have
 //!    not yet participated in a join) and samples up to
 //!    [`maximum_candidates`](NnDescentOptions::maximum_candidates) of each side. Sampling marks the
-//!    drawn new entries old, which keeps a later iteration from recomparing the same pairs.
-//! 2. **Reversal.** The step transposes the sampled sets, so the rows listing a row also introduce
-//!    it. Sampling limits each reverse pool to the same cap so that rows which many others list
-//!    cannot join quadratically in their in-degree.
+//!    drawn new entries old. Old-old pairs are skipped in a local join, though the same pair can
+//!    meet again through another row or sampling path.
+//! 2. **Reversal.** Transposing the sampled sets lets the rows listing a row introduce it too.
+//!    Sampling limits each reverse pool to the same cap so that rows which many others list cannot
+//!    join quadratically in their in-degree.
 //! 3. **Local join.** Every sampled new candidate of a row meets every other sampled candidate of
 //!    that row, and the join offers each pair's cosine distance to both sides' lists. The cap
 //!    bounds one row's join at O(cap²) distances regardless of degree skew.
 //!
-//! Iteration stops when an iteration's accepted updates fall to
-//! [`termination`](NnDescentOptions::termination) of the total entry count, or at
-//! [`maximum_iterations`](NnDescentOptions::maximum_iterations).
+//! For a finite non-negative [`termination`](NnDescentOptions::termination) rate τ and L stored
+//! entries, the ideal update threshold is ceil(τ · L). The computed threshold converts L to f64,
+//! multiplies by τ and applies ceil in f64, then casts to u64 with saturation. Rounding can change
+//! the threshold from the ceiling of the real product. A finite rate can still overflow the f64
+//! product.
+//!
+//! Iteration stops when accepted updates are at most the computed threshold, or at
+//! [`maximum_iterations`](NnDescentOptions::maximum_iterations). A low update rate measures
+//! exhaustion of these sampled joins, not exact-neighbour recovery.
 //!
 //! # Determinism
 //!
-//! Sampling streams derive from the seed alone: initialization and every per-row draw use a
-//! generator keyed by `(seed, row, iteration)` through [`keyed_rng`]. Update application is
-//! parallel and unordered, however, and a list's acceptances depend on the updates applied before
-//! it, so converged lists need not agree between same-seed runs.
+//! Initialization and every per-row draw use a generator keyed by `(seed, row, iteration)` through
+//! [`keyed_rng`]. The resulting lists also depend on parallel update order: each acceptance changes
+//! the threshold and membership for later offers. Converged lists need not agree between same-seed
+//! runs.
 //!
-//! The search backends share this property, because their parallel linking runs unordered the same
-//! way. The recall spot check downstream arbitrates every construction, and that check alone
-//! establishes the persisted table's contract. A replay of the construction never does.
+//! The recall spot check measures approximation quality. Structural table validation separately
+//! enforces neighbour counts, domains and distance bounds. Replaying construction never substitutes
+//! for either check.
 
 use core::{
     error::Error,
@@ -66,24 +70,29 @@ use crate::{
 // The candidate cap bounds one row's join work per iteration at O(cap²) distances regardless of
 // degree skew; 50 matches the widths this crate constructs at, where the audited corpus converged
 // to the admission floor with headroom in iterations to spare.
+/// The default candidate cap per side, per row, per iteration.
 const DEFAULT_MAXIMUM_CANDIDATES: usize = 50;
 // The iteration cap is a backstop: convergence terminates the loop on every measured corpus first.
+/// The default iteration cap.
 const DEFAULT_MAXIMUM_ITERATIONS: usize = 20;
 // One accepted update per thousand entries marks the join exhausted: beyond it, iterations trade
 // full join sweeps for noise-level list changes.
+/// The default accepted-update fraction below which the join terminates.
 const DEFAULT_TERMINATION: f64 = 0.001;
 
 /// Pinned NN-Descent sampling, convergence, and termination settings.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct NnDescentOptions {
     /// Candidates sampled per side (new and old, forward and reverse) per row per iteration.
     ///
     /// Bounds one row's join work at quadratically many distances in the cap. Larger values buy
-    /// convergence quality with per-iteration cost.
+    /// convergence quality with per-iteration cost. By default, uses 50 candidates. Zero is clamped to one.
     pub maximum_candidates: usize = DEFAULT_MAXIMUM_CANDIDATES,
-    /// Iterations after which construction stops regardless of convergence.
+    /// Iteration limit, 20 by default. Zero returns the initial random lists.
     pub maximum_iterations: usize = DEFAULT_MAXIMUM_ITERATIONS,
-    /// The accepted-update fraction of the total entry count below which the join converges.
+    /// Accepted-update rate used to stop construction, 0.001 by default.
+    ///
+    /// For a finite non-negative rate τ and L stored entries, the ideal update threshold is ceil(τ · L). The stopping count uses f64 count conversion, multiplication and ceil, followed by a saturating u64 cast. Rounding and overflow can change it from the ceiling of the real product. One entry can be displaced repeatedly within an iteration, making this a rate rather than a fraction bounded by one.
     pub termination: f64 = DEFAULT_TERMINATION,
 }
 
@@ -93,7 +102,7 @@ const impl Default for NnDescentOptions {
     }
 }
 
-/// The NN-Descent construction failed.
+/// A row domain that cannot be used for NN-Descent construction.
 #[derive(Debug)]
 pub(crate) enum NnDescentError {
     /// The corpus has at most one row.
@@ -124,7 +133,7 @@ pub(crate) struct NnDescent {
 }
 
 impl NnDescent {
-    /// Wraps pinned options.
+    /// Configures the candidate sampling and stopping criteria.
     pub(crate) const fn new(options: NnDescentOptions) -> Self {
         Self { options }
     }
@@ -140,14 +149,14 @@ struct Entry<N> {
 
 /// One row's bounded neighbour list, ascending by `(distance, id)`.
 ///
-/// The list mirrors the worst distance into an atomic beside the lock, which lets an offer reject
-/// without contending. Every stored value is a worst read under the lock and the live worst only
-/// decreases, so however unlock-and-store pairs interleave, the mirror never falls below the live
-/// worst. A stale read is always at or above it, and a rejection against it is always sound.
+/// Every accepted replacement strictly improves on the previous worst distance, making the live
+/// worst non-increasing. The atomic mirror contains a worst value read under the lock, stored after
+/// unlocking. Even when stores are reordered, that value is at least the current live worst.
+/// Therefore a candidate at least as far as the mirror can be rejected without taking the lock.
 ///
-/// `Relaxed` suffices because the mirror guards no other memory. Every admission re-checks under
-/// the lock, and the lock orders the entries. A `Release`/`Acquire` pairing would only buy ordering
-/// for data read outside the lock, and no such read exists.
+/// The mirror is only a rejection threshold and publishes no entry data. Every candidate that
+/// passes it is checked again under the mutex, which orders all entry access. Therefore relaxed
+/// atomic operations suffice for this preliminary check.
 #[derive(Debug)]
 struct RowList<N> {
     entries: Mutex<Vec<Entry<N>>>,
@@ -158,6 +167,12 @@ impl<N> RowList<N>
 where
     N: Id,
 {
+    /// Builds a list from its initial entries, sorted ascending by `(distance, id)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `entries` is empty: a list always holds at least one neighbour, whose distance
+    /// seeds the worst mirror.
     fn new(mut entries: Vec<Entry<N>>) -> Self {
         entries.sort_unstable_by(|lhs, rhs| {
             lhs.distance
@@ -212,8 +227,7 @@ where
 
 /// Samples `count` of `pool` uniformly without replacement, taking the whole pool when it fits.
 ///
-/// The pool is ascending afterwards on every path - the retirement scan in [`sample_forward`]
-/// binary-searches it.
+/// The pool is ascending afterwards on every path, allowing binary-search membership tests.
 fn sample_pool<N>(pool: &mut Vec<N>, count: usize, mut rng: impl Rng)
 where
     N: Id,
@@ -228,7 +242,11 @@ where
 /// Initializes every row's list with `width` distinct random non-self rows.
 ///
 /// Sampling draws over a domain one short and shifts past the row itself, excluding it without
-/// rejection.
+/// rejection. `width` must be positive and smaller than `rows`.
+///
+/// # Panics
+///
+/// For a nonempty corpus, this panics when `width` is zero or exceeds the non-self domain.
 fn initialize<N>(
     rows: usize,
     width: usize,
@@ -271,7 +289,8 @@ where
 /// Samples each row's forward candidates and retires the drawn new entries.
 ///
 /// Splits each list by the *new* flag and samples each side to `cap`. It then clears the flag on
-/// the sampled new entries so no later join recompares them.
+/// the sampled new entries. Later iterations classify these entries as old when sampling this row's
+/// forward list.
 fn sample_forward<N>(
     lists: &IdSlice<N, RowList<N>>,
     cap: usize,
@@ -319,6 +338,10 @@ where
 }
 
 /// Transposes sampled candidate sets and limits each reverse pool.
+///
+/// # Panics
+///
+/// This panics when a target row is outside the `rows`-sized domain.
 fn reverse<N>(
     forward: &IdSlice<N, Vec<N>>,
     rows: usize,
@@ -370,14 +393,12 @@ where
 
 /// One iteration's accepted updates per stored list entry.
 ///
-/// This reading judges convergence. It falls toward [`termination`](NnDescentOptions::termination)
-/// as the join exhausts itself. A join offers each pair to both sides and can displace one entry
-/// more than once, so the reading is a rate rather than a share. Early iterations stand above
-/// `1`.
+/// A join offers each pair to both sides and can displace one entry more than once. The reading is
+/// a rate that can exceed `1`, and need not decrease monotonically between iterations.
 #[expect(
     clippy::cast_precision_loss,
-    reason = "an accepted-update count and an entry count both stay far below exact f64 integer \
-              precision"
+    reason = "accepted updates and stored entries deliberately convert to f64 for progress \
+              reporting. The count conversions and rate division may round"
 )]
 fn accepted_per_entry(accepted: u64, entries: usize) -> f64 {
     accepted as f64 / entries as f64
@@ -393,8 +414,9 @@ where
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "the entry count is far below exact f64 integer precision and the threshold only \
-                  gates a loop"
+        reason = "the entry count deliberately converts to f64 for rounded threshold arithmetic. \
+                  The result of ceil is cast to u64 with saturation and only controls loop \
+                  termination"
     )]
     fn construct<P>(
         &mut self,
@@ -418,9 +440,8 @@ where
         let seed = rng.random::<u64>();
         let cap = self.options.maximum_candidates.max(1);
 
-        // The trait admits l2-normalized representations only, so the
-        // cosine distance reduces to one minus the dot product - a third
-        // of the full kernel's multiply-adds; the clamp absorbs
+        // For unit vectors, cosine distance is 1 − the dot product. The trait admits l2-normalized
+        // representations only, allowing this kernel to omit both norm sums. Clamping absorbs
         // unit-norm rounding at the range's ends.
         let distance = |lhs: N, rhs: N| -> NonNegative {
             let dot = embeddings[lhs].dot(&embeddings[rhs]);
@@ -476,8 +497,7 @@ where
             });
 
             let accepted = accepted.load(Ordering::Relaxed);
-            // Reported before the break, so the iteration that converged is
-            // the last one observed rather than the last one unobserved.
+            // include the terminating iteration in the observations.
             progress.descent_iteration(DescentIteration {
                 iteration: iteration + 1,
                 accepted_per_entry: accepted_per_entry(accepted, rows * width),
@@ -502,7 +522,7 @@ where
                 let list = list
                     .entries
                     .lock()
-                    .expect("the join finished; no offer holds a lock");
+                    .expect("the completed join should leave the list mutex unpoisoned");
 
                 for (slot, entry) in slots.iter_mut().zip(list.iter()) {
                     *slot = Neighbour {
@@ -529,6 +549,11 @@ mod tests {
         random::keyed_rng,
     };
 
+    /// Builds a row list from `(distance, id)` pairs, all marked old.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `pairs` is empty.
     fn list(pairs: &[(NonNegative, u32)]) -> RowList<NodeRowId> {
         RowList::new(
             pairs

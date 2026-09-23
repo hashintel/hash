@@ -71,7 +71,6 @@ pub(crate) trait PaddedHeader:
 macro_rules! header {
     ($header:ident, $magic:ident, $version:expr) => {
         /// The full header page of this format.
-        ///
         #[doc = concat!("[`", stringify!($header), "`] followed by zero padding to the page")]
         /// boundary. This is the form that persists and that a mapped page parses as, and a
         /// dereference reaches the fields themselves.
@@ -269,8 +268,8 @@ impl<H: Header> HeaderMap<H> {
     /// rather than a second acceptance path.
     #[expect(
         clippy::host_endian_bytes,
-        reason = "the version word persists a `#[repr(u32)]` enum, whose bytes are native by \
-                  construction, so the diagnostic reads them exactly as the refused parse did"
+        reason = "the version word persists a `#[repr(u32)]` enum with native-endian bytes. The \
+                  diagnostic reads them exactly as the refused parse did"
     )]
     fn try_recover_error(page: &[u8]) -> HeaderError {
         let (magic, rest) = page.split_at(size_of::<H::Magic>());

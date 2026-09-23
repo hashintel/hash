@@ -5,7 +5,7 @@ use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
 use sprs::CsMatViewI;
 
-use super::{Adjacency, AdjacencyArchive, EdgeList, InvalidAdjacencyFile};
+use super::{Adjacency, AdjacencyArchive, EdgeList, artifact::InvalidAdjacencyFile};
 use crate::{
     file::{
         WriteInto as _,
@@ -15,6 +15,11 @@ use crate::{
     integrity::{Sha256, Writer},
 };
 
+/// Recreates a per-process scratch directory for the named case.
+///
+/// # Panics
+///
+/// Panics if the system temporary path is not UTF-8 or directory creation fails.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -37,8 +42,14 @@ const ENDPOINTS: [[NodeRowId; 2]; 4] = [
     [NodeRowId::new(3), NodeRowId::new(3)],
     [NodeRowId::new(0), NodeRowId::new(1)],
 ];
+/// Node row count of the endpoint fixture.
 const ROWS: usize = 5;
 
+/// Writes `adjacency` to `name` under `dir` and reopens it as a validated mapped archive.
+///
+/// # Panics
+///
+/// Panics if file creation, writing, opening, or adjacency validation fails.
 fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> AdjacencyArchive {
     let path = dir.join(name);
     let mut file = fs::File::create(&path).expect("the fixture file should create");
@@ -51,6 +62,11 @@ fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> AdjacencyArch
         .expect("the fixture adjacency should validate")
 }
 
+/// Collects an in-domain edge list as row numbers.
+///
+/// # Panics
+///
+/// Panics if `edges` is [`None`].
 fn list(edges: Option<EdgeList<'_>>) -> Vec<u64> {
     edges
         .expect("the queried node row is in domain")
@@ -68,22 +84,19 @@ fn build_matches_the_hand_computed_lists() {
     assert_eq!(mapped.rows(), ROWS as u64);
     assert_eq!(mapped.edges(), ENDPOINTS.len() as u64);
 
-    // Outgoing lists per node row, ascending: the parallel pair leaves
-    // node 0 as edges 0 and 3.
+    // the parallel pair leaves node 0 as edges 0 and 3.
     assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0, 3]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(1))), [] as [u64; 0]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(2))), [1]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(3))), [2]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(4))), [] as [u64; 0]);
 
-    // Incoming lists mirror the targets; the self-loop arrives at its
-    // own node.
+    // the self-loop occupies both directions at node 3.
     assert_eq!(list(mapped.incoming(NodeRowId::new(1))), [0, 3]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 2]);
 
     assert_eq!(list(mapped.incoming(NodeRowId::new(4))), [] as [u64; 0]);
 
-    // Out-of-domain rows answer None.
     assert!(mapped.outgoing(NodeRowId::new(5)).is_none());
     assert!(mapped.incoming(NodeRowId::new(5)).is_none());
 }
@@ -101,6 +114,14 @@ fn edgeless_corpus_builds_empty_lists() {
 }
 
 /// Writes a hand-built structure-only matrix and opens it as a mapped adjacency.
+///
+/// # Errors
+///
+/// Returns [`InvalidAdjacencyFile`] if the matrix violates the adjacency list contract.
+///
+/// # Panics
+///
+/// Panics if the compressed matrix is invalid or file creation, writing, or mapping fails.
 fn open_structure(
     dir: &Utf8PathBuf,
     name: &str,
@@ -125,20 +146,16 @@ fn open_structure(
 fn violated_list_invariants_are_rejected() {
     let dir = scratch("violations");
 
-    // An odd row dimension pairs no runs.
     assert_matches!(
         open_structure(&dir, "odd.sprs", (1, 1), &[0, 0], &[]),
         Err(InvalidAdjacencyFile::OddRows { rows: 1 }),
     );
 
-    // An odd entry count holds no two slots per edge.
     assert_matches!(
         open_structure(&dir, "slots.sprs", (2, 1), &[0, 1, 1], &[0]),
         Err(InvalidAdjacencyFile::Slots { entries: 1 }),
     );
 
-    // A column dimension beyond the edge-domain bound is not the
-    // canonical artifact.
     assert_matches!(
         open_structure(&dir, "bound.sprs", (2, 5), &[0, 1, 2], &[0, 0]),
         Err(InvalidAdjacencyFile::Bound {
@@ -147,14 +164,12 @@ fn violated_list_invariants_are_rejected() {
         }),
     );
 
-    // An edge in two slots of one direction: both outgoing runs hold
-    // edge 0.
+    // both outgoing runs hold edge 0, although each run alone is valid.
     assert_matches!(
         open_structure(&dir, "duplicate.sprs", (4, 1), &[0, 1, 1, 2, 2], &[0, 0]),
         Err(InvalidAdjacencyFile::Duplicate { edge }) if edge == EdgeRowId::MIN
     );
 
-    // A valued matrix is not the structure-only artifact.
     let path = dir.join("valued.sprs");
     let mut writer = Writer {
         accumulator: Sha256::new(),
@@ -169,14 +184,14 @@ fn violated_list_invariants_are_rejected() {
     );
 }
 
-/// A fencepost column anchored past zero passes the compressed-row check.
+/// A nonzero first fencepost preserves sprs' relative-offset structure.
 ///
-/// The entry count reads relative to the first post - but leaves leading slots no run owns, which
-/// the adjacency rejects.
+/// Adding the same offset to every post preserves every relative run and the entry count. Adjacency
+/// lookups use raw posts as array indices and therefore require the first post to be zero.
 #[test]
 #[expect(
     clippy::little_endian_bytes,
-    reason = "the surgery edits the format's pinned little-endian fencepost region"
+    reason = "the fixture edits the format's little-endian fencepost region"
 )]
 fn shifted_fencepost_column_is_rejected() {
     let dir = scratch("shifted");
@@ -189,10 +204,7 @@ fn shifted_fencepost_column_is_rejected() {
         .expect("the adjacency should write");
     drop(file);
 
-    // Shift every fencepost up by one. Monotonicity and the relative
-    // entry count survive the shift, but the zero anchor does not. The
-    // posts occupy the page-aligned region behind the header, eight
-    // bytes each.
+    // the eight-byte posts begin immediately after the 4096-byte header.
     let mut bytes = fs::read(&path).expect("the fixture file should read");
     let posts = 2 * 2 + 1;
     for post in 0..posts {
@@ -215,8 +227,7 @@ fn shifted_fencepost_column_is_rejected() {
 
 #[test]
 fn build_is_independent_of_the_endpoint_values_within_a_row() {
-    // A permuted edge order is a different corpus (edge rows are
-    // positional), but every list still comes out strictly ascending.
+    // permuting endpoints changes edge row identities. Runs still sort by the new row order.
     let permuted: [[NodeRowId; 2]; 4] = [ENDPOINTS[3], ENDPOINTS[1], ENDPOINTS[0], ENDPOINTS[2]];
     let dir = scratch("permuted");
     let adjacency = Adjacency::build(ROWS, &permuted);
@@ -227,9 +238,6 @@ fn build_is_independent_of_the_endpoint_values_within_a_row() {
     assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 3]);
 }
 
-/// Wide indices read back through the same accessors.
-///
-/// A hand-built eight-byte matrix validates and serves runs like the narrow files the writer emits.
 #[test]
 fn wide_indices_read_back() {
     let dir = scratch("wide");
@@ -242,10 +250,6 @@ fn wide_indices_read_back() {
     assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [0]);
 }
 
-/// The tests the `miri` nextest profile selects.
-///
-/// The test here writes an adjacency into memory and conjures the unit region back from the bytes.
-/// The profile selects by module path, so moving a test in or out of this module is the whole edit.
 mod miri {
     use crate::{file::WriteInto as _, identity::NodeRowId, salt::adjacency::Adjacency};
 
@@ -263,6 +267,6 @@ mod miri {
             .write_into(&mut bytes)
             .expect("an in-memory write cannot fail");
 
-        assert!(!bytes.is_empty());
+        assert_ne!(bytes, [] as [u8; 0]);
     }
 }

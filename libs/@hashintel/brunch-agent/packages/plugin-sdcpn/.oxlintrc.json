@@ -20,10 +20,6 @@
       {
         "paths": [
           {
-            "name": "@hashintel/brunch-agent/storage",
-            "message": "Plugins receive harness capabilities and must remain storage-blind."
-          },
-          {
             "name": "@hashintel/petrinaut",
             "message": "Brunch libraries must not depend on Petrinaut implementations."
           }

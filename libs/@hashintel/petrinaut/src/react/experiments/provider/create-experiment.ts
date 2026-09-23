@@ -1,5 +1,6 @@
 import {
   compileScenario,
+  constraintLabel,
   getDefaultMonteCarloShardCount,
   getOwn,
   prepareScenarioCompiler,
@@ -16,14 +17,20 @@ import {
   WORKER_POOL_BACKEND_ID,
 } from "@hashintel/petrinaut-core/experiments";
 
+import { constraintIndicatorSpecs } from "../constraint-indicators";
 import {
   buildAdHocSweepAxes,
   buildParameterAxis,
-  fullSweepSelection,
+  pointSweepSelection,
 } from "../parameter-grid";
+import { sweepSelectionKey } from "../sweep-session";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
-import type { CreateExperimentInput, ExperimentRecord } from "../context";
+import type {
+  CreateExperimentInput,
+  ExperimentRecord,
+  ExperimentSweepState,
+} from "../context";
 import type { ExperimentParameterAxis } from "../parameter-grid";
 import type {
   BuildExperimentRequest,
@@ -70,6 +77,19 @@ export const assertExperimentInput = (input: CreateExperimentInput): void => {
     if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
       throw new Error(`Metric "${metricSpec.label}" code is required`);
     }
+  }
+
+  const constraintIds = new Set<string>();
+  for (const constraint of input.constraints ?? []) {
+    if (constraint.code.trim() === "") {
+      throw new Error(
+        `Constraint "${constraintLabel(constraint)}" code is required`,
+      );
+    }
+    if (constraintIds.has(constraint.id)) {
+      throw new Error(`Constraint id "${constraint.id}" is duplicated`);
+    }
+    constraintIds.add(constraint.id);
   }
 };
 
@@ -183,6 +203,13 @@ export type CompiledExperimentScenario = {
   sweptCompiler: SweptScenarioCompiler | null;
   /** The swept parameters, empty for a plain experiment. */
   axes: ExperimentParameterAxis[];
+  /** `parseFixedScenarioValues`' result; `{}` for an ad-hoc definition. */
+  fixedScenarioValues: Readonly<Record<string, number>>;
+  /**
+   * The scenario compiled: the saved one, the generated ad-hoc scenario (with
+   * the interval toggles as its parameters, or plain), or null for none.
+   */
+  scenario: Scenario | null;
 };
 
 /**
@@ -259,6 +286,8 @@ export const compileExperimentScenario = async ({
       initialMarking: compiled.result.initialState,
       sweptCompiler,
       axes,
+      fixedScenarioValues: fixed,
+      scenario,
     };
   }
 
@@ -294,6 +323,8 @@ export const compileExperimentScenario = async ({
           initialMarking: compiled.result.initialState,
           sweptCompiler,
           axes: adHocAxes.axes,
+          fixedScenarioValues: {},
+          scenario: generated,
         };
       }
     }
@@ -317,6 +348,8 @@ export const compileExperimentScenario = async ({
       initialMarking: compiled.result.initialState,
       sweptCompiler: null,
       axes: [],
+      fixedScenarioValues: {},
+      scenario: synthesized.scenario,
     };
   }
 
@@ -325,6 +358,24 @@ export const compileExperimentScenario = async ({
     initialMarking: {},
     sweptCompiler: null,
     axes: [],
+    fixedScenarioValues: {},
+    scenario: null,
+  };
+};
+
+/** A sweep's state before anything computed: the whole space selected. */
+const idleSweepState = (
+  axes: readonly ExperimentParameterAxis[],
+): ExperimentSweepState => {
+  const selection = pointSweepSelection(axes, {});
+  return {
+    selection,
+    selectionKey: sweepSelectionKey(axes, selection),
+    runsCompleted: 0,
+    runsSampled: 0,
+    runTarget: null,
+    computing: false,
+    visited: [],
   };
 };
 
@@ -333,11 +384,15 @@ export const newExperimentRecord = ({
   input,
   scenarioName,
   axes,
+  fixedScenarioValues,
+  scenario,
 }: {
   id: string;
   input: CreateExperimentInput;
   scenarioName: string | null;
   axes: readonly ExperimentParameterAxis[];
+  fixedScenarioValues: Readonly<Record<string, number>>;
+  scenario: Scenario | null;
 }): ExperimentRecord => ({
   id,
   name: input.name.trim(),
@@ -360,31 +415,11 @@ export const newExperimentRecord = ({
   metricFrames: [],
   sweepBatches: [],
   parameterAxes: axes,
-  sweep:
-    axes.length > 0
-      ? {
-          selection: fullSweepSelection(axes),
-          runsCompleted: 0,
-          runsSampled: 0,
-          runTarget: null,
-          computing: true,
-        }
-      : null,
-});
-
-/**
- * The net the experiment compiles and runs: its metrics replaced by the
- * experiment's expression metrics, so they compile alongside the model's user
- * code in the language worker.
- */
-export const experimentSdcpnWithMetrics = (
-  sdcpn: SDCPN,
-  metricSpecs: CreateExperimentInput["metricSpecs"],
-): SDCPN => ({
-  ...sdcpn,
-  metrics: metricSpecs
-    .filter((spec) => spec.kind === "expression")
-    .map((spec) => ({ id: spec.id, name: spec.label, code: spec.code })),
+  sweep: axes.length > 0 ? idleSweepState(axes) : null,
+  scenarioParameterValues: fixedScenarioValues,
+  constraints: input.constraints ?? [],
+  constraintPolicy: input.constraintPolicy ?? null,
+  scenario,
 });
 
 /**
@@ -394,7 +429,10 @@ export const experimentSdcpnWithMetrics = (
  * shader-generating backend reads them, while re-lowering the whole net per
  * batch was most of the delay between a slider move and its first frames.
  * A failed compile is not cached, so a transient worker error stays
- * retryable.
+ * retryable. The experiment's state constraints ride every request as
+ * indicator metrics after the user's specs (`constraintIndicatorSpecs`),
+ * compiled once here on the main thread; the record's own metric specs
+ * never carry them.
  */
 export const createExperimentRequestBuilder = ({
   input,
@@ -410,6 +448,11 @@ export const createExperimentRequestBuilder = ({
   compiled: CompiledExperimentScenario;
   requestHirArtifacts: LanguageClientContextValue["requestHirArtifacts"];
 }): BuildExperimentRequest => {
+  const indicatorSpecs = constraintIndicatorSpecs(
+    input.constraints ?? [],
+    sdcpn,
+    extensions,
+  );
   const artifactsMemo = new Map<
     boolean,
     ReturnType<typeof requestHirArtifacts>
@@ -462,7 +505,7 @@ export const createExperimentRequestBuilder = ({
       dt: input.dt,
       maxTime: input.maxTime,
       runCount: input.runCount,
-      metricSpecs,
+      metricSpecs: [...metricSpecs, ...indicatorSpecs],
       hirArtifacts: artifacts,
       ...override,
     };

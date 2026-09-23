@@ -1,35 +1,35 @@
 //! The operator commands that fit a generation and serve the atlas.
 //!
 //! The `hash-graph atlas` subcommand is one entry point. [`FitArgs`] and [`FitCommand`] run one
-//! production generation over the live store. [`ServeArgs`] and [`ServeCommand`] open the root's
-//! active generation and build the read-API router ([`crate::api`]) the graph binary hosts.
+//! production generation over the live store. [`ServeArgs`] and [`ServeCommand`] construct the
+//! read-API router ([`crate::api`]) and generation maintenance that the graph binary retains.
 //!
-//! The standalone `hash-graph-atlas` binary is the other entry point, and the `cli` feature gates
-//! its shell. Its command line carries the fit command over its own store flags ([`PostgresArgs`])
-//! plus the report instruments over a generation root's published artifacts. [`DumpArgs`] and
-//! [`DumpCommand`] write the store's snapshot into an offline-dataset directory, so a fit can run
-//! on a machine that reaches neither the store nor the embedding provider; the shell's fit
-//! command reads such a directory back through its `--offline` flag, refusing an invocation that
-//! also types a store flag or the provider key. [`ReportCommand`] holds one subcommand per report
-//! (the certified classifier bundle, the fold probe, the clump-threshold calibration, the
-//! neighbour-construction audits, and one live quality assessment). Serving stays exclusive to
-//! the graph binary.
+//! The standalone `hash-graph-atlas` binary is the other entry point. The `cli` feature enables its
+//! shell. Its command line carries the fit command over its own store flags ([`PostgresArgs`]) and
+//! reports over a generation root's published artifacts. [`DumpArgs`] and [`DumpCommand`] write the
+//! store's snapshot into an offline-dataset directory. An offline fit can run without reaching the
+//! store or the embedding provider. The shell's `--offline` flag reads that directory, refusing an
+//! invocation that also supplies a store flag or provider key. [`ReportCommand`] holds one
+//! subcommand per report (the certified classifier bundle, the fold probe, the clump-threshold
+//! calibration, the neighbour-construction audits, and one live quality assessment). Serving stays
+//! exclusive to the graph binary.
 //!
-//! The store flags mirror the graph's `HASH_GRAPH_PG_*` environment, so one deployment
-//! configuration drives every entry point. The instruments belong to the standalone binary alone.
-//! Nothing outside this crate names them.
+//! The store flags mirror the graph's `HASH_GRAPH_PG_*` environment. One deployment configuration
+//! drives every entry point. [`S3Args`] attaches the optional S3 backend over the SDK's own `AWS_*`
+//! environment plus `HASH_GRAPH_ATLAS_FITTING_S3_*` overrides for both fitting and serving. The
+//! report commands belong to the standalone binary alone.
 //!
-//! A command produces its verdict rather than printing one ([`FitVerdict`]). Its host renders it:
-//! the standalone shell's `--tui` dashboard owns the terminal until the run ends, so the shell
-//! writes the verdict after the dashboard gives it back.
+//! The fit command returns [`FitVerdict`] for its host to render. The standalone shell's `--tui`
+//! dashboard owns the terminal until the run ends. The shell prints the verdict after the dashboard
+//! releases the terminal.
 //!
 //! The hosts dial: a command runs over the store connection its host supplies -
 //! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a
 //! rendered connection string.
 //!
-//! The run entry points the fit command drives live with the runner; this module re-exports their
-//! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`Summary`], [`RunError`]) as the
-//! crate's operator API.
+//! The fit command drives the run entry points live with the runner. This module re-exports their
+//! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`RunError`]) as the crate's
+//! operator API.
 //!
 //! The commands carry no listener, lifecycle, or connection of their own beyond what their
 //! arguments name.
@@ -38,32 +38,36 @@ use std::io;
 
 use clap::ValueHint;
 
-pub(crate) use self::report::ReportCommand;
-#[cfg(feature = "cli")]
-pub use self::shell::main;
-pub use self::{
-    dump::{DumpArgs, DumpCommand, DumpError, DumpVerdict},
-    embedder::{EmbedderArgs, EmbedderError},
-    fit::{FitArgs, FitCommand, FitError, FitVerdict},
-    postgres::{ConnectError, PostgresArgs, connect},
-    serve::{ServeArgs, ServeCommand, ServeError, ServeOptions},
-};
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
-pub use crate::{
-    integrity::{EmptyPasswordError, PasswordString, SecretString},
-    salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
-    serve::{EmbeddingWorkflow, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
-};
 
 mod dump;
 mod embedder;
 mod fit;
 mod postgres;
 mod report;
+mod s3;
 mod serve;
 mod shell;
 #[cfg(feature = "cli")]
 mod tui;
+
+pub(crate) use self::report::ReportCommand;
+#[cfg(feature = "cli")]
+pub use self::shell::main;
+pub use self::{
+    dump::{DumpArgs, DumpCommand, DumpError, DumpVerdict},
+    embedder::{EmbedderArgs, EmbedderError},
+    fit::{FitArgs, FitCommand, FitVerdict, error::FitError},
+    postgres::{ConnectError, PostgresArgs, connect},
+    s3::{S3Args, S3ArgsError},
+    serve::{Serve, ServeArgs, ServeCommand, ServeError, ServeOptions},
+};
+pub use crate::{
+    file::storage::Storage,
+    integrity::{EmptyPasswordError, PasswordString, SecretString},
+    salt::runner::operator::{ClassifierSource, Options, Placement, RunError},
+    serve::{delta::placement::EmbeddingWorkflow, visibility::cache::VisibilityLimits},
+};
 
 /// The generation-root flag, shared by every command that opens one.
 ///
@@ -80,6 +84,11 @@ pub struct RootArgs {
     )]
     root: GenerationRoot,
 
+    /// The device this invocation's tensor work runs on.
+    ///
+    /// A command that computes no tensors reads the root without it, as the quality report does.
+    /// Defaults to [`PinnedDevice::host`], the platform's default family at ordinal 0, when
+    /// neither the flag nor `HASH_GRAPH_ATLAS_DEVICE` names one.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_DEVICE",
@@ -89,6 +98,11 @@ pub struct RootArgs {
 }
 
 /// Parses a generation-root argument: opens the root, creating the directory when absent.
+///
+/// # Errors
+///
+/// Returns an [`io::Error`] when the directory cannot be created or opened, which clap renders
+/// as the flag's refusal.
 fn parse_root(value: &str) -> io::Result<GenerationRoot> {
     GenerationRoot::new(value)
 }

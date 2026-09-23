@@ -1,8 +1,6 @@
 //! Certificates for the minibatch samplers.
 //!
 //! Distribution laws, per-type limits under skew, veto admission, and seeded reproducibility.
-
-use core::num::NonZero;
 use std::alloc::Global;
 
 use hashql_core::id::Id as _;
@@ -12,7 +10,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{OrdinaryNegativeSampler, RelationEdgeSampler, SemanticEdgeSampler};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{NonNegative, unit_fraction},
+    math::{NonNegative, nz, unit_fraction},
     salt::{
         policy::ClassProbabilities,
         relation::{
@@ -24,14 +22,17 @@ use crate::{
     },
 };
 
+/// Seeds a [`Xoshiro256PlusPlus`] generator from `seed`.
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
 
+/// A node pair from two literal row numbers.
 fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
 }
 
+/// The `(lhs, rhs)` row numbers of `pairs`, for sorting and comparison.
 fn keys(pairs: &[NodePair<NodeRowId>]) -> Vec<(u64, u64)> {
     pairs
         .iter()
@@ -98,6 +99,9 @@ fn instance(
     }
 }
 
+/// Builds the relation indexes over `rows` from certified `policies` and instances.
+///
+/// The attraction options are the defaults.
 fn relation_indexes(
     rows: usize,
     policies: &[RelationPolicy],
@@ -112,6 +116,7 @@ fn relation_indexes(
     .expect("the fixture instances satisfy the input contract")
 }
 
+/// Sixty-four semantic draws from a three-edge graph are all graph edges.
 #[test]
 fn semantic_draws_are_graph_edges() {
     let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
@@ -129,6 +134,10 @@ fn semantic_draws_are_graph_edges() {
     }
 }
 
+/// Reads the semantic sampler's total weight as exactly `3.5` on the dyadic fixture.
+///
+/// The semantic sampler's total weight is the stored sum over both directions of each edge, exactly
+/// `3.5` for the dyadic fixture.
 #[test]
 fn semantic_total_weight_sums_both_edge_directions() {
     // The symmetric graph stores each undirected edge twice, and the
@@ -137,19 +146,12 @@ fn semantic_total_weight_sums_both_edge_directions() {
     let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
-    #[expect(
-        clippy::float_cmp,
-        reason = "dyadic weights sum exactly in double precision and narrow exactly"
-    )]
-    {
-        assert_eq!(sampler.total_weight(), 3.5);
-    }
+    assert_eq!(sampler.total_weight(), 3.5);
 }
 
 #[test]
 fn semantic_draws_follow_the_weights() {
-    // The second edge's weight is vanishing: one draw landing on it in
-    // a 128-draw batch would be a 1-in-1e28 event for the fixed seed.
+    // the weights contrast 1 with 1e-30 to check concentration on the unit-weight edge.
     let graph = semantic_graph(4, &[(0, 1, 1.0), (2, 3, 1.0e-30)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
@@ -161,6 +163,7 @@ fn semantic_draws_follow_the_weights() {
     );
 }
 
+/// `SemanticEdgeSampler::new` returns `None` for a graph with no edge weight.
 #[test]
 fn semantic_sampler_rejects_an_edgeless_graph() {
     let graph = semantic_graph(3, &[]);
@@ -170,6 +173,7 @@ fn semantic_sampler_rejects_an_edgeless_graph() {
     );
 }
 
+/// Equal seeds reproduce a semantic batch and different seeds draw different batches.
 #[test]
 fn semantic_sampling_is_seeded() {
     let graph = semantic_graph(5, &[(0, 1, 0.5), (1, 2, 0.5), (2, 3, 0.5), (3, 4, 0.5)]);
@@ -187,6 +191,10 @@ fn semantic_sampling_is_seeded() {
     );
 }
 
+/// Draws both relation types under a per-type cap with distinct edges per group.
+///
+/// With six instances of one relation and two of another, both types participate under a per-type
+/// cap, each group draws at most the cap, and the drawn edges within a group are distinct.
 #[test]
 fn relation_caps_bind_per_type_under_skew() {
     let policies = [proximal_policy(3), proximal_policy(9)];
@@ -207,7 +215,7 @@ fn relation_caps_bind_per_type_under_skew() {
     );
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
-    let cap = NonZero::new(3).expect("the cap is nonzero");
+    let cap = nz!(3);
     let draws = sampler.sample_in(2, cap, rng(11), Global);
 
     assert_eq!(draws.len(), 2, "both types should participate");
@@ -231,6 +239,7 @@ fn relation_caps_bind_per_type_under_skew() {
     }
 }
 
+/// Requesting more relation types than the index holds returns every group once, in group order.
 #[test]
 fn relation_type_requests_beyond_the_index_return_every_group() {
     let policies = [proximal_policy(3), proximal_policy(9)];
@@ -241,7 +250,7 @@ fn relation_type_requests_beyond_the_index_return_every_group() {
     );
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
-    let draws = sampler.sample_in(64, NonZero::new(4).expect("nonzero"), rng(13), Global);
+    let draws = sampler.sample_in(64, nz!(4), rng(13), Global);
 
     let relations: Vec<u64> = draws
         .iter()
@@ -250,6 +259,7 @@ fn relation_type_requests_beyond_the_index_return_every_group() {
     assert_eq!(relations, [3, 9], "all groups participate, in group order");
 }
 
+/// Equal seeds reproduce a relation batch and different seeds draw different edges.
 #[test]
 fn relation_sampling_is_seeded() {
     let policies = [proximal_policy(3)];
@@ -260,7 +270,7 @@ fn relation_sampling_is_seeded() {
         .collect();
     let indexes = relation_indexes(8, &policies, instances);
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
-    let cap = NonZero::new(5).expect("nonzero");
+    let cap = nz!(5);
 
     let draws = |seed: u64| {
         sampler
@@ -293,6 +303,10 @@ fn negative_fixture() -> (
     (graph, indexes)
 }
 
+/// Draws exactly the admissible negative pairs of the four-row fixture exhaustively.
+///
+/// An exhaustive negative draw from the four-row fixture yields exactly the pairs that are neither
+/// self pairs, semantic edges nor protected.
 #[test]
 fn negatives_pass_every_veto() {
     let (graph, indexes) = negative_fixture();
@@ -302,7 +316,7 @@ fn negatives_pass_every_veto() {
         ProtectionConfig::default(),
     );
 
-    // A request for sixteen from an admissible pool of four is pool-limited and exhaustive, so the
+    // A request for sixteen from an admissible pool of four is pool-limited and exhaustive: the
     // assertion pins the whole admissible set. The vetoes remove the self pairs, the semantic edge
     // (0, 1), and the protected pair (2, 3).
     let mut draws = keys(&sampler.sample_in(16, rng(23), Global));
@@ -310,6 +324,7 @@ fn negatives_pass_every_veto() {
     assert_eq!(draws, [(0, 2), (0, 3), (1, 2), (1, 3)]);
 }
 
+/// With the ordinary protection channel off, the protected linked pair joins the admissible pool.
 #[test]
 fn disabling_ordinary_protection_admits_linked_pairs() {
     let (graph, indexes) = negative_fixture();
@@ -326,6 +341,7 @@ fn disabling_ordinary_protection_admits_linked_pairs() {
     );
 }
 
+/// Equal seeds reproduce a negative batch and different seeds draw different batches.
 #[test]
 fn negative_sampling_is_seeded() {
     let graph = semantic_graph(12, &[(0, 1, 0.5)]);
@@ -349,6 +365,10 @@ fn negative_sampling_is_seeded() {
     );
 }
 
+/// Yields an empty batch from a two-row graph whose only pair is a semantic edge.
+///
+/// A two-row graph whose only pair is a semantic edge has an empty admissible pool and yields an
+/// empty batch.
 #[test]
 fn tiny_domains_return_shorter_batches() {
     // With two rows and one semantic edge, the admissible pool is empty.

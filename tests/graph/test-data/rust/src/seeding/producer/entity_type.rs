@@ -255,13 +255,11 @@ impl<
         let (properties, required) = self
             .properties
             .as_ref()
-            .map(|properties| properties.sample(&mut properties_gid.rng()))
-            .unwrap_or_default();
+            .map_or_default(|properties| properties.sample(&mut properties_gid.rng()));
         let links = self
             .links
             .as_ref()
-            .map(|links| links.sample(&mut links_gid.rng()))
-            .unwrap_or_default();
+            .map_or_default(|links| links.sample(&mut links_gid.rng()));
         let title = self.title.sample(&mut title_gid.rng());
         let description = self.description.sample(&mut description_gid.rng());
 
@@ -517,8 +515,8 @@ mod tests {
             .expect("should generate entity type");
 
         // Verify generated entity type structure
-        assert!(!entity_type.schema.title.is_empty());
-        assert!(!entity_type.schema.description.is_empty());
+        assert_ne!(entity_type.schema.title, "");
+        assert_ne!(entity_type.schema.description, "");
         assert_eq!(entity_type.schema.constraints.properties.len(), 2);
         assert_eq!(entity_type.schema.constraints.required.len(), 2);
         assert!(entity_type.schema.constraints.links.is_empty());

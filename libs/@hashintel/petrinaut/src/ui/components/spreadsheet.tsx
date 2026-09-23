@@ -49,7 +49,7 @@ const tableContainerStyle = css({
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
-  borderRadius: "sm",
+  borderRadius: "md",
   overflow: "auto",
   width: "[100%]",
   backgroundColor: "neutral.s10",

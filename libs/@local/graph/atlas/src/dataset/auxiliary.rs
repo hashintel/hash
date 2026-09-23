@@ -1,13 +1,12 @@
 //! Display payloads a dataset supplies beside its row identities.
 //!
-//! An identity file carries one display value per row in its payload region, stored as raw
-//! bytes and read back as the typed view the id type declares through
-//! [`Key::Payload`](crate::file::identity::Key::Payload). [`Legend`] is the display value of a
-//! node or edge row - the row's representative ontology type beside its display label - and
-//! [`Icon`] the display value of an ontology-type row. Text is UTF-8 at byte level, so casting
-//! a payload span validates it and rejects a span that holds anything else. A row that
-//! displays nothing carries its type's empty value: the empty icon, or a legend whose label
-//! is empty.
+//! An identity file carries one display value per row in its payload region, stored as raw bytes
+//! and read back as the typed view the id type declares through
+//! [`Key::Payload`](crate::file::identity::Key::Payload). [`Legend`] is the display value of a node
+//! or edge row - the row's representative ontology type beside its display label - and [`Icon`] the
+//! display value of an ontology-type row. Text is UTF-8 at byte level. Casting a payload span
+//! validates it and rejects a span that holds anything else. A row that displays nothing carries
+//! its type's empty value: the empty icon, or a legend whose label is empty.
 
 use alloc::sync::Arc;
 use core::{borrow::Borrow, clone::CloneToUninit, mem::offset_of, ops::Deref};
@@ -32,7 +31,9 @@ use crate::identity::OntologyRowId;
 )]
 #[repr(C)]
 pub(crate) struct Legend {
+    /// The ontology row of the type standing for the row.
     representative_ontology: OntologyRowId,
+    /// The display text. As the trailing field it gives the value its length.
     label: Label,
 }
 
@@ -48,15 +49,17 @@ impl Legend {
     }
 }
 
+// The `IntoBytes` and `CloneToUninit` arguments below rely on both facts: alignment one leaves no
+// padding anywhere in a `Legend`, and the representative is at offset zero.
 const _: () = {
     assert!(align_of::<OntologyRowId>() == 1);
     assert!(offset_of!(Legend, representative_ontology) == 0);
 };
 
-// SAFETY: `repr(C)` with `OntologyRowId` (`Unaligned` + `IntoBytes`) followed by `str` gives
-// every field alignment 1, so no padding exists at any length and the value has no uninitialized
-// byte. The derive cannot compute this because its padding proof sizes each field and
-// special-cases only a trailing slice. `str` is layout-identical to `[u8]` but not a slice type.
+// SAFETY: `repr(C)` with `OntologyRowId` (`Unaligned` + `IntoBytes`) followed by `str` gives every
+// field alignment 1. No padding exists at any length and the value has no uninitialized byte. The
+// derive cannot compute this because its padding proof sizes each field and special-cases only a
+// trailing slice. `str` is layout-identical to `[u8]` but not a slice type.
 unsafe impl zerocopy::IntoBytes for Legend {
     #[expect(
         dead_code,
@@ -65,18 +68,22 @@ unsafe impl zerocopy::IntoBytes for Legend {
     fn only_derive_is_allowed_to_implement_this_trait() {}
 }
 
-// SAFETY: the implementation writes the label at its in-value offset and the representative at
-// offset 0. `repr(C)` at alignment 1 puts no padding between them, so the two writes
-// initialize every byte of the clone and `dest` holds a valid `Legend` on return.
+// SAFETY: `CloneToUninit` requires a valid `Self` at `dest` on normal return. The label clone
+// preserves its UTF-8 text and length, and the representative is `Copy`. The writes initialize
+// both fields at their `repr(C)` offsets, giving a valid `Legend` with the source's metadata.
+// Neither field owns resources that could leak during unwinding.
 unsafe impl CloneToUninit for Legend {
     unsafe fn clone_to_uninit(&self, dest: *mut u8) {
-        // SAFETY: `self.label` is a field of `self`, so both pointers lie in one allocation
-        // with the field's address not below the value's.
+        // SAFETY: Both pointers derive from `self` in the same allocation. The label begins at or
+        // after `self`, and the byte distance cannot exceed the allocation's size. The unsigned
+        // offset is valid.
         let offset_of_label = unsafe { (&raw const self.label).byte_offset_from_unsigned(self) };
 
-        // SAFETY: the caller provides `dest` valid for `size_of_val(self)` bytes at alignment
-        // 1; the label's span and the representative's eight bytes at offset 0 both lie inside
-        // that span.
+        // SAFETY: The caller supplies writable storage for the complete value. The source's
+        // metadata fixes the label's length and destination layout. Its span at `offset_of_label`
+        // and the representative's eight bytes at offset zero are disjoint and fit within
+        // `size_of_val(self)`. Both fields have alignment one. These writes initialize both fields
+        // without creating a reference to uninitialized memory.
         unsafe {
             self.label.clone_to_uninit(dest.add(offset_of_label));
             dest.add(offset_of!(Self, representative_ontology))
@@ -103,20 +110,20 @@ pub(crate) struct OwnedLegend(Box<Legend>);
 
 impl OwnedLegend {
     /// Creates the legend pairing `representative` with `label`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the legend header plus the label exceeds [`isize::MAX`] bytes, or if the zeroed
+    /// allocation fails.
     pub(crate) fn new(representative: OntologyRowId, label: &Label) -> Self {
         let mut boxed = Legend::new_box_zeroed_with_elems(label.len())
-            .expect("a label's length fits the allocator's limits");
+            .expect("the legend allocation should succeed");
         boxed.representative_ontology = representative;
 
-        // SAFETY: the write copies the bytes of a valid `&Label` whole, so the field holds
-        // valid UTF-8 when the borrow ends.
+        // SAFETY: the write copies the bytes of a valid `&Label` whole. The field holds valid UTF-8
+        // when the borrow ends.
         unsafe { boxed.label.0.as_bytes_mut() }.copy_from_slice(label.as_bytes());
         Self(boxed)
-    }
-
-    /// Returns the legend's retained heap in bytes: the representative header and the label text.
-    pub(crate) fn heap_bytes(&self) -> u64 {
-        size_of_val(&*self.0) as u64
     }
 }
 
@@ -172,7 +179,7 @@ impl Label {
         let ptr = &raw const *text;
         let ptr = ptr as *const Self;
 
-        // SAFETY: `Label` is `repr(C)` with `str` as its only field, so it has `str`'s size,
+        // SAFETY: `Label` is `repr(C)` with `str` as its only field. It has `str`'s size,
         // alignment, and pointer metadata, and the cast keeps the address, length metadata, and
         // provenance of `text`. The target is therefore a live, validly initialized `Label` whose
         // borrow is `text`'s.
@@ -180,12 +187,14 @@ impl Label {
     }
 }
 
-// SAFETY: `Label` is `repr(C)` around `str` alone, so its clone is its text's clone and
-// `str`'s implementation initializes every byte of `dest`.
+// SAFETY: `Label` is `repr(C)` with one `str` field at offset zero. It has the field's size,
+// alignment and length metadata. The `str` clone initializes that complete UTF-8 text, giving a
+// valid `Label` with the source's metadata.
 unsafe impl CloneToUninit for Label {
     unsafe fn clone_to_uninit(&self, dest: *mut u8) {
-        // SAFETY: `Label` has `str`'s size and alignment, so the caller's contract for this
-        // value is `str`'s contract for its text.
+        // SAFETY: `Label` and its `str` field have identical size and alignment. The caller's
+        // writable range therefore covers the complete text at the required alignment. The `str`
+        // clone receives exactly its own destination requirements.
         unsafe {
             <str as CloneToUninit>::clone_to_uninit(&self.0, dest);
         }
@@ -279,13 +288,14 @@ impl Icon {
         let ptr = &raw const *text;
         let ptr = ptr as *const Self;
 
-        // SAFETY: `Icon` is `repr(C)` with `str` as its only field, so it has `str`'s size,
-        // alignment, and pointer metadata, and the cast keeps the address, length metadata, and
-        // provenance of `text`. The target is therefore a live, validly initialized `Icon` whose
-        // borrow is `text`'s.
+        // SAFETY: `Icon` is `repr(C)` with `str` as its only field. It has `str`'s size, alignment,
+        // and pointer metadata, and the cast keeps the address, length metadata, and provenance of
+        // `text`. The target is therefore a live, validly initialized `Icon` whose borrow is
+        // `text`'s.
         unsafe { &*ptr }
     }
 
+    /// The empty icon, the display of a row that has none.
     pub(crate) const fn empty() -> &'static Self {
         const EMPTY: &Icon = Icon::new("");
 
@@ -347,15 +357,17 @@ impl Deref for OwnedIcon {
 mod tests {
     #![expect(clippy::non_ascii_literal)]
 
-    /// Every UTF-8 shape the cast has to carry: empty, ASCII, two-byte, combining mark, and a
-    /// four-byte scalar.
+    /// Selected UTF-8 inputs for the borrowed-view checks.
+    ///
+    /// The cases include empty text, ASCII, two-byte scalars, a combining mark and a four-byte
+    /// scalar.
     const SHAPES: [&str; 5] = ["", "a", "naïve", "z\u{0301}", "🦀 crab"];
 
     /// The tests the `miri` nextest profile selects.
     ///
     /// Each test here views auxiliary text in place over its source bytes and validates the payload
-    /// reads behind those views. The profile selects by module path, so moving a test in or out
-    /// of this module is the whole edit.
+    /// reads behind those views. The profile selects by module path. Moving a test in or out of
+    /// this module is the whole edit.
     mod miri {
         use core::ptr;
 
@@ -376,6 +388,7 @@ mod tests {
             assert_eq!(legend.representative_ontology(), representative);
             assert_eq!(legend.label(), "naïve 🦀");
 
+            // A legend's bytes are the 8-byte representative then the label's UTF-8.
             let bytes = legend.as_bytes();
             assert_eq!(bytes.len(), 8 + "naïve 🦀".len());
             let back = Legend::try_ref_from_bytes(bytes).expect("wrote valid bytes");
@@ -399,6 +412,10 @@ mod tests {
             assert_eq!(reowned, owned.clone());
         }
 
+        /// `Label::new` is a cast.
+        ///
+        /// For every UTF-8 shape the label has the text's bytes, size, alignment one, and the
+        /// text's own address.
         #[test]
         fn label_views_the_source_text_in_place() {
             for text in SHAPES {
@@ -410,6 +427,10 @@ mod tests {
             }
         }
 
+        /// `Icon::new` is a cast.
+        ///
+        /// For every UTF-8 shape the icon has the text's bytes, size, alignment one, and the text's
+        /// own address.
         #[test]
         fn icon_views_the_source_text_in_place() {
             for text in SHAPES {
@@ -421,6 +442,9 @@ mod tests {
             }
         }
 
+        /// `Borrow<Label>` and `Deref` on an owned label return the same address.
+        ///
+        /// That view carries the source bytes.
         #[test]
         fn owned_label_borrow_and_deref_are_one_view() {
             for text in SHAPES {
@@ -432,6 +456,9 @@ mod tests {
             }
         }
 
+        /// `Borrow<Icon>` and `Deref` on an owned icon return the same address.
+        ///
+        /// That view carries the source bytes.
         #[test]
         fn owned_icon_borrow_and_deref_are_one_view() {
             for text in SHAPES {
@@ -443,6 +470,9 @@ mod tests {
             }
         }
 
+        /// `to_owned` on a borrowed label or icon equals `From<&str>`.
+        ///
+        /// `From<String>` equals `From<&str>` as well, for every UTF-8 shape.
         #[test]
         fn to_owned_round_trips_both_entry_points() {
             for text in SHAPES {
@@ -453,6 +483,9 @@ mod tests {
             }
         }
 
+        /// The zerocopy doors accept every UTF-8 shape as a label or icon equal to the cast.
+        ///
+        /// They refuse an invalid byte and an overlong encoding.
         #[test]
         fn payload_reads_validate_utf8() {
             for text in SHAPES {

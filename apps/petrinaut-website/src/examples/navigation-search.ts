@@ -1,10 +1,9 @@
 /**
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
- * The URL carries the location a reader can act on: the scenario, the subnet,
- * the focused item, the editor's mode, its Simulate section, and the overlay it
- * has open. It deliberately leaves out `simulateResource`, which names a run or
- * a record inside the open document rather than a place in the app.
+ * The URL carries the selected scenario, subnet, focused item, expanded
+ * properties section, editor mode, Simulate section, open record, overlay
+ * and panel presentation.
  *
  * Every field is decoded against a BASELINE — the location its page starts
  * from. A URL that does not name a field means "the baseline's value", which is
@@ -18,6 +17,7 @@ import {
   selectionFromInput,
   selectionToSearch,
   type SharedExampleSearch,
+  type SharedEditView,
   type SharedMode,
   type SharedOverlay,
   type SharedSimulateView,
@@ -26,6 +26,7 @@ import {
 import type { PetrinautPreviewNavigationState } from "@hashintel/petrinaut/preview";
 import type {
   EditorGlobalMode,
+  EditViewMode,
   PetrinautNavigationOverlay,
   PetrinautNavigationState,
   PetrinautNavigationUpdater,
@@ -60,6 +61,8 @@ const scenarioToSearch = (
  * editor fails this file's type check until the contract decides whether the
  * URL should carry it.
  */
+const editViewToSearch = (view: EditViewMode): SharedEditView => view;
+
 const modeToSearch = (mode: EditorGlobalMode): SharedMode => mode;
 
 const simulateViewToSearch = (view: SimulateViewMode): SharedSimulateView =>
@@ -71,7 +74,9 @@ const overlayToSearch = (
 
 const overlayFromSearch = (
   overlay: SharedOverlay,
-): PetrinautNavigationOverlay => ({ type: overlay });
+  section: SharedExampleSearch["settings"],
+): PetrinautNavigationOverlay =>
+  overlay === "user-settings" ? { type: overlay, section } : { type: overlay };
 
 export const sharedSearchToNavigationState = (
   search: SharedExampleSearch,
@@ -81,12 +86,31 @@ export const sharedSearchToNavigationState = (
   scenarioId: scenarioFromSearch(search),
   subnetId: search.subnet ?? null,
   selection: selectionFromInput(search as Record<string, unknown>),
-  mode: search.mode ?? baseline.mode,
-  simulateView: search.view ?? baseline.simulateView,
+  editView: search.editView ?? baseline.editView,
+  expandedSubView:
+    search.expandedPanel && search.expandedSection
+      ? { container: search.expandedPanel, id: search.expandedSection }
+      : null,
+  mode:
+    search.mode ??
+    (search.resourceType && search.resourceId ? "simulate" : baseline.mode),
+  simulateView:
+    search.resourceType && search.resourceId
+      ? search.resourceType === "scenario"
+        ? "scenarios"
+        : search.resourceType === "experiment"
+          ? "experiments"
+          : "metrics"
+      : (search.view ?? baseline.simulateView),
+  simulateResource:
+    search.resourceType && search.resourceId
+      ? { type: search.resourceType, id: search.resourceId }
+      : baseline.simulateResource,
+  simulatePresentation: search.presentation ?? baseline.simulatePresentation,
   overlay:
     search.overlay === undefined
       ? baseline.overlay
-      : overlayFromSearch(search.overlay),
+      : overlayFromSearch(search.overlay, search.settings),
 });
 
 export const navigationStateToSharedSearch = (
@@ -94,18 +118,40 @@ export const navigationStateToSharedSearch = (
   baseline: PetrinautNavigationState = defaultPetrinautNavigationState,
 ): SharedExampleSearch => {
   const mode = modeToSearch(state.mode);
+  const editView = editViewToSearch(state.editView);
   const view = simulateViewToSearch(state.simulateView);
   const overlay = overlayToSearch(state.overlay);
+  const canExpand =
+    state.simulateResource?.type === "scenario" ||
+    state.simulateResource?.type === "experiment" ||
+    overlay === "create-scenario" ||
+    overlay === "create-experiment";
   return {
+    resourceType: state.simulateResource?.type,
+    resourceId: state.simulateResource?.id,
+    presentation:
+      canExpand && state.simulatePresentation === "fullscreen"
+        ? "fullscreen"
+        : undefined,
     scenario: scenarioToSearch(state.scenarioId),
     subnet: state.subnetId ?? undefined,
-    // Omitted at the baseline, so an untouched page keeps a clean URL and the
-    // decode above puts the baseline back.
-    mode: mode === modeToSearch(baseline.mode) ? undefined : mode,
+    expandedPanel: state.expandedSubView?.container,
+    expandedSection: state.expandedSubView?.id,
+    // Resource links imply Simulate unless they explicitly name a mode.
+    mode:
+      state.simulateResource || mode !== modeToSearch(baseline.mode)
+        ? mode
+        : undefined,
+    editView:
+      editView === editViewToSearch(baseline.editView) ? undefined : editView,
     view:
       view === simulateViewToSearch(baseline.simulateView) ? undefined : view,
     overlay:
       overlay === overlayToSearch(baseline.overlay) ? undefined : overlay,
+    settings:
+      state.overlay?.type === "user-settings"
+        ? state.overlay.section
+        : undefined,
     ...selectionToSearch(state.selection),
   };
 };
@@ -137,8 +183,15 @@ export const applyPreviewNavigationUpdate = (
   update: PetrinautNavigationUpdater<PetrinautPreviewNavigationState>,
 ): SharedExampleSearch => ({
   mode: search.mode,
+  editView: search.editView,
   view: search.view,
   overlay: search.overlay,
+  settings: search.settings,
+  expandedPanel: search.expandedPanel,
+  expandedSection: search.expandedSection,
+  resourceType: search.resourceType,
+  resourceId: search.resourceId,
+  presentation: search.presentation,
   ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
   ),

@@ -1,10 +1,9 @@
 //! High-dimensional vectors for embeddings, with SIMD-aligned heap storage.
 //!
-//! [`VecN`] wraps an `[f32; N]` without changing its layout, so borrowed embedding data can be
-//! viewed as a vector for free. [`BoxedVecN`] copies a vector into a heap allocation aligned for
-//! [`f32x8`] and hands out [`AlignedVecN`] references to it: the alignment guarantees that
-//! [`AlignedVecN::lanes`] loads every 8-lane group from an aligned address, never splitting a cache
-//! line.
+//! [`VecN`] views borrowed embedding arrays without copying. [`BoxedVecN`] provides owned storage
+//! aligned for [`f32x8`], and [`AlignedVecN::lanes`] borrows that storage as SIMD groups with a
+//! scalar remainder. Alignment constrains addresses without guaranteeing a cache-line size or
+//! particular generated load instructions.
 
 use alloc::alloc::Global;
 use core::{
@@ -23,10 +22,9 @@ mod tests;
 
 /// An `N`-dimensional vector of `f32` components.
 ///
-/// A [`VecN`] is guaranteed to have the same layout as `[f32; N]`, so borrowed arrays convert in
-/// place through [`from_ref`](Self::from_ref) and [`from_mut`](Self::from_mut) without copying.
-/// This is the working type for embedding vectors; move one into a [`BoxedVecN`] when SIMD kernels
-/// need aligned storage.
+/// A [`VecN`] is guaranteed to have the same layout as an array of `N` `f32` components. Borrow
+/// arrays in place through [`from_ref`](Self::from_ref) and [`from_mut`](Self::from_mut), without
+/// copying. Use [`BoxedVecN`] when SIMD kernels need owned aligned storage.
 #[derive(
     Debug,
     Copy,
@@ -49,41 +47,46 @@ impl<const N: usize> VecN<N> {
         Self(components)
     }
 
-    /// Wraps a borrowed array in place, without copying.
+    /// Views a borrowed component array without copying.
     #[inline]
     #[must_use]
     pub const fn from_ref(value: &[f32; N]) -> &Self {
         zerocopy::transmute_ref!(value)
     }
 
-    /// Wraps a mutably borrowed array in place, without copying.
+    /// Mutably views a borrowed component array without copying.
     #[inline]
     #[must_use]
     pub const fn from_mut(value: &mut [f32; N]) -> &mut Self {
         let ptr = (&raw mut *value).cast::<Self>();
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the cast preserves layout
-        // and validity. The wrapper inherits the mutable borrow unchanged.
+        // SAFETY: repr(transparent) gives Self the array's size, alignment and validity. The
+        // pointer derives from an initialized, exclusively borrowed array and retains its
+        // provenance and lifetime. Therefore the returned mutable reference is valid for that
+        // borrow.
         unsafe { &mut *ptr }
     }
 
-    /// Wraps a borrowed slice of arrays in place, without copying.
+    /// Views a slice of component arrays as vectors without copying.
     #[inline]
     #[must_use]
     pub const fn wrap_slice(values: &[[f32; N]]) -> &[Self] {
         let data = values.as_ptr().cast::<Self>();
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the element layouts are
-        // identical and the slice reinterprets in place with its length preserved.
+        // SAFETY: repr(transparent) gives Self the array element's size, alignment and validity.
+        // The source slice supplies one valid initialized range, including a non-null aligned
+        // pointer for empty slices or zero-sized elements. The cast preserves its count, provenance
+        // and shared lifetime. Therefore the returned slice is valid for the source borrow.
         unsafe { core::slice::from_raw_parts(data, values.len()) }
     }
 
-    /// Wraps a mutably borrowed slice of arrays in place, without copying.
+    /// Mutably views a slice of component arrays as vectors without copying.
     #[inline]
     #[must_use]
     pub const fn wrap_slice_mut(values: &mut [[f32; N]]) -> &mut [Self] {
         let data = values.as_mut_ptr().cast::<Self>();
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the element layouts are
-        // identical and the slice reinterprets in place with its length preserved. The wrapper
-        // inherits the mutable borrow unchanged.
+        // SAFETY: repr(transparent) gives Self the array element's size, alignment and validity.
+        // The source slice supplies one valid initialized range, including a non-null aligned
+        // pointer for empty slices or zero-sized elements. The cast preserves its count, provenance
+        // and exclusive lifetime. Therefore the returned slice is valid for the source borrow.
         unsafe { core::slice::from_raw_parts_mut(data, values.len()) }
     }
 
@@ -107,9 +110,8 @@ impl<const N: usize> VecN<N> {
 
     /// Reinterprets the vector as SIMD-aligned and mutable, when its address allows.
     ///
-    /// Returns [`None`] when the vector does not happen to sit at an address aligned to
-    /// `align_of::<f32x8>()` bytes. For storage whose alignment comes from construction rather than
-    /// luck, use [`BoxedVecN`].
+    /// Returns [`None`] unless the address is aligned to `align_of::<f32x8>()` bytes. [`BoxedVecN`]
+    /// provides that alignment at construction.
     #[inline]
     #[must_use]
     pub fn try_as_aligned_mut(&mut self) -> Option<&mut AlignedVecN<N>> {
@@ -118,9 +120,9 @@ impl<const N: usize> VecN<N> {
 
     /// Returns the dot product of the two vectors, accumulated in double precision.
     ///
-    /// This sums the products in `f64` and rounds to `f32` once at the end, so the result carries a
-    /// single rounding regardless of the dimension. A naive single-precision sum instead
-    /// accumulates error that grows with `N`.
+    /// Finite components widen exactly and their products fit exactly in `f64`. Summation still
+    /// rounds in double precision before one final narrowing to `f32`. The result can overflow
+    /// during that narrowing. A zero-dimensional vector gives zero.
     #[inline]
     #[must_use]
     pub fn dot(&self, other: &Self) -> f32 {
@@ -129,20 +131,24 @@ impl<const N: usize> VecN<N> {
 
     /// Returns the squared Euclidean length, accumulated in double precision.
     ///
-    /// The result is non-negative and carries a single rounding to `f32`, like [`dot`](Self::dot).
+    /// For finite components the result is non-negative, possibly infinity after narrowing, with
+    /// the rounding behavior of [`Self::dot`]. A zero-dimensional vector gives zero.
     #[inline]
     #[must_use]
     pub fn norm_squared(&self) -> f32 {
         narrow_accumulated(self.dot_accumulated(self))
     }
 
-    /// Returns the cosine distance `1 - cos(angle)` between the vectors, in `[0, 2]`.
+    /// Approximates the cosine distance between finite vectors, clamped to `[0, 2]`.
     ///
-    /// Zero at parallel vectors, one at orthogonal vectors, two at opposite vectors. One fused pass
-    /// computes the dot product and both squared norms with double-precision accumulators.
+    /// Both vectors must have finite components. The model is 1 − ⟨x, y⟩/(‖x‖‖y‖), with zero at
+    /// parallel nonzero vectors, one at orthogonal vectors and two at opposite vectors. Dot
+    /// products and norms accumulate in double precision, but rounding can lose distinctions
+    /// between nearly parallel vectors.
     ///
-    /// The zero vector has no direction: the distance between two zero vectors is zero, and the
-    /// distance between a zero vector and any other vector is one.
+    /// The zero vector has no direction. The distance between two zero vectors is defined as zero,
+    /// and the distance between a zero vector and any other vector as one. The empty pair follows
+    /// the two-zero-vectors case.
     #[expect(
         clippy::float_cmp,
         reason = "a squared norm is exactly zero precisely for the zero vector; the degenerate \
@@ -195,9 +201,9 @@ impl<const N: usize> VecN<N> {
 
     /// Returns the dot product with a double-precision vector.
     ///
-    /// This is the mixed-precision kernel for optimizers that keep their coefficients in `f64`
-    /// while the data stays `f32`. Each component widens exactly, and the result stays in full
-    /// double precision.
+    /// Finite `f32` components widen exactly. Products with the double-precision coefficients and
+    /// their sum round in `f64`, with no final narrowing. Finite inputs can still overflow the
+    /// double-precision calculation.
     #[inline]
     #[must_use]
     pub fn dot_wide(&self, coefficients: &DVecN<N>) -> f64 {
@@ -222,18 +228,15 @@ impl<const N: usize> VecN<N> {
 
     /// Sums the products of the two vectors' components in double precision.
     ///
-    /// Each `f32` component widens exactly, the products accumulate in `f64`, and the returned sum
-    /// carries no narrowing. This is the exact-product kernel behind [`dot`](Self::dot) and the
-    /// entry kernel of Gram matrices over `f32` data whose downstream arithmetic runs in `f64`.
+    /// Two finite `f32` significands multiply within 48 bits, and their exponent range fits inside
+    /// `f64`. Widening before multiplication therefore gives exact products. Accumulating and
+    /// reducing those products still rounds, and the returned sum carries no final narrowing. The
+    /// empty sum is zero.
     ///
-    /// The fold shape never varies. It takes eight lanes at a time into two interleaved fused
-    /// accumulators, then one horizontal reduction, then a scalar remainder. Equal inputs therefore
-    /// reduce to identical bits.
-    // Lane-width choice: `f64x8` is wider than 128-bit NEON registers, so
-    // the compiler unrolls it fourfold; with the two independent
-    // accumulators that keeps sixteen f64 FMA chains in flight, which
-    // covers the latency-times-throughput product of current cores. On
-    // AVX-2 the same shape is a two-register unroll.
+    /// The result depends on the summation grouping, including the SIMD horizontal reduction. It is
+    /// not a cross-target bitwise reproducibility contract.
+    // two interleaved eight-lane accumulators expose independent multiply-add chains. The target
+    // and compiler decide how the groups map to machine registers.
     #[inline]
     pub(crate) fn dot_accumulated(&self, other: &Self) -> f64 {
         let (chunks_left, remainder_left) = self.0.as_chunks::<8>();
@@ -276,7 +279,9 @@ const impl<const N: usize> AsRef<Self> for VecN<N> {
     }
 }
 
-/// Widens an 8-component chunk to double-precision lanes; exact for every `f32`.
+/// Widens eight components to double-precision lanes.
+///
+/// Every finite `f32` component is represented exactly.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; inlining into the \
@@ -287,7 +292,9 @@ fn widen(chunk: [f32; 8]) -> f64x8 {
     f32x8::from_array(chunk).cast()
 }
 
-/// Rounds a double-precision accumulator to the working precision.
+/// Rounds a double-precision accumulator to `f32`.
+///
+/// Values beyond the finite rounding range become signed infinity, and NaN remains NaN.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the narrowing is the operation: the single rounding from the f64 accumulator to the \
@@ -306,8 +313,8 @@ const fn narrow_accumulated(value: f64) -> f32 {
 /// `align_of::<f32x8>()`. The transparent layout means any array that happens to be aligned can be
 /// wrapped in place.
 ///
-/// The payoff is [`lanes`](Self::lanes): every 8-lane load comes from an aligned address, so
-/// iteration over the vector never splits a cache line.
+/// [`Self::lanes`] borrows complete SIMD groups from the aligned base and returns any trailing
+/// components separately.
 // No `FromBytes`/`FromZeros`: a byte-level constructor would let
 // `zerocopy::transmute_ref!` produce references to unaligned arrays,
 // bypassing the alignment invariant.
@@ -327,8 +334,10 @@ impl<const N: usize> AlignedVecN<N> {
     #[inline]
     #[must_use]
     pub const unsafe fn from_ref_unchecked(value: &[f32; N]) -> &Self {
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, and the alignment invariant is
-        // the caller's contract.
+        // SAFETY: repr(transparent) preserves the initialized array's layout and validity. The
+        // caller supplies the additional SIMD address alignment, and the cast retains the source
+        // provenance and shared lifetime. Therefore the reference meets both Rust's validity rules
+        // and Self's alignment invariant.
         unsafe { &*ptr::from_ref(value).cast::<Self>() }
     }
 
@@ -341,15 +350,17 @@ impl<const N: usize> AlignedVecN<N> {
     #[inline]
     #[must_use]
     pub const unsafe fn from_mut_unchecked(value: &mut [f32; N]) -> &mut Self {
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, and the alignment invariant is
-        // the caller's contract.
+        // SAFETY: repr(transparent) preserves the initialized array's layout and validity. The
+        // caller supplies the additional SIMD address alignment, and the cast retains the source
+        // provenance and exclusive lifetime. Therefore the reference meets both Rust's validity
+        // rules and Self's alignment invariant.
         unsafe { &mut *ptr::from_mut(value).cast::<Self>() }
     }
 
     /// Wraps a borrowed array, checking its alignment.
     ///
-    /// Returns [`None`] when `value` is not aligned to `align_of::<f32x8>()` bytes. Stack arrays
-    /// and plain boxes meet that alignment only by luck. Obtain aligned storage from [`BoxedVecN`].
+    /// Returns [`None`] when `value` is not aligned to `align_of::<f32x8>()` bytes. Obtain storage
+    /// with that alignment from [`BoxedVecN`].
     #[must_use]
     pub fn from_ref(value: &[f32; N]) -> Option<&Self> {
         if !value.as_ptr().is_aligned_to(align_of::<f32x8>()) {
@@ -362,8 +373,8 @@ impl<const N: usize> AlignedVecN<N> {
 
     /// Wraps a mutable array, checking its alignment.
     ///
-    /// Returns [`None`] when `value` is not aligned to `align_of::<f32x8>()` bytes. Stack arrays
-    /// and plain boxes meet that alignment only by luck. Obtain aligned storage from [`BoxedVecN`].
+    /// Returns [`None`] when `value` is not aligned to `align_of::<f32x8>()` bytes. Obtain storage
+    /// with that alignment from [`BoxedVecN`].
     #[must_use]
     pub fn from_mut(value: &mut [f32; N]) -> Option<&mut Self> {
         if !value.as_ptr().is_aligned_to(align_of::<f32x8>()) {
@@ -376,14 +387,14 @@ impl<const N: usize> AlignedVecN<N> {
 
     /// Wraps a borrowed slice in place as consecutive aligned vectors.
     ///
-    /// Vector `i` of the returned slice occupies components `N · i` through `N · i + N - 1`, so a
-    /// row-major `f32[T, N]` matrix reads as its `T` rows with every SIMD kernel available on each.
+    /// A row-major `f32[T, N]` matrix becomes a view of its `T` rows, with every SIMD kernel
+    /// available on each. Vector `i` occupies components `N · i` through `N · i + N - 1`.
     ///
     /// Returns [`None`] unless every vector satisfies the alignment invariant: `components` starts
     /// at an address aligned to `align_of::<f32x8>()` bytes, one vector's `N · 4` bytes are a
-    /// multiple of that alignment (`N % 8 == 0` at the widest, 32-byte alignment) so the base
-    /// alignment carries to every row, and the length is a whole number of vectors. `N` must be
-    /// nonzero.
+    /// multiple of that alignment, and the length is a whole number of vectors. These conditions
+    /// carry the base alignment to every row. Instantiating this method with `N == 0` fails its
+    /// compile-time assertion.
     #[must_use]
     pub fn from_slice(components: &[f32]) -> Option<&[Self]> {
         const { assert!(N != 0) };
@@ -403,9 +414,10 @@ impl<const N: usize> AlignedVecN<N> {
         let chunks_ptr = &raw const *chunks;
         let ptr = chunks_ptr as *const [Self];
 
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the chunk slice
-        // reinterprets element-wise, and the checks above place every element a multiple of
-        // `align_of::<f32x8>()` bytes past an aligned base, which is the alignment invariant.
+        // SAFETY: repr(transparent) preserves each chunk's layout and validity. The checks
+        // establish an aligned base and an alignment-preserving row stride. The cast retains the
+        // initialized slice's element count, provenance and shared lifetime. Therefore every
+        // returned row satisfies Self's alignment invariant throughout the borrow.
         Some(unsafe { &*ptr })
     }
 
@@ -433,10 +445,10 @@ impl<const N: usize> AlignedVecN<N> {
         let chunks_ptr = &raw mut *chunks;
         let ptr = chunks_ptr as *mut [Self];
 
-        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the chunk slice
-        // reinterprets element-wise, the checks above place every element a multiple of
-        // `align_of::<f32x8>()` bytes past an aligned base, which is the alignment invariant, and
-        // the wrapper inherits the exclusive borrow unchanged.
+        // SAFETY: repr(transparent) preserves each chunk's layout and validity. The checks
+        // establish an aligned base and an alignment-preserving row stride. The cast retains the
+        // initialized slice's element count, provenance and exclusive lifetime. Therefore every
+        // returned row satisfies Self's alignment invariant throughout the borrow.
         Some(unsafe { &mut *ptr })
     }
 
@@ -464,9 +476,8 @@ impl<const N: usize> AlignedVecN<N> {
     ///
     /// The first slice reinterprets the storage in place as full [`f32x8`] groups, in order: group
     /// `i` holds components `8 · i` through `8 · i + 7`. The second slice holds the trailing `N %
-    /// 8` components that do not fill a group; it is empty whenever the dimension is a multiple of
-    /// 8, which embedding dimensions in practice are. The type's alignment invariant guarantees no
-    /// misaligned prefix exists, so no components precede the groups.
+    /// 8` components that do not fill a group. The type's alignment invariant excludes a misaligned
+    /// prefix.
     #[inline]
     #[must_use]
     pub fn lanes(&self) -> (&[f32x8], &[f32]) {
@@ -482,8 +493,8 @@ impl<const N: usize> AlignedVecN<N> {
 
     /// Returns the components as mutable aligned 8-lane groups plus a mutable scalar remainder.
     ///
-    /// The split is the same as [`lanes`](Self::lanes); writes through either slice update the
-    /// vector in place, so SIMD kernels can transform embeddings without a staging copy.
+    /// The split is the same as [`lanes`](Self::lanes). Writes through either slice update the
+    /// vector in place.
     #[inline]
     #[must_use]
     pub fn lanes_mut(&mut self) -> (&mut [f32x8], &mut [f32]) {
@@ -496,9 +507,6 @@ impl<const N: usize> AlignedVecN<N> {
 
         (lanes, suffix)
     }
-
-    // The arithmetic delegates to the `VecN` kernels over the same
-    // pointer, so every load still reads an aligned address.
 
     /// Returns the dot product of the two vectors, accumulated in double precision.
     ///
@@ -580,15 +588,24 @@ impl<const N: usize> ToOwned for AlignedVecN<N> {
 
 /// An owned `N`-dimensional vector in a heap allocation aligned for [`f32x8`].
 ///
-/// The buffer is allocated with `align_of::<f32x8>()` alignment regardless of `N`, so dereferencing
-/// always yields an [`AlignedVecN`]. This is the intended long-term storage for embeddings:
-/// allocate once, then hand out aligned references to SIMD kernels for the lifetime of the box.
+/// The buffer provides `align_of::<f32x8>()` alignment regardless of `N`, including zero. It can be
+/// borrowed as an [`AlignedVecN`] throughout the box's lifetime. Cloning creates a separate buffer,
+/// while cloning into an existing box reuses its allocation. The allocator is retained until that
+/// buffer is released.
 ///
-/// # Examples
+/// Allocation failure in the infallible constructors and trait conversions is handled by
+/// [`handle_alloc_error`](alloc::alloc::handle_alloc_error). They panic if the required layout
+/// cannot be represented.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private and uses nightly portable SIMD.
 ///
 /// ```ignore
 /// # #![feature(portable_simd)]
-/// # use std::simd::num::SimdFloat as _;
+/// use std::simd::num::SimdFloat as _;
+///
+/// use crate::math::{BoxedVecN, VecN};
 ///
 /// let embedding = BoxedVecN::new(&VecN::new([0.5_f32; 32]));
 ///
@@ -605,6 +622,12 @@ pub struct BoxedVecN<const N: usize, A: Allocator = Global> {
 
 impl<const N: usize> BoxedVecN<N> {
     /// Copies the vector into a new aligned allocation in the global allocator.
+    ///
+    /// Allocation failure is handled by [`handle_alloc_error`](alloc::alloc::handle_alloc_error).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the required layout cannot be represented. See [`Self::new_in`].
     #[inline]
     #[must_use]
     pub(crate) fn new(value: &VecN<N>) -> Self {
@@ -614,7 +637,12 @@ impl<const N: usize> BoxedVecN<N> {
     /// Creates the zero vector in a new aligned allocation in the global allocator.
     ///
     /// Every component is `0.0` and the buffer is valid for in-place filling through
-    /// [`as_array_mut`](AlignedVecN::as_array_mut).
+    /// [`as_array_mut`](AlignedVecN::as_array_mut). Allocation failure is handled by
+    /// [`handle_alloc_error`](alloc::alloc::handle_alloc_error).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the required layout cannot be represented. See [`Self::zero_in`].
     #[inline]
     #[must_use]
     pub(crate) fn zero() -> Self {
@@ -623,9 +651,14 @@ impl<const N: usize> BoxedVecN<N> {
 }
 
 impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
-    /// The allocation layout: `N` components, padded to the alignment of [`f32x8`].
+    /// Computes the allocation layout for `N` components with SIMD alignment.
     ///
-    /// Allocation and deallocation must agree on this.
+    /// Raising alignment preserves the byte size, without adding trailing padding. Allocation and
+    /// deallocation must use this same layout.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the component array or its required alignment exceeds the layout size limit.
     #[inline]
     fn layout() -> Layout {
         Layout::array::<f32>(N)
@@ -635,8 +668,11 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
 
     /// Creates the zero vector in a new aligned allocation in `alloc`.
     ///
-    /// This aborts the process through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
-    /// the allocator cannot provide the buffer.
+    /// Allocation failure is handled by [`handle_alloc_error`](alloc::alloc::handle_alloc_error).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the required layout cannot be represented.
     #[inline]
     #[must_use]
     pub(crate) fn zero_in(alloc: A) -> Self {
@@ -654,8 +690,12 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
 
     /// Copies the vector into a new aligned allocation in `alloc`.
     ///
-    /// This aborts the process through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
-    /// the allocator cannot provide the buffer.
+    /// Allocation failure is handled by [`handle_alloc_error`](alloc::alloc::handle_alloc_error).
+    /// Use [`Self::try_new_in`] to receive an allocation error.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the required layout cannot be represented.
     #[inline]
     #[must_use]
     pub(crate) fn new_in(value: &VecN<N>, alloc: A) -> Self {
@@ -666,20 +706,27 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
         this
     }
 
-    /// Copies the vector into a new aligned allocation in `alloc`, surfacing allocation failure.
+    /// Tries to copy the vector into a new aligned allocation in `alloc`.
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] when the allocator cannot provide the buffer. The failing call leaks
-    /// no memory.
+    /// Returns [`AllocError`] when the allocator cannot provide the buffer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the required layout cannot be represented.
     #[inline]
     pub(crate) fn try_new_in(value: &VecN<N>, alloc: A) -> Result<Self, AllocError> {
         let layout = Self::layout();
         let allocation = alloc.allocate(layout)?;
         let ptr = allocation.cast::<f32>();
 
-        // SAFETY: the allocation above covers at least `N` components and cannot overlap the
-        // borrowed source.
+        // SAFETY: copy_nonoverlapping is an untyped copy that preserves initialization state. It
+        // requires aligned source and destination pointers valid for N-component read and write
+        // ranges, with no overlap for a nonzero copy. The source array reference supplies N
+        // initialized f32 values. allocate supplies a separate buffer with the requested size and
+        // alignment, including a non-null aligned pointer when N is zero. Therefore the copy
+        // initializes the destination without aliasing the source.
         unsafe {
             ptr::copy_nonoverlapping(value.as_array().as_ptr(), ptr.as_ptr(), N);
         }
@@ -692,17 +739,22 @@ const impl<const N: usize, A: Allocator> Deref for BoxedVecN<N, A> {
     type Target = AlignedVecN<N>;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY: `ptr` owns an initialized buffer of `N` components for as long as `self` lives,
-        // allocated with the alignment of `f32x8` by `layout`.
+        // SAFETY: the array reference requires initialized aligned storage valid for the borrow.
+        // Constructors initialize all N components by zeroing or copying, retain the allocator, and
+        // request f32x8 alignment even for N = 0. No shared method deallocates or mutates the
+        // buffer. Therefore the array reference and its AlignedVecN view remain valid for the
+        // shared borrow of self.
         unsafe { AlignedVecN::from_ref_unchecked(&*self.ptr.as_ptr().cast::<[f32; N]>()) }
     }
 }
 
 const impl<const N: usize, A: Allocator> DerefMut for BoxedVecN<N, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY: `ptr` owns an initialized buffer of `N` components for as long as `self` lives,
-        // allocated with the alignment of `f32x8` by `layout`; the exclusive borrow of `self`
-        // guards the exclusive reference.
+        // SAFETY: the array reference requires initialized, aligned and exclusively accessible
+        // storage. Constructors initialize all N components and retain a buffer with f32x8
+        // alignment, including when N = 0. The exclusive borrow of its owning box excludes other
+        // buffer access for the returned lifetime. Therefore both the mutable array reference and
+        // its AlignedVecN view are valid.
         unsafe { AlignedVecN::from_mut_unchecked(&mut *self.ptr.as_ptr().cast::<[f32; N]>()) }
     }
 }
@@ -726,11 +778,13 @@ impl<const N: usize, A: Allocator + Clone> Clone for BoxedVecN<N, A> {
     }
 
     fn clone_from(&mut self, source: &Self) {
-        // Both buffers share the same layout for a given `N`, so this
-        // copies into the existing allocation instead of reallocating.
-        //
-        // SAFETY: both pointers own initialized buffers of `N` components, and two live boxes
-        // cannot alias.
+        // SAFETY: copy_nonoverlapping is an untyped copy that preserves initialization state. It
+        // requires aligned pointers valid for N-component read and write ranges, with no overlap
+        // for a nonzero copy. Both boxes retain separately owned buffers of N aligned f32 values,
+        // and the source array reference supplies initialized components. The mutable destination
+        // borrow excludes aliasing with source. For N = 0 both pointers remain non-null and
+        // aligned. Therefore the copy reuses the destination allocation while preserving its
+        // initialized components.
         unsafe {
             ptr::copy_nonoverlapping(source.as_array().as_ptr(), self.ptr.as_ptr(), N);
         }
@@ -789,18 +843,23 @@ const impl<const N: usize, A: Allocator> PartialEq for BoxedVecN<N, A> {
 impl<const N: usize, A: Allocator> Drop for BoxedVecN<N, A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: every constructor allocates `ptr` from `alloc` with `Self::layout()`, the
-        // layout passed here, and nothing has deallocated it since.
+        // SAFETY: deallocate requires a currently allocated pointer and a matching allocator
+        // layout. Constructors retain the allocating allocator and its buffer, which no other
+        // operation deallocates or transfers. Self::layout is unchanged for N. Therefore Drop
+        // releases the buffer exactly once with its original allocator and layout.
         unsafe {
             self.alloc.deallocate(self.ptr.cast::<u8>(), Self::layout());
         }
     }
 }
 
-// SAFETY: the buffer is exclusively owned and its `f32` components are `Send` and `Sync`; the
-// allocator's own thread-safety carries the bound.
+// SAFETY: Send permits transferring ownership between threads. The box exclusively owns its f32
+// buffer, whose components are Send, and A: Send permits moving the retained allocator with it.
+// Therefore the buffer and its eventual deallocation can transfer with the box.
 unsafe impl<const N: usize, A: Allocator + Send> Send for BoxedVecN<N, A> {}
 
-// SAFETY: shared access only exposes `&[f32; N]`, which is `Sync`; the allocator's own
-// thread-safety carries the bound.
+// SAFETY: Sync requires shared access to avoid unsynchronized mutation. Shared box methods expose
+// immutable f32 components and access the retained allocator only through shared methods, with A:
+// Sync. Mutation and deallocation require exclusive ownership. Therefore sharing the box introduces
+// no mutable buffer aliases.
 unsafe impl<const N: usize, A: Allocator + Sync> Sync for BoxedVecN<N, A> {}

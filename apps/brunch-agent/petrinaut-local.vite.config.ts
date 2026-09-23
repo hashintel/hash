@@ -44,6 +44,7 @@ export default defineConfig(async (environment) => {
   }
   const root = resolve(websiteRoot);
   process.env.VITE_BRUNCH_CHAT_ENDPOINT ??= "/agents/chat";
+  process.env.VITE_PETRINAUT_DEFAULT_ASSISTANT ??= "brunch";
   // Babel resolves the React compiler plugin from the launched project's cwd,
   // not from the imported config file. Match a native hash launch before the
   // plugin begins transforming the real panel source.

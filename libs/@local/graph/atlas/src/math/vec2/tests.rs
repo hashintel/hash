@@ -137,8 +137,9 @@ fn batch_dot_and_distance_match_scalar_lanes() {
     let distances = lhs.distance_squared(rhs);
     let lengths = lhs.length_squared();
 
-    // The sample values are exact in f32, so FMA contraction changes
-    // nothing and the comparison can be exact.
+    // The coordinates are multiples of 1/4 with magnitude at most 8. These products and sums are
+    // multiples of 1/16 with magnitude at most 512, exactly representable in f32. Therefore fusion
+    // leaves the fixture's results unchanged.
     for lane in 0..4 {
         assert_eq!(dots[lane], POINTS[lane].dot(other[lane]));
         assert_eq!(distances[lane], POINTS[lane].distance_squared(other[lane]));
@@ -160,13 +161,15 @@ fn batch_perp_dot_matches_scalar_lanes() {
 
     let perps = lhs.perp_dot(rhs);
     let reversed = rhs.perp_dot(lhs);
+    let wide = lhs.perp_dot_wide(rhs);
 
-    // The sample values are exact in f32, so FMA contraction changes
-    // nothing and the comparison can be exact.
+    // The coordinates are multiples of 1/4 with magnitude at most 8. Each product and difference
+    // fits exactly in f32. Therefore the f32 and f64 evaluations agree on these fixtures.
     for lane in 0..4 {
         assert_eq!(perps[lane], POINTS[lane].perp_dot(other[lane]));
         // The perpendicular product is antisymmetric lane-wise.
         assert_eq!(reversed[lane], -perps[lane]);
+        assert_eq!(wide[lane], f64::from(perps[lane]));
     }
 }
 
@@ -202,8 +205,6 @@ fn vec2_index_out_of_bounds() {
 
 #[test]
 fn from_slice_mut_writes_through_to_the_components() {
-    // The mutable form aliases the same storage, so a write through a vector rewrites its
-    // components where they stand.
     let mut components = [1.0, 2.0, 3.0, 4.0];
     let points = Vec2::from_slice_mut(&mut components).expect("two whole vectors");
     points[1] = Vec2::new(-3.0, -4.0);
@@ -292,26 +293,23 @@ fn natural_operators_match_scalar_operators() {
     }
 }
 
-/// A coordinate bounded to a well-conditioned range.
-///
-/// The laws below are algebraic contracts. The example-based tests above pin overflow behaviour.
+/// Generates finite coordinates whose products and squared differences avoid overflow.
 fn coordinate() -> impl Strategy<Value = f32> {
     -1e5_f32..1e5
 }
 
-/// An arbitrary in-range vector.
+/// Generates a vector with independently sampled bounded coordinates.
 fn vec2_strategy() -> impl Strategy<Value = Vec2> {
     (coordinate(), coordinate()).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// Arbitrary in-range vectors, one per batch lane.
+/// Generates four vectors with independently sampled bounded coordinates.
 fn vec2_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
     proptest::array::uniform4(vec2_strategy())
 }
 
-/// The dot product commutes bit for bit: both orders multiply and add the same values.
-///
-/// Coordinates lie in `-1e5..1e5`.
+// Swapping operands preserves each rounded product and their addition order. The bounded
+// coordinates avoid overflow, permitting an exact numeric comparison.
 #[property_test]
 fn dot_is_commutative(
     #[strategy = vec2_strategy()] left: Vec2,
@@ -320,10 +318,9 @@ fn dot_is_commutative(
     prop_assert_eq!(left.dot(right), right.dot(left));
 }
 
-/// The perpendicular product is antisymmetric.
-///
-/// Swapping the operands negates the result exactly, because IEEE negation of a difference is
-/// exact. Coordinates lie in `-1e5..1e5`.
+// Swapping operands preserves the rounded products and reverses their subtraction. Round-to-nearest
+// is symmetric under negation for nonzero finite results, and signed zeros compare equal. Therefore
+// the bounded scalar results are numerically antisymmetric.
 #[property_test]
 fn perp_dot_is_antisymmetric(
     #[strategy = vec2_strategy()] left: Vec2,
@@ -332,9 +329,14 @@ fn perp_dot_is_antisymmetric(
     prop_assert_eq!(left.perp_dot(right), -right.perp_dot(left));
 }
 
-/// Distance is symmetric, and the distance from a point to itself is exactly zero.
-///
-/// Coordinates lie in `-1e5..1e5`.
+#[property_test]
+fn perp_dot_wide_antisymmetry(
+    #[strategy = vec2_strategy()] left: Vec2,
+    #[strategy = vec2_strategy()] right: Vec2,
+) {
+    prop_assert_eq!(left.perp_dot_wide(right), -right.perp_dot_wide(left));
+}
+
 #[property_test]
 fn distance_is_symmetric_with_zero_self_distance(
     #[strategy = vec2_strategy()] left: Vec2,
@@ -344,11 +346,10 @@ fn distance_is_symmetric_with_zero_self_distance(
     prop_assert_eq!(left.distance(left), 0.0);
 }
 
-/// Lerp hits its endpoints.
-///
-/// Factor zero is exact; factor one holds up to rounding scaled by the operands' magnitude (the
-/// interpolation computes `from + (to - from) · factor`, which rounds twice). Coordinates lie in
-/// `-1e5..1e5`.
+// Bounded coordinates keep the difference finite. Factor zero reproduces the start numerically,
+// while factor one evaluates from + (to − from) with two potentially inexact operations. The
+// endpoint comparison allows 8 · f32::EPSILON times the greatest input magnitude, with an absolute
+// floor of 8 · f32::EPSILON.
 #[property_test]
 fn lerp_hits_endpoints_on_arbitrary_vectors(
     #[strategy = vec2_strategy()] from: Vec2,
@@ -373,9 +374,6 @@ fn lerp_hits_endpoints_on_arbitrary_vectors(
     );
 }
 
-/// Batch arithmetic operators match the scalar operators bit for bit in every lane.
-///
-/// SIMD IEEE arithmetic is scalar arithmetic per lane. Coordinates lie in `-1e5..1e5`.
 #[property_test]
 fn batch_operators_match_scalar_lanes_on_arbitrary_inputs(
     #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],
@@ -398,10 +396,9 @@ fn batch_operators_match_scalar_lanes_on_arbitrary_inputs(
     }
 }
 
-/// Batch reductions match the scalar reductions per lane up to FMA contraction.
-///
-/// The contraction's rounding scales with the products' magnitude rather than the (possibly
-/// cancelled) result. Coordinates lie in `-1e5..1e5`.
+// cancellation can make a dot product much smaller than its terms. Its error tolerance uses the
+// products' scale to account for different rounding under fused multiply-add. Squared sums have no
+// cancellation and use the result's magnitude.
 #[property_test]
 fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
     #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],
@@ -423,15 +420,7 @@ fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
             .abs()
             .max((lhs[lane].y() * rhs[lane].y()).abs());
         prop_assert!(close(dots[lane], lhs[lane].dot(rhs[lane]), dot_magnitude));
-
-        let perp_magnitude = (lhs[lane].x() * rhs[lane].y())
-            .abs()
-            .max((lhs[lane].y() * rhs[lane].x()).abs());
-        prop_assert!(close(
-            perps[lane],
-            lhs[lane].perp_dot(rhs[lane]),
-            perp_magnitude
-        ));
+        prop_assert_eq!(perps[lane], lhs[lane].perp_dot(rhs[lane]));
 
         let distance = lhs[lane].distance_squared(rhs[lane]);
         prop_assert!(close(distances[lane], distance.get(), distance.get()));
@@ -441,10 +430,26 @@ fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
     }
 }
 
-/// Layout conversions round-trip bit for bit.
-///
-/// `[Vec2; 4] -> Vec2x4 -> Vec2x4T -> Vec2x4 -> [Vec2; 4]` reproduces every coordinate's exact
-/// bits.
+#[property_test]
+fn batch_perp_dot_is_antisymmetric_and_matches_scalar_lanes(
+    #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],
+    #[strategy = vec2_array_strategy()] rhs: [Vec2; 4],
+) {
+    let left = Vec2x4T::from(lhs);
+    let right = Vec2x4T::from(rhs);
+
+    let perps = left.perp_dot(right);
+    let wide = left.perp_dot_wide(right);
+
+    prop_assert_eq!(perps, -right.perp_dot(left));
+    prop_assert_eq!(wide, -right.perp_dot_wide(left));
+
+    for lane in 0..4 {
+        prop_assert_eq!(perps[lane], lhs[lane].perp_dot(rhs[lane]));
+        prop_assert_eq!(wide[lane], lhs[lane].perp_dot_wide(rhs[lane]));
+    }
+}
+
 #[property_test]
 fn layout_round_trips_are_bit_exact(#[strategy = vec2_array_strategy()] points: [Vec2; 4]) {
     let transposed = Vec2x4T::from(Vec2x4::from(points));
@@ -456,12 +461,6 @@ fn layout_round_trips_are_bit_exact(#[strategy = vec2_array_strategy()] points: 
     }
 }
 
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here drives a path that reinterprets or realigns memory. That covers slice views over
-/// component storage, the layout conversions between the interleaved and transposed batches, the
-/// reductions over the natural layout, and lane extraction with its inverse. The profile selects by
-/// module path, so moving a test in or out of this module is the whole edit.
 mod miri {
     use core::simd::Simd;
 
@@ -519,7 +518,6 @@ mod miri {
             let window = &points[offset..];
             let (prefix, batches, suffix) = Vec2x4::from_slice(window);
 
-            // Every point lands in exactly one part, in order.
             assert_eq!(
                 prefix.len() + 4 * batches.len() + suffix.len(),
                 window.len(),

@@ -22,6 +22,7 @@ import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
   AdHocFormContext,
+  adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
@@ -216,13 +217,12 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
 }) => {
   const { errorFor, selection, highlight, setFocusedValue, dispatch } =
     use(AdHocFormContext);
-  // The trailing toggle column: Optimize on every Variable in optimize
-  // mode, Sweep on every numeric Variable in sweep mode; "Scenario
-  // Parameter" on top-level Variables only in expose mode (a per-place
-  // Variable is a per-row intermediate — nothing to expose).
+  // The trailing toggle column: the interval toggle (Optimize or Sweep) on
+  // every numeric Variable; "Scenario Parameter" on top-level Variables only
+  // in expose mode (a per-place Variable is a per-row intermediate — nothing
+  // to expose).
   const toggleColumn =
-    selection === "optimize" ||
-    selection === "sweep" ||
+    adHocIntervalSelection(selection) ||
     (selection === "expose" && placeId === null)
       ? selection
       : null;

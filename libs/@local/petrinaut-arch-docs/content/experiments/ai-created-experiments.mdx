@@ -1,0 +1,140 @@
+---
+title: AI-created experiments
+description: Run experiments from AI chat through the browser host.
+sidebar_order: 40
+attachTo: react.experiment-host
+---
+
+`PetrinautExperimentHost` runs ordinary experiments from bounded requests.
+The browser validates the captured model, reports progress, and returns a
+captured result. Optimization uses the same request and experiment record.
+
+![Browser experiment architecture](@diagrams/ai-experiments-architecture.svg)
+
+The [AI chat integration](doc:ai/experiment-chat) exposes this host through
+`petrinautAiTools.createExperiment` and displays its progress in the conversation.
+
+## Request and result
+
+The [core contract](layer:core.experiments) exports Zod schemas and the host interface
+from `@hashintel/petrinaut-core/experiments`. The [browser provider](layer:react.experiment-host)
+implements `runExperiment(request, { signal, onProgress })` and exposes it
+through `ExperimentHostContext` from `@hashintel/petrinaut/react`.
+
+Use saved scenario and metric IDs, and scenario parameter identifiers, from
+the document definition:
+
+```json
+{
+  "name": "Capacity check",
+  "scenarioId": "saved-scenario-id",
+  "scenarioParameterValues": {},
+  "runCount": 100,
+  "seed": 42,
+  "dt": 0.1,
+  "maxTime": 60,
+  "metricIds": ["saved-metric-id"],
+  "execution": { "mode": "simulate" }
+}
+```
+
+Omitted parameters use saved defaults. Simulation accepts fixed values such
+as `{ "mode": "fixed", "value": 4 }`. Optimization needs a numeric range such
+as `{ "mode": "range", "min": 1, "max": 8 }` and this execution object:
+
+```json
+{
+  "mode": "optimize",
+  "objectiveMetricId": "saved-metric-id",
+  "direction": "minimize",
+  "steps": 10,
+  "runsPerStep": 8
+}
+```
+
+`runCount` is the simulation budget or the final budget at the best point,
+up to 100,000 runs.
+`runsPerStep` controls each search trial. The schema bounds runs, steps,
+duration, and metric count. The host resolves references, checks parameter
+types, and runs [snapshot diagnostics](doc:ai/snapshot-diagnostics) before
+compiling the selected scenario and metrics. Execution uses CPU workers.
+
+The promise resolves with `status` (`complete`, `cancelled`, or `error`),
+experiment ID, name, completed runs, and metric values. Optimization adds
+selected parameter values, objective value, and completed steps. Failures
+include a message. `onProgress` receives updates while the request runs.
+The promise resolves with the terminal result; it contains no progress history.
+
+## Execution and ownership
+
+The host uses the same experiment runtime, sweep optimization input builder,
+and optimizer as the creation drawer. The drawer returns a record when work
+starts. The host awaits completion, including final refinement, and captures
+the result for its caller. Its cancellation and input ownership cover that
+request lifetime. AI tools and other integrations use this same host API.
+
+![Browser experiment flow](@diagrams/ai-experiments-flow.svg)
+
+The host captures the model before asynchronous validation. Simulation runs
+to its budget. Optimization searches the ranges, then refines the best point
+to the requested final budget before returning.
+
+While the request runs, parameter changes, competing execution, and removal
+are blocked. The drawer still allows chart inspection. Aborting the request
+cancels its owned work. Completion captures the result, unlocks the controls,
+and shows a notification. Later exploration leaves the captured result unchanged.
+
+Experiments retain metric distributions, including at the optimizer's best
+point. The drawer shows heatmaps and histograms. Result values summarize the
+last sampled distribution as a mean. See [experiment execution](doc:simulation/experiments),
+[sweep orchestration](doc:experiments/sweep-orchestration), and the
+[browser optimizer](doc:optimizer/browser-runtime).
+
+## Try the demo
+
+From the repository root:
+
+```sh
+turbo run dev --filter @apps/petrinaut-website
+```
+
+Open [the experiment demo](http://localhost:5173/ai-experiments), using the
+port printed by the server if it differs.
+
+1. Open the AI assistant and ask **How can I see the variation in this outbreak model?**
+   Read the baseline proposal, then send **run**. Watch the card, select
+   **View experiment**, and click a heatmap time step to see its histogram.
+2. Ask to compare starting infection levels, then send **optimize**. Inspect
+   progress, the final result, and the best point's distribution.
+3. Select **Cancel** during an optimization and confirm its card stops updating.
+4. After completion, change a parameter in the drawer and confirm the earlier
+   chat result stays unchanged.
+
+The [demo layer](layer:website.ai-experiments) streams scripted replies with
+short pauses. Completion figures come from the host's returned result.
+The SIR example produces simulated model data and is not calibrated to measured
+flu data. Searching initial infection levels demonstrates parameter search.
+
+The demo requires no LLM or Brunch server. The website development command
+builds its Petrinaut dependencies before starting. [AI client integration](doc:ai/client-integration)
+describes Brunch adoption and application responsibilities.
+
+:::danger[Important: host lifetime]
+Execution requires the mounted browser host. Durable jobs, recovery after
+reload, and background notifications need a persistence contract.
+Tracked in [FE-1666](https://linear.app/hash/issue/FE-1666).
+:::
+
+:::danger[Important: objective semantics]
+Objectives and returned metrics use the last sampled frame. Runs that ended
+earlier can be absent. Terminal or time-integrated objectives need an explicit
+reduction contract and matching backend behavior.
+Tracked in [FE-1666](https://linear.app/hash/issue/FE-1666).
+:::
+
+:::danger[Important: orchestration refactor]
+The coordinator reads experiment and optimization state from React providers.
+Extract a reusable implementation behind `PetrinautExperimentHost` when a
+second host needs this execution flow.
+Tracked in [FE-1666](https://linear.app/hash/issue/FE-1666).
+:::

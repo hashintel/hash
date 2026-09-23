@@ -99,11 +99,58 @@ const sendOptions = (
   abortSignal: undefined,
 });
 
+test("forwards opaque initial data on every user submission, never client results", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const initialData = { mode: "test-bound", browser: { incarnationId: "one" } };
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["read_petrinaut_net"]),
+    initialData,
+  });
+  const user = sendOptions([
+    { id: "user-one", role: "user", parts: [{ type: "text", text: "Hello" }] },
+  ]);
+  await readChunks(await transport.sendMessages(user));
+  await readChunks(await transport.sendMessages(user));
+  expect(send.mock.calls[0]?.[0].initialData).toBe(initialData);
+  expect(send.mock.calls[1]?.[0]).toEqual(send.mock.calls[0]?.[0]);
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "reply",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "read_petrinaut_net",
+                toolCallId: "read",
+                input: {},
+                state: "output-available",
+                output: {},
+              },
+            ],
+          },
+        ],
+        "reply",
+      ),
+    ),
+  );
+  expect(send.mock.calls[2]?.[0]).not.toHaveProperty("initialData");
+  const ordinary = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  await readChunks(await ordinary.sendMessages(user));
+  expect(send.mock.calls[3]?.[0]).not.toHaveProperty("initialData");
+});
+
 test("submits results from the latest assistant step with completed client tools", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({
     client,
-    clientToolNames: new Set(["getLatestNetDefinition", "addArc"]),
+    clientToolNames: new Set(["read_petrinaut_net", "mutate_petrinaut_net"]),
   });
 
   await readChunks(
@@ -117,7 +164,7 @@ test("submits results from the latest assistant step with completed client tools
               { type: "step-start" },
               {
                 type: "dynamic-tool",
-                toolName: "getLatestNetDefinition",
+                toolName: "read_petrinaut_net",
                 toolCallId: "read-before-1",
                 state: "output-available",
                 input: {},
@@ -126,7 +173,7 @@ test("submits results from the latest assistant step with completed client tools
               { type: "step-start" },
               {
                 type: "dynamic-tool",
-                toolName: "getLatestNetDefinition",
+                toolName: "read_petrinaut_net",
                 toolCallId: "read-before-2",
                 state: "output-available",
                 input: {},
@@ -135,7 +182,7 @@ test("submits results from the latest assistant step with completed client tools
               { type: "step-start" },
               {
                 type: "dynamic-tool",
-                toolName: "addArc",
+                toolName: "mutate_petrinaut_net",
                 toolCallId: "mutation-latest",
                 state: "output-available",
                 input: {},
@@ -168,7 +215,7 @@ test("submits results from the latest assistant step with completed client tools
         body: JSON.stringify([
           {
             toolCallId: "mutation-latest",
-            toolName: "addArc",
+            toolName: "mutate_petrinaut_net",
             output: { applied: true },
           },
         ]),
@@ -181,7 +228,10 @@ test("submits results from the latest assistant step with completed client tools
 
 test("after snapshot fold, submits only the latest client-tool step", async () => {
   const { client, send } = clientWith(completedEvents);
-  const clientToolNames = new Set(["getLatestNetDefinition", "addArc"]);
+  const clientToolNames = new Set([
+    "read_petrinaut_net",
+    "mutate_petrinaut_net",
+  ]);
   const transport = createFlueChatTransport({
     client,
     clientToolNames,
@@ -198,7 +248,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
             {
               type: "dynamic-tool",
               toolCallId: "read-before-1",
-              toolName: "getLatestNetDefinition",
+              toolName: "read_petrinaut_net",
               state: "output-available",
               input: {},
               output: { awaiting: "client" },
@@ -214,7 +264,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
           parts: [
             {
               type: "text",
-              text: '[{"toolCallId":"read-before-1","toolName":"getLatestNetDefinition","output":{"revision":0}}]',
+              text: '[{"toolCallId":"read-before-1","toolName":"read_petrinaut_net","output":{"revision":0}}]',
               state: "done",
             },
           ],
@@ -228,7 +278,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
             {
               type: "dynamic-tool",
               toolCallId: "mutation-latest",
-              toolName: "addArc",
+              toolName: "mutate_petrinaut_net",
               state: "output-available",
               input: {},
               output: { awaiting: "client" },
@@ -244,7 +294,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
           parts: [
             {
               type: "text",
-              text: '[{"toolCallId":"mutation-latest","toolName":"addArc","output":{"applied":true}}]',
+              text: '[{"toolCallId":"mutation-latest","toolName":"mutate_petrinaut_net","output":{"applied":true}}]',
               state: "done",
             },
           ],
@@ -267,7 +317,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
         body: JSON.stringify([
           {
             toolCallId: "mutation-latest",
-            toolName: "addArc",
+            toolName: "mutate_petrinaut_net",
             output: { applied: true },
           },
         ]),

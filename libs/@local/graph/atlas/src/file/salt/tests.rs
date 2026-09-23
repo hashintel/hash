@@ -1,3 +1,5 @@
+//! Certificates for the SALT repository's document.
+
 use core::num::NonZero;
 
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -22,8 +24,8 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AffinityCurve, Bounds2, PositiveUnitFraction, Rotation, Similarity, UnitFraction, Vec2,
-        d_non_negative, d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
+        AffinityCurve, Bounds2, Rotation, Similarity, Vec2, d_non_negative, d_positive,
+        non_negative, nz, open_unit_fraction, positive, positive_unit_fraction, unit_fraction,
     },
     morton::Depth,
     salt::{
@@ -47,33 +49,33 @@ use crate::{
             },
         },
         postings::build::PostingsMeasurements,
-        projector::train::TrainingSchedule,
+        projector::train::{TrainingSchedule, fit::TrainingScheduleOptions},
         relation::BuildMeasurements,
     },
 };
 
+/// Derives a reproducible fixture digest from `seed`.
 fn digest(seed: &str) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(seed.as_bytes());
     hasher.finalize()
 }
 
+/// A binding for artifact `A` whose digest comes from `seed` rather than from real bytes.
 fn binding<A: Artifact>(seed: &str) -> Binding<A> {
     Binding::new(digest(seed))
 }
 
+/// Builds projector options with a short test schedule.
 fn placement() -> PlacementOptions {
-    let mut options = ProjectorOptions::ratified();
-    options.schedule = TrainingSchedule::new(
-        NonZero::new(12).expect("the fixture step count is nonzero"),
-        6,
-        NonZero::new(4).expect("the fixture cadence is nonzero"),
-        const {
-            PositiveUnitFraction::new(1.0e-3)
-                .expect("the fixture initial rate is a positive unit fraction")
-        },
-        const { UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction") },
-    )
+    let mut options = ProjectorOptions::live();
+    options.schedule = TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(12),
+        boundary: 6,
+        refresh_interval: nz!(4),
+        initial_learning_rate: positive_unit_fraction!(1.0e-3),
+        minimum_learning_rate: unit_fraction!(1.0e-5),
+    })
     .expect("the fixture schedule is valid");
     options.ladder = LadderOptions {
         conditions: Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
@@ -84,6 +86,7 @@ fn placement() -> PlacementOptions {
     PlacementOptions::Projector(options)
 }
 
+/// A fit configuration exercising the non-default corners: a policy override and a fixed seed.
 fn config() -> FitConfig {
     FitConfig {
         seed: 0x5A17_F17D,
@@ -91,15 +94,18 @@ fn config() -> FitConfig {
             maximum_count: NonZero::new(4_096).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::new(1.577, 0.895)
-            .expect("the fixture parameters are finite and strictly positive"),
+        curve: AffinityCurve::new(positive!(1.577), positive!(0.895)),
         placement: placement(),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(7),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.25, 0.5, 0.25])
-                    .expect("the fixture distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.25),
+                    unit_fraction!(0.5),
+                    unit_fraction!(0.25),
+                ])
+                .expect("the fixture distribution sums to one"),
             }],
             ..
         },
@@ -107,6 +113,7 @@ fn config() -> FitConfig {
     }
 }
 
+/// Every artifact slot bound, including the optional ones, each to the digest of its own name.
 fn files() -> SaltFiles {
     SaltFiles {
         representations: binding("representations.arr"),
@@ -141,6 +148,7 @@ fn files() -> SaltFiles {
     }
 }
 
+/// Builds the manifest fixture from its bound artifact roles and evidence.
 fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V2,
@@ -172,6 +180,7 @@ fn repository() -> SaltRepository {
     }
 }
 
+/// Builds level-of-detail readings with one middle bucket and the final bucket occupied.
 fn lod_measurements() -> LodMeasurements {
     LodMeasurements {
         world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
@@ -188,6 +197,7 @@ fn lod_measurements() -> LodMeasurements {
     }
 }
 
+/// A fitted classifier's evidence, the variant that carries every nested block.
 fn classifier_evidence() -> ClassifierEvidence {
     ClassifierEvidence::Fitted {
         corpus: digest("annotation-corpus.json"),
@@ -285,6 +295,7 @@ fn calibration() -> ProximalCalibrationEvidence {
     }
 }
 
+/// The evidence block a sealed generation carries, at corpus-sized readings.
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -315,7 +326,7 @@ fn evidence() -> Evidence {
         landmarks: LandmarkEvidence {
             selected: 4_096,
             retained: 1_024,
-            layout_epochs: NonZero::new(500).expect("the fixture epoch count is nonzero"),
+            layout_epochs: nz!(500),
         },
         policy: PolicyEvidence {
             relations: 49,
@@ -335,7 +346,7 @@ fn evidence() -> Evidence {
         quad: QuadMeasurements {
             nodes: 21_845,
             leaves: 16_000,
-            depth: Depth::new(7).expect("the fixture depth is within the key width"),
+            depth: Depth::try_new(7).expect("the fixture depth is within the key width"),
             type_entries: 65_000,
         },
         postings: PostingsMeasurements {
@@ -512,6 +523,10 @@ fn absent_verdicts_role_round_trips_as_explicit_null() {
     assert_eq!(decoded, repository);
 }
 
+/// A baseline generation stays internally consistent on the wire: the unbound projector role
+/// writes as an explicit null and the placement as `landmark-baseline`, and the document - role,
+/// placement, configuration and evidence all agreeing that no projector ran - reads back
+/// unchanged.
 #[test]
 fn baseline_generation_records_projector_absence_as_explicit_null() {
     let mut repository = repository();
@@ -535,6 +550,8 @@ fn baseline_generation_records_projector_absence_as_explicit_null() {
     assert_eq!(decoded, repository);
 }
 
+/// Relation evidence without the multi-typed edge histogram refuses to decode, and the error names
+/// the missing key rather than reporting the record as malformed.
 #[test]
 fn a_document_without_the_multi_typed_edge_histogram_refuses() {
     let mut document: serde_json::Value =
@@ -776,9 +793,11 @@ fn a_step_without_the_capped_estimand_decodes_as_absent() {
 
 #[test]
 fn tampered_configuration_echo_refuses_to_deserialize() {
-    // Each tampered value violates a construction invariant of its
-    // field's type; the validating deserialization is what turns the
-    // echo from a record into a contract.
+    let document = serde_json::to_value(repository()).expect("the repository should serialize");
+    let decoded: SaltRepository = serde_json::from_value(document.clone())
+        .expect("the unchanged repository should deserialize");
+    assert_eq!(decoded, repository());
+
     for (pointer, tampered) in [
         (
             "/metadata/reproducibility/config/selection/retained_fraction",
@@ -817,11 +836,9 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             "/metadata/reproducibility/config/placement/projector/schedule/boundary",
             serde_json::json!(100),
         ),
-        // The semantic coefficient anchors the budget and must exceed
-        // zero.
         (
-            "/metadata/reproducibility/config/placement/projector/coefficients",
-            serde_json::json!([0.0, 1.0, 1.0, 1.0, 0.0, 1.0]),
+            "/metadata/reproducibility/config/placement/projector/coefficients/semantic",
+            serde_json::json!(0.0),
         ),
         // Each step must exceed the one before it, from the exact zero
         // baseline up.
@@ -843,9 +860,20 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             "/metadata/evidence/projector/ladder/steps/1/alignment/scale",
             serde_json::json!(0.0),
         ),
+        (
+            "/metadata/evidence/projector/ladder/steps/1/alignment/scale",
+            serde_json::json!(f32::MAX),
+        ),
+        (
+            "/metadata/evidence/projector/ladder/steps/1/alignment/translation",
+            serde_json::json!([1.0e40, 0.0]),
+        ),
+        (
+            "/metadata/evidence/lod/world/min",
+            serde_json::json!([9.0, -2.0]),
+        ),
     ] {
-        let mut document =
-            serde_json::to_value(repository()).expect("the repository should serialize");
+        let mut document = document.clone();
         *document
             .pointer_mut(pointer)
             .expect("the tampered field should exist in the document") = tampered;
@@ -1053,6 +1081,9 @@ fn a_decoded_document_carries_only_in_domain_readings() {
     }
 }
 
+/// A version 2 document written before the proximal calibration and the per-type losses existed
+/// decodes with the calibration absent and the loss list empty, rather than refusing or reading
+/// either as a measured zero.
 #[test]
 fn an_old_document_without_the_optional_keys_decodes_as_absent() {
     // Decode-from-old means a published-shape repository-version-2 document written before a
@@ -1084,18 +1115,14 @@ fn an_old_document_without_the_optional_keys_decodes_as_absent() {
         .projector
         .expect("the projector evidence survives");
     assert_eq!(evidence.proximal_calibration, None);
-    assert!(
-        evidence.ladder.expect("the ladder survives").steps[0]
-            .relation_losses
-            .is_empty()
+    assert_eq!(
+        evidence.ladder.expect("the ladder survives").steps[0].relation_losses,
+        [] as [TypeRelationLoss; 0]
     );
 }
 
 #[test]
 fn a_missing_required_sibling_refuses_and_names_the_field() {
-    // The control proves the optional keys' own absence rule decodes the old document rather
-    // than record-wide permissiveness. Removing an undefaulted required sibling must refuse,
-    // naming the field.
     let repository = repository();
     let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
 
@@ -1115,6 +1142,9 @@ fn a_missing_required_sibling_refuses_and_names_the_field() {
     );
 }
 
+/// A ladder written before the paired-movement readout existed decodes with the readout absent,
+/// not as a vacuous or failed body: nothing measured it, which is a different record from a
+/// measurement that found nothing.
 #[test]
 fn an_old_ladder_without_the_paired_movement_key_decodes_as_absent() {
     // A published-shape repository-version-2 ladder written before the readout existed
@@ -1148,9 +1178,6 @@ fn an_old_ladder_without_the_paired_movement_key_decodes_as_absent() {
 
 #[test]
 fn a_ladder_missing_a_required_sibling_refuses_and_names_the_field() {
-    // The control for the ladder record: removing an undefaulted required sibling refuses,
-    // so the readout key's decode rests on its own absence rule rather than record-wide
-    // permissiveness.
     let repository = repository();
     let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
 

@@ -61,7 +61,7 @@ const panelStyle = css({
 const messageStyle = css({
   padding: "[12px]",
   fontSize: "xs",
-  color: "[#666]",
+  color: "neutral.fg.muted",
   lineHeight: "[1.5]",
 });
 
@@ -99,7 +99,7 @@ const PlaceVisualizerContent: React.FC = () => {
     return (
       <div className={messageStyle}>
         Enable the visualizer to define a custom token visualization for this
-        place, viewable when a simulation is running.
+        place. It renders here, and on the canvas when you point at the place.
       </div>
     );
   }
@@ -174,6 +174,7 @@ const VisualizerHeaderAction: React.FC = () => {
           disableTooltip={!isReadOnly}
         >
           <Toggle
+            aria-label="Visualizer"
             size="sm"
             tone="success"
             value={hasVisualizer}
@@ -260,6 +261,7 @@ const VisualizerHeaderAction: React.FC = () => {
 
 export const placeVisualizerSubView: SubView = {
   id: "place-visualizer",
+  canMaximize: true,
   title: "Visualizer",
   tooltip:
     "Custom visualization of tokens in this place, defined by visualizer code.",

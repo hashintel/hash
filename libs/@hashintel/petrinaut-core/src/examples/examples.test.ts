@@ -4,7 +4,9 @@ import { compileHirArtifacts } from "../hir";
 import { checkSDCPN } from "../lsp/lib/checker";
 import { SDCPNLanguageServer } from "../lsp/lib/create-sdcpn-language-service";
 import {
+  cafeQueue,
   deploymentPipelineSDCPN,
+  dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,
@@ -14,7 +16,9 @@ import {
 } from "./index";
 
 const EXAMPLES = [
+  cafeQueue,
   deploymentPipelineSDCPN,
+  dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,

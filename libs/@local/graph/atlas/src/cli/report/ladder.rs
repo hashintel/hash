@@ -19,6 +19,8 @@ pub(crate) struct LadderArgs {
     generation: GenerationId,
 
     /// Where the report bundle JSON lands.
+    ///
+    /// Defaults to `ladder-report.json` in the working directory.
     #[arg(long, default_value = "ladder-report.json", value_hint = ValueHint::FilePath)]
     output: Utf8PathBuf,
 }
@@ -128,7 +130,7 @@ fn percent(part: usize, whole: usize) -> f64 {
     if whole == 0 {
         return 0.0;
     }
-    // Counts sit far below 2⁵³, so the quotient is exact enough for display.
+    // Counts sit far below 2⁵³. The quotient is exact enough for display.
     #[expect(
         clippy::cast_precision_loss,
         reason = "display quotient of small counts"

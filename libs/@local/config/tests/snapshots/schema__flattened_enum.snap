@@ -1,0 +1,43 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<FlattenedEnum>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlattenedEnum",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean"
+    }
+  },
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "capacity": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "const": "memory"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "disk"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

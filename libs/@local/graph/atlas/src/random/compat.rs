@@ -1,10 +1,17 @@
 use rand_core as rc10;
 use rand_core_06 as rc06;
 
+/// An infallible generator exposed through the `rand_core` 0.6 traits.
+///
+/// Matching word and byte-generation calls consume the underlying generator unchanged. Higher-level
+/// distributions from different rand versions may consume those words differently. The
+/// [`rc06::RngCore::try_fill_bytes`] implementation always returns `Ok` because [`rc10::Rng`]
+/// requires an infallible error type.
 #[repr(transparent)]
 pub(crate) struct Compat<R: ?Sized>(R);
 
 impl<R: ?Sized> Compat<R> {
+    /// Adapts `rng` without reseeding or consuming any output.
     pub(crate) const fn new(rng: R) -> Self
     where
         R: Sized,

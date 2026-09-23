@@ -1,0 +1,6 @@
+---
+source: libs/@local/graph/api/src/../tests/openapi/mod.rs
+expression: "serde_json::to_vec_pretty(&document).expect(\"the specification should serialize\")"
+extension: json
+snapshot_kind: binary
+---

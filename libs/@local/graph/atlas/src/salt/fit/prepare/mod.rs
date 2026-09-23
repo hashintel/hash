@@ -1,7 +1,7 @@
 //! Prepare representations: persist the working artifacts of one generation.
 //!
-//! The stage consumes dataset streams once and writes the artifacts every later stage reads, so
-//! downstream stages address rows in mapped files instead of re-consuming the source.
+//! The stage consumes dataset streams once and writes the artifacts every later stage reads.
+//! Downstream stages therefore address rows in mapped files instead of re-consuming the source.
 //! [`write_node_representations`] covers the node half: the `f32[N, 512]` representation matrix,
 //! row-aligned with the node stream, with the node ids and direct types collected into
 //! [`NodeColumns`] in the same pass, and [`norm::spot_check`] certifies the written rows' source
@@ -28,8 +28,11 @@ pub(crate) mod identity;
 pub(crate) mod instance;
 pub(crate) mod norm;
 
+mod provider;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use self::provider::IdentityProvider;
 
 /// Writing the node representation matrix failed.
 #[derive(Debug)]
@@ -72,12 +75,12 @@ pub(crate) struct NodeColumns<I> {
 ///
 /// Collects the node ids and direct types in the same pass.
 ///
-/// Row `i` of the written matrix is the embedding of node row `i`, so the matrix is row-aligned
-/// with every artifact keyed by [`NodeRowId`], and entry `i` of the
-/// returned columns is that row's source id and type set. The publish step computes the finished
-/// file's repository digest.
+/// Row `i` of the written matrix is the embedding of node row `i`. The matrix is therefore
+/// row-aligned with every artifact keyed by [`NodeRowId`], and entry `i` of the returned columns
+/// is that row's source id and type set. The publish step computes the finished file's repository
+/// digest.
 ///
-/// Every node issues one write; wrap a raw [`File`](std::fs::File) in a
+/// Every node issues one write, and a raw [`File`](std::fs::File) belongs inside a
 /// [`BufWriter`](io::BufWriter).
 ///
 /// # Errors

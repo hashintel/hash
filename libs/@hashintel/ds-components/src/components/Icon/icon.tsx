@@ -1,3 +1,5 @@
+import { createContext, use } from "react";
+
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { styles } from "./icon.recipe";
@@ -284,6 +286,22 @@ const IconMap = {
 export type IconName = keyof typeof IconMap;
 export const iconNames = Object.keys(IconMap) as Array<keyof typeof IconMap>;
 
+export type IconPack = Partial<
+  Record<
+    IconName | "loadingSpinner",
+    React.ComponentType<React.SVGProps<SVGSVGElement>>
+  >
+>;
+
+export const IconPackContext = createContext<IconPack>({});
+
+export const IconProvider = ({
+  icons,
+  children,
+}: React.PropsWithChildren<{ icons: IconPack }>) => (
+  <IconPackContext value={icons}>{children}</IconPackContext>
+);
+
 export const Icon = ({
   className,
   name,
@@ -297,7 +315,8 @@ export const Icon = ({
   alt?: string;
 } & DataAttributes &
   React.AriaAttributes) => {
-  const IconSvg = IconMap[name];
+  const icons = use(IconPackContext);
+  const IconSvg = icons[name] ?? IconMap[name];
 
   return (
     <IconSvg

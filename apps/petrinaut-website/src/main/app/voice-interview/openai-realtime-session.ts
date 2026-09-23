@@ -1,3 +1,4 @@
+import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import {
   createVoiceRequestId,
   VoiceError,
@@ -12,6 +13,7 @@ import {
 } from "../../../voice-diagnostics";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { VoiceAudioSettings } from "./voice-audio-settings";
 
 export interface OpenAIRealtimeTranscriptKey {
   readonly connectionEpoch: number;
@@ -84,13 +86,17 @@ export type OpenAIRealtimeSessionEvent =
     };
 
 interface RemoteAudio {
+  setSinkId?: (deviceId: string) => Promise<void>;
   autoplay: boolean;
+  muted: boolean;
   srcObject: HTMLMediaElement["srcObject"];
+  volume: number;
   pause(): void;
   play(): Promise<void>;
 }
 
 interface OpenAIRealtimeSessionDependencies {
+  readonly audioSettings?: VoiceAudioSettings;
   readonly cancelAnimationFrame: (handle: number) => void;
   readonly connectionTimeoutMs: number;
   readonly createAudioContext: () => AudioContext;
@@ -255,6 +261,10 @@ export class OpenAIRealtimeSession {
   #microphoneTrack: MediaStreamTrack | null = null;
   #peerConnection: RTCPeerConnection | null = null;
   #remoteAudio: RemoteAudio | null = null;
+  #speakerMuted = false;
+  #speakerVolume = 1;
+  #voice = "marin";
+  #speed = 1;
   #responseCreateEventId: string | null = null;
   #responseTerminalSequence = 0;
   #speakingResponseId: string | null = null;
@@ -274,6 +284,8 @@ export class OpenAIRealtimeSession {
 
   public async connect(): Promise<number> {
     this.#releaseResources();
+    this.#voice = this.#dependencies.audioSettings?.startSession() ?? "marin";
+    this.#speed = 1;
     const requestId =
       this.#dependencies.createRequestId?.() ?? createVoiceRequestId();
     const startedAt = this.#now();
@@ -317,6 +329,8 @@ export class OpenAIRealtimeSession {
       this.#peerConnection = peerConnection;
       this.#remoteAudio = this.#dependencies.createRemoteAudio();
       this.#remoteAudio.autoplay = true;
+      this.#remoteAudio.muted = this.#speakerMuted;
+      this.#remoteAudio.volume = this.#speakerVolume;
       peerConnection.ontrack = (event) => {
         if (
           this.#activeEpoch !== connectionEpoch ||
@@ -389,6 +403,27 @@ export class OpenAIRealtimeSession {
 
       this.#connected = true;
       this.#connectedAt = this.#now();
+      this.#dependencies.audioSettings?.attach({
+        stream: mediaStream,
+        audio: this.#remoteAudio,
+        senders: peerConnection
+          .getSenders()
+          .filter((sender) => sender.track?.kind === "audio"),
+        replaceMicrophone: (stream) => {
+          this.#mediaStream = stream;
+          this.#microphoneTrack = stream.getAudioTracks()[0] ?? null;
+          this.#releaseMeterResources();
+          this.#initializeOptionalMeter();
+          if (this.#audioContext) {
+            try {
+              this.#initializeMeter(this.#audioContext, stream);
+            } catch {
+              this.#releaseMeterResources();
+            }
+          }
+          this.#syncMicrophoneTrack();
+        },
+      });
       this.#reportDiagnostic("connection", requestId, startedAt);
       return connectionEpoch;
     } catch (error) {
@@ -425,6 +460,16 @@ export class OpenAIRealtimeSession {
   public setMicrophoneEnabled(enabled: boolean): void {
     this.#microphoneRequested = enabled && this.#connected;
     this.#syncMicrophoneTrack();
+  }
+
+  public setSpeakerMuted(muted: boolean): void {
+    this.#speakerMuted = muted;
+    if (this.#remoteAudio) this.#remoteAudio.muted = muted;
+  }
+
+  public setSpeakerVolume(volume: number): void {
+    this.#speakerVolume = Math.min(1, Math.max(0, volume));
+    if (this.#remoteAudio) this.#remoteAudio.volume = this.#speakerVolume;
   }
 
   public setInterruptionBySpeaking(enabled: boolean): void {
@@ -679,6 +724,14 @@ export class OpenAIRealtimeSession {
     }
     this.#syncMicrophoneTrack();
     try {
+      const speed = this.#dependencies.audioSettings?.getSnapshot().speed ?? 1;
+      if (speed !== this.#speed) {
+        this.#send({
+          type: "session.update",
+          session: { type: "realtime", audio: { output: { speed } } },
+        });
+        this.#speed = speed;
+      }
       this.#send({
         event_id: eventId,
         response: request.response,
@@ -1370,6 +1423,7 @@ export class OpenAIRealtimeSession {
         body: offerSdp,
         headers: {
           "content-type": "application/sdp",
+          [voicePreferenceHeader]: this.#voice,
           [VOICE_REQUEST_ID_HEADER]: requestId,
         },
         method: "POST",
@@ -1471,6 +1525,7 @@ export class OpenAIRealtimeSession {
           this.#canonicalSpeechQueue.length === 0 &&
           this.#responseCreateEventId === null &&
           this.#speakingResponseId === null));
+    if (enabled) this.#dependencies.audioSettings?.actions.stopVoicePreview?.();
     this.#microphoneTrack.enabled = enabled;
     if (enabled) {
       this.#startMeter();
@@ -1548,6 +1603,7 @@ export class OpenAIRealtimeSession {
   }
 
   #releaseResources(): void {
+    this.#dependencies.audioSettings?.detach();
     for (const timing of this.#transcriptionTimings.values()) {
       this.#reportDiagnostic(
         "transcription",

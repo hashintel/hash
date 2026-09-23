@@ -881,7 +881,6 @@ where
             AggregateKind::Tuple => {
                 self.line_buffer.write_all(b"(")?;
                 self.csv(operands.iter().copied())?;
-                self.line_buffer.write_all(b")")
             }
             AggregateKind::Struct { fields } => {
                 self.line_buffer.write_all(b"(")?;
@@ -892,13 +891,10 @@ where
                         .zip(operands.iter())
                         .map(|(&key, &value)| KeyValuePair(key, value)),
                 )?;
-
-                self.line_buffer.write_all(b")")
             }
             AggregateKind::List => {
                 self.line_buffer.write_all(b"list(")?;
                 self.csv(operands.iter().copied())?;
-                self.line_buffer.write_all(b")")
             }
             AggregateKind::Dict => {
                 self.line_buffer.write_all(b"dict(")?;
@@ -910,22 +906,19 @@ where
                         .array_chunks()
                         .map(|[key, value]| KeyValuePair(key, value)),
                 )?;
-
-                self.line_buffer.write_all(b")")
             }
             AggregateKind::Opaque(symbol) => {
                 self.line_buffer.write_all(b"opaque(")?;
                 self.line_buffer.write_all(symbol.as_bytes())?;
                 self.line_buffer.write_all(b", ")?;
                 self.csv(operands.iter().copied())?;
-                self.line_buffer.write_all(b")")
             }
             AggregateKind::Closure => {
                 self.line_buffer.write_all(b"closure(")?;
                 self.csv(operands.iter().copied())?;
-                self.line_buffer.write_all(b")")
             }
         }
+        self.line_buffer.write_all(b")")
     }
 }
 

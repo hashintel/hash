@@ -1,5 +1,5 @@
 #![cfg(feature = "std")]
-#![cfg_attr(nightly, feature(error_generic_member_access, never_type))]
+#![cfg_attr(nightly, feature(error_generic_member_access))]
 #![allow(clippy::std_instead_of_core)]
 
 use core::fmt;

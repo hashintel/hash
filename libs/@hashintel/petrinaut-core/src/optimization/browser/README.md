@@ -35,11 +35,11 @@ segment begins with a `started` event in the run log and ends with a terminal
 
 ```text
 queued ──worker ready──▶ running ──complete / cancelled──▶ finished-resumable
-  │                        │                                     │
-  │ cancel (first run)     │ trial evaluation failed,            │ extend
-  │                        │ study error, worker error           ▼
-  ▼                        ▼                                   queued
-finished ◀──────────── finished                                (again)
+  │                        │                                              │
+  │ cancel (first run)     │ trial evaluation failed,                     │ extend
+  │                        │ study error, worker error                    ▼
+  ▼                        ▼                                            queued
+finished ◀──────────── finished                                         (again)
                           ▲
                           └── release, from any status
 ```

@@ -9,7 +9,7 @@
 //!
 //! which regularizes sparse high-dimensional samples while retaining dimension-level scale where
 //! the sample supports it. The fit sorts and retains the training rows' own standardized distances,
-//! so a prediction's applicability is its empirical upper-tail rank. An embedding far from every
+//! and a prediction's applicability is its empirical upper-tail rank. An embedding far from every
 //! training row scores near zero, flagging the prediction as unsupported. Applicability is evidence
 //! about the embedding. It is not a fourth geometry class.
 

@@ -4,9 +4,6 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
-    },
-    "linear:graph": {
-      "cache": false
     }
   }
 }

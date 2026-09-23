@@ -1,0 +1,22 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "exported::<StrictRoot>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StrictRoot",
+  "type": "object",
+  "properties": {
+    "host": {
+      "type": "string"
+    },
+    "port": {
+      "type": "integer",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}

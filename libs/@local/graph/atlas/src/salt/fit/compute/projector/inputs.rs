@@ -9,6 +9,7 @@ use super::super::{
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
+        ArtifactFile as _,
         generation::StagedGeneration,
         identity::{Key, read::IdentityFile},
         repository::Binding,
@@ -36,8 +37,8 @@ pub(crate) struct PlacementInputs<'fit> {
     pub resolution: &'fit VerdictResolution,
     /// The metadata document's `snapshot` section, the value the seal serializes.
     ///
-    /// With [`Self::reproducibility`] it forms the paired-movement salt preimage, so the
-    /// readout's draw replays from the published document's input sections alone.
+    /// With [`Self::reproducibility`] it forms the paired-movement salt preimage. The readout's
+    /// draw therefore replays from the published document's input sections alone.
     pub snapshot: &'fit Snapshot,
     /// The metadata document's `reproducibility` section, the value the seal serializes.
     pub reproducibility: &'fit Reproducibility,
@@ -48,8 +49,8 @@ pub(crate) struct PlacementInputs<'fit> {
 /// The trainer's distinct-row view of the corpus.
 ///
 /// Training and the ladder's loss measurements run over the quotient and the values built on it,
-/// where byte-identical rows are one point. Publication evaluates the full corpus, and identical
-/// representations project identically, so the two domains describe one field.
+/// where byte-identical rows are one point. Publication evaluates the full corpus. Identical
+/// representations project identically, and the two domains therefore describe one field.
 pub(crate) struct DistinctInputs<'fit> {
     /// The corpus-to-distinct row quotient, carrying both row domains' matrices.
     pub quotient: &'fit Quotient<'fit, PROJECTOR_DIMENSIONS>,
@@ -63,8 +64,8 @@ pub(crate) struct DistinctInputs<'fit> {
 
 /// The training-domain views the publish half reads.
 ///
-/// The quotient, the neighbour table, and the attraction index carry the ladder's per-level loss
-/// measurements over the distinct rows. The metadata document's input sections ride beside them
+/// The quotient, the neighbour table, and the attraction index carry the ladder's per-step loss
+/// measurements over the distinct rows. The metadata document's input sections accompany them
 /// as the paired-movement salt preimage.
 pub(crate) struct PublishInputs<'fit> {
     /// The corpus-to-distinct row quotient.
@@ -75,8 +76,8 @@ pub(crate) struct PublishInputs<'fit> {
     pub attraction: &'fit AttractionIndex<DistinctRowId, EdgeRowId>,
     /// The metadata document's `snapshot` section, the value the seal serializes.
     ///
-    /// With [`Self::reproducibility`] it forms the paired-movement salt preimage, so the
-    /// readout's draw replays from the published document's input sections alone.
+    /// With [`Self::reproducibility`] it forms the paired-movement salt preimage. The readout's
+    /// draw therefore replays from the published document's input sections alone.
     pub snapshot: &'fit Snapshot,
     /// The metadata document's `reproducibility` section, the value the seal serializes.
     pub reproducibility: &'fit Reproducibility,
@@ -94,9 +95,9 @@ pub(crate) struct VerdictResolution {
 impl VerdictResolution {
     /// Resolves the supplied verdicts against the staged ontology identity column.
     ///
-    /// Typed by the dataset's own ontology id, and addressed by the binding the ingest minted
-    /// for the column, so the resolution reads exactly the staged entry the seal publishes. A
-    /// run without supplied verdicts resolves to the empty resolution.
+    /// The column is typed by the dataset's own ontology id and addressed through the binding the
+    /// ingest created for it. The resolution therefore reads exactly the staged entry the seal
+    /// publishes. A run without supplied verdicts resolves to the empty resolution.
     ///
     /// # Errors
     ///
@@ -139,7 +140,7 @@ impl VerdictResolution {
         let table =
             IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;
 
-        let resolution = supplied.document().resolve(table.ids());
+        let resolution = supplied.document().resolve(table.keys());
         let unresolved = resolution.unresolved().len();
         tracing::info!(
             resolved = resolution.resolved().len(),

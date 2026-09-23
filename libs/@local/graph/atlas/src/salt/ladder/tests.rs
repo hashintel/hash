@@ -14,15 +14,17 @@ hashql_core::id::newtype! {
     struct StepRow(u32)
 }
 
-/// Proves a fixture's points finite over the tests' row domain.
+/// Validates fixture coordinates over the tests' row domain.
+///
+/// # Panics
+///
+/// Panics when a coordinate is non-finite.
 #[track_caller]
 fn field(points: &[Vec2]) -> &FinitePointField<StepRow> {
     FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
 }
 
-/// A sixteen-point deterministic field.
-///
-/// Spread radii and no symmetry a similarity could exploit.
+/// Builds sixteen points with varied radii and angular spacing.
 fn base_field() -> Vec<Vec2> {
     (0..16_u8)
         .map(|index| {
@@ -39,8 +41,8 @@ fn base_field() -> Vec<Vec2> {
 
 /// Swaps the axes of every even-indexed point.
 ///
-/// A deformation no similarity can explain (axis swap alone is a reflection, which the
-/// orientation-preserving family excludes).
+/// On [`base_field`]'s asymmetric fixture this creates a residual deformation. An axis swap is a
+/// reflection, outside the orientation-preserving fit family.
 fn deformed_field(base: &[Vec2]) -> Vec<Vec2> {
     base.iter()
         .enumerate()
@@ -123,9 +125,10 @@ fn conditions_reject_each_violated_invariant() {
     );
 }
 
-/// A negative-zero input is `+0.0` before validation sees it ([`NonNegative`] canonicalizes the
-/// sign of zero at construction), so no `-0.0` alias can reach the baseline check or condition
-/// the projector with different bits.
+/// Accepts the same baseline after canonicalizing either zero sign.
+///
+/// [`NonNegative`](crate::math::NonNegative) converts negative zero to positive zero before
+/// schedule validation.
 #[test]
 fn conditions_accept_a_canonicalized_negative_zero_baseline() {
     assert_eq!(
@@ -215,9 +218,8 @@ fn pure_similarity_step_measures_negligible_movement() {
     .expect("scale 2.0 is normal and positive");
     let moved: Vec<Vec2> = base.iter().map(|&point| transform.apply(point)).collect();
 
-    // The raw coordinates moved far - more than one unit per point on
-    // average over the sixteen points; only alignment reveals that
-    // nothing about the layout's shape changed.
+    // more than one unit of raw displacement per point, although the transform preserves shape up
+    // to rounding. Only the aligned residual distinguishes that motion from deformation.
     let raw_displacement = base
         .iter()
         .zip(&moved)
@@ -246,15 +248,14 @@ fn pure_similarity_step_measures_negligible_movement() {
         "a pure similarity image leaves no residual movement, moved {}",
         step.adjacent_movement.get()
     );
-    // The fitted alignment inverts the transform: its scale undoes the
-    // doubling.
+    // the inverse alignment's scale undoes the doubling.
     assert!(
         (step.alignment.scale().get() - 0.5).abs() < 1e-4,
         "the alignment must recover the inverse scale, got {}",
         step.alignment.scale()
     );
-    // Both comparands are the baseline field here, and the two fits run
-    // over identical slices, so the movements agree exactly.
+    // Both targets are the baseline. The sixteen rows fit within one parallel chunk, giving each
+    // call the same arithmetic order. Therefore both residuals agree exactly.
     assert_eq!(step.baseline_movement, step.adjacent_movement);
 }
 
@@ -320,8 +321,8 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
         "the repeat still differs from the baseline, got {}",
         repeat.baseline_movement.get()
     );
-    // The repeated step's baseline alignment matches its predecessor's:
-    // identical fields fit identical alignments.
+    // the identical source and target slices fit in one chunk, preserving the same arithmetic order
+    // for both baseline alignments.
     assert_eq!(repeat.alignment, measurements[1].alignment);
 }
 
@@ -455,9 +456,7 @@ fn canonical_selection_requires_an_exact_member() {
     assert_eq!(selected.index, 1);
     assert_eq!(selected.measurement.alignment, measurements[1].alignment);
 
-    // The step whose loss rose and whose movement collapsed onto its
-    // predecessor publishes like any other member: the measurements
-    // are diagnostics, and they block nothing.
+    // a rising loss and negligible adjacent movement do not prevent canonical selection.
     let risen =
         select_canonical(&measurements, non_negative!(1.0)).expect("the last step is a member");
     assert_eq!(risen.index, 2);

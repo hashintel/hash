@@ -8,6 +8,97 @@ import {
 } from "./example-search";
 
 describe("example search contract", () => {
+  it("carries expanded sections as complete panel and section pairs", () => {
+    const expanded = {
+      expandedPanel: "transition-properties",
+      expandedSection: "transition-results",
+    };
+    expect(validateSharedExampleSearch(expanded)).toMatchObject(expanded);
+    expect(canonicalSearchString(expanded)).toBe(
+      "expandedPanel=transition-properties&expandedSection=transition-results",
+    );
+    for (const input of [
+      { expandedPanel: "transition-properties" },
+      { expandedSection: "transition-results" },
+      { expandedPanel: 42, expandedSection: "transition-results" },
+      { expandedPanel: "transition-properties", expandedSection: "" },
+    ]) {
+      const search = validateSharedExampleSearch(input);
+      expect(search.expandedPanel).toBeUndefined();
+      expect(search.expandedSection).toBeUndefined();
+    }
+  });
+
+  it("validates complete resource links and fullscreen creation links", () => {
+    const resource = {
+      resourceType: "scenario",
+      resourceId: "scenario / one",
+      presentation: "fullscreen",
+    };
+    const validated = validateSharedExampleSearch(resource);
+    expect(validated).toMatchObject(resource);
+    expect(canonicalSearchString(validated)).toBe(
+      "presentation=fullscreen&resourceId=scenario+%2F+one&resourceType=scenario",
+    );
+    expect(
+      validateSharedExampleSearch({
+        overlay: "create-experiment",
+        presentation: "fullscreen",
+      }).presentation,
+    ).toBe("fullscreen");
+    for (const invalid of [
+      { resourceType: "unknown", resourceId: "one" },
+      { resourceType: "scenario" },
+      { resourceType: "experiment", resourceId: "" },
+      { resourceId: "one" },
+    ]) {
+      const search = validateSharedExampleSearch({
+        ...invalid,
+        presentation: "fullscreen",
+      });
+      expect(search.resourceType).toBeUndefined();
+      expect(search.resourceId).toBeUndefined();
+      expect(search.presentation).toBeUndefined();
+    }
+    expect(
+      validateSharedExampleSearch({
+        resourceType: "metric",
+        resourceId: "one",
+        presentation: "fullscreen",
+      }).presentation,
+    ).toBeUndefined();
+  });
+
+  it("validates settings sections only for the user settings dialog", () => {
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "viewport",
+      }),
+    ).toMatchObject({ overlay: "user-settings", settings: "viewport" });
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "unknown",
+      }).settings,
+    ).toBeUndefined();
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "simulation",
+      }),
+    ).toMatchObject({ overlay: "user-settings", settings: undefined });
+    expect(
+      validateSharedExampleSearch({
+        overlay: "create-experiment",
+        settings: "viewport",
+      }).settings,
+    ).toBeUndefined();
+    expect(
+      validateSharedExampleSearch({ overlay: "viewport-settings" }).overlay,
+    ).toBe("viewport-settings");
+  });
+
   it("strips unsupported query values", () => {
     expect(
       validateSharedExampleSearch({
@@ -71,5 +162,25 @@ describe("example search contract", () => {
         itemId: "place-1",
       }),
     ).toBe("itemId=place-1&itemType=place&scenario=scenario-1&subnet=subnet-1");
+  });
+
+  it("normalises a link to the retired Optimizations section", () => {
+    // Links shared before optimization folded into the Experiments tab named
+    // that section and a `present` param; both drop out, and the page opens on
+    // the editor's default section in Simulate mode.
+    const search = validateSharedExampleSearch({
+      mode: "simulate",
+      view: "optimizations",
+      present: "full",
+      overlay: "create-optimization",
+    });
+    expect(search).toEqual({
+      scenario: undefined,
+      subnet: undefined,
+      mode: "simulate",
+      view: undefined,
+      overlay: undefined,
+    });
+    expect(canonicalSearchString(search)).toBe("mode=simulate");
   });
 });

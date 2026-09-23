@@ -1,59 +1,53 @@
-//! Fit inputs behind one trait.
+//! Data sources for fitting a semantic map.
 //!
-//! A [`Dataset`] is the pipeline's only window onto the graph it maps. It exposes row-ordered
-//! streams - [`nodes`], [`edges`], [`ontology`], and [`render_cards`], plus the auxiliary
-//! payload streams [`node_auxiliary_payload`], [`edge_auxiliary_payload`], and
-//! [`ontology_auxiliary_payload`] - and a probe fetch for canonical
-//! embeddings. Everything the fit learns about the graph arrives through these methods. Where the
-//! data physically lives (a live Postgres store, a synthetic fixture) is an implementation concern
-//! the pipeline cannot observe.
+//! A [`Dataset`] supplies graph entities, embeddings and type descriptions to the fit. The
+//! [`postgres`] and [`offline`] implementations let the same fitting algorithm read a live store
+//! snapshot or a saved dump.
 //!
-//! # Rows and identity
+//! # Rows and source identifiers
 //!
-//! Every stream assigns dense ids by position: the `n`-th item of a stream occupies row `n`. There
-//! is no row field to keep consistent - position is the assignment. Cross-references use the typed
-//! row ids ([`NodeRowId`], [`EdgeRowId`](crate::identity::EdgeRowId), [`OntologyRowId`]), so an
-//! edge names its endpoints by node row and a node names its types by ontology row.
+//! The [`nodes`], [`edges`] and [`ontology`] streams each enumerate a separate table. The `n`-th
+//! item occupies row `n` in that table. Row ids are dense, starting at zero: [`NodeRowId`],
+//! [`EdgeRowId`](crate::identity::EdgeRowId) and [`OntologyRowId`] distinguish the tables. An edge
+//! refers to its endpoints by node row, and an entity's type list refers to ontology rows.
 //!
-//! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`], [`Dataset::OntologyId`]) stay
-//! opaque to the pipeline. Byte-level stability (the zerocopy bounds) is exactly enough to persist
-//! them into the identity artifacts that let serving translate rows back to graph identities. The
-//! pipeline itself computes on rows alone.
+//! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`] and [`Dataset::OntologyId`])
+//! identify records in the original graph. The fit indexes data by row id, while identity files
+//! preserve source identifiers for translation during serving. [`Key`] defines their persisted
+//! representation and associated display payload.
 //!
-//! The node and edge streams cover disjoint entities. Each entity occupies a node row or an edge
-//! row but never both. An implementation that draws both streams' source identifiers from one id
-//! space therefore yields disjoint identifier sets, so an identifier resolves to at most one row
-//! domain.
+//! A graph entity occupies a node row or an edge row, never both. If both streams use the same
+//! source-identifier space, their identifier sets must be disjoint.
 //!
-//! # Auxiliary payloads
+//! # Consistent snapshots
 //!
-//! Every row carries one auxiliary payload beside its id, typed per id type through
-//! [`Key::Payload`] and persisted in the identity file's
-//! payload region. The auxiliary streams deliver those values in owned form
-//! ([`ToOwned::Owned`] of the payload) in row order, the empty value standing for a row that
-//! carries none. What a payload means is the id type's contract. The datasets in this module
-//! declare [`Legend`] for node and edge rows - the row's representative type beside its
-//! display label - and [`Icon`] for ontology-type rows, each resolved by its source at the
-//! same frozen view as every other stream, so the identity artifacts persist the display the
-//! graph showed at fit time.
+//! All streams and lookups from one [`Dataset`] must describe the same snapshot. The [`postgres`]
+//! implementation uses one repeatable-read transaction to keep that view stable for the dataset's
+//! lifetime.
 //!
-//! # Snapshot semantics
+//! Drain each stream before opening the next, since implementations may share a connection. The fit
+//! reads nodes, then edges, then ontology.
 //!
-//! All streams of one dataset observe a single frozen view of the graph: two streams never disagree
-//! about which entities exist or what they contain. Implementations that read from a live store
-//! hold one repeatable-read transaction open for the dataset's lifetime.
+//! # Type inheritance
 //!
-//! Streams from one dataset may share a connection and therefore serialize; consumers drain one
-//! stream to completion before starting the next. The pipeline ingests nodes, then edges, then
-//! ontology.
+//! [`Node`] and [`Edge`] list only the types assigned directly to each entity. The [`ontology`]
+//! stream records each type's direct supertypes in [`Ontology::parents`]. Traversing these parent
+//! relationships determines inherited types without repeating an ancestor list for every entity.
 //!
-//! # Types travel direct, closure follows from reachability
+//! # Type descriptions and display values
 //!
-//! Nodes and edges carry their **direct** types only. The ontology stream carries each type's
-//! direct supertypes, so the full inheritance structure is available as a small graph and
-//! reachability over that graph answers every closure question (admission checks, card rendering,
-//! serving-side filter expansion) without materialized per-node closures. One structure is the
-//! authority for inheritance. Per-node closure data that could disagree with it never exists.
+//! [`render_cards`] supplies a [`Card`] for each ontology row: a text description for embedding
+//! that includes inherited type information. Card rendering follows the same snapshot as the graph
+//! streams.
+//!
+//! The [`node_auxiliary_payload`], [`edge_auxiliary_payload`] and [`ontology_auxiliary_payload`]
+//! streams supply display values in the order of their corresponding graph streams. Each row has
+//! one owned value of its identifier's [`Key::Payload`] type. A row without display information
+//! uses that type's empty value instead of omitting the row.
+//!
+//! The [`postgres`] and [`offline`] datasets use [`Legend`] for node and edge display values,
+//! pairing a representative type with a label. Ontology rows use [`Icon`]. Identity files preserve
+//! these values from the dataset's snapshot alongside the source identifiers.
 //!
 //! [`nodes`]: Dataset::nodes
 //! [`edges`]: Dataset::edges
@@ -92,29 +86,28 @@ pub(crate) mod postgres;
 #[cfg(test)]
 mod tests;
 
-/// Components in a canonical entity embedding as the store persists it.
+/// The dimension of a full canonical entity embedding.
 pub(crate) const CANONICAL_DIMENSIONS: usize = 3072;
 
-/// Components in the projector representation.
+/// The dimension of the canonical embedding prefix used for fitting.
 ///
-/// The l2-normalized leading slice of the canonical embedding.
+/// The source L2-normalizes this prefix before supplying it as [`Node::embedding`].
 pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
 
-/// The bitemporal point one dataset observes.
+/// The transaction and decision times selecting a graph snapshot.
 ///
-/// The axes are inputs a fit declares: a generation records them, and a rerun with equal axes over
-/// unchanged history reads equal data. Axes in the past read the graph as it stood then; the
-/// store's temporal tables retain that history.
+/// A fit records these timestamps in generation metadata. Reusing them selects the same historical
+/// graph when the stored history is unchanged.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct TemporalAxes {
-    /// The transaction-time point that selects the visible writes.
+    /// The transaction time selecting the store's recorded history.
     pub transaction_time: Timestamp<TransactionTime>,
-    /// The decision-time point that selects the decisions in effect.
+    /// The decision time selecting the facts in effect.
     pub decision_time: Timestamp<DecisionTime>,
 }
 
 impl TemporalAxes {
-    /// The current moment on both axes.
+    /// Captures the current time for both temporal axes.
     #[must_use]
     pub(crate) fn now() -> Self {
         Self {
@@ -124,306 +117,270 @@ impl TemporalAxes {
     }
 }
 
-/// One type in the generation's type table.
+/// An entity type and its direct supertypes.
 #[derive(Debug, Clone)]
 pub(crate) struct Ontology<O> {
-    /// The source identifier.
-    ///
-    /// Persisted so serving can translate ontology rows back to graph type ids.
+    /// The type's identifier in the data source.
     pub id: O,
 
-    /// Direct supertypes, ascending by ontology row and deduplicated.
+    /// Direct supertype rows, sorted in ascending order without duplicates.
     ///
-    /// Only depth-one edges appear. Walking the type graph reaches ancestors beyond the direct
-    /// parents. A parent may occupy a later stream position than its child, so references resolve
-    /// only once the ontology stream is fully ingested.
+    /// Parents may occur later in [`Dataset::ontology`] than their children. Resolve parent
+    /// references only after reading the complete type table.
     pub parents: SmallVec<OntologyRowId, 2>,
 }
 
-/// One entity of the graph, which the fit places as a point on the map.
+/// An entity with an embedding, represented as a point in the fitted map.
 ///
-/// `N` is the dataset's node identifier. `'data` is the source borrow behind the embedding's
-/// [`Cow`], so a node borrows or owns its vector as its source dictates.
+/// The node stream includes only entities with embeddings.
 #[derive(Debug, Clone)]
 pub(crate) struct Node<'data, N> {
-    /// The source identifier.
-    ///
-    /// Persisted so serving can translate node rows back to graph identities.
+    /// The entity's identifier in the data source.
     pub id: N,
 
-    /// Direct types, ascending by ontology row and deduplicated.
+    /// Direct types, sorted in ascending ontology-row order without duplicates.
     pub ontology: SmallVec<OntologyRowId, 2>,
 
-    /// The projector representation.
+    /// The normalized embedding used for fitting and projection.
     ///
-    /// The entity embedding's leading [`PROJECTOR_DIMENSIONS`] components, l2-normalized at the
-    /// source.
-    ///
-    /// The norm is 1 up to `f32` rounding and every component is finite. The pipeline spot-checks
-    /// this contract statistically. Every node carries an embedding: entities without one are
-    /// outside every dataset's scope, and the row domain equals the placeable domain.
+    /// The source L2-normalizes the canonical embedding's leading [`PROJECTOR_DIMENSIONS`]
+    /// components. Every component must be finite and the vector's norm must be 1 up to [`f32`]
+    /// rounding. The fit checks a sample of vectors for this condition.
     pub embedding: Cow<'data, AlignedVecN<PROJECTOR_DIMENSIONS>>,
 
-    /// The store's confidence in the entity, in `0.0..=1.0`.
+    /// Confidence in the entity, in `0.0..=1.0`.
     ///
-    /// `None` means unscored. Consumers treat it as the neutral factor 1 while retaining the
-    /// scored/unscored distinction.
+    /// `None` records an unscored entity and contributes the neutral factor 1 to weighted
+    /// calculations.
     pub confidence: Option<UnitFraction>,
 }
 
-/// One link between two nodes.
+/// A directed link between two [`Node`]s.
 ///
-/// Links are entities in the graph, so an edge has its own identity, its own types (which identify
-/// the relation), and, when the store holds one, own embedding. `E` is the dataset's edge
-/// identifier, and `'data` carries the embedding borrow, as for [`Node`].
+/// A link is itself an entity, with its own identifier and direct types. It may have an embedding
+/// of its own, independently of its endpoints' embeddings.
 #[derive(Debug, Clone)]
 pub(crate) struct Edge<'data, E> {
-    /// The source identifier.
-    ///
-    /// Persisted so serving can translate edge rows back to graph identities.
+    /// The link entity's identifier in the data source.
     pub id: E,
 
-    /// The node the link points from.
+    /// The row of the source node.
     pub source: NodeRowId,
 
-    /// The node the link points to.
+    /// The row of the target node.
     pub target: NodeRowId,
 
-    /// Direct types of the link entity, ascending by ontology row and deduplicated.
+    /// Direct types of the link, sorted in ascending ontology-row order without duplicates.
     pub ontology: SmallVec<OntologyRowId, 2>,
 
-    /// The link entity's own embedding prefix.
+    /// The link's optional normalized embedding.
     ///
-    /// Under the same contract as [`Node::embedding`], when the store holds one.
+    /// When present, it satisfies the same requirements as [`Node::embedding`].
     pub embedding: Option<Cow<'data, AlignedVecN<PROJECTOR_DIMENSIONS>>>,
 
-    /// The store's confidence in the link itself, in `0.0..=1.0`.
+    /// Confidence in the link, in `0.0..=1.0`.
     ///
-    /// `None` means unscored. Consumers treat it as the neutral factor 1 while retaining the
-    /// scored/unscored distinction. The same reading applies to
+    /// `None` records an unscored link and contributes the neutral factor 1 to weighted
+    /// calculations. The same interpretation applies to
     /// [`source_confidence`](Self::source_confidence) and
     /// [`target_confidence`](Self::target_confidence).
     pub confidence: Option<UnitFraction>,
 
-    /// The store's confidence in the link's attachment to [`source`](Self::source).
+    /// Confidence in the link's attachment to [`source`](Self::source).
     ///
     /// The value lies in `0.0..=1.0`.
     pub source_confidence: Option<UnitFraction>,
 
-    /// The store's confidence in the link's attachment to [`target`](Self::target).
+    /// Confidence in the link's attachment to [`target`](Self::target).
     ///
     /// The value lies in `0.0..=1.0`.
     pub target_confidence: Option<UnitFraction>,
 }
 
-/// Where one fit read the rows it ran over.
+/// The data source recorded in a fitted generation's metadata.
 ///
-/// A published generation answers which source produced it, so a map fitted from a dump directory
-/// stays distinguishable from one fitted against the live store long after the run's log has
-/// scrolled away. This is the run's provenance rather than part of its input identity: a faithful
-/// dump carries the same snapshot and the same embedding contract as the store it was taken from,
-/// so a fit over either agrees on every input a generation's derived salts key on.
+/// The origin records where the run read its inputs, separately from the input identity used to
+/// derive salts. A store snapshot and its saved dump can provide identical inputs while reporting
+/// different origins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "kind")]
 pub(crate) enum DatasetOrigin {
-    /// The live store served the rows, and the embedding provider produced every card embedding.
+    /// The live store supplies graph rows, and the embedding provider computes card embeddings.
     Store,
-    /// A dump directory served the rows and every embedding.
+    /// A saved dump supplies graph rows and embeddings.
     Dump {
-        /// The digest of the dump's manifest document.
+        /// The digest of the dump manifest.
         ///
-        /// The manifest records every stream file's length and whole-file digest, and the reader
-        /// checks both at open, so this one digest names the bytes of the whole dump.
+        /// The manifest records a length and digest for every stream file. Opening the dump
+        /// verifies those files against the manifest.
         manifest: Sha256Digest,
     },
-    /// A corpus assembled in memory served the rows.
+    /// An in-memory dataset, such as a synthetic fixture.
     Memory,
 }
 
-/// The data one fit runs over, wherever it lives.
+/// Graph data and embeddings for one fit.
 ///
-/// See the [module documentation](self) for the row, snapshot, and type contracts every
-/// implementation upholds. Streams assign dense ids by position, all streams observe one frozen
-/// view of the graph, and types travel as direct types plus a parent graph.
+/// See the [module documentation](self) for row ordering, identifiers and snapshot consistency.
 pub(crate) trait Dataset {
-    /// The source identifier of a node.
-    ///
-    /// A [`Key`], so the identity file persists the id column as raw bytes under the id's
-    /// declared key kind and reopens only under the id type that wrote it. Opaque to the
-    /// pipeline otherwise. `Send + Sync + 'static` because id columns cross onto compute-pool
-    /// workers that read them concurrently (the fit offloads its stage tail to rayon; the ranking
-    /// tiebreak hashes id columns in parallel), which every plain-bytes id satisfies.
+    /// A node's identifier in the source graph.
     type NodeId: Key + Send + 'static;
 
-    /// The source identifier of an edge.
-    ///
-    /// A [`Key`], persisted as raw bytes under its declared key kind. Opaque to the pipeline
-    /// otherwise.
+    /// A link entity's identifier in the source graph.
     type EdgeId: Key;
 
-    /// The source identifier of an ontology type.
+    /// An entity type's identifier in the source graph.
     ///
-    /// A [`Key`], persisted as raw bytes under its declared key kind. Opaque to the pipeline
-    /// otherwise, except for the declared [`OntologyIdentity`] capability verdict resolution
-    /// consumes.
+    /// [`OntologyIdentity`] supplies the conversion from versioned type URLs.
     type OntologyId: Key + OntologyIdentity + Eq + core::hash::Hash;
 
-    /// The failure produced when the underlying source cannot deliver.
+    /// A failure to read or decode the source data.
     type Error: core::error::Error + Send + Sync + 'static;
 
-    /// The stream of nodes, in row order.
+    /// Nodes in their assigned row order.
     type NodeStream<'this>: Stream<Item = Result<Node<'this, Self::NodeId>, Self::Error>>
     where
         Self: 'this;
 
-    /// The stream of edges, in row order.
+    /// Links in their assigned row order.
     type EdgeStream<'this>: Stream<Item = Result<Edge<'this, Self::EdgeId>, Self::Error>>
     where
         Self: 'this;
 
-    /// The stream of ontology types, in row order.
+    /// Entity types in their assigned row order.
     type OntologyStream<'this>: Stream<Item = Result<Ontology<Self::OntologyId>, Self::Error>>
     where
         Self: 'this;
 
-    /// The stream of requested canonical embeddings.
+    /// Requested nodes paired with their full canonical embeddings.
     type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>>: Stream<
         Item = Result<(Self::NodeId, Cow<'this, AlignedVecN<CANONICAL_DIMENSIONS>>), Self::Error>,
     >
     where
         Self: 'this;
 
-    /// The stream of requested direct-type lists.
+    /// Requested nodes paired with their direct-type rows.
     type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>>: Stream<
         Item = Result<(Self::NodeId, SmallVec<OntologyRowId, 2>), Self::Error>,
     >
     where
         Self: 'this;
 
-    /// The stream of finished cards, in ontology row order.
+    /// Type descriptions for embedding, in ontology row order.
     type CardStream<'this>: Stream<Item = io::Result<(Self::OntologyId, Card)>>
     where
         Self: 'this;
 
-    /// The stream of node auxiliary payloads, in row order.
+    /// Owned display values in node row order.
     type NodeAuxiliaryPayloadStream<'this>: Stream<
         Item = Result<<<Self::NodeId as Key>::Payload as ToOwned>::Owned, Self::Error>,
     >
     where
         Self: 'this;
 
-    /// The stream of edge auxiliary payloads, in row order.
+    /// Owned display values in edge row order.
     type EdgeAuxiliaryPayloadStream<'this>: Stream<
         Item = Result<<<Self::EdgeId as Key>::Payload as ToOwned>::Owned, Self::Error>,
     >
     where
         Self: 'this;
 
-    /// The stream of ontology-type auxiliary payloads, in row order.
+    /// Owned display values in ontology row order.
     type OntologyAuxiliaryPayloadStream<'this>: Stream<
         Item = Result<<<Self::OntologyId as Key>::Payload as ToOwned>::Owned, Self::Error>,
     >
     where
         Self: 'this;
 
-    /// Returns the bitemporal point this dataset observes, when its source has temporal axes.
+    /// Returns the timestamps selecting this dataset's graph snapshot.
     ///
-    /// A generation's metadata records the value as part of its input snapshot. Sources without
-    /// temporal history, such as synthetic fixtures, return [`None`].
+    /// Sources without temporal history return `None`. A fit records the returned [`TemporalAxes`]
+    /// in generation metadata.
     #[must_use]
     fn axes(&self) -> Option<TemporalAxes>;
 
-    /// Returns where this dataset's rows come from.
-    ///
-    /// A generation's metadata records the value as its own section, so a reader of a published
-    /// map can tell a fit over the live store from one over a dump. The implementation reports
-    /// its own kind, so no caller can record a source the run did not read.
+    /// Returns the data source to record in generation metadata.
     #[must_use]
     fn origin(&self) -> DatasetOrigin;
 
-    /// Opens the node stream.
+    /// Streams the entities to place on the map.
     ///
-    /// The `n`-th item occupies node row `n`. Every [`NodeRowId`] emitted anywhere in this dataset
-    /// references a position this stream yields.
-    #[must_use]
+    /// The `n`-th item occupies node row `n`. Every [`NodeRowId`] in the dataset must identify a
+    /// row returned by this stream.
     fn nodes(&self) -> Self::NodeStream<'_>;
 
-    /// Opens the edge stream.
+    /// Streams the links between dataset nodes.
     ///
-    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge are in scope: the source
-    /// filters out links whose endpoints fall outside the dataset's scope, so those links never
-    /// appear.
-    #[must_use]
+    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge must belong to
+    /// [`nodes`](Self::nodes). Links with an endpoint outside that stream never appear.
     fn edges(&self) -> Self::EdgeStream<'_>;
 
-    /// Opens the ontology stream.
+    /// Streams the entity types referenced by the dataset.
     ///
-    /// The `n`-th item occupies ontology row `n`. The stream is self-referential through
-    /// [`Ontology::parents`] and resolves only once fully ingested.
-    #[must_use]
+    /// The `n`-th item occupies ontology row `n`. Resolve [`Ontology::parents`] only after reading
+    /// the entire stream, since a parent can occur after its child.
     fn ontology(&self) -> Self::OntologyStream<'_>;
 
-    /// Opens a stream of full canonical embeddings for the given nodes.
+    /// Fetches full canonical embeddings for selected nodes.
     ///
-    /// Each requested node yields its complete [`CANONICAL_DIMENSIONS`]-component embedding as
-    /// stored, with every component finite. Requests are probe-scoped: bounded anchor and
-    /// comparison sets for evaluating the fitted map against exact canonical-space neighbourhoods.
-    /// The corpus-scale representation is [`Node::embedding`].
-    #[must_use]
+    /// Each result pairs a source identifier with its stored [`CANONICAL_DIMENSIONS`]-component
+    /// embedding, with every component finite. Match results by identifier rather than request
+    /// position.
+    ///
+    /// Use this for bounded samples when evaluating the fitted map against exact neighbourhoods in
+    /// the canonical embedding space. [`Node::embedding`] provides the reduced representation for
+    /// fitting the full dataset.
     fn canonical_node_embeddings<I: Iterator<Item = Self::NodeId>>(
         &self,
         nodes: I,
     ) -> Self::CanonicalNodeEmbeddingsStream<'_, I>;
 
-    /// Opens a stream of direct-type lists for the given nodes.
+    /// Fetches direct types for selected nodes without their embeddings.
     ///
-    /// Each requested node yields its direct types, ascending by ontology row and deduplicated: the
-    /// same lists the node stream carries, without the embeddings that make a corpus pass heavy.
-    /// Requests are probe-scoped: bounded anchor sets for grouping quality readings by subgroup.
-    /// The corpus-scale source is [`Node::ontology`].
-    #[must_use]
+    /// Each result pairs a source identifier with the direct types from [`Node::ontology`], sorted
+    /// in ascending ontology-row order without duplicates. Match results by identifier rather than
+    /// request position.
+    ///
+    /// Use this for bounded samples when grouping quality measurements by type.
     fn node_types<I: Iterator<Item = Self::NodeId>>(
         &self,
         nodes: I,
     ) -> Self::NodeTypesStream<'_, I>;
 
-    /// Opens the card stream.
+    /// Produces text descriptions for embedding each entity type.
     ///
-    /// The `n`-th item is the finished [`Card`] for ontology row `n`, paired with the type's source
-    /// identifier. The card text is what an embedding model consumes to represent the type - title,
-    /// description, and constraints, resolved through the type's full inheritance chain - and the
-    /// card carries its budget diagnostics (token count, truncation passes) for artifact metadata.
-    /// One pass renders every card, so implementations amortize fact gathering across the whole
-    /// type table. Rendering is deterministic for a given dataset, so equal datasets produce equal
-    /// bytes.
+    /// The `n`-th item pairs the type's source identifier with the [`Card`] for ontology row `n`.
+    /// The text describes the type's title, description and constraints, including inherited
+    /// information. Token counts and truncation diagnostics accompany the text for recording in
+    /// generation metadata.
     ///
-    /// Items carry `io::Error`: source failures surface through `io::Error::other`, and a type
-    /// whose stored facts cannot render under the card contract surfaces as
-    /// [`io::ErrorKind::InvalidData`].
-    #[must_use]
+    /// Rendering every type in one pass lets implementations gather shared facts once for the whole
+    /// type table. Rendering the same dataset with the same settings produces equal bytes.
+    ///
+    /// # Errors
+    ///
+    /// Stream items report source failures with [`io::ErrorKind::Other`]. Stored facts that violate
+    /// the card's rendering requirements produce [`io::ErrorKind::InvalidData`].
     fn render_cards(&self) -> Self::CardStream<'_>;
 
-    /// Opens the node auxiliary-payload stream.
+    /// Streams the node display values.
     ///
-    /// The `n`-th item is node row `n`'s payload in owned form, the empty value standing for a
-    /// row that carries none. The stream covers exactly the rows [`nodes`](Self::nodes) yields,
-    /// in the same order, observing the same frozen view.
-    #[must_use]
+    /// Yields exactly one owned payload per row from [`nodes`](Self::nodes), in matching order and
+    /// from the same snapshot. A row without display information uses the payload type's empty
+    /// value.
     fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_>;
 
-    /// Opens the edge auxiliary-payload stream.
+    /// Streams the edge display values.
     ///
-    /// The `n`-th item is edge row `n`'s payload in owned form, the empty value standing for a
-    /// row that carries none. The stream covers exactly the rows [`edges`](Self::edges) yields,
-    /// in the same order, observing the same frozen view.
-    #[must_use]
+    /// Yields exactly one owned payload per row from [`edges`](Self::edges), in matching order and
+    /// from the same snapshot. A row without display information uses the payload type's empty
+    /// value.
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_>;
 
-    /// Opens the ontology-type auxiliary-payload stream.
+    /// Streams the entity-type display values.
     ///
-    /// The `n`-th item is ontology row `n`'s payload in owned form, the empty value standing
-    /// for a type that carries none. The stream covers exactly the rows
-    /// [`ontology`](Self::ontology) yields, in the same order, observing the same frozen view.
-    #[must_use]
+    /// Yields exactly one owned payload per row from [`ontology`](Self::ontology), in matching
+    /// order and from the same snapshot. A type without display information uses the payload type's
+    /// empty value.
     fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_>;
 }

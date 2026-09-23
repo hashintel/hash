@@ -9,6 +9,7 @@ import type {
   LowerConstraintResult,
   Diagnostic,
   DocumentUri,
+  LanguageClient,
   HirCompileResult,
   Hover,
   PetrinautExtensionSettings,
@@ -22,7 +23,6 @@ import type {
   AdHocSessionParams,
   ConstraintSessionParams,
   MetricSessionParams,
-  ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
@@ -50,6 +50,8 @@ export interface LanguageClientContextValue {
     uri: DocumentUri,
     position: Position,
   ) => Promise<SignatureHelp | null>;
+  /** Check a captured net, independently of pushed editor diagnostics. */
+  requestDiagnostics: LanguageClient["requestDiagnostics"];
   /**
    * Compile the SDCPN's user code to HIR artifacts (in the language worker).
    * Required before starting simulations/experiments — the engine has no
@@ -85,12 +87,6 @@ export interface LanguageClientContextValue {
     source: ConstraintSource,
     context: LowerConstraintContext,
   ) => Promise<LowerConstraintResult>;
-  /** Initialize a temporary scenario editing session. */
-  initializeScenarioSession: (params: ScenarioSessionParams) => void;
-  /** Update a scenario editing session. */
-  updateScenarioSession: (params: ScenarioSessionParams) => void;
-  /** Kill a scenario editing session. */
-  killScenarioSession: (sessionId: string) => void;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
   /** Starts an ad-hoc scenario editing session for expression type-checking */
@@ -120,6 +116,10 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   requestCompletion: () => Promise.resolve({ isIncomplete: false, items: [] }),
   requestHover: () => Promise.resolve(null),
   requestSignatureHelp: () => Promise.resolve(null),
+  requestDiagnostics: () =>
+    Promise.reject(
+      new Error("No language client is wired; diagnostics are unavailable."),
+    ),
   requestHirArtifacts: () =>
     Promise.resolve({
       artifacts: {
@@ -151,9 +151,6 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
         },
       ],
     }),
-  initializeScenarioSession: () => {},
-  updateScenarioSession: () => {},
-  killScenarioSession: () => {},
   initializeMetricSession: () => {},
   initializeAdHocSession: () => {},
   updateAdHocSession: () => {},

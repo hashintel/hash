@@ -428,6 +428,7 @@ mod tests {
             SumDataPoint,
         },
     };
+    use problematic::error_stack::ReportExt as _;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -929,6 +930,15 @@ mod tests {
             report.current_context().kind(),
             AuthenticationErrorKind::InvalidSession,
             "a forbidden session should fail as an invalid session, not as provider unavailability"
+        );
+        let problem = report
+            .problem_details()
+            .next()
+            .expect("the invalid session should carry a public problem");
+        assert_eq!(problem.status, 401);
+        assert_eq!(
+            problem.detail.as_deref(),
+            Some("session is invalid or expired")
         );
     }
 

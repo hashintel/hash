@@ -3,19 +3,22 @@ import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import {
+  petrinautAiTools,
   petrinautDocNames,
-  readPetrinautDocToolName,
+  petrinautDocSummaries,
 } from "@hashintel/petrinaut-core/ai";
 
-export const READ_PETRINAUT_DOC_TOOL_NAME = readPetrinautDocToolName;
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "../construction-tool-names";
 
-export const readPetrinautDoc = defineTool({
-  name: READ_PETRINAUT_DOC_TOOL_NAME,
-  description:
-    "Read one page of the Petrinaut user guide. The browser executes this tool. After you call it, wait for a client-tool-result signal carrying the page text, then continue from that text.",
-  input: v.object({
-    doc: v.picklist(petrinautDocNames),
-  }),
+export {
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  isReadPetrinautDocsToolName,
+} from "../construction-tool-names";
+
+export const readPetrinautDocs = defineTool({
+  name: READ_PETRINAUT_DOCS_TOOL_NAME,
+  description: `${petrinautAiTools.readPetrinautDoc.description}\nThe browser executes this tool. Call it in its own proposal and wait for the client-tool-result page text, then continue. Choose a page by its scope:\n${petrinautDocNames.map((name) => `- ${name}: ${petrinautDocSummaries[name]}`).join("\n")}`,
+  input: petrinautAiTools.readPetrinautDoc.inputSchema,
   output: v.object({
     awaiting: v.literal(AWAITING_CLIENT),
   }),

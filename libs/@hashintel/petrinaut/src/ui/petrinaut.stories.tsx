@@ -460,10 +460,10 @@ const realOptimizerGuidanceStyle = css({
 });
 
 /**
- * The full editor against the real optimizer service, with the editor built
- * from source — the fast-refresh counterpart of the demo website's
- * `/optimization` route. Optimization studies created in Simulate mode run
- * on the local Petrinaut Optimizer container.
+ * The full editor with the real optimizer service as its optimization
+ * capability, built from source. The editor starts studies only on a
+ * connected (in-browser) source, so this story exercises the host wiring
+ * around the local Petrinaut Optimizer container, not a study.
  */
 /**
  * One capability for the story's lifetime: a fresh identity per render
@@ -527,6 +527,28 @@ export const WithAiAssistant: Story = {
         aiAssistant={{ transport: createStorybookAiTransport() }}
         initialTitle={sirModel.title}
         initialDefinition={sirModel.petriNetDefinition}
+      />
+    </div>
+  ),
+};
+
+export const WithVoiceSetup: Story = {
+  render: () => (
+    <div style={{ height: "100vh", width: "100vw" }}>
+      <PetrinautStoryProvider
+        aiAssistant={{
+          transport: createStorybookAiTransport(),
+          renderVoiceMode: ({ setInputMode }) => (
+            <div style={{ padding: 16 }}>
+              <p>Voice setup preview. No microphone or AI service is used.</p>
+              <button type="button" onClick={() => setInputMode("text")}>
+                Return to text
+              </button>
+            </div>
+          ),
+        }}
+        initialTitle="Voice setup preview"
+        initialDefinition={emptySDCPN}
       />
     </div>
   ),

@@ -602,40 +602,43 @@ export function createPetrinautActions(
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
         const endpoint = normalizeArcEndpointInput(parsed);
         assertArcEndpointReferences(sdcpn, net, endpoint);
-        for (const transition of net.transitions) {
-          if (transition.id === parsed.transitionId) {
-            if (parsed.arcDirection === "input") {
-              if (
-                transition.inputArcs.some((arc) =>
-                  arcMatchesEndpoint(arc, endpoint),
-                )
-              ) {
-                break;
-              }
-              transition.inputArcs.push({
-                type: parsed.type ?? "standard",
-                ...createArcEndpointReference(endpoint),
-                weight: parsed.weight,
-              });
-            } else {
-              if (
-                transition.outputArcs.some((arc) =>
-                  arcMatchesEndpoint(arc, endpoint),
-                )
-              ) {
-                break;
-              }
-              transition.outputArcs.push({
-                ...createArcEndpointReference(endpoint),
-                weight: parsed.weight,
-              });
-            }
-            sanitizeTransition(transition, net, sdcpn, {
-              loadDefaultKernelWhenEmpty: true,
-            });
-            break;
-          }
+        const transition = net.transitions.find(
+          (candidate) => candidate.id === parsed.transitionId,
+        );
+        if (transition === undefined) {
+          throw new Error(
+            `Arc references transition ID \`${parsed.transitionId}\` which does not exist in the target net.`,
+          );
         }
+        if (parsed.arcDirection === "input") {
+          if (
+            transition.inputArcs.some((arc) =>
+              arcMatchesEndpoint(arc, endpoint),
+            )
+          ) {
+            return;
+          }
+          transition.inputArcs.push({
+            type: parsed.type ?? "standard",
+            ...createArcEndpointReference(endpoint),
+            weight: parsed.weight,
+          });
+        } else {
+          if (
+            transition.outputArcs.some((arc) =>
+              arcMatchesEndpoint(arc, endpoint),
+            )
+          ) {
+            return;
+          }
+          transition.outputArcs.push({
+            ...createArcEndpointReference(endpoint),
+            weight: parsed.weight,
+          });
+        }
+        sanitizeTransition(transition, net, sdcpn, {
+          loadDefaultKernelWhenEmpty: true,
+        });
       });
     },
     removeArc(input) {

@@ -63,15 +63,18 @@ Query params outside the contract are not rewritten on load. TanStack Router
 only re-stringifies the URL when the parsed search changes, so stripping them
 eagerly would need a document reload, which an embed must not do. The first
 navigation drops them, because the routes write a fresh contract-only search
-rather than merging into the existing one. `/brunch` is the exception: its
+rather than merging into the existing one. Params an older link may still
+carry (`view=optimizations`, `overlay=create-optimization`, `present`) fall
+under the same rule: `validateSharedExampleSearch` normalises them to the
+baseline location, and the first navigation rewrites the URL. `/brunch` is the exception: its
 `sse` and `runId` params name the stream, so it carries them over and replaces
 only the contract part.
 
 ## Which routes speak the contract
 
-Every page that mounts Petrinaut does: the editable demo at `/` and
-`/optimization`, the Brunch stream at `/brunch`, and the example pages at
-`/examples/$slug` and `/embed/examples/$slug`.
+Every page that mounts Petrinaut does: the editable demo at `/`, the Brunch
+stream at `/brunch`, and the example pages at `/examples/$slug` and
+`/embed/examples/$slug`.
 
 They differ in whether the URL also names the model. The editable demo holds
 its nets in local storage, so a link there names a location inside whatever

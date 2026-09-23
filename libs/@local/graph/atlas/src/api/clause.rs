@@ -1,10 +1,10 @@
 //! The OpenAPI response clauses that more than one route states.
 //!
-//! A documented response is part of the contract, so two routes that answer one problem the same
-//! way state it from one place. Divergent wording for an identical refusal reads as a difference
+//! A documented response is part of the contract. Routes that answer one problem the same way
+//! state it from one place. Divergent wording for an identical refusal reads as a difference
 //! the server does not have. Each helper transforms one operation and composes through aide's
-//! `with`, which keeps a route's documentation one chain naming the clauses it states. A clause
-//! only one route answers stays in that route's own module.
+//! `with`, which keeps a route's documentation one chain naming the clauses it states. A route
+//! defines a clause in its own module when only that route answers it.
 
 use aide::{
     openapi,
@@ -19,8 +19,8 @@ const UNAUTHENTICATED: &str = "`unauthenticated`: the call names no valid actor"
 
 /// States on every operation what the middleware in front of the router answers.
 ///
-/// The request budgets and the authentication layer wrap the whole router, so their `429` and
-/// `401` belong to every operation and are stated once here rather than by each route. An
+/// The request budgets and the authentication layer wrap the whole router. Their `429` and
+/// `401` belong to every operation. This helper states them once for the router. An
 /// operation that documents a `401` of its own keeps it and gains the middleware's cause beside
 /// it, because one operation documents one `401`.
 pub(super) fn middleware(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
@@ -75,7 +75,7 @@ fn too_many_requests(operation: TransformOperation<'_>) -> TransformOperation<'_
 
 /// States the `401` every authority-bearing route answers alike.
 ///
-/// One uniform refusal covers every cause, so the documented remedy is all a caller learns from it.
+/// One uniform refusal covers every cause. The documented remedy is all a caller learns from it.
 pub(super) fn unauthorized(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     operation.response_with::<401, Problem<'static>, _>(|response| {
         response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
@@ -128,10 +128,9 @@ pub(super) fn describe_body(
     }
 }
 
-/// The operation's declared request body, when it declares one inline.
+/// Returns the operation's inline request body.
 ///
-/// A body reaching the document as a component reference carries no per-operation text to edit, so
-/// there is nothing to describe and nothing to mark.
+/// Returns `None` when the body is absent or is an [`openapi::ReferenceOr::Reference`].
 fn body_mut<'body>(
     operation: &'body mut TransformOperation<'_>,
 ) -> Option<&'body mut openapi::RequestBody> {
@@ -147,7 +146,11 @@ mod tests {
 
     use super::{UNAUTHENTICATED, middleware, unauthorized};
 
-    /// One path with a bare `get` and a `post` that already states its own `401`.
+    /// Builds a fixture document transformed by [`middleware`].
+    ///
+    /// The input has a `get` operation with an empty response map and a `post` operation that
+    /// already declares [`unauthorized`]'s `401`. This distinguishes inserting the `get`
+    /// response from merging the `post` response.
     fn document() -> openapi::OpenApi {
         let mut post = openapi::Operation::default();
         let _: TransformOperation<'_> = TransformOperation::new(&mut post).with(unauthorized);
@@ -170,6 +173,9 @@ mod tests {
         api
     }
 
+    /// Looks up `method`'s documented response for `status` on `/route`.
+    ///
+    /// The answer is `None` where the path, the method or the status is missing.
     fn response<'document>(
         api: &'document openapi::OpenApi,
         method: &str,
@@ -192,6 +198,9 @@ mod tests {
             .as_item()
     }
 
+    /// [`middleware`] documents a `429` with a `Retry-After` header on every method.
+    ///
+    /// A method that already declared other responses gains it the same way.
     #[test]
     fn too_many_requests_on_every_method() {
         let api = document();
@@ -204,6 +213,9 @@ mod tests {
         }
     }
 
+    /// [`middleware`] inserts a `401` on a method that declared none of its own.
+    ///
+    /// The inserted response carries [`UNAUTHENTICATED`]'s description.
     #[test]
     fn unauthenticated_inserted_where_absent() {
         let api = document();
@@ -211,6 +223,9 @@ mod tests {
         assert_eq!(response.description, UNAUTHENTICATED);
     }
 
+    /// [`middleware`] appends [`UNAUTHENTICATED`]'s text to a method's own `401`.
+    ///
+    /// The method's own description survives, and no response is overwritten or duplicated.
     #[test]
     fn unauthenticated_merged_into_own_401() {
         let api = document();

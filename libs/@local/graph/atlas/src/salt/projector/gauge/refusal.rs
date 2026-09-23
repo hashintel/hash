@@ -7,9 +7,9 @@ use crate::math::{DNonNegative, DPositive, Positive};
 
 /// A refused gauge publishes no activation candidate and records the failed reading.
 ///
-/// Every variant is the failure table's alignment-degeneracy row. Nothing branches on them and
-/// there is no degraded mode: a refused freeze has no gauge, a refused fit has no scale, and
-/// training refuses the step rather than descending through a degenerate frame.
+/// Every variant is an alignment degeneracy. Nothing branches on them and there is no degraded
+/// mode. A refused freeze has no gauge, a refused fit has no scale, and training refuses the step
+/// rather than descending through a degenerate frame.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum GaugeRefusal {
     /// Fewer than two anchors: no constellation to fit a frame on.
@@ -17,33 +17,37 @@ pub(crate) enum GaugeRefusal {
         /// The anchors supplied.
         count: usize,
     },
-    /// The anchors' frozen spread is not a strictly positive f32: the constellation is
-    /// coincident, or past the working precision.
+    /// The anchors' frozen spread is not a strictly positive f32.
+    ///
+    /// The constellation is coincident, or past the working precision.
     DegenerateSpread {
         /// The spread as measured, in double precision.
         spread: f64,
     },
-    /// The frozen spread sits below the declared band floor, so the frame's units are
-    /// noise-owned.
+    /// The frozen spread sits below the declared band floor: the frame's units are noise-owned.
     SpreadBelowFloor {
         /// `spread_G / band`.
         ratio: DPositive,
         /// The declared `κ`.
         kappa: Positive,
     },
-    /// The effective anchor count falls below the declared minimum, so the fitted scale's
-    /// stability has no sample behind it.
+    /// The effective anchor count falls below the declared minimum.
+    ///
+    /// The fitted scale's stability has no sample behind it.
     UndersizedEffectiveCount {
         /// The Kish effective count over duplicate classes.
         effective: DNonNegative,
         /// The declared minimum.
         minimum: Positive,
     },
-    /// The closed form refused, over coincident anchors, an exactly cancelling covariance, a
-    /// non-finite coordinate, or a fitted coefficient outside the accepted range.
+    /// The closed form refused.
+    ///
+    /// The cause is coincident anchors, an exactly cancelling covariance, a non-finite coordinate,
+    /// or a fitted coefficient outside the accepted range.
     FitRefused,
-    /// The normalized residual exceeds the declared bar: the gauge constellation deformed
-    /// beyond similarity, and the alignment is not a measurement.
+    /// The normalized residual exceeds the declared bar.
+    ///
+    /// The gauge constellation deformed beyond similarity, and the alignment is not a measurement.
     ResidualAboveBar {
         /// `RMS(S(x_c(g)) − x₀(g)) / spread_G`.
         residual: DNonNegative,

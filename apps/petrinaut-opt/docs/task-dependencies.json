@@ -5,6 +5,10 @@
     "@local/petrinaut-python"
   ],
   "tasks": {
+    "build:docker": {
+      "dependsOn": [],
+      "cache": false
+    },
     "codegen": {
       "dependsOn": [
         "@local/petrinaut-python#codegen"

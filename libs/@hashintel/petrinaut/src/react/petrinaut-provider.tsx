@@ -1,3 +1,4 @@
+import { ExperimentHostProvider } from "./experiment-host/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import { LanguageClientProvider } from "./lsp/provider";
 import {
@@ -79,15 +80,17 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
           workerFactory={lspWorkerFactory}
         >
           <NotificationsProvider>
-            {/* The simulation provider reads the Ad-hoc scenarios user
-                setting, which the document layer above provides. */}
             <SimulationProvider
               key={instance.handle.id}
               workerFactory={simulationWorkerFactory}
             >
               <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
                 <OptimizationsProvider>
-                  <PetrinautCanvasProvider>{children}</PetrinautCanvasProvider>
+                  <ExperimentHostProvider>
+                    <PetrinautCanvasProvider>
+                      {children}
+                    </PetrinautCanvasProvider>
+                  </ExperimentHostProvider>
                 </OptimizationsProvider>
               </ExperimentsProvider>
             </SimulationProvider>

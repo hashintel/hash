@@ -104,10 +104,7 @@ impl<'heap, A: Allocator> Inputs<'heap, A> {
     /// Creates an empty input set in the given allocator.
     #[inline]
     #[must_use]
-    pub fn new_in(alloc: A) -> Self
-    where
-        A: Clone,
-    {
+    pub fn new_in(alloc: A) -> Self {
         Self {
             inner: fast_hash_map_in(alloc),
         }
@@ -116,10 +113,7 @@ impl<'heap, A: Allocator> Inputs<'heap, A> {
     /// Creates an empty input set with the given capacity in the given allocator.
     #[inline]
     #[must_use]
-    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self
-    where
-        A: Clone,
-    {
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
         Self {
             inner: fast_hash_map_with_capacity_in(capacity, alloc),
         }

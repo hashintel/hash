@@ -4,12 +4,6 @@
 //! value function and assert hand-computed dyadic points bit-exactly. They also compare the
 //! autodiff support term against an independent analytic gradient formula.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions over dyadic values are contracts: the chosen points make every \
-              intermediate exactly representable"
-)]
-
 use std::sync::LazyLock;
 
 use burn::tensor::{Tensor, TensorData};
@@ -44,16 +38,26 @@ fn proven(points: &[Vec2]) -> &FinitePointField<BatchRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
+/// The CPU device the support-term tensors live on, resolved once.
 static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
+/// Builds an affinity curve from literature parameters `a` and `b`.
+///
+/// The tests keep both positive and finite.
 #[expect(
     clippy::min_ident_chars,
     reason = "`a` and `b` are the affinity curve's literature parameter names"
 )]
 fn curve(a: f32, b: f32) -> AffinityCurve {
-    AffinityCurve::new(a, b).expect("test curve parameters are positive and finite")
+    AffinityCurve::new(
+        Positive::new(a).expect("test curve parameters are positive and finite"),
+        Positive::new(b).expect("test curve parameters are positive and finite"),
+    )
 }
 
+/// Builds an affinity energy over `curve(a, b)` with the log guard `epsilon`.
+///
+/// The tests keep `b` within the objective's exponent bound.
 #[expect(
     clippy::min_ident_chars,
     reason = "`a` and `b` are the affinity curve's literature parameter names"
@@ -66,20 +70,25 @@ fn affinity_energy(a: f32, b: f32, epsilon: f32) -> AffinityEnergy {
     .expect("the test exponent satisfies the objective bound")
 }
 
+/// A proximal energy with the given radius and temperature.
 fn proximal(radius: f32, temperature: f32) -> ProximalEnergy {
-    ProximalEnergy::new(
-        NonNegative::new(radius).expect("the test radius is non-negative"),
-        Positive::new(temperature).expect("the test temperature is positive"),
-    )
+    ProximalEnergy {
+        radius: NonNegative::new(radius).expect("the test radius is non-negative"),
+        temperature: Positive::new(temperature).expect("the test temperature is positive"),
+    }
 }
 
+/// A coincident energy with the given radius and Huber threshold.
 fn coincident(radius: f32, threshold: f32) -> CoincidentEnergy {
-    CoincidentEnergy::new(
-        NonNegative::new(radius).expect("the test radius is non-negative"),
-        Positive::new(threshold).expect("the test threshold is positive"),
-    )
+    CoincidentEnergy {
+        radius: NonNegative::new(radius).expect("the test radius is non-negative"),
+        threshold: Positive::new(threshold).expect("the test threshold is positive"),
+    }
 }
 
+/// Builds the relation mixture with scale guard `epsilon`.
+///
+/// The classes are `coincident(0.25, 1.0)` and `proximal(1.0, 0.5)`.
 fn relation_energy(epsilon: f32) -> RelationEnergy {
     RelationEnergy::new(
         coincident(0.25, 1.0),
@@ -89,6 +98,7 @@ fn relation_energy(epsilon: f32) -> RelationEnergy {
     .expect("test relation parameters are valid")
 }
 
+/// A batch-row pair from two literal row numbers.
 fn pair(one: u32, other: u32) -> NodePair<BatchRowId> {
     NodePair::new(BatchRowId::new(one), BatchRowId::new(other))
 }
@@ -98,6 +108,9 @@ fn gradient(field: &GradientField<BatchRowId>, row: usize) -> DVec2 {
     field.as_slice()[BatchRowId::from_usize(row)]
 }
 
+/// Builds local scales over batch rows from plain `f32` values.
+///
+/// The tests keep the values finite and non-negative.
 fn scales(values: &[f32]) -> LocalScales<BatchRowId> {
     let values: Box<[NonNegative]> = values
         .iter()
@@ -133,9 +146,6 @@ fn coordinate_difference(
     (above - below) / (2.0 * step)
 }
 
-/// Asserts a derivative against its finite difference.
-///
-/// The tolerance scales to the finite difference's own f32 conditioning.
 #[track_caller]
 /// Narrows one accumulated field component for a finite-difference comparison.
 #[expect(
@@ -146,6 +156,9 @@ fn component(gradient: DVec2, axis: usize) -> f32 {
     [gradient.x(), gradient.y()][axis] as f32
 }
 
+/// Asserts an analytic derivative agrees with its central finite difference.
+///
+/// The tolerance is two percent relative plus `1e-3` absolute, and `context` names the failure.
 #[track_caller]
 fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
     assert!(
@@ -154,6 +167,10 @@ fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
     );
 }
 
+/// Refuses `b = 0.25` in `AffinityEnergy::new` and admits the bound `b = 0.5`.
+///
+/// `AffinityEnergy::new` returns `None` for `b = 0.25`, where the coordinate gradient diverges at
+/// coincidence, and `Some` at the bound `b = 0.5`.
 #[test]
 fn affinity_energy_rejects_a_shallow_exponent() {
     // Below `b = 0.5` the coordinate gradient diverges at coincidence.
@@ -164,11 +181,14 @@ fn affinity_energy_rejects_a_shallow_exponent() {
     assert!(AffinityEnergy::new(curve(1.0, 0.5), positive!(0.125)).is_some());
 }
 
+/// Reads exactly zero values and `±0.25` derivative masses at `a = b = u = 1`, `ε = 0.5`.
+///
+/// With `a = b = 1`, `u = 1` and `ε = 0.5`, both attraction and repulsion values are exactly zero
+/// and their derivative masses are exactly `±0.25`.
 #[test]
 fn affinity_energies_match_hand_computed_dyadic_values() {
-    // a = 1, b = 1, u = 1: q = 0.5 exactly. With ε = 0.5 both
-    // logarithm arguments are exactly 1, so both values are exactly
-    // zero and the derivative mass is a b q^2 = 0.25 exactly.
+    // a = 1, b = 1, u = 1: q = 0.5 exactly. With ε = 0.5 both logarithm arguments are exactly
+    // 1: both values are exactly zero, and the derivative mass a·b·q² is exactly 0.25.
     let energy = affinity_energy(1.0, 1.0, 0.5);
 
     let (value, derivative) = energy.attraction(non_negative!(1.0));
@@ -180,6 +200,7 @@ fn affinity_energies_match_hand_computed_dyadic_values() {
     assert_eq!(derivative, -0.25);
 }
 
+/// At `u = 0` both attraction and repulsion have finite values and exactly zero derivative.
 #[test]
 fn affinity_energies_have_zero_derivative_at_coincidence() {
     let energy = affinity_energy(1.577, 0.895, 0.125);
@@ -193,10 +214,14 @@ fn affinity_energies_have_zero_derivative_at_coincidence() {
     assert_eq!(derivative, 0.0);
 }
 
+/// Matches both affinity derivatives to finite differences for two exponents.
+///
+/// For an integer and a fractional exponent, the attraction and repulsion derivatives agree with
+/// central finite differences at five probe distances.
 #[test]
 fn affinity_derivatives_match_finite_differences() {
-    // Both an integer and a fractional exponent: the derivative's
-    // u^(b - 1) factor follows different code paths through powf.
+    // Both an integer and a fractional exponent: b = 1 makes the derivative's u^(b - 1) factor
+    // exactly one, and a fractional b exercises the general power.
     #[expect(
         clippy::min_ident_chars,
         reason = "`a` and `b` are the affinity curve's literature parameter names"
@@ -234,6 +259,9 @@ fn affinity_derivatives_match_finite_differences() {
     }
 }
 
+/// At the radius the proximal value is `temperature · ln 2` and the derivative exactly `0.5`.
+///
+/// Far outside the derivative saturates at one, and far inside it vanishes.
 #[test]
 fn proximal_energy_matches_hand_computed_values() {
     // At the radius the argument is exactly zero: the value is
@@ -251,6 +279,10 @@ fn proximal_energy_matches_hand_computed_values() {
     assert!(proximal(8.0, 0.5).evaluate(NonNegative::ZERO).1.get() < 1e-6);
 }
 
+/// Matches the proximal derivative to finite differences a step above zero.
+///
+/// The proximal derivative agrees with central finite differences on a grid that stays a step above
+/// zero.
 #[test]
 fn proximal_derivative_matches_finite_differences() {
     let energy = proximal(1.0, 0.5);
@@ -299,6 +331,10 @@ fn coincident_energy_matches_hand_computed_regimes() {
     );
 }
 
+/// Matches the coincident derivative to finite differences away from the regime kinks.
+///
+/// The coincident derivative agrees with central finite differences on a grid that avoids the
+/// regime kinks.
 #[test]
 fn coincident_derivative_matches_finite_differences() {
     let energy = coincident(1.0, 1.0);
@@ -327,6 +363,34 @@ fn coincident_derivative_matches_finite_differences() {
 }
 
 #[test]
+fn relation_energy_serde_requires_ordered_radii() {
+    for radius in [1.0, 2.0] {
+        let json = serde_json::json!({
+            "coincident": {"radius": radius, "threshold": 1.0},
+            "proximal": {"radius": 1.0, "temperature": 0.5},
+            "epsilon": 0.25,
+        });
+        serde_json::from_value::<RelationEnergy>(json)
+            .expect_err("unordered radii should not deserialize");
+    }
+    let json = serde_json::json!({
+        "coincident": {"radius": 0.0, "threshold": 1.0},
+        "proximal": {"radius": 1.0, "temperature": 0.5},
+        "epsilon": 0.25,
+    });
+    let energy: RelationEnergy =
+        serde_json::from_value(json.clone()).expect("strictly ordered radii");
+    assert_eq!(
+        Some(energy),
+        RelationEnergy::new(coincident(0.0, 1.0), proximal(1.0, 0.5), positive!(0.25))
+    );
+    assert_eq!(
+        serde_json::to_value(energy).expect("finite coefficients"),
+        json
+    );
+}
+
+#[test]
 fn relation_energy_requires_ordered_radii() {
     // The Coincident radius must lie strictly below the Proximal one.
     assert!(
@@ -340,6 +404,10 @@ fn relation_energy_requires_ordered_radii() {
     );
 }
 
+/// Reads `mixture` as the exact class-weighted sum accumulated in `f64`.
+///
+/// `mixture` returns exactly the class-weighted sum of the coincident and proximal values and
+/// derivatives, accumulated in `f64`.
 #[test]
 fn relation_mixture_is_the_weighted_class_sum() {
     let energy = relation_energy(0.25);
@@ -381,6 +449,10 @@ fn gradient_field_accumulates_and_resets() {
     assert!(field.as_slice().iter().all(|&entry| entry == DVec2::ZERO));
 }
 
+/// Reads exactly zero value and `(∓0.5, 0)` endpoint gradients for one unit-distance pair.
+///
+/// One unit-distance pair under the dyadic energy yields exactly zero value and per-endpoint
+/// gradients `(-0.5, 0)` and `(0.5, 0)`.
 #[test]
 fn attraction_term_matches_hand_computed_gradient() {
     // One unit-distance pair under the dyadic energy: value exactly
@@ -403,6 +475,10 @@ fn attraction_term_matches_hand_computed_gradient() {
     assert_eq!(gradient(&field, 1), DVec2::from(Vec2::new(0.5, 0.0)));
 }
 
+/// Points the attraction gradient along the separation and the repulsion gradient against it.
+///
+/// The attraction gradient at the first endpoint points along the separation (descent pulls the
+/// pair together) and the repulsion gradient points against it.
 #[test]
 fn attraction_pulls_and_repulsion_pushes() {
     let energy = affinity_energy(1.577, 0.895, 0.125);
@@ -432,6 +508,10 @@ fn attraction_pulls_and_repulsion_pushes() {
     assert!(gradient(&field, 0).dot(DVec2::from(toward)).into_raw() < 0.0);
 }
 
+/// Deposits exactly zero gradient for a coincident repulsion pair with positive value.
+///
+/// A coincident repulsion pair has a positive value but deposits exactly zero gradient, having no
+/// direction to push along.
 #[test]
 fn coincident_pair_contributes_value_but_no_gradient() {
     let energy = affinity_energy(1.0, 1.0, 0.125);
@@ -446,8 +526,8 @@ fn coincident_pair_contributes_value_but_no_gradient() {
         &mut field,
     );
 
-    // A coincident negative pair is maximally improbable placement, so
-    // its value is large - but it has no direction to push along.
+    // A coincident negative pair is the least probable placement: its value is large, and it
+    // has no direction to push along.
     assert!(value > 0.0);
     assert_eq!(gradient(&field, 0), DVec2::from(Vec2::splat(0.0)));
     assert_eq!(gradient(&field, 1), DVec2::from(Vec2::splat(0.0)));
@@ -463,6 +543,10 @@ fn frame() -> [Vec2; 4] {
     ]
 }
 
+/// Matches the accumulated attraction gradient over four weighted pairs to finite differences.
+///
+/// The accumulated attraction gradient over four weighted pairs, one duplicated, agrees with
+/// central finite differences on every row and axis.
 #[test]
 fn attraction_term_gradient_matches_finite_differences() {
     let energy = affinity_energy(1.577, 0.895, 0.125);
@@ -501,6 +585,10 @@ fn attraction_term_gradient_matches_finite_differences() {
     }
 }
 
+/// Matches the accumulated repulsion gradient over three weighted pairs to finite differences.
+///
+/// The accumulated repulsion gradient over three weighted pairs agrees with central finite
+/// differences on every row and axis.
 #[test]
 fn repulsion_term_gradient_matches_finite_differences() {
     let energy = affinity_energy(1.577, 0.895, 0.125);
@@ -605,7 +693,7 @@ fn attraction_fixture() -> AttractionIndex<NodeRowId, EdgeRowId> {
 /// Wraps every group of an index with all its edges, as a sampler emitting everything would.
 ///
 /// Converts every group into the batch-local shape under the identity row map: the fixture
-/// coordinates are corpus-length, so corpus rows and batch positions coincide.
+/// coordinates are corpus-length, and corpus rows and batch positions therefore coincide.
 fn full_batch(index: &AttractionIndex<NodeRowId, EdgeRowId>) -> Vec<RelationEdges<BatchRowId>> {
     let position = |row: NodeRowId| {
         BatchRowId::new(u32::try_from(row.as_u64()).expect("fixture rows fit the batch encoding"))
@@ -630,15 +718,18 @@ fn full_batch(index: &AttractionIndex<NodeRowId, EdgeRowId>) -> Vec<RelationEdge
         .collect()
 }
 
+/// Reads `0.25 ln 2` and `(∓0.25, 0)` endpoint gradients for one proximal instance on its radius.
+///
+/// One pure-proximal instance at unit distance on the proximal radius yields the value `0.25 ln 2`
+/// within `1e-6` and gradients `(∓0.25, 0)` on its endpoints and zero elsewhere.
 #[test]
 fn relation_term_matches_hand_computed_values() {
-    // One pure-Proximal instance between rows 0 and 2 at distance 1.
-    // Scales 0.75 with guard 0.25 normalize by exactly 1, so z = 1
-    // sits exactly on the Proximal radius: derivative sigmoid(0) = 0.5.
-    // Degree normalization for two degree-one endpoints is 0.5, and
-    // the unscored confidence is neutral 1, so the instance factor is
-    // 0.5. The gradient on the source is direction · (factor 0.5 ·
-    // derivative 0.5) with direction (-1, 0).
+    // One pure-Proximal instance between rows 0 and 2 at distance 1. Scales 0.75 with guard
+    // 0.25 normalize by exactly 1: z = 1 lies exactly on the Proximal radius, where the
+    // derivative is sigmoid(0) = 0.5. Degree normalization ν for two degree-one endpoints is
+    // 1/√(2·2) = 0.5 and the unscored confidence is the neutral 1: the instance factor is 0.5.
+    // The gradient on the source is direction · (factor 0.5 · derivative 0.5) with direction
+    // (-1, 0).
     let index = attraction_fixture();
     let batch = full_batch(&index);
     let proximal_only = &batch[1..];
@@ -670,6 +761,10 @@ fn relation_term_matches_hand_computed_values() {
     assert_eq!(gradient(&field, 3), DVec2::from(Vec2::splat(0.0)));
 }
 
+/// Matches the relation gradient under mixed local scales to finite differences.
+///
+/// The relation gradient over the full attraction fixture with mixed local scales agrees with
+/// central finite differences on every row and axis.
 #[test]
 fn relation_term_gradient_matches_finite_differences() {
     let index = attraction_fixture();
@@ -715,6 +810,10 @@ fn relation_term_gradient_matches_finite_differences() {
     }
 }
 
+/// Keeps the relation gradient exactly zero with every row at one point.
+///
+/// With every row at the same point the relation value is positive but the gradient field stays
+/// exactly zero.
 #[test]
 fn relation_term_skips_gradient_at_coincident_points() {
     let index = attraction_fixture();
@@ -737,13 +836,17 @@ fn relation_term_skips_gradient_at_coincident_points() {
     assert!(field.as_slice().iter().all(|&entry| entry == DVec2::ZERO));
 }
 
+/// Refuses empty, NaN and negative-weight support targets and admits a valid anchor.
+///
+/// `SupportTargets::new` returns `None` for no anchors, a NaN target or a negative weight, and
+/// `Some` for a valid anchor.
 #[test]
 fn support_targets_reject_invalid_anchors() {
     let valid = BatchAnchor {
         row: BatchRowId::new(0),
         target: Vec2::new(1.0, -1.0),
         radius: non_negative!(0.5),
-        weight: 1.0,
+        weight: positive!(1.0),
     };
 
     assert!(SupportTargets::<Training>::new(&[], &*DEVICE).is_none());
@@ -757,19 +860,12 @@ fn support_targets_reject_invalid_anchors() {
         )
         .is_none()
     );
-    assert!(
-        SupportTargets::<Training>::new(
-            &[BatchAnchor {
-                weight: -0.5,
-                ..valid
-            }],
-            &*DEVICE
-        )
-        .is_none()
-    );
     assert!(SupportTargets::<Training>::new(&[valid], &*DEVICE).is_some());
 }
 
+/// Builds the three-row support fixture with anchors at rows 0 and 2.
+///
+/// The support options carry a unit threshold and a `0.25` guard.
 fn support_fixture() -> (
     Tensor<Training, 2>,
     SupportTargets<Training>,
@@ -785,26 +881,33 @@ fn support_fixture() -> (
             row: BatchRowId::new(0),
             target: Vec2::new(0.25, 0.5),
             radius: non_negative!(0.75),
-            weight: 1.5,
+            weight: positive!(1.5),
         },
         BatchAnchor {
             row: BatchRowId::new(2),
             target: Vec2::new(-2.0, 1.25),
             radius: non_negative!(1.5),
-            weight: 0.5,
+            weight: positive!(0.5),
         },
     ];
     let targets = SupportTargets::new(&anchors, &*DEVICE).expect("the fixture anchors are valid");
-    let options = SupportOptions::new(positive!(1.0), positive!(0.25));
+    let options = SupportOptions {
+        threshold: positive!(1.0),
+        epsilon: positive!(0.25),
+    };
     (coordinates, targets, options)
 }
 
+/// Matches the autodiff support gradient to the hand-derived chain rule within `1e-5`.
+///
+/// The autodiff gradient of the support term agrees with the hand-derived chain rule
+/// `scale · weight · min(n, threshold) · (y - t) / (√(d² + ε²) · (r + ε))` within `1e-5` on both
+/// anchored rows, and the unanchored row receives none.
 #[test]
 fn support_term_gradient_matches_the_analytic_formula() {
-    // Independent reference: for each anchor, the hand-derived chain
-    // rule gives dL/dy = scale · weight · min(n, threshold) · (y - t) /
-    // (√(d^2 + ε^2) · (r + ε)) with n the smoothed normalized
-    // distance. The autodiff backward pass must agree.
+    // Independent reference: for each anchor, the hand-derived chain rule gives
+    // dL/dy = scale · weight · min(n, threshold) · (y - t) / (√(d² + ε²) · (r + ε)) with n the
+    // smoothed normalized distance. The autodiff backward pass must agree.
     let (coordinates, targets, options) = support_fixture();
     let scale = 1.25;
 
@@ -850,20 +953,27 @@ fn support_term_gradient_matches_the_analytic_formula() {
     assert_eq!(gradient[3], 0.0);
 }
 
+/// Reads zero value and an exactly zero gradient for an anchor lying on its target.
+///
+/// An anchor whose row lies exactly on its target yields a support value of zero and a defined,
+/// exactly zero gradient.
 #[test]
 fn support_term_is_finite_at_exact_coincidence() {
-    // Anchored nodes start exactly on their targets; the smoothed
-    // distance keeps the gradient defined (and zero) there.
+    // Anchored nodes start exactly on their targets. The smoothed distance keeps the gradient
+    // defined (and zero) there.
     let coordinates: Tensor<Training, 2> =
         Tensor::from_data(TensorData::new(vec![0.5_f32, -0.25], [1, 2]), &*DEVICE).require_grad();
     let anchors = [BatchAnchor {
         row: BatchRowId::new(0),
         target: Vec2::new(0.5, -0.25),
         radius: non_negative!(0.75),
-        weight: 1.0,
+        weight: positive!(1.0),
     }];
     let targets = SupportTargets::new(&anchors, &*DEVICE).expect("the fixture anchors are valid");
-    let options = SupportOptions::new(positive!(1.0), positive!(0.25));
+    let options = SupportOptions {
+        threshold: positive!(1.0),
+        epsilon: positive!(0.25),
+    };
 
     let value = support_term(&coordinates, &targets, options, 1.0);
     let scalar = value

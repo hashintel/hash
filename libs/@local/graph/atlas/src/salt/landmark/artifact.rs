@@ -1,10 +1,9 @@
 //! The landmark skeleton's published form, one combined file and its mapped reader.
 //!
-//! A fitted skeleton - selection, assignment, and layout coordinates - publishes as one
-//! [`crate::file::landmark`] file, so the three parts that share the ordinal vocabulary cannot fall
-//! out of sync. [`LandmarkSkeletonArchive`] reopens the file over a whole-file mapping and
-//! validates the skeleton invariants once, so training and serving read landmark data from the page
-//! cache without holding it on the heap.
+//! A fitted skeleton publishes its selection, assignment and coordinates in one
+//! [`crate::file::landmark`] file under a shared ordinal domain. [`LandmarkSkeletonArchive`]
+//! validates row ordering, assignment bounds and coordinate finiteness over the mapped regions.
+//! Accessors then borrow those regions without a heap copy.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -27,7 +26,7 @@ use crate::{
     math::Vec2,
 };
 
-/// An opened landmark file does not hold a valid skeleton.
+/// A violation of the landmark archive's local invariants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum InvalidLandmarkFile {
     /// The selected rows break the strictly ascending order.
@@ -68,9 +67,9 @@ impl Error for InvalidLandmarkFile {}
 
 /// A fitted landmark skeleton, assembled for publication.
 ///
-/// Selection, assignment, and coordinates share one ordinal vocabulary by construction. The
-/// assignment stage works from the selection, so the assignment's ordinal domain is the selection's
-/// length, and the constructor pins the coordinates to the same domain.
+/// Selection, assignment and coordinates must derive from the same selected rows. Construction
+/// checks the common landmark count and coordinate finiteness. Equal counts alone do not establish
+/// that the parts use the same ordinal meanings.
 #[derive(PartialEq)]
 pub(crate) struct LandmarkSkeleton<N> {
     selection: LandmarkSelection<N>,
@@ -87,7 +86,6 @@ where
     /// # Panics
     ///
     /// This panics when the parts disagree on the landmark count or a coordinate is not finite.
-    /// Both cases violate the contracts of the stages that produced them.
     #[must_use]
     pub(crate) fn new(
         selection: LandmarkSelection<N>,
@@ -153,14 +151,18 @@ where
 {
     type Error = io::Error;
 
-    /// Writes the skeleton as a landmark file.
+    /// Writes a skeleton whose selected rows encode as little-endian `u64` values.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
+    /// `N` must encode each selected row as one little-endian `u64`. The [`ByteStable`] bound alone
+    /// supplies no width or byte-order guarantee.
     ///
     /// # Errors
     ///
-    /// Returns an error when the underlying writer fails.
+    /// Returns the underlying I/O error when writing fails.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the selected-row bytes cannot form exactly one `u64` per coordinate.
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -179,16 +181,17 @@ where
     }
 }
 
-// The skeleton publishes over the corpus row domain alone: the constructor mapped selection and
-// assignment onto first corpus rows before any write.
+// the published landmark artifact uses corpus row ids.
 impl WriteAs<crate::file::salt::artifact::Landmarks> for LandmarkSkeleton<NodeRowId> {}
 
 /// A published landmark skeleton opened over its mapped file.
 ///
-/// Construction checks the skeleton invariants once. Node rows are strictly ascending, every
-/// assignment ordinal lies inside the landmark domain, and every coordinate is finite. An open
-/// skeleton therefore serves only valid views, and consumers re-validate nothing. The regions stay
-/// in the page cache under memory pressure and off the heap.
+/// Selected node rows are strictly ascending, every assignment ordinal lies inside the landmark
+/// domain, and every coordinate is finite. Construction validates these properties once. Accessors
+/// borrow the mapped regions without repeating validation.
+///
+/// Validation covers these local invariants. It does not establish that selected rows lie inside
+/// the assignment's corpus domain or that assignments identify the corresponding selected rows.
 #[derive(Debug)]
 pub(crate) struct LandmarkSkeletonArchive {
     file: LandmarkFile,
@@ -199,7 +202,7 @@ impl LandmarkSkeletonArchive {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates a skeleton invariant.
+    /// Returns [`InvalidLandmarkFile`] when the file violates a local skeleton invariant.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: LandmarkFile) -> Result<Self, InvalidLandmarkFile> {
         let landmarks = file.landmarks();
@@ -236,7 +239,7 @@ impl LandmarkSkeletonArchive {
     /// Returns the landmark count `M`.
     #[inline]
     #[must_use]
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     pub(crate) fn landmarks(&self) -> u64 {
         self.file.landmarks()
     }
@@ -244,7 +247,7 @@ impl LandmarkSkeletonArchive {
     /// Returns the corpus row count `N` the assignment covers.
     #[inline]
     #[must_use]
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     pub(crate) fn rows(&self) -> u64 {
         self.file.rows()
     }
@@ -260,7 +263,7 @@ impl LandmarkSkeletonArchive {
 
     /// Views the assignment: every node row's landmark ordinal, inside the landmark domain.
     #[must_use]
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     pub(crate) fn assignment(&self) -> &IdSlice<NodeRowId, LandmarkOrdinal> {
         IdSlice::from_raw(
             <[LandmarkOrdinal]>::ref_from_bytes(self.file.assignment().as_bytes())
@@ -269,7 +272,7 @@ impl LandmarkSkeletonArchive {
     }
 
     /// Views the layout coordinates, finite, keyed by landmark ordinal.
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     #[must_use]
     pub(crate) fn coordinates(&self) -> &IdSlice<LandmarkOrdinal, Vec2> {
         IdSlice::from_raw(self.file.coordinates())

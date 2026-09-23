@@ -2,9 +2,9 @@
 //!
 //! A fit receives an annotation corpus beside the dataset rather than deriving one from it, the
 //! same input category as the reviewed verdicts. [`SuppliedAnnotations`] runs the document's whole
-//! wire contract at construction through the annotation reader and keeps the exact wire bytes, so
-//! the staged artifact is byte-identical to the supplied file and the digest computed here is the
-//! supplied file's identity.
+//! wire contract at construction through the annotation reader and keeps the exact wire bytes.
+//! The staged artifact is therefore byte-identical to the supplied file, and the digest computed
+//! here is the supplied file's identity.
 //!
 //! The fit consumes the document through the training-set assembly: the classifier stage fits the
 //! relation-policy model from the assembled corpus and evaluates it on the corpus's holdout cards.
@@ -53,15 +53,16 @@ impl Error for SupplyError {
 
 /// One validated annotation-corpus document with its exact wire bytes.
 ///
-/// A value of this type is admissible by existence. Construction validated the document, so a fit
-/// holding one stages the bytes verbatim and binds the digest without any further check. Admission
-/// rejects a document that would fail it before the fit spends anything.
+/// A value of this type is admissible by existence. Construction validated the document, and a
+/// fit holding one therefore stages the bytes verbatim and binds the digest without any further
+/// check. Admission rejects a document that would fail it before the fit spends anything.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SuppliedAnnotations {
-    /// The exact wire bytes, kept beside their parse: staging writes these verbatim, so the
-    /// published digest binds precisely what admission validated. A re-serialization of
-    /// [`document`](Self::document) would bind different bytes; a staging-time re-read of the
-    /// source would bind unvalidated ones.
+    /// The exact wire bytes, kept beside their parse.
+    ///
+    /// Staging writes these verbatim, and the published digest therefore binds precisely what
+    /// admission validated. A re-serialization of [`document`](Self::document) can differ from
+    /// these bytes, and a staging-time re-read of the source would bind bytes admission never saw.
     bytes: Box<[u8]>,
     document: AnnotationCorpus,
     hash: Sha256Digest,

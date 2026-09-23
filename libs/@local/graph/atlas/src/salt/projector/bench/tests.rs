@@ -9,6 +9,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{Batch, Model};
 use crate::device::Device;
 
+/// A synthetic batch of `rows` rows from the fixed seed 7.
 fn batch(rows: usize) -> Batch {
     Batch::new::<Xoshiro256PlusPlus>(rows, 7)
 }
@@ -30,6 +31,11 @@ fn batches_are_unit_norm_and_deterministic() {
     }
 }
 
+/// Compares the bench model's forward `sum / count` with its forward-backward mean.
+///
+/// Both are finite and agree as `sum / count` within `1e-4`.
+///
+/// The count is the output's element count: 16 rows of planar coordinates give 32.
 #[test]
 fn autodiff_numerical_stability() {
     let model = Model::build::<Xoshiro256PlusPlus>(Device::Cpu.pin(0), 42);
@@ -46,10 +52,12 @@ fn autodiff_numerical_stability() {
     );
 }
 
-/// The live fixture draws, assembles, and steps every phase to finite numbers.
+/// Runs the live fixture's four phases to finite numbers.
 ///
-/// A small corpus keeps the smoke fast; the phases exercised are exactly the ones the bench target
-/// times, so a fixture defect fails here instead of in a wall-time run.
+/// The fixture draws, assembles, and runs the input, forward, objective and step phases.
+///
+/// A small corpus keeps the smoke test fast. The phases are the ones the bench target times, apart
+/// from `refresh`, and a fixture defect in them therefore fails here instead of in a wall-time run.
 #[test]
 fn live_fixture_steps_every_phase() {
     let fixture = super::live::Fixture::build(256, 11);
@@ -67,10 +75,6 @@ fn live_fixture_steps_every_phase() {
     let first = stepper.step(&batch);
     let second = stepper.step(&batch);
     assert!(first.is_finite() && second.is_finite());
-    #[expect(
-        clippy::float_cmp,
-        reason = "exact inequality is the point: the optimizer moved the parameters"
-    )]
     {
         assert_ne!(first, second, "the optimizer moved the parameters");
     }

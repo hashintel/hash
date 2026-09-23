@@ -8,17 +8,28 @@ From the repository root, make `ANTHROPIC_API_KEY` available in the environment 
 yarn dev:brunch
 ```
 
-The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. The typed panel and Voice mode talk to one Flue chat agent composed from the context-independent core prompt in `@hashintel/brunch-agent/flue`, the SDCPN/Petrinaut instructions, modelling runbook skill, and `readPetrinautDoc` client tool in `@hashintel/brunch-agent-plugin-sdcpn`, and app-owned deployment material. The skill is activated via `activate_skill`, with supporting resources disclosed via `read_skill_resource`; the app's only model-facing diagnostic tool is `ping`. There is no generalized elicitation loop, sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe: an explicit settled range of Flue history is applied into a JSON store beside the conversation database, not by the interviewer.
+The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. The typed panel and Voice mode talk to one Flue chat agent composed from the context-independent core prompt in `@hashintel/brunch-agent/flue`, the SDCPN/Petrinaut instructions, modelling runbook skill, SDCPN plugin tools in `@hashintel/brunch-agent-plugin-sdcpn`, and app-owned deployment material.
 
-A headless Mission 3 drive (simulated expert, same `ChatAgent` door):
+The ordinary browser tools are `read_petrinaut_docs`, `read_petrinaut_net`, `read_petrinaut_diagnostics`, `mutate_petrinaut_net` (one ordered batch that adds, removes, or edits existing parts of the root net by ID), and `layout_petrinaut_net`, whose browser result carries a separately recorded `layoutRecord` of observed pre/post hashes and position effects. The [tool catalogue](src/agents/chat-agent/tool-catalogue.ts) records the mounted names and their definition/execution owners. The skill is activated via `activate_skill`, with supporting resources disclosed via `read_skill_resource`; the app-owned deployment diagnostic is `ping`. There is no generalized elicitation loop, sweep tool, or `brunch_ask` on this path. Brunch settles workpiece revisions through the server-side `mutate_workpiece` tool into Flue persistent state and retrieves them with `read_workpiece`; evidence exports are derived from the retained records, not a separate authoritative capture store.
+
+For browser-visible persona testing, use the [persona launcher and operator guide](.pi/extensions/brunch-persona-testing/README.md):
+
+```sh
+yarn brunch:persona --list-cases
+yarn brunch:persona --case inventory-purchasing
+```
+
+The launcher opens a dedicated Chrome window, pauses for recording readiness, then drives the real panel with a private Pi persona. Brunch's own tool calls update the visible net and workpiece. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. There is no automatic budget cutoff; native usage is retained. The guide owns prerequisites, stop/resume and evidence instructions; consult it before paid execution.
+
+The independent headless runbook construction probe is not a persona launch method:
 
 ```sh
 yarn workspace @apps/brunch-agent runbook:headless
 ```
 
-`ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer (default `claude-sonnet-4-5` for this script only). Artifacts write under `libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/` unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set.
+`ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer (default `claude-sonnet-4-5` for this script only). Artifacts write under `apps/brunch-agent/.data-wipe-me/evaluations/vestera-runbook-headless/` unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set. The command prints the resulting path. Do not promote that directory into the repository.
 
-Conversations persist in `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Capture envelopes for one Flue conversation sit beside that sqlite file, named by the hashed instance id (`<instanceId>.json`). The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` and writes the capture file in that same directory. Flue history is the conversation log; the capture store is not a second transcript. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
+By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` to point at its own sqlite file. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
 The mounted Flue URL `/agents/chat/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
@@ -27,6 +38,30 @@ Print a human-readable transcript of one conversation from that same Flue histor
 ```sh
 yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
 ```
+
+## Local Postgres for fixture-producing development
+
+Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
+
+For an already provisioned isolated local Postgres with TLS, export the following in the shell that starts development (substitute your actual endpoint, port, database, role and trusted CA path):
+
+```sh
+export NODE_ENV=development
+export BRUNCH_DB_KIND=postgres
+export BRUNCH_POSTGRES_AUTH_MODE=password
+export BRUNCH_POSTGRES_HOST=localhost
+export BRUNCH_POSTGRES_PORT=5432
+export BRUNCH_POSTGRES_DATABASE=brunch_fixture
+export BRUNCH_POSTGRES_USER=brunch_fixture
+export BRUNCH_POSTGRES_TLS_CA_PATH=/absolute/path/to/local-postgres-ca.pem
+# Inject BRUNCH_POSTGRES_PASSWORD securely into this shell; do not commit it.
+unset BRUNCH_POSTGRES_AWS_REGION DATABASE_URL BRUNCH_DEV_DB_PATH BRUNCH_CHAT_DB_PATH
+yarn dev:brunch
+```
+
+Local Postgres uses the same required fields and authentication validation as production (see below). TLS verification remains mandatory: the certificate must match `BRUNCH_POSTGRES_HOST` and chain to the supplied CA. IAM remains available with `BRUNCH_POSTGRES_AUTH_MODE=iam` and `BRUNCH_POSTGRES_AWS_REGION`, with the password unset. Missing or invalid required fields fail; there is no fallback to SQLite. Postgres rejects `DATABASE_URL` and both SQLite path overrides. SQLite rejects any supplied `BRUNCH_POSTGRES_*` field listed below, including empty values, rather than silently ignoring a missing or contradictory selector. To return to SQLite, unset those Postgres fields and unset `BRUNCH_DB_KIND` (or set it to `sqlite`).
+
+This selects the Flue conversation store only; it does not export/seed fixtures or make the separate filesystem accounting store portable. The usual provider configuration is independent; selecting Postgres grants no provider-call or target-write permission.
 
 ## Production container
 
@@ -95,16 +130,34 @@ Postgres runner, whose close hook shuts the OpenTelemetry providers down; a 60-s
 force-exits. Give the ECS task a stop timeout above 60 seconds.
 
 Brunch does not mount the retired `/api/chat` path; requests to it return 404.
-`/agents/chat/:instanceId` is the sole product route required by Petrinaut. Releasing that route to
-production browser ingress requires separate authentication, authorization, ingress, and
-rate/spend gates. Do not expose `/`, `/assets/*`, or other unrelated routes through browser
-ingress. CORS, caller-supplied principals, and conversation hashes are not authentication. Desired
-count remains one until same-conversation ownership across replicas is separately proven.
+`/agents/chat/:instanceId` is the product door required by Petrinaut. Restricted product traffic
+is that Flue mount: allow `/agents/*` on the Brunch service so the current `chat` name and the
+accepted later `/agents/process-sdcpn/:id` name both fit. Keep `GET /health` as a process-local /
+load-balancer-private probe, not a public hostname path. Deny `/` and `/assets/*`. Stock
+Petrinaut `/api/chat` stays on the website; the accepted later website path is `/api/brunch/:id`.
+Releasing `/agents/*` to production browser ingress requires separate authentication,
+authorization, ingress, and rate/spend gates. CORS, caller-supplied principals, and conversation
+hashes are not authentication. Desired count remains one until same-conversation ownership
+across replicas is separately proven.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
-claims, leases, and settlement state in Postgres. The separate Brunch capture store is not used by
-that path and remains local-development machinery; enabling capture in a deployment requires a new
-durability decision.
+claims, leases, and settlement state in Postgres.
+
+For a restricted remote turn, provide `BRUNCH_SMOKE_BASE_URL`,
+`BRUNCH_SMOKE_PRINCIPAL`, and a stable `BRUNCH_SMOKE_CONVERSATION_ID`;
+`BRUNCH_SMOKE_PROMPT` and `BRUNCH_SMOKE_REQUEST_ID` are optional overrides. The
+turn must stream assistant text and finish within two minutes. Reuse the
+conversation ID for the post-replacement history check and set
+`BRUNCH_SMOKE_EXPECTED_TEXT` to text persisted by the turn; history mode fails
+unless that text is present.
+
+```sh
+yarn workspace @apps/brunch-agent smoke:deployment
+BRUNCH_SMOKE_MODE=history yarn workspace @apps/brunch-agent smoke:deployment
+```
+
+`smoke:deployment` still posts to `/api/chat`. That matches today's `main` image and will fail
+against this branch's image until a Mission 8 successor retargets it to `/agents/chat/:instanceId`.
 
 ## Panel and Voice conversation route
 

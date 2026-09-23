@@ -11,31 +11,31 @@
         "codegen"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-authorization",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-authorization",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "codegen": {
       "dependsOn": [
-        "@rust/hash-graph-authorization#build:types"
+        "hash-graph-authorization#build:types"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-authorization",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-authorization",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "lint:tsc": {
@@ -44,15 +44,15 @@
         "codegen"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-authorization",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-authorization",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     }
   }

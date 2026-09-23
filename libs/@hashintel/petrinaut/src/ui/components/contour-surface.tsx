@@ -57,6 +57,7 @@ const canvasStyle = css({
   display: "block",
   width: "[100%]",
   "&[data-interactive]": { cursor: "crosshair" },
+  "&[data-read-only]": { cursor: "not-allowed" },
   // Horizontal touch drags navigate; vertical swipes stay the browser's to
   // scroll the drawer (it fires pointercancel, which aborts the drag).
   touchAction: "pan-y",
@@ -73,6 +74,7 @@ export const ContourSurface = ({
   contentKey,
   onPickFraction,
   onPreviewFraction,
+  readOnly = false,
   "aria-label": ariaLabel,
 }: {
   /** Grid extent in index space: value keys lie in [0, nx-1] × [0, ny-1]. */
@@ -97,6 +99,12 @@ export const ContourSurface = ({
   onPickFraction?: (fraction: ContourSurfaceFraction) => void;
   /** The position under the pointer mid-drag; null when the drag ends. */
   onPreviewFraction?: (fraction: ContourSurfaceFraction | null) => void;
+  /**
+   * The plot is locked on purpose (an optimizer drives the selection, the
+   * sweep is over): it shows a not-allowed cursor and reports itself disabled,
+   * where a plot without `onPickFraction` merely displays.
+   */
+  readOnly?: boolean;
   "aria-label"?: string;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -141,7 +149,9 @@ export const ContourSurface = ({
         className={canvasStyle}
         style={{ height }}
         aria-label={ariaLabel}
+        aria-disabled={readOnly || undefined}
         data-interactive={onPickFraction ? "" : undefined}
+        data-read-only={readOnly ? "" : undefined}
         {...handlers}
       />
       {preview ? <DragCrosshair fraction={preview} /> : null}

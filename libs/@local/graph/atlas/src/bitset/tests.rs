@@ -5,7 +5,7 @@ use hashql_core::id::{
     bit_vec::{BitRelations as _, DenseBitSet},
 };
 use proptest::{arbitrary::any, prop_assert_eq, property_test};
-use zerocopy::IntoBytes as _;
+use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{CompressedBitSet, DenseBitSlice, DenseBitSliceArray};
 use crate::identity::{EdgeRowId, NodeRowId};
@@ -14,12 +14,13 @@ use crate::identity::{EdgeRowId, NodeRowId};
 fn starts_empty() {
     let set = CompressedBitSet::<NodeRowId>::new();
 
-    assert!(set.is_empty());
     assert_eq!(set.count(), 0);
     assert_eq!(set.iter().next(), None);
     assert!(!set.contains(NodeRowId::new(0)));
 }
 
+/// Insertion reports whether the set changed, membership follows insertion, and iteration is
+/// ascending across roaring's `2^16` container boundary regardless of insertion order.
 #[test]
 fn inserted_rows_are_contained_and_iterated_in_order() {
     // The rows straddle roaring's container boundary at 2^16, so the
@@ -54,71 +55,17 @@ fn from_rows_admits_every_row_and_iterates_in_order() {
     );
 }
 
-/// Range coverage demands exactly the rows below `n`.
-///
-/// Rows above `n` never count against the answer, and `n = 0` holds vacuously. The fixture rows
-/// straddle roaring's container boundary at 2^16, so a covered range crosses containers as well
-/// as words, and no set covers a domain wider than the representable rows.
-#[test]
-fn contains_below_demands_every_row_of_the_range() {
-    let empty = CompressedBitSet::<NodeRowId>::new();
-    assert!(
-        empty.contains_below(0),
-        "an empty range is covered vacuously"
-    );
-    assert!(!empty.contains_below(1));
-
-    let hole = 0x1_0040_u64;
-    let mut set =
-        CompressedBitSet::from_rows((0..0x1_0100).filter(|&row| row != hole).map(NodeRowId::new));
-    assert!(
-        set.contains_below(hole),
-        "the range below the hole is covered"
-    );
-    assert!(
-        !set.contains_below(hole + 1),
-        "the hole breaks coverage at its own row"
-    );
-    assert!(
-        !set.contains_below(0x1_0100),
-        "a row above the hole cannot repair the range below it"
-    );
-
-    set.insert(NodeRowId::new(hole));
-    assert!(
-        set.contains_below(0x1_0100),
-        "filling the hole covers the range"
-    );
-    assert!(
-        !set.contains_below(0x1_0101),
-        "coverage ends at the last admitted row"
-    );
-    assert!(
-        !set.contains_below(u64::from(u32::MAX) + 2),
-        "a range wider than the representable domain is never covered"
-    );
-}
-
-#[test]
-fn removal_reports_whether_the_set_changed() {
-    let mut set = CompressedBitSet::from_rows([1, 2].map(EdgeRowId::new));
-
-    assert!(set.remove(EdgeRowId::new(2)));
-    assert!(!set.remove(EdgeRowId::new(2)));
-    assert_eq!(set.iter().collect::<Vec<_>>(), [EdgeRowId::new(1)]);
-}
-
 /// A row above the representable domain is not admitted, and the query answers rather than panics.
 #[test]
 fn rows_above_the_representable_domain_read_absent() {
-    let mut set = CompressedBitSet::from_rows([NodeRowId::new(1)]);
+    let set = CompressedBitSet::from_rows([NodeRowId::new(1)]);
     let beyond = NodeRowId::new(u64::from(u32::MAX) + 1);
 
     assert!(!set.contains(beyond));
-    assert!(!set.remove(beyond));
     assert_eq!(set.count(), 1);
 }
 
+/// Inserting a row at or above `2^32` panics with the domain message.
 #[test]
 #[should_panic(expected = "the row lies in the representable domain")]
 fn insert_rejects_rows_above_the_representable_domain() {
@@ -182,6 +129,8 @@ fn dense_bit_slice_starts_empty() {
     assert!(!set.contains(NodeRowId::new(0)));
 }
 
+/// Insertion reports whether the frame changed, membership follows insertion, and iteration is
+/// ascending across the 64-bit word boundary regardless of insertion order.
 #[test]
 fn dense_bit_slice_inserted_rows_are_contained_and_iterated_in_order() {
     // The rows straddle the 64-bit word boundary, so the iteration order crosses words.
@@ -203,6 +152,8 @@ fn dense_bit_slice_inserted_rows_are_contained_and_iterated_in_order() {
     assert!(!set.contains(NodeRowId::new(128)));
 }
 
+/// Removing a member returns true and drops it. Removing it again returns false and changes
+/// nothing.
 #[test]
 fn dense_bit_slice_removal_reports_whether_the_set_changed() {
     let mut set = DenseBitSlice::new_empty(130);
@@ -225,6 +176,7 @@ fn dense_bit_slice_rows_outside_the_domain_read_absent() {
     assert_eq!(set.count(), 1);
 }
 
+/// Inserting the row equal to the domain size panics with the domain message.
 #[test]
 #[should_panic(expected = "the row lies in the set's domain")]
 fn dense_bit_slice_insert_rejects_rows_outside_the_domain() {
@@ -285,11 +237,12 @@ fn dense_bit_slice_words_cross_the_word_boundary() {
     assert_eq!(set.words().as_bytes(), expected);
 }
 
+/// The empty domain occupies no words at all.
 #[test]
 fn dense_bit_slice_zero_domain_packs_to_no_words() {
     let set = DenseBitSlice::<NodeRowId>::new_empty(0);
 
-    assert!(set.words().is_empty());
+    assert_eq!(set.words(), [] as [U64<LE>; 0]);
 }
 
 /// Membership, cardinality, iteration order, and the byte round trip agree with a reference set.
@@ -370,6 +323,7 @@ fn dense_bit_slice_relations_against_an_in_memory_set() {
     );
 }
 
+/// A relation against an in-memory set over a different domain panics before touching a word.
 #[test]
 #[should_panic(expected = "the sets draw from the same domain")]
 fn dense_bit_slice_relations_reject_mismatched_domains() {
@@ -378,6 +332,8 @@ fn dense_bit_slice_relations_reject_mismatched_domains() {
     slice.union(&other);
 }
 
+/// `total_byte_len` is the 8-byte header plus 8 bytes per word the domain occupies, and a built
+/// frame's byte length equals it.
 #[test]
 fn dense_bit_slice_total_byte_len_counts_the_header_and_the_words() {
     // The empty domain still carries its 8-byte header; 64 rows fill exactly one word; 65 spill
@@ -395,36 +351,8 @@ fn dense_bit_slice_total_byte_len_counts_the_header_and_the_words() {
     );
 }
 
-#[test]
-fn dense_bit_slice_iterates_ranges_across_word_boundaries() {
-    let mut set = DenseBitSlice::<NodeRowId>::new_empty(130);
-    for row in [0, 63, 64, 100, 129] {
-        set.insert(NodeRowId::new(row));
-    }
-
-    let rows_in = |start: u64, end: u64| {
-        set.iter_in(NodeRowId::new(start)..NodeRowId::new(end))
-            .map(NodeRowId::as_u32)
-            .collect::<Vec<_>>()
-    };
-
-    assert_eq!(rows_in(0, 130), [0, 63, 64, 100, 129]);
-    assert_eq!(rows_in(1, 129), [63, 64, 100]);
-    assert_eq!(rows_in(63, 65), [63, 64]);
-    assert_eq!(rows_in(64, 64), [] as [u32; 0]);
-    assert_eq!(rows_in(101, 130), [129]);
-
-    // The end clamps to the domain, so a longer range names no extra rows.
-    assert_eq!(rows_in(101, 4_000), [129]);
-}
-
-#[test]
-#[should_panic(expected = "an inverted row range admits no iteration order")]
-fn dense_bit_slice_range_iteration_rejects_inverted_ranges() {
-    let set = DenseBitSlice::<NodeRowId>::new_empty(100);
-    let _rows = set.iter_in(NodeRowId::new(60)..NodeRowId::new(2));
-}
-
+/// Union, intersection, and subtraction between two frames mutate the target and report change,
+/// with a repeated union reporting none.
 #[test]
 fn dense_bit_slice_relations_apply_between_slices() {
     let mut target = DenseBitSlice::<NodeRowId>::new_empty(130);
@@ -451,6 +379,7 @@ fn dense_bit_slice_relations_apply_between_slices() {
     assert_eq!(target.count(), 0);
 }
 
+/// A relation between two frames over different domains panics before touching a word.
 #[test]
 #[should_panic(expected = "the sets draw from the same domain")]
 fn dense_bit_slice_relations_reject_mismatched_slice_domains() {
@@ -459,6 +388,7 @@ fn dense_bit_slice_relations_reject_mismatched_slice_domains() {
     target.union(&*other);
 }
 
+/// Indexing an array at its frame count panics with the rank message.
 #[test]
 #[should_panic(expected = "the rank names one of the array's frames")]
 fn dense_bit_slice_array_rejects_ranks_beyond_the_frames() {
@@ -494,9 +424,11 @@ mod miri {
             DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
         assert_eq!(read, &*set);
         assert_eq!(read.iter().collect::<Vec<_>>(), [3, 64].map(NodeRowId::new));
-        assert!(rest.is_empty());
+        assert_eq!(rest, [] as [u8; 0]);
     }
 
+    /// A zero-domain frame is exactly its 8-byte header and parses back to an empty set over
+    /// domain zero.
     #[test]
     fn dense_bit_slice_zero_domain_frames_parse() {
         let set = DenseBitSlice::<NodeRowId>::new_empty(0);
@@ -506,7 +438,7 @@ mod miri {
             DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
         assert_eq!(read.count(), 0);
         assert_eq!(read.domain_size(), 0);
-        assert!(rest.is_empty());
+        assert_eq!(rest, [] as [u8; 0]);
     }
 
     /// The final word carries in-domain bits and refuses bits above the domain.
@@ -587,6 +519,8 @@ mod miri {
         assert_eq!(rest, [0xAB; 8]);
     }
 
+    /// A fresh array reports its frame count and domain, occupies exactly `total_byte_len`, and
+    /// every frame is empty over the array's domain.
     #[test]
     fn dense_bit_slice_array_starts_as_empty_frames() {
         let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
@@ -604,6 +538,8 @@ mod miri {
         }
     }
 
+    /// Insertions through `IndexMut` reach the addressed frame alone, and the other frames keep
+    /// their own members.
     #[test]
     fn dense_bit_slice_array_indexes_independent_frames() {
         let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
@@ -751,6 +687,7 @@ mod miri {
         assert_eq!(read.domain_size(), 64);
     }
 
+    /// An array of no frames panics on rank zero with the rank message.
     #[test]
     #[should_panic(expected = "the rank names one of the array's frames")]
     fn dense_bit_slice_array_of_no_frames_rejects_every_rank() {

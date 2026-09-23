@@ -7,42 +7,78 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 ## Creating an experiment
 
 1. Switch to **Simulate** mode and open the **Experiments** tab.
-2. Click **Create**. The Create Experiment drawer opens.
+2. Click **Create**. The Create Experiment panel opens.
 3. Fill in the configuration (see below).
-4. Click **Run**.
+4. Click **Run** -- **Create sweep** when a value is swept, **Optimize** when **Start optimizer immediately** is checked. The button reads **Starting** (or **Creating**) while the experiment starts.
+
+### Experiments created by the assistant
+
+If your host enables experiment tools, the [AI assistant](ai-assistant.md#experiments-from-chat)
+can run a saved scenario with saved metrics and fixed parameter values. It
+can also optimize numeric parameter ranges. These requests create ordinary
+experiments in this list and show a progress card in chat.
+Each request supports up to 100,000 simulation runs, or 100,000 final runs
+at the best parameter values after optimization.
+
+While the assistant's request runs, parameter changes and removal are locked.
+You can inspect the charts and cancel the experiment. When it finishes, the
+assistant receives its results and the controls become available again.
+Later exploration does not change the result already recorded in chat.
+
+An optimization finishes after its search and the final runs at its best
+parameter values. Keep the browser page open until the request finishes;
+experiments are not restored after a reload.
 
 ### Configuration
 
-| Setting                 | Default                           | Notes                                                                                                                                                                                                                          |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                                     |
-| **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario.             |
-| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** toggle — see [Parameter sweeps](#parameter-sweeps). |
+| Setting                 | Default                                                         | Notes                                                                                                                                                                                                                                   |
+| ----------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                | `Experiment`                                                    | Free text.                                                                                                                                                                                                                              |
+| **Scenario**            | the first saved scenario, or **No scenario** when none is saved | **No scenario** -- the [scenario form](ad-hoc-scenarios.md) below the picker, or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario.                                                          |
+| **Scenario parameters** | each scenario parameter's default                               | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** interval toggle — see [Parameter sweeps](#parameter-sweeps). |
 
-With "No scenario" selected, the Scenario section shows the [ad-hoc scenario form](ad-hoc-scenarios.md): define the initial state and parameter values inline for this experiment, without saving a scenario. Left untouched, the experiment runs from the manually-set markings and defaults as before. The experiments table shows "Ad-hoc scenario" in its Scenario column for such runs. With [Parameter sweeps](#parameter-sweeps) enabled, every numeric value of the form carries a **Sweep** toggle -- see [Sweep selections](ad-hoc-scenarios.md#sweep-selections-experiments-only).
+With "No scenario" selected, the Scenario section shows the [ad-hoc scenario form](ad-hoc-scenarios.md): define the initial state and parameter values inline for this experiment, without saving a scenario. Left untouched, the experiment runs from the manually-set markings and defaults. The experiments table shows "Ad-hoc scenario" in its Scenario column for such runs. Every numeric value of the form carries a [Sweep](#parameter-sweeps) interval toggle -- see [Interval selections](ad-hoc-scenarios.md#interval-selections-experiments).
 
-With a scenario selected (and ad-hoc scenarios enabled), the Scenario section shows it through the same form: the scenario parameters take value edits in worksheet style -- a ratio parameter's edit applies only between 0 and 1; outside, the form marks it and the run keeps the previous value -- each numeric one with the same **Sweep** toggle the classic rows offer, and a collapsed **Computed state** sub-section underneath previews the exact parameter values and initial tokens each run will start with -- computed only when you open it, and recomputed as you change the values above. A swept parameter previews at the start of its range, the first combination the sweep runs, and the preview says so. The preview sits in its own tinted panel and scrolls as one, so a net with many places leaves the rest of the drawer in reach.
+With a scenario selected, the Scenario section shows it through the same form: the scenario parameters take value edits in worksheet style -- a ratio parameter's edit applies only between 0 and 1; outside, the form marks it and the run keeps the previous value -- each numeric one with a **Sweep** interval toggle, and a collapsed **Computed state** sub-section underneath previews the exact parameter values and initial tokens each run will start with -- computed only when you open it, and recomputed as you change the values above. A swept parameter previews at the start of its range, and the preview says so. The preview scrolls within a bordered panel, with Parameters and Initial state headers that stack as you scroll. Click a faded earlier header to return to its section, or an upcoming header at the bottom to jump ahead. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. It initially shows default starting places; turn on **Show all places** beside Initial state to inspect the rest. The switch appears only when there are other places. Select a computed value to see its source expression in a floating cell over the selected value. The expression disappears when focus moves away.
 | **Runs** | `1000` | Positive integer; how many independent simulations to run. For a sweep the field reads **Max runs per selection**: each selection refines progressively (8, 25, 100, … 1000, 5000, …) up to this ceiling, so large budgets — 100,000 on the GPU — sharpen the distribution the longer you stay. |
 | **Time step (dt)** | `0.1` | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)). |
 | **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
-| **Run on GPU** | off | Only shown when **WebGPU** is on under **Settings → Simulation**. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend-experimental). |
+| **Run on GPU** | off | Shown when your browser supports WebGPU. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend). |
 
-The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
+The model used is a snapshot of the current net at the time you press **Run**. Later runs and optimization use that snapshot, even if you edit the net afterwards.
 
 > Currently, an experiment can only run against one scenario at a time. To compare scenarios, create one experiment per scenario.
+
+### Metrics
+
+Click **Add metric** and choose **Place tokens**, **Transition firing**, or a custom metric. Built-in metric names follow the selected place or transition automatically, such as **Queue tokens** or **Dispatch firing (cumulative)**. Transition names include the **Per frame** or **Cumulative** count mode. Existing model metrics display their saved name as read-only text. Only **Custom code** metrics have an editable name. Use the metric type picker to switch between model metrics, custom code, and built-in metrics at any time. Choosing **Custom code** after a model metric makes its code editable.
+
+### Constraints
+
+When the host application provides an in-browser optimizer, turning on **Sweep** for a saved scenario's parameter adds a **Constraints** section after Metrics. You can set constraints before starting optimization, whether you start it during creation or later. Its rows record boolean conditions the optimizer must respect when it [drives the sweep](#optimizing-a-sweep). The sweep itself ignores them: no run is excluded from the charts and the objective is never changed by them. An experiment created with **No scenario** has no Constraints section: the names of its generated parameters are not yours to write. Conditions are grouped under **Parameters** and **State**, each with its own **Add** button:
+
+- **Parameter constraints** -- one-line expressions over the sweep's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. Before a step runs, the optimizer checks them at the step's values, snapped to the sweep's grid. A step whose values break one is **infeasible**: it costs one step and no simulation, the sliders do not move to it, it is reported as pruned with the constraint named, and its row is greyed in the steps table.
+- **State constraints** -- boolean expressions that read the simulation `state`, for example `state.places.Queue.count <= 10`. Petrinaut supplies the `return` internally. A trailing semicolon is optional. Every run of a step reports whether the condition held on every sampled frame: a run **passed** when it did and **failed** otherwise, and a run that errors reports neither, so its step's fraction is over the runs that reported. A state constraint runs beside the sweep's metrics on every batch, from the sweep's creation on, and it runs on the CPU: the WebGPU switch greys out while a state row is drafted, and a sweep with state constraints computes on the CPU whether or not a study drives it.
+
+A step's verdict comes from its runs. The **Pass threshold**, beside the State heading once a state condition exists, is the share of a step's runs that must pass (95 percent by default, an alpha of 0.05). A step is **clear** when every state constraint held on at least that share of its runs and **limited** when one fell short. Every rate in the results is printed as its raw fraction beside the percentage, `52 / 60 · 87%`, so the run count behind a percentage is always in view.
+
+State editors start on one line and grow with the code up to eight lines, then scroll. Use **Enter** to split a long expression across lines. Combine conditions with `&&` (all must hold) or `||` (at least one must hold). For intermediate calculations, a code body with an explicit `return` still works, for example `const count = state.places.Queue.count; return count <= 10;`. Empty fields show expression examples using the current scenario and model where their names allow dot access.
+
+Each row checks as you type: type errors, unknown names and a result that is not a boolean are underlined, and the message reads in the line under the row. Typing `scenario.`, `parameters.` or `state.places.` offers completions, and hovering a name shows its type. **Create sweep** or **Optimize** stays disabled, with the first failing row named in the footer, until every row compiles; the rows are compiled once more when you press it. Empty rows are ignored. Each condition has a trash button beside its editor; removing it moves focus to another condition in the same group, or to that group's **Add** button. Changing the scenario clears the rows. The constraints are recorded with the experiment: once created, the sweep's **Parameters** card lists them behind **Show N constraints** in its footer, one line per constraint with its kind, its label (**Parameter constraint 1**, **State constraint 1**, in the order you added them) and its code, and the pass threshold under them when a state constraint exists.
 
 ## Lifecycle and statuses
 
 Experiments progress through these status labels:
 
-| Status           | Meaning                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| **Initializing** | The experiment has been created and its workers are starting up.                                  |
-| **Running**      | Runs are in progress.                                                                             |
-| **Idle**         | A sweep whose selected region is fully sampled. Moving a parameter control resumes running.       |
-| **Complete**     | All runs finished without error.                                                                  |
-| **Error**        | The experiment failed to start or hit an unrecoverable error. The drawer shows the error message. |
-| **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                          |
+| Status           | Meaning                                                                                                                                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Initializing** | The experiment has been created and its workers are starting up.                                                                                                                                                                                     |
+| **Running**      | Runs are in progress.                                                                                                                                                                                                                                |
+| **Idle**         | A sweep computing nothing: fresh, or its selected region fully sampled. Moving a parameter control resumes running. Grey in the list.                                                                                                                |
+| **Optimizing**   | A sweep whose sliders a study drives (see [Optimizing a sweep](#optimizing-a-sweep)). Optimization can start during creation or later from the Parameters card. The panel's header reads it; the list keeps the sweep's own status, Running or Idle. |
+| **Complete**     | All runs finished without error.                                                                                                                                                                                                                     |
+| **Error**        | The experiment failed to start or hit an unrecoverable error. The panel shows the error message. For a sweep the error belongs to the selection that failed: move a control and the next selection computes normally.                                |
+| **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                                                                                                                                                                             |
 
 Experiments run in background Web Workers, so simulation playback and editor interactions stay responsive. Multiple experiments can run concurrently.
 
@@ -57,30 +93,59 @@ Two consequences worth knowing:
 - Progress reports the slowest worker's position, so the progress bar never runs ahead of the results behind it.
 - Several experiments running at once each use the same number of workers, so they compete for cores and all of them slow down. Run them one at a time if you want any single one to finish as fast as possible.
 
-### Parameter sweeps
+### Keyboard navigation
 
-Parameter sweeps are experimental and off by default. Turn on **Parameter sweeps** under Simulation in the [settings dialog](visual-settings.md#parameter-sweeps-experimental) to get the Sweep toggle.
+Use arrow keys to move between the form's sections, fields, scenario tables, metrics, and footer actions. Left collapses an expanded section or place; Right expands it. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
 
-Flip **Sweep** on any numeric scenario parameter to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so a selection has a stable identity and revisiting one restores its results. With [ad-hoc scenarios](ad-hoc-scenarios.md) enabled, the same toggle sits on every numeric value of the ad-hoc form -- a token count, a cell, a variable, a parameter override -- and each selection sweeps as a generated parameter named after the value, shown in the navigator under the value's path.
+The creation panel opens with **Name** focused. Use **Tab** and **Shift+Tab** to move through fields and actions. Use the arrow keys in dropdowns and radio groups, and **Enter** or **Space** to activate buttons and section toggles.
 
-A sweep computes **what you have selected**. The results drawer grows a **Parameters** strip — pinned while you scroll — with one slider per swept parameter. Each slider selects a range on its interval, and starts spanning the whole of it:
+Parameter constraints use a single-line editor without scrollbars; multiline state conditions scroll vertically when needed. In metric and constraint code fields, **Tab** moves to the next control. **Enter** adds a line in state conditions and custom metrics. **Escape** dismisses code suggestions first, then returns focus to the metric or constraint row. From an ordinary field or section header, **Escape** closes the panel. The scenario worksheet uses its own [keyboard navigation](ad-hoc-scenarios.md). Removing a row moves focus to the next row, the previous row, or the add button when no rows remain.
 
-- **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the GPU when the net qualifies — each run's parameter draw is uploaded alongside its state — and otherwise on the CPU at full parallelism; an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
-- **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
+## Parameter sweeps
 
-Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. While the new selection's first results compute, the charts keep the previous selection's picture dimmed rather than going blank, then fade it out quickly as fresh data draws in underneath. Every selection you have computed keeps its results: returning to the same point or the same range restores its runs and distributions instantly, and refinement resumes where it left off. Resizing a range is a new selection and computes afresh.
+Every numeric value in the experiment form offers a **Sweep** toggle. It selects an interval instead of one number. Optimization is a separate choice.
+
+Flip the toggle on any numeric value to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so a selection has a stable identity and revisiting one restores its results. With **No scenario** selected, the same toggle sits on every numeric value of the [form](ad-hoc-scenarios.md) -- a token count, a cell, a variable, a parameter override -- and each selection sweeps as a generated parameter named after the value, shown in the navigator under the value's path.
+
+An invalid interval keeps **Create sweep** or **Optimize** disabled. The first configuration error appears in the footer and the disabled button's tooltip.
+
+The **Parameters** card has one slider per swept parameter. Each slider chooses a single value within the bounds set when creating the experiment. Its name and current value appear together above the slider, with the minimum and maximum in small text below its left and right ends. Parameter identifiers appear as readable names, such as **Transmission rate** for `transmission_rate`.
+
+A sweep created with **Create sweep** starts at the middle of each parameter's interval and waits for you to move a slider or click the Surface. The line below the controls reads **Move a slider to explore results**. A sweep created with **Optimize** follows the values selected by its study from the first step (see [Optimizing a sweep](#optimizing-a-sweep)).
+
+Moving a slider starts sampling at the displayed values. Samples arrive in increasing batches (8, 25, 100, … up to the sampling limit), on the GPU when selected and supported. The charts keep the previous results dimmed until the new results arrive. Returning to a previously sampled combination restores its results and resumes sampling from where it stopped.
 
 Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on the experiment's seed and the run's position in the sequence, so differences you see between selections come from the parameters, not from sampling luck — while experiments with different seeds explore their own value sequences.
 
-#### The surface view
+### Optimizing a sweep
 
-A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **the surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release both shown parameters collapse to a point there, which then refines with more runs. An orange ring marks where the navigator currently sits. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
+Optimization is available when the host application provides an optimizer that runs in your browser.
 
-The summary, the parameter strip, and the surface hold still at the top of the drawer; the metric charts scroll on their own below them, so the graphs stay in view while you browse the charts.
+Selecting a swept interval exposes **Start optimizer immediately** in Metrics. This checkbox starts unchecked: **Create sweep** creates an idle sweep for manual exploration. Check it to show **Metrics & objective** and start optimization when you create the experiment. Add a metric, then choose **Maximize** or **Minimize** on its row. The first metric is the objective by default; select **Use as objective** on another metric to optimize it instead. The objective metric is highlighted in purple, with its controls in a compact shaded footer. All the experiment's metrics are still measured. **Optimization steps** appears below the list once a metric exists (30 by default, 1,000 at most). Each step computes eight runs at one point of the sweep before the optimizer reads the metric's value there, the mean over those runs on the last sampled frame; the line under the fields says so -- **30 steps · 8 runs each — the best point then refines to your run budget** -- or names the step budget the optimizer refuses (a run of more than 100,000 simulation steps, or steps × 8 runs × simulation steps over 5,000,000), and the footer stays disabled until it is met. A **No scenario** experiment optimizes too, over the generated parameters of its form values; only Constraints need a saved scenario.
 
-### Compute backend (experimental)
+With **Start optimizer immediately** checked, the footer reads **Optimize**, then **Starting** while the scenario compiles and the study registers. The experiment then opens already optimizing: the **Parameters** card is purple, the header's status reads **Optimizing** and its progress bar counts the steps, the controls are locked and move by themselves to each point the optimizer tries, the line under the sliders reads **Testing step N** with the point's sampling progress (**· 5 / 8 runs**), and every point lands on the Surface as it computes; **Details → Active batches** lists the step's batch as **Step N**. The optimizer draws its first steps at random, about a third of the requested steps and at least 2 and at most 10, then proposes each further step from the results so far. Every step's runs use the sweep's common random numbers, so the differences between steps come from the parameters, not from sampling luck. Steps run one after another, and one study at a time: a study started while another runs waits for it, reading **Optimizing** at step 1 with no runs until its turn. Parameters you did not sweep hold at the values the experiment was created with. If the optimizer cannot start -- the optimizer disconnected, or a budget the form did not catch -- nothing is created: the panel stays open with the reason in its footer and every field as you left it.
 
-Experiments run on the CPU unless you ask for the GPU. Switch on **WebGPU** under **Settings → Simulation**, and the Create Experiment drawer gains a **Run on GPU** switch. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.
+To optimize an existing manual sweep, choose **Optimize** in the **Parameters** header. Select its metric, direction and step count, then choose **Start**. This uses the same step limits as creation. The controls work with the keyboard: Tab moves between fields, arrow keys change selections, and Escape closes the prompt. If startup fails, the prompt keeps your choices and shows the reason.
+
+While the study drives the sweep the card's header carries one purple **Stop** button: it ends the search where it stands, and the point it was trying refines to your run budget; when the search finishes on its own the sliders settle on the best point found and that point refines the same way. Once the search settles, the sliders unlock and the line under the sliders shows sampling progress while the selected point refines. Once sampling stops, it reads **Optimization complete**, **Optimization stopped**, or **Optimization failed**. The best value stays beside **Objective by step**, and **Details** keeps the full search summary. The value is named for what it is: the best of the steps tried, not a confirmed result at that configuration. From there you can explore by hand with the sliders and Surface, keeping the study's results visible, or choose **Optimize** to start another search. A successful start replaces the previous study's summary and charts; the sweep keeps its sampled points. **Cancel** in the panel's footer stops the study as well as the sweep; **Remove** discards both. A study that fails reports its message in the line under the header, where the experiment's own error would read. The study appears nowhere else: the sweep's panel is its home, and removing the experiment removes it.
+
+The first study in a browser downloads the Python runtime and the optimizer packages before its first step starts; the header reads **Optimizing** with no steps completed while that happens. Later studies reuse the browser's cache. Closing or reloading the page ends the study, and while one runs the browser asks you to confirm first; the study is gone on the next load, the sweep with it. The optimizer proposes with the same sampler, seed and start-up draws the [Petrinaut CLI](../../../@local/petrinaut-arch-docs/content/cli/usage-manual.mdx) uses, so a study's proposals match the CLI's step for step while the objective values it is told match.
+
+An **Optimizer** section appears under the sliders when a study starts. Its **Objective by step** chart shows every step's objective value as a purple dot over the step number, with the best so far as a line stepping through them, drawn as the steps land; the axis reaches to the steps asked for while the search runs and ends at the last step run once it settles. Infeasible draws carry no value and are left off the strip, and the best step so far is never one of them. Its title line names the metric and counts the steps, with the best value found; click the line to fold the section away or bring it back. The section stays once the search settles. A sweep has no Optimizer section until its first study starts.
+
+Beside the chart, **Best so far** lists the best parameter values evaluated, their objective value, and the step that found them. These values match the slider positions used to evaluate the result. Before the first result it reads **Waiting for the first result**. After the search finishes or stops, the list remains as **Best found**. A completed search automatically selects its best result, and the button reads **Viewing best** while those values are selected. Move the sliders to explore another point, then choose **View best** to restore all the best parameter values and display their results. The button is disabled while the optimizer controls the sliders or the best values are already selected. A search that ends without a result reads **No best result found**.
+
+Once a study starts, the experiment shows its **Optimization steps** in the header, an objective chart under the parameter controls, the **Constraints** and **Sensitivity analysis** cards after the metric charts, and a steps table below them. These remain available after the search stops or fails. The detailed search summary and constraint totals are available in **Details**.
+
+### The surface view
+
+A sweep with two or more swept parameters grows a **Surface** card under the **Parameters** card: a contour plot of one metric's final value over two parameters you pick, drawn from the points the sweep has computed. It starts empty. Every point you visit — by moving the sliders to a point, by clicking the plot, or through the optimizer — lands as a dot with its value, the field is interpolated between the dots once there are three, and the point being computed is a ring; its value joins the field once its batch completes. Points computed at other values of the parameters not shown are drawn too, projected onto the two you picked. The **X** and **Y** pickers sit in the row under the plot and the **Metric** picker in the row beneath them; every metric is measured at every point, so switching the shown metric repaints from what was already computed. The line under the card's title counts sampled points and indicates when sampling is active. During a drag it shows the values under the pointer. The help icon explains the shading and how to select a point. **The surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release every swept parameter collapses to a point -- the two shown at the place you released, the others at their current values -- which then computes. A dark ring marks where the navigator sits. While the optimizer drives the sweep the card is read-only: the plot only displays under a not-allowed cursor, the **X**, **Y** and **Metric** pickers lock, a purple **Read-only** mark sits beside them, and between two steps the line says the optimizer is choosing the next point. A cancelled sweep locks the same way, with the mark in grey.
+
+The panel arranges its parts by its width. The **Parameters** card spans the body under the header. Beneath it, at the panel's full width, the **Surface** sits on the left and the metric cards on the right, two to a row, so two swept parameters and up to four metrics fit without scrolling; in a narrower panel the metric cards come first, then **Surface**, so the charts you watch are at the top either way. A sweep with one swept parameter has no surface, and its cards take the whole width. Every card keeps a fixed height, and only the body scrolls, under the header.
+
+### Compute backend
+
+Experiments run on the CPU unless you ask for the GPU. When your browser supports WebGPU, the Create Experiment panel offers a **Run on GPU** switch. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.
 
 The choice is per experiment, not global, so a GPU experiment and a CPU experiment can run side by side — useful for comparing the two on the same model. Each gets its own GPU device, so nothing is shared between them.
 
@@ -88,82 +153,92 @@ The switch is greyed out when the current model cannot run on the GPU; hover it 
 
 The GPU backend handles a **subset** of nets, and it tells you when it cannot take one rather than guessing. It needs:
 
-- **token spans that fit the metric histogram.** Metrics are reduced on the device into a histogram whose bins cover a window of counts. The window calibrates itself: a short probe observes each measured place's range, the full run uses that range, and a run that escapes its window is recalibrated and re-run automatically — no refusals or warnings based on absolute counts. Calibration is remembered while an experiment is open, so moving the sweep's sliders does not re-probe what an earlier selection already measured. Only the _span_ is limited: up to three metrics get 1,024 distinct values each (more metrics share the budget), and a wider span is binned at reduced resolution;
-- typed places to have _measurable_ token counts. A declared [token capacity](drawing-a-net.md#token-capacity) is used directly; without one, a short probe measures each place's real maximum and sizes the buffers from it (growing and re-running automatically if a run later outgrows the estimate). A place whose probe shows rare extreme outliers runs on the CPU instead — sizing every run for the outlier would waste the GPU's memory;
+- **metric values that fit the histogram.** Metrics are reduced on the device into a histogram whose bins cover a window of values — exact integers for counts, a calibrated range for real-valued metrics, whose bin width the heatmap shows. The window calibrates itself: a short probe observes each measured place's range, the full run uses that range, and a run that escapes its window is recalibrated and re-run automatically — no refusals or warnings based on absolute counts. Calibration is remembered while an experiment is open, so moving the sweep's sliders does not re-probe what an earlier selection already measured. Only the _span_ is limited: up to three metrics get 1,024 distinct values each (more metrics share the budget), and a wider span is binned at reduced resolution;
+- typed places to have _measurable_ token counts. A declared [token capacity](drawing-a-net.md#token-capacity) is used directly; without one, a short probe measures each place's real maximum and sizes the buffers from it (growing and re-running automatically if a run later outgrows the estimate). A place whose probe shows rare extreme outliers, or whose counts keep outgrowing the buffers however far the probe grows them, stops the experiment with a message asking you to run it on the CPU instead — sizing every run for the outlier would waste the GPU's memory;
 - no `string` or `uuid` token attributes, which need more than the 32 bits WebGPU offers;
 - **arcs consuming at most two typed tokens per place.** A condition that reads token attributes runs on the GPU at weight 1 and at weight 2 — a pairwise condition like a collision test is scanned over every pair — but not beyond;
 - typed tokens consumed from at most one place per transition, since two would be a cross-product enumeration across arcs (the one gate a bundled example — Production Machines — still hits);
-- metrics that measure place token counts, without a time aggregation.
+- metrics the shader can compute: place token counts, and expression metrics that read counts, parameters and one place's tokens (`.length`, `.reduce`). Metrics using `.concat`, indexing a token by position, string or uuid attributes, or a time aggregation run on the CPU, and the message names the metric. Each metric samples the same runs on either backend: the runs still active in a frame by default, or, for a metric the experiment form defines, every run, with a finished run keeping its final value.
 
-When an experiment does not qualify, it runs on the CPU instead and a message explains which requirement was not met. Nothing fails, and you do not need to check in advance. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
+When an experiment misses a requirement the model alone decides — attributes, arcs, metrics — it runs on the CPU instead and a message explains which one, so you do not need to check in advance. The two requirements only a run can measure — a heavy-tailed place, counts that keep outgrowing their buffers — surface as that experiment's error once it has started, with a message asking you to switch it to the CPU backend. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
 
 Run count has no ceiling of its own: runs beyond what your GPU can hold at once execute as sequential tiles. What still falls back to the CPU is a single run whose own state exceeds the device's buffer limits, or a metric histogram too large for the device; the message says which.
 
 Two things to know before comparing results:
 
-- **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
+- **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's **Details** records which backend ran it, so results stay attributable after the fact.
 - Continuous dynamics are integrated with a **more accurate method** (Runge-Kutta 4) than the CPU's, so a model with differential equations may show slightly different — better — values, not just different noise.
 - The GPU steps every run to the configured max time, while the CPU stops a run as soon as it can no longer fire anything. So a net that finishes early reports a **higher frame count and simulated time** on the GPU for the same results. Nothing is wrong with either; they just stop counting at different points.
 
-### Reading the summary
+### Reading the header
 
-Open an experiment's drawer and its **Summary** section reports:
+The results header shows the experiment's name and status. Plain experiments show **Completed runs**, such as **640 / 1,000 runs**. Optimized sweeps show **Optimization steps**, such as **4 / 30 steps**. Failed runs appear beside the progress count when any occur. An idle sweep reads **Ready**, and sampling progress appears beside its parameter controls.
 
-| Field        | Meaning                                                                                                                 |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**   | One of the five statuses above.                                                                                         |
-| **Scenario** | The scenario the experiment runs, or `Default`.                                                                         |
-| **Runs**     | How many runs are in flight, and how many have finished.                                                                |
-| **Errors**   | How many individual runs errored — shown only when at least one has. An experiment can complete with some runs errored. |
-| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                             |
-| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took.    |
+Click **Details** for the scenario, requested runs or sampling limit, runs sampled, errors, simulation time, elapsed time for plain experiments, and compute backend. A sweep's **Sampling limit** is the maximum number of runs for the selected parameter values. For example, **1,000 runs** means the selection can refine up to that many samples. Moving a control starts sampling the new selection.
 
-A badge beside the **Summary** heading shows whether the run used the **CPU** or the **GPU**, and stays visible when the section is collapsed. Hover it for detail — on a CPU-backed experiment that asked for the GPU, the badge explains which requirement the net did not meet.
+For optimized sweeps, **Details** also shows the steps finished, runs per step, constraint pass counts, best step, and how the search ended. While optimization runs, a chip describes recent progress: **Still improving**, **Converging**, or **Too early to say**. The assessment uses a window of one tenth of the requested steps, with a minimum of five completed steps.
 
-**Elapsed** and **Duration** measure simulating only. Compiling the net's user code and starting the workers (or acquiring the GPU device and compiling the shader) happens before the clock starts, so the number is comparable between the two backends. An experiment that fails before it starts simulating shows `—` rather than a duration.
+The **Compute** badge in Details shows **CPU** or **GPU**. Hover it for more information, including why a requested GPU backend fell back to the CPU. While batches run, **Active batches** opens their individual progress.
+
+The bar along the header's bottom edge follows sampling progress for a sweep, optimization steps while a study drives it, and simulation time for a plain experiment. Errors appear directly below the header. Scrolling the results condenses the header to one line; hovering over it or focusing a control expands it again.
+
+**Simulation time** is time within the model. **Elapsed time** and **Duration** measure wall-clock time spent simulating. Compilation and worker startup happen before that clock starts. An experiment that fails before simulation begins shows `—` for its elapsed time.
 
 ### Metric charts
 
-Each metric gets a chart of its values over simulation time. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable. While results still stream, each update eases into the picture over a few refreshes instead of snapping, so a batch landing or a re-run replacing earlier samples reads as the distribution firming up rather than flashing.
+Each metric gets its own card in a grid of equal-sized cards, charting its values over simulation time. Every card stays the same size whatever it draws, so changing a chart's view never moves the charts around it. The **Enlarge** button, right of the `…` button, is the one thing that resizes a card: it spreads across the whole row at twice the height, the cards after it fill the cells its row has left and the rest move below, and **Shrink** puts it back. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable. While results still stream, each update eases into the picture over a few refreshes instead of snapping, so a batch landing or a re-run replacing earlier samples reads as the distribution firming up rather than flashing.
 
-The controls under each chart change what is plotted:
+The **Chart options** menu (the `…` button in the card's header) changes what is plotted, and the line under the card's title reads the current choice, for example "median over runs · value over time". The menu has one block per dimension the data can be collapsed along, each with a switch between drawing everything and aggregating, and a list of what to draw or which statistic to take; switching a block back restores the choice it last had:
 
-- **Heatmap / Percentile lines** switches the distribution view; percentile lines draw the mean, median, and the 10/25/75/90th percentiles as separate lines.
-- **Aggregate runs** collapses each time step's distribution to one statistic (average, median, a percentile, …) and draws it as a line.
-- **Value / Minimum to date / Maximum to date** plots each time step's own value, or the running minimum or maximum up to that point.
-- **Aggregate over time** collapses the whole series: a scalar-like series becomes a single number, and an unaggregated distribution becomes one histogram whose bar heights are the chosen statistic (average, minimum, maximum, or sum) of each value's frequency over time.
+- **Runs** (distribution metrics only): **Every run** draws every time step's whole distribution, as a **Heatmap** or as **Percentile lines** (the mean, median, and the 10/25/75/90th percentiles as separate lines). **Aggregate** collapses each time step's distribution to one statistic — **Average**, **Median**, **Minimum**, **Maximum** or a **percentile** — and draws it as a line.
+- **Time**: **Every step** plots each time step's own **Value**, or the running **Minimum to date** or **Maximum to date**. **Aggregate** collapses the whole series with its **Average**, **Minimum**, **Maximum** or **Sum**: a scalar-like series becomes a single number, and an unaggregated distribution becomes one histogram whose bar heights are the chosen statistic of each value's frequency over time.
 
 Click (or drag across) a timeline chart to inspect single time steps — a popover shows that moment's exact value, or its whole distribution as a small histogram with value and count axes, however many bins the frame carries.
 
+#### The study's cards
+
+Once a study starts, two more cards follow the metric charts in the same grid, at the same height.
+
+- The **Constraints** card, only for a sweep with [constraints](#constraints). Its headline is the steps **clear** across the study over the steps that simulated, `14 / 20 · 70%`, with the pass threshold and the infeasible draws counted in the line under the title, **pass threshold 95% (alpha 0.05) · 2 infeasible draws**. Beneath it, one line gives the latest step's verdict -- **Clear**, **Limited · 6 / 8 runs passed · 75% · State constraint 1**, or **Infeasible: Parameter constraint 1** -- and one bar per state constraint shows the share of steps it passed, with a dashed mark at the threshold. The same count is available in **Details** as **Steps clear**. A step stopped mid-flight, or pruned because the sliders moved on, carries no verdict and counts in neither number.
+- The **Sensitivity analysis** card lists the swept parameters by descending **Share** with a bar for how much each one matters for reaching the best steps and a **Share** percentage per parameter; parameters without an estimate follow the estimated ones. Tied shares keep the scenario's order. The estimate is Optuna's PED-ANOVA: it takes the best tenth of the completed steps and measures how concentrated each parameter's values are there relative to its whole range, a relative importance that sums to 100% rather than a share of the objective's variance. It is computed by the optimizer running in your browser once the study is over, and again every few steps while a long study runs (every tenth step, or every twentieth of the requested steps when that is more) once it is past the floor. The line under the title says **Based on N completed steps**, or **No estimate yet** while waiting for the first estimate. The help icon explains the method and recommended step count. Below the floor, 50 completed steps for a study of under 100 steps and 100 otherwise, the card is muted, the bars fade and an available estimate reads **Preliminary · N completed steps**: a confident estimate over a handful of steps would mislead, and at the default 30 steps the card stays muted. A **Correlation** column beside the bars gives each parameter's signed correlation with the objective over the completed steps (`+0.34`, `−0.12`), computed from the steps themselves, so it is there from the third completed step whatever the floor. Before the first estimate the rows show a dash. A study that optimizes a single parameter has nothing to rank it against: its line says **Correlation only · one parameter**, the card is never muted, and only the correlation column carries information.
+
+Under both columns, at the panel's full width, the **steps table** lists the study's steps newest first, each with its parameters, objective value and a state mark (complete, pruned or failed), the best step starred and tinted. It keeps a fixed height and scrolls on its own, and a long study shows its newest 200 steps while the header keeps the total and **Details** keeps the best step. A sweep with constraints adds a **Runs passed** column (`52 / 60 · 87%`, the constraint with the fewest passing runs when there are several) and greys the rows of infeasible steps, their mark reading **Infeasible:** and the constraint's name.
+
+### Panel and fullscreen views
+
+Experiment creation and results open in a [panel beside the main view](simulation-panels.md). Expand it to fullscreen for more space; form edits and chart choices stay in place.
+
+Experiments belong to the current session. Reloading a link after that session has ended shows an unavailable message; it does not rerun the experiment.
+
 ### Actions
 
-In the experiment's view drawer (open it from the list, where the first click selects a row and a click on the selected row or Enter opens it, or via any experiment in the top-bar **Active experiments** popover):
+In the experiment's view panel (open it with a single click in the list, with **Up** or **Down** while browsing the list, or via any experiment in the top-bar **Active experiments** popover):
 
-- **Cancel** -- stops the experiment. Only available while it is initializing or running.
-- **Remove** -- deletes the record and disposes the experiment's workers. Available after completion, cancellation, or error.
-- **Close** -- closes the drawer without affecting the experiment.
+- **Cancel** -- stops the experiment. Offered while it is initializing or running, and while a study drives a sweep, which it stops too. Once a sweep is cancelled its sliders and its surface lock; a selection that failed locks nothing, and the next selection computes normally.
+- **Remove** -- deletes the record and disposes the experiment's workers (and, for a sweep, its study). It sits at the left edge of the footer.
+- **Close** -- closes the panel without affecting the experiment.
 
-There is no built-in restart action -- to re-run with the same configuration, **Create** a new experiment with the same settings.
-
-Opening and closing an existing experiment participates in Browser Back /
-Forward history on hosts with app navigation enabled. Experiment records and
-results remain session data: browser navigation can reopen a record while the
-current Petrinaut session is mounted, but reloading a copied experiment URL
-does not recreate the run.
+To repeat a completed non-sweep experiment, **Create** a new experiment with the same settings. A sweep can start another optimizer search from its **Parameters** card.
 
 A confirmation prompt blocks browser/tab close while any experiment is initializing or running.
 
 ### Notifications
 
-The Summary's progress bar tracks the selected combination (runs sampled over the run budget). While anything computes, a **"N computing"** chip appears beside it — a sweep runs several simulations in parallel (the selection's own batches, surface chunks, cell refinements) — and clicking the chip expands a compact list with each batch's kind and progress. Selection batches are the priority work and sort first.
+In **Details**, **Active batches** counts the batches running and opens a list with each batch's label (**Selection**, or **Step N** during optimization) and progress. It appears while batches are active.
 
-A small toast appears when an experiment **completes** or **errors**, even if its drawer isn't open. The top-bar **Active experiments** popover (see below) lets you jump to any in-flight experiment from anywhere in the app.
+A small toast appears when an experiment **completes** or **errors**, even if its panel isn't open. The top-bar **Active experiments** popover (see below) lets you jump to any in-flight experiment from anywhere in the app.
 
 ## Active experiments popover
 
-When any experiment is **initializing** or **running**, the top bar shows an **Active experiments** flask icon with a count (e.g. "2 active"). Click it for a popover listing each in-flight experiment with its scenario, progress, status, and a time progress bar. Clicking a row jumps directly to Simulate mode, the Experiments tab, and that experiment's drawer.
+When any experiment is **initializing** or **running**, the top bar shows an **Active experiments** flask icon with a count (e.g. "2 active"). A host-owned optimization remains active while its sweep is briefly **Idle** between steps and while its final result settles. Click the icon for a popover listing each in-flight experiment with its scenario, progress, status, and a time progress bar. Clicking a row jumps directly to Simulate mode, the Experiments tab, and that experiment's panel.
 
 The popover hides itself again once nothing is in flight.
+
+On the Petrinaut website, a prepared Brunch draft is not active work: it shows
+only in chat, without a **Simulate** badge or an entry in this popover.
+Choose **Run** to start execution; the ordinary active indicator then appears.
+Its chat card shows progress, cancellation and final metrics. **View experiment**
+opens the existing results in Simulate; starting the run does not switch modes.
 
 ## Experiments and single-run Play
 
@@ -176,6 +251,6 @@ You can press Play in Edit mode while experiments are running in the background,
 
 Changing the net while an experiment is running does **not** retroactively affect that experiment -- it captured its model snapshot when you pressed Run.
 
-Experiments and [optimizations](optimization.md) are separate workflows.
-Experiments aggregate many runs of one fixed configuration; optimizations vary
-selected scenario parameters to improve one objective metric.
+A parameter sweep is also where Petrinaut searches parameters. Start its
+in-browser optimizer during creation or later from **Parameters → Optimize**
+(see [Optimizing a sweep](#optimizing-a-sweep)).

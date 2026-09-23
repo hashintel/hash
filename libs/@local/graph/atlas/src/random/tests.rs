@@ -10,8 +10,9 @@ use super::{
     acceptance_sample_size, keyed_rng, mean_sample_size, normal_quantile, sample_ids,
     sample_indices_vec, uniform_below,
 };
-use crate::math::{OpenUnitFraction, d_non_negative, d_positive, open_unit_fraction};
+use crate::math::{OpenUnitFraction, d_non_negative, d_positive, nz, open_unit_fraction};
 
+/// Creates a reproducible generator for a test case.
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
@@ -19,7 +20,7 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
 #[test]
 fn uniform_below_bound_one() {
     let mut rng = rng(7);
-    let bound = NonZero::new(1).expect("one is not zero");
+    let bound = nz!(1);
 
     for _ in 0..64 {
         assert_eq!(uniform_below(&mut rng, bound), 0);
@@ -29,7 +30,7 @@ fn uniform_below_bound_one() {
 #[test]
 fn uniform_below_residue_balance() {
     let mut rng = rng(42);
-    let bound = NonZero::new(7).expect("seven is not zero");
+    let bound = nz!(7);
 
     let mut counts = [0_u32; 7];
     let draws = 70_000;
@@ -38,8 +39,9 @@ fn uniform_below_residue_balance() {
         counts[usize::try_from(value).expect("a value below seven fits usize")] += 1;
     }
 
-    // Expected 10_000 per residue; ±10% is ~26 standard deviations, so a
-    // failure indicates bias rather than bad luck with the fixed seed.
+    // Modeling each draw as independent and uniform over the seven residues, the expected
+    // count per residue is 10_000, with standard deviation about 92.6 (√(70_000 · 1/7 · 6/7)). The
+    // ±10% margin is about 10.8 standard deviations under that model.
     for (residue, &count) in counts.iter().enumerate() {
         assert!(
             (9_000..=11_000).contains(&count),
@@ -64,8 +66,6 @@ fn uniform_below_seed_determinism() {
         .collect();
 
     assert_eq!(first, second);
-    // The stream must actually vary; a constant stream would make the
-    // equality above vacuous.
     assert!(
         first
             .array_windows::<2>()
@@ -81,7 +81,7 @@ fn acceptance_sample_size_hand_checked() {
         acceptance_sample_size(open_unit_fraction!(0.01), open_unit_fraction!(0.95)),
         299
     );
-    // The doc example uses one-in-a-hundred defects at 99.9% confidence.
+    // ln(0.001)/ln(0.99) ≈ 687.32, rounded up to 688.
     assert_eq!(
         acceptance_sample_size(open_unit_fraction!(0.01), open_unit_fraction!(0.999)),
         688
@@ -92,11 +92,9 @@ fn acceptance_sample_size_hand_checked() {
     );
 }
 
-/// The returned count is sufficient and minimal.
-///
-/// `n` all-pass samples push the false-acceptance probability to the target or below, and `n - 1`
-/// samples do not. This is the function's entire contract, certified over the whole in-domain
-/// parameter space.
+// The real-arithmetic budget satisfies (1 − p)ⁿ ≤ 1 − c < (1 − p)ⁿ⁻¹. These sampled parameter
+// ranges keep counts representable by i32 and away from extreme underflow or saturation. The
+// probability comparison allows an absolute tolerance of 10⁻¹².
 #[property_test]
 fn acceptance_sample_size_sufficient_minimal(
     #[strategy = 1e-6_f64..0.5] defect_rate: f64,
@@ -116,7 +114,6 @@ fn acceptance_sample_size_sufficient_minimal(
     }
 }
 
-/// Stricter requirements never shrink the sample.
 #[property_test]
 fn acceptance_sample_size_monotone(
     #[strategy = 1e-5_f64..0.4] defect_rate: f64,
@@ -132,7 +129,6 @@ fn acceptance_sample_size_monotone(
     prop_assert!(looser_defect <= base);
 }
 
-/// Draws respect any bound, including awkward ones near overflow.
 #[property_test]
 fn uniform_below_in_range(#[strategy = any::<u64>()] seed: u64, #[strategy = 1_u64..] bound: u64) {
     let bound = NonZero::new(bound).expect("the strategy starts at one");
@@ -141,12 +137,9 @@ fn uniform_below_in_range(#[strategy = any::<u64>()] seed: u64, #[strategy = 1_u
     prop_assert!(value < bound.get());
 }
 
-/// The quantile matches tabulated standard normal values.
-///
-/// The tabulated cases cover both rational-approximation regions.
 #[test]
 fn normal_quantile_tabulated() {
-    // Central region.
+    // common tabulated quantiles, including the upper tail at 0.99
     for (probability, expected) in [
         (0.5, 0.0),
         (0.75, 0.674_489_750_196_082),
@@ -163,7 +156,7 @@ fn normal_quantile_tabulated() {
         );
     }
 
-    // Tail regions (the approximation switches at 0.02425).
+    // additional tail values (the lower-tail approximation switches at 0.02425)
     for (probability, expected) in [
         (0.999, 3.090_232_306_167_813),
         (0.000_1, -3.719_016_485_455_68),
@@ -178,7 +171,6 @@ fn normal_quantile_tabulated() {
     }
 }
 
-/// The quantile is antisymmetric about the median.
 #[test]
 fn normal_quantile_antisymmetry() {
     for probability in [0.001, 0.02425, 0.1, 0.3, 0.49] {
@@ -192,12 +184,9 @@ fn normal_quantile_antisymmetry() {
     }
 }
 
-/// The mean sample size follows the closed form and its monotonicity laws.
-///
-/// Tighter margins and higher confidence grow the sample, smaller deviations shrink it.
 #[test]
 fn mean_sample_size_closed_form() {
-    // ceil((2.326348 · 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.
+    // ⌈(2.326348 · 0.32 / 0.012)²⌉ = ⌈3848.46…⌉ = 3849.
     assert_eq!(
         mean_sample_size(
             d_non_negative!(0.32),
@@ -214,7 +203,7 @@ fn mean_sample_size_closed_form() {
         ),
         5542
     );
-    // A deviation of zero needs no sample.
+    // zero deviation gives a zero budget in the sizing formula
     assert_eq!(
         mean_sample_size(
             d_non_negative!(0.0),
@@ -248,12 +237,11 @@ fn mean_sample_size_closed_form() {
     assert!(higher_confidence > base);
     assert!(smaller_deviation < base);
 
-    // Halving the margin exactly quadruples the requirement before
-    // rounding, so allow one count of ceiling slack.
+    // Halving the margin quadruples the real-arithmetic budget before ceiling. The integer budgets
+    // allow four counts of slack for rounding.
     assert!(tighter_margin >= base * 4 - 4 && tighter_margin <= base * 4 + 4);
 }
 
-/// A sample carries the requested count of distinct indices, every one inside the population.
 #[test]
 fn sample_indices_vec_without_replacement() {
     let population = 1_000_000;
@@ -263,8 +251,6 @@ fn sample_indices_vec_without_replacement() {
 
     assert_eq!(picked.len(), count);
 
-    // Distinctness is the without-replacement contract, so the set size must
-    // equal the sample length rather than merely bound it.
     let distinct: BTreeSet<usize> = picked.iter().collect();
     assert_eq!(distinct.len(), count);
     assert!(distinct.iter().all(|&index| index < population));
@@ -272,10 +258,10 @@ fn sample_indices_vec_without_replacement() {
 
 hashql_core::id::newtype! {
     /// A position within the test population.
+    ///
     struct SampleId(u32)
 }
 
-/// A sample carries the requested count of distinct ids, every one inside the population.
 #[test]
 fn sample_ids_without_replacement() {
     let population = IdSlice::<SampleId, ()>::from_raw(&[(); 4096]);
@@ -285,21 +271,16 @@ fn sample_ids_without_replacement() {
 
     assert_eq!(picked.len(), count);
 
-    // Distinctness is the without-replacement contract, so the set size must
-    // equal the sample length rather than merely bound it.
     let distinct: BTreeSet<SampleId> = picked.iter().copied().collect();
     assert_eq!(distinct.len(), count);
     assert!(distinct.iter().all(|id| id.as_usize() < population.len()));
 }
 
-/// One seed draws identical positions through the typed and untyped forms.
 #[test]
 fn sample_ids_stream_parity() {
     let population = IdSlice::<SampleId, ()>::from_raw(&[(); 4096]);
     let count = 128;
 
-    // Seeded draws are pinned wherever a replay consumes them, so adopting
-    // the typed form must not move a single drawn value.
     let typed: Vec<usize> = sample_ids(rng(42), population, count)
         .map(SampleId::as_usize)
         .collect();
@@ -310,7 +291,6 @@ fn sample_ids_stream_parity() {
     assert_eq!(typed, raw);
 }
 
-/// One key replays its own stream exactly.
 #[test]
 fn keyed_rng_replay() {
     let mut first = keyed_rng(42, 7, 0);
@@ -324,8 +304,6 @@ fn keyed_rng_replay() {
         .collect();
 
     assert_eq!(draws, replay);
-    // A constant stream would satisfy the equality above without replaying
-    // anything, so the draws must actually vary.
     assert!(
         draws
             .array_windows::<2>()
@@ -333,9 +311,9 @@ fn keyed_rng_replay() {
     );
 }
 
-/// Each coordinate of `(seed, key, stream)` selects its own stream.
 #[test]
 fn keyed_rng_stream_separation() {
+    /// Draws the first 32 values of the generator keyed by `(seed, key, index)`.
     fn stream(seed: u64, key: u64, index: u64) -> Vec<u64> {
         let mut rng = keyed_rng(seed, key, index);
         core::iter::repeat_with(|| rng.random::<u64>())

@@ -3,7 +3,51 @@
   "extends": ["//"],
   "tasks": {
     "build:cli": {
+      "command": [
+        "cargo",
+        "build",
+        "--bin",
+        "codec",
+        "--features",
+        "cli",
+        "--release",
+        "--target-dir",
+        "dist"
+      ],
       "outputs": ["./dist/**"]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "harpc-wire-protocol",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:miri": {
+      "command": ["just", "miri"]
+    },
+    "test:unit": {
+      "command": ["mise", "run", "test:unit", "harpc-wire-protocol"]
     }
   }
 }

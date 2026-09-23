@@ -1,4 +1,4 @@
-//! Synthetic relation corpora at the live store's measured shape.
+//! Synthetic relation corpora for measuring volume concentration and hubbed endpoints.
 
 use core::num::NonZero;
 use std::sync::OnceLock;
@@ -21,9 +21,10 @@ use crate::{
 
 /// Cumulative specific-type link volumes measured in the live store.
 ///
-/// Sixteen specific relation types over 2,196,563 links, spanning five orders of magnitude; the
-/// largest owns 34% of links, the smallest 4 links. Sampling a uniform position below the total and
-/// bucketing by these boundaries reproduces the measured volume distribution at any corpus scale.
+/// The recorded histogram covers 2,196,563 links across sixteen specific types. The largest has
+/// 739,374 links (about 34%), the smallest four. Uniform positions below the total select types
+/// with probabilities proportional to these volumes. Finite synthesized counts fluctuate rather
+/// than reproducing exact proportions.
 const MEASURED_SPECIFIC_CUMULATIVE: [u64; 16] = [
     739_374, 1_405_028, 1_861_990, 1_971_015, 2_041_671, 2_096_752, 2_143_950, 2_165_211,
     2_185_797, 2_190_391, 2_193_025, 2_195_240, 2_196_479, 2_196_553, 2_196_559, 2_196_563,
@@ -38,24 +39,27 @@ const RELATION_TYPES: usize = 1 + MEASURED_SPECIFIC_CUMULATIVE.len();
 
 /// Odd multiplier scattering hub ranks over the power-of-two row domain.
 ///
-/// Odd times anything is invertible modulo a power of two, so distinct ranks map to distinct rows.
+/// An odd integer is invertible modulo any power of two. Multiplication by this constant followed
+/// by the row mask permutes that domain. Therefore distinct in-domain ranks map to distinct rows.
 const HUB_SCATTER: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// How a synthesized corpus distributes volume over relation types.
 ///
-/// All three profiles share the same endpoint generator, instance volume, and policy table; they
-/// differ only in volume concentration, so a timing difference between them is attributable to skew
-/// alone.
+/// Profiles share an endpoint-generation law, instance count and policy table. Live type draws
+/// consume additional randomness, changing the realized endpoints even at the same seed. Relation
+/// assignments also change policy-weight mixtures and degrees. Timing differences do not isolate
+/// relation skew alone.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Profile {
-    /// The measured live shape.
+    /// A shared base type plus a specific type drawn from the recorded histogram.
     ///
-    /// Every link carries the shared base type plus one specific type drawn from the measured
-    /// histogram, so the base relation owns exactly half of all instances.
+    /// Exactly half of all instances have the base relation. Both readings use multiplicity one.
     Live,
-    /// The same instance volume spread evenly over the same type count.
+    /// Round-robin readings whose type counts differ by at most one.
+    ///
+    /// Each synthetic link has two distinct relation readings, both at multiplicity one.
     Uniform,
-    /// One relation owns every instance.
+    /// One relation owns every instance, as pairs of distinct single-reading edges.
     Mega,
 }
 
@@ -73,10 +77,13 @@ impl Profile {
 
 /// A synthesized relation corpus with sorted stage inputs on demand.
 ///
-/// Holds the raw instance set; the group-sorted and pair-sorted copies each build stage starts from
-/// materialize on first use and stay cached, so a corpus that only runs full builds keeps one copy
-/// resident (about 250 MB at the live scale of 2.2M links) and one that isolates stages keeps
-/// three.
+/// Synthesis retains the instance buffer. Group-sorted instances, emission-order protection records
+/// and the assembled protection index initialize lazily and remain cached. Full builds additionally
+/// require a mutable instance copy. Stage isolation can retain all of these buffers at once.
+///
+/// `N` must represent the full row domain and its end fencepost, and `E` must represent the
+/// generated edge ids. Stage assembly requires the row count to fit `u32`, a bound synthesis does
+/// not check.
 pub struct Corpus<N, E> {
     rows: usize,
     links: usize,
@@ -90,17 +97,31 @@ pub struct Corpus<N, E> {
 impl<N, E> Corpus<N, E> {
     /// Synthesizes a corpus of `links` links under `profile`.
     ///
-    /// The row domain is the largest power of two at most half the link count (the live ratio: 2.2M
-    /// links over 1M rows), floored at 64. Sources are uniform over the rows. Targets follow a
-    /// truncated Zipf tail over one eighth of the rows (the measured hub shape has 124K distinct
-    /// targets, the largest gathering 9% of all links). Confidence stays unscored throughout, the
-    /// live corpus's only shape. Every draw comes from `rng` seeded with `seed`, so equal arguments
-    /// synthesize equal corpora.
+    /// The row count is the largest power of two not exceeding `max(links / 2, 64)`. This
+    /// approximates the recorded 2.2M-link, 1M-row scale. Sources are uniform over rows. The
+    /// recorded hub profile has about 124K distinct targets, motivating `H = rows / 8`. Its largest
+    /// target holds 9% of links.
+    ///
+    /// For a uniform `U ∈ [0, 1)`, target rank is `floor(Hᵁ) − 1`, scattered through an odd modular
+    /// multiplier. In ideal arithmetic, rank `k` has probability `ln((k + 2)/(k + 1)) / ln(H)` for
+    /// `0 ≤ k ≤ H − 2`. This is a Zipf-like hub distribution and no exact replay of the measured
+    /// target counts. Floating-point power evaluation and discrete random draws approximate this
+    /// law.
+    ///
+    /// Each input link produces two instances with unscored confidence. Live and Uniform repeat the
+    /// edge id under distinct relations but leave multiplicity at one. They measure full-share
+    /// emission, not the production two-reading share of one half. Mega instead assigns distinct
+    /// edge ids under one relation. Self-references remain in synthesis output for the build to
+    /// drop.
+    ///
+    /// Equal arguments repeat at the same RNG and floating-point implementation. Power evaluation
+    /// does not promise cross-target bit identity. The `links` parameter counts endpoint draws, not
+    /// distinct edge ids in every profile.
     ///
     /// # Panics
     ///
-    /// This panics when the instance set does not fit the address space. Construction satisfies
-    /// every internal expectation.
+    /// Panics when generated ids exceed `N` or `E`'s range, or the instance allocation exceeds
+    /// capacity. `2 · links` must fit `usize`.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -126,8 +147,8 @@ impl<N, E> Corpus<N, E> {
                 clippy::cast_precision_loss,
                 clippy::cast_possible_truncation,
                 clippy::cast_sign_loss,
-                reason = "the hub count is far below f64 integer precision, and the Zipf power \
-                          lies in [1, hubs), so the floor fits every integer type in play"
+                reason = "the power-of-two hub count converts exactly to f64. The power lies \
+                          between one and that count, within the integer encodings"
             )]
             let rank = (hubs as f64).powf(rng.random::<f64>()) as u64 - 1;
             let target = N::from_u64(rank.wrapping_mul(HUB_SCATTER) & (rows as u64 - 1));
@@ -148,8 +169,7 @@ impl<N, E> Corpus<N, E> {
             let edge = link as u64;
             match profile {
                 Profile::Live => {
-                    // One link, two readings sharing the edge row: the
-                    // base type and a histogram-drawn specific type.
+                    // a base reading and a histogram-drawn specific reading share the edge id.
                     let at = endpoints(&mut rng);
                     let position = uniform_below(&mut rng, MEASURED_LINKS);
                     let specific = 1 + MEASURED_SPECIFIC_CUMULATIVE
@@ -160,16 +180,15 @@ impl<N, E> Corpus<N, E> {
                     instances.push(instance(edge, specific, at));
                 }
                 Profile::Uniform => {
-                    // Round-robin over an odd type count: the pair is
-                    // always distinct and every type's volume is even.
+                    // consecutive positions modulo seventeen give distinct relations within each
+                    // pair. Across all readings, type counts differ by at most one.
                     let at = endpoints(&mut rng);
                     instances.push(instance(edge, (link * 2) % RELATION_TYPES, at));
                     instances.push(instance(edge, (link * 2 + 1) % RELATION_TYPES, at));
                 }
                 Profile::Mega => {
-                    // A parallel pair of single-reading links between one endpoint pair gives the
-                    // same instance, pair, and protection-entry volume as the other profiles while
-                    // one relation owns everything.
+                    // distinct edge ids keep each (edge, relation) reading unique while one
+                    // relation holds both instances.
                     let at = endpoints(&mut rng);
                     instances.push(instance(edge * 2, 0, at));
                     instances.push(instance(edge * 2 + 1, 0, at));
@@ -179,9 +198,7 @@ impl<N, E> Corpus<N, E> {
 
         let policies = (0..RELATION_TYPES)
             .map(|relation| {
-                // Masses and applicabilities spread across the table so
-                // pruning-threshold and floor sweeps separate relations
-                // instead of dropping all or nothing.
+                // varying mass and applicability let threshold and floor sweeps separate relations.
                 let step = f64::from(u8::try_from(relation).expect("the table holds 17 types"));
                 let distribution = ClassProbabilities {
                     coincident: UnitFraction::ZERO,
@@ -218,7 +235,7 @@ impl<N, E> Corpus<N, E> {
         self.rows
     }
 
-    /// Returns the synthesized link count.
+    /// Returns the requested number of endpoint draws.
     #[inline]
     #[must_use]
     pub const fn links(&self) -> usize {
@@ -252,6 +269,10 @@ impl<N, E> Corpus<N, E> {
     }
 
     /// Borrows the emitted protection records in emission order, emitting on first use.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `N` cannot represent zero for scratch initialization.
     pub(super) fn records(&self) -> &[ProtectionRecord<N>]
     where
         N: Id,
@@ -280,6 +301,11 @@ impl<N, E> Corpus<N, E> {
     }
 
     /// Borrows the assembled protection index, assembling on first use.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the row domain exceeds the matrix encoding or required row positions cannot be
+    /// represented by `N`.
     pub(super) fn protection(&self) -> &ProtectionIndex<N>
     where
         N: Id,

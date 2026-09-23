@@ -106,6 +106,20 @@ describe("constraint session virtual files", () => {
     expect(code.suffix).toBe("\n}");
   });
 
+  it("supplies a return outside the authored state expression", () => {
+    const expression = "state.places.P.count > 3";
+    const files = generateConstraintSessionFiles(
+      SDCPN,
+      session("state", expression),
+    );
+    const code = files.get(CODE_PATH)!;
+    expect(code.prefix).toContain(
+      "function __constraint(state: MetricState): boolean {\nreturn (\n",
+    );
+    expect(code.content).toBe(expression);
+    expect(code.suffix).toBe("\n);\n}");
+  });
+
   it("declares `scenario` as an empty record when the study has no parameters", () => {
     const files = generateConstraintSessionFiles(SDCPN, {
       ...session("parameters", "true"),
@@ -150,16 +164,46 @@ describe("constraint session diagnostics", () => {
     ]);
   });
 
-  it("accepts a boolean state-space body", () => {
-    expect(
-      constraintDiagnostics("state", 'return state.places["P"].count > 3;'),
-    ).toEqual([]);
+  it.each([
+    "state.places.P.count > 3",
+    "state.places.P.count > 3;",
+    "state.places.P.count > 3 /* minimum */; // required",
+    "// return is implicit\nstate.places.P.count > 3 &&\nparameters.weight > 0 // weight",
+    'return state.places["P"].count > 3;',
+    "const count = state.places.P.count;\nreturn count > 3;",
+  ])("accepts a boolean state condition: %s", (code) => {
+    expect(constraintDiagnostics("state", code)).toEqual([]);
   });
 
-  it("rejects a state-space body returning a number", () => {
+  it.each(["state.places.P.count", 'return state.places["P"].count;'])(
+    "rejects a non-boolean state condition: %s",
+    (code) => {
+      expect(constraintDiagnostics("state", code)).toEqual([
+        "Type 'number' is not assignable to type 'boolean'.",
+      ]);
+    },
+  );
+
+  it("positions TypeScript errors on the authored expression", () => {
+    const code = "\nstate.places.Missing.count > 0; // minimum";
+    const server = makeServer(session("state", code));
+    const diagnostics = server.getSemanticDiagnostics(CODE_PATH);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({
+      start: code.indexOf("Missing"),
+      length: "Missing".length,
+    });
+  });
+
+  it("reports a missing return for separate state conditions", () => {
     expect(
-      constraintDiagnostics("state", 'return state.places["P"].count;'),
-    ).toEqual(["Type 'number' is not assignable to type 'boolean'."]);
+      constraintDiagnostics(
+        "state",
+        "state.places.P.count > 3; parameters.weight > 0;",
+      ),
+    ).toEqual([
+      "A function whose declared type is neither 'undefined', 'void', nor 'any' must return a value.",
+    ]);
   });
 
   it("removes the code file once the session is killed", () => {
@@ -186,20 +230,46 @@ describe("constraint session completion", () => {
     expect(names).toEqual(["a", "b"]);
   });
 
-  it("lists the places after `state.places.`", () => {
-    const code = "return state.places.";
-    const server = makeServer(session("state", code));
-    const completions = server.getCompletionsAtPosition(
-      CODE_PATH,
-      code.length,
-      undefined,
-    );
-    const names = (completions?.entries ?? []).map((entry) => entry.name);
-    expect(names).toEqual(["P"]);
-  });
+  it.each(["state.places.", "return state.places."])(
+    "lists places for %s",
+    (code) => {
+      const server = makeServer(session("state", code));
+      const completions = server.getCompletionsAtPosition(
+        CODE_PATH,
+        code.length,
+        undefined,
+      );
+      const names = (completions?.entries ?? []).map((entry) => entry.name);
+      expect(names).toEqual(["P"]);
+    },
+  );
 });
 
 describe("constraint session HIR lint", () => {
+  it("accepts a state expression without requiring an explicit return", () => {
+    expect(
+      getHirDiagnosticsForItem(
+        "state.places.P.count > 3",
+        buildMetricContext(SDCPN, undefined, "boolean"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("positions unsupported-call errors on the authored state expression", () => {
+    const code = "\nNumber.isFinite(state.places.P.count)";
+    expect(constraintDiagnostics("state", code)).toEqual([]);
+    const diagnostics = getHirDiagnosticsForItem(
+      code,
+      buildMetricContext(SDCPN, undefined, "boolean"),
+    );
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({
+      source: "hir",
+      start: 1,
+      length: code.trim().length,
+    });
+  });
+
   it("passes a boolean parameters-space expression through the constraint's lowering context", () => {
     const context = buildScenarioExpressionContext(
       SDCPN.parameters,

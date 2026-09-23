@@ -1,8 +1,3 @@
-import {
-  BRUNCH_QUESTION_DATA_NAME,
-  parseBrunchQuestionData,
-} from "@hashintel/brunch-agent/question-marker";
-
 import { hashCanonicalSpeechText } from "../../../canonical-speech-fingerprint";
 
 import type { AgentSendResult } from "@flue/sdk";
@@ -46,6 +41,23 @@ const createSegment = (
   };
 };
 
+const finalizedTurnText = (message: PetrinautAiMessage): string | undefined => {
+  const speechAndToolParts = message.parts.filter(
+    (part) => part.type === "text" || "toolCallId" in part,
+  );
+  const terminalPart = speechAndToolParts.at(-1);
+  if (terminalPart?.type !== "text" || terminalPart.state === "streaming") {
+    return undefined;
+  }
+
+  const finalizedTexts = message.parts.flatMap((part) =>
+    part.type === "text" && part.state !== "streaming" && part.text.trim()
+      ? [part.text]
+      : [],
+  );
+  return finalizedTexts.length > 0 ? finalizedTexts.join("\n\n") : undefined;
+};
+
 export interface CanonicalSpeechSelection {
   readonly questionSegment?: CanonicalSpeechSegment;
   readonly segments: CanonicalSpeechSegment[];
@@ -58,15 +70,9 @@ export const selectCanonicalSpeech = (
   let questionSegment: CanonicalSpeechSegment | undefined;
 
   for (const message of messages) {
-    if (message.role !== "assistant") {
+    if (message.role !== "assistant" || message.metadata?.stopped) {
       continue;
     }
-
-    const finalizedTexts = message.parts.flatMap((part) =>
-      part.type === "text" && part.state !== "streaming" && part.text.trim()
-        ? [part.text]
-        : [],
-    );
 
     for (const [partIndex, part] of message.parts.entries()) {
       if (
@@ -85,26 +91,13 @@ export const selectCanonicalSpeech = (
       }
     }
 
-    const questionMarkers = message.parts.flatMap((part) => {
-      if (part.type !== `data-${BRUNCH_QUESTION_DATA_NAME}`) {
-        return [];
-      }
-
-      const marker = parseBrunchQuestionData(part.data);
-
-      return marker &&
-        finalizedTexts.some((text) => text.includes(marker.question))
-        ? [marker]
-        : [];
-    });
-    const latestQuestionMarker = questionMarkers.at(-1);
-
-    if (latestQuestionMarker) {
+    const turnText = finalizedTurnText(message);
+    if (turnText !== undefined) {
       questionSegment = createSegment(
         message.id,
-        `question:${latestQuestionMarker.toolCallId}`,
+        "question:finalized-turn",
         "assistant-question",
-        latestQuestionMarker.question,
+        turnText,
       );
     }
   }

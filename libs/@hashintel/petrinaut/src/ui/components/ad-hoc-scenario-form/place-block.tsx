@@ -6,9 +6,6 @@
  * grid-track transition and makes the content inert; collapsed, the place
  * is one line: its name and a summary of its rows and token total. An
  * uncoloured place is a header plus one full-width count cell.
- *
- * The collapse chevron hangs in the left margin, so every place name —
- * coloured or not — starts at the same x as the blocks beneath it.
  */
 
 import { use, useState } from "react";
@@ -31,20 +28,16 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 const blockStyle = css({
-  contentVisibility: "auto",
-  containIntrinsicSize: "[auto 200px]",
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
+  "&[data-collapsed]": { gap: "0" },
 });
 
 const denseBlockStyle = css({
   gap: "1",
 });
 
-// One line grammar for places: the fixed title width and line height are
-// shared between an uncoloured place's row and a collapsed coloured
-// place's header, so counts and collapsed summaries start at the same x.
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
@@ -52,9 +45,6 @@ const headerStyle = css({
   minHeight: "[26px]",
 });
 
-// The place-name trigger pulls itself left by its padding plus the chevron
-// slot, so the dot + name align with the un-chevroned headers and the
-// tables below.
 const placeNameButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -62,10 +52,11 @@ const placeNameButtonStyle = css({
   border: "none",
   background: "[transparent]",
   padding: "[2px 4px]",
-  marginLeft: "[-20px]",
+  marginLeft: "[-24px]",
+  minWidth: "[0]",
   borderRadius: "xs",
-  fontSize: "sm",
-  fontWeight: "semibold",
+  fontSize: "xs",
+  fontWeight: "medium",
   color: "neutral.s120",
   cursor: "pointer",
   _hover: { backgroundColor: "neutral.s10" },
@@ -76,29 +67,22 @@ const placeNameButtonStyle = css({
   },
 });
 
-// Collapsed, the title button takes the shared fixed width (the 20px
-// chevron hang included), so the summary aligns with the uncoloured
-// places' count cells.
-const collapsedTitleButtonStyle = css({
-  width: "[190px]",
-});
-
-const collapsedTitleNameStyle = css({
+const placeTitleNameStyle = css({
   flex: "1",
   minWidth: "[0]",
   overflow: "hidden",
   whiteSpace: "nowrap",
   textAlign: "left",
-  maskImage:
-    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
+  textOverflow: "ellipsis",
 });
 
 const chevronStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "neutral.s70",
+  color: "neutral.s100",
   width: "[12px]",
+  flexShrink: "0",
   transition: "[transform 0.12s ease]",
 });
 
@@ -115,6 +99,8 @@ const colourDotStyle = css({
 });
 
 const summaryStyle = css({
+  marginLeft: "auto",
+  flexShrink: "0",
   fontFamily: "mono",
   fontSize: "[10px]",
   color: "neutral.s80",
@@ -153,20 +139,9 @@ const placeNameStyle = css({
   alignItems: "center",
   gap: "1",
   padding: "[2px 0]",
-  fontSize: "sm",
-  fontWeight: "semibold",
-  color: "neutral.s120",
-});
-
-// The embedded (dense) rendering shrinks the titles a step and tightens
-// their padding, so a long place list stays scannable in a panel.
-const densePlaceNameStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
-});
-
-const headerSpacerStyle = css({
-  flex: "1",
+  color: "neutral.s120",
 });
 
 // An uncoloured place is one line: a fixed-width title, then the count
@@ -187,7 +162,8 @@ const uncolouredCountTriggerStyle = css({
 });
 
 const uncolouredTitleStyle = css({
-  width: "[170px]",
+  marginLeft: "[-4px]",
+  width: "[194px]",
   flexShrink: "0",
   overflow: "hidden",
   whiteSpace: "nowrap",
@@ -250,22 +226,22 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
     setEverExpanded(true);
   }
   const { attach: attachHeader, onHeaderKeyDown } = useFocusHeader({
-    collapse: () => setCollapsed(true),
-    expand: () => setCollapsed(false),
+    collapse: collapsed ? undefined : () => setCollapsed(true),
+    expand: collapsed ? () => setCollapsed(false) : undefined,
   });
   const total = placeTotal(place.id);
   const totalText = total.resolved ? `${total.total}` : total.text;
 
   return (
-    <div className={cx(blockStyle, dense && denseBlockStyle)}>
+    <div
+      className={cx(blockStyle, dense && denseBlockStyle)}
+      data-collapsed={collapsed || undefined}
+    >
       <div className={headerStyle}>
         <button
           ref={attachHeader}
           type="button"
-          className={cx(
-            placeNameButtonStyle,
-            collapsed && collapsedTitleButtonStyle,
-          )}
+          className={placeNameButtonStyle}
           aria-expanded={!collapsed}
           aria-label={`${place.name} place`}
           onClick={() => setCollapsed((current) => !current)}
@@ -282,28 +258,20 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
             className={colourDotStyle}
             style={{ backgroundColor: colour.displayColor }}
           />
-          <span
-            className={cx(
-              dense && densePlaceNameStyle,
-              collapsed && collapsedTitleNameStyle,
-            )}
-          >
-            {place.name}
-          </span>
+          <span className={placeTitleNameStyle}>{place.name}</span>
         </button>
-        {collapsed ? (
-          <span
-            className={cx(
-              summaryStyle,
-              (state.rows.length > 0 || (total.resolved && total.total > 0)) &&
-                summaryFilledStyle,
-            )}
-          >
-            {state.rows.length} row{state.rows.length === 1 ? "" : "s"} ·{" "}
-            {totalText} tokens
-          </span>
-        ) : null}
-        <span className={headerSpacerStyle} />
+        <span
+          className={cx(
+            summaryStyle,
+            (state.rows.length > 0 || (total.resolved && total.total > 0)) &&
+              summaryFilledStyle,
+          )}
+        >
+          {collapsed
+            ? `${state.rows.length} row${state.rows.length === 1 ? "" : "s"} · `
+            : null}
+          {totalText} tokens
+        </span>
       </div>
       <div
         className={collapseWrapStyle}
@@ -328,7 +296,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
 }) => {
-  const { mode, dense } = use(AdHocFormContext);
+  const { mode } = use(AdHocFormContext);
   const target = { kind: "count" as const, placeId: place.id, row: null };
   // The count cell is a single-element member: vertical arrows leave to the
   // neighbouring member, horizontal ones cross into a sibling column.
@@ -336,19 +304,13 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
 
   return (
     <div className={uncolouredRowStyle}>
-      <span
-        className={cx(
-          placeNameStyle,
-          uncolouredTitleStyle,
-          dense && densePlaceNameStyle,
-        )}
-      >
+      <span className={cx(placeNameStyle, uncolouredTitleStyle)}>
         <span
           aria-hidden="true"
           className={colourDotStyle}
           style={{ backgroundColor: "#ccc" }}
         />
-        <span className={cx(dense && densePlaceNameStyle)}>{place.name}</span>
+        <span>{place.name}</span>
       </span>
       <div className={cx(tableContainerStyle, countBoxStyle)}>
         <ValueEditor

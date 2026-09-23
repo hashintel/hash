@@ -8,6 +8,14 @@
  * deferred `load`: a heavy backend is imported the first time selection
  * reaches it and stays out of bundles that never use it.
  */
+export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentResult,
+  type PetrinautExperimentHost,
+} from "./experiments/host";
 export type {
   ExperimentAssessment,
   ExperimentBlocker,

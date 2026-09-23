@@ -5,7 +5,7 @@
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
-    never_type,
+    trait_alias,
 
     // Library Features
     extend_one,
@@ -16,6 +16,7 @@
     unreachable_pub,
     reason = "This should be enabled but it's currently too noisy"
 )]
+#![recursion_limit = "256"]
 
 extern crate alloc;
 

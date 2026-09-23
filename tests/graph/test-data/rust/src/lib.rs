@@ -2,10 +2,6 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(
-    // Language Features
-    never_type,
-)]
 
 extern crate alloc;
 

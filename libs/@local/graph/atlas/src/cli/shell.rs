@@ -1,12 +1,19 @@
 //! The standalone binary's command line and entry point.
 
+#[cfg(feature = "cli")]
+use core::panic::UnwindSafe;
+
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueHint};
 
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;
-use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs};
+use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs, S3Args};
+#[cfg(feature = "cli")]
+use crate::file::storage::{Storage, error::StorageError};
 use crate::integrity::SecretString;
+#[cfg(feature = "cli")]
+use crate::progress::Progress;
 
 /// The standalone atlas binary's command line.
 ///
@@ -30,7 +37,10 @@ enum Command {
         #[command(flatten)]
         store: PostgresArgs,
 
-        // The fit flags dwarf the other variants, so the box keeps the enum small.
+        #[command(flatten)]
+        s3: S3Args,
+
+        // The fit flags dwarf the other variants. The box keeps the enum small.
         #[command(flatten)]
         args: Box<FitArgs>,
 
@@ -45,8 +55,8 @@ enum Command {
 
         /// Fit from the dump directory instead of the live store.
         ///
-        /// The dump supplies the snapshot and every embedding, so the run reaches neither the
-        /// store nor the embedding provider, and the store flags and the provider key are read by
+        /// The dump supplies the snapshot and every embedding. The run reaches neither the store
+        /// nor the embedding provider, and the store flags and the provider key are read by
         /// nothing. The generation's metadata records the dump as the fit's source.
         #[arg(long, value_name = "DUMP", value_hint = ValueHint::DirPath)]
         offline: Option<Utf8PathBuf>,
@@ -60,7 +70,7 @@ enum Command {
         tui: bool,
     },
 
-    /// Compiles an analysis instrument over a published generation.
+    /// Runs one analysis over a published generation.
     Report {
         #[command(subcommand)]
         command: ReportCommand,
@@ -91,6 +101,10 @@ enum FitSource {
 }
 
 /// Resolves the fit flags into the run's source.
+///
+/// # Panics
+///
+/// Panics if both the offline directory and provider key are absent.
 #[cfg(feature = "cli")]
 fn fit_source(
     store: PostgresArgs,
@@ -109,8 +123,7 @@ fn fit_source(
 
 /// One dashboard-hosted fit's failure, by step.
 ///
-/// The dashboard path owns three failures the logged path does not have to distinguish, and an
-/// operator reading a restored terminal needs to know which one they hit.
+/// The restored terminal reports the step that failed.
 #[cfg(feature = "cli")]
 #[derive(Debug)]
 enum DashboardError {
@@ -120,6 +133,8 @@ enum DashboardError {
     Connect(super::ConnectError),
     /// The fit failed.
     Fit(super::FitError),
+    /// The storage failed.
+    Storage(StorageError),
 }
 
 #[cfg(feature = "cli")]
@@ -128,9 +143,10 @@ impl core::fmt::Display for DashboardError {
         match self {
             Self::Terminal(_) => fmt.write_str("the live dashboard could not use the terminal"),
             Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
-            // The fit's own chain is the diagnosis; this variant adds no
+            // The fit's own chain is the diagnosis. This variant adds no
             // step of its own.
             Self::Fit(error) => core::fmt::Display::fmt(error, fmt),
+            Self::Storage(_) => fmt.write_str("the storage could not be accessed"),
         }
     }
 }
@@ -142,7 +158,15 @@ impl core::error::Error for DashboardError {
             Self::Terminal(error) => Some(error),
             Self::Connect(error) => Some(error),
             Self::Fit(error) => error.source(),
+            Self::Storage(error) => Some(error),
         }
+    }
+}
+
+#[cfg(feature = "cli")]
+impl From<StorageError> for DashboardError {
+    fn from(value: StorageError) -> Self {
+        Self::Storage(value)
     }
 }
 
@@ -177,6 +201,47 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
 }
 
+/// Builds fit storage with the optional S3 backend.
+///
+/// # Errors
+///
+/// Returns [`super::S3ArgsError`] if the enabled backend's region or credentials cannot be
+/// resolved.
+#[cfg(feature = "cli")]
+#[expect(clippy::significant_drop_in_scrutinee, reason = "false positive")]
+async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
+    let mut storage = Storage::in_temp_dir().await?;
+
+    if let Some(client) = s3.client().await? {
+        storage.set_s3(client);
+    }
+
+    Ok(storage)
+}
+
+/// Runs a prepared fit against the selected data source.
+///
+/// # Errors
+///
+/// Returns the connection or fit failure.
+#[cfg(feature = "cli")]
+async fn run_fit(
+    command: super::FitCommand<impl Progress<Detached: UnwindSafe> + Sync>,
+    source: FitSource,
+) -> Result<super::FitVerdict, DashboardError> {
+    match source {
+        FitSource::Live { store, credential } => {
+            let mut client = store.connect().await.map_err(DashboardError::Connect)?;
+            Box::pin(command.run(&mut client, credential))
+                .await
+                .map_err(DashboardError::Fit)
+        }
+        FitSource::Offline(dump) => Box::pin(command.run_offline(&dump))
+            .await
+            .map_err(DashboardError::Fit),
+    }
+}
+
 /// Runs one fit on the live dashboard, restoring the terminal before rendering anything.
 ///
 /// This installs the subscriber globally rather than around the run, because the pipeline reports
@@ -184,18 +249,23 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
 ///
 /// # Errors
 ///
-/// Returns the step that failed - terminal, connection, or the fit itself. The run's failure wins
-/// over a terminal failure, since it is the one an operator is trying to read.
+/// Returns [`DashboardError`] on failure. A run failure takes precedence over a
+/// terminal-restoration failure.
+///
+/// # Panics
+///
+/// Panics if a global tracing subscriber is already installed.
 #[cfg(feature = "cli")]
 async fn fit_on_dashboard(
     root: RootArgs,
     source: FitSource,
     args: FitArgs,
+    storage: Storage,
 ) -> Result<super::FitVerdict, DashboardError> {
     let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
 
-    // The dashboard owns the terminal from here, so the records the run
-    // emits belong in its pane, not on the screen it is drawing.
+    // The dashboard owns the terminal from here. The records the run emits belong in its pane, not
+    // on the screen it is drawing.
     tracing_subscriber::fmt()
         .with_env_filter(log_filter())
         .with_writer(dashboard.log_sink())
@@ -205,22 +275,11 @@ async fn fit_on_dashboard(
 
     let observer = dashboard.observer();
     let outcome = async {
-        let command = super::FitCommand::new(root, args).with_progress(observer);
+        let command = super::FitCommand::new(root, args, storage)
+            .await?
+            .with_progress(observer);
 
-        match source {
-            FitSource::Live { store, credential } => {
-                let mut client = store.connect().await.map_err(DashboardError::Connect)?;
-
-                command
-                    .run(&mut client, credential)
-                    .await
-                    .map_err(DashboardError::Fit)
-            }
-            FitSource::Offline(dump) => command
-                .run_offline(&dump)
-                .await
-                .map_err(DashboardError::Fit),
-        }
+        run_fit(command, source).await
     }
     .await;
 
@@ -232,6 +291,41 @@ async fn fit_on_dashboard(
     Ok(verdict)
 }
 
+/// Runs a fit without a dashboard and renders its verdict or failure chain.
+#[cfg(feature = "cli")]
+#[expect(clippy::significant_drop_tightening, reason = "false positive")]
+async fn fit_logged(
+    root: RootArgs,
+    source: FitSource,
+    args: FitArgs,
+    storage: Storage,
+) -> std::process::ExitCode {
+    let command = match super::FitCommand::new(root, args, storage).await {
+        Ok(command) => command,
+        Err(error) => return render_failure(error),
+    };
+
+    let result = match source {
+        FitSource::Live { store, credential } => {
+            let mut client = match store.connect().await {
+                Ok(client) => client,
+                Err(error) => return render_failure(error),
+            };
+
+            Box::pin(command.run(&mut client, credential)).await
+        }
+        FitSource::Offline(dump) => Box::pin(command.run_offline(&dump)).await,
+    };
+
+    match result {
+        Ok(verdict) => {
+            render_verdict(verdict);
+            std::process::ExitCode::SUCCESS
+        }
+        Err(error) => render_failure(error),
+    }
+}
+
 /// Runs the standalone atlas binary.
 ///
 /// Parses the command line and installs the log renderer before dispatching the command. The
@@ -241,9 +335,9 @@ async fn fit_on_dashboard(
 /// # Panics
 ///
 /// This panics when the tokio runtime cannot start or a global log subscriber is already
-/// installed.
+/// installed. After parsing, [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline)
+/// rejects a CPU below the compiled baseline, on the conditions it documents.
 #[cfg(feature = "cli")]
-#[must_use]
 #[tokio::main]
 pub async fn main() -> std::process::ExitCode {
     let cli = <Cli as Parser>::parse();
@@ -267,8 +361,21 @@ pub async fn main() -> std::process::ExitCode {
             openai_api_key,
             offline,
             tui: true,
+            s3,
         } => {
-            match fit_on_dashboard(root, fit_source(store, openai_api_key, offline), *args).await {
+            let storage = match fit_storage(s3).await {
+                Ok(storage) => storage,
+                Err(error) => return render_failure(error),
+            };
+
+            match fit_on_dashboard(
+                root,
+                fit_source(store, openai_api_key, offline),
+                *args,
+                storage,
+            )
+            .await
+            {
                 Ok(verdict) => {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
@@ -280,35 +387,28 @@ pub async fn main() -> std::process::ExitCode {
         Command::Fit {
             root,
             store,
+            s3,
             args,
             openai_api_key,
             offline,
             tui: false,
         } => {
-            let command = super::FitCommand::new(root, *args);
-            let result = match fit_source(store, openai_api_key, offline) {
-                FitSource::Live { store, credential } => {
-                    let mut client = match store.connect().await {
-                        Ok(client) => client,
-                        Err(error) => return render_failure(error),
-                    };
-
-                    command.run(&mut client, credential).await
-                }
-                FitSource::Offline(dump) => command.run_offline(&dump).await,
+            let storage = match fit_storage(s3).await {
+                Ok(storage) => storage,
+                Err(error) => return render_failure(error),
             };
 
-            match result {
-                Ok(verdict) => {
-                    render_verdict(verdict);
-                    std::process::ExitCode::SUCCESS
-                }
-                Err(error) => render_failure(error),
-            }
+            fit_logged(
+                root,
+                fit_source(store, openai_api_key, offline),
+                *args,
+                storage,
+            )
+            .await
         }
 
         Command::Report { command } => match command.run().await {
-            // The probe dumps its receipts as it solves and hands back no
+            // The probe dumps its records as it solves and hands back no
             // verdict to render.
             Ok(None) => std::process::ExitCode::SUCCESS,
             Ok(Some(verdict)) => {
@@ -337,25 +437,31 @@ pub async fn main() -> std::process::ExitCode {
 
 #[cfg(all(test, feature = "cli"))]
 mod tests {
+    use core::assert_matches;
+
     use camino::Utf8PathBuf;
     use clap::Parser as _;
 
     use super::{Cli, Command};
 
-    /// A scratch generation root for one parse, keyed so libtest's shared process cannot collide.
+    /// Returns a temporary path keyed by the process and test name.
     ///
-    /// Parsing creates the root directory, so each test names its own and removes it afterwards.
+    /// # Panics
+    ///
+    /// Panics if the temporary directory path is not UTF-8.
     fn scratch_root(name: &str) -> Utf8PathBuf {
         Utf8PathBuf::from_path_buf(std::env::temp_dir())
             .expect("the temp directory is UTF-8")
             .join(format!("atlas-shell-{}-{name}", std::process::id()))
     }
 
+    /// The shell's command tree satisfies clap's own structural requirements.
     #[test]
     fn cli_consistency() {
         <Cli as clap::CommandFactory>::command().debug_assert();
     }
 
+    /// A fit reading an offline dump parses, so long as it names no live-store flag.
     #[test]
     fn offline_without_live_flags() {
         let root = scratch_root("offline_without_live_flags");
@@ -370,14 +476,14 @@ mod tests {
             "dump",
         ])
         .expect("an offline fit needs neither the key nor the store flags");
-        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
+        std::fs::remove_dir_all(&root).expect("should remove the parsed generation root");
 
-        assert!(matches!(
+        assert_matches!(
             cli.command,
             Command::Fit {
                 offline: Some(_),
                 ..
             }
-        ));
+        );
     }
 }

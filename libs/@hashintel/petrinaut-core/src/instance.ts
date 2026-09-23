@@ -92,15 +92,22 @@ function createDefinitionStore(
   const listeners = new Set<(value: SDCPN) => void>();
   let latestSource: SDCPN | undefined;
   let latestSanitized: SDCPN | undefined;
+  let unsubscribe: (() => void) | undefined;
+  let disposed = false;
 
-  const unsubscribe = handle.subscribe((event) => {
-    latestSource = event.next;
-    const sanitized = sanitizeSDCPNForExtensions(event.next, extensions);
-    latestSanitized = sanitized;
-    for (const listener of listeners) {
-      listener(sanitized);
+  const observeHandle = () => {
+    if (unsubscribe !== undefined || disposed) {
+      return;
     }
-  });
+    unsubscribe = handle.subscribe((event) => {
+      latestSource = event.next;
+      const sanitized = sanitizeSDCPNForExtensions(event.next, extensions);
+      latestSanitized = sanitized;
+      for (const listener of listeners) {
+        listener(sanitized);
+      }
+    });
+  };
 
   const read = (): SDCPN => {
     const source = handle.doc() ?? EMPTY_SDCPN;
@@ -115,13 +122,26 @@ function createDefinitionStore(
     store: {
       get: read,
       subscribe(listener) {
+        if (disposed) {
+          return () => {};
+        }
         listeners.add(listener);
+        observeHandle();
         return () => {
           listeners.delete(listener);
+          if (listeners.size === 0) {
+            unsubscribe?.();
+            unsubscribe = undefined;
+          }
         };
       },
     },
-    dispose: unsubscribe,
+    dispose: () => {
+      disposed = true;
+      unsubscribe?.();
+      unsubscribe = undefined;
+      listeners.clear();
+    },
   };
 }
 
@@ -130,24 +150,46 @@ function createPatchStream(handle: PetrinautDocHandle): {
   dispose: () => void;
 } {
   const listeners = new Set<(event: PetrinautPatch[]) => void>();
+  let unsubscribe: (() => void) | undefined;
+  let disposed = false;
 
-  const unsubscribe = handle.subscribe((event) => {
-    if (!event.patches) {
+  const observeHandle = () => {
+    if (unsubscribe !== undefined || disposed) {
       return;
     }
-    for (const listener of listeners) {
-      listener(event.patches);
-    }
-  });
+    unsubscribe = handle.subscribe((event) => {
+      if (!event.patches) {
+        return;
+      }
+      for (const listener of listeners) {
+        listener(event.patches);
+      }
+    });
+  };
 
   return {
     stream: {
       subscribe(listener) {
+        if (disposed) {
+          return () => {};
+        }
         listeners.add(listener);
-        return () => listeners.delete(listener);
+        observeHandle();
+        return () => {
+          listeners.delete(listener);
+          if (listeners.size === 0) {
+            unsubscribe?.();
+            unsubscribe = undefined;
+          }
+        };
       },
     },
-    dispose: unsubscribe,
+    dispose: () => {
+      disposed = true;
+      unsubscribe?.();
+      unsubscribe = undefined;
+      listeners.clear();
+    },
   };
 }
 

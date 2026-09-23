@@ -12,7 +12,6 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![cfg_attr(test, feature(async_fn_track_caller))]
 #![feature(
     // Language Features
     exhaustive_patterns,

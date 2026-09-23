@@ -86,7 +86,7 @@ impl<N> Error for RefreshError<N> where N: fmt::Debug + fmt::Display {}
 pub(crate) struct RefreshOutcome<N> {
     /// The low step's forwarded frame.
     ///
-    /// The tick's own artifacts consume it in place. It rides out for the boundary-drift
+    /// The tick's own artifacts consume it in place. It is returned for the boundary-drift
     /// report, which re-measures the reviewed mass fraction over the same step the radius
     /// froze on.
     pub frame: Box<FinitePointField<N>>,
@@ -103,15 +103,17 @@ pub(crate) struct RefreshOutcome<N> {
 /// The corpus rows a run reports into [`Progress::projector_snapshot`].
 ///
 /// An observer's appetite ([`Progress::projector_sample_size`]) buys a fixed set of rows, chosen
-/// before the loop and reported at every tick, so a watcher sees the same points moving rather than
-/// a fresh sample each time. Landmark rows come first, because they are the skeleton the placement
-/// hangs on and a renderer draws them apart. They take at most half the budget, so a landmark-rich
-/// corpus still shows its interior. The rest is an even stride over the corpus rows no landmark
-/// holds, so the two shares partition the sample by role: every reported point past the landmark
-/// prefix is an ordinary row.
+/// before the loop and reported at every tick, and a watcher sees the same points moving rather
+/// than a fresh sample each time. Landmark rows come first, because they are the skeleton the
+/// placement hangs on and a renderer draws them apart. They take at most half the budget wherever
+/// the interior has rows for the other half, and a landmark-rich corpus still shows its interior.
+/// The rest is an even stride over the corpus rows no landmark holds, and the two shares partition
+/// the sample by role: every reported point past the landmark prefix is an ordinary row.
 ///
-/// The choice is deterministic by construction and consumes no randomness: an observer cannot move
-/// the run's draws, so a run publishes the same placement whether or not anything watches.
+/// The choice is deterministic by construction and consumes no randomness, and an observer's
+/// appetite therefore cannot move the run's batch draws. Whether the published placement is
+/// bit-identical with and without a watcher depends also on the observer's callbacks and on the
+/// backend's execution, which the selection does not govern.
 #[derive(Debug, Default)]
 pub(super) struct SnapshotSample<N> {
     /// The sampled rows, with the landmark share first and the strided share after it.
@@ -131,8 +133,8 @@ where
     /// own admission rejects them, and a sample is not the place to discover it.
     pub(super) fn select(rows: usize, landmarks: &[SupportAnchor<N>], budget: usize) -> Self {
         if budget == 0 || rows == 0 {
-            // The zero-budget path allocates nothing and sorts nothing, so every later report is a
-            // no-op.
+            // The zero-budget path allocates nothing and sorts nothing, and every later report is
+            // a no-op.
             return Self {
                 rows: Vec::new(),
                 landmarks: 0,
@@ -158,10 +160,9 @@ where
             .map(|rank| anchored[rank])
             .collect();
 
-        // The corpus is not walked to find its unheld rows: the
-        // `rank`-th of them sits `rank` places along plus one for every
-        // landmark at or before it, and the ranks arrive in order, so
-        // one pass over the sorted landmarks resolves every pick.
+        // The corpus is not walked to find its unheld rows: the `rank`-th of them is `rank` places
+        // along plus one for every landmark at or before it, and the ranks arrive in order.
+        // One pass over the sorted landmarks therefore resolves every pick.
         let mut passed = 0;
         sample.extend(even_ranks(interior, interior_share).map(|rank| {
             while passed < anchored.len() && anchored[passed].as_usize() <= rank + passed {
@@ -191,8 +192,16 @@ where
 /// Picks `count` of `len` positions, evenly spread across the sequence.
 ///
 /// The walk is a Bresenham accumulator. Every position adds `count` and every crossing of `len`
-/// takes one, so a `count` at or below `len` picks exactly `count` positions at an even spacing.
-/// The walk needs no division, which is also why the spacing is exact rather than rounded.
+/// takes one. For a `count` at or below `len` whose sum `len + count` is representable in `usize`,
+/// the walk picks exactly `count` positions at an even spacing: the accumulator peaks below that
+/// sum, and an overflowing addition would panic under overflow checks or wrap past a crossing. The
+/// walk needs no division, which is also why the spacing is exact rather than rounded.
+///
+/// # Panics
+///
+/// Constructing the iterator never panics. Advancing it can panic under overflow checks when the
+/// accumulator's addition of `count` overflows `usize`. A representable sum `len + count` rules
+/// that out.
 fn even_ranks(len: usize, count: usize) -> impl Iterator<Item = usize> {
     let mut accumulator = 0;
     (0..len).filter(move |_rank| {
@@ -231,10 +240,10 @@ where
     ///
     /// `with_scales` selects the post-boundary shape, where the tick forwards every step and
     /// measures each one into a scale table. Without it the tick forwards only the two extremes.
-    /// The opening semantic-only segment and the vacuous-relation run consume no scale tables, so a
-    /// middle-step forward is dead weight.
+    /// The opening semantic-only segment and the vacuous-relation run consume no scale tables, and
+    /// a middle-step forward is dead weight there.
     ///
-    /// The tick is where the whole corpus exists in coordinates, so it reports `sample`'s rows of
+    /// The tick is where the whole corpus exists in coordinates, and it reports `sample`'s rows of
     /// the low step's frame to `progress`. That is the same frame the miner and the displacement
     /// summary read, retained no longer than they retain it.
     ///
@@ -286,10 +295,42 @@ where
     }
 }
 
+/// Replaces `frame` with projected coordinates, including any non-finite output.
+pub(crate) fn forward_unchecked_in<N, B: Backend<FloatElem = f32>>(
+    model: &Projector<B>,
+    columns: NodeColumns<'_, N>,
+    eta: NonNegative,
+    forward_rows: NonZero<usize>,
+    device: &B::Device,
+    frame: &mut IdVec<N, Vec2>,
+) where
+    N: Id,
+{
+    frame.clear();
+    let rows = columns.representations.len();
+    let mut start = 0;
+
+    while start < rows {
+        let end = (start + forward_rows.get()).min(rows);
+        let coordinates = model.forward(columns.input_range(start..end, eta, device));
+
+        let data = coordinates.into_data();
+        let values = data
+            .as_slice::<f32>()
+            .expect("the projector's coordinates are an f32 tensor");
+
+        let points =
+            Vec2::from_slice(values).expect("a [rows, 2] tensor reads back an even length");
+
+        frame.extend_from_slice(IdSlice::from_raw(points));
+        start = end;
+    }
+}
+
 /// Projects the whole corpus at one step, in bounded row slices.
 ///
 /// `forward_rows` bounds each slice's row count, and with it the peak device memory of a corpus
-/// forward; the frame it returns matches a single whole-corpus pass because the model maps rows
+/// forward. The frame it returns matches a single whole-corpus pass because the model maps rows
 /// independently of each other. The match is value-level, not bit-level: slices of different row
 /// counts are dispatches of different shapes, and a backend that selects kernels per shape may
 /// move the last bit of a coordinate between them.

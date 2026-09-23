@@ -2,7 +2,9 @@ import { use } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -35,8 +37,10 @@ const panelStyle = cva({
     },
     animating: {
       true: {
-        transition:
-          "[width 150ms ease-in-out, opacity 150ms ease-in-out, height 150ms ease-in-out, top 150ms ease-in-out, left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out, transform 150ms ease-in-out]",
+        transitionProperty:
+          "[width, opacity, height, top, left, right, bottom, transform]",
+        transitionDuration: "[150ms]",
+        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
@@ -58,6 +62,8 @@ export const PropertiesPanel: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
+  const { petriNetId } = use(SDCPNContext);
+  const { activeSubnetId } = use(ActiveNetContext);
   const panelTarget = usePanelTarget();
 
   const isOpen = panelTarget.kind !== "none";
@@ -92,7 +98,9 @@ export const PropertiesPanel: React.FC = () => {
         maxSize: MAX_PROPERTIES_PANEL_WIDTH,
       }}
     >
-      <SelectedItemProperties />
+      <SelectedItemProperties
+        key={JSON.stringify([petriNetId, activeSubnetId])}
+      />
     </GlassPanel>
   );
 };

@@ -3,8 +3,11 @@ use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::{auth::build_authentication_provider, rate_limit::RateLimitConfig};
-use hash_graph_atlas::cli::{self, PasswordString};
+use hash_graph_api::rest::{
+    authentication::{EnvironmentProviders, build_explicit_providers, build_session_providers},
+    rate_limit::RateLimitConfig,
+};
+use hash_graph_atlas::cli::{self, PasswordString, Storage};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -14,7 +17,6 @@ use opentelemetry::metrics::Meter;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
-use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -68,6 +70,9 @@ pub struct AtlasServeArgs {
     pub serve: cli::ServeArgs,
 
     #[clap(flatten)]
+    pub s3: cli::S3Args,
+
+    #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
     #[clap(flatten)]
@@ -104,6 +109,9 @@ pub struct AtlasFitArgs {
     pub root: cli::RootArgs,
 
     #[clap(flatten)]
+    pub s3: cli::S3Args,
+
+    #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
     #[clap(flatten)]
@@ -132,18 +140,16 @@ struct AtlasTelemetry {
     meter: Meter,
 }
 
-/// Runs the atlas server, shutting down when `shutdown` is cancelled.
+/// Runs HTTP and retains generation maintenance through listener and request failures.
+#[expect(clippy::significant_drop_tightening, reason = "false-positive")]
 async fn run_atlas(
     args: AtlasServeArgs,
     telemetry: &AtlasTelemetry,
-    shutdown: CancellationToken,
+    lifecycle: ServerLifecycle,
 ) -> Result<(), Report<GraphError>> {
     // Before running anything, make sure that the configuration is valid.
     let session_auth = args.session_auth.into_provider_config()?;
 
-    // The same filter-protection configuration the server subcommand parses, so the embedding
-    // exclusions the staging arm's ensures carry stay equal to the exclusions the store's own
-    // workflow starts carry.
     let filter_protection = if args.skip_filter_protection {
         PropertyProtectionFilterConfig::new()
     } else {
@@ -153,9 +159,11 @@ async fn run_atlas(
 
     let service_secret = cli::SecretString::from(args.service_secret);
 
-    // A single pool serves the whole process, so the detail trailers, the permission
-    // resolution, and the credential chain's actor lookups behind every request read through
-    // shared connections and none waits on a connection another holds.
+    let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
+    if let Some(s3) = args.s3.client().await.change_context(GraphError)? {
+        storage.set_s3(s3);
+    }
+
     let pool = Arc::new(
         PostgresStorePool::new(
             &args.db_info,
@@ -166,7 +174,6 @@ async fn run_atlas(
                 ..PostgresStoreSettings::default()
             },
         )
-        .await
         .change_context(GraphError)?,
     );
 
@@ -179,30 +186,49 @@ async fn run_atlas(
                 exclusions,
             });
 
-    // The chain the REST router authenticates with, so a credential means the same thing on
-    // every route of the deployment: a Kratos session, or the service secret with the actor it
-    // delegates. Cloudflare Access fronts the admin server's operator routes, so no JWT
-    // verifier enters this chain.
-    let provider = Arc::new(build_authentication_provider(
-        session_auth,
-        None,
-        service_secret.clone().into_unguarded().as_ref().to_owned(),
-        &pool,
-        &telemetry.meter,
+    let provider = Arc::new((
+        build_explicit_providers(
+            service_secret.clone().into_unguarded().as_ref().to_owned(),
+            &pool,
+        ),
+        (
+            build_session_providers(session_auth, &pool, &telemetry.meter),
+            EnvironmentProviders::<PostgresStorePool>::None,
+        ),
     ));
 
-    // Every request answers under the scope of the actor it names.
-    let router = cli::ServeCommand::new(args.root, args.serve)
+    let serve = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
             provider,
             service_secret,
             rate_limit: (&args.rate_limit).into(),
             pool,
-            visibility: cli::VisibilityLimits::default(),
+            visibility: cli::VisibilityLimits {
+                bytes: 1 << 30,
+                soft: Duration::from_mins(8),
+                hard: Duration::from_mins(10),
+            },
             workflow,
+            storage,
         })
-        .map_err(Report::new)
         .change_context(GraphError)?;
+
+    let shutdown = lifecycle.shutdown.clone();
+    let serve_shutdown = shutdown.clone();
+
+    let (router, maintenance, download) =
+        serve.into_parts(move || serve_shutdown.clone().cancelled_owned());
+
+    lifecycle.spawn("Atlas generations", async move {
+        maintenance.await;
+        Ok(())
+    });
+    if let Some(download) = download {
+        lifecycle.spawn("Atlas download", async move {
+            download.await;
+            Ok(())
+        });
+    }
 
     let listener = TcpListener::bind((&*args.address.atlas_host, args.address.atlas_port))
         .await
@@ -234,10 +260,7 @@ fn print_verdict(verdict: &cli::FitVerdict) {
 }
 
 /// Standalone `atlas` subcommand entrypoint.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
+#[expect(clippy::significant_drop_tightening, reason = "false positive")]
 #[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
@@ -245,15 +268,22 @@ fn print_verdict(verdict: &cli::FitVerdict) {
 pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     let serve_args = match args.command {
         AtlasCommand::Fit(fit_args) => {
+            let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
+            if let Some(s3) = fit_args.s3.client().await.change_context(GraphError)? {
+                storage.set_s3(s3);
+            }
+
             let mut client = cli::connect(&fit_args.db_info.url())
                 .await
-                .map_err(Report::new)
                 .change_context(GraphError)?;
-            let verdict = cli::FitCommand::new(fit_args.root, fit_args.fit)
-                .run(&mut client, fit_args.credential)
+
+            let command = cli::FitCommand::new(fit_args.root, fit_args.fit, storage)
                 .await
-                .map_err(Report::new)
                 .change_context(GraphError)?;
+            let verdict = Box::pin(command.run(&mut client, fit_args.credential))
+                .await
+                .change_context(GraphError)?;
+
             print_verdict(&verdict);
 
             return Ok(());
@@ -278,9 +308,9 @@ pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<
     };
 
     let lifecycle = ServerLifecycle::new();
-    let shutdown = lifecycle.shutdown.clone();
+    let server_lifecycle = lifecycle.clone();
     lifecycle.spawn("Atlas", async move {
-        run_atlas(*serve_args, &telemetry, shutdown).await
+        run_atlas(*serve_args, &telemetry, server_lifecycle).await
     });
 
     // Wait for shutdown signal or unexpected server exit
@@ -342,13 +372,12 @@ async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckErro
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use tokio::net::TcpListener;
+
+    use super::{AtlasAddress, HealthcheckArgs, healthcheck, wait_healthcheck};
 
     #[tokio::test]
-    async fn status_endpoint_reports_healthy() {
-        // The liveness route mirrors the one `cli::open_router` mounts
-        // beside the read API; the test exercises the healthcheck
-        // plumbing without standing up a generation.
+    async fn status_healthy() {
         let router = axum::Router::new().route(
             "/status",
             axum::routing::get(async || axum::http::StatusCode::OK),

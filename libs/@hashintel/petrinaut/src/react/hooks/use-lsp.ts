@@ -37,9 +37,6 @@ export type LspActionsBundle = {
   requestCompletion: LanguageClientContextValue["requestCompletion"];
   requestHover: LanguageClientContextValue["requestHover"];
   requestSignatureHelp: LanguageClientContextValue["requestSignatureHelp"];
-  initializeScenarioSession: LanguageClientContextValue["initializeScenarioSession"];
-  updateScenarioSession: LanguageClientContextValue["updateScenarioSession"];
-  killScenarioSession: LanguageClientContextValue["killScenarioSession"];
   initializeMetricSession: LanguageClientContextValue["initializeMetricSession"];
   updateMetricSession: LanguageClientContextValue["updateMetricSession"];
   killMetricSession: LanguageClientContextValue["killMetricSession"];
@@ -53,9 +50,6 @@ export function useLspActions(): LspActionsBundle {
     requestCompletion: ctx.requestCompletion,
     requestHover: ctx.requestHover,
     requestSignatureHelp: ctx.requestSignatureHelp,
-    initializeScenarioSession: ctx.initializeScenarioSession,
-    updateScenarioSession: ctx.updateScenarioSession,
-    killScenarioSession: ctx.killScenarioSession,
     initializeMetricSession: ctx.initializeMetricSession,
     updateMetricSession: ctx.updateMetricSession,
     killMetricSession: ctx.killMetricSession,

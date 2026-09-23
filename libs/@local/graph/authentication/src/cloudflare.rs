@@ -137,6 +137,7 @@ mod tests {
     };
     use http::{HeaderMap, HeaderValue, StatusCode};
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
+    use problematic::error_stack::ReportExt as _;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -583,6 +584,15 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             report.current_context().kind(),
             AuthenticationErrorKind::ProviderUnreachable,
             "a failing JWKS endpoint should fail as provider unavailability, not as a bad token"
+        );
+        let problem = report
+            .problem_details()
+            .next()
+            .expect("the provider failure should carry a public problem");
+        assert_eq!(problem.status, 503);
+        assert_eq!(
+            problem.detail.as_deref(),
+            Some("failed to verify the credential against the provider")
         );
     }
 }

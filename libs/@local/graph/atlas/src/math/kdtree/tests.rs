@@ -14,21 +14,29 @@ use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{BUCKET_ROWS, KdNeighbour, KdTree};
-use crate::math::{DNonNegative, FinitePointField, Vec2};
+use crate::math::{DNonNegative, FinitePointField, Vec2, nz};
 
 hashql_core::id::newtype! {
-    /// The test frames' row domain.
+    /// A row identity in a test frame.
+    ///
     #[id(const)]
     struct RowId(u32)
 }
 
-/// Views a finite point slice as a proven frame over the test row domain.
+/// Views points as a test frame without validating coordinates.
+///
+/// Every component must be finite.
 fn frame(points: &[Vec2]) -> &FinitePointField<RowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
-/// Selects the `k` nearest rows by sorting every other row's reading, the reference a readout
-/// must equal.
+/// Sorts the full frame by distance and row, excluding `row`.
+///
+/// Every component must be finite.
+///
+/// # Panics
+///
+/// Panics if `row` is outside the frame or if a frame index is outside the test ID domain.
 fn full_scan(frame: &IdSlice<RowId, Vec2>, row: RowId, k: usize) -> Vec<KdNeighbour<RowId>> {
     let query = frame[row];
     let mut readings: Vec<KdNeighbour<RowId>> = frame
@@ -44,7 +52,14 @@ fn full_scan(frame: &IdSlice<RowId, Vec2>, row: RowId, k: usize) -> Vec<KdNeighb
     readings
 }
 
-/// Asserts every row's readout equals the full scan, for each of the given `k`.
+/// Compares every row query with the full scan for each supplied count.
+///
+/// Every point component must be finite.
+///
+/// # Panics
+///
+/// Panics if a count is zero, a query violates [`KdTree::nearest`]'s size conditions, or any
+/// readout differs from the full scan.
 #[track_caller]
 fn assert_matches_full_scan(points: &[Vec2], ks: &[usize]) {
     let frame = frame(points);
@@ -62,7 +77,13 @@ fn assert_matches_full_scan(points: &[Vec2], ks: &[usize]) {
     }
 }
 
-/// Selects the `k` nearest rows of an arbitrary point, the reference a point readout must equal.
+/// Sorts the full frame by distance to `point`, breaking ties by row.
+///
+/// Frame and query components must be finite.
+///
+/// # Panics
+///
+/// Panics if a frame index is outside the test ID domain.
 fn full_scan_point(frame: &IdSlice<RowId, Vec2>, point: Vec2, k: usize) -> Vec<KdNeighbour<RowId>> {
     let mut readings: Vec<KdNeighbour<RowId>> = frame
         .ids()
@@ -76,7 +97,7 @@ fn full_scan_point(frame: &IdSlice<RowId, Vec2>, point: Vec2, k: usize) -> Vec<K
     readings
 }
 
-/// A seeded frame of scattered points in `[-100, 100]²`.
+/// Generates a seeded point sequence with each component in `[-100, 100)`.
 fn scattered(seed: u64, rows: usize) -> Vec<Vec2> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
     iter::repeat_with(|| {
@@ -91,7 +112,7 @@ fn scattered(seed: u64, rows: usize) -> Vec<Vec2> {
 
 #[test]
 fn readouts_equal_the_full_scan_on_scattered_frames() {
-    // Frame lengths straddle the leaf bucket, and the longest reaches several split levels.
+    // frame lengths straddle the leaf bucket, and the longest reaches several split levels.
     for rows in [
         1,
         2,
@@ -111,8 +132,8 @@ fn readouts_equal_the_full_scan_on_scattered_frames() {
 
 #[test]
 fn duplicated_positions_resolve_ties_by_row() {
-    // Sixty-four rows over nine distinct positions guarantee co-located tie classes wider than
-    // most of the tested k values, so the cut lands inside a class and the row tie-break decides.
+    // 64 rows drawn from nine positions give at least one co-located class of eight or more. Counts
+    // 1, 3 and 6 cut within that class for a query at its position.
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
     let positions: Vec<Vec2> = (0..3_u16)
         .flat_map(|x| (0..3_u16).map(move |y| Vec2::new(f32::from(x), f32::from(y))))
@@ -126,11 +147,12 @@ fn duplicated_positions_resolve_ties_by_row() {
 
 #[test]
 fn a_fully_co_located_frame_orders_by_row_alone() {
-    // Forty rows exceed one leaf bucket, so construction takes the over-full soft-bucket path.
+    // 40 identical positions exceed the target bucket size and cannot be separated by an axis
+    // split.
     let points = vec![Vec2::new(2.5, -3.5); BUCKET_ROWS + 8];
     let tree = KdTree::build(frame(&points));
 
-    let neighbours = tree.nearest(RowId::new(11), NonZero::new(7).expect("seven is nonzero"));
+    let neighbours = tree.nearest(RowId::new(11), nz!(7));
 
     let expected: Vec<KdNeighbour<RowId>> = (0..7)
         .map(|row| KdNeighbour {
@@ -144,7 +166,7 @@ fn a_fully_co_located_frame_orders_by_row_alone() {
 
 #[test]
 fn an_integer_lattice_cuts_inside_a_tie_class() {
-    // An interior lattice row has four neighbours at distance² 1, so k = 3 cuts inside that
+    // an interior lattice row has four neighbours at squared distance 1. k = 3 cuts within that
     // exact tie class.
     let points: Vec<Vec2> = (0..5_u16)
         .flat_map(|x| (0..5_u16).map(move |y| Vec2::new(f32::from(x), f32::from(y))))
@@ -167,10 +189,7 @@ fn k_at_least_the_frame_returns_every_other_row() {
     let points = scattered(11, 33);
     let tree = KdTree::build(frame(&points));
 
-    let neighbours = tree.nearest(
-        RowId::new(0),
-        NonZero::new(100).expect("a hundred is nonzero"),
-    );
+    let neighbours = tree.nearest(RowId::new(0), nz!(100));
 
     assert_eq!(neighbours.len(), 32);
     let mut rows: Vec<RowId> = neighbours.iter().map(|neighbour| neighbour.row).collect();
@@ -181,14 +200,10 @@ fn k_at_least_the_frame_returns_every_other_row() {
 #[test]
 fn the_query_row_is_never_a_readout_while_its_co_located_rows_are() {
     let mut points = scattered(13, 20);
-    // Rows 3 and 17 sit exactly on the query row 3's position.
     points[17] = points[3];
     let tree = KdTree::build(frame(&points));
 
-    let neighbours = tree.nearest(
-        RowId::new(3),
-        NonZero::new(19).expect("nineteen is nonzero"),
-    );
+    let neighbours = tree.nearest(RowId::new(3), nz!(19));
 
     assert!(
         neighbours
@@ -208,7 +223,7 @@ fn the_query_row_is_never_a_readout_while_its_co_located_rows_are() {
 fn a_scratch_arena_serves_readouts_across_resets() {
     let points = scattered(17, 120);
     let tree = KdTree::build(frame(&points));
-    let k = NonZero::new(9).expect("nine is nonzero");
+    let k = nz!(9);
 
     let mut scratch = Scratch::new();
     let first = tree.nearest_in(RowId::new(0), k, &scratch);
@@ -226,7 +241,7 @@ fn a_query_for_a_row_outside_the_frame_panics() {
     let points = scattered(23, 5);
     let tree = KdTree::build(frame(&points));
 
-    let _readout = tree.nearest(RowId::new(5), NonZero::new(1).expect("one is nonzero"));
+    let _readout = tree.nearest(RowId::new(5), nz!(1));
 }
 
 #[test]
@@ -234,7 +249,7 @@ fn point_readouts_equal_the_full_scan() {
     for rows in [1, 2, BUCKET_ROWS, BUCKET_ROWS + 1, 100, 333] {
         for seed in [29, 31] {
             let points = scattered(seed, rows);
-            // Off-frame query points from an independent stream, plus every frame position.
+            // differently seeded queries extend coverage beyond the frame positions.
             let queries: Vec<Vec2> = scattered(seed ^ 0xBEEF, 24)
                 .into_iter()
                 .chain(points.iter().copied())
@@ -264,9 +279,8 @@ fn a_point_query_excludes_no_row() {
     ];
     let frame = frame(&points);
     let tree = KdTree::build(frame);
-    let k = NonZero::new(2).expect("two is nonzero");
+    let k = nz!(2);
 
-    // A row query from row 1 excludes row 1 itself.
     let neighbours = tree.nearest(RowId::new(1), k);
     assert!(
         neighbours
@@ -274,7 +288,6 @@ fn a_point_query_excludes_no_row() {
             .all(|neighbour| neighbour.row != RowId::new(1))
     );
 
-    // A point query from row 1's position keeps it, at distance zero and ahead of every other.
     let neighbours = tree.nearest_point(frame[RowId::new(1)], k);
     assert_eq!(
         neighbours[0],
@@ -289,11 +302,8 @@ fn a_point_query_excludes_no_row() {
 fn an_empty_frame_builds_and_a_point_readout_returns_nothing() {
     let tree = KdTree::build(frame(&[]));
 
-    let readout = tree.nearest_point(
-        Vec2::new(0.0, 0.0),
-        NonZero::new(3).expect("three is nonzero"),
-    );
-    assert!(readout.is_empty());
+    let readout = tree.nearest_point(Vec2::new(0.0, 0.0), nz!(3));
+    assert_eq!(readout, [] as [KdNeighbour<RowId>; 0]);
 }
 
 #[test]
@@ -302,8 +312,5 @@ fn a_non_finite_query_point_panics() {
     let points = scattered(37, 8);
     let tree = KdTree::build(frame(&points));
 
-    let _readout = tree.nearest_point(
-        Vec2::new(f32::NAN, 0.0),
-        NonZero::new(1).expect("one is nonzero"),
-    );
+    let _readout = tree.nearest_point(Vec2::new(f32::NAN, 0.0), nz!(1));
 }

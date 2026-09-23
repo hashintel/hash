@@ -12,7 +12,9 @@ import {
   toPetrinautAiToolOutput,
 } from "./tool-summaries";
 
-export const applyPetrinautAiMutation = ({
+import type { PetrinautAiMutationExecutor } from "./types";
+
+const applyMutation = ({
   aiToolCall,
   instance,
 }: {
@@ -40,4 +42,36 @@ export const applyPetrinautAiMutation = ({
   }
 
   return toPetrinautAiToolOutput(summary);
+};
+
+export const applyPetrinautAiMutation = ({
+  aiToolCall,
+  instance,
+  toolCallId,
+  executeMutation,
+}: Parameters<typeof applyMutation>[0] & {
+  toolCallId?: string;
+  executeMutation?: PetrinautAiMutationExecutor;
+}): AiToolOutput => {
+  if (!executeMutation) return applyMutation({ aiToolCall, instance });
+  if (!toolCallId)
+    throw new Error("A mutation executor requires a tool call ID.");
+
+  let active = true;
+  let executed = false;
+  try {
+    return executeMutation({
+      ...aiToolCall,
+      toolCallId,
+      execute: () => {
+        if (!active) throw new Error("Mutation execution must be synchronous.");
+        if (executed) throw new Error("A mutation may execute only once.");
+        executed = true;
+        return applyMutation({ aiToolCall, instance });
+      },
+    });
+  } finally {
+    // Even a throwing host cannot retain work beyond this generation's turn.
+    active = false;
+  }
 };

@@ -303,6 +303,7 @@ export function compileHirArtifacts(
     artifacts.metrics[metric.id] = {
       source: program.source,
       placeNames: program.placeNames,
+      ...(options.includeHir ? { hir: item.fn } : {}),
     };
   }
 

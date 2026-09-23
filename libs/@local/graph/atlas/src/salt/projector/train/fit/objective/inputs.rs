@@ -3,8 +3,8 @@
 //! Every value here is decided before optimization. [`TargetOptions`] carries the declared
 //! constants, [`TargetSplit`] the versioned split identity with its reference populations,
 //! [`GaugeDraw`] the stratified anchor draw, and [`TargetInputs`] binds them beside the
-//! covariate strata into the one value the trainer admits. Nothing in this module is
-//! measured during the run.
+//! covariate strata into the one value the trainer admits. Every value here is fixed before
+//! optimization and stays fixed through the run.
 
 use core::{fmt, num::NonZero};
 
@@ -24,8 +24,8 @@ use crate::{
 ///
 /// Every field is a declared value of the run configuration, from the treatment activation and
 /// the stage radius to the ruler's regularizer window and the gauge rules whose numbers bind
-/// only when declared. The penalty rides as a declared member of the sanctioned family, so the
-/// wiring fixes no variant choice.
+/// only when declared. The penalty is a declared member of the closed family, and the wiring
+/// fixes no variant choice.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TargetOptions {
     /// The canonical condition's index into [`STEPS`](super::super::super::STEPS).
@@ -53,7 +53,7 @@ pub(crate) struct TargetOptions {
     pub minimum_effective_count: Option<Positive>,
     /// The gauge fit's maximum normalized residual. The bar binds only when declared.
     pub residual_bar: Option<Positive>,
-    /// The penalty `φ`, drawn from the sanctioned family.
+    /// The penalty `φ`, drawn from the closed family.
     ///
     /// The family evaluates value and exact slope in one implementation, finite at every finite
     /// violation by construction. The variant is the caller's declared choice. The declared
@@ -90,11 +90,11 @@ impl fmt::Display for SplitPopulation {
 
 /// The validated split identity.
 ///
-/// The rule digest rides beside the reference populations one versioned split fixed before
+/// The rule digest accompanies the reference populations that one versioned split fixed before
 /// optimization. The movement participants, gauge anchors, held-out endpoints, and matched
 /// controls must be pairwise-disjoint under that one rule, and admission checks every pair
-/// the trainer can see. The digest rides the run evidence so the population identity stays
-/// auditable.
+/// the trainer can see. The digest is recorded in the run evidence so the population identity
+/// stays auditable.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TargetSplit<'run, N> {
     /// The versioned split rule's content digest.
@@ -107,8 +107,8 @@ pub(crate) struct TargetSplit<'run, N> {
 
 /// One stratified gauge draw, each anchor row beside its duplicate class.
 ///
-/// The pairing is a construction fact, so no consumer re-checks the two lengths and no zip
-/// over a malformed draw can silently truncate.
+/// The pairing is a construction fact: no consumer re-checks the two lengths, and no zip over a
+/// malformed draw can silently truncate.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct GaugeDraw<'run, N> {
     rows: &'run [N],
@@ -120,8 +120,8 @@ impl<'run, N> GaugeDraw<'run, N> {
     ///
     /// # Panics
     ///
-    /// This panics when the two slices disagree in length. Both come from one draw, so a
-    /// mismatch is a wiring defect.
+    /// This panics when the two slices disagree in length. Both come from one draw, and a
+    /// mismatch is therefore a wiring defect.
     #[cfg_attr(
         not(test),
         expect(
@@ -153,12 +153,12 @@ impl<'run, N> GaugeDraw<'run, N> {
 
 /// The target objective's whole run configuration.
 ///
-/// The declared constants ride beside the run-borrowed draws.
+/// The declared constants accompany the run-borrowed draws.
 ///
 /// The split machinery owns every draw here. Gauge membership, the reference populations, and
 /// the covariate partition are decided before optimization by the one versioned rule the
-/// split identity's digest names, and the trainer consumes the outcome. The constants ride the
-/// same value, so a configuration cannot arrive half-declared.
+/// split identity's digest names, and the trainer consumes the outcome. The constants travel in
+/// the same value, and a configuration cannot arrive half-declared.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TargetInputs<'run, N> {
     /// The declared constants.

@@ -1,14 +1,8 @@
 //! Certificates for the band projection and its enforcement record.
 //!
-//! Dyadic fixtures make every pre-projection reading exact - distances, normalized maxima, and
-//! overshoots are exactly representable - the record therefore asserts exact contracts. The landing
-//! point itself carries the documented margin, so its assertions bound rather than pin.
-
-#![expect(
-    clippy::float_cmp,
-    reason = "the dyadic fixtures produce exactly representable readings, so the asserted \
-              constants are exact contracts"
-)]
+//! Dyadic fixtures make every pre-projection reading exact (distances, normalized maxima and
+//! overshoots are exactly representable), and the record therefore asserts exact contracts. The
+//! landing point itself carries the documented margin: its assertions bound rather than pin.
 
 use hashql_core::id::{Id as _, IdSlice};
 
@@ -28,13 +22,15 @@ fn field(points: &mut [Vec2]) -> &mut FinitePointField<NodeRowId> {
     FinitePointField::new_unchecked_mut(IdSlice::from_raw_mut(points))
 }
 
+/// Builds a [`Positive`] from a literal test value.
 fn positive(value: f32) -> Positive {
     Positive::new(value).expect("test value is positive")
 }
 
-/// The centres reach an extent of `8.5`, making the margin `17 · 2⁻²³`. That clears the
-/// headroom bar with room to spare, and the freeze admits the radius `0.5` (`β = 0.25`,
-/// `s_ref = 2`).
+/// The centres reach an extent of `8.5`, making the margin `17 · 2⁻²³`.
+///
+/// That clears the headroom bar with room to spare, and the freeze admits the radius `0.5`
+/// (`β = 0.25`, `s_ref = 2`).
 const CENTRES: [Vec2; 6] = [
     Vec2::new(0.0, 0.0),
     Vec2::new(8.0, 0.0),
@@ -44,9 +40,11 @@ const CENTRES: [Vec2; 6] = [
     Vec2::new(8.0, 8.0),
 ];
 
-/// One live row per centre. Rows 0 and 4 sit past the radius (displacements `1.25` and
-/// `0.625`), row 1 sits exactly on it (legal, unclipped), and the rest sit inside. The batch
-/// path covers rows 0 through 3 and the remainder path rows 4 and 5, with a clip on each.
+/// One live row per centre.
+///
+/// Rows 0 and 4 lie past the radius (displacements `1.25` and `0.625`), row 1 lies exactly on it
+/// (legal, unclipped), and the rest lie inside. The four-lane batch path covers rows 0 through 3
+/// and the remainder path rows 4 and 5, with a clip on each.
 const LIVE: [Vec2; 6] = [
     Vec2::new(0.75, 1.0),
     Vec2::new(8.0, 0.5),
@@ -56,6 +54,7 @@ const LIVE: [Vec2; 6] = [
     Vec2::new(8.25, 8.0),
 ];
 
+/// The band projection frozen over the fixture centres with inner radius `0.25` and outer `2.0`.
 fn fixture() -> BandProjection<NodeRowId> {
     BandProjection::freeze(
         boxed_field(Box::new(CENTRES)),
@@ -65,13 +64,16 @@ fn fixture() -> BandProjection<NodeRowId> {
     .expect("the fixture is a valid constraint")
 }
 
+/// The Euclidean distance from `row` to `centre`, accumulated in `f64`.
 fn displacement(row: Vec2, centre: Vec2) -> f64 {
     let along_x = f64::from(row.x()) - f64::from(centre.x());
     let along_y = f64::from(row.y()) - f64::from(centre.y());
     along_x.hypot(along_y)
 }
 
-/// The freeze lands every declared constant exactly, and a fresh record is born zero over the
+/// Reproduces every declared constant at the freeze and opens a fresh record at zero.
+///
+/// The freeze reproduces every declared constant exactly, and a fresh record opens at zero over the
 /// whole row domain.
 #[test]
 fn freezes_the_reconstruction_and_opens_a_zero_record() {
@@ -97,9 +99,10 @@ fn freezes_the_reconstruction_and_opens_a_zero_record() {
     );
 }
 
-/// One application clips exactly the two out-of-band rows and records their exact
-/// pre-projection readings. Every in-band row keeps its bytes, the row exactly on the radius
-/// included.
+/// Clips exactly the two out-of-band rows and keeps every in-band row's bytes.
+///
+/// One application clips exactly the two out-of-band rows and records their exact pre-projection
+/// readings. Every in-band row keeps its bytes, the row exactly on the radius included.
 #[test]
 fn enforces_per_row_and_records_the_pre_projection_readings() {
     let projection = fixture();
@@ -141,15 +144,17 @@ fn enforces_per_row_and_records_the_pre_projection_readings() {
         let post_x = f64::from(live[row].x()) - f64::from(centre.x());
         let post_y = f64::from(live[row].y()) - f64::from(centre.y());
         // Narrowing the landed point moves each component by up to half an f32 ulp of its own
-        // magnitude (about `5e-7` at this fixture's coordinates near 8), so the cross reading
+        // magnitude (about `5e-7` at this fixture's coordinates near 8): the cross reading
         // bounds rather than pins.
         let cross = pre_y.mul_add(-post_x, pre_x * post_y).abs();
         assert!(cross <= 1e-6, "row {row} left its direction by {cross}");
     }
 }
 
+/// Moves nothing on a second application over the projected field.
+///
 /// A second application over the projected field moves nothing: the landing margin keeps every
-/// clipped row strictly inside, so re-enforcement cannot inflate the record by rounding.
+/// clipped row strictly inside, and re-enforcement therefore cannot inflate the record by rounding.
 #[test]
 fn a_projected_field_re_reads_as_inside() {
     let projection = fixture();
@@ -163,8 +168,8 @@ fn a_projected_field_re_reads_as_inside() {
     projection.apply(field(&mut live), 10, &mut record);
 
     assert_eq!(live, projected);
-    // The once-clipped rows re-read as interior through the per-row form too, so a deposit
-    // after this application composes through the identity.
+    // The once-clipped rows re-read as interior through the per-row form too: a deposit after
+    // this application composes through the identity.
     for (row, &value) in projected.iter().enumerate() {
         let (unmoved, clip) = projection.project(NodeRowId::from_usize(row), value);
         assert_eq!(unmoved, value, "row {row}");
@@ -176,8 +181,10 @@ fn a_projected_field_re_reads_as_inside() {
     assert_eq!(record.row_maxima().as_raw(), &*maxima_after_first);
 }
 
-/// The running maxima keep a mid-run excursion that returns before the end: the reading a
-/// radius would censor, visible although the final position sits inside.
+/// Keeps a mid-run excursion in the running maxima after the row returns inside.
+///
+/// The running maxima keep a mid-run excursion that returns before the end: the reading a radius
+/// would censor, visible although the final position lies inside.
 #[test]
 fn running_maxima_keep_the_transient_excursion() {
     let projection = BandProjection::freeze(
@@ -210,8 +217,10 @@ fn running_maxima_keep_the_transient_excursion() {
     assert_eq!(record.last_application(), Some(6));
 }
 
-/// A non-finite row refuses at the field's construction, naming the smallest offender, so a
-/// diverged field never reaches enforcement and the record stays untouched.
+/// Refuses a non-finite row at the field's construction and leaves the record untouched.
+///
+/// A non-finite row refuses at the field's construction, naming the smallest offender: a diverged
+/// field never reaches enforcement, and the record stays untouched.
 #[test]
 fn non_finite_row_refuses_at_construction() {
     let projection = fixture();
@@ -235,9 +244,10 @@ fn non_finite_row_refuses_at_construction() {
     );
 }
 
-/// The per-row projection and the whole-field application share one clip law. Clip decisions
-/// match row for row and a clipped row reads identical bytes through both, with the derivative
-/// tied to the landing the row actually took.
+/// The per-row projection and the whole-field application share one clip law.
+///
+/// Clip decisions match row for row and a clipped row reads identical bytes through both, with the
+/// derivative tied to the landing the row actually took.
 #[test]
 fn the_per_row_projection_matches_the_application_row_for_row() {
     let projection = fixture();
@@ -281,8 +291,10 @@ fn the_per_row_projection_matches_the_application_row_for_row() {
     );
 }
 
-/// The clip Jacobian is the exact derivative of the applied map: on an axis-aligned clip the
-/// radial force dies to exactly zero and a tangential force scales by exactly the factor.
+/// Matches the clip Jacobian to the exact derivative on an axis-aligned clip.
+///
+/// The clip Jacobian is the exact derivative of the applied map: on an axis-aligned clip the radial
+/// force dies to exactly zero and a tangential force scales by exactly the factor.
 #[test]
 fn the_clip_jacobian_kills_radial_force_exactly() {
     let projection = BandProjection::<NodeRowId>::freeze(
@@ -312,8 +324,10 @@ fn the_clip_jacobian_kills_radial_force_exactly() {
     assert!((landing - f64::from(landed.y())).abs() < 1e-6);
 }
 
-/// The Jacobian matches finite differences of the map it claims to differentiate, on a
-/// generic non-axis-aligned clip.
+/// Matches the Jacobian to finite differences on a generic non-axis-aligned clip.
+///
+/// The Jacobian matches finite differences of the map it claims to differentiate, on a generic
+/// non-axis-aligned clip.
 #[test]
 fn the_clip_jacobian_matches_the_map_derivative() {
     let projection = fixture();
@@ -321,7 +335,7 @@ fn the_clip_jacobian_matches_the_map_derivative() {
     let (_, clip) = projection.project(NodeRowId::new(0), LIVE[0]);
 
     // Row 0: centre (0, 0), pre-clip position (0.75, 1.0), ‖d‖ = 1.25 exactly. The mirror
-    // states the applied map with the landing the state itself names, so the derivative under
+    // states the applied map with the landing the state itself names: the derivative under
     // test is the map's own.
     let state = clip.expect("row 0 clipped");
     let landing = state.factor * 1.25;
@@ -365,6 +379,8 @@ fn the_clip_jacobian_matches_the_map_derivative() {
     }
 }
 
+/// Refuses an overflowing and an underflowing radius product, each carrying its exact value.
+///
 /// The reconstructed radius must be a strictly positive f32: an overflowing product and an
 /// underflowing one both refuse, each carrying the exact double-precision value.
 #[test]
@@ -396,10 +412,12 @@ fn a_radius_outside_the_value_domain_refuses() {
     );
 }
 
-/// An extent past the finite f32 range is refused, because a projected row there could narrow
-/// to infinity. The radius must be commensurate with the largest centre to trip it - a smaller
-/// excess is absorbed by the f64 sum, and an absorbable excess sits provably below the half-ulp
-/// that narrowing to `f32::MAX` tolerates.
+/// Refuses an extent past the finite f32 range with a radius commensurate with the centre.
+///
+/// An extent past the finite f32 range is refused, because a projected row there could narrow to
+/// infinity. The radius must be commensurate with the largest centre to trip it - a smaller excess
+/// is absorbed by the f64 sum, and an absorbable excess lies provably below the half-ulp that
+/// narrowing to `f32::MAX` tolerates.
 #[test]
 fn an_extent_past_the_finite_range_refuses() {
     let refused = BandProjection::<NodeRowId>::freeze(
@@ -417,6 +435,8 @@ fn an_extent_past_the_finite_range_refuses() {
     );
 }
 
+/// Refuses a radius below the landing margin's headroom at centres of `2²⁰`.
+///
 /// A radius below the landing margin's headroom refuses: centres at `2²⁰` and a radius of `128`
 /// leave the margin `2⁻²² · (2²⁰ + 128)`, whose headroom `256.03125` exceeds the radius.
 #[test]
@@ -439,9 +459,11 @@ fn a_radius_below_the_margin_headroom_refuses() {
     );
 }
 
-/// Near the bottom of the f32 range the absolute margin floor takes over from the extent scale:
-/// a subnormal radius of `2⁻¹³⁵` refuses against the floor's headroom `2⁻¹³⁰`, which the
-/// extent-scaled margin alone would have admitted.
+/// Refuses a subnormal radius under the absolute margin floor near the bottom of the range.
+///
+/// Near the bottom of the f32 range the absolute margin floor takes over from the extent scale: at
+/// centres of `2⁻¹²⁰` the extent-scaled margin would be about `2⁻¹⁴²`, below the floor `2⁻¹⁴⁰`, and
+/// a subnormal radius of `2⁻¹³⁵` refuses carrying the floor's headroom `2⁻¹³⁰`.
 #[test]
 fn the_margin_floor_binds_for_subnormal_radii() {
     let refused = BandProjection::<NodeRowId>::freeze(
@@ -466,8 +488,9 @@ fn the_margin_floor_binds_for_subnormal_radii() {
     );
 }
 
-/// The saturation floor recovers the freeze's exact margin and sits two of them inside the
-/// radius. Every quantity in this fixture is dyadic, so the assert is an exact contract.
+/// The saturation floor recovers the freeze's exact margin and lies two of them inside the radius.
+///
+/// Every quantity in this fixture is dyadic, and the assert is therefore an exact contract.
 #[test]
 fn saturation_floor_sits_two_margins_inside_the_radius() {
     let projection = fixture();

@@ -2,9 +2,10 @@
 //!
 //! The report reconstructs the classifier training set from the generation's staged annotation
 //! artifacts (the [`replay`] facility), re-runs the full production fit under the echoed
-//! configuration - fold assignment seeded by the echo, so the refit is deterministic - and records
-//! whether the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. A verified
-//! bundle provably describes the deployed model, not a lookalike.
+//! configuration - fold assignment seeded by the echo, and the refit is deterministic - and records
+//! whether the recomputed model's SHA-256 reproduces the staged `.clsf` artifact's. A verified
+//! bundle describes the deployed model rather than a lookalike, under the digest's collision
+//! resistance.
 //!
 //! One JSON document carries everything a downstream renderer needs: the per-row records (identity,
 //! fold, soft target, weight, out-of-fold logits, raw and calibrated posteriors, and
@@ -14,7 +15,7 @@
 //!
 //! Failures panic with the failing step's error. A report run has no recovery path, and the error
 //! is the diagnosis. The byte certification is the exception: its verdict is the report's content,
-//! so a digest mismatch compiles and serializes with its per-row evidence instead of panicking.
+//! and a digest mismatch compiles and serializes with its per-row evidence instead of panicking.
 
 pub(crate) mod replay;
 
@@ -38,7 +39,10 @@ struct Certification {
     staged: Sha256Digest,
     /// SHA-256 of the refit model's serialized bytes.
     recomputed: Sha256Digest,
-    /// Whether the digests agree, which certifies that the report describes the deployed model.
+    /// Whether the digests agree.
+    ///
+    /// Agreement certifies under SHA-256's collision resistance that the report describes the
+    /// deployed model.
     verified: bool,
 }
 
@@ -109,8 +113,9 @@ pub(crate) struct ClassifierReport {
 }
 
 impl ClassifierReport {
-    /// Reconstructs the staged corpus and refits the deployed model, then certifies the bytes and
-    /// compiles the bundle.
+    /// Reconstructs the staged corpus and refits the deployed model.
+    ///
+    /// It then certifies the bytes and compiles the bundle.
     ///
     /// # Panics
     ///
@@ -136,7 +141,7 @@ impl ClassifierReport {
             .write_into(std::io::sink())
             .expect("writing to a sink performs no fallible IO");
         // A digest mismatch serializes with its per-row evidence: the divergence is the most
-        // valuable thing this instrument can show.
+        // valuable thing this report can show.
 
         let temperature = refit.classifier.temperature();
         let row_reports = rows
@@ -166,8 +171,8 @@ impl ClassifierReport {
 
         // Finite by the refit's own certification: `certify` evaluated the objective over these
         // exact unscaled rows and refuses a non-finite value by name. The objective carries
-        // 0.5·λ·‖A‖² with λ positive by type, squares cannot cancel, so a non-finite row norm
-        // cannot reach a converged refit.
+        // 0.5·λ·‖A‖² with λ positive by type, and squares cannot cancel. A non-finite row norm
+        // therefore cannot reach a converged refit.
         let coefficient_norms = core::array::from_fn(|class| {
             refit.classifier.coefficients[class]
                 .norm()
@@ -185,8 +190,8 @@ impl ClassifierReport {
                 coefficient_norms,
                 intercepts: refit.classifier.intercepts,
                 temperature,
-                folds: config.folds,
-                seed: config.seed,
+                folds: config.folds(),
+                seed: config.seed(),
                 iterations: refit.evidence.iterations,
                 regularization: refit.evidence.regularization,
                 selection: refit.evidence.selection,
@@ -200,12 +205,12 @@ impl ClassifierReport {
         }
     }
 
-    /// The reported training-row count.
+    /// Returns the reported training-row count.
     pub(crate) const fn row_count(&self) -> usize {
         self.rows.len()
     }
 
-    /// Whether the refit model reproduced the staged artifact bytes.
+    /// Returns whether the refit model reproduced the staged artifact bytes.
     pub(crate) const fn verified(&self) -> bool {
         self.certification.verified
     }

@@ -1,79 +1,43 @@
-//! Live store reads that hydrate detail for delivered points and edges.
+//! Request-time store reads for the detail a response's trailer carries.
 //!
-//! Detail hydrates properties and type references at request time from Postgres, inline in the
-//! trailer. Labels never ride these reads. Edges resolves them in process - the server's captured
-//! displays first, the generation's payloads otherwise - while tile and locate serve generation
-//! payloads plus each placed arrival's placement capture.
+//! Hydration is graph-store enrichment performed while the request runs: an entity's direct-type
+//! URLs and its scalar property values, read from the live store. The edges and locate trailers
+//! hydrate. A tile trailer does not, because its labels and icons come from the publication the
+//! request captured, as positions do.
 //!
-//! # What a trailer carries
+//! Hydration is one of the two reasons a detailed response is not reusable as an immutable
+//! generation tile, and the two differ in the data lifetime a value follows. A captured label
+//! follows the epoch the caller's scope resolved against, and moves when that scope re-resolves -
+//! which is why even a tile trailer, reading no store, is not stable across requests. A
+//! request-time read follows the read instead, and can observe an edition later than the one the
+//! captured scope holds.
 //!
-//! The guarantees compose at two altitudes. Hydration reads only post-intersection ids, so every
-//! hydrated entity is one the request's proof admits. That is the guarantee about *rows*. Inside an
-//! admitted row, the deployment's property protection decides which *fields* may leave the store,
-//! and an entity's **deliverable set** is every property no protection withholds from the
-//! requesting actor. Property values reach a trailer from the deliverable set, and the caps,
-//! counts, and completeness flags below all describe that set.
+//! [`LocateResolver`] fills one locate document's node and link slots and returns the source's
+//! capped properties, reading both against the live temporal axes. [`TypeUrlResolver`] resolves
+//! ontology type uuids to versioned URLs for the edges trailer, a lookup with no temporal axes
+//! and no entity edition in it. A uuid derives from the versioned URL it names, which holds the
+//! pair steady once resolved. [`CachedTypeUrlResolver`] answers a repeat from its retained result.
+//! [`GraphDatabaseClient`] answers both resolvers against the serving store pool. [`NodeSlot`]
+//! and [`EdgeSlot`] are the slot domains a resolver fills in place, and [`scalar`] is the value
+//! shape a property read can take.
 //!
-//! The store's protection is a per-actor condition, and the hydration queries evaluate it for the
-//! requesting actor. Each order carries the actor its scope's policy resolution produced
-//! ([`MaskingActor`]), and the property statements compile through the store's own query compiler
-//! under the read path's masking conditions, so a trailer withholds exactly what the graph's entity
-//! reads withhold from that actor. An owner reads a protected value of their own where a stranger
-//! does not, and an instance admin reads unmasked.
-//!
-//! Labels stand outside that rule, here and on the graph's own read path. A label is a property
-//! value materialized per edition. The store derives `entity_edition_cache.labels[1]` from the
-//! whole properties object through the type's `labelProperty` path, with no actor in the
-//! derivation, so a type whose label property the deployment protects keeps that value in its label
-//! column. Fitting copies that value into the generation's identity tables, and the server's
-//! captured displays carry the same statement-shared spelling for later editions. Locate reads the
-//! generation payloads plus each placed arrival's placement capture, and edges reads
-//! captured-display-first, while hydration determines whether an entity still resolves and which
-//! live type references and properties may leave the store. The label property itself leaves the
-//! store under the same masking as every other property.
-//!
-//! The locate and edges responses deliver type *references* instead of rendered type display. Each
-//! entity's direct types read from `entity_edition_cache.versioned_urls`, and the client resolves
-//! their labels and icons through its own type metadata, so one owner holds each type display
-//! concern.
-//!
-//! Properties reach the wire as [`ScalarValue`] entries only, covering strings, numbers, booleans,
-//! and explicit nulls. Nested objects and arrays never survive the store-side filter. An over-cap
-//! entity drops properties reverse-lexicographically by base URL, and its label property drops
-//! last, so the label survives every cap that admits at least one property. That label property is
-//! the base URL whose value provides the display label, resolved through the same canonical type
-//! order the label cache uses. Survivors emit ascending by name, the wire's map-key order. A number
-//! reaches the wire as an integer when the store renders it integral and it fits `i64`, and as a
-//! double otherwise. Each hydration also counts the entity's *whole deliverable* set, so the
-//! trailer reports completeness (nothing filtered, nothing capped) per entity from that count.
-//!
-//! An id that resolves to no visible entity - deleted since publish, archived, drafted, or with its
-//! derived edition cache not yet landed - reads `null` in every column and `false` in every
-//! completeness flag, mirroring the zero-mask rule for unresolvable type ids.
-//!
-//! The module splits by altitude: [`columns`] is the hydrated data model the documents and encoders
-//! read, [`client`] is the store boundary - the queries and the one async connection - [`order`] is
-//! the sync-facing capability one locate response hydrates through, and [`select`] is the pure
-//! property-selection policy.
+//! The module also holds [`visibility::visibility_proof`], which resolves the rows an actor may
+//! receive before any document gathers from the captured scene.
 
 mod client;
 mod columns;
-pub(crate) mod compile;
-mod order;
-pub(crate) mod select;
+mod locate;
+pub(crate) mod scalar;
 mod statements;
 mod type_urls;
+pub(crate) mod visibility;
 
-// The hydration column constructors are test-only inputs for a fixture store's all-unresolved
-// answer. No production caller constructs a hydration by hand.
+// Locate document fixtures construct typed resolver answers.
 #[cfg(test)]
-pub(crate) use self::order::{LocateLinkHydration, LocateNodeHydration};
+pub(crate) use self::locate::{LocateLink, LocateNode, LocateProperties};
 pub(crate) use self::{
-    client::{DetailError, GraphDatabaseClient, MaskingActor},
-    columns::{
-        DeliveredNodes, EdgeLinkDetails, EdgeSlot, LocateLinkDetails, LocateNodeDetails,
-        NodeDetails, NodeSlot, ScalarValue, TypeSlot,
-    },
-    order::{EdgesStore, LocateHydration, LocateOrder, LocateStore},
+    client::{GraphDatabaseClient, HydrateError},
+    columns::{EdgeSlot, NodeSlot},
+    locate::{LocateEntity, LocateRequest, LocateResolver, LocateResponse},
     type_urls::{CachedTypeUrlResolver, TypeUrlResolver},
 };

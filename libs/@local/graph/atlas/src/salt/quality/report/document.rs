@@ -1,6 +1,6 @@
 //! The quality report's rendered rows, applied thresholds, and verdict controls.
 
-use core::{mem::variant_count, num::NonZero};
+use core::{fmt, mem::variant_count, num::NonZero};
 
 use super::super::{
     QualityMetric,
@@ -8,7 +8,7 @@ use super::super::{
 };
 use crate::{
     identity::OntologyRowId,
-    math::{NonNegative, UnitFraction},
+    math::{DFinite, NonNegative, UnitFraction},
 };
 
 /// One aggregate's readings at one neighbourhood size.
@@ -24,22 +24,18 @@ pub(crate) struct MetricRow {
     pub trustworthiness: UnitFraction,
     /// Continuity, in `[0, 1]`.
     pub continuity: UnitFraction,
-    /// Fraction of false neighbours past the horizon, in `[0, 1]`.
+    /// Fraction of map neighbours past the reference-rank horizon, in `[0, 1]`.
     pub intrusion_rate: UnitFraction,
-    /// Fraction of banished neighbours past the horizon, in `[0, 1]`.
+    /// Fraction of reference neighbours past the map-rank horizon, in `[0, 1]`.
     pub extrusion_rate: UnitFraction,
 }
 
 impl MetricRow {
     /// Reads one aggregate at the given neighbourhood size.
     ///
-    /// Every row a probe produces observes at least one query, from three independent reasons:
-    /// `ProbeOptions::anchors` is a `NonZero`, the sampled pass observes every step cell once per
-    /// anchor, and a subgroup row merges at least the anchor that created its membership. A row
-    /// read from an empty aggregate publishes each reading's own optimum instead - recall one, the
-    /// rates zero - and [`controls`](QualityReport::controls) folds those into its extremum as
-    /// observed evidence, where the triplet control keys on its observed count and refuses. A new
-    /// row source either keeps that invariant or gives the controls `queries` to key on.
+    /// `neighbourhood` labels the row and must match the aggregate's size. An empty aggregate
+    /// produces recall, trustworthiness and continuity of one and rates of zero.
+    /// [`QualityReport::controls`] includes such a row in its extrema without checking `queries`.
     pub(super) fn read(neighbourhood: NonZero<usize>, aggregate: &NeighbourhoodAggregate) -> Self {
         Self {
             neighbourhood,
@@ -55,26 +51,29 @@ impl MetricRow {
 
 /// One neighbourhood size's density-distortion reading.
 ///
-/// The reading is the spread of `ln(map radius / representation radius)` over the anchors: zero
-/// when the map rescales every neighbourhood alike, growing as regions compress or dilate unevenly.
-/// The median log ratio is the global scale offset - it carries the two metrics' unit difference
-/// and is comparable only across probes of the same spaces.
+/// For positive finite radii, the reading is the unscaled median absolute deviation of ln(map
+/// radius) − ln(representation radius). A constant radius ratio gives zero spread. MAD measures
+/// dispersion around the median and can remain zero when some ratios differ. The median log ratio
+/// retains the metrics' relative scale. Uniform multiplicative radius rescaling shifts it without
+/// changing the spread in exact arithmetic.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DensityRow {
     /// The neighbourhood size both radii come from.
     pub neighbourhood: NonZero<usize>,
-    /// Anchors contributing a finite log ratio.
+    /// Anchors with positive finite radii contributing a log ratio.
     pub anchors: usize,
     /// Anchors excluded for a zero radius.
     ///
-    /// At least `neighbourhood` rows coincide with the anchor in one of the spaces.
+    /// The computed k-th radius is zero in at least one space. Cosine-equivalent directions or
+    /// floating-point rounding can produce a zero representation radius without equal embedding
+    /// components.
     pub degenerate: usize,
     /// The median log radius ratio, absent without contributing anchors.
-    pub median_log_ratio: Option<f64>,
+    pub median_log_ratio: Option<DFinite>,
     /// The median absolute deviation around the median, unscaled.
     ///
     /// Absent without contributing anchors.
-    pub spread: Option<f64>,
+    pub spread: Option<DFinite>,
 }
 
 /// One space pair's triplet-agreement reading.
@@ -113,7 +112,7 @@ pub(crate) struct ClumpRow {
     pub queries: usize,
     /// Mean matched fraction of the collapsed neighbourhoods, in `[0, 1]`.
     ///
-    /// Never below the plain recall at the same size.
+    /// For probe-produced rows, never below plain recall over the same neighbourhood lists.
     pub recall: UnitFraction,
 }
 
@@ -167,16 +166,16 @@ pub(crate) struct BaselineRow {
     pub recall: UnitFraction,
     /// The same reading collapsed onto clump ids, when clump readings exist.
     ///
-    /// Never below the plain recall.
+    /// For probe-produced rows, never below plain recall over the same neighbourhood lists.
     pub clump_recall: Option<UnitFraction>,
 }
 
 /// One subgroup's representation-baseline readings over the sampled universe.
 ///
-/// The stratification separates representation loss from near-tie reshuffling under the triage
-/// rule. When a subgroup's plain baseline recall trails the whole-probe reading and its collapsed
-/// recall restores to it, the breach lies only on component labels in the representation itself,
-/// before any projection. That reading triages the breach and certifies nothing about placement.
+/// Plain and collapsed recall show how a subgroup's representation loss changes when component
+/// labels replace row identity, before projection. Matching the whole-probe baseline after collapse
+/// is diagnostic evidence, not proof that the difference arose from near ties or that the component
+/// is compact. These rows contain no placement judgment.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BaselineSubgroupReport {
     /// The subgroup's type, as its ontology row.
@@ -192,9 +191,9 @@ pub(crate) struct BaselineSubgroupReport {
 /// One breach of the subgroup degradation rule.
 ///
 /// A flag carries its own triage evidence. When clump readings exist, the report re-evaluates the
-/// breach on clump ids and marks a breach the collapse restores as resolved, meaning
-/// component-label recall no longer breaches. The mark is triage evidence and certifies neither
-/// component compactness nor within-component placement, and it never affects admission.
+/// breach on clump ids and marks it resolved when collapsed subgroup degradation is at most the
+/// configured factor times collapsed whole-probe degradation. The mark certifies neither component
+/// compactness nor within-component placement. Flags and resolution never affect admission.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
@@ -218,17 +217,18 @@ pub(crate) struct SubgroupFlag {
 }
 
 /// The side of a control's threshold that admits.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum Bound {
-    /// The reading must reach the threshold.
-    Floor(f64),
-    /// The reading must stay under the threshold.
-    Ceiling(f64),
+    /// The reading must be at least the threshold.
+    Floor(DFinite),
+    /// The reading must be at most the threshold.
+    Ceiling(DFinite),
 }
 
 impl Bound {
     /// Returns whether `reading` lies inside the bound.
-    const fn admits(self, reading: f64) -> bool {
+    const fn admits(self, reading: DFinite) -> bool {
         match self {
             Self::Floor(floor) => reading >= floor,
             Self::Ceiling(ceiling) => reading <= ceiling,
@@ -236,29 +236,99 @@ impl Bound {
     }
 }
 
-/// One control of the battery, reading one metric against the threshold that admits it.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// The reason a population cannot supply a measurement.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+pub(crate) enum InconclusiveReason {
+    /// Too few distinct rows exist for the metric's domain.
+    InsufficientData,
+}
+
+/// A metric's threshold verdict or inconclusive result.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+pub(crate) enum MetricEval {
+    /// A finite reading satisfies its bound.
+    Pass { reading: DFinite },
+    /// A reading violates its bound, or required evidence is missing.
+    Fail { reading: Option<DFinite> },
+    /// The population cannot define the measurement.
+    Inconclusive { reason: InconclusiveReason },
+}
+
+/// The evidence available for a metric before applying its threshold.
+///
+/// [`Inconclusive`](Self::Inconclusive) identifies a metric outside the population's supported
+/// domain. [`Missing`](Self::Missing) identifies absent evidence for a metric that requires it. The
+/// distinction determines whether [`Control`] permits admission.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+pub(crate) enum MetricReading {
+    /// The population cannot define the measurement.
+    Inconclusive(InconclusiveReason),
+    /// A finite aggregate ready for threshold comparison.
+    Value(DFinite),
+    /// Required evidence is absent.
+    Missing,
+}
+
+const impl From<Option<DFinite>> for MetricReading {
+    fn from(value: Option<DFinite>) -> Self {
+        match value {
+            Some(value) => Self::Value(value),
+            None => Self::Missing,
+        }
+    }
+}
+
+/// One metric's outcome paired with its inclusive admission bound.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
 pub(crate) struct Control {
     /// The metric the control checks.
     pub metric: QualityMetric,
-    /// The reading the verdict turns on, absent exactly when the evidence is.
-    pub reading: Option<f64>,
     /// The applied threshold and the side of it that admits.
     pub bound: Bound,
+    /// The measured verdict or reason evaluation is unavailable.
+    pub eval: MetricEval,
 }
 
 impl Control {
-    /// Returns whether the control admits: evidence present, and inside its bound.
-    pub(crate) fn admits(&self) -> bool {
-        self.reading
-            .is_some_and(|reading| self.bound.admits(reading))
+    /// Assesses evidence while keeping population insufficiency separate from missing readings.
+    const fn new(metric: QualityMetric, reading: MetricReading, bound: Bound) -> Self {
+        let eval = match reading {
+            MetricReading::Value(reading) if bound.admits(reading) => MetricEval::Pass { reading },
+            MetricReading::Value(reading) => MetricEval::Fail {
+                reading: Some(reading),
+            },
+            MetricReading::Inconclusive(reason) => MetricEval::Inconclusive { reason },
+            MetricReading::Missing => MetricEval::Fail { reading: None },
+        };
+
+        Self {
+            metric,
+            bound,
+            eval,
+        }
+    }
+
+    /// Returns the reduced observation, absent for missing or insufficient evidence.
+    pub(crate) const fn reading(&self) -> Option<DFinite> {
+        match self.eval {
+            MetricEval::Pass { reading } => Some(reading),
+            MetricEval::Fail { reading } => reading,
+            MetricEval::Inconclusive { .. } => None,
+        }
+    }
+
+    /// Returns whether this control permits admission, including population insufficiency.
+    pub(crate) const fn admits(&self) -> bool {
+        !matches!(self.eval, MetricEval::Fail { .. })
     }
 }
 
 /// One probe's rendered evidence and verdict inputs.
 ///
-/// The report carries the probe sizes and the applied thresholds, so a serialized report justifies
-/// its own verdict without the configuration that produced it.
+/// The report carries probe sizes and applied thresholds, permitting verdict recomputation without
+/// the original configuration. These fields record results rather than prove their provenance.
+/// Direct construction and deserialization do not check grid alignment, observation counts or
+/// consistency between readings.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QualityReport {
     /// Sampled anchor count.
@@ -267,6 +337,8 @@ pub(crate) struct QualityReport {
     pub corpus_universe: usize,
     /// The comparison row count every sampled grid ranks over.
     pub comparisons: usize,
+    /// Requested pair draws. Zero disables triplets and refuses admission.
+    pub triplet_pairs_requested: usize,
     /// Corpus map-versus-representation readings, per neighbourhood size.
     ///
     /// The primary surface the verdict binds to.
@@ -293,7 +365,7 @@ pub(crate) struct QualityReport {
     pub subgroups: Vec<SubgroupReport>,
     /// Per-subgroup representation-baseline readings, ascending by ontology row.
     ///
-    /// The audit stratification, report-only.
+    /// Per-type representation-baseline readings over the sampled universe, report-only.
     pub baseline_subgroups: Vec<BaselineSubgroupReport>,
     /// Degradation-rule breaches, in subgroup then neighbourhood order.
     pub flags: Vec<SubgroupFlag>,
@@ -315,40 +387,85 @@ pub(crate) struct QualityReport {
     pub minimum_subgroup_anchors: usize,
 }
 
+impl fmt::Display for QualityReport {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(fmt, "passes      {}", self.passes())?;
+        writeln!(fmt, "admits      {}", self.admits())?;
+        writeln!(
+            fmt,
+            "samples     {} anchors, {} comparisons",
+            self.anchors, self.comparisons
+        )?;
+
+        for control in self.controls() {
+            write!(fmt, "{}: ", control.metric.label())?;
+            match control.eval {
+                MetricEval::Pass { reading } => writeln!(fmt, "passed ({reading:.4})")?,
+                MetricEval::Fail {
+                    reading: Some(reading),
+                } => writeln!(fmt, "failed ({reading:.4})")?,
+                MetricEval::Fail { reading: None } => {
+                    writeln!(fmt, "failed (missing or non-finite evidence)")?;
+                }
+                MetricEval::Inconclusive { .. } => {
+                    writeln!(fmt, "not evaluated: insufficient data")?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 impl QualityReport {
     /// Returns the battery's controls, each carrying the reading its verdict turns on.
     ///
-    /// Each control is a conjunction over the neighbourhood steps, so the reading that decides it
-    /// is the extremum across them - the lowest step against a floor and the highest against a
-    /// ceiling. An absent reading is absent evidence - an empty grid, a step whose spread is
-    /// absent, triplet sampling switched off - and a control refuses that rather than passing
-    /// vacuously.
+    /// Populations below three cannot define the rank or triplet metrics. Density requires two
+    /// rows. These controls are inconclusive regardless of stored readings and permit admission.
+    /// Triplet agreement requires a positive requested draw count to qualify as inconclusive.
     ///
-    /// [`passes`](Self::passes) is this list's conjunction and an observer reports these same
-    /// numbers, so the verdict and the observation read one reduction instead of two.
+    /// For supported metrics, neighbourhood floors use the lowest primary-grid reading and the
+    /// intrusion ceiling uses the highest. Density uses the maximum spread across all neighbourhood
+    /// sizes. An empty primary grid, an empty density list or any missing spread fails its
+    /// corresponding control. Triplet agreement requires a positive recorded triplet count.
     #[must_use]
     pub(crate) fn controls(&self) -> [Control; variant_count::<QualityMetric>()] {
-        let lowest = |read: fn(&MetricRow) -> UnitFraction| {
+        let population = self.anchors.saturating_add(self.corpus_universe);
+
+        let lowest = |read: fn(&MetricRow) -> UnitFraction, min_population: usize| {
+            if population < min_population {
+                return MetricReading::Inconclusive(InconclusiveReason::InsufficientData);
+            }
+
             self.map_representation
                 .iter()
                 .map(read)
                 .reduce(UnitFraction::min)
+                .map_or(MetricReading::Missing, |value| {
+                    MetricReading::Value(value.into())
+                })
         };
-        let highest = |read: fn(&MetricRow) -> UnitFraction| {
+
+        let highest = |read: fn(&MetricRow) -> UnitFraction, min_population: usize| {
+            if population < min_population {
+                return MetricReading::Inconclusive(InconclusiveReason::InsufficientData);
+            }
+
             self.map_representation
                 .iter()
                 .map(read)
                 .reduce(UnitFraction::max)
+                .map_or(MetricReading::Missing, |value| {
+                    MetricReading::Value(value.into())
+                })
         };
 
-        // A step with no spread reading gives the ceiling nothing to check, so the control loses
-        // its evidence whole rather than reading the steps that do have one.
         let spread = self
             .density
             .iter()
-            .try_fold(None::<f64>, |highest, row| {
+            .try_fold(None::<DFinite>, |highest, row| {
                 let spread = row.spread?;
-                let highest = highest.unwrap_or(f64::NEG_INFINITY);
+                let highest = highest.unwrap_or(spread);
 
                 Some(Some(highest.max(spread)))
             })
@@ -357,48 +474,63 @@ impl QualityReport {
         let triplets = &self.triplet_map_representation;
 
         [
-            Control {
-                metric: QualityMetric::Recall,
-                reading: lowest(|row| row.recall).map(UnitFraction::get),
-                bound: Bound::Floor(self.minimum_recall.get()),
-            },
-            Control {
-                metric: QualityMetric::Trustworthiness,
-                reading: lowest(|row| row.trustworthiness).map(UnitFraction::get),
-                bound: Bound::Floor(self.minimum_trustworthiness.get()),
-            },
-            Control {
-                metric: QualityMetric::Continuity,
-                reading: lowest(|row| row.continuity).map(UnitFraction::get),
-                bound: Bound::Floor(self.minimum_continuity.get()),
-            },
-            Control {
-                metric: QualityMetric::IntrusionRate,
-                reading: highest(|row| row.intrusion_rate).map(UnitFraction::get),
-                bound: Bound::Ceiling(self.maximum_intrusion_rate.get()),
-            },
-            Control {
-                metric: QualityMetric::DensitySpread,
-                reading: spread,
-                bound: Bound::Ceiling(f64::from(self.maximum_density_spread)),
-            },
-            Control {
-                metric: QualityMetric::TripletAgreement,
-                reading: (triplets.triplets > 0).then_some(triplets.agreement.get()),
-                bound: Bound::Floor(self.minimum_triplet_agreement.get()),
-            },
+            Control::new(
+                QualityMetric::Recall,
+                lowest(|row| row.recall, 3),
+                Bound::Floor(self.minimum_recall.into()),
+            ),
+            Control::new(
+                QualityMetric::Trustworthiness,
+                lowest(|row| row.trustworthiness, 3),
+                Bound::Floor(self.minimum_trustworthiness.into()),
+            ),
+            Control::new(
+                QualityMetric::Continuity,
+                lowest(|row| row.continuity, 3),
+                Bound::Floor(self.minimum_continuity.into()),
+            ),
+            Control::new(
+                QualityMetric::IntrusionRate,
+                highest(|row| row.intrusion_rate, 3),
+                Bound::Ceiling(self.maximum_intrusion_rate.into()),
+            ),
+            Control::new(
+                QualityMetric::DensitySpread,
+                if population < 2 {
+                    MetricReading::Inconclusive(InconclusiveReason::InsufficientData)
+                } else {
+                    MetricReading::from(spread)
+                },
+                Bound::Ceiling(self.maximum_density_spread.widen().into()),
+            ),
+            Control::new(
+                QualityMetric::TripletAgreement,
+                if population < 3 && self.triplet_pairs_requested > 0 {
+                    MetricReading::Inconclusive(InconclusiveReason::InsufficientData)
+                } else {
+                    MetricReading::from(
+                        (triplets.triplets > 0).then_some(triplets.agreement.into()),
+                    )
+                },
+                Bound::Floor(self.minimum_triplet_agreement.into()),
+            ),
         ]
     }
 
-    /// Returns whether the full battery admits the generation.
+    /// Returns whether every reduced metric satisfies its admission bound.
     ///
-    /// True exactly when every [control](Self::controls) holds: each reading present and inside its
-    /// bound. The controls are concrete validated values that stay maximally permissive by default.
-    /// The verdict therefore turns on evidence and readings, never on configuration shape. Subgroup
-    /// flags and their clump-resolution triage are report-only fields: they inform the human
-    /// reading the report and never affect admission.
+    /// Population-insufficient metrics leave this false. Use [`admits`](Self::admits) for
+    /// permission to activate. Subgroup flags and clump resolution never affect either decision.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
+        self.controls()
+            .iter()
+            .all(|control| matches!(control.eval, MetricEval::Pass { .. }))
+    }
+
+    /// Returns whether the measured controls admit, allowing population-insufficient metrics.
+    #[must_use]
+    pub(crate) fn admits(&self) -> bool {
         self.controls().iter().all(Control::admits)
     }
 }

@@ -1,3 +1,8 @@
+//! Certificates for the quad file's format.
+//!
+//! The tests pin the header's and node's wire layouts byte by byte, the type-set structural
+//! rules, the region geometry, the writer-to-reader round trip, and every structural rule the
+//! open enforces - with a property test holding the round trip over arbitrary trees.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -14,18 +19,10 @@ use super::{
     read::{OpenQuadError, QuadFile},
     write::write_regions,
 };
-use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
-    morton::{Depth, MortonCell},
+use crate::file::{
+    ArtifactFile as _,
+    region::{PAGE_BYTES, header::HeaderError, machine::Machine},
 };
-
-fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
-}
-
-fn cell(depth_value: u8, x: u32, y: u32) -> MortonCell {
-    MortonCell::new(depth(depth_value), x, y).expect("test cells lie within the depth's grid")
-}
 
 /// A per-test scratch file path under the system temp directory.
 fn scratch(name: &str) -> PathBuf {
@@ -55,10 +52,12 @@ fn fixture_nodes() -> Vec<Node> {
     ]
 }
 
+/// The direct-type set of each fixture node, in node order.
 fn fixture_sets() -> TypeSets {
     TypeSets::from_sets(&[vec![1, 2, 5, 7], vec![1, 5], vec![1, 2, 7], vec![2]])
 }
 
+/// The fixture tree and its type sets, written out as a quad file's bytes.
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
     write_regions(&fixture_nodes(), &fixture_sets(), &mut bytes)
@@ -66,6 +65,9 @@ fn fixture_bytes() -> Vec<u8> {
     bytes
 }
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 2, this
+/// machine's information, the node count and type-id entry count as little-endian `u64`s, and zero
+/// padding out to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(4, 10));
@@ -107,6 +109,9 @@ fn header_parse_pins_identity() {
         .expect_err("an unsupported version should not parse");
 }
 
+/// A node occupies 32 bytes in the order the format fixes - four child indexes, run start, run
+/// length, subtree points - with an absent child stored as the `u32` sentinel. The accessors
+/// read back the children, the run as a range, the point count, and leafness from those bytes.
 #[test]
 fn node_wire_layout() {
     let node = Node::new([Some(1), Some(2), None, Some(4)], 0x2A, 256, 1000);
@@ -153,12 +158,17 @@ fn type_sets_reject_unsorted_sets() {
     drop(TypeSets::from_sets(&[vec![2, 1]]));
 }
 
+/// A repeated id in one set panics at construction too: the order rule is strict, so equal
+/// neighbours are as malformed as descending ones.
 #[test]
 #[should_panic(expected = "type set must ascend strictly")]
 fn type_sets_reject_duplicate_ids() {
     drop(TypeSets::from_sets(&[vec![3, 3]]));
 }
 
+/// The header's region offsets and expected file length agree with the geometry computed by hand,
+/// an empty tree still places its anchoring fencepost region, and counts whose arithmetic
+/// overflows `u64` report no expected length because they match no real file.
 #[test]
 fn region_geometry() {
     // A 128-byte table for four nodes pads to one page, and the five posts pad to a second page.
@@ -194,33 +204,7 @@ fn written_regions_reopen_verbatim() {
     }
 }
 
-#[test]
-fn locate_walks_the_prefix_digits() {
-    let path = scratch("locate.quad");
-    fs::write(&path, fixture_bytes()).expect("the scratch file is writable");
-    let file = QuadFile::open(&path).expect("the written file reopens");
-
-    // The root owns the whole-domain cell.
-    assert_eq!(file.locate(cell(0, 0, 0)), Some(0));
-
-    // Depth 1: quadrants 0 and 2 have nodes, 1 and 3 do not.
-    assert_eq!(file.locate(cell(1, 0, 0)), Some(1));
-    assert_eq!(file.locate(cell(1, 0, 1)), Some(2));
-    assert_eq!(file.locate(cell(1, 1, 0)), None);
-    assert_eq!(file.locate(cell(1, 1, 1)), None);
-
-    // Node 3 sits in quadrant 1 (x1y0) of node 2's cell (0, 1): its
-    // depth-2 grid coordinates are (2*0 + 1, 2*1 + 0) = (1, 2).
-    assert_eq!(file.locate(cell(2, 1, 2)), Some(3));
-
-    // Sibling quadrants of node 3 have no nodes.
-    assert_eq!(file.locate(cell(2, 0, 2)), None);
-
-    // Below a leaf nothing locates.
-    assert_eq!(file.locate(cell(2, 0, 0)), None);
-    assert_eq!(file.locate(cell(3, 2, 4)), None);
-}
-
+/// An empty tree is valid geometry: it writes and reopens with no nodes at all.
 #[test]
 fn empty_tree_reopens() {
     let path = scratch("empty.quad");
@@ -230,8 +214,7 @@ fn empty_tree_reopens() {
     fs::write(&path, bytes).expect("the scratch file is writable");
 
     let file = QuadFile::open(&path).expect("the empty file reopens");
-    assert!(file.nodes().is_empty());
-    assert_eq!(file.locate(cell(0, 0, 0)), None);
+    assert_eq!(file.nodes(), []);
 }
 
 #[test]
@@ -283,6 +266,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     assert_matches!(QuadFile::open(&torn), Err(OpenQuadError::Length { .. }));
 }
 
+/// The open validates the structural rules a traversal then relies on, and names the offender:
+/// fenceposts that decrease or fail to close at the header's entry count report their index, and a
+/// child index that points at its own node or past the table reports the node and the child slot.
 #[test]
 fn open_rejects_malformed_posts_and_children() {
     // The fixture's posts region starts at 8192. Post 1 raised beyond
@@ -327,23 +313,7 @@ fn open_rejects_malformed_posts_and_children() {
     );
 }
 
-/// Reference locate: the same prefix-digit walk over the in-memory table.
-fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
-    if nodes.is_empty() {
-        return None;
-    }
-    let mut node = 0_u32;
-    let prefix = cell.min_key().prefix(cell.depth());
-    for step in (0..cell.depth().get()).rev() {
-        let quadrant = (prefix >> (2 * u64::from(step))) & 0b11;
-        node = nodes[node as usize].child(quadrant as usize)?;
-    }
-    Some(node)
-}
-
 /// Every valid table and set cover roundtrips verbatim.
-///
-/// The mapped locate agrees with the in-memory reference walk.
 #[property_test]
 fn written_tables_roundtrip(
     // Children generated strictly deeper, so construction preserves the pre-order rule. The format
@@ -357,8 +327,6 @@ fn written_tables_roundtrip(
         0..12,
     )]
     seeds: Vec<(u64, [Option<proptest::sample::Index>; 4], u8)>,
-    probe: u64,
-    #[strategy = 0_u8..=4] probe_depth: u8,
 ) {
     let count = seeds.len();
     let nodes: Vec<Node> = seeds
@@ -398,7 +366,4 @@ fn written_tables_roundtrip(
         let stored: Vec<u32> = file.type_set(index).iter().map(|id| id.get()).collect();
         prop_assert_eq!(stored, sets.set(node), "node {}'s set", node);
     }
-
-    let cell = crate::morton::MortonKey::from_bits(probe).cell(depth(probe_depth));
-    prop_assert_eq!(file.locate(cell), locate_reference(&nodes, cell));
 }

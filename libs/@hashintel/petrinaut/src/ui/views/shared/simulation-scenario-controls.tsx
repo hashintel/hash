@@ -11,6 +11,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { ScrollFade } from "../../components/scroll-fade";
 import { Slider } from "../../components/slider";
 import { useScrollOverflow } from "../../hooks/use-scroll-overflow";
 import { clampSimulationParameterValue } from "./simulation-parameter-bounds";
@@ -92,29 +93,6 @@ const listStyle = css({
   paddingRight: "2",
 });
 
-const fadeStyle = css({
-  position: "absolute",
-  left: "0",
-  right: "0",
-  height: "[16px]",
-  pointerEvents: "none",
-  zIndex: "[1]",
-  opacity: "var(--scroll-fade-opacity)",
-  transition: "[opacity 150ms ease]",
-});
-
-const topFadeStyle = css({
-  top: "0",
-  background:
-    "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
-});
-
-const bottomFadeStyle = css({
-  bottom: "0",
-  background:
-    "[linear-gradient(to top, var(--colors-neutral-s00), transparent)]",
-});
-
 const parameterRowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -183,25 +161,11 @@ const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <div className={scrollWrapperStyle}>
-      <div
-        className={cx(fadeStyle, topFadeStyle)}
-        style={
-          {
-            "--scroll-fade-opacity": canScrollUp ? 1 : 0,
-          } as React.CSSProperties
-        }
-      />
+      <ScrollFade edge="top" visible={canScrollUp} />
       <div ref={scrollRef} className={listStyle} onScroll={onScroll}>
         {children}
       </div>
-      <div
-        className={cx(fadeStyle, bottomFadeStyle)}
-        style={
-          {
-            "--scroll-fade-opacity": canScrollDown ? 1 : 0,
-          } as React.CSSProperties
-        }
-      />
+      <ScrollFade edge="bottom" visible={canScrollDown} />
     </div>
   );
 };

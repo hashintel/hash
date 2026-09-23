@@ -1,12 +1,11 @@
-//! LMDB-backed HNSW behind the nearest-neighbours seam.
+//! LMDB-backed HNSW search on the crate's cosine-distance scale.
 //!
-//! [`HannoyIndex`] adapts one [hannoy] index inside one [heed] LMDB environment to
-//! [`NearestNeighboursIndex`]. The environment lives in a directory guarded by an advisory file
-//! lock, so one process owns the index at a time. Item keys are node rows narrowed to hannoy's
-//! `u32` key space. A generation whose row count exceeds `u32::MAX` does not fit this backend.
+//! [`HannoyIndex`] provides [`NearestNeighboursIndex`] through one [hannoy] index in one [heed]
+//! LMDB environment. An advisory lock excludes other handles using the same lock file for the
+//! environment. Item keys must fit hannoy's `u32` key space.
 //!
-//! The adapter rescales backend distances onto the crate's `[0, 2]` cosine scale before they cross
-//! the seam, and it orders results by ascending `(distance, id)`.
+//! Results are rescaled onto the crate's `[0, 2]` cosine scale and ordered by ascending `(distance,
+//! id)`. Rescaling preserves the backend's values, with their own floating-point rounding.
 
 use core::{error::Error, fmt, num::TryFromIntError};
 use std::{
@@ -28,20 +27,18 @@ use crate::{
     random::Compat,
 };
 
-/// Reports the backend's own build phases to the run's observer.
-///
-/// hannoy names its build steps through [`steppe::Progress`], whose implementors are `'static`, so
-/// the builder owns its reporter for the length of the build and the bridge cannot borrow the
-/// run's observer. It carries the observer's detached half instead. Only the step's name crosses
-/// the seam. hannoy hands its counted sub-step once, before its counter has moved, so the position
-/// it carries is always zero and reporting it would describe the phase's progress falsely.
+/// A detached observer that reports the backend's build-phase names.
 struct BuildPhases<D>(D);
 
+// steppe requires a 'static reporter, and the builder owns it. The detached observer avoids
+// borrowing the run's observer for that lifetime.
 impl<D> steppe::Progress for BuildPhases<D>
 where
     D: Progress + Send + Sync + 'static,
 {
     fn update(&self, sub_progress: impl steppe::Step) {
+        // the immediate callback sees a zero counter, which can advance if the step is
+        // retained. Report only the phase name rather than that initial position.
         self.0.knn_build_phase(&sub_progress.name());
     }
 }
@@ -50,45 +47,50 @@ where
 // the ground layer. M = 16 with M0 = 2 · M follows the Malkov-Yashunin paper's defaults (a
 // reasonable M range is 5-48 where higher values pay off only for extreme recall or
 // dimensionality). The recall spot check is the per-corpus arbiter.
+/// HNSW connectivity on the upper layers: links per node.
 #[expect(
     clippy::min_ident_chars,
     reason = "M is the canonical HNSW connectivity name"
 )]
 const M: usize = 16;
+/// HNSW connectivity on the ground layer, `2 · M`.
 const M0: usize = 32;
 
+/// The index number within the LMDB environment.
 // One environment carries one index.
 const INDEX: u16 = 0;
 
+/// The default memory-map bound, 1 TiB.
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
-// Sized by a full-scale sweep (985,932 rows, recall@50, exact references replaying the fit's
-// streams). Construction 128 -> 256 buys ~+0.009 sampled aggregate recall (~0.893 -> ~0.902 against
-// the 0.89 floor) for ~+90s build (155 -> 245s), and same-seed rebuilds spread ±0.007 (hannoy links
-// in parallel, and the seed pins the level stream rather than the link order), so the margin must
-// clear that spread. Search breadth measured inert. 64 -> 256 bought +0.002-0.005 on every build at
-// 2.2x query cost, so 128 stays. It is 2.5x the deepest query in this crate (the 50-neighbour
-// recall audit) and above hannoy's default of 100. Sweep instrument: `report::backend` (`report
-// knn-backend`). Raise construction before search on a failed recall check.
+// the 985,932-row recall@50 backend sweep used exact-reference streams derived from the fit seeds.
+// Raising construction breadth from 128 to 256 improved sampled aggregate recall from about 0.893
+// to 0.902 against the 0.89 floor, at 245s build time instead of 155s. Same-seed rebuilds varied by
+// about ±0.007, which the admission margin must accommodate. Raising search breadth from 64 to 256
+// improved recall by 0.002-0.005 at 2.2 times the query cost. Retaining search breadth 128 favors
+// construction quality over that recurring query cost. Use `report::backend` (`report knn-backend`)
+// to reassess these settings on another corpus.
+/// The default build-time frontier breadth.
 const DEFAULT_EF_CONSTRUCTION: usize = 256;
+/// The default search-time frontier breadth.
 const DEFAULT_EF_SEARCH: usize = 128;
 
 /// Pinned hannoy storage, build, and query settings.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct HannoyIndexOptions {
     /// Upper bound of the LMDB memory map, in bytes.
     ///
-    /// The map reserves virtual addresses without allocating memory. Pages materialize as the index writes them, so the bound costs nothing until a write reaches it. A write beyond it fails with an [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, which a larger bound prevents. The 1 TiB default covers about 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two orders of magnitude beyond a million-row generation.
+    /// By default, reserves up to 1 TiB of virtual address space for database mapping. Physical memory use depends on accessed pages. Database growth beyond it fails with an [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error. Choose a larger bound when the index needs more mapped space.
     pub map_size: usize = DEFAULT_MAP_SIZE,
     /// Breadth of the candidate frontier while linking one item into the graph.
     ///
     /// Larger values buy link quality with one-time build cost, and link quality bounds the recall
-    /// any search breadth can reach afterwards.
+    /// any search breadth can reach afterwards. By default, uses 256 candidates.
     pub ef_construction: usize = DEFAULT_EF_CONSTRUCTION,
     /// Breadth of the candidate frontier while searching.
     ///
     /// A search never runs below the requested neighbour count. Larger values buy recall with
-    /// per-query cost, and the recall spot check is the arbiter of whether a setting suffices.
+    /// per-query cost. By default, uses 128 candidates, raised to at least the requested neighbour count.
     pub ef_search: usize = DEFAULT_EF_SEARCH,
 }
 
@@ -98,7 +100,7 @@ const impl Default for HannoyIndexOptions {
     }
 }
 
-/// The [`HannoyIndex`] backend failed.
+/// A failure of the [`HannoyIndex`] backend.
 ///
 /// The message names the failing surface - index, environment, lock file, or key space - and the
 /// concrete fault chains beneath through [`Error::source`].
@@ -245,12 +247,15 @@ pub(crate) struct HannoyIndex {
 }
 
 impl HannoyIndex {
-    /// Opens the environment directory at `base` and claims its lock.
+    /// Opens an existing environment directory at `base` and claims its advisory lock.
+    ///
+    /// The directory must reside on a local filesystem with intact LMDB locking. Advisory exclusion
+    /// covers only handles that use the same lock file.
     ///
     /// # Errors
     ///
     /// Returns an error when creating the lock file fails, another handle holds the lock, or the
-    /// environment cannot open.
+    /// environment or index database cannot be opened or initialized.
     pub(crate) fn new(
         base: impl AsRef<Utf8Path>,
         options: HannoyIndexOptions,
@@ -258,16 +263,22 @@ impl HannoyIndex {
         Self::open(base.as_ref(), options).map_err(HannoyIndexError)
     }
 
-    /// Opens the environment and claims the lock, in the backend's fault vocabulary.
+    /// Opens the environment and index database under an advisory lock.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IndexFault`] when lock acquisition, environment opening or database initialization
+    /// fails.
     fn open(base: &Utf8Path, options: HannoyIndexOptions) -> Result<Self, IndexFault<!>> {
         let lockfile = base.with_extension("lock");
 
         let lock = File::create(&lockfile)?;
         lock.try_lock()?;
 
-        // SAFETY: The crate cannot rule out another process opening the same database, but every
-        // opening through this crate's controlled access surface first claims the directory's
-        // exclusive advisory lock. The handle holds the lock for its whole life.
+        // SAFETY: heed relies on LMDB locking and on the database files remaining free of non-LMDB
+        // mutation on a local filesystem. No unsafe LMDB flags are enabled here, and `_lock`
+        // retains advisory exclusion against cooperating opens until after the environment drops.
+        // The lock does not establish the local-filesystem or external-mutation assumptions.
         let env = unsafe {
             EnvOpenOptions::new()
                 .map_size(options.map_size)
@@ -289,6 +300,11 @@ impl HannoyIndex {
     }
 
     /// Inserts every embedding under its row key inside one write transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IndexFault`] when a row key does not fit `u32`, an item cannot be inserted, or the
+    /// transaction fails.
     fn insert<'embedding, N>(
         &self,
         embeddings: impl IntoIterator<Item = Embedding<'embedding, N>>,
@@ -311,6 +327,10 @@ impl HannoyIndex {
     }
 
     /// Links the inserted items into the HNSW graph inside one write transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IndexFault`] when graph construction or the transaction fails.
     fn link<P>(&self, rng: impl Rng + SeedableRng, progress: &P) -> Result<(), IndexFault<!>>
     where
         P: Progress,
@@ -332,6 +352,11 @@ impl HannoyIndex {
     }
 
     /// Searches the configured breadth around a query vector.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IndexFault`] when opening a read transaction or index reader fails, or the query
+    /// fails.
     fn nns_by_vector(
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
@@ -348,6 +373,11 @@ impl HannoyIndex {
     }
 
     /// Searches the configured breadth around an indexed item.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IndexFault`] when opening a read transaction or index reader fails, the key does
+    /// not fit `u32`, the row is absent, or the query fails.
     fn nns_by_item<N>(&self, id: N, limit: usize) -> Result<Vec<(u32, f32)>, IndexFault<N>>
     where
         N: Id,
@@ -355,8 +385,7 @@ impl HannoyIndex {
         let rtxn = self.env.read_txn()?;
         let reader = Reader::open(&rtxn, INDEX, self.db)?;
 
-        // hannoy's by_item excludes the queried item from its results,
-        // so `limit` maps through unchanged.
+        // by_item already excludes the queried item. Request exactly `limit` results.
         reader
             .nns(limit)
             .ef_search(self.options.ef_search)
@@ -368,13 +397,13 @@ impl HannoyIndex {
             .ok_or(IndexFault::RowNotIndexed(id))
     }
 
-    /// Maps one search result onto the seam's contract.
+    /// Orders search results by distance and id and restores the `[0, 2]` cosine scale.
     fn finish_search<N>(mut results: Vec<(u32, f32)>) -> impl IntoIterator<Item = Neighbour<N>>
     where
         N: Id,
     {
-        // hannoy returns ascending distances with unspecified ties; the
-        // id tiebreak pins the seam's deterministic order.
+        // hannoy leaves distance ties unspecified. Order equal distances by id to satisfy the
+        // search contract.
         results.sort_unstable_by(|(lhs_id, lhs_distance), (rhs_id, rhs_distance)| {
             lhs_distance
                 .total_cmp(rhs_distance)
@@ -383,9 +412,9 @@ impl HannoyIndex {
 
         results.into_iter().map(|(id, distance)| Neighbour {
             id: N::from_u32(id),
-            // hannoy's cosine distance is (1 - cos) / 2 ∈ [0, 1];
-            // doubling restores the crate's [0, 2] scale exactly,
-            // because scaling by a power of two is lossless.
+            // Multiplication by two is exact for finite f32 values in [0, 1]. hannoy returns (1 −
+            // cos) / 2 on that range for the admitted vectors. Therefore doubling restores the [0,
+            // 2] scale without additional rounding.
             distance: NonNegative::new_unchecked(distance * 2.0),
         })
     }

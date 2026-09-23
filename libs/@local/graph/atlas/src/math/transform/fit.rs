@@ -1,10 +1,19 @@
-//! Least-squares affine fitting of point correspondences.
+//! Least-squares affine alignment, including anisotropic deformation.
 //!
-//! The closed-form solve consumes eleven raw moments that accumulate in one serial
-//! double-precision pass. The Procrustes fit constrains its linear part to a rotation under one
-//! scale. This fit releases both axes and therefore absorbs the anisotropic deformation a
-//! similarity leaves in its residual, which is what makes the pair of fits a decomposition for
-//! evidence.
+//! For paired points pᵢ, qᵢ ∈ ℝ², the model minimizes E(A, t) = Σᵢ‖Apᵢ + t − qᵢ‖² over a real 2x2
+//! matrix A and translation t. Let p̄ and q̄ be the point means, S = Σᵢ(pᵢ − p̄)(pᵢ − p̄)ᵀ the source
+//! scatter and C = Σᵢ(qᵢ − q̄)(pᵢ − p̄)ᵀ the target-source cross-scatter. The centred normal equation
+//! is AS = C. When S is nonsingular, A = CS⁻¹ and t = q̄ − Ap̄ give the unique minimizer. The fitted
+//! A may itself be singular.
+//!
+//! A serial pass accumulates eleven raw scalar moments in `f64`, then centres them and solves the
+//! 2x2 system before narrowing coefficients to `f32`. Raw-moment subtraction and a near-singular
+//! source scatter can amplify rounding. The determinant check tests the computed system, without
+//! certifying exact source rank.
+//!
+//! A general affine fit can absorb shear and anisotropic scale that a
+//! [`Similarity`](crate::math::Similarity) cannot represent. Comparing their residuals measures the
+//! additional error explained by that broader family, subject to the fits' numerical errors.
 
 use hashql_core::id::Id;
 
@@ -12,31 +21,33 @@ use super::Transform;
 use crate::math::{DNonNegative, Derivation, FinitePointField, dvec2::DVec2};
 
 impl Transform {
-    /// Fits the unweighted least-squares affine map of paired fields.
+    /// Estimates the unweighted least-squares affine map of paired fields.
     ///
-    /// The result is the transform minimizing `sum(|apply(source[i]) - target[i]|^2)` over all
-    /// affine maps, in closed form: the centred normal equations give the linear part as the
-    /// target-source cross-scatter times the inverse source scatter, and the translation
-    /// recovers the target centroid from the mapped source centroid. Every moment accumulates
-    /// serially in double precision. The fit reads gauge-population constellations, whose size
-    /// sits far below the parallel Procrustes fold's break-even, so no parallel form exists
-    /// until a corpus-scale consumer does.
+    /// The centred normal equations determine the linear part and translation as described by the
+    /// [affine fitting model](crate::math::transform::fit). Moments accumulate serially in `f64`,
+    /// then the coefficients narrow to `f32`. Large offsets relative to point spread can make
+    /// raw-moment centring inaccurate. Near-collinearity also makes the solve sensitive to
+    /// perturbations.
     ///
-    /// Returns [`None`] when the field lengths differ, the caller passes fewer than three pairs
-    /// (six coefficients need three correspondences, and two points are always collinear), the
-    /// source scatter's determinant is not a normal positive number (coincident or collinear
-    /// source points collapse an axis, leaving no invertible linear part),
-    /// or a fitted coefficient leaves the finite `f32` range. A nearly collinear source
-    /// constellation conditions the solve poorly and the coefficients grow accordingly, exactly
-    /// as a near-singular matrix inflates its inverse.
+    /// Returns [`None`] for unequal field lengths or fewer than three pairs. Three noncollinear
+    /// source points are needed to determine all six affine coefficients. The computed
+    /// source-scatter determinant must be positive and normal, and every fitted coefficient must
+    /// narrow to finite `f32`. These checks can reject an exactly full-rank input or accept an
+    /// exactly singular one because the scatter and determinant have already rounded.
     ///
-    /// # Examples
+    /// # Complexity
     ///
-    /// The example is `ignore`d because a doctest compiles as an external consumer of the crate,
-    /// which cannot name this crate-internal function. The same fixture runs compiled in the
-    /// module's test suite.
+    /// O(n) time and constant additional storage for n pairs.
+    ///
+    /// # Example
+    ///
+    /// This example is ignored because [`Transform`] and [`FinitePointField`] are crate-private.
     ///
     /// ```ignore
+    /// use hashql_core::id::IdSlice;
+    /// use crate::math::{FinitePointField, Transform, Vec2};
+    /// # hashql_core::id::newtype! { struct RowId(u32) }
+    ///
     /// let expected = Transform::from_cols(
     ///     Vec2::new(2.0, 0.0),
     ///     Vec2::new(0.0, 0.5),
@@ -57,15 +68,15 @@ impl Transform {
     /// let fitted = Transform::fit_uniform(source, target).expect("the pairs are exact");
     /// assert_eq!(fitted.apply(Vec2::new(1.0, 1.0)), expected.apply(Vec2::new(1.0, 1.0)));
     /// ```
-    #[must_use]
     #[expect(
         clippy::cast_precision_loss,
-        reason = "pair counts remain exactly representable in f64 far beyond any corpus"
+        reason = "deliberately convert the pair count for double-precision arithmetic"
     )]
     #[expect(
         clippy::similar_names,
         reason = "the raw moments carry their axis-pair names, which the closed form is written in"
     )]
+    #[must_use]
     pub(crate) fn fit_uniform<I: Id>(
         source: &FinitePointField<I>,
         target: &FinitePointField<I>,
@@ -85,9 +96,9 @@ impl Transform {
         let mut cross_yy = 0.0_f64;
 
         for (&source, &target) in source.iter().zip(target.iter()) {
-            // `f32` values widen exactly and each product of two widened values fits in `f64`'s
-            // 53-bit significand, so only the running additions round - the same exactness the
-            // Procrustes accumulation relies on for its centred-moment cancellation.
+            // Finite f32 values widen exactly. Their products need at most 48 significand bits and
+            // fit f64's exponent range. Each moment update therefore rounds only when adding to the
+            // accumulator. Subsequent centring can still cancel most of the significand bits.
             let source = DVec2::from(source);
             let target = DVec2::from(target);
 
@@ -106,9 +117,10 @@ impl Transform {
         let source_centroid = source_sum / count;
         let target_centroid = target_sum / count;
 
-        // Centred moments follow from the raw ones by the parallel-axis identity, exactly as in
-        // the Procrustes solve: expanding each centred product leaves cross terms that collapse
-        // into one correction because the centred source sums to zero.
+        // In real arithmetic, centred deviations sum to zero. Writing mₚ = Σᵢ pᵢ and m_q = Σᵢ qᵢ
+        // gives S = Σᵢ pᵢpᵢᵀ − mₚmₚᵀ/n and C = Σᵢ qᵢpᵢᵀ − m_qmₚᵀ/n. Therefore the raw moments
+        // determine both centred matrices without another input pass. Subtraction uses rounded
+        // sums, and converting n to f64 can round above 2⁵³.
         let scatter_xx = source_xx - source_sum.x() * source_sum.x() / count;
         let scatter_xy = source_xy - source_sum.x() * source_sum.y() / count;
         let scatter_yy = source_yy - source_sum.y() * source_sum.y() / count;
@@ -117,9 +129,11 @@ impl Transform {
         let centred_yx = cross_yx - target_sum.y() * source_sum.x() / count;
         let centred_yy = cross_yy - target_sum.y() * source_sum.y() / count;
 
-        // The scatter matrix is positive semidefinite, so a mathematically singular determinant
-        // can only round to a small value of either sign; the sign check rejects it together
-        // with the non-normal cases.
+        // The exact source scatter is positive semidefinite and is invertible precisely for
+        // noncollinear points. Rounded moments need not retain that property. A singular scatter
+        // can leave a positive normal determinant, including through the residual of the fused
+        // product minus the separately rounded square. This check rejects nonpositive and
+        // non-normal computed values only.
         let determinant = scatter_xx.mul_add(scatter_yy, -(scatter_xy * scatter_xy));
         if !determinant.is_normal() || determinant <= 0.0 {
             return None;
@@ -146,19 +160,24 @@ impl Transform {
 
     /// Returns the root-mean-square distance from transformed source points to their targets.
     ///
-    /// Paired with [`fit_uniform`](Self::fit_uniform), the residual measures the movement no
-    /// affine map explains. This applies the transform with coefficients widened to `f64`, and
-    /// the squared distances accumulate serially in double precision.
+    /// For n > 0 pairs, the model is RMS = √(Σᵢ‖Apᵢ + t − qᵢ‖² / n). At the least-squares fit it
+    /// measures the error left after affine alignment. Coefficients widen to `f64`, and squared
+    /// distances accumulate serially in `f64`. This can differ from measuring the `f32` outputs of
+    /// [`apply`](Self::apply).
     ///
-    /// The reading is total over the proven-finite fields: the accumulation is bounded far
-    /// inside `f64`'s range, so no rejection arm exists. The transform's six coefficients must
-    /// be finite, which the fit produces and
-    /// [`new_unchecked`](DNonNegative::new_unchecked)'s debug assertion guards.
+    /// Every transform coefficient must be finite. A successful [`fit_uniform`](Self::fit_uniform)
+    /// establishes this condition, but arbitrary construction and inverse/composition operations
+    /// may not. Together with finite field coordinates, this keeps the squared sum and RMS finite
+    /// on 32-bit and 64-bit targets.
     ///
     /// # Panics
     ///
     /// This panics when the field lengths differ or the fields are empty, because the residual
     /// is defined over matched pairs and an empty set has no mean.
+    ///
+    /// # Complexity
+    ///
+    /// O(n) time and constant additional storage for n pairs.
     #[must_use]
     pub(crate) fn rms_residual<I: Id>(
         self,
@@ -198,14 +217,17 @@ impl Transform {
             squared += residual.norm_squared();
         }
 
-        // In domain with no check: every coordinate is field-proven finite and every
-        // coefficient is a finite f32, each below 2^128 in magnitude. A residual component is
-        // two coefficient-coordinate products (each below 2^128 squared = 2^256) plus a
-        // translation and a target coordinate, so it stays below 2^258, its square below
-        // 2^516, a pair's squared distance below 2^517, and a sum of fewer than 2^60 pairs (a
-        // slice of 8-byte points cannot hold more) below 2^577 - finite in `f64` with room to
-        // spare, and non-negative as a sum of squares. The quotient by a positive pair count
-        // and the square root keep both properties.
+        // Finite f32 coefficients and coordinates have magnitude below 2¹²⁸. Each residual
+        // component has two products below 2²⁵⁶, plus translation and target terms. Allowing for
+        // fixed-operation rounding, the nonnegative squared error of one pair is below B = 2⁵¹⁸.
+        // On 32-bit and 64-bit targets, an 8-byte-point slice contains n < 2⁶⁰ pairs. Adding the
+        // initial zero is exact for these nonnegative finite terms. Along any term's path, fewer
+        // than n additions combine contributions. With binary64 unit roundoff u = 2⁻⁵³, those
+        // additions amplify the term by at most (1 + u)ⁿ < exp(128) < 2¹⁸⁵. Thus the rounded sum is
+        // below nB · 2¹⁸⁵ < 2⁷⁶³. Subnormal additions cannot threaten this upper bound.
+        // Division by the positive converted count and the square root preserve finiteness
+        // and nonnegativity. Therefore the final value satisfies DNonNegative's numerical
+        // domain.
         (squared / DNonNegative::from_usize(source.len()))
             .sqrt()
             .finish_unchecked()

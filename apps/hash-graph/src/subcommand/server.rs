@@ -16,12 +16,13 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
-        auth::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
-        entity::ClusteringContext,
-        hashql::CompilerContext,
+        self,
+        authentication::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
+        legacy::{
+            ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext,
+            hashql::CompilerContext,
+        },
         rate_limit::RateLimitConfig,
-        rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -378,13 +379,6 @@ pub struct ServerConfig {
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
-
-    /// Serves an interactive rendering of the `OpenAPI` specification at `/openapi`.
-    ///
-    /// The raw specification remains available at `/openapi.json` regardless of this flag. The
-    /// rendered page loads its viewer from a public CDN, so the browser needs internet access.
-    #[clap(long, env = "HASH_GRAPH_SERVE_API_REFERENCE")]
-    pub serve_api_reference: bool,
 }
 
 /// CLI arguments for the `server` subcommand.
@@ -615,7 +609,7 @@ where
         )?;
     }
 
-    let router = rest_api_router(RestRouterDependencies {
+    let router = rest::router(rest::Dependencies {
         store,
         postgres,
         temporal_client,
@@ -630,17 +624,12 @@ where
         meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
-        serve_api_reference: config.serve_api_reference,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
     Ok(())
 }
 
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
 #[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
@@ -696,7 +685,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             },
         },
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");

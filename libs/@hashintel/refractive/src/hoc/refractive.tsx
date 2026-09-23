@@ -43,6 +43,7 @@ function createRefractiveComponent<
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
     const hasMeasuredElement = width > 0 && height > 0;
+    const backdropFilter = `blur(${refraction.blur ?? 0}px)${hasMeasuredElement ? ` url(#${filterId})` : ""}`;
 
     // If a ref is passed in props, use it; otherwise, use internalRef.
     // If the passed ref is updated later, it will trigger a re-render.
@@ -52,7 +53,16 @@ function createRefractiveComponent<
     // This will removed the need of `useState` here.
     useEffect(() => {
       const element = elementRef.current;
-      if (!element) {
+      // CSS.supports checks the syntax, not whether SVG backdrop filters render.
+      const isChromium =
+        /\b(?:Chrome|Chromium)\//.test(navigator.userAgent) &&
+        !/\b(?:iPad|iPhone|iPod)\b/.test(navigator.userAgent);
+      if (
+        !element ||
+        !isChromium ||
+        typeof CSS === "undefined" ||
+        !CSS.supports("backdrop-filter", "url(#refractive)")
+      ) {
         return;
       }
 
@@ -87,7 +97,7 @@ function createRefractiveComponent<
             width={width}
             height={height}
             radius={refraction.radius}
-            blur={refraction.blur ?? 0}
+            blur={0}
             glassThickness={refraction.glassThickness ?? 70}
             bezelWidth={refraction.bezelWidth ?? 0}
             refractiveIndex={refraction.refractiveIndex ?? 1.5}
@@ -103,9 +113,8 @@ function createRefractiveComponent<
           ref={elementRef}
           style={{
             ...componentProps.style,
-            ...(hasMeasuredElement
-              ? { backdropFilter: `url(#${filterId})` }
-              : undefined),
+            backdropFilter,
+            WebkitBackdropFilter: backdropFilter,
             borderRadius: refraction.radius,
           }}
         />
@@ -138,7 +147,7 @@ const CACHE = new Map<string, ComponentType<any>>(); // eslint-disable-line @typ
  *
  * Refractive will override:
  * - `borderRadius` based on the provided `radius` in the `refraction` prop.
- * - `backdropFilter` to apply the SVG filter for the refractive effect.
+ * - `backdropFilter` to apply native blur, plus SVG refraction on Chromium.
  *
  * Usage with HTML elements:
  *

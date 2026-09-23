@@ -1,0 +1,38 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<Rule>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rule",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "all"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "field"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

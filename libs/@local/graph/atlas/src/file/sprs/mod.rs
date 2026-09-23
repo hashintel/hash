@@ -57,7 +57,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -79,8 +79,10 @@ use crate::file::region::{
     padded_size,
 };
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -163,7 +165,7 @@ pub(crate) enum Version {
     zerocopy::Unaligned,
 )]
 #[repr(u8)]
-pub enum IndexVariant {
+pub(crate) enum IndexVariant {
     U16 = 0x00,
     U32 = 0x01,
     U64 = 0x02,
@@ -208,7 +210,7 @@ impl IndexVariant {
     zerocopy::Unaligned,
 )]
 #[repr(u8)]
-pub enum ValueTag {
+pub(crate) enum ValueTag {
     Opaque = 0x00,
     U8 = 0x01,
     U16 = 0x02,
@@ -295,9 +297,11 @@ pub(crate) trait SprsIndex: SpIndex + FromBytes + IntoBytes + Immutable {
     const VARIANT: IndexVariant;
 }
 
-// One-line impls over every fixed-width scalar: enough expansions that
-// drift between hand-written copies is the likelier bug. The assert
-// keeps each scalar tag's pinned width equal to the type's real width.
+/// Implements [`SprsValue`] for each `type => tag` pair, asserting the widths agree.
+///
+/// One-line impls over every fixed-width scalar: enough expansions that
+/// drift between hand-written copies is the likelier bug. The assert
+/// keeps each scalar tag's pinned width equal to the type's real width.
 macro_rules! sprs_value {
     ($($element:ty => $variant:ident,)*) => {
         $(
@@ -312,6 +316,7 @@ macro_rules! sprs_value {
     };
 }
 
+/// Implements [`SprsIndex`] for each `type => variant` pair, asserting the widths agree.
 macro_rules! sprs_index {
     ($($element:ty => $variant:ident,)*) => {
         $(
@@ -366,8 +371,10 @@ sprs_index! {
     i64 => I64,
 }
 
-// The scalar tags mirror ArrayVariant's discriminants, so the two formats speak one scalar
-// vocabulary. The asserts below keep the two sets of discriminants equal.
+/// Asserts that each named tag has the same discriminant in both formats.
+///
+/// The scalar tags use [`ArrayVariant`]'s discriminants. The assertions below keep the two sets
+/// equal.
 macro_rules! tag_mirrors_variant {
     ($($variant:ident,)*) => {
         const _: () = {

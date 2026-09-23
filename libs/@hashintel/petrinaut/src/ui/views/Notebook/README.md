@@ -1,6 +1,6 @@
 ---
 layer: ui.views.notebook
-role: Notebook view — the net as expandable cells with editable code, dependency analysis, and a whole-net graph explorer
+role: Definitions view — the net as expandable cells with editable code, dependency analysis, and a whole-net graph explorer
 ---
 
 The notebook renders the net as a flat list of cells, one per entity, so a

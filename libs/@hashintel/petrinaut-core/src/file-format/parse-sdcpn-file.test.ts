@@ -276,6 +276,93 @@ describe("parseSDCPNFile", () => {
       });
     });
 
+    it("defaults optional place colour and dynamics fields", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        places: [{ id: "p1", name: "Place 1" }],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.places[0]).toMatchObject({
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+      });
+    });
+
+    it("defaults optional input and output arc weights", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        transitions: [
+          {
+            ...minimalTransition,
+            inputArcs: [{ placeId: "p1" }],
+            outputArcs: [{ placeId: "p1" }],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
+        weight: 1,
+        type: "standard",
+      });
+      expect(result.sdcpn.transitions[0]?.outputArcs[0]).toMatchObject({
+        weight: 1,
+      });
+    });
+
+    it("preserves explicit place colour, dynamics and arc weight values", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        places: [
+          {
+            id: "p1",
+            name: "Place 1",
+            colorId: "c1",
+            dynamicsEnabled: true,
+            differentialEquationId: "de1",
+            x: 100,
+            y: 200,
+          },
+        ],
+        transitions: [
+          {
+            ...minimalTransition,
+            inputArcs: [{ placeId: "p1", weight: 3, type: "read" }],
+            outputArcs: [{ placeId: "p1", weight: 3 }],
+          },
+        ],
+        types: [{ id: "c1", name: "Colour 1", elements: [] }],
+        differentialEquations: [
+          { id: "de1", name: "Equation 1", colorId: "c1", code: "" },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.places[0]).toMatchObject({
+        colorId: "c1",
+        dynamicsEnabled: true,
+        differentialEquationId: "de1",
+      });
+      expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
+        weight: 3,
+        type: "read",
+      });
+      expect(result.sdcpn.transitions[0]?.outputArcs[0]).toMatchObject({
+        weight: 3,
+      });
+    });
+
     it("strips version and meta from the returned sdcpn", () => {
       const result = parseSDCPNFile({
         version: 1,

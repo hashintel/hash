@@ -9,11 +9,14 @@
 //! ratio    = ‖relation‖ / baseline
 //! ```
 //!
-//! The floor keeps the baseline positive where the semantic gradient vanishes, so the recorded
-//! ratios stay finite and comparable across runs.
+//! The floor keeps the baseline positive where the semantic gradient vanishes. The ratios
+//! accumulate in double precision, where every quotient of a finite `f32` norm by a positive `f32`
+//! baseline is finite, and they stay comparable across runs. The narrowed `f32` mean an accessor
+//! returns can still overflow ([`BudgetSummary::mean_ratio`]).
 //!
-//! The relation gradients re-enter the parameter graph through [`surrogate`]: one backward pass
-//! through the returned scalar deposits exactly the requested per-node coordinate gradient.
+//! The combined hand-gradient field, semantic and relation together, re-enters the parameter
+//! graph through [`surrogate`]: one backward pass through the returned scalar deposits exactly
+//! the requested per-node coordinate gradient.
 
 #[cfg(test)]
 mod tests;
@@ -27,7 +30,7 @@ use crate::math::{NonNegative, Positive, Vec2};
 /// Every outcome measures the relation gradient against `max(‖semantic‖, floor)`. The floor matches
 /// the typical per-draw semantic gradient rather than ε: in a sampled batch most nodes' semantic
 /// pairs are not co-drawn, and their baselines would otherwise vanish.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Budget {
     /// The semantic-baseline floor.
     pub floor: Positive,
@@ -63,8 +66,8 @@ pub(crate) struct BudgetOutcome {
 
 /// Streaming aggregation of budget outcomes for the training metrics.
 ///
-/// One summary aggregates the nodes recorded into it; the training loop keeps one per reporting
-/// bucket (overall, per relation type, per degree decile) and records each node's outcome into
+/// One summary aggregates the nodes recorded into it. The training metrics keep one per reporting
+/// bucket (overall, per relation type, per degree decile) and record each node's outcome into
 /// every bucket it belongs to. The summary accumulates the ratio mean in double precision.
 #[derive(Debug, Default)]
 pub(crate) struct BudgetSummary {
@@ -80,8 +83,8 @@ impl BudgetSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn new() -> Self {
@@ -104,8 +107,8 @@ impl BudgetSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn nodes(&self) -> usize {
@@ -113,6 +116,15 @@ impl BudgetSummary {
     }
 
     /// Returns the mean relation-to-baseline norm ratio.
+    ///
+    /// # Warning
+    ///
+    /// The mean accumulates in `f64` and narrows to `f32` here, and the narrowing can overflow.
+    /// The maximum is not the cutoff. A double mean at or above `f32::MAX` and below
+    /// `f32::MAX + 2¹⁰³` (half an `f32` ulp above the maximum) rounds down to the finite
+    /// `f32::MAX`. A mean at or beyond that tie returns as `+∞`. Valid inputs reach the overflow: a
+    /// zero semantic gradient against the floor `2⁻¹⁴⁹` and a unit relation gradient give the
+    /// finite double ratio `2¹⁴⁹`, whose narrowing overflows.
     #[expect(
         clippy::cast_precision_loss,
         reason = "node counts stay far below the f64 integer bound"
@@ -126,8 +138,8 @@ impl BudgetSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) fn mean_ratio(&self) -> Option<f32> {
@@ -143,10 +155,11 @@ impl BudgetSummary {
 ///
 /// Its backward pass carries the per-node coordinate gradients into the model parameters.
 ///
-/// The returned value is `Σ_i ⟨coordinates[i], gradient[i]⟩`: its gradient with respect to
-/// `coordinates` is exactly `gradient`, so a single backward pass propagates the caller's per-node
-/// vectors through the projector's Jacobian. `gradient` lives on the inner backend and enters the
-/// graph as a constant - the model cannot differentiate through the hand-gradient field.
+/// The returned value is `Σ_i ⟨coordinates[i], gradient[i]⟩`. Its gradient with respect to
+/// `coordinates` is exactly `gradient`. Therefore a single backward pass propagates the caller's
+/// per-node vectors through the projector's Jacobian. `gradient` lives on the inner backend and
+/// enters the graph as a constant - the model cannot differentiate through the hand-gradient
+/// field.
 pub(crate) fn surrogate<B: AutodiffBackend>(
     coordinates: Tensor<B, 2>,
     gradient: Tensor<B::InnerBackend, 2>,
