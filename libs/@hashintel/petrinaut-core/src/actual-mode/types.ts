@@ -8,8 +8,6 @@ import type { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
  * the concrete context/provider surface for UI consumption.
  */
 
-export type ActualModeTokenColour = Record<string, number>;
-
 /**
  * At-rest token attribute value in a firing record or reconstructed marking.
  * The wire format is JSON, so `uuid` values are canonical lowercase strings,

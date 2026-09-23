@@ -40,11 +40,9 @@ export type {
   ActualModeReceivedEvent,
   ActualModeReceivedEventsRecording,
   ActualModeRecording,
-  ActualModeRecordingVersion,
   ActualModeSource,
   ActualModeTimelinePoint,
   ActualModeTimelinePointKind,
-  ActualModeTokenColour,
   ActualModeTokenRecord,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
@@ -436,7 +434,6 @@ export {
 } from "./arc-endpoints";
 export { GRID_SIZE } from "./grid-size";
 export {
-  formatScopedId,
   parseScopedId,
   SCOPED_ID_SEPARATOR,
   type ParsedScopedId,
@@ -444,7 +441,6 @@ export {
 export { identityKeyTypesMatch } from "./identity-key-coherence";
 export {
   getStatusViewEvaluationScope,
-  resolveStatusViewLabelPlace,
   visitComponentInstancePlaces,
   type ScopedPlaceVisit,
 } from "./status-view-scope";
@@ -602,7 +598,6 @@ export {
 export {
   createStatusViewTracker,
   diffInstanceLabelStates,
-  getStatusViewExitLabel,
   summarizeStatusIntervals,
   type InstanceLabelChange,
   type InstanceLabelState,
