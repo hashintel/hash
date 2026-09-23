@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { sdcpnSchema } from "../file-format/types";
 import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
+import { applyActualModeTransitionFiring } from "./marking";
 
 import type { SDCPN } from "../types/sdcpn";
 import type {
@@ -97,16 +98,34 @@ const actualModeRecordingDefinitionSchema = z.custom<SDCPN>(
  *
  * A recording combines the normalized SDCPN, initial marking, source metadata,
  * and ordered transition events needed to reconstruct the timeline offline.
+ * The firings must replay against the initial marking: the first one that
+ * consumes a token the marking does not hold fails validation.
  */
-export const actualModeRecordingSchema = z.object({
-  version: actualModeRecordingVersionSchema,
-  exportedAt: z.string(),
-  title: z.string().nullable(),
-  source: actualModeSourceSchema.nullable(),
-  definition: actualModeRecordingDefinitionSchema,
-  initialState: actualModeMarkingSchema,
-  transitionFirings: z.array(actualModeTransitionFiringSchema),
-}) satisfies z.ZodType<ActualModeRecording>;
+export const actualModeRecordingSchema = z
+  .object({
+    version: actualModeRecordingVersionSchema,
+    exportedAt: z.string(),
+    title: z.string().nullable(),
+    source: actualModeSourceSchema.nullable(),
+    definition: actualModeRecordingDefinitionSchema,
+    initialState: actualModeMarkingSchema,
+    transitionFirings: z.array(actualModeTransitionFiringSchema),
+  })
+  .superRefine((recording, context) => {
+    let marking: ActualModeMarking = recording.initialState;
+    for (const [index, firing] of recording.transitionFirings.entries()) {
+      try {
+        marking = applyActualModeTransitionFiring(marking, firing);
+      } catch (error) {
+        context.addIssue({
+          code: "custom",
+          path: ["transitionFirings", index],
+          message: error instanceof Error ? error.message : String(error),
+        });
+        return;
+      }
+    }
+  }) satisfies z.ZodType<ActualModeRecording>;
 
 export const actualModeReceivedEventsRecordingSchema = z.object({
   version: actualModeRecordingVersionSchema,

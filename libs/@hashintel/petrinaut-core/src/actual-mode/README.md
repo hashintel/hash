@@ -41,7 +41,9 @@ The current demo path is:
 1. `apps/petrinaut-website` opens `/brunch?sse=<url>`.
 2. The Brunch provider connects with `EventSource`.
 3. Website-local parsers validate the temporary Brunch definition, initial
-   state, and transition firing payloads.
+   state, and transition firing payloads. The provider applies each firing to
+   the marking reconstructed so far as it arrives; a firing that fails to
+   apply ends the stream with `status: "error"` and the thrown message.
 4. The website normalizes the Brunch definition into a read-only SDCPN with
    Petrinaut extensions disabled.
 5. `@hashintel/petrinaut` receives `ActualModeContext`.
@@ -74,10 +76,13 @@ Marking reconstruction consumes tokens by value:
 - A recorded input token removes the first token in the reconstructed place
   that agrees on every attribute the record carries; a `{}` record removes the
   oldest token.
-- A recorded input token that matches nothing removes nothing. Keeping a
-  divergent token beats removing another instance's token, so after a
-  malformed or out-of-order event a place can hold more tokens than the source
-  until the stream and the reconstruction re-converge.
+- A firing that consumes a token the reconstructed marking does not hold is
+  an error: `applyActualModeTransitionFiring` throws, naming the transition,
+  the place and the unmatched record. This covers a recorded input token that
+  matches no token in the place and a firing that consumes more tokens than a
+  count place holds. The React frame source replays firings during render, so a host
+  applies each firing as it arrives and reports the error through the
+  context's `status: "error"` before the firing reaches the context.
 - Produced tokens are appended as recorded.
 
 Recordings carry `version: 2`.

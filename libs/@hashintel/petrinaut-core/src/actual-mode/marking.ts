@@ -85,13 +85,15 @@ const hasAttributes = (token: ActualModeTokenRecord): boolean =>
 /**
  * Removes the consumed tokens from a place's token array. Each recorded token
  * removes the first marking token that agrees on every attribute it carries,
- * so an attribute-less record removes the oldest token. A recorded token with
- * no match removes nothing: keeping a divergent token beats removing another
- * instance's token. See `actual-mode/README.md`.
+ * so an attribute-less record removes the oldest token.
+ *
+ * @throws when a recorded token matches no token left in the place.
  */
 const removeConsumedTokens = (
   currentTokens: ActualModeTokenRecord[],
   consumedTokens: readonly ActualModeTokenRecord[],
+  firing: ActualModeTransitionFiring,
+  placeId: string,
 ): ActualModeTokenRecord[] => {
   const remaining = [...currentTokens];
   for (const consumedToken of consumedTokens) {
@@ -99,9 +101,14 @@ const removeConsumedTokens = (
     const matchIndex = remaining.findIndex((token) =>
       tokenMatchesRecordedValues(token, recordedAttributes),
     );
-    if (matchIndex !== -1) {
-      remaining.splice(matchIndex, 1);
+    if (matchIndex === -1) {
+      throw new Error(
+        `Transition firing of "${firing.transitionId}" at ${firing.ts} consumes token ${JSON.stringify(
+          consumedToken,
+        )} from place "${placeId}", which holds no matching token (${remaining.length} remaining)`,
+      );
     }
+    remaining.splice(matchIndex, 1);
   }
   return remaining;
 };
@@ -109,6 +116,9 @@ const removeConsumedTokens = (
 /**
  * A place stays a token count while every token recorded for it is
  * attribute-less; the first attribute-carrying token turns it into an array.
+ *
+ * @throws when the firing consumes a token the marking does not hold: more
+ * tokens than a place holds, or a recorded token that matches none of them.
  */
 export const applyActualModeTransitionFiring = (
   marking: ActualModeMarking,
@@ -130,14 +140,22 @@ export const applyActualModeTransitionFiring = (
       !consumedTokens.some(hasAttributes) &&
       !producedTokens.some(hasAttributes)
     ) {
+      const tokenCount = getActualModePlaceMarkingTokenCount(currentValue);
+      if (consumedTokens.length > tokenCount) {
+        throw new Error(
+          `Transition firing of "${firing.transitionId}" at ${firing.ts} consumes ${consumedTokens.length} ${consumedTokens.length === 1 ? "token" : "tokens"} from place "${placeId}", which holds ${tokenCount}`,
+        );
+      }
       next[placeId] =
-        (currentValue ?? 0) - consumedTokens.length + producedTokens.length;
+        tokenCount - consumedTokens.length + producedTokens.length;
       continue;
     }
 
     next[placeId] = removeConsumedTokens(
       toTokenArray(currentValue),
       consumedTokens,
+      firing,
+      placeId,
     ).concat(producedTokens.map((token) => cloneTokenRecord(token)));
   }
 

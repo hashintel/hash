@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   actualModeTransitionFiringSchema,
+  applyActualModeTransitionFiring,
   createActualModeFrameReplay,
   createActualModeReceivedEventsRecording,
   createActualModeRecording,
@@ -16,6 +17,7 @@ import { compileHirArtifacts } from "../hir/compile";
 import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
 
 import type { SDCPN } from "../types/sdcpn";
+import type { ActualModeMarking } from "./types";
 
 const definition: SDCPN = {
   places: [
@@ -88,19 +90,55 @@ describe("Actual mode recordings", () => {
       title: "Replay",
       source: null,
       definition,
-      initialState: { queued: 1 },
+      initialState: { queued: 0 },
       transitionFirings: [
+        {
+          transitionId: "create",
+          inputTokens: {},
+          outputTokens: { queued: [{ ticket_id: "a" }] },
+          ts: "2026-06-05T10:00:00.000Z",
+        },
         {
           transitionId: "start",
           inputTokens: { queued: [{ ticket_id: "a" }] },
           outputTokens: { implementing: [{ ticket_id: "a", attempts: 1 }] },
-          ts: "2026-06-05T10:00:00.000Z",
+          ts: "2026-06-05T10:00:01.000Z",
         },
       ],
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
 
     expect(parseActualModeRecording(recording)).toEqual(recording);
+  });
+
+  it("rejects a recording whose firing consumes a token the marking does not hold", () => {
+    const recording = createActualModeRecording({
+      title: "Replay",
+      source: null,
+      definition,
+      initialState: { queued: 1 },
+      transitionFirings: [
+        {
+          transitionId: "start",
+          inputTokens: { queued: [{ ticket_id: "a" }] },
+          outputTokens: {},
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+      exportedAt: "2026-06-05T10:01:00.000Z",
+    });
+
+    expect(() => parseActualModeRecording(recording)).toThrow(
+      expect.objectContaining({
+        issues: [
+          expect.objectContaining({
+            path: ["transitionFirings", 0],
+            message:
+              'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a"} from place "queued", which holds no matching token (1 remaining)',
+          }),
+        ],
+      }),
+    );
   });
 
   it.each([1, 3])("rejects recording version %i", (version) => {
@@ -371,21 +409,83 @@ describe("Actual mode recordings", () => {
     expect(marking.implementing).toEqual([{ ticket_id: "b" }]);
   });
 
-  it("removes nothing for a recorded input token that matches no marking token", () => {
-    const marking = getActualModeMarkingAtTransitionFiringIndex({
-      initialState: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
-      transitionFirings: [
+  it("throws for a recorded input token that matches no marking token", () => {
+    expect(() =>
+      getActualModeMarkingAtTransitionFiringIndex({
+        initialState: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
+        transitionFirings: [
+          {
+            transitionId: "start",
+            inputTokens: { queued: [{ ticket_id: "missing" }] },
+            outputTokens: {},
+            ts: "2026-06-05T10:00:00.000Z",
+          },
+        ],
+        transitionFiringIndex: 0,
+      }),
+    ).toThrow(
+      'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"missing"} from place "queued", which holds no matching token (2 remaining)',
+    );
+  });
+
+  it("throws for an attribute-less record consumed from an empty token array", () => {
+    expect(() =>
+      applyActualModeTransitionFiring(
+        { queued: [{ ticket_id: "a" }] },
         {
           transitionId: "start",
-          inputTokens: { queued: [{ ticket_id: "missing" }] },
+          inputTokens: { queued: [{ ticket_id: "a" }, {}] },
           outputTokens: {},
           ts: "2026-06-05T10:00:00.000Z",
         },
-      ],
-      transitionFiringIndex: 0,
+      ),
+    ).toThrow(/consumes token \{\} from place "queued".*\(0 remaining\)/);
+  });
+
+  it.each<{ initialState: ActualModeMarking; holds: number }>([
+    { initialState: { queued: 1 }, holds: 1 },
+    { initialState: {}, holds: 0 },
+  ])(
+    "throws for a firing that consumes more tokens than a count place holds ($holds)",
+    ({ initialState, holds }) => {
+      expect(() =>
+        applyActualModeTransitionFiring(initialState, {
+          transitionId: "finish",
+          inputTokens: { queued: [{}, {}] },
+          outputTokens: { done: [{}] },
+          ts: "2026-06-05T10:00:00.000Z",
+        }),
+      ).toThrow(
+        `Transition firing of "finish" at 2026-06-05T10:00:00.000Z consumes 2 tokens from place "queued", which holds ${holds}`,
+      );
+    },
+  );
+
+  it("throws from the frame replay when a firing does not match the marking", () => {
+    const replay = createActualModeFrameReplay({
+      definition,
+      initialState: { queued: 0 },
     });
 
-    expect(marking.queued).toEqual([{ ticket_id: "a" }, { ticket_id: "b" }]);
+    expect(() =>
+      replay.readerAt({
+        transitionFirings: [
+          {
+            transitionId: "finish",
+            inputTokens: { queued: [{}] },
+            outputTokens: {},
+            ts: "2026-06-05T10:00:00.000Z",
+          },
+        ],
+        transitionFiringTimesMs: [0],
+        point: {
+          kind: "transition_firing",
+          timeMs: 0,
+          transitionFiringIndex: 0,
+        },
+        number: 1,
+      }),
+    ).toThrow(/consumes 1 token from place "queued", which holds 0/);
   });
 
   it("removes the oldest token for an attribute-less record", () => {

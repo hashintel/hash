@@ -292,7 +292,7 @@ describe("createActualEventStatusDeriver", () => {
     const deriver = createActualEventStatusDeriver({
       statusView,
       definition,
-      initialState: {},
+      initialState: { todo: 1 },
     });
     const changes = deriver.deriveUpTo([
       {

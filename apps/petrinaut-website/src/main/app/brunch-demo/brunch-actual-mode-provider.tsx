@@ -1,6 +1,9 @@
 import { useEffect, useState, type FC, type PropsWithChildren } from "react";
 
-import { ACTUAL_MODE_TIMELINE_TICK_MS } from "@hashintel/petrinaut-core";
+import {
+  ACTUAL_MODE_TIMELINE_TICK_MS,
+  applyActualModeTransitionFiring,
+} from "@hashintel/petrinaut-core";
 import { ActualModeContext } from "@hashintel/petrinaut/react";
 
 import { normalizeBrunchDefinition } from "./brunch-definition";
@@ -11,7 +14,11 @@ import {
   parseTransitionFiringFrameData,
 } from "./brunch-frame-parsers";
 
-import type { ActualModeContextValue } from "@hashintel/petrinaut-core";
+import type {
+  ActualModeContextValue,
+  ActualModeMarking,
+  ActualModeTransitionFiring,
+} from "@hashintel/petrinaut-core";
 
 type AvailableActualModeContextValue = Extract<
   ActualModeContextValue,
@@ -41,6 +48,21 @@ const createLoadingActualModeValue = (
     timelineNowMs: now,
     error: null,
   };
+};
+
+const applyTransitionFiringFrame = (
+  marking: ActualModeMarking,
+  firing: ActualModeTransitionFiring,
+): ActualModeMarking => {
+  try {
+    return applyActualModeTransitionFiring(marking, firing);
+  } catch (err) {
+    throw new Error(
+      `Invalid Brunch transition_firing frame: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
 };
 
 export const BrunchActualModeProvider: FC<
@@ -75,6 +97,12 @@ export const BrunchActualModeProvider: FC<
     let cancelled = false;
     let hasConnectedBefore = false;
     const eventSource = new EventSource(endpoint);
+    // Each firing is applied here as it arrives, so one that consumes a token
+    // the marking does not hold ends the stream with an error before it
+    // reaches the context, whose frames are replayed during render.
+    let receivedInitialState: ActualModeMarking | null = null;
+    let receivedFirings: ActualModeTransitionFiring[] = [];
+    let replayedMarking: ActualModeMarking | null = null;
 
     const setFatalError = (message: string) => {
       if (cancelled) {
@@ -124,6 +152,11 @@ export const BrunchActualModeProvider: FC<
 
       const isReconnect = hasConnectedBefore;
       hasConnectedBefore = true;
+
+      if (isReconnect) {
+        receivedFirings = [];
+        replayedMarking = receivedInitialState;
+      }
 
       setValue((prev) => {
         const error = prev.status === "error" ? prev.error : null;
@@ -192,6 +225,11 @@ export const BrunchActualModeProvider: FC<
       try {
         const data = parseJsonEventData(event as MessageEvent, "initial_state");
         const initialState = parseMarkingFrameData(data);
+        receivedInitialState = initialState;
+        replayedMarking = receivedFirings.reduce(
+          (marking, firing) => applyTransitionFiringFrame(marking, firing),
+          initialState,
+        );
         setValue((prev) => ({
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
@@ -215,6 +253,10 @@ export const BrunchActualModeProvider: FC<
           "transition_firing",
         );
         const firing = parseTransitionFiringFrameData(data);
+        if (replayedMarking !== null) {
+          replayedMarking = applyTransitionFiringFrame(replayedMarking, firing);
+        }
+        receivedFirings.push(firing);
         setValue((prev) => ({
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",

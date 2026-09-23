@@ -185,8 +185,6 @@ type StatusDeriverInputs = {
   statusConditions: Record<string, HirStatusConditionArtifact>;
 };
 
-const emptyInitialState: ActualModeMarking = {};
-
 /**
  * The per-firing status changes, derived incrementally: the deriver lives in
  * a ref and folds in only the firings appended since the previous render —
@@ -373,9 +371,7 @@ const ActualEventsContent: React.FC = () => {
     {
       statusView,
       definition: actualMode.available ? actualMode.definition : null,
-      initialState: actualMode.available
-        ? (actualMode.initialState ?? emptyInitialState)
-        : null,
+      initialState: actualMode.available ? actualMode.initialState : null,
       statusConditions,
     },
     transitionFirings,
