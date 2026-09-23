@@ -50,7 +50,8 @@ describe("resolveDsComponentsBuildInfoPath", () => {
   });
 
   it("preserves paths on POSIX platforms", () => {
-    const path = "/repo\\archive/libs/@hashintel/ds-components/dist/panda.buildinfo.json";
+    const path =
+      "/repo\\archive/libs/@hashintel/ds-components/dist/panda.buildinfo.json";
     const resolve = vi.fn(() => path);
 
     expect(resolveDsComponentsBuildInfoPath(resolve, "linux")).toBe(path);
