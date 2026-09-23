@@ -567,6 +567,9 @@ export const deriveNetLedger = async (
       const canonicalRecord = metadata?.canonicalMutationRecord;
       if (isConstructionMutationName(toolName)) {
         if (canonicalRecord === undefined) {
+          // `unrecorded` denies a verified call-to-settled-change claim, not
+          // Petrinaut's document change. Scenario/metric calls execute without
+          // Brunch sidecars even when their revisions are persisted.
           events.push(
             unrecorded(
               "The canonical mutation result carries no canonical mutation record.",
