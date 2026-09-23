@@ -1,0 +1,29 @@
+[package]
+name              = "railroad-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+description       = "Typst WebAssembly plugin for rendering structured syntax diagrams as SVG"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+serde_json = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+railroad = { workspace = true }
+serde    = { workspace = true, features = ["derive", "std"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-minimal-protocol = { workspace = true }
+
+[lints]
+workspace = true

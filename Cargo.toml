@@ -34,12 +34,21 @@ members = [
     "libs/@local/harpc/tower",
     "libs/@local/harpc/types",
     "libs/@local/harpc/wire-protocol",
-    "libs/@local/hashql/*",
+    "libs/@local/hashql/ast",
+    "libs/@local/hashql/compiletest",
+    "libs/@local/hashql/core",
+    "libs/@local/hashql/diagnostics",
+    "libs/@local/hashql/eval",
+    "libs/@local/hashql/hir",
+    "libs/@local/hashql/macros",
+    "libs/@local/hashql/mir",
+    "libs/@local/hashql/syntax-jexpr",
     "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
+    "libs/@local/typst-railroad",
     "libs/antsi",
     "libs/darwin-kperf",
     "libs/darwin-kperf/codegen",
@@ -254,6 +263,7 @@ proc-macro2                        = { version = "1.0.103", default-features = f
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                              = { version = "1.0.41", default-features = false }
+railroad                           = { version = "0.3.9", default-features = false }
 rancor                             = { version = "0.1.2", default-features = false }
 rand                               = { version = "0.10.0", default-features = false }
 rand_core                          = { version = "0.10.0", default-features = false }
@@ -346,6 +356,7 @@ uuid                               = { version = "1.18.1", default-features = fa
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
+wasm-minimal-protocol              = { version = "0.2.1", default-features = false }
 winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
 zerocopy                           = { version = "0.8.55" }

@@ -9775,6 +9775,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/hashql-docs@workspace:libs/@local/hashql/docs":
+  version: 0.0.0-use.local
+  resolution: "@local/hashql-docs@workspace:libs/@local/hashql/docs"
+  languageName: unknown
+  linkType: soft
+
 "@local/internal-api-client@workspace:*, @local/internal-api-client@workspace:libs/@local/internal-api-client/typescript":
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
