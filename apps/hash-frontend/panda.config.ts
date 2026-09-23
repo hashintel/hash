@@ -55,13 +55,15 @@ export default defineConfig({
 
   /**
    * Styles used inside ds-components itself, plus Petrinaut's shipped style
-   * usage, plus the supply-chain tool and its route pages, which author Panda
-   * `css()` calls against the ds-components preset tokens.
+   * usage, plus this app's own sources that author Panda `css()` calls
+   * against the ds-components preset tokens: the supply-chain tool and its
+   * route pages, and the tiled network graph.
    */
   include: [
     require.resolve("@hashintel/ds-components/panda.buildinfo.json"),
     require.resolve("@hashintel/petrinaut/panda.buildinfo.json"),
     "./src/pages/supply-chain/**/*.{ts,tsx}",
+    "./src/components/tiled-network-graph/**/*.{ts,tsx}",
   ],
 
   exclude: [],
