@@ -1,9 +1,15 @@
-import { use } from "react";
+import { use, useId, useRef } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { focusLands } from "../../../../worksheet/focus-flow";
+import { useFocusStops } from "../../../../worksheet/use-focus-stops";
 
+import type {
+  FocusStop,
+  FocusStopTarget,
+} from "../../../../worksheet/use-focus-stops";
 import type { ReactiveModuleFile } from "@hashintel/petrinaut-core/reactive-modules";
 
 const WIDTH = 208;
@@ -67,10 +73,8 @@ const listStyle = css({
   height: "full",
   overflow: "auto",
   overscrollBehavior: "contain",
-  margin: "[0]",
   paddingY: "2",
-  paddingX: "[0]",
-  listStyle: "none",
+  paddingX: "1",
   '[data-open="false"] > &': { opacity: "[0]" },
   '[data-motion="true"] > &': {
     transition: "[opacity 150ms ease-in-out]",
@@ -81,47 +85,49 @@ const listStyle = css({
 const groupLabelStyle = css({
   paddingTop: "3",
   paddingBottom: "1",
-  paddingX: "[14px]",
+  paddingX: "2",
   fontSize: "[10px]",
   fontWeight: "medium",
   letterSpacing: "[0.08em]",
   textTransform: "uppercase",
-  color: "neutral.s100",
+  color: "neutral.s85",
 });
 
-const groupListStyle = css({
-  margin: "[0]",
-  padding: "[0]",
-  listStyle: "none",
-});
-
-// A row with a hairline accent on the shown file, no boxes.
-const itemStyle = css({
-  display: "flex",
-  alignItems: "baseline",
-  width: "full",
-  height: "[24px]",
-  border: "none",
-  borderLeft: "[2px solid transparent]",
-  paddingX: "3",
-  backgroundColor: "[transparent]",
-  color: "neutral.s105",
-  fontSize: "xs",
-  lineHeight: "[24px]",
-  textAlign: "left",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  cursor: "pointer",
-  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.s10" },
-  _focusVisible: {
-    outline: "[2px solid {colors.blue.s50}]",
-    outlineOffset: "[-2px]",
+// A row of the Entities list: rounded, blue when selected, a shade darker
+// while it holds focus, hover on the rest.
+const rowStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "baseline",
+    minHeight: "6",
+    paddingX: "2",
+    paddingY: "[2px]",
+    borderRadius: "lg",
+    color: "neutral.s110",
+    fontSize: "xs",
+    lineHeight: "[20px]",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    cursor: "pointer",
+    backgroundColor: "[transparent]",
+    transition: "[background-color 100ms ease-out]",
+    _focus: { outline: "none", backgroundColor: "neutral.s25" },
   },
-  '&[aria-current="true"]': {
-    borderLeftColor: "blue.s60",
-    color: "neutral.fg.heading",
+  variants: {
+    selected: {
+      true: {
+        backgroundColor: "blue.s30",
+        color: "neutral.s120",
+        _focus: { backgroundColor: "blue.s40" },
+      },
+      false: {
+        _hover: { backgroundColor: "neutral.bg.surface.hover" },
+      },
+    },
+    main: {
+      true: { fontWeight: "medium" },
+    },
   },
-  '&[data-main="true"]': { fontWeight: "medium" },
 });
 
 const nameStyle = css({
@@ -138,39 +144,12 @@ const splitName = (path: string): [stem: string, extension: string] => {
   return dot <= 0 ? [path, ""] : [path.slice(0, dot), path.slice(dot)];
 };
 
-const FileItem = ({
-  file,
-  main,
-  selected,
-  onSelect,
-}: {
-  file: ReactiveModuleFile;
-  main: boolean;
-  selected: boolean;
-  onSelect: (path: string) => void;
-}) => {
-  const [stem, extension] = splitName(file.path);
-  return (
-    <li>
-      <button
-        type="button"
-        className={itemStyle}
-        data-main={main}
-        aria-current={selected ? "true" : undefined}
-        title={file.path}
-        onClick={() => onSelect(file.path)}
-      >
-        <span className={nameStyle}>{stem}</span>
-        <span className={extensionStyle}>{extension}</span>
-      </button>
-    </li>
-  );
-};
-
 /**
  * The generated files beside the editor: the main file, then the modules by
- * kind. Selecting one shows it. Open or closed is the caller's, toggled from
- * the flags row.
+ * kind. The list follows the worksheet keyboard flow: it is one Tab stop,
+ * ArrowUp and ArrowDown walk the files, and a click, an arrow move, Enter or
+ * Space shows the file. Open or closed is the caller's, toggled from the
+ * flags row.
  */
 export const FilesPanel = ({
   files,
@@ -185,43 +164,100 @@ export const FilesPanel = ({
   open: boolean;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
+  const labelId = useId();
+  const targets = useRef(new Map<string, HTMLElement>());
+
+  // The stops follow the rendered order, so the arrows walk the list as
+  // shown: the main file, then group by group.
+  const groups = groupFiles(files);
+  const stops: FocusStop[] = groups.flatMap((group) =>
+    group.files.map((file) => ({ id: file.path, kind: "row" as const })),
+  );
+  const { onKeyDown, onFocusTarget, tabIndexFor, attach } = useFocusStops({
+    stops,
+    columnCount: 1,
+    focusTarget: (target) => {
+      const focused = focusLands(targets.current.get(target.stopId));
+      if (focused && target.stopId !== selected) {
+        onSelect(target.stopId);
+      }
+      return focused;
+    },
+  });
+
+  const renderRow = (file: ReactiveModuleFile, main: boolean) => {
+    const target: FocusStopTarget = { stopId: file.path, column: 0 };
+    const [stem, extension] = splitName(file.path);
+    return (
+      <div
+        key={file.path}
+        role="option"
+        aria-selected={file.path === selected}
+        ref={(element) => {
+          if (element) {
+            targets.current.set(file.path, element);
+          } else {
+            targets.current.delete(file.path);
+          }
+        }}
+        tabIndex={tabIndexFor(target)}
+        title={file.path}
+        data-main={main}
+        className={rowStyle({ selected: file.path === selected, main })}
+        onFocus={(event) => {
+          if (event.target === event.currentTarget) {
+            onFocusTarget(target);
+          }
+        }}
+        onClick={(event) => {
+          event.currentTarget.focus();
+          onSelect(file.path);
+        }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) {
+            return;
+          }
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            onSelect(file.path);
+          } else {
+            onKeyDown(target)(event);
+          }
+        }}
+      >
+        <span className={nameStyle}>{stem}</span>
+        <span className={extensionStyle}>{extension}</span>
+      </div>
+    );
+  };
+
   return (
-    <nav
-      aria-label="Files"
-      data-open={open}
-      data-motion={showAnimations}
-      className={panelStyle}
-    >
-      <ul className={listStyle} inert={!open}>
-        {groupFiles(files).map((group) =>
+    <div data-open={open} data-motion={showAnimations} className={panelStyle}>
+      <div
+        ref={attach}
+        role="listbox"
+        aria-label="Files"
+        className={listStyle}
+        inert={!open}
+      >
+        {groups.map((group) =>
           group.label === null ? (
-            group.files.map((file) => (
-              <FileItem
-                key={file.path}
-                file={file}
-                main
-                selected={file.path === selected}
-                onSelect={onSelect}
-              />
-            ))
+            group.files.map((file) => renderRow(file, true))
           ) : (
-            <li key={group.label}>
-              <div className={groupLabelStyle}>{group.label}</div>
-              <ul className={groupListStyle}>
-                {group.files.map((file) => (
-                  <FileItem
-                    key={file.path}
-                    file={file}
-                    main={false}
-                    selected={file.path === selected}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </ul>
-            </li>
+            <div
+              key={group.label}
+              role="group"
+              aria-labelledby={`${labelId}-${group.label}`}
+            >
+              <div id={`${labelId}-${group.label}`} className={groupLabelStyle}>
+                {group.label}
+              </div>
+              {group.files.map((file) => renderRow(file, false))}
+            </div>
           ),
         )}
-      </ul>
-    </nav>
+      </div>
+    </div>
   );
 };
