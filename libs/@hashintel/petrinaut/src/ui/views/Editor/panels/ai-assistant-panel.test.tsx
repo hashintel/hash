@@ -4980,6 +4980,51 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toBe(true);
   });
 
+  test("retries an answer as a new turn while preserving history and the unsent draft", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            textChunks(
+              `answer-${requestMessages.length}`,
+              `Answer ${requestMessages.length}`,
+            ),
+          ),
+        );
+      }),
+    };
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Explain the queue",
+    });
+    await screen.findByText("Answer 1");
+    const retry = await screen.findByRole("button", { name: "Retry answer" });
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(retry);
+    await screen.findByText("Answer 2");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+    expect(screen.getByText("Answer 1")).toBeTruthy();
+    expect(requestMessages).toHaveLength(2);
+    expect(requestMessages[1]?.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "Explain the queue" }],
+    });
+    expect(requestMessages[1]?.at(-1)?.id).not.toBe(
+      requestMessages[0]?.[0]?.id,
+    );
+  });
+
   test("can force a separate message while an interactive tool is pending", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

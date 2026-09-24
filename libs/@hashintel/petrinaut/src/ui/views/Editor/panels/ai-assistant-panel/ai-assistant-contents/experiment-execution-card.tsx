@@ -80,6 +80,8 @@ const iconStyle = css({
 const kindStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
+  textTransform: "uppercase",
+  letterSpacing: "wide",
   color: "purple.s100",
   lineHeight: "[16px]",
 });
@@ -163,11 +165,10 @@ const progressFillStyle = css({
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
 const metricsStyle = css({
-  display: "flex",
-  flexWrap: "wrap",
-  columnGap: "4",
-  rowGap: "2",
-  flex: "[1 1 100px]",
+  display: "grid",
+  gridTemplateColumns: "[repeat(auto-fit, minmax(88px, 1fr))]",
+  gap: "1.5",
+  width: "full",
   minWidth: "[0]",
   margin: "0",
 });
@@ -175,6 +176,9 @@ const metricStyle = css({
   display: "flex",
   flexDirection: "column",
   minWidth: "[0]",
+  padding: "2",
+  border: "[1px solid {colors.neutral.a30}]",
+  borderRadius: "lg",
   overflowWrap: "anywhere",
   "& > dt": { fontSize: "xs", color: "neutral.s90", lineHeight: "[16px]" },
   "& > dd": {
@@ -253,11 +257,11 @@ export const ExperimentExecutionCard = ({
           <Icon name={optimization ? "sparkles" : "flask"} size="sm" />
         </span>
         <div className={css({ minWidth: "[0]", flex: "1" })}>
+          <span className={kindStyle}>
+            {optimization ? "Optimization" : "Simulation"}
+          </span>
           <strong className={titleStyle}>{name}</strong>
           <div className={metadataStyle}>
-            <span className={kindStyle}>
-              {optimization ? "Optimization" : "Simulation"}
-            </span>
             {(result || pending) && (
               <span className={detailStyle}>
                 {result

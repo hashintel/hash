@@ -10,27 +10,28 @@ import { useElapsedTime } from "./shared/use-elapsed-time";
 export type BrunchWorkStatus = "streaming" | "settled" | "approval" | "stopped";
 
 const foldStyle = css({
-  backgroundColor: "neutral.a20",
-  borderRadius: "lg",
-  padding: "1",
+  display: "flex",
+  flexDirection: "column",
   minWidth: "[0]",
 });
 const triggerStyle = css({
-  display: "flex",
+  display: "inline-flex",
+  alignSelf: "flex-start",
   alignItems: "center",
-  gap: "2",
-  width: "full",
-  padding: "2",
-  fontSize: "sm",
+  gap: "1",
+  padding: "[2px 6px 2px 2px]",
+  borderRadius: "md",
+  _hover: { backgroundColor: "neutral.a20" },
+  fontSize: "[13px]",
   fontWeight: "medium",
   color: "neutral.s100",
   textAlign: "left",
   cursor: "pointer",
   "& [data-chevron]": {
-    marginLeft: "auto",
     transition: "[transform 150ms ease]",
   },
-  "&[data-state=closed] [data-chevron]": { transform: "[rotate(180deg)]" },
+  "&[data-state=closed] [data-chevron]": { transform: "[rotate(90deg)]" },
+  "&[data-state=open] [data-chevron]": { transform: "[rotate(180deg)]" },
   "&[data-working=true] [data-label]": {
     backgroundImage:
       "[linear-gradient(110deg, {colors.neutral.s100} 35%, {colors.neutral.s60} 50%, {colors.neutral.s100} 65%)]",
@@ -93,7 +94,9 @@ export const BrunchWorkFold = ({
             display: "flex",
             flexDirection: "column",
             gap: "2",
-            padding: "1",
+            margin: "[4px 0 2px 5px]",
+            paddingLeft: "3",
+            borderLeft: "[2px solid {colors.neutral.a30}]",
           })}
         >
           {children}

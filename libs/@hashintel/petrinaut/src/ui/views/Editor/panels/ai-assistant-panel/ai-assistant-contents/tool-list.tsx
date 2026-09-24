@@ -1,7 +1,7 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getLatestNetDefinitionToolName,
@@ -104,6 +104,10 @@ const statusDotStyle = css({
   backgroundColor: "yellow.s90",
   '&[data-tool-status="ok"]': { backgroundColor: "green.s90" },
   '&[data-tool-status="error"]': { backgroundColor: "red.s90" },
+  '&[data-tool-status="cancelled"]': {
+    backgroundColor: "neutral.s80",
+    height: "[2px]",
+  },
 });
 
 const interactiveToolStyle = css({
@@ -121,46 +125,45 @@ const toolItemStyle = cva({
     minHeight: "8",
     paddingX: "2",
     paddingY: "[5px]",
-    borderWidth: "thin",
-    borderStyle: "solid",
-    borderRadius: "lg",
+    border: "none",
+    borderRadius: "md",
+    backgroundColor: "[transparent]",
     color: "neutral.s90",
-    fontSize: "sm",
+    fontSize: "xs",
     fontWeight: "medium",
     textAlign: "left",
     cursor: "default",
     _enabled: {
       cursor: "pointer",
     },
+    _hover: { backgroundColor: "neutral.a20" },
     "& svg[data-chevron]": {
+      marginLeft: "auto",
       transition: "[transform 150ms ease-out]",
     },
     "&[data-state=closed] svg[data-chevron]": {
+      transform: "[rotate(90deg)]",
+    },
+    "&[data-state=open] svg[data-chevron]": {
       transform: "[rotate(180deg)]",
     },
   },
   variants: {
     tone: {
       danger: {
-        backgroundColor: "red.s20",
-        borderColor: "red.a40",
+        color: "red.s100",
       },
       info: {
-        backgroundColor: "[#eff9ff]",
-        borderColor: "[#bee6ff]",
-        color: "[#0666c6]",
+        color: "neutral.s100",
       },
       neutral: {
-        backgroundColor: "neutral.s10",
-        borderColor: "neutral.a30",
+        color: "neutral.s90",
       },
       pending: {
-        backgroundColor: "yellow.s20",
-        borderColor: "yellow.a40",
+        color: "neutral.s90",
       },
       success: {
-        backgroundColor: "green.s20",
-        borderColor: "green.a40",
+        color: "neutral.s90",
       },
     },
     link: {
@@ -556,16 +559,19 @@ const ToolItem = ({
   onSelectToolTarget,
   tool,
   active = false,
+  stopped = false,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tool: ToolRenderItem;
   active?: boolean;
+  stopped?: boolean;
 }) => {
   const inProgress =
     tool.state === "input-streaming" || tool.state === "input-available";
+  const cancelled = stopped && inProgress;
   const duration = useElapsedTime(active && inProgress && !tool.interactive);
-  if (tool.interactive) {
+  if (tool.interactive && !cancelled) {
     return (
       <InteractiveToolItem
         onInteractiveToolSubmit={onInteractiveToolSubmit}
@@ -576,7 +582,7 @@ const ToolItem = ({
 
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
-  const stateLabel = tool.stateLabel || undefined;
+  const stateLabel = cancelled ? "Cancelled" : tool.stateLabel || undefined;
   const target = tool.summary.target;
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
@@ -590,7 +596,7 @@ const ToolItem = ({
       type="button"
       className={toolItemStyle({ tone: tool.tone })}
       data-tone={tool.tone}
-      aria-busy={inProgress ? true : undefined}
+      aria-busy={inProgress && !cancelled ? true : undefined}
       onClick={() => {
         if (target) {
           onSelectToolTarget?.(target);
@@ -599,8 +605,24 @@ const ToolItem = ({
     >
       <span
         className={statusDotStyle}
-        data-tool-status={errored ? "error" : complete ? "ok" : "pending"}
-        aria-label={errored ? "Error" : complete ? "Complete" : "Pending"}
+        data-tool-status={
+          cancelled
+            ? "cancelled"
+            : errored
+              ? "error"
+              : complete
+                ? "ok"
+                : "pending"
+        }
+        aria-label={
+          cancelled
+            ? "Cancelled"
+            : errored
+              ? "Error"
+              : complete
+                ? "Complete"
+                : "Pending"
+        }
       />
       <span className={toolTextStyle}>
         <span>{title}</span>
@@ -656,7 +678,9 @@ const ToolItem = ({
           >
             {tool.errorText ??
               (tool.output === undefined
-                ? "Pending"
+                ? cancelled
+                  ? "Cancelled before a result was received"
+                  : "Pending"
                 : JSON.stringify(tool.output, null, 2))}
           </pre>
           {children.map((item, index) => (
@@ -707,6 +731,16 @@ export const AiAssistantToolList = ({
   stopped?: boolean;
   producedCard?: boolean;
 }) => {
+  const running =
+    active &&
+    !stopped &&
+    tools.some(
+      (tool) =>
+        !tool.interactive &&
+        (tool.state === "input-streaming" || tool.state === "input-available"),
+    );
+  const [disclosure, setDisclosure] = useState({ running, open: running });
+  if (disclosure.running !== running) setDisclosure({ running, open: running });
   if (tools.length === 0) {
     return null;
   }
@@ -724,11 +758,19 @@ export const AiAssistantToolList = ({
   if (producedCard) return content;
   return (
     <>
-      <Collapsible.Root defaultOpen={false}>
+      <Collapsible.Root
+        open={disclosure.open}
+        onOpenChange={({ open }) => setDisclosure({ running, open })}
+      >
         <Collapsible.Trigger className={toolItemStyle({ tone: "neutral" })}>
-          <Icon name="lightning" size="sm" />
-          {stopped ? "Stopped after" : "Used"} {tools.length}{" "}
-          {tools.length === 1 ? "tool" : "tools"}
+          {running ? (
+            <LoadingSpinner size="xs" aria-hidden="true" />
+          ) : (
+            <Icon name="lightning" size="sm" />
+          )}
+          {running
+            ? "Running tools"
+            : `${stopped ? "Stopped after" : "Used"} ${tools.length} ${tools.length === 1 ? "tool" : "tools"}`}
           <Icon name="chevronUp" size="sm" data-chevron />
         </Collapsible.Trigger>
         <Collapsible.Content className={collapsibleContentStyle}>
@@ -742,6 +784,7 @@ export const AiAssistantToolList = ({
                   key={tool.id}
                   tool={tool}
                   active={active && !stopped}
+                  stopped={stopped}
                   onInteractiveToolSubmit={onInteractiveToolSubmit}
                   onSelectToolTarget={onSelectToolTarget}
                 />
@@ -755,6 +798,7 @@ export const AiAssistantToolList = ({
           <ToolItem
             key={tool.id}
             tool={tool}
+            stopped={stopped}
             onInteractiveToolSubmit={onInteractiveToolSubmit}
             onSelectToolTarget={onSelectToolTarget}
           />
