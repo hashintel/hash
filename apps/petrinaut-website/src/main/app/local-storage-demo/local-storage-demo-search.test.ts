@@ -42,4 +42,55 @@ describe("local storage demo search", () => {
       validateLocalStorageDemoSearch({ bundle: "Inventory_Purchasing" }).bundle,
     ).toBeUndefined();
   });
+
+  test.each([0, 1, "0", "1"])(
+    "preserves the explicit voice debug value %j through validation",
+    (voiceDebug) => {
+      const search = validateLocalStorageDemoSearch({ voiceDebug });
+      expect(search).toMatchObject({ voiceDebug });
+      expect(localStorageDemoRouteIdentity(search)).toBe("ordinary");
+    },
+  );
+
+  test.each([true, false, 2, "true", "01", ""])(
+    "drops invalid voice debug value %j",
+    (voiceDebug) => {
+      expect(
+        validateLocalStorageDemoSearch({ voiceDebug }).voiceDebug,
+      ).toBeUndefined();
+    },
+  );
+
+  test("keeps voice debugging when setup opens and clears shared editor locations", () => {
+    const initial = validateLocalStorageDemoSearch({
+      bundle: "inventory-purchasing",
+      voiceDebug: 1,
+    });
+    const settings = withLocalStorageDemoIdentity(initial, {
+      overlay: "user-settings",
+      settings: "labs",
+    });
+    expect(settings).toEqual({
+      bundle: "inventory-purchasing",
+      voiceDebug: 1,
+      overlay: "user-settings",
+      settings: "labs",
+    });
+    expect(withLocalStorageDemoIdentity(settings, {})).toEqual({
+      bundle: "inventory-purchasing",
+      voiceDebug: 1,
+    });
+  });
+
+  test("honors an explicit disable instead of retaining an earlier enable", () => {
+    const enabled = validateLocalStorageDemoSearch({ voiceDebug: 1 });
+    const disabled = withLocalStorageDemoIdentity(
+      enabled,
+      validateLocalStorageDemoSearch({ voiceDebug: 0 }),
+    );
+    expect(disabled).toMatchObject({ voiceDebug: 0 });
+    expect(withLocalStorageDemoIdentity(disabled, {})).toMatchObject({
+      voiceDebug: 0,
+    });
+  });
 });

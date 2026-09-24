@@ -12,6 +12,11 @@ const optionalBundleKeySchema = z
 
 const demoSearchSchema = z.object({
   bundle: optionalBundleKeySchema,
+  // The router can parse URL numbers before validation. Logging remains dev-only.
+  voiceDebug: z
+    .union([z.literal(0), z.literal(1), z.enum(["0", "1"])])
+    .optional()
+    .catch(undefined),
 });
 
 export type LocalStorageDemoSearch = z.infer<typeof demoSearchSchema> &
@@ -30,7 +35,7 @@ export const validateLocalStorageDemoSearch = (
 
 /**
  * Replaces the contract part of the demo search while carrying the selected
- * editor/session identity over. Dropping it on the first item selection would
+ * editor/session identity and diagnostic flag over. Dropping the identity would
  * silently swap the bundle for an ordinary per-net conversation mid-session.
  */
 export const withLocalStorageDemoIdentity = (
@@ -38,6 +43,7 @@ export const withLocalStorageDemoIdentity = (
   next: LocalStorageDemoSearch,
 ): LocalStorageDemoSearch => ({
   bundle: current.bundle,
+  voiceDebug: current.voiceDebug,
   ...next,
 });
 
