@@ -1,26 +1,22 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, test } from "vitest";
 
-import { elicitationSkill } from "../src/skills/elicitation/skill";
-import { skillFromMarkdown } from "../src/skills/skill-markdown";
+import { ELICITATION_SKILL_NAME, elicitationSkill } from "../src/agent";
+
+const skillMarkdown = readFileSync(
+  new URL("../src/skills/elicitation/SKILL.md", import.meta.url),
+  "utf8",
+);
 
 describe("the authored elicitation skill", () => {
-  test("loads its universal guidance on activation without a mandatory resource read", () => {
+  test("is a Flue-packaged skill named by its own frontmatter", () => {
+    expect(elicitationSkill.__flueSkillReference).toBe(true);
     expect(elicitationSkill.name).toBe("elicitation");
-    expect(elicitationSkill.files).toBeUndefined();
-    expect(elicitationSkill.instructions).not.toContain(
-      "references/universal-elicitation.md",
-    );
+    expect(ELICITATION_SKILL_NAME).toBe(elicitationSkill.name);
   });
 
-  test("parses frontmatter fields without interpreting field names as patterns", () => {
-    const skill = skillFromMarkdown(
-      "---\r\nname: example\r\ndescription: Example skill\r\n---\r\nDo the work.\r\n",
-    );
-
-    expect(skill).toMatchObject({
-      name: "example",
-      description: "Example skill",
-      instructions: "Do the work.",
-    });
+  test("loads its universal guidance on activation without a mandatory resource read", () => {
+    expect(skillMarkdown).not.toContain("references/universal-elicitation.md");
   });
 });

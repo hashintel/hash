@@ -20,6 +20,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useTool: (tool: unknown) => mounting.tools.push(tool),
 }));
 
+import { sdcpnModellingSkill, useSdcpnPlugin } from "../src/agent";
 import {
   BRUNCH_DECLARED_PROJECTION_MODE,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
@@ -31,9 +32,7 @@ import {
   declarePetrinautProjectionToolName,
   draftPetrinautExperimentToolName,
   readPetrinautDocs,
-  useSdcpnPlugin,
 } from "../src/flue";
-import { sdcpnModellingSkill } from "../src/skills/sdcpn-modelling/skill";
 
 const pluginAppend = readFileSync(
   new URL("../src/prompts/APPEND_SYSTEM.md", import.meta.url),
@@ -51,7 +50,7 @@ const integratedOptions = () => ({
     throw new Error("Mounting must not authorize a draft");
   },
 });
-const draftPolicy = expect.stringContaining(
+const draftPolicy: unknown = expect.stringContaining(
   "prefer draft_petrinaut_experiment after a verified canonical getLatestNetDefinition read",
 );
 const canonicalNames = canonicalPetrinautTools.map(({ name }) => name);

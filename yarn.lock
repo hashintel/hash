@@ -7611,7 +7611,7 @@ __metadata:
   resolution: "@hashintel/brunch-agent-plugin-claims@workspace:libs/@hashintel/brunch-agent/packages/plugin-claims"
   dependencies:
     "@flue/runtime": "npm:2.0.3"
-    "@hashintel/brunch-agent": "workspace:*"
+    "@flue/vite": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
@@ -7626,7 +7626,7 @@ __metadata:
   resolution: "@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny"
   dependencies:
     "@flue/runtime": "npm:2.0.3"
-    "@hashintel/brunch-agent": "workspace:*"
+    "@flue/vite": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
@@ -7641,7 +7641,7 @@ __metadata:
   resolution: "@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin"
   dependencies:
     "@flue/runtime": "npm:2.0.3"
-    "@hashintel/brunch-agent": "workspace:*"
+    "@flue/vite": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
@@ -7656,6 +7656,7 @@ __metadata:
   resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
   dependencies:
     "@flue/runtime": "npm:2.0.3"
+    "@flue/vite": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@types/node": "npm:22.18.13"
@@ -7690,6 +7691,7 @@ __metadata:
   dependencies:
     "@anthropic-ai/sdk": "npm:0.74.0"
     "@flue/runtime": "npm:2.0.3"
+    "@flue/vite": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     fast-check: "npm:4.9.0"

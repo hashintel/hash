@@ -1,8 +1,6 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
-
-import { sdcpnModellingSkill } from "../src/skills/sdcpn-modelling/skill";
 
 const skillDirectory = new URL(
   "../src/skills/sdcpn-modelling/",
@@ -10,33 +8,19 @@ const skillDirectory = new URL(
 );
 const readSkillFile = (fileName: string): string =>
   readFileSync(new URL(fileName, skillDirectory), "utf8");
+const skillMarkdown = readSkillFile("SKILL.md");
 
 describe("the authored sdcpn-modelling skill directory", () => {
-  test("is one Flue skill whose packaged paths equal the authored paths", () => {
-    expect(sdcpnModellingSkill.name).toBe("sdcpn-modelling");
-    expect(sdcpnModellingSkill.description).toContain("process model");
-    expect(Object.keys(sdcpnModellingSkill.files ?? {}).sort()).toEqual([
-      "references/checks.md",
-      "references/experiment-configuration.md",
-      "references/pn-construction.md",
-      "references/profile.md",
-      "templates/workpiece.md",
-    ]);
-    for (const path of Object.keys(sdcpnModellingSkill.files ?? {})) {
-      expect(sdcpnModellingSkill.files?.[path]).toBe(readSkillFile(path));
-    }
-    expect(sdcpnModellingSkill.instructions).not.toMatch(/^---/u);
-  });
-
-  test("names only packaged resources without duplicating universal guidance", () => {
-    const instructions = sdcpnModellingSkill.instructions;
-    expect(Object.keys(sdcpnModellingSkill.files ?? {})).not.toContain(
-      "references/universal-elicitation.md",
-    );
-    for (const referenced of instructions.matchAll(
+  test("names only resources in its directory without duplicating universal guidance", () => {
+    expect(
+      existsSync(
+        new URL("references/universal-elicitation.md", skillDirectory),
+      ),
+    ).toBe(false);
+    for (const referenced of skillMarkdown.matchAll(
       /`((?:references|templates)\/[\w-]+\.md)`/gu,
     )) {
-      expect(sdcpnModellingSkill.files).toHaveProperty(referenced[1]!);
+      expect(existsSync(new URL(referenced[1]!, skillDirectory))).toBe(true);
     }
   });
 
@@ -56,7 +40,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
   });
 
   describe("experiment readiness guidance", () => {
-    const instructions = sdcpnModellingSkill.instructions;
+    const instructions = skillMarkdown;
     const experiment = readSkillFile("references/experiment-configuration.md");
     const construction = readSkillFile("references/pn-construction.md");
 
@@ -182,7 +166,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
   });
 
   test("keeps protocol correlation host-owned and canonical calls honest", () => {
-    const instructions = sdcpnModellingSkill.instructions;
+    const instructions = skillMarkdown;
     const construction = readSkillFile("references/pn-construction.md");
 
     for (const text of [instructions, construction]) {
@@ -211,7 +195,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
       new URL("../src/prompts/APPEND_SYSTEM.md", import.meta.url),
       "utf8",
     );
-    const instructions = sdcpnModellingSkill.instructions;
+    const instructions = skillMarkdown;
     const construction = readSkillFile("references/pn-construction.md");
 
     for (const text of [instructions, construction]) {
@@ -226,7 +210,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
   });
 
   test("preserves the detailed modelling, evidence, and delivery constraints", () => {
-    const instructions = sdcpnModellingSkill.instructions;
+    const instructions = skillMarkdown;
     const construction = readSkillFile("references/pn-construction.md");
 
     expect(construction).toContain(

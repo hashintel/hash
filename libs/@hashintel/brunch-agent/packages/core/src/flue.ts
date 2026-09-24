@@ -1,20 +1,6 @@
-import {
-  type CompactionConfig,
-  defineTool,
-  useModel,
-  usePersistentState,
-  useSkill,
-  useTool,
-  type StateSetter,
-} from "@flue/runtime";
+import { defineTool, type StateSetter } from "@flue/runtime";
 import * as v from "valibot";
 
-import systemPrompt from "./prompts/SYSTEM.md?raw";
-import {
-  ELICITATION_SKILL_NAME,
-  elicitationSkill,
-} from "./skills/elicitation/skill";
-import { skillFromMarkdown } from "./skills/skill-markdown";
 import {
   assertWorkpieceIsNotSilentShrink,
   deriveWorkpieceMutation,
@@ -33,7 +19,6 @@ import {
   workpieceRevisionPointerSchema,
   workpieceRevisionSchema,
   updateWorkpieceRefusedOutputSchema,
-  workpieceRevisionStateKey,
   type WorkpieceEvidenceServices,
   type WorkpieceEvidenceSource,
   type WorkpieceRevision,
@@ -46,44 +31,6 @@ import {
 
 export const MUTATE_WORKPIECE_TOOL_NAME = "mutate_workpiece";
 export const READ_WORKPIECE_TOOL_NAME = "read_workpiece";
-
-/**
- * Mount the contributions owned by Brunch core and return its system prompt.
- *
- * Core contributes the always-on universal prompt, one `elicitation`
- * capability skill, and durable workpiece revisions.
- */
-type BrunchModelOptions = {
-  compaction?: CompactionConfig;
-  thinkingLevel?: NonNullable<Parameters<typeof useModel>[1]>["thinkingLevel"];
-};
-
-export function useBrunchAgent(
-  model: string,
-  options?: BrunchModelOptions,
-  consumeRevision?: (revision: WorkpieceRevision | null) => void,
-  readEvidenceSources?: (
-    current: WorkpieceRevision | null,
-  ) => ReturnType<WorkpieceEvidenceServices["readSources"]>,
-  allowIndependentBrowserCalls = false,
-): string {
-  useModel(model, options);
-  useSkill(elicitationSkill);
-  const [revision, setRevision] = usePersistentState<WorkpieceRevision | null>(
-    workpieceRevisionStateKey,
-    null,
-  );
-  useTool(
-    createMutateWorkpieceTool(setRevision, {
-      currentRevision: revision,
-      allowIndependentBrowserCalls,
-      readSources: () => readEvidenceSources?.(revision) ?? Promise.resolve([]),
-    }),
-  );
-  // Composition reads this render's single authority, never a second registration.
-  consumeRevision?.(revision);
-  return systemPrompt.replace(/^\s+|\s+$/gu, "");
-}
 
 /**
  * Settlement carriage: applied revisions keep pointer-only identity, while
@@ -416,7 +363,6 @@ export const createWorkpieceReadTool = (services: WorkpieceEvidenceServices) =>
   });
 
 export { settleWorkpieceEvidence } from "./update-workpiece";
-export { ELICITATION_SKILL_NAME, elicitationSkill, skillFromMarkdown };
 export {
   workpieceMarkdownByteCeiling,
   updateWorkpieceInputSchema,

@@ -1,10 +1,8 @@
 import { useInstruction, useSkill } from "@flue/runtime";
 
+import dafnyVerificationSkill from "@hashintel/brunch-agent-plugin-dafny/skills/dafny-verification/SKILL.md";
+
 import dafnyAppend from "./prompts/APPEND_SYSTEM.md?raw";
-import {
-  DAFNY_VERIFICATION_SKILL_NAME,
-  dafnyVerificationSkill,
-} from "./skills/dafny-verification/skill";
 
 /**
  * Mount the stub prompt material and skill owned by the Dafny plugin.
@@ -17,4 +15,5 @@ export function useDafnyPlugin(): void {
   useSkill(dafnyVerificationSkill);
 }
 
-export { DAFNY_VERIFICATION_SKILL_NAME, dafnyVerificationSkill };
+export const DAFNY_VERIFICATION_SKILL_NAME = dafnyVerificationSkill.name;
+export { dafnyVerificationSkill };
