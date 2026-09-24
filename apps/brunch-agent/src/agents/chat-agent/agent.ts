@@ -118,6 +118,7 @@ export function ChatAgent({ id }: AgentProps) {
   useContextProjection(projectBrunchContext);
   const delivery = useDelivery();
   const integratedCanonicalMode = isIntegratedPetrinautMode(initialData?.mode);
+  const integratedBrunchMode = initialData?.mode === INTEGRATED_BRUNCH_MODE;
   const netDefinitionReadToolName = integratedCanonicalMode
     ? getLatestNetDefinitionToolName
     : readPetrinautNetToolName;
@@ -287,15 +288,21 @@ export function ChatAgent({ id }: AgentProps) {
   );
   useAgentStart(async ({ append }) => {
     if (browserContext && delivery.kind === "user") {
+      // Always consume the reported revision so its per-submission entry is released.
+      const reportedRevisionId = takeReportedDocumentRevision();
       // Flue history is the only ledger of what the model has observed. The
       // marker joins this response ahead of the model's first turn; it asks for
-      // a read and never withdraws the tool.
-      const freshness = await deriveNetFreshness(
-        await history(),
-        browserContext,
-        takeReportedDocumentRevision(),
-      );
-      if (freshness.kind !== "current")
+      // a read and never withdraws the tool. It is suspended in I: it was written
+      // for terminal browser tools, where a read ended the submission, and as
+      // the last user-role message it ended I's in-band loop after the read.
+      const freshness = integratedBrunchMode
+        ? undefined
+        : await deriveNetFreshness(
+            await history(),
+            browserContext,
+            reportedRevisionId,
+          );
+      if (freshness !== undefined && freshness.kind !== "current")
         append({
           kind: "signal",
           type: NET_STALE_SIGNAL,
@@ -351,7 +358,7 @@ export function ChatAgent({ id }: AgentProps) {
 Call ping when you need to confirm the server tool path.
 ${
   initialData?.mode === INTEGRATED_BRUNCH_MODE
-    ? "Canonical browser tools return actual browser outputs in this Flue turn, under the output key with host-only metadata. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; use later turns for dependencies. Never repeat an attempted write whose outcome is unknown."
+    ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown."
     : "Submit browser tool calls separately from server tools, and wait for their correlated client results before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order. A client-tool-result signal carries canonical results as JSON [{ toolCallId, toolName, output, metadata? }], optionally inside a host envelope with transient diagnostics context. Treat output as the browser's canonical result for that call, keep host context distinct from user testimony and semantic evidence, and continue helping the user once; never reapply a completed mutation."
 }
 `.replace(/^\s+|\s+$/gu, ""),
@@ -359,13 +366,21 @@ ${
   useInstruction(
     `
 For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
-A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${netDefinitionReadToolName} and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${netDefinitionReadToolName} result in this conversation is the current net.
+${
+  integratedBrunchMode
+    ? ""
+    : `A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${netDefinitionReadToolName} and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${netDefinitionReadToolName} result in this conversation is the current net.`
+}
 `.replace(/^\s+|\s+$/gu, ""),
   );
   if (browserContext)
     useInstruction(
       `
-When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified ${netDefinitionReadToolName} result for the currently confirmed document revision. If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls ${netDefinitionReadToolName} and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it. Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece with the element the user named, resolved to its recorded name or ID; the host attaches the verified read's correlation rather than requiring you to copy a tool-call ID or hash. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified ${netDefinitionReadToolName} result for the currently confirmed document revision. ${
+        integratedBrunchMode
+          ? `If no verified read exists or the net may have changed since the last one, call ${netDefinitionReadToolName} first, then call query_workpiece after its result returns.`
+          : `If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls ${netDefinitionReadToolName} and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it.`
+      } Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece with the element the user named, resolved to its recorded name or ID; the host attaches the verified read's correlation rather than requiring you to copy a tool-call ID or hash. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);
