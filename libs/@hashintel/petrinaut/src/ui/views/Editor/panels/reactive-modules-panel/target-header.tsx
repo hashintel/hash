@@ -2,7 +2,10 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { NumberInput, Select, type SelectItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { zerothTargetComposes } from "@hashintel/petrinaut-core/reactive-modules";
+import {
+  petriNetIrConflictingTransitions,
+  zerothTargetComposes,
+} from "@hashintel/petrinaut-core/reactive-modules";
 
 import type {
   PetriNetIr,
@@ -19,6 +22,7 @@ import type {
 export type TargetControlId =
   | "shape"
   | "rates"
+  | "conflicts"
   | "layout"
   | "marking"
   | "control"
@@ -47,6 +51,11 @@ const SHAPE_ITEMS: SelectItem<string>[] = [
 const RATES_ITEMS: SelectItem<string>[] = [
   { value: "coin", text: "Coin" },
   { value: "clock", text: "Clock" },
+];
+
+const CONFLICTS_ITEMS: SelectItem<string>[] = [
+  { value: "sweep", text: "Sweep" },
+  { value: "nondet", text: "Nondet" },
 ];
 
 const LAYOUT_ITEMS: SelectItem<string>[] = [
@@ -82,6 +91,9 @@ export const targetHeaderControls = (
     Object.values(document.transitions).some(
       (transition) => transition.controllable === true,
     );
+  const conflicting =
+    document !== null &&
+    petriNetIrConflictingTransitions(document.transitions).size > 0;
   // Clocks compose a fixed shape in continuous time, so the step flags have
   // nothing left to decide while they are on.
   const clocksApply = stochastic && !coloured && !dynamic;
@@ -116,6 +128,18 @@ export const targetHeaderControls = (
                 coloured || dynamic
                   ? "A coloured net or one with dynamics takes coins"
                   : "A plain net has no rates",
+            }),
+      },
+      {
+        id: "conflicts",
+        label: "Conflicts",
+        value: target.conflicts,
+        items: CONFLICTS_ITEMS,
+        ...(conflicting
+          ? {}
+          : {
+              disabledReason:
+                "Conflicts applies to a net where two transitions share an input place",
             }),
       },
       {

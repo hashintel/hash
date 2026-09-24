@@ -82,6 +82,8 @@ const FLAG_WHAT: Record<string, string> = {
     "The shape flag: one module for the whole net, or one per transition and place",
   rates:
     "The rates flag: a rate as a coin tested each step over dt, or as a clock armed with exp(rate) in continuous time",
+  conflicts:
+    "The conflicts flag: transitions sharing an input place fire in sweep order, or each waits for a pick nothing drives",
   marking:
     "The marking flag: places typed as Real, or as Int with a Draw module per transition",
   control:
@@ -562,9 +564,9 @@ export const traceReactiveModulePython = (
       });
       return;
     }
-    const declaration = /^(\w+) = Var\(\w+(?:\(\))?\)(?:  # (.*))?$/u.exec(
-      line,
-    );
+    // `Var(BOOL)`, `Var(Nat())` and `Var(Bool([1, 1]))`, the SPN pick.
+    const declaration =
+      /^(\w+) = Var\(\w+(?:\((?:\[1, 1\])?\))?\)(?:  # (.*))?$/u.exec(line);
     if (declaration !== null) {
       const [, name, comment] = declaration;
       const variable = variables.get(name!);
