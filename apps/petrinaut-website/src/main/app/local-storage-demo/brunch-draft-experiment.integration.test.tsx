@@ -256,6 +256,7 @@ const createObservedDraftTool = (onSubmitted: () => void) =>
     DraftPetrinautExperimentOutput
   >({
     toolName: draftPetrinautExperimentToolName,
+    placement: "card",
     inputSchema: draftPetrinautExperimentInputSchema,
     outputSchema: draftPetrinautExperimentOutputSchema,
     component: (props) => (
@@ -591,9 +592,8 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   await act(async () => {
     continueTrials.resolve();
   });
-  await waitFor(() =>
-    expect(card.getAttribute("data-draft-status")).toBe("Run complete"),
-  );
+  await screen.findByText("Finished");
+  expect(card.isConnected).toBe(false);
   expect(
     screen.queryByRole("button", { name: /active Monte Carlo simulation/u }),
   ).toBeNull();

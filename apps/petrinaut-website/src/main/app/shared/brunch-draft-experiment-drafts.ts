@@ -32,6 +32,8 @@ export type SessionDraft = {
   invalid: string | null;
   dismissed: boolean;
   run: SessionDraftRun;
+  /** One completion turn per local run, independent of the original tool output. */
+  followUp?: "pending" | "sent" | "failed";
 };
 
 export type SessionDraftsState = {

@@ -1,53 +1,46 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  VoiceIcon,
-  useExperimentalIconPackEnabled,
-} from "../../../../../experimental-icons";
+import type { VoiceBrief } from "./get-message-render-items";
 
-// Sits in the text flow ahead of the words it belongs to, so a spoken turn is
-// marked where reading starts rather than by something trailing the bubble.
-const chipStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "[3px]",
-  marginRight: "[6px]",
-  padding: "[1px 6px 1px 4px]",
-  borderRadius: "full",
-  backgroundColor: "blue.a30",
-  color: "blue.s110",
-  fontSize: "[10px]",
-  fontWeight: "semibold",
-  letterSpacing: "[0.03em]",
-  textTransform: "uppercase",
-  verticalAlign: "[1px]",
-  whiteSpace: "nowrap",
-});
-
-export const VoiceInputProvenance = () => {
-  const experimentalIcons = useExperimentalIconPackEnabled();
-  return (
-    <span className={chipStyle} data-testid="voice-input-provenance">
-      {experimentalIcons ? (
-        <VoiceIcon size={9} weight={550} hover="none" />
-      ) : (
-        <svg
-          aria-hidden="true"
-          fill="none"
-          height="9"
-          viewBox="0 0 20 20"
-          width="9"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M3 8.5v3M6.5 5.5v9M10 3v14M13.5 6v8M17 8.5v3"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2.4"
-          />
-        </svg>
-      )}
-      Voice
-    </span>
-  );
-};
+/** The prepared brief is optional; ordinary spoken messages carry no marker. */
+export const VoiceInputProvenance = ({ brief }: { brief: VoiceBrief }) => (
+  <details
+    className={css({
+      alignSelf: "flex-end",
+      maxWidth: "[92%]",
+      fontSize: "xs",
+      color: "neutral.s90",
+    })}
+    aria-busy={brief.state === "streaming"}
+  >
+    <summary className={css({ cursor: "pointer", textAlign: "right" })}>
+      Sent to Brunch
+    </summary>
+    <div
+      className={css({
+        backgroundColor: "neutral.a10",
+        borderRadius: "lg",
+        padding: "3",
+        marginTop: "2",
+      })}
+    >
+      <p>Prepared from what you said</p>
+      <dl
+        className={css({
+          display: "grid",
+          gridTemplateColumns: "[auto 1fr]",
+          gap: "2",
+          marginTop: "2",
+          "& dd": { margin: "0", overflowWrap: "anywhere" },
+        })}
+      >
+        {Object.entries(brief.fields).map(([field, value]) => (
+          <div key={field} className={css({ display: "contents" })}>
+            <dt>{field.replace(/([A-Z])/gu, " $1")}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </details>
+);

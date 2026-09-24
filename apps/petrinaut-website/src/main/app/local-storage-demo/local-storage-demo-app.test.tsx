@@ -672,7 +672,7 @@ describe("local storage demo Brunch voice integration", () => {
     expect(
       (renderedPetrinaut.aiAssistant as PetrinautAiAssistant)
         .renderComposerControl,
-    ).toBeUndefined();
+    ).toBeTypeOf("function");
 
     rendered.unmount();
     localPlaybackCancellation.mockRestore();

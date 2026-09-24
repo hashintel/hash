@@ -224,11 +224,7 @@ export const AiAssistantReasoning = ({
   });
   const renderedText = part.text.trim();
   const { heading, body } = extractReasoningHeading(renderedText, isStreaming);
-  const [open, setOpen] = useState(isStreaming);
-
-  useEffect(() => {
-    setOpen(isStreaming);
-  }, [isStreaming]);
+  const [open, setOpen] = useState(false);
 
   if (!isStreaming && !renderedText) {
     return null;
@@ -241,16 +237,20 @@ export const AiAssistantReasoning = ({
       onOpenChange={(details) => setOpen(details.open)}
     >
       <Collapsible.Trigger className={reasoningHeaderStyle}>
-        <Icon name="list" size="sm" />
+        <Icon
+          name="lightbulbOn"
+          size="sm"
+          className={css({ color: "orange.s90" })}
+        />
         <span className={reasoningTitleStyle}>
-          {heading ? `Thinking: ${heading}` : "Thinking"}
+          {elapsedTime === undefined ? "Thought" : `Thought for ${elapsedTime}`}
         </span>
         {elapsedTime !== undefined && (
           <span
             className={reasoningElapsedStyle}
             aria-label={`Reasoning time ${elapsedTime}`}
           >
-            {elapsedTime}
+            {heading}
           </span>
         )}
         <Icon name="chevronUp" data-chevron size="sm" />
@@ -259,6 +259,7 @@ export const AiAssistantReasoning = ({
         <div className={reasoningBodyStyle({ streaming: isStreaming })}>
           {body ? (
             <div className={markdownStyle}>
+              {heading && <strong>{heading}</strong>}
               <ReactMarkdown>{body}</ReactMarkdown>
             </div>
           ) : isStreaming ? (

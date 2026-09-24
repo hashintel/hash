@@ -19,6 +19,7 @@ import {
   type VoiceSessionStore,
 } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
+import { REVIEW_CHIPS } from "./ai-assistant-contents/prompt-chips";
 
 import type { VoiceAudioSettingsState } from "../../../../../react/voice-session/types";
 import type { PetrinautAiToolPresentationResolver } from "../../../../petrinaut";
@@ -364,12 +365,14 @@ const createStoryVoiceSessionStore = (
 const Frame = ({
   additionalTab,
   error,
+  experimentStates,
   fixedNarrowWidth = false,
   initialPlacement = "docked",
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
   primaryLabel,
+  promptChips,
   resolveToolPresentation,
   status = "ready",
   stopped = false,
@@ -381,12 +384,16 @@ const Frame = ({
 }: {
   additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
   error?: Error;
+  experimentStates?: ComponentProps<
+    typeof AiAssistantContents
+  >["experimentStates"];
   fixedNarrowWidth?: boolean;
   initialPlacement?: "docked" | "floating";
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   primaryLabel?: string;
+  promptChips?: ComponentProps<typeof AiAssistantContents>["promptChips"];
   resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   status?: "submitted" | "streaming" | "ready" | "error";
   stopped?: boolean;
@@ -428,11 +435,14 @@ const Frame = ({
           <AiAssistantContents
             additionalTab={additionalTab}
             error={error}
+            experimentStates={experimentStates}
             input={input}
             inputMode={inputMode}
             messages={messages}
             isOpen={isOpen}
             primaryLabel={primaryLabel}
+            promptChips={promptChips}
+            onSendPrompt={setInput}
             onClose={() => setOpen(false)}
             onInputChange={setInput}
             onInputModeChange={() => {}}
@@ -464,7 +474,7 @@ const liveSession = (
 });
 
 export const Empty: Story = {
-  render: () => <Frame messages={[]} />,
+  render: () => <Frame messages={[]} promptChips={REVIEW_CHIPS} />,
 };
 
 export const Floating: Story = {
@@ -1571,5 +1581,192 @@ export const ApplyAutoLayoutApplied: Story = {
 export const ApplyAutoLayoutDeclined: Story = {
   render: () => (
     <Frame messages={[userMessage, applyAutoLayoutDeclinedMessage]} />
+  ),
+};
+
+const conversationTurn: PetrinautAiMessage = {
+  id: "support-desk",
+  role: "assistant",
+  parts: [
+    {
+      type: "reasoning",
+      text: "**Compare capacity**\n\nUse the stated arrival and handling rates; leave the unknown peak rate open.",
+      state: "done",
+      providerMetadata: { petrinaut: { startedAt: 1000, finishedAt: 8000 } },
+    },
+    ...singleToolCallMessage.parts,
+    {
+      type: "text",
+      state: "done",
+      text: "The support desk is ready to explore.\n\n- **Queue** holds incoming requests.\n- **Agents** controls available capacity.\n- Compare **2–8 agents** before choosing a staffing level.",
+    },
+  ],
+};
+const supportDeskUser: PetrinautAiMessage = {
+  id: "support-user",
+  role: "user",
+  parts: [
+    {
+      type: "text",
+      text: "Compare two to eight agents. Handling takes about six minutes, and requests wait in one queue.",
+    },
+  ],
+};
+const ledgerTab = {
+  label: "Ledger",
+  content: <p>Support desk · arrival rate still open</p>,
+};
+
+export const ChatTurn: Story = {
+  render: () => (
+    <Frame
+      additionalTab={ledgerTab}
+      messages={[supportDeskUser, conversationTurn]}
+    />
+  ),
+};
+
+export const VoiceMediatedTurn: Story = {
+  render: () => (
+    <Frame
+      additionalTab={ledgerTab}
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "speaking" })}
+      messages={[
+        { ...supportDeskUser, metadata: { source: "voice" } },
+        {
+          ...conversationTurn,
+          parts: [
+            {
+              type: "data-brief",
+              data: {
+                state: "done",
+                fields: {
+                  decide: "Compare 2–8 agents",
+                  measure: "Queue waiting time",
+                  stillOpen: "Arrival rate",
+                },
+              },
+            },
+            {
+              type: "data-voiceAgentReply",
+              data: {
+                state: "done",
+                text: "I’ll ask Brunch to compare those staffing levels.",
+              },
+            },
+            ...conversationTurn.parts,
+            {
+              type: "data-voiceAgentWrapUp",
+              data: {
+                state: "done",
+                text: "The model is ready. We still need the arrival rate before running the comparison.",
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+};
+
+export const VoicePreparing: Story = {
+  render: () => (
+    <Frame
+      additionalTab={ledgerTab}
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking" })}
+      messages={[
+        supportDeskUser,
+        {
+          id: "preparing",
+          role: "assistant",
+          parts: [
+            {
+              type: "data-brief",
+              data: {
+                state: "streaming",
+                fields: { goal: "Compare staffing" },
+              },
+            },
+            {
+              type: "data-voiceAgentReply",
+              data: {
+                state: "streaming",
+                text: "I’ll prepare that comparison for Brunch.",
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+};
+
+export const VoiceStopped: Story = {
+  render: () => (
+    <Frame
+      additionalTab={ledgerTab}
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "listening" })}
+      stopped
+      messages={[supportDeskUser, conversationTurn]}
+    />
+  ),
+};
+
+export const RunningExperiment: Story = {
+  render: () => (
+    <Frame
+      additionalTab={ledgerTab}
+      messages={[
+        supportDeskUser,
+        {
+          ...conversationTurn,
+          parts: [
+            ...conversationTurn.parts,
+            {
+              type: "tool-createExperiment",
+              state: "input-available",
+              toolCallId: "running-experiment",
+              input: {
+                name: "Compare staffing",
+                scenarioId: "staffing",
+                scenarioParameterValues: {},
+                runCount: 12,
+                seed: 1,
+                dt: 1,
+                maxTime: 60,
+                metricIds: ["wait"],
+                execution: {
+                  mode: "optimize",
+                  objectiveMetricId: "wait",
+                  direction: "minimize",
+                  steps: 8,
+                  runsPerStep: 12,
+                },
+              },
+            },
+          ],
+        },
+      ]}
+      experimentStates={{
+        "running-experiment": {
+          active: true,
+          progress: {
+            name: "Compare staffing",
+            experimentId: "staffing",
+            phase: "optimizing",
+            runsCompleted: 5,
+            runsTarget: 12,
+            step: 3,
+            steps: 8,
+          },
+        },
+      }}
+    />
   ),
 };

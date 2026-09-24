@@ -33,12 +33,18 @@ The header text is not selectable. Its icons animate on hover and click, respect
 
 ## The conversation
 
-Type in the message field and press **Enter** or choose the **Send message** button with the upward arrow at its right edge. **Shift+Enter** adds a line. The field grows with your message while the send button stays at the bottom right.
+Type in **Continue iterating...** and press **Enter** or choose the **Send message** button with the upward arrow at its right edge. **Shift+Enter** adds a line. The field grows with your message while the send button stays at the bottom right. Before the first message, suggestion chips wrap so all remain visible.
+
+The primary tab reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each assistant turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead.
+
+The work disclosure opens while **Brunch is working**, when **Brunch needs your approval**, or when **Brunch stopped**. Completed work collapses under **Brunch worked for Ns**; history without timing says **Brunch worked**. Expand it to inspect **Thought for Ns** and **Used N tools**, both initially collapsed. Stopped work says **Stopped after N tools**. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the work disclosure; **Allow** or **Deny** lets the assistant continue.
+
+When the host supplies them, Voice also shows a collapsed **Sent to Brunch** brief under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Prepared from what you said** and lists its fields. These optional parts are absent in hosts that do not provide them. Messages have no per-message voice badge.
 
 While a response is streaming you can:
 
-- Watch the model's text and reasoning appear live. A reasoning block uses **Thinking: _provider heading_** when the provider supplies a short heading, falling back to **Thinking** otherwise. It is collapsible; while streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
-- Follow tool operations as they run. Each call remains in chronological order as its own row. A spinner and **Preparing…** or **Running…** distinguish an unfinished operation from its completed or failed result. Preparing is available only when the host streams tool arguments. A host may also show one working label for the whole active turn before its first tool is admitted and through automatic continuations. Interactive questions remain waiting for your answer rather than showing a running spinner.
+- Expand the work disclosure to watch reasoning and tool operations. The working label shimmers while active. Reasoning stays collapsed until you choose to inspect it.
+- Expand **Used N tools** to inspect chronological tool rows, each with its name, duration and status dot: amber pending, green completed, or red error. Expand a row to read its arguments and result. **Preparing…** means streamed arguments are arriving; **Running…** means execution is pending. Interactive questions remain available for your answer.
 - Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. A Stop pressed while the assistant is reading or editing the net also withholds browser tools that have not started and the follow-up reply that would otherwise start automatically. Already-applied changes are not rolled back.
 - Type your next message in the composer -- it is queued for after the current response ends.
 
@@ -49,7 +55,7 @@ If the host offers voice input, only a finalized transcript captured while Voice
 
 If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
 
-Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host. Durably aborted assistant entries retain their **Response stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
+Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Spoken user messages remain in the transcript without voice badges. Durably aborted assistant entries retain their **Brunch stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
 
 A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
 
@@ -220,8 +226,8 @@ Semantic voice detection finishes an answer automatically after a natural
 pause, so there is no required done-speaking action. Duplicate, empty, failed,
 or unavailable transcripts are not submitted. Provisional words remain
 display-only until the provider finalizes their transcript. Spoken turns then
-appear in the conversation, and finalized spoken user messages carry a
-**Voice** chip. Only finalized answers and canonical Brunch text become chat
+appear in the same conversation without a per-message badge.
+Only finalized answers and canonical Brunch text become chat
 history; provisional transcription and provider audio are ephemeral.
 Completed interruptions that strongly repeat the assistant's active speech may
 be silently discarded instead of sent as an answer. Short answers such as
@@ -246,14 +252,14 @@ The delete button appears in the top right of the panel once the conversation co
 
 ## What the assistant can do
 
-The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
+The assistant has tools for inspecting and modifying the current net. Expand the work disclosure and its tool group to see one row per call. A failed tool row exposes its error in the expanded result rather than only in a hover tooltip:
 
-- **Pending tools** (gold/yellow, with a spinner) -- a host can mark an in-progress tool this way so it is not mistaken for a completed success. The stock assistant keeps its existing default for unfinished rows.
+- **Pending tools** (amber dot) -- distinguish unfinished work from completed results.
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Successive tools remain visible as individual chronological rows.
-- **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors remain red, with a close mark, and show the error.
+- **Not applied** (neutral summary) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. A completed status dot indicates execution finished, not that a mutation was applied. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors show a red dot and the error.
 - **`setNetTitle`** -- renames the net when the host supplies title editing.
-- **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
+- **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Allow** / **Deny** buttons. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
   may add interactive widgets. For example, an elicitation assistant can ask a
   structured question inline and continue after you submit the answer. The
@@ -282,9 +288,8 @@ For example: "Run 100 simulations of this scenario and show the completed
 orders metric." The assistant can also search numeric scenario parameter
 ranges to minimize or maximize a metric.
 
-The experiment appears in a compact card with its status, run count, and
-results. Simulation cards use blue; optimization cards use purple and glow
-while running. Select **View
+The experiment appears in a white card with purple accents, its status, run count, and
+results. Optimization cards glow while running. Select **View
 experiment** to inspect metric distributions in the Experiments panel. The
 heatmap shows how values spread across runs; click a time step to see its
 histogram. Select **Cancel**
@@ -324,13 +329,20 @@ active indicator. Choosing **Run** starts execution and uses the normal
 **1 active** indicator; when it completes, that indicator
 disappears and the result remains under **Simulate → Experiments**.
 
-After **Run**, the chat card shows the same blue simulation or purple
-optimization progress, **Cancel** action, final metrics and errors as the
-built-in assistant. Optimization reports search steps and refinement. Drafting
-and starting a run keep your current tab selected; choose **View experiment**
-to open its results while the experiment is still available. The proposal's
-disclosures remain visible. Run results are shown to you, not sent back to
-Brunch for interpretation, and are not retained after reloading the session.
+**Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
+draft is replaced in place by execution progress: **Validating**, simulation
+or optimization steps and runs, then **Finished** with metric cells. **Cancel**
+leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
+still require review before retrying. Drafting and starting a run keep your
+current tab selected; choose **View experiment** to open its results while the
+experiment is still available.
+
+Completed local results are sent to Brunch as a new message in the originating
+conversation when it is ready, without clearing your unsent draft. Brunch can
+then interpret them in a new answer. A stopped response is not automatically
+resumed. If submitting the result fails, choose **Retry result summary**.
+The local run is not retained after reloading the session; the submitted result
+message follows the host's conversation-history policy.
 
 ## Read-only behaviour
 

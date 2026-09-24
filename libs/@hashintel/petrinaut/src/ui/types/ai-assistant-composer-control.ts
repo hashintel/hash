@@ -33,6 +33,8 @@ export type PetrinautAiComposerSubmitText = (params: {
   source?: "voice";
   /** Defaults to `auto`; use `message` for text that must not answer a pending tool. */
   target?: "auto" | "message";
+  /** Keep the user's unsent composer text when reporting a background result. */
+  preserveDraft?: boolean;
   text: string;
 }) => Promise<PetrinautAiComposerSubmitTextResult>;
 

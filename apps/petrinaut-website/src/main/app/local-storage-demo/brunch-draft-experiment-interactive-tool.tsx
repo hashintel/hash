@@ -50,13 +50,13 @@ const containerStyle = css({
   padding: "3",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a30",
+  borderColor: "purple.a30",
   borderRadius: "lg",
   backgroundColor: "neutral.s00",
 });
 
 const statusStyle = css({
-  color: "neutral.s80",
+  color: "purple.s100",
   fontSize: "xs",
   fontWeight: "medium",
   letterSpacing: "wide",
@@ -132,12 +132,12 @@ const primaryButtonStyle = css({
   paddingX: "3",
   paddingY: "2",
   borderRadius: "md",
-  backgroundColor: "blue.a85",
+  backgroundColor: "purple.a85",
   color: "white",
   cursor: "pointer",
   fontSize: "sm",
   fontWeight: "medium",
-  _hover: { backgroundColor: "blue.a100" },
+  _hover: { backgroundColor: "purple.a100" },
   _disabled: { cursor: "not-allowed", opacity: 0.45 },
 });
 
@@ -465,6 +465,45 @@ export const BrunchDraftExperimentWidget = ({
     experimentId &&
     experiments.some((experiment) => experiment.id === experimentId);
 
+  if (
+    run &&
+    run.phase !== "idle" &&
+    draft.prepared &&
+    !draft.dismissed &&
+    !(run.phase === "failed" && (reviewed || runError))
+  ) {
+    return (
+      <ExperimentExecutionCard
+        request={draft.prepared.request}
+        active={run.phase === "running"}
+        progress={
+          run.phase === "running" ? (run.progress ?? undefined) : undefined
+        }
+        result={run.phase === "finished" ? run.result : undefined}
+        error={run.phase === "failed" ? run.message : undefined}
+        onCancel={
+          run.phase === "running" ? () => run.controller.abort() : undefined
+        }
+        onRetry={
+          run.phase === "failed" && canRun ? () => void onRun() : undefined
+        }
+        onViewExperiment={
+          canViewExperiment
+            ? () => {
+                navigate(
+                  openPetrinautSimulationResource({
+                    type: "experiment",
+                    id: experimentId,
+                  }),
+                  { cause: "user", action: "simulation-resource" },
+                );
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
   return (
     <section
       className={containerStyle}
@@ -585,33 +624,6 @@ export const BrunchDraftExperimentWidget = ({
           </details>
         </div>
       ) : null}
-      {run && run.phase !== "idle" && draft.prepared ? (
-        <ExperimentExecutionCard
-          request={draft.prepared.request}
-          active={run.phase === "running"}
-          progress={
-            run.phase === "running" ? (run.progress ?? undefined) : undefined
-          }
-          result={run.phase === "finished" ? run.result : undefined}
-          error={run.phase === "failed" ? run.message : undefined}
-          onCancel={
-            run.phase === "running" ? () => run.controller.abort() : undefined
-          }
-          onViewExperiment={
-            canViewExperiment
-              ? () => {
-                  navigate(
-                    openPetrinautSimulationResource({
-                      type: "experiment",
-                      id: experimentId,
-                    }),
-                    { cause: "user", action: "simulation-resource" },
-                  );
-                }
-              : undefined
-          }
-        />
-      ) : null}
       {canAct ? (
         <div className={actionsStyle}>
           <button
@@ -689,6 +701,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     DraftPetrinautExperimentOutput
   >({
     toolName: draftPetrinautExperimentToolName,
+    placement: "card",
     inputSchema: draftPetrinautExperimentInputSchema,
     outputSchema: draftPetrinautExperimentOutputSchema,
     component: (props) => (
