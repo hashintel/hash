@@ -42,21 +42,26 @@ const PANEL_LIMITS = { minWidth: 360, maxWidth: 1200 };
 // leaves the workspace, which is the only row item that gives way, no room.
 const DOCKED_MAX_WIDTH = 720;
 
-type TabId = "ir";
+type TabId = "ir" | "python";
 
 const TABS: (HorizontalTabView & { id: TabId })[] = [
   { id: "ir", title: "Petri Net IR" },
+  { id: "python", title: "Python Reactive Module" },
 ];
 
 /**
  * One Monaco model per tab, so each keeps its own scroll position and
- * collapsed regions while another is shown. The scheme keeps them apart from
- * the language server's documents.
+ * collapsed regions while the other is shown. The scheme keeps them apart from the language
+ * server's documents.
  */
 const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
   ir: {
     language: "yaml",
     path: "petrinaut-reactive-modules://export/net.pn.yaml",
+  },
+  python: {
+    language: "python",
+    path: "petrinaut-reactive-modules://export/net.py",
   },
 };
 
@@ -313,10 +318,11 @@ const DiagnosticList = ({
 );
 
 /**
- * The current net compiled to the Petri net IR, as a movable window over the
- * workspace or docked as a column beside it, between the properties panel and
- * the AI assistant. It recompiles as the net changes, starting from the
- * initial state and parameter values the Simulation Settings resolve.
+ * The current net compiled to the Petri net IR and to a Zeroth reactive
+ * module, as a movable window over the workspace or docked as a column
+ * beside it, between the properties panel and the AI assistant. It
+ * recompiles as the net changes, starting from the initial state and
+ * parameter values the Simulation Settings resolve.
  *
  * Both placements render into the side dock column, so switching between
  * them keeps the editor mounted. The placement and the width are the
@@ -337,7 +343,7 @@ export const ReactiveModulesPanel = ({
   onWidthChange: (width: number) => void;
 }) => {
   const { petriNetDefinition, extensions, title } = use(SDCPNContext);
-  const { initialMarking, parameterValues } = use(SimulationContext);
+  const { initialMarking, parameterValues, dt } = use(SimulationContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const container = useSideDockContainer();
   const { showAnimations } = use(UserSettingsContext);
@@ -432,6 +438,7 @@ export const ReactiveModulesPanel = ({
           parameterValues,
           lambdaHir: lambdaHir.lambdaHir,
           extensions,
+          dt,
         });
 
   const status =
@@ -441,7 +448,12 @@ export const ReactiveModulesPanel = ({
         ? "Compiling…"
         : null;
 
-  const output = result === null || result.errors.length > 0 ? null : result.ir;
+  const output =
+    result === null || result.errors.length > 0
+      ? null
+      : activeTab === "ir"
+        ? result.ir
+        : result.python;
 
   if (container === null) {
     return null;

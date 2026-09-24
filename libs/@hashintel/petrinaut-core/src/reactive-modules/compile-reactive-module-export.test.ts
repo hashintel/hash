@@ -52,19 +52,48 @@ const lambdaHir = Object.fromEntries(
 );
 
 describe("compileReactiveModuleExport", () => {
-  it("renders the IR for a net that lowers", () => {
+  it("renders the IR and the module for a net that lowers", () => {
     const result = compileReactiveModuleExport({
       sdcpn,
       title: "Arrivals",
       initialMarking: {},
       parameterValues: {},
       lambdaHir,
+      dt: 1,
     });
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
     expect(result.ir).toBe(
       "name: arrivals\ndescription: Customers arrive.\nkind: stochastic\n\nplaces:\n  Arrived:\n\ntransitions:\n  Arrive:\n    outputs:\n      Arrived:\n    rate: 2\n",
     );
+    expect(result.python).toContain(
+      `fire_Arrive = X(u_Arrive) >= ${Math.exp(-2)}  # Arrive: nothing -> Arrived`,
+    );
+    expect(result.python).toContain(
+      "net = Arrivals(theory=LRA, ctrl=(Arrived,), extl=(u_Arrive,))",
+    );
+  });
+
+  it("keeps the module's own identifiers out of the IR", () => {
+    const result = compileReactiveModuleExport({
+      sdcpn: {
+        ...sdcpn,
+        places: [{ ...sdcpn.places[0]!, id: "x", name: "X" }],
+        transitions: [
+          {
+            ...sdcpn.transitions[0]!,
+            outputArcs: [{ placeId: "x", weight: 1 }],
+          },
+        ],
+      },
+      title: "Reserved",
+      initialMarking: {},
+      parameterValues: {},
+      lambdaHir,
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.ir).toContain("places:\n  X2:\n");
+    expect(result.python).toContain("X2 = Var(REAL)");
   });
 
   it("returns no text and the errors when the net cannot be expressed", () => {
@@ -77,6 +106,7 @@ describe("compileReactiveModuleExport", () => {
     });
     expect(result).toMatchObject({
       ir: null,
+      python: null,
       errors: [
         {
           code: "parameter-invalid",

@@ -104,6 +104,7 @@ describe("reactiveModulesPlugin", () => {
       "module",
       "export",
       "compile",
+      "python",
       "ir",
     ]);
     unmount();

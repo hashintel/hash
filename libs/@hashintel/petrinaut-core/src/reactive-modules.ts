@@ -1,6 +1,6 @@
 /**
  * Entry point for the Zeroth reactive-modules export: a net becomes a Petri
- * net IR, the exchange format a reactive-module compiler reads.
+ * net IR, and the IR becomes a reactive module in Python over `zrth.sugar`.
  *
  * Separate from the main entry so a host loads it only when the export is
  * shown. Browser-safe: it interprets the conditions' lowered HIR and never
@@ -26,6 +26,11 @@ export {
   petriNetIrPlaceCapacity,
   renderPetriNetIr,
 } from "./reactive-modules/petri-net-ir";
+export {
+  type PetriNetIrToReactiveModuleOptions,
+  petriNetIrToReactiveModule,
+  RESERVED_MODULE_NAMES,
+} from "./reactive-modules/petri-net-ir-to-reactive-module";
 export {
   type PetriNetIrDiagnostic,
   type PetriNetIrDiagnosticItem,
