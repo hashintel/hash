@@ -149,14 +149,15 @@ impl Fragment {
         let problem_type = variant.problem_type();
         let extensions = variant.extensions(&mut context.schema);
         assert_members(variant, &extensions);
+        let description = schema_description(&extensions);
 
         Self {
             type_uri: problem_type.type_uri.to_string(),
             title: problem_type.title.to_string(),
             status: problem_type.status.as_u16(),
-            description: schema_description(&extensions),
             example: example(variant, &extensions),
-            schema: variant_schema(base, variant, extensions),
+            schema: variant_schema(base, variant, extensions, description.as_deref()),
+            description,
             headers: variant
                 .headers()
                 .iter()
@@ -450,13 +451,20 @@ fn without_members(extensions: &Schema) -> bool {
     })
 }
 
-fn variant_schema(base: &Schema, variant: &Variant, extensions: Schema) -> Schema {
+/// The problem details of `variant`, titled with its problem type and described like the variant.
+fn variant_schema(
+    base: &Schema,
+    variant: &Variant,
+    extensions: Schema,
+    description: Option<&str>,
+) -> Schema {
+    let problem_type = variant.problem_type();
     let mut all_of = vec![
         base.clone(),
         json_schema!({
             "properties": {
-                "type": { "const": variant.problem_type().type_uri },
-                "status": { "const": variant.problem_type().status.as_u16() },
+                "type": { "const": problem_type.type_uri },
+                "status": { "const": problem_type.status.as_u16() },
             },
             "required": ["type"],
         }),
@@ -464,5 +472,10 @@ fn variant_schema(base: &Schema, variant: &Variant, extensions: Schema) -> Schem
     if !without_members(&extensions) {
         all_of.push(extensions);
     }
-    json_schema!({ "allOf": all_of })
+
+    let mut schema = json_schema!({ "title": problem_type.title, "allOf": all_of });
+    if let Some(description) = description {
+        schema.insert("description".to_owned(), description.into());
+    }
+    schema
 }

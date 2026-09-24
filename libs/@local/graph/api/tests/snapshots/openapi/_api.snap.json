@@ -28,7 +28,9 @@
                     "type"
                   ]
                 }
-              ]
+              ],
+              "description": "The credentials are malformed.",
+              "title": "Bad Request"
             }
           }
         },
@@ -60,7 +62,9 @@
                     "type"
                   ]
                 }
-              ]
+              ],
+              "description": "An internal error prevented the request from completing.",
+              "title": "Internal Server Error"
             }
           }
         },
@@ -93,7 +97,9 @@
                     "type"
                   ]
                 }
-              ]
+              ],
+              "description": "Authentication is temporarily unavailable. Retry later.",
+              "title": "Service Unavailable"
             }
           }
         },
@@ -126,7 +132,9 @@
                     "type"
                   ]
                 }
-              ]
+              ],
+              "description": "The request exceeded its rate-limit budget.",
+              "title": "Too Many Requests"
             }
           }
         },
@@ -171,7 +179,9 @@
                     "type"
                   ]
                 }
-              ]
+              ],
+              "description": "The request carries no credentials, or they do not identify a permitted caller.",
+              "title": "Unauthorized"
             }
           }
         },
