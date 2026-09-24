@@ -14,14 +14,14 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type { AgentSendResult, FlueConversationSnapshot } from "@flue/sdk";
 
@@ -205,7 +205,7 @@ try {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: batchedConstructionMode,
+        mode: INTEGRATED_BRUNCH_MODE,
         construction: {
           binding: {
             conversationId: identity.conversationId,

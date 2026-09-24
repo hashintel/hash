@@ -20,17 +20,11 @@ import {
 } from "vitest";
 
 import {
-  applyPetrinautConstructionToolName,
   draftPetrinautExperimentToolName,
-  BRUNCH_DECLARED_PROJECTION_MODE,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
-  parseClientToolResultMetadata,
-  verifyCanonicalMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
@@ -81,52 +75,6 @@ import type {
   PetrinautAiAssistant,
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
-
-const expectExperimentRecord = (
-  options: {
-    mapClientToolInput?: (call: {
-      input: unknown;
-      toolCallId: string;
-      toolName: string;
-    }) => unknown;
-    clientToolResultMetadata?: (result: {
-      toolCallId: string;
-      output: unknown;
-    }) => unknown;
-  },
-  toolCallId: string,
-) => {
-  const input = {
-    name: "Baseline",
-    scenarioId: "scenario",
-    scenarioParameterValues: {},
-    runCount: 1,
-    seed: 0,
-    dt: 1,
-    maxTime: 1,
-    metricIds: ["metric"],
-    execution: { mode: "simulate" },
-  };
-  const output = {
-    status: "complete",
-    experimentId: "experiment",
-    name: input.name,
-    runsCompleted: 1,
-    metrics: [{ id: "metric", label: "Metric", value: 1 }],
-  };
-  expect(
-    options.mapClientToolInput?.({
-      input,
-      toolCallId,
-      toolName: createExperimentToolName,
-    }),
-  ).toBe(input);
-  expect(
-    parseClientToolResultMetadata(
-      options.clientToolResultMetadata?.({ toolCallId, output }),
-    )?.experimentRecord,
-  ).toEqual(expect.objectContaining({ toolCallId, input, output }));
-};
 
 interface RemoteDocumentState {
   readonly document: DocumentRecord | null;
@@ -183,7 +131,7 @@ vi.mock("@flue/sdk", () => ({
 const brunchPreviewConfig = vi.hoisted(() => ({
   chatEndpoint: "/agents/chat",
   isBrunchConfigured: true,
-  evaluationMode: "I" as "F" | "I" | "A" | "B",
+  evaluationMode: "I" as "F" | "I",
   serverMode: "integrated-brunch-canonical",
 }));
 vi.mock("./brunch-preview-config", () => ({
@@ -289,6 +237,10 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
+  executePetrinautAiMutation: () => ({
+    applied: false,
+    reason: "Mocked document unchanged.",
+  }),
 }));
 
 /**
@@ -958,13 +910,6 @@ describe("local document revision persistence", () => {
     );
     const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(firstHandle.revisionId.get()).toBe("local-revision-1");
-    await waitFor(() => expect(flueClientOptions.current).not.toBeNull());
-    const headers = (
-      flueClientOptions.current as {
-        headers: () => Record<string, string>;
-      }
-    ).headers;
-    expect(headers()[BRUNCH_DOCUMENT_REVISION_HEADER]).toBe("local-revision-1");
 
     act(() => {
       firstHandle.change((draft) => {
@@ -981,7 +926,6 @@ describe("local document revision persistence", () => {
     });
     const changedRevisionId = firstHandle.revisionId.get();
     expect(changedRevisionId).not.toBe("local-revision-1");
-    expect(headers()[BRUNCH_DOCUMENT_REVISION_HEADER]).toBe(changedRevisionId);
     await waitFor(() => {
       const stored = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -1973,26 +1917,15 @@ describe("assistant selection", () => {
     }
     return settingsLabs.props.openAIVoiceConfig;
   };
-  const deepConstructionInput = {
-    operations: [
-      {
-        operationId: "queue",
-        toolName: "addPlace" as const,
-        input: {
-          id: "queue",
-          name: "Queue",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-          targetSubnetId: null,
-        },
-        intendedEffect: "Add the queue place",
-        intendedTarget: "queue",
-        expectedImpact: ["queue"],
-      },
-    ],
+  const placeInput = {
+    id: "queue",
+    name: "Queue",
+    colorId: null,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+    targetSubnetId: null,
   };
   const executeCurrentCanonicalMutation = (
     toolCallId: string,
@@ -2030,37 +1963,6 @@ describe("assistant selection", () => {
       viewport: {},
     } as never);
   };
-  const executeCurrentDeepCall = async (toolCallId: string) => {
-    const assistant = currentAssistant();
-    const tool = assistant.automaticTools?.find(
-      ({ toolName }) => toolName === applyPetrinautConstructionToolName,
-    );
-    const options = brunchPanelTransportOptions.current as {
-      mapClientToolInput?: (input: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
-    };
-    expect(tool).toBeDefined();
-    expect(options.mapClientToolInput).toBeTypeOf("function");
-    const mapped = options.mapClientToolInput?.({
-      input: deepConstructionInput,
-      toolCallId,
-      toolName: applyPetrinautConstructionToolName,
-    });
-    return tool?.execute({
-      commands: {},
-      handle: editorProps.current?.handle,
-      input: mapped,
-      mutations: {},
-      readDiagnosticsContext: async () => "",
-      signal: new AbortController().signal,
-      toolCallId,
-      viewport: {},
-    } as never);
-  };
-
   afterEach(() => {
     cleanup();
     editorProps.current = null;
@@ -2484,128 +2386,9 @@ describe("assistant selection", () => {
     expect(options.clientToolResultMetadata).toBeUndefined();
   });
 
-  test("A preserves canonical overrides without installing the deep tool", async () => {
-    brunchPreviewConfig.evaluationMode = "A";
-    brunchPreviewConfig.serverMode = BRUNCH_DECLARED_PROJECTION_MODE;
-    const incarnationId = "declared-incarnation";
-    seedStoredNet(incarnationId);
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(incarnationId);
-
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-
-    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
-    expect(
-      currentAssistant().automaticTools?.map(({ toolName }) => toolName),
-    ).not.toContain(applyPetrinautConstructionToolName);
-    const options = brunchPanelTransportOptions.current as {
-      clientToolNames?: ReadonlySet<string>;
-      dynamicClientToolNames?: ReadonlySet<string>;
-      validatedClientToolNames?: ReadonlySet<string>;
-      mapClientToolInput?: (call: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
-      clientToolResultMetadata?: (result: {
-        toolCallId: string;
-        output: unknown;
-      }) => unknown;
-    };
-    expect(
-      currentAssistant().interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([draftPetrinautExperimentToolName]);
-    expect(options.clientToolNames?.has(draftPetrinautExperimentToolName)).toBe(
-      true,
-    );
-    expect(
-      options.dynamicClientToolNames?.has(draftPetrinautExperimentToolName),
-    ).toBe(true);
-    expect(
-      options.clientToolNames?.has(applyPetrinautConstructionToolName),
-    ).toBe(false);
-    expect(
-      options.dynamicClientToolNames?.has(applyPetrinautConstructionToolName),
-    ).toBe(false);
-    expect(options.validatedClientToolNames).toBeUndefined();
-    expect(options.mapClientToolInput).toEqual(expect.any(Function));
-    expectExperimentRecord(options, "declared-experiment");
-  });
-
-  test("fresh absent B history registers the validated deep tool and mapper without a replay effect tick", async () => {
-    brunchPreviewConfig.evaluationMode = "B";
-    brunchPreviewConfig.serverMode = BRUNCH_DEEP_CONSTRUCTION_MODE;
-    const incarnationId = "deep-incarnation";
-    seedStoredNet(incarnationId);
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(incarnationId);
-
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-
-    await waitFor(() =>
-      expect(
-        currentAssistant().automaticTools?.map(({ toolName }) => toolName),
-      ).toContain(applyPetrinautConstructionToolName),
-    );
-    const options = brunchPanelTransportOptions.current as {
-      clientToolNames?: ReadonlySet<string>;
-      dynamicClientToolNames?: ReadonlySet<string>;
-      validatedClientToolNames?: ReadonlySet<string>;
-      mapClientToolInput?: (call: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
-      clientToolResultMetadata?: (result: {
-        toolCallId: string;
-        output: unknown;
-      }) => unknown;
-    };
-    expect(
-      currentAssistant().interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([draftPetrinautExperimentToolName]);
-    expect(options.clientToolNames?.has(draftPetrinautExperimentToolName)).toBe(
-      true,
-    );
-    expect(
-      options.dynamicClientToolNames?.has(draftPetrinautExperimentToolName),
-    ).toBe(true);
-    expect(
-      options.clientToolNames?.has(applyPetrinautConstructionToolName),
-    ).toBe(true);
-    expect(
-      options.dynamicClientToolNames?.has(applyPetrinautConstructionToolName),
-    ).toBe(true);
-    expect(
-      options.validatedClientToolNames?.has(applyPetrinautConstructionToolName),
-    ).toBe(true);
-    expect(options.mapClientToolInput).toEqual(expect.any(Function));
-    expectExperimentRecord(options, "deep-experiment");
-    const freshRead = executeCurrentReadCall("fresh-read");
-    expect(
-      typeof freshRead === "object" &&
-        freshRead !== null &&
-        "definition" in freshRead,
-    ).toBe(true);
-    const unrelatedInput = { canonical: "unchanged" };
-    expect(
-      options.mapClientToolInput?.({
-        input: unrelatedInput,
-        toolCallId: "unrelated-call",
-        toolName: "getLatestNetDefinition",
-      }),
-    ).toBe(unrelatedInput);
-    await expect(executeCurrentDeepCall("fresh-call")).resolves.toEqual(
-      expect.objectContaining({
-        disposition: "refused",
-        reason: "A current settled Ledger revision is required.",
-      }),
-    );
-  });
-
   test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
-    brunchPreviewConfig.evaluationMode = "B";
-    brunchPreviewConfig.serverMode = BRUNCH_DEEP_CONSTRUCTION_MODE;
+    brunchPreviewConfig.evaluationMode = "I";
+    brunchPreviewConfig.serverMode = INTEGRATED_BRUNCH_MODE;
     const incarnationId = "live-baseline-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -2689,13 +2472,6 @@ describe("assistant selection", () => {
                 state: "input-available",
                 input: canonicalInput,
               },
-              {
-                type: "dynamic-tool",
-                toolName: applyPetrinautConstructionToolName,
-                toolCallId: "live-deep",
-                state: "input-available",
-                input: deepConstructionInput,
-              },
             ],
           },
         ] as never,
@@ -2731,18 +2507,6 @@ describe("assistant selection", () => {
       canonicalInput,
     )) as { applied?: boolean; reason?: string } | undefined;
     expect(canonicalOutput?.applied).toBe(false);
-    expect(canonicalOutput?.reason).not.toContain("previously admitted");
-    const deepOutput = (await executeCurrentDeepCall("live-deep")) as
-      | {
-          disposition?: string;
-          outcomes?: { error?: string; status?: string }[];
-        }
-      | undefined;
-    expect(deepOutput?.disposition).toBe("partial");
-    expect(deepOutput?.outcomes?.[0]?.status).toBe("failed");
-    expect(deepOutput?.outcomes?.[0]?.error).not.toContain(
-      "previously admitted",
-    );
     const handle = editorProps.current?.handle as
       | PetrinautDocHandle
       | undefined;
@@ -2759,16 +2523,13 @@ describe("assistant selection", () => {
       ).toBe(retainedTool);
     }
     expect(executeCurrentReadCall("live-read")).toEqual(readOutput);
-    await expect(
+    expect(
       executeCurrentCanonicalMutation(
         "live-mutation",
         "addPlace",
         canonicalInput,
       ),
-    ).resolves.toEqual(canonicalOutput);
-    await expect(executeCurrentDeepCall("live-deep")).resolves.toEqual(
-      deepOutput,
-    );
+    ).toEqual(canonicalOutput);
   });
 
   test("a document incarnation change resets the replay baseline and live-call adapter", async () => {
@@ -2792,16 +2553,17 @@ describe("assistant selection", () => {
       ({ toolName }) => toolName === "addPlace",
     );
     const firstInput = {
-      ...deepConstructionInput.operations[0]?.input,
+      ...placeInput,
       id: "first-place",
       name: "FirstPlace",
     };
-    const firstOutput = (await executeCurrentCanonicalMutation(
-      "reused-call",
-      "addPlace",
-      firstInput,
-    )) as { reason?: string } | undefined;
-    expect(firstOutput?.reason).not.toContain("Conflicting duplicate");
+    // History loads asynchronously; a call refused before it starts records nothing.
+    const firstOutput = (await waitFor(() =>
+      executeCurrentCanonicalMutation("reused-call", "addPlace", firstInput),
+    )) as { applied?: boolean } | undefined;
+    // Mutations are stubbed, so Petrinaut reports its own unchanged result; the
+    // point is that each incarnation's call reaches Petrinaut rather than being refused.
+    expect(firstOutput).toHaveProperty("applied");
 
     const loadPetriNet = editorProps.current?.loadPetriNet as
       | ((id: string) => void)
@@ -2816,22 +2578,18 @@ describe("assistant selection", () => {
         ),
       ).not.toBe(firstMutation);
     });
-    const secondOutput = (await executeCurrentCanonicalMutation(
-      "reused-call",
-      "addPlace",
-      {
-        ...deepConstructionInput.operations[0]?.input,
+    const secondOutput = (await waitFor(() =>
+      executeCurrentCanonicalMutation("reused-call", "addPlace", {
+        ...placeInput,
         id: "second-place",
         name: "SecondPlace",
-      },
-    )) as { reason?: string } | undefined;
-    expect(secondOutput?.reason).not.toContain("Conflicting duplicate");
+      }),
+    )) as { applied?: boolean } | undefined;
+    expect(secondOutput).toHaveProperty("applied");
   });
 
-  test("loading B history refuses a submitted deep call without mutation", async () => {
-    brunchPreviewConfig.evaluationMode = "B";
-    brunchPreviewConfig.serverMode = BRUNCH_DEEP_CONSTRUCTION_MODE;
-    seedStoredNet("loading-deep-incarnation");
+  test("I does not execute a canonical write while history is loading", async () => {
+    seedStoredNet("loading-incarnation");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       observe: () => ({
@@ -2841,21 +2599,34 @@ describe("assistant selection", () => {
         subscribe: () => () => undefined,
       }),
     };
-
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() =>
-      expect(
-        currentAssistant().automaticTools?.map(({ toolName }) => toolName),
-      ).toContain(applyPetrinautConstructionToolName),
-    );
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
-
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
     expect(() => executeCurrentReadCall("loading-read")).toThrow(
-      "Canonical tool replay verification is not ready for this conversation",
+      "Conversation history is not ready",
     );
-    const blockedInput = {
-      id: "blocked",
-      name: "Blocked",
+    expect(() =>
+      executeCurrentCanonicalMutation("loading-place", "addPlace", {
+        id: "blocked",
+        name: "Blocked",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+        targetSubnetId: null,
+      }),
+    ).toThrow("Conversation history is not ready");
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(handle.doc()?.places).toEqual([]);
+    expect(remoteRepositoryOperations.settleRevision).not.toHaveBeenCalled();
+  });
+
+  test("a pending I mutation in history is not executed again after reload", async () => {
+    seedStoredNet("pending-incarnation");
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    const pendingPlace = {
+      id: "pending",
+      name: "Pending",
       colorId: null,
       dynamicsEnabled: false,
       differentialEquationId: null,
@@ -2863,227 +2634,24 @@ describe("assistant selection", () => {
       y: 0,
       targetSubnetId: null,
     };
-    const blockedOutput = await executeCurrentCanonicalMutation(
-      "loading-place",
-      "addPlace",
-      blockedInput,
-    );
-    expect(blockedOutput).toEqual({
-      applied: false,
-      reason:
-        "Canonical tool replay verification is not ready for this conversation.",
-    });
-    const transportOptions = brunchPanelTransportOptions.current as {
-      mapClientToolInput?: (call: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
-      clientToolResultMetadata?: (result: {
-        toolCallId: string;
-        output: unknown;
-      }) => unknown;
-    };
-    expect(() =>
-      transportOptions.mapClientToolInput?.({
-        input: {
-          name: "Pending experiment",
-          scenarioId: "scenario",
-          scenarioParameterValues: {},
-          runCount: 1,
-          seed: 0,
-          dt: 1,
-          maxTime: 1,
-          metricIds: ["metric"],
-          execution: { mode: "simulate" },
-        },
-        toolCallId: "loading-experiment",
-        toolName: createExperimentToolName,
-      }),
-    ).toThrow(
-      "Canonical tool replay verification is not ready for this conversation",
-    );
-    expect(
-      transportOptions.clientToolResultMetadata?.({
-        toolCallId: "loading-experiment",
-        output: { status: "error" },
-      }),
-    ).toBeUndefined();
-    const blockedRecord = parseClientToolResultMetadata(
-      transportOptions.clientToolResultMetadata?.({
-        toolCallId: "loading-place",
-        output: blockedOutput,
-      }),
-    )?.canonicalMutationRecord;
-    await expect(
-      verifyCanonicalMutationRecord({
-        record: blockedRecord,
-        toolCallId: "loading-place",
-        toolName: "addPlace",
-        canonicalInput: blockedInput,
-        canonicalOutput: blockedOutput,
-        binding: {
-          documentId: "net-1",
-          incarnationId: "loading-deep-incarnation",
-          conversationId: currentAssistant().conversationId ?? "",
-        },
-      }),
-    ).resolves.toEqual(expect.objectContaining({ outcome: "failed" }));
-    await expect(executeCurrentDeepCall("loading-call")).resolves.toEqual(
-      expect.objectContaining({
-        disposition: "refused",
-        reason:
-          "Deep construction replay verification is not ready for this conversation.",
-        outcomes: [expect.objectContaining({ status: "unattempted" })],
-      }),
-    );
-    expect(handle.doc()?.places).toEqual([]);
-    expect(remoteRepositoryOperations.settleRevision).not.toHaveBeenCalled();
-  });
-
-  test("ambiguous experiment history remains blocked before the static host can rerun it", async () => {
-    brunchPreviewConfig.evaluationMode = "A";
-    brunchPreviewConfig.serverMode = BRUNCH_DECLARED_PROJECTION_MODE;
-    seedStoredNet("ambiguous-experiment-incarnation");
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    const input = {
-      name: "Ambiguous experiment",
-      scenarioId: "scenario",
-      scenarioParameterValues: {},
-      runCount: 1,
-      seed: 0,
-      dt: 1,
-      maxTime: 1,
-      metricIds: ["metric"],
-      execution: { mode: "simulate" },
-    };
-    const output = {
-      status: "complete",
-      experimentId: "experiment",
-      name: input.name,
-      runsCompleted: 1,
-      metrics: [{ id: "metric", label: "Metric", value: 1 }],
-    };
-    const result = {
-      toolCallId: "ambiguous-experiment",
-      toolName: createExperimentToolName,
-      output,
-    };
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
         getSnapshot: () => ({
           conversation: {
-            conversationId: "ambiguous-experiment-conversation",
+            conversationId: "pending-conversation",
             settlements: [],
             messages: [
               {
                 role: "assistant",
                 purpose: "assistant",
                 parts: [
-                  {
-                    type: "dynamic-tool",
-                    state: "output-available",
-                    toolCallId: result.toolCallId,
-                    toolName: result.toolName,
-                    input,
-                    output: { awaiting: "client" },
-                  },
-                ],
-              },
-              {
-                role: "system",
-                purpose: "dispatch",
-                signal: { tagName: "client-tool-result" },
-                parts: [
-                  {
-                    type: "text",
-                    text: JSON.stringify([result, result]),
-                  },
-                ],
-              },
-            ],
-          },
-          offset: "ambiguous-experiment-offset",
-          phase: "live",
-          error: undefined,
-        }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
-    type ExperimentTransportOptions = {
-      mapClientToolInput?: (call: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
-      clientToolResultMetadata?: (result: {
-        toolCallId: string;
-        output: unknown;
-      }) => unknown;
-    };
-    await waitFor(() => {
-      const options =
-        brunchPanelTransportOptions.current as ExperimentTransportOptions;
-      expect(() =>
-        options.mapClientToolInput?.({
-          input,
-          toolCallId: result.toolCallId,
-          toolName: result.toolName,
-        }),
-      ).toThrow("Conflicting duplicate canonical tool call");
-    });
-    expect(
-      (
-        brunchPanelTransportOptions.current as ExperimentTransportOptions
-      ).clientToolResultMetadata?.({
-        toolCallId: result.toolCallId,
-        output,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("existing pending B history stays blocked after replay verification", async () => {
-    brunchPreviewConfig.evaluationMode = "B";
-    brunchPreviewConfig.serverMode = BRUNCH_DEEP_CONSTRUCTION_MODE;
-    seedStoredNet("pending-deep-incarnation");
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({
-          conversation: {
-            conversationId: "pending-deep-conversation",
-            settlements: [],
-            messages: [
-              {
-                role: "assistant",
-                purpose: "assistant",
-                parts: [
-                  {
-                    type: "dynamic-tool",
-                    toolName: "getLatestNetDefinition",
-                    toolCallId: "pending-read",
-                    state: "input-available",
-                    input: {},
-                  },
                   {
                     type: "dynamic-tool",
                     toolName: "addPlace",
                     toolCallId: "pending-mutation",
                     state: "input-available",
-                    input: deepConstructionInput.operations[0]?.input,
-                  },
-                  {
-                    type: "dynamic-tool",
-                    toolName: applyPetrinautConstructionToolName,
-                    toolCallId: "pending-call",
-                    state: "input-available",
-                    input: deepConstructionInput,
+                    input: pendingPlace,
                   },
                 ],
               },
@@ -3097,39 +2665,19 @@ describe("assistant selection", () => {
         subscribe: () => () => undefined,
       }),
     };
-
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => {
-      expect(() => executeCurrentReadCall("pending-read")).toThrow(
-        "This canonical read call was previously admitted",
-      );
-    });
-    await expect(
-      executeCurrentCanonicalMutation(
-        "pending-mutation",
-        "addPlace",
-        deepConstructionInput.operations[0]?.input,
-      ),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        applied: false,
-        reason:
-          "This canonical mutation call was previously admitted without one verifiable terminal result.",
-      }),
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
+    await waitFor(() =>
+      expect(() =>
+        executeCurrentCanonicalMutation(
+          "pending-mutation",
+          "addPlace",
+          pendingPlace,
+        ),
+      ).toThrow(/already attempted/u),
     );
-    await waitFor(async () => {
-      await expect(executeCurrentDeepCall("pending-call")).resolves.toEqual(
-        expect.objectContaining({
-          disposition: "refused",
-          reason:
-            "This deep construction call was previously admitted without one verifiable terminal record.",
-        }),
-      );
-    });
-    const handle = editorProps.current?.handle as
-      | PetrinautDocHandle
-      | undefined;
-    expect(handle?.doc()?.places).toEqual([]);
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    expect(handle.doc()?.places).toEqual([]);
     expect(remoteRepositoryOperations.settleRevision).not.toHaveBeenCalled();
   });
 

@@ -121,13 +121,13 @@ describe("matched parity evaluation configuration", () => {
       ).toThrow(/positive number/u);
   });
 
-  test("pins five isolated identities and exact website overrides", () => {
-    expect(matchedParityArms).toEqual(["S", "F", "I", "A", "B"]);
+  test("pins three isolated identities and exact website overrides", () => {
+    expect(matchedParityArms).toEqual(["S", "F", "I"]);
     expect(configuration.arms.S).toMatchObject({
       assistant: "stock",
       websiteMode: null,
     });
-    for (const arm of ["F", "I", "A", "B"] as const)
+    for (const arm of ["F", "I"] as const)
       expect(evaluationEnvironment(configuration, arm)).toMatchObject({
         VITE_BRUNCH_EVALUATION_MODE: arm,
         VITE_PETRINAUT_DEFAULT_ASSISTANT: "brunch",
@@ -135,23 +135,11 @@ describe("matched parity evaluation configuration", () => {
     expect(
       evaluationEnvironment(configuration, "S").VITE_BRUNCH_EVALUATION_MODE,
     ).toBeUndefined();
-    expect(configuration.arms.A).toMatchObject({
-      assistant: configuration.arms.I.assistant,
-      model: configuration.arms.I.model,
-      reasoning: configuration.arms.I.reasoning,
-    });
-    expect(configuration.arms.B).toMatchObject({
-      assistant: configuration.arms.I.assistant,
-      model: configuration.arms.I.model,
-      reasoning: configuration.arms.I.reasoning,
-    });
-    expect(matchedParityPlan(configuration).order).toHaveLength(10);
+    expect(matchedParityPlan(configuration).order).toHaveLength(6);
     const roots = matchedParityArms.map((arm) =>
       armArtifactDirectory("/tmp/run", "surprise-me", arm),
     );
-    expect(new Set(roots).size).toBe(5);
-    expect(roots).not.toContain("/tmp/run/surprise-me/stock");
-    expect(roots).not.toContain("/tmp/run/surprise-me/brunch");
+    expect(new Set(roots).size).toBe(3);
   });
 
   test("dry-run never invokes the paid executor", async () => {
@@ -189,13 +177,13 @@ describe("matched parity evaluation configuration", () => {
   test("reports deterministic unknown-cost allowance warnings", () => {
     expect(
       allowanceWarning({
-        arm: "A",
+        arm: "I",
         budgetUsd: 50,
         knownObservedSpendUsd: 12.5,
         unknownSpendArmCount: 2,
       }),
     ).toBe(
-      "WARNING before A: remaining known allowance USD 37.500000 of 50.000000. Estimated cost for the next arm is unknown, so sufficient allowance cannot be established. Observed provider cost so far is USD 12.500000; 2 completed arm(s) have unknown cost. Continuing may exceed the standing allowance; review this warning before launch.",
+      "WARNING before I: remaining known allowance USD 37.500000 of 50.000000. Estimated cost for the next arm is unknown, so sufficient allowance cannot be established. Observed provider cost so far is USD 12.500000; 2 completed arm(s) have unknown cost. Continuing may exceed the standing allowance; review this warning before launch.",
     );
   });
 
@@ -230,15 +218,15 @@ describe("completed arm reuse", () => {
   };
 
   test("reuses only a matching complete retained arm and mode", async () => {
-    const directory = await completedDirectory("A");
+    const directory = await completedDirectory("I");
     const retained = await loadCompletedArm({
-      arm: "A",
+      arm: "I",
       configuration,
       directory,
       resumeCompleted: true,
       scenario: matchedParityScenarios[1]!,
     });
-    expect(retained?.artifact).toEqual(artifact("A"));
+    expect(retained?.artifact).toEqual(artifact("I"));
     expect(retained?.transcriptText).toBe("Assistant: done\n");
   });
 
@@ -333,7 +321,7 @@ describe("completed arm reuse", () => {
 });
 
 describe("matched scenarios and summaries", () => {
-  test("all five arms receive the same exact ordered scenarios", () => {
+  test("all three arms receive the same exact ordered scenarios", () => {
     for (const arm of matchedParityArms)
       expect(scenariosForArm(arm)).toEqual(matchedParityScenarios);
     expect(matchedParityScenarios[0]).toMatchObject({
@@ -345,7 +333,7 @@ describe("matched scenarios and summaries", () => {
     );
   });
 
-  test("derives mechanical completeness and the three named effects", () => {
+  test("derives mechanical completeness and the two named effects", () => {
     expect(deriveMechanicalSummary(artifact("S"))).toMatchObject({
       mechanicallyComplete: true,
       toolCallCount: 2,
@@ -364,12 +352,11 @@ describe("matched scenarios and summaries", () => {
       scenario: { id: "scoped-executable-construction" },
       arms: {
         S: { arm: "S", mechanicallyComplete: true },
-        B: { arm: "B", mechanicallyComplete: true },
+        I: { arm: "I", mechanicallyComplete: true },
       },
       effects: {
         stockToFlueTransportDrag: { from: "S", to: "F" },
         flueToIntegratedArchitectureDrag: { from: "F", to: "I" },
-        declaredVsDeepConstruction: { from: "A", to: "B" },
       },
     });
   });

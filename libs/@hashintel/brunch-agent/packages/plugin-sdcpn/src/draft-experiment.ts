@@ -53,7 +53,7 @@ const unsupportedConditionSchema = z.strictObject({
 export const draftPetrinautExperimentInputSchema = z
   .strictObject({
     experiment: petrinautExperimentRequestSchema.describe(
-      "The experiment to draft, in Petrinaut's own request shape. Use identifiers from the verified current canonical getLatestNetDefinition result; the host resolves and verifies that read, not a model-supplied hash or call ID. Drafting does not run it.",
+      "The experiment to draft, in Petrinaut's own request shape. Use identifiers from the latest canonical getLatestNetDefinition result; the host finds that read in history, not a model-supplied hash or call ID. Drafting does not run it.",
     ),
     declarations: z
       .array(declarationSchema)
@@ -83,7 +83,7 @@ export const draftPetrinautExperimentInputSchema = z
     }
   })
   .describe(
-    "Draft one experiment for this conversation from the settled Ledger and the verified current canonical net read. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",
+    "Draft one experiment for this conversation from the settled Ledger and latest canonical net read. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",
   );
 
 export type DraftPetrinautExperimentInput = z.output<

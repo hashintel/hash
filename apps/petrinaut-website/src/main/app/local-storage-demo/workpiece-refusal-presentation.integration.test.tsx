@@ -24,7 +24,7 @@ import {
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -185,7 +185,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     {
       clientToolNames: new Set(),
       initialData: {
-        mode: batchedConstructionMode,
+        mode: INTEGRATED_BRUNCH_MODE,
         construction: {
           binding: {
             conversationId: identity.conversationId,

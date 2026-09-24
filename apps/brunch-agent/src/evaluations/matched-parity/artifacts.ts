@@ -107,7 +107,7 @@ export const writeScenarioComparison = async (
         return `| ${arm} | ${summary.elapsedMs} | ${summary.modelStepCount ?? "unknown"} | ${summary.observedSpendUsd ?? "unknown"} | ${summary.toolCallCount} | ${summary.placeCount} | ${summary.transitionCount} | ${summary.scenarioCount} | ${summary.metricCount} | ${summary.mechanicallyComplete ? "yes" : "no"} |`;
       }),
       "",
-      "Contrasts: S→F transport drag; F→I Brunch architecture drag; A↔B construction effects. Null deltas mean provider spend was unavailable.",
+      "Contrasts: S→F transport drag; F→I Brunch architecture drag. Null deltas mean provider spend was unavailable.",
       "",
     ].join("\n"),
   );

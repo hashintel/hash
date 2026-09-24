@@ -14,7 +14,6 @@ const calls = new Map<
     readonly toolName: string;
     readonly capability: string;
     readonly result: PromiseWithResolvers<ClientToolResult>;
-    readonly verify: (result: ClientToolResult) => Promise<ClientToolResult>;
     readonly signal?: AbortSignal;
     deadline: number;
     claimed: boolean;
@@ -33,7 +32,6 @@ export const issueBrowserCall = (input: {
   readonly toolName: string;
   readonly binding: string;
   readonly canonicalInput: unknown;
-  readonly verify: (result: ClientToolResult) => Promise<ClientToolResult>;
   readonly signal?: AbortSignal;
 }): Promise<ClientToolResult> => {
   const key = keyFor(input.instanceId, input.toolCallId);
@@ -46,7 +44,6 @@ export const issueBrowserCall = (input: {
     toolName: input.toolName,
     capability: randomBytes(32).toString("base64url"),
     result,
-    verify: input.verify,
     signal: input.signal,
     deadline: Date.now() + leaseMs,
     claimed: false,
@@ -209,12 +206,12 @@ export const settleBrowserCall = async (input: {
     return "not-issued";
   entry.settling = true;
   try {
-    const verified = await entry.verify({
+    const result: ClientToolResult = {
       toolCallId: input.toolCallId,
       toolName: input.toolName,
       output: input.output,
       ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
-    });
+    };
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- The timer or Stop can settle this entry while verification is awaited.
     if (entry.finished || entry.signal?.aborted || Date.now() >= entry.deadline)
       return "not-issued";
@@ -222,7 +219,7 @@ export const settleBrowserCall = async (input: {
     clearTimeout(entry.timer);
     entry.releaseAbort?.();
     calls.delete(key);
-    entry.result.resolve(verified);
+    entry.result.resolve(result);
     return "settled";
   } catch (error) {
     if (!entry.finished) {

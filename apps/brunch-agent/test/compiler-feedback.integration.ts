@@ -12,22 +12,18 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import {
-  parseClientToolResultMetadata,
-  verifyCanonicalMutationRecord,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { isAppliedChange, netCalls } from "../src/conversation/net-changes.ts";
 import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 const output = mkdtempSync(join(tmpdir(), "canonical-compiler-feedback-"));
@@ -195,7 +191,7 @@ try {
   );
   assert(issued.every(({ state }) => state === "output-available"));
   assert(retainedSettledRevision(history, "ledger-1"));
-  const results = clientToolHistoryFrom(history.messages).results;
+  const results = netCalls(history);
   assert.deepEqual(
     results.map(({ toolName }) => toolName),
     issued.slice(1).map(({ toolName }) => toolName),
@@ -212,22 +208,12 @@ try {
   assert.match(String(dirty.output), /definitelyNotDefined/u);
   assert.equal(clean.output, cleanCompilation);
   const root = results.find(({ toolCallId }) => toolCallId === "place-1");
-  const rootCall = issued.find(({ toolCallId }) => toolCallId === "place-1");
-  assert(root && rootCall);
-  const record = parseClientToolResultMetadata(
-    root.metadata,
-  )?.canonicalMutationRecord;
-  assert(record, "The root place did not deliver its canonical record");
-  const verified = await verifyCanonicalMutationRecord({
-    record,
-    toolCallId: rootCall.toolCallId,
-    toolName: rootCall.toolName,
-    canonicalInput: rootCall.input,
-    canonicalOutput: root.output,
-    binding,
-  });
-  assert.equal(verified.outcome, "applied");
-  assert.equal(verified.settlement.status, "settled");
+  assert(root);
+  assert.equal(isAppliedChange(root), true);
+  assert(
+    root.revisionAfter,
+    "The root place did not settle a document revision",
+  );
   const stored = await page.evaluate((documentId) => {
     const documents = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -239,7 +225,7 @@ try {
   }, binding.documentId);
   assert(stored, "The bound browser document was not persisted");
   assert.equal(stored.incarnationId, binding.incarnationId);
-  assert.notEqual(stored.revisionId, record.pre.revisionId);
+  assert.equal(stored.revisionId, results.at(-2)?.revisionAfter);
   assert.deepEqual(
     stored.sdcpn.types.map(({ id }) => id),
     ["item"],

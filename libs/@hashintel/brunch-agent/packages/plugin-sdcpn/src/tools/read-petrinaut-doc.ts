@@ -10,10 +10,7 @@ import {
 
 import { READ_PETRINAUT_DOCS_TOOL_NAME } from "../construction-tool-names";
 
-export {
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  isReadPetrinautDocsToolName,
-} from "../construction-tool-names";
+export { READ_PETRINAUT_DOCS_TOOL_NAME } from "../construction-tool-names";
 
 export const readPetrinautDocs = defineTool({
   name: READ_PETRINAUT_DOCS_TOOL_NAME,

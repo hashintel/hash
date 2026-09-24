@@ -17,9 +17,8 @@ const output = {
     markdown: "# Actual tool workpiece",
     ordinal: 1,
   },
-  disposition: "partially-supported",
-  reason: "Temporal context is not support.",
-  reconciliation: { status: "as-of", sha256: "b".repeat(64) },
+  disposition: "basis-absent",
+  reason: "Chronological association is not semantic justification.",
 };
 const messages = [
   {
@@ -39,30 +38,13 @@ const messages = [
 
 test("renders only the readable Ledger document without developer metadata", () => {
   const html = renderToStaticMarkup(
-    <BrunchWorkpiecePane
-      messages={messages}
-      binding={binding}
-      liveHash={undefined}
-    />,
+    <BrunchWorkpiecePane messages={messages} binding={binding} />,
   );
   expect(html).toContain("<h1>Actual tool workpiece</h1>");
   expect(html).not.toContain("position:fixed");
   expect(html).not.toContain("<details");
   expect(html).not.toContain("Revision 1");
-  expect(html).not.toContain("SHA-256");
   expect(html).not.toContain("why-call");
-});
-
-test("warns when the live document differs without exposing raw tool output", () => {
-  const html = renderToStaticMarkup(
-    <BrunchWorkpiecePane
-      messages={messages}
-      binding={binding}
-      liveHash={"c".repeat(64)}
-    />,
-  );
-  expect(html).toContain("Live document hash differs");
-  expect(html).not.toContain("Temporal context is not support.");
 });
 
 /**
@@ -98,7 +80,6 @@ test("shows a successful settlement body from its bound input without a model-ch
     <BrunchWorkpiecePane
       messages={[settlementMessage("settled-call", "# Settled account")]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Settled account</h1>");
@@ -137,7 +118,6 @@ test("does not display the input of a typed refused settlement or mark it newer"
         },
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Settled account</h1>");
@@ -166,7 +146,6 @@ test("does not display the input of a failed settlement", () => {
         },
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Settled account</h1>");
@@ -182,14 +161,12 @@ test("a later settlement replaces the displayed query while retaining the record
         settlementMessage("later-call", "# Later account"),
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Later account</h1>");
   expect(html).toContain(
     "recorded explanation predates a newer Ledger revision",
   );
-  expect(html).not.toContain("Temporal context is not support.");
 });
 
 test("an explicit later query replaces a recorded settlement", () => {
@@ -200,7 +177,6 @@ test("an explicit later query replaces a recorded settlement", () => {
         ...messages,
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Actual tool workpiece</h1>");
@@ -216,7 +192,6 @@ test("a later settlement whose output is not bound to its call marks the display
         settlementMessage("unbound-call", "# Unbound account", "other-call"),
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Earlier account</h1>");
@@ -243,11 +218,9 @@ test("does not reconstruct current state from an input its output does not bind"
         },
       ]}
       binding={binding}
-      liveHash={"b".repeat(64)}
     />,
   );
   expect(html).not.toContain("History is not state");
-  expect(html).not.toContain("Current state has not been queried");
 });
 
 test("folds unique validated settlement identities without treating queries as activity", () => {
@@ -260,9 +233,7 @@ test("folds unique validated settlement identities without treating queries as a
   expect(history.report?.source).toBe("query");
 });
 
-test("folds a correlated canonical mutation sidecar into Ledger activity", () => {
-  const input = { id: "queue" };
-  const canonicalOutput = { applied: true };
+test("folds a settled in-band canonical mutation revision into Ledger activity", () => {
   const call = {
     role: "assistant",
     purpose: "assistant",
@@ -272,115 +243,34 @@ test("folds a correlated canonical mutation sidecar into Ledger activity", () =>
         toolName: "addPlace",
         toolCallId: "canonical-call",
         state: "output-available",
-        input,
-        output: { disposition: "awaiting-client" },
+        input: { id: "queue" },
+        output: {
+          brunchBrowserResult: true,
+          output: { applied: true },
+          metadata: { documentRevision: { before: "one", after: "two" } },
+        },
       },
     ],
   };
-  const result = {
-    role: "system",
-    purpose: "dispatch",
-    signal: { tagName: "client-tool-result" },
-    parts: [
-      {
-        type: "text",
-        text: JSON.stringify([
-          {
-            toolCallId: "canonical-call",
-            toolName: "addPlace",
-            output: canonicalOutput,
-            metadata: {
-              canonicalMutationRecord: {
-                toolCallId: "canonical-call",
-                toolName: "addPlace",
-                binding,
-                input,
-                pre: { definition: {}, sha256: "a".repeat(64) },
-                post: { definition: {}, sha256: "a".repeat(64) },
-                outcome: "no-op",
-                effects: {
-                  created: [],
-                  updated: [],
-                  deleted: [],
-                  derived: [],
-                },
-                settlement: { status: "not-required" },
-                diagnostics: { status: "not-required" },
-                output: canonicalOutput,
-              },
-            },
-          },
-        ]),
-      },
-    ],
-  };
-
   expect(
-    foldBrunchWorkpieceHistory([call, result], binding).activityIdentities,
+    foldBrunchWorkpieceHistory([call], binding).activityIdentities,
   ).toEqual(["canonical-call"]);
-  const malformed = structuredClone(result);
-  const text = malformed.parts[0];
-  if (text?.type !== "text") throw new Error("Missing result fixture");
-  const deliveries = JSON.parse(text.text) as Record<string, unknown>[];
-  const delivery = deliveries[0];
-  if (!delivery) throw new Error("Missing result delivery");
-  delivery.metadata = {
-    canonicalMutationRecord: { toolCallId: "canonical-call" },
+  const unchanged = {
+    ...call,
+    parts: [
+      {
+        ...call.parts[0],
+        output: {
+          brunchBrowserResult: true,
+          output: { applied: false },
+          metadata: { documentRevision: { before: "two" } },
+        },
+      },
+    ],
   };
-  text.text = JSON.stringify(deliveries);
   expect(
-    foldBrunchWorkpieceHistory([call, malformed], binding).activityIdentities,
+    foldBrunchWorkpieceHistory([unchanged], binding).activityIdentities,
   ).toEqual([]);
-});
-
-test("counts a correlated deep construction host record as Ledger activity", () => {
-  const input = { operations: [{ operationId: "queue" }] };
-  const deepOutput = { execution: "ordered-stop", disposition: "complete" };
-  const call = {
-    role: "assistant",
-    purpose: "assistant",
-    parts: [
-      {
-        type: "dynamic-tool",
-        toolName: "apply_petrinaut_construction",
-        toolCallId: "deep-call",
-        state: "output-available",
-        input,
-        output: { awaiting: "client" },
-      },
-    ],
-  };
-  const result = {
-    role: "system",
-    purpose: "dispatch",
-    signal: { tagName: "client-tool-result" },
-    parts: [
-      {
-        type: "text",
-        text: JSON.stringify([
-          {
-            toolCallId: "deep-call",
-            toolName: "apply_petrinaut_construction",
-            output: deepOutput,
-            metadata: {
-              deepConstructionRecord: {
-                toolCallId: "deep-call",
-                binding,
-                input,
-                authority: { status: "refused", reason: "fixture" },
-                attempts: [],
-                output: deepOutput,
-              },
-            },
-          },
-        ]),
-      },
-    ],
-  };
-
-  expect(
-    foldBrunchWorkpieceHistory([call, result], binding).activityIdentities,
-  ).toEqual(["deep-call"]);
 });
 
 test("does not count unbound settlement pointers as activity", () => {

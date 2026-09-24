@@ -18,12 +18,11 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import {
   BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_DOCUMENT_REVISION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
 } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import { ChatAgent } from "../../src/agents/chat-agent/agent";
-import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application";
+import { loadBuiltBrunchApplication } from "../load-built-application";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
   /[/\\]$/u,
@@ -127,7 +126,6 @@ describe("the emitted server bundle", () => {
               "content-type",
               BRUNCH_PRINCIPAL_HEADER,
               BRUNCH_CONVERSATION_HEADER,
-              BRUNCH_DOCUMENT_REVISION_HEADER,
             ].join(","),
           },
         }),
@@ -170,7 +168,7 @@ describe("the emitted server bundle", () => {
       "GET,POST,PUT,OPTIONS",
     );
     expect(preflight.headers.get("access-control-allow-headers")).toBe(
-      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
+      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
     );
     expect(
       preflight.headers.get("access-control-allow-credentials"),
@@ -186,7 +184,7 @@ describe("the emitted server bundle", () => {
     expect(
       workedModelPutPreflight.headers.get("access-control-allow-headers"),
     ).toBe(
-      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
+      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
     );
 
     expect(guardedResponse.status).toBe(401);
@@ -216,8 +214,6 @@ describe("the emitted server bundle", () => {
       "templates/workpiece.md",
     ])
       expect(bundle).toContain(`"${resource}"`);
-    expect(bundle).not.toContain("skillFromMarkdown");
-    expect(bundle).not.toContain("SKILL.md?raw");
   });
 
   test("carries no model key", () => {

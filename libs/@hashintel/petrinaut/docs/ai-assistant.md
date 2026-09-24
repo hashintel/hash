@@ -57,7 +57,7 @@ A host may also enable live history following, as the local Brunch panel does. T
 
 In Brunch construction conversations, the **Ledger** tab shows the saved account as a readable document while **Chat** contains the transcript. Ledger updates when Brunch saves a revision, without covering the canvas or opening another panel. Each unseen settled revision adds to Ledger's badge while Chat is selected or the panel is closed. You can read Ledger while continuing to type in the same composer, then switch to Chat to inspect the reply; if a response completes, errors, or is stopped while Ledger is visible, Chat receives an activity dot. Closing and reopening the assistant retains the selected tab for that mounted conversation.
 
-Ledger presents the saved account without internal revision hashes, mutation ranges, or duplicate raw Markdown. Warnings remain visible when a later revision exists or an explanation no longer matches the observed net. Ask Brunch to refresh the Ledger or explain the relevant model part again when you need a fresh answer.
+Ledger presents the saved account without internal revision hashes, mutation ranges, or duplicate raw Markdown. A warning appears when a later Ledger revision exists than the one shown or the recorded explanation predates a newer revision. Ask Brunch to refresh the Ledger or explain the relevant model part again when you need a fresh answer. Brunch does not automatically detect direct edits after its latest model read; ask it to read the net again before relying on a current explanation.
 
 ### Prepared local demo fixture
 
@@ -68,8 +68,7 @@ model-produced revisions and states the fixture's non-claims.
 
 The document is mirrored to browser local storage automatically; there is no separate Save action.
 Wait for the status panel to report a settled bundle before reopening the same fixture in another
-tab. A refused status leaves the previous coherent bundle selected and names the failed history,
-workpiece, mutation-correlation, or document check instead of claiming that partial state settled.
+tab. A refused status leaves the previous coherent bundle selected and names the failed history, workpiece, or document check instead of claiming that partial state settled.
 
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic

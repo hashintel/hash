@@ -1,20 +1,16 @@
 import {
-  BRUNCH_DECLARED_PROJECTION_MODE,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
   type CanonicalPetrinautMode,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
-export type BrunchEvaluationMode = "F" | "I" | "A" | "B";
+export type BrunchEvaluationMode = "F" | "I";
 
 const evaluationModes: Readonly<
   Record<BrunchEvaluationMode, CanonicalPetrinautMode>
 > = {
   F: STOCK_OVER_FLUE_MODE,
   I: INTEGRATED_BRUNCH_MODE,
-  A: BRUNCH_DECLARED_PROJECTION_MODE,
-  B: BRUNCH_DEEP_CONSTRUCTION_MODE,
 };
 
 /** Build-time-only evaluation selection. Blank defaults to I; invalid labels fail. */
@@ -23,16 +19,9 @@ export const parseBrunchEvaluationMode = (
 ): BrunchEvaluationMode => {
   const candidate = value?.trim().toUpperCase();
   if (candidate === undefined || candidate === "") return "I";
-  if (
-    candidate === "F" ||
-    candidate === "I" ||
-    candidate === "A" ||
-    candidate === "B"
-  ) {
-    return candidate;
-  }
+  if (candidate === "F" || candidate === "I") return candidate;
   throw new Error(
-    `Invalid VITE_BRUNCH_EVALUATION_MODE ${JSON.stringify(value)}; expected F, I, A, or B.`,
+    `Invalid VITE_BRUNCH_EVALUATION_MODE ${JSON.stringify(value)}; expected F or I.`,
   );
 };
 

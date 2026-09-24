@@ -10,10 +10,6 @@ import {
 } from "../src/draft-experiment";
 import { createDraftExperimentTool } from "../src/tools/draft-experiment";
 
-import type { DefinitionObservation } from "../src/mutation-record";
-import type { SDCPN } from "@hashintel/petrinaut-core";
-
-const hash = "a".repeat(64);
 const currentRevision = {
   revisionId: "revision-1",
   ordinal: 1,
@@ -21,14 +17,6 @@ const currentRevision = {
   sha256: createHash("sha256").update("Queue work.").digest("hex"),
   evidence: [],
 };
-const emptyDefinition: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  differentialEquations: [],
-  parameters: [],
-};
-
 const experiment = {
   name: "Vans on the parcel route",
   scenarioId: "scenario-peak",
@@ -88,9 +76,6 @@ describe("draft_petrinaut_experiment input schema", () => {
     expect(
       isDraftPetrinautExperimentToolName("draft_petrinaut_experiment"),
     ).toBe(true);
-    expect(isDraftPetrinautExperimentToolName("mutate_petrinaut_net")).toBe(
-      false,
-    );
   });
 
   test("accepts an integer range and a disclosed restriction without protocol identity", () => {
@@ -119,23 +104,6 @@ describe("draft_petrinaut_experiment input schema", () => {
       0,
       "reportedByMetricId",
     ]);
-  });
-
-  test("rejects model-authored protocol identity and basis tables", () => {
-    for (const field of [
-      "observation",
-      "basis",
-      "baseHash",
-      "revisionId",
-      "toolCallId",
-      "documentId",
-    ])
-      expect(
-        draftPetrinautExperimentInputSchema.safeParse({
-          ...input,
-          [field]: "model-authored",
-        }).success,
-      ).toBe(false);
   });
 
   test("rejects an objective that is not among the saved metrics", () => {
@@ -273,15 +241,12 @@ describe("draft_petrinaut_experiment output schema", () => {
 });
 
 describe("createDraftExperimentTool", () => {
-  test("authorizes the exact issued call against a verified read and settled Ledger", async () => {
-    const authorizeDraft = vi.fn<
-      (
-        id: string,
-      ) => Promise<{ observation: DefinitionObservation; revisionId: string }>
-    >(async () => ({
-      observation: { definition: emptyDefinition, sha256: hash },
-      revisionId: currentRevision.revisionId,
-    }));
+  test("authorizes the issued call against a prior read and settled Ledger", async () => {
+    const authorizeDraft = vi.fn<() => Promise<{ revisionId: string }>>(
+      async () => ({
+        revisionId: currentRevision.revisionId,
+      }),
+    );
     const tool = createDraftExperimentTool({
       currentRevision,
       retainedRevisionFor: async () => undefined,
@@ -305,17 +270,14 @@ describe("createDraftExperimentTool", () => {
       createDraftExperimentTool({
         ...options,
         authorizeDraft: async () => {
-          throw new Error("Absent verified canonical read");
+          throw new Error("Absent canonical read");
         },
       }).run({ toolCallId: "draft-1", data: input } as never),
-    ).rejects.toThrow(/Absent verified canonical read/u);
+    ).rejects.toThrow(/Absent canonical read/u);
     await expect(
       createDraftExperimentTool({
         ...options,
-        authorizeDraft: async () => ({
-          observation: { definition: emptyDefinition, sha256: hash },
-          revisionId: "other",
-        }),
+        authorizeDraft: async () => ({ revisionId: "other" }),
       }).run({ toolCallId: "draft-1", data: input } as never),
     ).rejects.toThrow(/stale or unsettled/u);
     await expect(
@@ -323,10 +285,9 @@ describe("createDraftExperimentTool", () => {
         ...options,
         currentRevision: null,
         authorizeDraft: async () => ({
-          observation: { definition: emptyDefinition, sha256: hash },
           revisionId: currentRevision.revisionId,
         }),
       }).run({ toolCallId: "draft-1", data: input } as never),
-    ).rejects.toThrow(/Settle a valid Ledger/u);
+    ).rejects.toThrow(/Settle a Ledger/u);
   });
 });

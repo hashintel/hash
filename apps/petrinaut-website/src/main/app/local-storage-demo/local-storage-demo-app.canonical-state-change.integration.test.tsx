@@ -428,10 +428,15 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
         output: { applied: true },
       })),
     );
-    expect(deliveries.map(({ metadata }) => metadata)).toEqual(
-      Array.from({ length: 6 }, () => undefined),
-    );
     await waitFor(() => expect(changes).toHaveLength(6));
+    expect(deliveries.map(({ metadata }) => metadata)).toEqual(
+      changes.map((change) => ({
+        documentRevision: {
+          before: change.previousRevisionId,
+          after: change.revisionId,
+        },
+      })),
+    );
     const originalScenario = { id: scenario.id, name: scenario.name };
     const originalMetric = { id: metric.id, name: metric.name };
     const updatedScenario = { ...originalScenario, name: "Updated baseline" };

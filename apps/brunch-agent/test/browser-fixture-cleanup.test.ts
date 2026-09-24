@@ -16,7 +16,7 @@ const controls = vi.hoisted(() => ({
   stop: vi.fn<() => Promise<void>>(),
 }));
 vi.mock("@playwright/test", () => ({ chromium: { launch: controls.launch } }));
-vi.mock("../src/evaluations/runbook/load-built-application.ts", () => ({
+vi.mock("./load-built-application.ts", () => ({
   loadBuiltBrunchApplication: async () => ({
     fetch: () => {
       throw new Error("Unexpected application request");
@@ -97,26 +97,3 @@ test("helper closes its actual listener even when browser cleanup rejects", asyn
   expect(listeningServers()).toHaveLength(1);
   expect(listeningServers()[0]?.listening).toBe(false);
 });
-
-test.each([false, true])(
-  "actual persona driver restores fetch and stops its acquired app on setup failure (close rejects: %s)",
-  async (closeRejects) => {
-    vi.resetModules();
-    const serverClose = vi.spyOn(Server.prototype, "close");
-    const originalFetch = globalThis.fetch;
-    if (closeRejects)
-      controls.close.mockRejectedValue(
-        new Error("Synthetic browser close failure"),
-      );
-    await expect(
-      import("./persona-construction.integration.ts"),
-    ).rejects.toThrow(
-      closeRejects ? /cleanup incomplete/u : /Synthetic page setup failure/u,
-    );
-    expect(controls.stop).toHaveBeenCalledOnce();
-    expect(globalThis.fetch).toBe(originalFetch);
-    expect(serverClose).toHaveBeenCalledOnce();
-    expect(listeningServers()).toHaveLength(1);
-    expect(listeningServers()[0]?.listening).toBe(false);
-  },
-);

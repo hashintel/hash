@@ -21,8 +21,8 @@ import {
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,

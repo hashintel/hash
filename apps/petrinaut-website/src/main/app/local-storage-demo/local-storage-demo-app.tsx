@@ -16,21 +16,16 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
-  type RefObject,
 } from "react";
 
 import {
-  applyPetrinautConstructionToolName,
   draftPetrinautExperimentToolName,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -81,7 +76,6 @@ import {
 } from "./assistants/brunch/use-process-agent-binding";
 import {
   canonicalPetrinautClientToolNames,
-  deepPetrinautClientToolNames,
   integratedPetrinautClientToolNames,
 } from "./brunch-client-tools";
 import {
@@ -99,7 +93,7 @@ import {
 } from "./brunch-panel-transport";
 import {
   createCanonicalPetrinautHostTools,
-  deriveCanonicalPetrinautReplay,
+  issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
   type CanonicalPetrinautReplay,
   type CanonicalPetrinautReplayReadiness,
@@ -107,22 +101,11 @@ import {
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import {
-  foldBrunchWorkpieceHistory,
-  settledBrunchWorkpieceRevisionFrom,
-} from "./brunch-workpiece-history";
+import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
-import { readLiveDocumentHash } from "./live-document-hash";
 import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
-import {
-  createApplyPetrinautConstructionHostTool,
-  deriveDeepConstructionReplay,
-  type DeepConstructionReplay,
-  type DeepConstructionReplayReadiness,
-  type SettledLedgerRevision,
-} from "./mutate-petrinet-tool";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
@@ -148,11 +131,6 @@ const useCurrentSettlementAction = (
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
-
-const EMPTY_DEEP_CONSTRUCTION_REPLAY: DeepConstructionReplay = {
-  terminalRecords: new Map(),
-  blockedToolCallIds: new Set(),
-};
 
 type ReplayReadiness<Replay> =
   | { readonly status: "pending" }
@@ -314,10 +292,7 @@ const stockChatTransport = new DefaultChatTransport({
   }),
 });
 
-const createBrunchFlueClient = async (
-  conversationId: string,
-  currentRevisionId: () => string | undefined,
-) => {
+const createBrunchFlueClient = async (conversationId: string) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
   const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(
@@ -327,15 +302,7 @@ const createBrunchFlueClient = async (
   mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
   return createFlueClient({
     url: mountUrl.href,
-    headers: () => {
-      const revisionId = currentRevisionId();
-      return {
-        ...agentOwnershipHeaders(identity),
-        ...(revisionId === undefined
-          ? {}
-          : { [BRUNCH_DOCUMENT_REVISION_HEADER]: revisionId }),
-      };
-    },
+    headers: () => agentOwnershipHeaders(identity),
   });
 };
 
@@ -381,34 +348,19 @@ type PersistFailure = {
 };
 
 const useProcessAgentSession = (input: {
-  readonly activeHandleRef: RefObject<ActiveHandle | null>;
   readonly binding: ProcessAgentBinding | null;
   readonly brunchSelected: boolean;
 }) => {
-  "use no memo"; // The Flue header callback deliberately reads the live handle ref after render.
-
-  const readCurrentRevisionId = useCallback(() => {
-    const handle = input.activeHandleRef.current;
-    return input.binding !== null &&
-      handle?.document.documentId === input.binding.documentId &&
-      handle.document.incarnationId === input.binding.incarnationId
-      ? handle.handle.revisionId.get()
-      : undefined;
-  }, [input.activeHandleRef, input.binding]);
-
   return useMemo(() => {
     const conversationTracker = createConversationTrackerFor(
       input.binding?.conversationId ?? null,
     );
     const flueClientPromise =
       input.brunchSelected && input.binding !== null
-        ? createBrunchFlueClient(
-            input.binding.conversationId,
-            readCurrentRevisionId,
-          )
+        ? createBrunchFlueClient(input.binding.conversationId)
         : null;
     return { conversationTracker, flueClientPromise };
-  }, [input.binding, input.brunchSelected, readCurrentRevisionId]);
+  }, [input.binding, input.brunchSelected]);
 };
 
 const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
@@ -598,12 +550,6 @@ export const LocalStorageDemoApp = ({
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(null);
-  const activeHandleRef = useRef<ActiveHandle | null>(null);
-
-  useLayoutEffect(() => {
-    activeHandleRef.current = activeHandle;
-  }, [activeHandle]);
-
   // The most recent change the repository refused to persist, if any. It is
   // about the open document: cleared once a later change to that document
   // lands, or when another document is opened in its place.
@@ -745,7 +691,6 @@ export const LocalStorageDemoApp = ({
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
   const processAgentSession = useProcessAgentSession({
-    activeHandleRef,
     binding: processAgentBinding,
     brunchSelected,
   });
@@ -779,32 +724,6 @@ export const LocalStorageDemoApp = ({
   const integratedConstructionBrowser = productConstructionSelected
     ? constructionBrowser
     : undefined;
-  // The handle mutates behind a stable identity. Subscribe to its real snapshot;
-  // a render-time read alone can be memoized by React Compiler across hand edits.
-  const subscribeToObservedLiveHash = useCallback(
-    (changed: () => void) =>
-      integratedConstructionBrowser && activeHandle
-        ? activeHandle.handle.subscribe(changed)
-        : () => {},
-    [activeHandle, integratedConstructionBrowser],
-  );
-  const getObservedLiveHash = useCallback(
-    () =>
-      integratedConstructionBrowser && activeHandle?.handle.doc()
-        ? readLiveDocumentHash(activeHandle.handle)
-        : undefined,
-    [activeHandle, integratedConstructionBrowser],
-  );
-  const getServerObservedLiveHash = useCallback(() => undefined, []);
-  const observedLiveHash = useSyncExternalStore(
-    subscribeToObservedLiveHash,
-    getObservedLiveHash,
-    getServerObservedLiveHash,
-  );
-  const deepModeSelected =
-    brunchPreviewConfig.serverMode === BRUNCH_DEEP_CONSTRUCTION_MODE &&
-    integratedConstructionBrowser !== undefined &&
-    activeHandle !== null;
   const dynamicClientToolNames = useMemo(() => {
     if (integratedConstructionBrowser === undefined) return undefined;
     const names = new Set([
@@ -818,29 +737,19 @@ export const LocalStorageDemoApp = ({
     if (brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE)
       for (const toolName of canonicalPetrinautClientToolNames)
         names.add(toolName);
-    if (deepModeSelected) names.add(applyPetrinautConstructionToolName);
     return names;
-  }, [deepModeSelected, integratedConstructionBrowser]);
-  const validatedClientToolNames = useMemo(
-    () =>
-      deepModeSelected
-        ? new Set([applyPetrinautConstructionToolName])
-        : undefined,
-    [deepModeSelected],
-  );
+  }, [integratedConstructionBrowser]);
   const constructionClientTools = brunchSelected
-    ? deepModeSelected
-      ? deepPetrinautClientToolNames
-      : integratedBrunchSelected
-        ? integratedPetrinautClientToolNames
-        : canonicalPetrinautClientToolNames
+    ? integratedBrunchSelected
+      ? integratedPetrinautClientToolNames
+      : canonicalPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     constructionClientTools,
     dynamicClientToolNames,
-    validatedClientToolNames,
+    undefined,
     brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE
       ? canonicalPetrinautClientToolNames
       : undefined,
@@ -852,10 +761,7 @@ export const LocalStorageDemoApp = ({
     async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
       if (integratedConstructionBrowser === undefined)
         return EMPTY_CANONICAL_PETRINAUT_REPLAY;
-      return deriveCanonicalPetrinautReplay({
-        snapshot,
-        binding: integratedConstructionBrowser.binding,
-      });
+      return issuedCanonicalCallsFromHistory({ snapshot });
     },
     [integratedConstructionBrowser],
   );
@@ -881,7 +787,6 @@ export const LocalStorageDemoApp = ({
     return createCanonicalPetrinautHostTools({
       handle: activeHandle.handle,
       binding: integratedConstructionBrowser.binding,
-      orderedByPanel: brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
       settleRevision: settleConstructionRevision,
@@ -892,63 +797,6 @@ export const LocalStorageDemoApp = ({
     integratedConstructionBrowser,
     settleConstructionRevision,
   ]);
-  const currentLedger = useMemo<SettledLedgerRevision | undefined>(
-    () =>
-      integratedConstructionBrowser && flueHistory.snapshot
-        ? settledBrunchWorkpieceRevisionFrom(
-            foldBrunchWorkpieceHistory(
-              flueHistory.snapshot.messages,
-              integratedConstructionBrowser.binding,
-            ),
-          )
-        : undefined,
-    [integratedConstructionBrowser, flueHistory.snapshot],
-  );
-  const deriveDeepReplay = useCallback(
-    async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
-      if (integratedConstructionBrowser === undefined)
-        return EMPTY_DEEP_CONSTRUCTION_REPLAY;
-      return deriveDeepConstructionReplay({
-        snapshot,
-        binding: integratedConstructionBrowser.binding,
-      });
-    },
-    [integratedConstructionBrowser],
-  );
-  const deepReplayReadiness = useImmutableReplayBaseline<
-    NonNullable<typeof flueHistory.snapshot>,
-    DeepConstructionReplay
-  >({
-    bindingKey: deepModeSelected ? replayBindingKey : undefined,
-    emptyReplay: EMPTY_DEEP_CONSTRUCTION_REPLAY,
-    historyPhase: flueHistory.phase,
-    snapshot: flueHistory.snapshot,
-    derive: deriveDeepReplay,
-  }) satisfies DeepConstructionReplayReadiness;
-  const deepHostTool = useMemo(() => {
-    if (!deepModeSelected) return undefined;
-    return createApplyPetrinautConstructionHostTool({
-      handle: activeHandle.handle,
-      binding: integratedConstructionBrowser.binding,
-      // Live authority is updated below without rebuilding the adapter. Replay
-      // authority comes from the immutable replay baseline.
-      initialLedger: undefined,
-      replayReadiness: deepReplayReadiness,
-      settleRevision: settleConstructionRevision,
-    });
-  }, [
-    activeHandle,
-    deepModeSelected,
-    deepReplayReadiness,
-    integratedConstructionBrowser,
-    settleConstructionRevision,
-  ]);
-  useEffect(() => {
-    deepHostTool?.updateAuthority({
-      binding: integratedConstructionBrowser?.binding,
-      ledger: currentLedger,
-    });
-  }, [currentLedger, deepHostTool, integratedConstructionBrowser]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;
     reportBrunchFailure("history", flueHistory.error, {
@@ -1007,36 +855,16 @@ export const LocalStorageDemoApp = ({
                   ? { asyncClientToolNames: canonicalPetrinautClientToolNames }
                   : {}),
                 dynamicClientToolNames,
-                validatedClientToolNames,
-                ...(canonicalHostTools === undefined &&
-                deepHostTool === undefined
+                ...(canonicalHostTools === undefined
                   ? {}
                   : {
-                      mapClientToolInput: (call) => {
-                        const canonicalInput =
-                          brunchPreviewConfig.serverMode ===
-                          INTEGRATED_BRUNCH_MODE
-                            ? call.input
-                            : (canonicalHostTools?.mapClientToolInput(call) ??
-                              call.input);
-                        return (
-                          deepHostTool?.mapClientToolInput({
-                            ...call,
-                            input: canonicalInput,
-                          }) ?? canonicalInput
-                        );
-                      },
+                      mapClientToolInput: (call) =>
+                        brunchPreviewConfig.serverMode ===
+                        INTEGRATED_BRUNCH_MODE
+                          ? call.input
+                          : (canonicalHostTools.mapClientToolInput(call) ??
+                            call.input),
                     }),
-              }),
-          ...(canonicalHostTools === undefined && deepHostTool === undefined
-            ? {}
-            : {
-                clientToolResultMetadata: ({ toolCallId, output }) =>
-                  deepHostTool?.clientToolResultMetadataFor(toolCallId) ??
-                  canonicalHostTools?.clientToolResultMetadataFor(
-                    toolCallId,
-                    output,
-                  ),
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -1055,9 +883,7 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     constructionBrowser,
     canonicalHostTools,
-    deepHostTool,
     dynamicClientToolNames,
-    validatedClientToolNames,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
@@ -1073,7 +899,7 @@ export const LocalStorageDemoApp = ({
             client: flueClientPromise,
             principalKey: brunchPrincipal,
             binding: integratedConstructionBrowser.binding,
-            metadataFor: (toolCallId, output) =>
+            metadataFor: async (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(
                 toolCallId,
                 output,
@@ -1091,13 +917,12 @@ export const LocalStorageDemoApp = ({
       integratedConstructionBrowser && activeHandle && flueClientPromise
         ? createBrunchDraftExperimentInteractiveTool({
             readTitle: () => activeHandle.document.title,
-            readDraftAuthority: async (toolCallId, input) => {
+            readDraftAuthority: async (toolCallId) => {
               const client = await flueClientPromise;
               return resolveDraftAuthorityFromHistory(
                 await client.history(),
                 integratedConstructionBrowser.binding,
                 toolCallId,
-                input,
               );
             },
           })
@@ -1125,7 +950,6 @@ export const LocalStorageDemoApp = ({
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
                 binding={integratedConstructionBrowser.binding}
-                liveHash={observedLiveHash}
               />
             ),
           }
@@ -1142,10 +966,7 @@ export const LocalStorageDemoApp = ({
       // These exact-name tools override the static registry only in integrated
       // modes. Every other canonical capability remains on Petrinaut's registry.
       inBandBrowserTools,
-      automaticTools: [
-        ...(canonicalHostTools?.tools ?? []),
-        ...(deepHostTool === undefined ? [] : [deepHostTool.tool]),
-      ],
+      automaticTools: [...(canonicalHostTools?.tools ?? [])],
       interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
@@ -1198,10 +1019,8 @@ export const LocalStorageDemoApp = ({
     brunchSelected,
     brunchVoiceMode,
     canonicalHostTools,
-    deepHostTool,
     inBandBrowserTools,
     draftInteractiveTool,
-    observedLiveHash,
     integratedConstructionBrowser,
     conversationTracker,
     conversationId,

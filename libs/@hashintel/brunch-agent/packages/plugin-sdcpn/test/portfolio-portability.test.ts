@@ -12,7 +12,6 @@ const reusableGuidanceFiles = [
   "src/skills/sdcpn-modelling/references/pn-construction.md",
   "src/skills/sdcpn-modelling/references/profile.md",
   "src/skills/sdcpn-modelling/templates/workpiece.md",
-  "src/tools/mutate-petrinet.ts",
 ] as const;
 
 const inventoryFixtureTerms = [

@@ -1,7 +1,5 @@
-/**
- * The SDCPN plugin's agent composition. It mounts a packaged SKILL.md, so only
- * code built by Flue may import this entry; `./flue` stays loadable in plain Node.
- */
+"use agent";
+
 import {
   useInitialData,
   useInstruction,
@@ -13,58 +11,36 @@ import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdc
 import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
 
 import {
-  BRUNCH_DECLARED_PROJECTION_MODE,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
-  isIntegratedPetrinautMode,
 } from "./construction-mode";
-import {
-  createDeclarePetrinautProjectionTool,
-  VALIDATED_CONSTRUCTION_MODE,
-  type SdcpnInitialData,
-} from "./flue";
-import { batchedConstructionMode } from "./mutate-petrinet";
+import { type SdcpnInitialData } from "./flue";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
-  applyPetrinautConstructionTool,
-  createMutatePetrinetTool,
-} from "./tools/mutate-petrinet";
-import {
-  observedDefinitionReadTool,
-  observedCompilationReadTool,
-  observedLayoutCommandTool,
   canonicalPetrinautTools,
   asyncCanonicalPetrinautTools,
-  petrinautConstructionTools,
-  type ObservedConstructionOptions,
   type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
 import { readPetrinautDocs } from "./tools/read-petrinaut-doc";
 
-/** The plugin's one job skill: operational-process elicitation, workpiece, construction, and checks. */
 export const SDCPN_MODELLING_SKILL_NAME = sdcpnModellingSkill.name;
 export { sdcpnModellingSkill };
 
-/** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
-export function useSdcpnPlugin(
+export const useSdcpnPlugin = (
   options?: WorkpieceAuthorityOptions & {
     readonly executeCanonicalBrowserTool?: Parameters<
       typeof asyncCanonicalPetrinautTools
     >[0];
-  } & Partial<Pick<ObservedConstructionOptions, "observationFor">> &
-    Partial<
-      Pick<Parameters<typeof createDraftExperimentTool>[0], "authorizeDraft">
-    >,
-): void {
+    readonly authorizeDraft?: Parameters<
+      typeof createDraftExperimentTool
+    >[0]["authorizeDraft"];
+  },
+): void => {
   const initialData = useInitialData<SdcpnInitialData>();
-
   if (initialData?.mode === STOCK_OVER_FLUE_MODE) {
-    for (const canonicalTool of canonicalPetrinautTools) {
-      useTool(canonicalTool);
-    }
-  } else if (isIntegratedPetrinautMode(initialData?.mode)) {
+    for (const tool of canonicalPetrinautTools) useTool(tool);
+  } else if (initialData?.mode === INTEGRATED_BRUNCH_MODE) {
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
     useSkill(sdcpnModellingSkill);
@@ -79,55 +55,17 @@ export function useSdcpnPlugin(
       }),
     );
     useInstruction(
-      "For Ledger-derived experiment proposals, prefer draft_petrinaut_experiment after a verified canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
+      "For Ledger-derived experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
     );
-    if (initialData.mode === BRUNCH_DECLARED_PROJECTION_MODE) {
-      useInstruction(
-        "Before bounded direct addPlace, addTransition, or addArc construction, call declare_petrinaut_projection in its own server-tool proposal and wait for its result. Then issue the matching canonical browser calls in declaration order. Use other canonical tools directly for reads, documentation, experiments, layout, and capabilities outside this bounded tracer.",
-      );
-      useTool(createDeclarePetrinautProjectionTool(options.currentRevision));
-    }
-    for (const canonicalTool of initialData.mode === INTEGRATED_BRUNCH_MODE &&
-    options.executeCanonicalBrowserTool
+    for (const tool of options.executeCanonicalBrowserTool
       ? asyncCanonicalPetrinautTools(options.executeCanonicalBrowserTool)
-      : canonicalPetrinautTools) {
-      useTool(canonicalTool);
-    }
-    if (initialData.mode === BRUNCH_DEEP_CONSTRUCTION_MODE) {
-      useInstruction(
-        "For a bounded connected fragment of up to three addPlace, addTransition, and addArc operations, use apply_petrinaut_construction instead of orchestrating those sibling mutation calls directly. Use canonical tools directly for reads, documentation, experiments, interactive layout, capabilities outside that bounded carrier, and later fine-grained corrections.",
-      );
-      useTool(applyPetrinautConstructionTool);
-    }
+      : canonicalPetrinautTools)
+      useTool(tool);
   } else {
+    // A conversation with no initial mode historically offers the skill and docs,
+    // but no construction tools. Keep that route behavior.
     useInstruction(sdcpnAppend.trim());
     useSkill(sdcpnModellingSkill);
     useTool(readPetrinautDocs);
   }
-
-  if (initialData?.mode === batchedConstructionMode) {
-    if (!initialData.construction || !options?.observationFor)
-      throw new Error("Batched construction requires authorized observations.");
-    useInstruction(
-      "Construction uses strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only read_petrinaut_net; wait for its browser result. Proposal 3 contains only mutate_petrinaut_net; wait for its browser result. After a batch that writes code or changes a dependency of code, obtain read_petrinaut_diagnostics in its own proposal and wait for the browser result. A structurally applied mutation is not compiler-clean; pending or missing diagnostics are not clean. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. mutate_petrinaut_net carries root-net operations only: adds (addPlace, addTransition, addArc, addType, addTypeElement, addParameter, addDifferentialEquation), edits to existing parts by ID (updatePlace, updateTransition, updateArcWeight, updateArcType, updateType, updateTypeElement, updateParameter, updateDifferentialEquation) and removals (removePlace, removeTransition, removeArc, removeType, removeTypeElement, removeParameter, removeDifferentialEquation). Correct an existing part by editing it; do not remove and re-add it. removePlace also removes connected arcs; removing a type, element, parameter or equation that code still reads leaves that code dirty until repaired. Canvas positions are not operations; layout owns them. A read_petrinaut_diagnostics result that reports diagnostics as still pending is not a result: repeat the read before any compiler claim. Operations commit in order; failure leaves the later suffix unattempted. After a batch that added or restructured places or transitions, and once diagnostics are settled, call layout_petrinaut_net in its own proposal; pass askUserFirst false only when this conversation built the net from an empty canvas, otherwise true so the user can decline. Do not lay out after a batch that only changed types, parameters or dynamics. Layout is recorded separately with its own pre and post hash; the post hash is the base for any later observation.",
-    );
-    useTool(observedDefinitionReadTool);
-    useTool(observedCompilationReadTool);
-    useTool(observedLayoutCommandTool);
-    useTool(
-      createMutatePetrinetTool({
-        ...options,
-        observationFor: options.observationFor,
-      }),
-    );
-  } else if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
-    useInstruction(
-      `
-This is a construct-only headless conversation. Use only the supplied runbook IR as modelling input, do not interview, and build the net through the mounted Petrinaut tools instead of emitting net JSON.
-`.replace(/^\s+|\s+$/gu, ""),
-    );
-    for (const constructionTool of petrinautConstructionTools) {
-      useTool(constructionTool);
-    }
-  }
-}
+};

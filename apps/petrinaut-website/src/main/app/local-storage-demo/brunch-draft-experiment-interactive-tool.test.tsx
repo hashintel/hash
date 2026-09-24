@@ -1,8 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-import { sha256 } from "@noble/hashes/sha2.js";
-import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   act,
   cleanup,
@@ -143,9 +141,6 @@ const makeRequest = (
   ...overrides,
 });
 
-const definitionHash = (definition: SDCPN) =>
-  bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(definition))));
-
 const makeInput = (
   experiment: PetrinautExperimentRequest = makeRequest(),
   unsupported: DraftPetrinautExperimentInput["unsupported"] = [],
@@ -177,7 +172,7 @@ const renderWidget = ({
   optimizationUnavailableReason = null,
   omitOptimizationUnavailableReason = false,
   submitOutput = async () => {},
-  readDraftAuthority = async () => definitionHash(makeDefinition()),
+  readDraftAuthority,
   instance: suppliedInstance,
 }: {
   input: DraftPetrinautExperimentInput;
@@ -228,7 +223,9 @@ const renderWidget = ({
         {...state}
         input={input}
         readTitle={() => "Support desk"}
-        readDraftAuthority={readDraftAuthority}
+        readDraftAuthority={
+          readDraftAuthority ?? (async () => instance.handle.revisionId.get())
+        }
         submit={() => {}}
         submitAndWait={submit}
         toolCallId={toolCallId}
@@ -351,7 +348,7 @@ describe("BrunchDraftExperimentWidget", () => {
           submit={() => {}}
           submitAndWait={submit}
           toolCallId="call_draft_1"
-          readDraftAuthority={async () => definitionHash(makeDefinition())}
+          readDraftAuthority={async () => "test-revision"}
         />,
       ),
     );
@@ -454,14 +451,11 @@ describe("BrunchDraftExperimentWidget", () => {
     });
     const observedDefinition = instance.handle.doc();
     expect(observedDefinition).toBeDefined();
-    expect(definitionHash(observedDefinition!)).not.toBe(
-      definitionHash(instance.definition.get()),
-    );
 
     const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
     const { submit } = renderWidget({
       input: makeInput(),
-      readDraftAuthority: async () => definitionHash(observedDefinition!),
+      readDraftAuthority: async () => instance.handle.revisionId.get(),
       toolCallId: "metric-before-scenario",
       state: awaiting,
       definition: instance.definition,
@@ -521,12 +515,13 @@ describe("BrunchDraftExperimentWidget", () => {
       state: awaiting,
       definition: createReadableStore(changed),
       runExperiment,
+      readDraftAuthority: async () => "previous-revision",
     });
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "invalid" });
     expect(submit.mock.calls[0]?.[0].diagnostics[0]).toMatch(
-      /changed since the verified canonical read/u,
+      /changed since the canonical read/u,
     );
     expect(heading()).toEqual(["Could not be prepared"]);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
@@ -535,12 +530,13 @@ describe("BrunchDraftExperimentWidget", () => {
   it("rechecks the live handle after the asynchronous history fetch", async () => {
     const original = makeDefinition();
     let liveDefinition = original;
+    let liveRevision = "test-revision";
     const definition = createReadableStore(original);
     const instance = {
       definition,
       handle: {
         doc: () => liveDefinition,
-        revisionId: { get: () => "test-revision" },
+        revisionId: { get: () => liveRevision },
       },
     } as unknown as Petrinaut;
     const { submit } = renderWidget({
@@ -553,7 +549,8 @@ describe("BrunchDraftExperimentWidget", () => {
       readDraftAuthority: async () => {
         liveDefinition = structuredClone(original);
         liveDefinition.metrics![0]!.code = "return 3;";
-        return definitionHash(original);
+        liveRevision = "later-revision";
+        return "test-revision";
       },
     });
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
@@ -591,7 +588,7 @@ describe("BrunchDraftExperimentWidget", () => {
           submit={() => {}}
           submitAndWait={(output) => submit(output)}
           toolCallId="retry-draft"
-          readDraftAuthority={async () => definitionHash(makeDefinition())}
+          readDraftAuthority={async () => "test-revision"}
         />,
       ),
     );

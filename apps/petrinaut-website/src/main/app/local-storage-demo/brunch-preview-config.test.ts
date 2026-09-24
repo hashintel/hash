@@ -1,8 +1,6 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  BRUNCH_DECLARED_PROJECTION_MODE,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -37,8 +35,6 @@ describe("Brunch preview host configuration", () => {
   test.each([
     ["F", STOCK_OVER_FLUE_MODE],
     ["I", INTEGRATED_BRUNCH_MODE],
-    ["A", BRUNCH_DECLARED_PROJECTION_MODE],
-    ["B", BRUNCH_DEEP_CONSTRUCTION_MODE],
   ] as const)(
     "maps evaluation override %s to its exact server mode",
     (mode, serverMode) => {
@@ -52,7 +48,6 @@ describe("Brunch preview host configuration", () => {
   test("defaults only blank overrides to product I and rejects mislabeled evidence", () => {
     expect(parseBrunchEvaluationMode(undefined)).toBe("I");
     expect(parseBrunchEvaluationMode("   ")).toBe("I");
-    expect(parseBrunchEvaluationMode(" a ")).toBe("A");
     expect(() => parseBrunchEvaluationMode(" x ")).toThrow(
       /VITE_BRUNCH_EVALUATION_MODE/u,
     );

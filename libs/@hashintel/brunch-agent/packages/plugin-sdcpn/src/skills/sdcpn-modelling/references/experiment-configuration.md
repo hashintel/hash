@@ -14,7 +14,7 @@ The workpiece supplies meaning. Read these sections and nothing else decides rea
 - **Policies, exceptions, practiced rules, and contextual regimes** — which regime (baseline, peak, degraded) the decision applies to.
 - **What the result must not claim** — carried into the proposal's text, never dropped.
 
-In integrated Brunch, the net supplies candidate executable inputs, judged from a verified current canonical `getLatestNetDefinition` result:
+In integrated Brunch, the net supplies candidate executable inputs, judged from a current canonical `getLatestNetDefinition` result:
 
 - a saved scenario for the stated regime exists (`definition.scenarios[]`);
 - that scenario has a saved scenario parameter for each tunable quantity, typed `integer` or `real` (or `ratio` when the range stays within 0–1); a `boolean` parameter cannot be swept;
@@ -23,7 +23,7 @@ In integrated Brunch, the net supplies candidate executable inputs, judged from 
 
 **Readiness is the conjunction**: the workpiece states the decision, the measure and its direction, at least one tunable quantity with a person-stated range and unit, and the regime and horizon; and the net has the saved scenario, the typed scenario parameter and the saved metric, with no reported net compilation errors. This is proposal readiness, not proof that saved scenario or metric code compiles. Structure alone never triggers a proposal. The net alone never supplies the objective. If the workpiece has parameters and metrics recorded but no stated decision, there is nothing to propose.
 
-When a workpiece condition is present and its net counterpart is missing, that is ordinary construction, not experiment work: in integrated Brunch, add the scenario, scenario parameter or metric through mounted canonical Petrinaut tools, run the checks, then reassess. The separate legacy batched construction mode uses `mutate_petrinaut_net` and `read_petrinaut_diagnostics` with its own basis guidance; it does not mount the draft tool. When a workpiece fact is missing (no range, no unit, no direction, no regime), ask the smallest resolving question in interactive elicitation, or record the exact gap in construct-only execution. Never invent a range, unit, threshold, horizon or default to reach readiness.
+When a workpiece condition is present and its net counterpart is missing, that is ordinary construction, not experiment work: in integrated Brunch, add the scenario, scenario parameter or metric through mounted canonical Petrinaut tools, run the checks, then reassess. When a workpiece fact is missing (no range, no unit, no direction, no regime), ask the smallest resolving question in interactive elicitation, or record the exact gap in construct-only execution. Never invent a range, unit, threshold, horizon or default to reach readiness.
 
 ## Correspondence table
 
@@ -52,16 +52,16 @@ Every proposal carries, in `declarations`:
 - for each chosen budget number (`runCount`, `steps`, `runsPerStep`, `seed`), that it is agent inference and what it respects;
 - what the result must not claim, in the person's words.
 
-Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. Set `blocksRun: true` for a hard or load-bearing restriction; omission also blocks Run. Set `blocksRun: false` only when the person explicitly accepts a reporting-only exploration, and settle that acceptance in the Ledger before drafting. The host verifies the settled revision, not the semantic judgment that acceptance occurred; do not claim consent is mechanically verified. A reporting metric does not itself authorize running. If `reportedByMetricId` is present, include it in `experiment.metricIds`. An empty list means the workpiece stated no restriction, not that restrictions are enforced.
+Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. Set `blocksRun: true` for a hard or load-bearing restriction; omission also blocks Run. Set `blocksRun: false` only when the person explicitly accepts a reporting-only exploration, and settle that acceptance in the Ledger before drafting. The host requires a settled revision, not proof that semantic consent occurred; do not claim consent is mechanically verified. A reporting metric does not itself authorize running. If `reportedByMetricId` is present, include it in `experiment.metricIds`. An empty list means the workpiece stated no restriction, not that restrictions are enforced.
 
-Ground every proposal in the settled Ledger; disclose which choices are inference in `declarations`. The host resolves the current settled revision and verified canonical read from conversation history. Do not put a basis table, locator, hash, revision or observation tool-call ID in the draft input.
+Ground every proposal in the settled Ledger; disclose which choices are inference in `declarations`. The host requires the latest settled revision and canonical read from conversation history. Do not put a basis table, locator, hash, revision or observation tool-call ID in the draft input.
 
 ## The proposal and the tool
 
 When ready in integrated Brunch, where the draft tool is mounted, do two things in one turn, in this order:
 
 1. Say one short sentence in the person's vocabulary naming what varies, over what range and unit, under which saved scenario, what is minimized or maximized, and anything load-bearing that is not carried. In typology terms: "I have enough to test the tunable-count decision: vary the count from 3 to 9 units under the named regime and minimize the last-frame delay measure over the eight-unit horizon. The hard stock limit of 200 tokens is not enforced by the run; peak stock is reported beside the result." Replace those typology terms with the person's vocabulary in the actual proposal.
-2. In integrated Brunch, call `draft_petrinaut_experiment` once with `{ experiment, declarations, unsupported }`, where `experiment` is exactly the request shape above and every identifier (`scenarioId`, `metricIds`, `objectiveMetricId`, scenario parameter identifiers) is taken from the verified current canonical `getLatestNetDefinition` result. Do not compose identifiers from names.
+2. In integrated Brunch, call `draft_petrinaut_experiment` once with `{ experiment, declarations, unsupported }`, where `experiment` is exactly the request shape above and every identifier (`scenarioId`, `metricIds`, `objectiveMetricId`, scenario parameter identifiers) is taken from the current canonical `getLatestNetDefinition` result. Do not compose identifiers from names.
 
 The tool drafts a proposal in this editor's memory and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for review, not run", not "added to the model". The person runs a drafted proposal from the card's Run action. Canonical `createExperiment` remains available for Stock parity; call it directly only when the person explicitly requests immediate execution. Approval of a draft in conversation is not a request to execute it: point them to the card. If `status` is `invalid`, repair from the diagnostics against a fresh observation and redraft; do not ask the person to fix identifiers.
 
