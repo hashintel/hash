@@ -15,6 +15,11 @@ export const hitName = (transition: string): string => `hit_${transition}`;
 /** The external choice a controllable transition waits for. */
 export const choiceName = (transition: string): string => `go_${transition}`;
 
+/** The environment's pick a transition in a conflict waits for, under `conflicts: nondet`. */
+export const pickName = (transition: string): string => `pick_${transition}`;
+
+export const isPickName = (name: string): boolean => name.startsWith("pick_");
+
 /** A capped place's tokens if the step ended now. */
 export const fillName = (place: string): string => `fill_${place}`;
 

@@ -4,6 +4,7 @@ import {
   type PetriNetIrTransition,
   petriNetIrArcKind,
   petriNetIrArcWeight,
+  petriNetIrConflictingTransitions,
   petriNetIrInitialTokens,
   petriNetIrPlaceCapacity,
   type ResolvedZerothTarget,
@@ -64,6 +65,8 @@ export type PlannedTransition = {
   kernel: HirFunction | null;
   /** The model marks the firing as a controller's choice. */
   controllable: boolean;
+  /** Shares an input place with another transition. */
+  conflicting: boolean;
 };
 
 export type PlannedPlace = {
@@ -193,6 +196,7 @@ export const planStep = (
       };
     },
   );
+  const conflicting = petriNetIrConflictingTransitions(ir.transitions);
   const transitions: PlannedTransition[] = Object.entries(ir.transitions).map(
     ([name, transition]) => {
       const item = { kind: "transition" as const, id: name, name };
@@ -225,6 +229,7 @@ export const planStep = (
         guard: parsed(transition.guard, "lambda", parse, item, errors),
         kernel: parsed(transition.kernel, "kernel", parse, item, errors),
         controllable: transition.controllable === true,
+        conflicting: conflicting.has(name),
       };
     },
   );

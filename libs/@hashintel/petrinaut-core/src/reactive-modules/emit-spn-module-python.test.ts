@@ -140,6 +140,27 @@ net = compose(transition_T, place_P, hide={clk_T})
     );
   });
 
+  it("declares a pick as a Bool of one value, imported beside the SPN sorts", () => {
+    const python = emitSpnModulePython({
+      ...graph,
+      variables: [
+        ...graph.variables,
+        {
+          name: "pick_T",
+          sort: "bool",
+          role: "pick",
+          comment: "the environment lets T fire this step",
+        },
+      ],
+    });
+    expect(python).toContain(
+      "from zrth import SPN, Bool, Clock, Event, Nat, Var\n",
+    );
+    expect(python).toContain(
+      "ev_T = Var(Event())  # toggles when T fires\n\npick_T = Var(Bool([1, 1]))  # the environment lets T fire this step\n\n\nclass Transition_T(Module):",
+    );
+  });
+
   it("imports only the sorts and sugar names a graph uses, and writes an integer rate as a float", () => {
     const counter: SpnModuleGraph = {
       language: "spn",

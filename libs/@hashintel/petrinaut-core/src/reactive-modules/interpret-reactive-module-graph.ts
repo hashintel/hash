@@ -1,3 +1,4 @@
+import { isPickName } from "./lower-petri-net-ir";
 import {
   moduleAwaits,
   type ReactiveExpr,
@@ -12,7 +13,8 @@ import type { LoweredGraph } from "./lower-petri-net-ir";
  * module: every round, each module's `update` is evaluated once, in an
  * order where a module comes after the drivers of the variables it awaits,
  * and the next values are latched together at the end of the round. The
- * inputs are read from the harness each round.
+ * inputs are read from the harness each round; a pick the harness leaves
+ * undriven is true, the deterministic sweep.
  *
  * Used to check that two shapes of the same net produce the same trace;
  * a host could also run a graph with it where no `zrth` is available. An
@@ -33,8 +35,11 @@ export type ReactiveValue = number | boolean;
 
 export type InterpretReactiveModuleGraphOptions = {
   steps: number;
-  /** The value of an input for a round; rounds count from 1. */
-  inputs: (step: number, name: string) => ReactiveValue;
+  /**
+   * The value of an input for a round; rounds count from 1. `undefined`
+   * lets a pick fall to `true`; every other input needs a value.
+   */
+  inputs: (step: number, name: string) => ReactiveValue | undefined;
 };
 
 /** The variables' values after `init`, then after each round. */
@@ -235,7 +240,14 @@ export const interpretReactiveModuleGraph = (
     const nextValues = new Map<string, ReactiveValue>();
     const awaited = (name: string): ReactiveValue => {
       if (inputNames.has(name)) {
-        return inputs(step, name);
+        const value = inputs(step, name);
+        if (value !== undefined) {
+          return value;
+        }
+        if (isPickName(name)) {
+          return true;
+        }
+        throw new Error(`${name} has no value for round ${step}`);
       }
       const value = nextValues.get(name);
       if (value === undefined) {

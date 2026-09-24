@@ -24,13 +24,21 @@ import type {
  * Either as one file, or as one file per module plus `net.py`.
  */
 
-const SPN_SORTS: Record<SpnSort, string> = {
-  nat: "Nat",
-  clock: "Clock",
-  event: "Event",
+/** Each sort's constructor: the name imported from zrth, and the call that makes the sort. */
+const SPN_SORTS: Record<SpnSort, { name: string; call: string }> = {
+  nat: { name: "Nat", call: "Nat()" },
+  clock: { name: "Clock", call: "Clock()" },
+  event: { name: "Event", call: "Event()" },
+  bool: { name: "Bool", call: "Bool([1, 1])" },
 };
 
-const ROLE_ORDER: SpnVariable["role"][] = ["time", "place", "clock", "event"];
+const ROLE_ORDER: SpnVariable["role"][] = [
+  "time",
+  "place",
+  "clock",
+  "event",
+  "pick",
+];
 
 /** A Python float literal: an integer rate is written with `.0`. */
 const floatLiteral = (value: number): string =>
@@ -123,7 +131,9 @@ const sugarImport = (exprs: SpnExpr[]): string => {
 /** `from zrth import SPN, Clock, Event, Nat, Var`, the sorts the variables take. */
 const zrthImport = (variables: SpnVariable[]): string => {
   const sorts = new Set(variables.map((variable) => variable.sort));
-  const constructors = [...sorts].map((sort) => SPN_SORTS[sort]).toSorted();
+  const constructors = [...sorts]
+    .map((sort) => SPN_SORTS[sort].name)
+    .toSorted();
   return `from zrth import ${["SPN", ...constructors, "Var"].join(", ")}`;
 };
 
@@ -133,7 +143,7 @@ const declarations = (variables: SpnVariable[]): string[] => {
       .filter((variable) => variable.role === role)
       .map(
         (variable) =>
-          `${variable.name} = Var(${SPN_SORTS[variable.sort]}())${variable.comment === undefined ? "" : `  # ${variable.comment}`}`,
+          `${variable.name} = Var(${SPN_SORTS[variable.sort].call})${variable.comment === undefined ? "" : `  # ${variable.comment}`}`,
       ),
   ).filter((group) => group.length > 0);
   return groups.flatMap((group, index) =>

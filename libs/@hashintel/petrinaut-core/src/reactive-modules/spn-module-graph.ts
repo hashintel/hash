@@ -3,7 +3,9 @@
  * before the Python is written. It follows Zeroth's SPN theory, after its
  * own `birth_death.py`: a place is a Nat counter, a transition owns a Clock
  * armed with an exponential delay and an Event it toggles when it fires,
- * and every clock runs down against one external time reference.
+ * and every clock runs down against one external time reference. A
+ * transition in a conflict the flags leave open also reads a Bool pick that
+ * nothing drives.
  *
  * The expressions are the forms the theory's sugar accepts: a count is
  * tested against zero and stepped by one, a clock is tested against zero,
@@ -14,7 +16,7 @@
  * variable it drives. No interpreter runs this graph: time is continuous.
  */
 
-export type SpnSort = "nat" | "clock" | "event";
+export type SpnSort = "nat" | "clock" | "event" | "bool";
 
 export type SpnVariable = {
   name: string;
@@ -22,9 +24,11 @@ export type SpnVariable = {
   /**
    * `time`: the external reference every clock runs against. `place`: a
    * token count. `clock`: the time left until a transition fires, hidden in
-   * the system. `event`: what a transition toggles when it fires.
+   * the system. `event`: what a transition toggles when it fires. `pick`:
+   * the environment lets a transition in a conflict fire when its clock
+   * expires; external, and driven by nothing.
    */
-  role: "time" | "place" | "clock" | "event";
+  role: "time" | "place" | "clock" | "event" | "pick";
   comment?: string;
 };
 
