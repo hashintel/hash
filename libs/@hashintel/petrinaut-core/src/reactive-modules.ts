@@ -31,6 +31,7 @@ export {
   type ReactiveValue,
 } from "./reactive-modules/interpret-reactive-module-graph";
 export {
+  type LoweredGraph,
   type LowerPetriNetIrOptions,
   lowerPetriNetIr,
 } from "./reactive-modules/lower-petri-net-ir";

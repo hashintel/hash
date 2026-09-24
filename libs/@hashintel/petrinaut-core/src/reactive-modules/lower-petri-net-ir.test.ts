@@ -6,6 +6,7 @@ import {
   type ReactiveValue,
 } from "./interpret-reactive-module-graph";
 import { lowerPetriNetIr } from "./lower-petri-net-ir";
+import { birthDeathIr } from "./lower-petri-net-ir/lower-clocks.fixtures";
 import {
   type PetriNetIr,
   type PetriNetIrArcs,
@@ -174,15 +175,20 @@ const placesOnly = (
     Object.keys(ir.places).map((place) => [place, Number(values[place])]),
   );
 
-/** The graph of an IR the lowering accepts. */
+/** The linear graph of an IR the lowering accepts. */
 const lowerGraph = (ir: PetriNetIr) => {
   const outcome = lowerPetriNetIr(ir);
   if (!outcome.ok) {
     throw new Error(outcome.errors.map((error) => error.code).join(", "));
   }
+  if (outcome.graph.language === "spn") {
+    throw new Error("expected a graph in a linear theory");
+  }
   return outcome.graph;
 };
 
+// Clock rates are not among them: the interpreter models discrete rounds,
+// and an SPN graph runs its clocks in continuous time.
 const TARGETS: ZerothTarget[] = [
   {},
   { shape: "modular" },
@@ -258,6 +264,24 @@ describe("lowerPetriNetIr", () => {
       // Kahn's sort accepts it, as composition would.
       expect(orderReactiveModules(graph)).toHaveLength(graph.modules.length);
     }
+  });
+
+  it("refuses to interpret the clocks strategy", () => {
+    const outcome = lowerPetriNetIr(birthDeathIr);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+    expect(outcome.graph.language).toBe("spn");
+    expect(() => orderReactiveModules(outcome.graph)).toThrow(
+      /continuous time/u,
+    );
+    expect(() =>
+      interpretReactiveModuleGraph(outcome.graph, {
+        steps: 1,
+        inputs: () => 0,
+      }),
+    ).toThrow(/continuous time/u);
   });
 
   it("drives every place and flag from exactly one module", () => {

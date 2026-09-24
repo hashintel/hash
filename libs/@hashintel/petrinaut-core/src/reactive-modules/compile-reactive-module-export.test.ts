@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { birthDeath } from "../examples/birth-death";
 import { compileHirArtifacts } from "../hir/compile";
 import { compileReactiveModuleExport } from "./compile-reactive-module-export";
+import { birthDeathPython } from "./lower-petri-net-ir/lower-clocks.fixtures";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -44,12 +46,15 @@ const sdcpn: SDCPN = {
   ],
 };
 
-const lambdaHir = Object.fromEntries(
-  Object.entries(
-    compileHirArtifacts(sdcpn, undefined, { includeHir: true }).artifacts
-      .lambdas,
-  ).map(([id, artifact]) => [id, artifact.hir]),
-);
+const lambdaHirOf = (net: SDCPN) =>
+  Object.fromEntries(
+    Object.entries(
+      compileHirArtifacts(net, undefined, { includeHir: true }).artifacts
+        .lambdas,
+    ).map(([id, artifact]) => [id, artifact.hir]),
+  );
+
+const lambdaHir = lambdaHirOf(sdcpn);
 
 describe("compileReactiveModuleExport", () => {
   it("renders the IR and the module for a net that lowers", () => {
@@ -98,6 +103,35 @@ describe("compileReactiveModuleExport", () => {
     expect(result.python).toContain(
       "net = compose(draw_Arrive, transition_Arrive, place_Arrived)",
     );
+  });
+
+  it("compiles the birth-death example to the modules of Zeroth's birth_death.py under clock rates", () => {
+    const result = compileReactiveModuleExport({
+      sdcpn: birthDeath.petriNetDefinition,
+      title: birthDeath.title,
+      initialMarking: {},
+      parameterValues: { birth_rate: "2", death_rate: "1" },
+      lambdaHir: lambdaHirOf(birthDeath.petriNetDefinition),
+      zeroth: {
+        rates: "clock",
+        dt: 0.1,
+        marking: "int",
+        shape: "monolithic",
+        syntax: "update",
+      },
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    // The step flags do not apply under clocks, so the IR carries the rates alone.
+    expect(result.document?.zeroth).toEqual({ rates: "clock" });
+    expect(result.ir).toContain("\nzeroth:\n  rates: clock\n");
+    expect(result.python).toBe(
+      birthDeathPython.replace(
+        '"""birth_death: generated',
+        '"""birth_death_process: generated',
+      ),
+    );
+    expect(result.files?.map((file) => file.trace.length > 0)).toEqual([true]);
   });
 
   it("marks a transition controllable from its metadata", () => {

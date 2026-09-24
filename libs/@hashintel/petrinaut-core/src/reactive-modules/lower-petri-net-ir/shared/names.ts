@@ -113,3 +113,18 @@ export const nextName = (variable: string): string => `next_${variable}`;
 
 /** A produced token found no free slot, at some step. */
 export const overflowName = (place: string): string => `overflow_${place}`;
+
+/** The clock a transition owns under the clocks strategy: the time left until it fires. */
+export const clockName = (transition: string): string => `clk_${transition}`;
+
+/** The event a transition toggles when it fires. */
+export const eventName = (transition: string): string => `ev_${transition}`;
+
+/** A transition module's local: its clock ran out and its arcs allow it. */
+export const firesName = (transition: string): string => `fires_${transition}`;
+
+/** A place module's local: the transition's event toggled this step. */
+export const firedName = (transition: string): string => `fired_${transition}`;
+
+/** The external time reference every clock runs down against. */
+export const timeReference = "t";

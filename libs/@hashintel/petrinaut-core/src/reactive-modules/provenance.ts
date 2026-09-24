@@ -1,8 +1,8 @@
 import { describeName } from "./lower-petri-net-ir";
 import { petriNetIrArcKind, petriNetIrArcWeight } from "./petri-net-ir";
 
+import type { LoweredGraph } from "./lower-petri-net-ir";
 import type { PetriNetIr, PetriNetIrArc } from "./petri-net-ir";
-import type { ReactiveModuleGraph } from "./reactive-module-graph";
 
 /**
  * A line trace over the rendered IR and the generated Python: which lines
@@ -439,10 +439,11 @@ const METHOD_WHAT: Record<string, Provenance> = {
 
 /** Traces the generated Python: variables, modules, methods, statements and the system. */
 export const traceReactiveModulePython = (
-  graph: ReactiveModuleGraph,
+  graph: LoweredGraph,
   ir: PetriNetIr,
   text: string,
 ): Trace => {
+  const composed = graph.language === "spn" || graph.root.kind === "compose";
   const lines = text.split("\n");
   const trace: Trace = [];
   const variables = new Map(
@@ -612,10 +613,9 @@ export const traceReactiveModulePython = (
         endLine: number,
         provenance: {
           what: "The system",
-          why:
-            graph.root.kind === "compose"
-              ? "Every module composed: a variable one module drives is awaited by the others, in an order the awaits allow."
-              : "The one module, driving every place.",
+          why: composed
+            ? "Every module composed: a variable one module drives is awaited by the others, in an order the awaits allow."
+            : "The one module, driving every place.",
           source: { kind: "net", name: ir.name },
         },
       });

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { emitReactiveModulePython } from "./emit-reactive-module-python";
 import { renderPetriNetIr } from "./petri-net-ir";
 import { compilePetriNetIr } from "./petri-net-ir-to-reactive-module";
 import {
@@ -126,7 +125,7 @@ describe("traceReactiveModulePython", () => {
   if (!outcome.ok) {
     throw new Error("expected the queue to compile");
   }
-  const text = emitReactiveModulePython(outcome.graph);
+  const text = outcome.python;
   const trace = traceReactiveModulePython(outcome.graph, queue, text);
 
   it("describes variables, modules, methods, statements and the system", () => {
@@ -189,7 +188,7 @@ describe("traceReactiveModulePython", () => {
     if (!single.ok) {
       throw new Error("expected the monolithic queue to compile");
     }
-    const python = emitReactiveModulePython(single.graph);
+    const python = single.python;
     const singleTrace = traceReactiveModulePython(single.graph, queue, python);
     expect(provenanceAt(singleTrace, lineOf(python, "net = "))).toMatchObject({
       what: "The system",

@@ -5,6 +5,8 @@ import {
   type ReactiveModuleGraph,
 } from "./reactive-module-graph";
 
+import type { LoweredGraph } from "./lower-petri-net-ir";
+
 /**
  * Runs a reactive module graph the way Zeroth's evaluator runs a composed
  * module: every round, each module's `update` is evaluated once, in an
@@ -13,8 +15,19 @@ import {
  * inputs are read from the harness each round.
  *
  * Used to check that two shapes of the same net produce the same trace;
- * a host could also run a graph with it where no `zrth` is available.
+ * a host could also run a graph with it where no `zrth` is available. An
+ * SPN graph runs clocks in continuous time, which the rounds do not model,
+ * so it is refused.
  */
+
+const linearGraph = (graph: LoweredGraph): ReactiveModuleGraph => {
+  if (graph.language === "spn") {
+    throw new Error(
+      "an SPN graph runs clocks in continuous time, which the interpreter does not model; lower with rates: coin to interpret it",
+    );
+  }
+  return graph;
+};
 
 export type ReactiveValue = number | boolean;
 
@@ -62,8 +75,9 @@ const driversOf = (
  * which composition would reject too.
  */
 export const orderReactiveModules = (
-  graph: ReactiveModuleGraph,
+  lowered: LoweredGraph,
 ): ReactiveModuleDecl[] => {
+  const graph = linearGraph(lowered);
   const drivers = driversOf(graph);
   const inputs = new Set(
     graph.variables
@@ -194,9 +208,10 @@ const noAwait = (name: string): ReactiveValue => {
 };
 
 export const interpretReactiveModuleGraph = (
-  graph: ReactiveModuleGraph,
+  lowered: LoweredGraph,
   { steps, inputs }: InterpretReactiveModuleGraphOptions,
 ): ReactiveTrace => {
+  const graph = linearGraph(lowered);
   const ordered = orderReactiveModules(graph);
   const inputNames = new Set(
     graph.variables

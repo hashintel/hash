@@ -2,20 +2,30 @@ import {
   emitReactiveModuleFiles,
   emitReactiveModulePython,
 } from "./emit-reactive-module-python";
+import {
+  emitSpnModuleFiles,
+  emitSpnModulePython,
+} from "./emit-spn-module-python";
 import { lowerPetriNetIr } from "./lower-petri-net-ir";
 import { resolveZerothTarget, zerothTargetComposes } from "./petri-net-ir";
 
-import type { ReactiveModuleLayout } from "./emit-reactive-module-python";
-import type { LowerPetriNetIrOptions } from "./lower-petri-net-ir";
+import type {
+  ReactiveModuleLayout,
+  ReactiveModuleSyntax,
+} from "./emit-reactive-module-python";
+import type {
+  LoweredGraph,
+  LowerPetriNetIrOptions,
+} from "./lower-petri-net-ir";
 import type { PetriNetIr } from "./petri-net-ir";
-import type { ReactiveModuleGraph } from "./reactive-module-graph";
 import type { PetriNetIrDiagnostic } from "./sdcpn-to-petri-net-ir";
 import type { ReactiveModuleFile } from "./shared/python-layout";
 
 /**
  * The compiler from the Petri net IR to a Zeroth reactive module in Python:
  * the IR is lowered to a module graph in the shape its `zeroth` flags ask
- * for, and the graph is rendered over `zrth.sugar`.
+ * for, and the graph is rendered over `zrth.sugar` by the emitter of its
+ * language.
  */
 
 /**
@@ -57,7 +67,7 @@ export type PetriNetIrToReactiveModuleOptions = LowerPetriNetIrOptions;
 export type CompilePetriNetIrOutcome =
   | {
       ok: true;
-      graph: ReactiveModuleGraph;
+      graph: LoweredGraph;
       /** The main file: the whole module, or `net.py` under the per-module layout. */
       python: string;
       /** Every file, the main one first. One file under the single layout. */
@@ -73,6 +83,23 @@ export const reactiveModuleLayout = (
   return zerothTargetComposes(target) ? target.layout : "single";
 };
 
+/** The whole module as one program, whatever the layout says. */
+const emitProgram = (
+  graph: LoweredGraph,
+  syntax: ReactiveModuleSyntax,
+): string =>
+  graph.language === "spn"
+    ? emitSpnModulePython(graph)
+    : emitReactiveModulePython(graph, { syntax });
+
+const emitModuleFiles = (
+  graph: LoweredGraph,
+  syntax: ReactiveModuleSyntax,
+): ReactiveModuleFile[] =>
+  graph.language === "spn"
+    ? emitSpnModuleFiles(graph)
+    : emitReactiveModuleFiles(graph, { syntax });
+
 /** Lowers the IR and renders the module as Python, or says what stops it. */
 export const compilePetriNetIr = (
   ir: PetriNetIr,
@@ -83,16 +110,11 @@ export const compilePetriNetIr = (
     return lowered;
   }
   const layout = reactiveModuleLayout(ir);
-  const emit = { syntax: resolveZerothTarget(ir.zeroth).syntax };
+  const { syntax } = resolveZerothTarget(ir.zeroth);
   const files =
     layout === "single"
-      ? [
-          {
-            path: "net.py",
-            text: emitReactiveModulePython(lowered.graph, emit),
-          },
-        ]
-      : emitReactiveModuleFiles(lowered.graph, emit);
+      ? [{ path: "net.py", text: emitProgram(lowered.graph, syntax) }]
+      : emitModuleFiles(lowered.graph, syntax);
   const [main] = files;
   if (main === undefined) {
     throw new Error("the emitter produced no file");
@@ -117,7 +139,5 @@ export const petriNetIrToReactiveModule = (
         : `${first.item.kind} ${first.item.name}: ${first.message}`,
     );
   }
-  return emitReactiveModulePython(outcome.graph, {
-    syntax: resolveZerothTarget(ir.zeroth).syntax,
-  });
+  return emitProgram(outcome.graph, resolveZerothTarget(ir.zeroth).syntax);
 };
