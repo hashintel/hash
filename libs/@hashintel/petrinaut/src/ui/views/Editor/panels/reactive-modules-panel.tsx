@@ -1,4 +1,11 @@
-import { Suspense, use, useState } from "react";
+import {
+  Suspense,
+  use,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@hashintel/ds-components";
@@ -8,6 +15,7 @@ import { compileReactiveModuleExport } from "@hashintel/petrinaut-core/reactive-
 import { LanguageClientContext } from "../../../../react/lsp/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { HorizontalTabsHeader } from "../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { ExperimentalIcon } from "../../../experimental-icons";
 import { CodeEditor } from "../../../monaco/code-editor";
@@ -64,21 +72,51 @@ const VIEWER_OPTIONS: CodeEditorProps["options"] = {
   showFoldingControls: "always",
 };
 
+/** The AI assistant's placement transition, matched so the two move alike. */
+const PLACEMENT_TRANSITION_MS = 150;
+
+const prefersReducedMotion = () =>
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Reserves the docked width in the column, as the assistant's spacer does in
+// the row, so the width can transition while the window itself moves.
+const dockSpaceStyle = css({
+  width: "[min(var(--dock-width), 100cqw)]",
+  flexShrink: 0,
+  minWidth: "[0]",
+  maxWidth: "[100%]",
+  pointerEvents: "none",
+  '&[data-animating="true"]': {
+    transition: "[width 150ms ease-in-out]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+});
+
+// Always absolute, so a placement change is a move rather than a reflow.
+// Docked, it covers the column's spacer, whose right edge does not move as
+// the spacer widens. Floating, it positions against the workspace row: the
+// column is positioned only while a panel is docked in it.
 const shellStyle = cva({
   base: {
-    zIndex: "[calc(var(--z-index-sticky) + 2)]",
+    position: "absolute",
     pointerEvents: "auto",
+    // Passes over the docked panels while it moves between placements.
+    '&[data-animating="true"]': {
+      zIndex: "[calc(var(--z-index-sticky) + 3)]",
+    },
   },
   variants: {
     placement: {
-      // Positions against the workspace row: the dock column it renders in
-      // is not positioned. One layer above the docked panels, which share the
-      // base layer and come later in the row.
-      floating: {
-        position: "absolute",
-        zIndex: "[calc(var(--z-index-sticky) + 3)]",
+      // One layer above the docked panels, which come later in the row.
+      floating: { zIndex: "[calc(var(--z-index-sticky) + 3)]" },
+      docked: {
+        top: "[0]",
+        right: "[0]",
+        width: "[min(var(--dock-width), 100cqw)]",
+        height: "full",
+        zIndex: "[calc(var(--z-index-sticky) + 2)]",
       },
-      docked: { position: "relative", flexShrink: 0, height: "full" },
     },
   },
 });
@@ -91,15 +129,22 @@ const cardStyle = cva({
     height: "full",
     overflow: "hidden",
     backgroundColor: "neutral.s00",
+    borderLeft: "[1px solid {colors.neutral.s40}]",
+    '[data-animating="true"] > &': {
+      transition:
+        "[border-radius 150ms ease-in-out, box-shadow 150ms ease-in-out, border-color 150ms ease-in-out]",
+      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    },
   },
   variants: {
     placement: {
       floating: {
+        borderLeftColor: "[transparent]",
         borderRadius: "xl",
         boxShadow:
           "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
       },
-      docked: { borderLeft: "[1px solid {colors.neutral.s40}]" },
+      docked: {},
     },
   },
 });
@@ -295,6 +340,7 @@ export const ReactiveModulesPanel = ({
   const { initialMarking, parameterValues } = use(SimulationContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const container = useSideDockContainer();
+  const { showAnimations } = use(UserSettingsContext);
   const [activeTab, setActiveTab] = useState<TabId>("ir");
   // One grammar load per window: a failure fails this window once, and the
   // window mounted by the next show loads again.
@@ -312,6 +358,64 @@ export const ReactiveModulesPanel = ({
     initialPosition: "center",
     limits: PANEL_LIMITS,
   });
+  const spacerRef = useRef<HTMLDivElement | null>(null);
+  // The window's box before a placement change, for the move that follows.
+  const pendingMoveRef = useRef<{
+    from: ReactiveModulesPanelPlacement;
+    rect: DOMRect;
+  } | null>(null);
+
+  // Moves the window from where it was to where the new placement puts it,
+  // while the spacer's width and the card's edges transition alongside. A
+  // transform bridges the two containing blocks, which CSS cannot transition.
+  useLayoutEffect(() => {
+    const pending = pendingMoveRef.current;
+    pendingMoveRef.current = null;
+    const shell = panelRef.current;
+    const spacer = spacerRef.current;
+    if (
+      pending === null ||
+      pending.from === placement ||
+      !shell ||
+      !spacer ||
+      typeof shell.animate !== "function" ||
+      prefersReducedMotion()
+    ) {
+      return;
+    }
+    const to = shell.getBoundingClientRect();
+    shell.dataset.animating = "true";
+    spacer.dataset.animating = "true";
+    const settle = () => {
+      delete shell.dataset.animating;
+      delete spacer.dataset.animating;
+    };
+    const animation = shell.animate(
+      [
+        {
+          transformOrigin: "top left",
+          transform: `translate(${pending.rect.left - to.left}px, ${pending.rect.top - to.top}px)`,
+          width: `${pending.rect.width}px`,
+          height: `${pending.rect.height}px`,
+        },
+        {
+          transformOrigin: "top left",
+          transform: "none",
+          width: `${to.width}px`,
+          height: `${to.height}px`,
+        },
+      ],
+      { duration: PLACEMENT_TRANSITION_MS, easing: "ease-in-out" },
+    );
+    animation.addEventListener("finish", settle);
+    // A cancelled animation's events arrive later, after the next move has
+    // marked itself as animating, so the listener goes before the cancel.
+    return () => {
+      animation.removeEventListener("finish", settle);
+      animation.cancel();
+      settle();
+    };
+  }, [placement, panelRef]);
 
   const lambdaHir = useLambdaHir(
     petriNetDefinition,
@@ -347,141 +451,162 @@ export const ReactiveModulesPanel = ({
   const placementLabel = isFloating
     ? `Dock ${PANEL_LABEL}`
     : `Float ${PANEL_LABEL}`;
+  // The docked width, read by the spacer and the window through CSS.
+  const dockedStyle = { "--dock-width": `${width}px` } as CSSProperties;
+  const spacerStyle = {
+    "--dock-width": isFloating ? "0px" : `${width}px`,
+  } as CSSProperties;
+
+  const togglePlacement = () => {
+    const shell = panelRef.current;
+    pendingMoveRef.current =
+      showAnimations && shell
+        ? { from: placement, rect: shell.getBoundingClientRect() }
+        : null;
+    if (!isFloating) {
+      onPlacementChange("floating");
+      return;
+    }
+    onPlacementChange("docked");
+    if (width > DOCKED_MAX_WIDTH) {
+      onWidthChange(DOCKED_MAX_WIDTH);
+    }
+  };
 
   const panel = (
-    <aside
-      ref={panelRef}
-      role={isFloating ? "dialog" : undefined}
-      aria-label={PANEL_LABEL}
-      data-placement={placement}
-      className={shellStyle({ placement })}
-      style={isFloating ? floatingStyle : { width: `min(${width}px, 100cqw)` }}
-    >
-      {isFloating ? (
-        <FloatingResizeHandles
-          label={PANEL_LABEL}
-          getHandleProps={getResizeHandleProps}
-        />
-      ) : (
-        <div className={resizeAnchorStyle}>
-          <ResizeHandle
-            edge="left"
-            appearance="hidden"
-            size={width}
-            onResize={onWidthChange}
-            minSize={PANEL_LIMITS.minWidth}
-            maxSize={DOCKED_MAX_WIDTH}
-            label={`Resize ${PANEL_LABEL}`}
+    <>
+      <div
+        ref={spacerRef}
+        aria-hidden="true"
+        data-dock-space
+        className={dockSpaceStyle}
+        style={spacerStyle}
+      />
+      <aside
+        ref={panelRef}
+        role={isFloating ? "dialog" : undefined}
+        aria-label={PANEL_LABEL}
+        data-placement={placement}
+        className={shellStyle({ placement })}
+        style={isFloating ? floatingStyle : dockedStyle}
+      >
+        {isFloating ? (
+          <FloatingResizeHandles
+            label={PANEL_LABEL}
+            getHandleProps={getResizeHandleProps}
           />
-        </div>
-      )}
-      <div className={cardStyle({ placement })}>
-        <div className={headerStyle}>
-          <Title
-            type={isFloating ? "button" : undefined}
-            className={titleStyle({ draggable: isFloating })}
-            aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
-            title={
-              isFloating ? "Drag to move, or use the arrow keys" : undefined
-            }
-            {...(isFloating ? handleProps : {})}
+        ) : (
+          <div className={resizeAnchorStyle}>
+            <ResizeHandle
+              edge="left"
+              appearance="hidden"
+              size={width}
+              onResize={onWidthChange}
+              minSize={PANEL_LIMITS.minWidth}
+              maxSize={DOCKED_MAX_WIDTH}
+              label={`Resize ${PANEL_LABEL}`}
+            />
+          </div>
+        )}
+        <div className={cardStyle({ placement })}>
+          <div className={headerStyle}>
+            <Title
+              type={isFloating ? "button" : undefined}
+              className={titleStyle({ draggable: isFloating })}
+              aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
+              title={
+                isFloating ? "Drag to move, or use the arrow keys" : undefined
+              }
+              {...(isFloating ? handleProps : {})}
+            >
+              {PANEL_LABEL}
+            </Title>
+            <HorizontalTabsHeader
+              subViews={TABS}
+              activeTabId={activeTab}
+              onTabChange={(tabId) => setActiveTab(tabId as TabId)}
+            />
+            {status === null ? null : (
+              <span className={statusStyle} role="status">
+                {status}
+              </span>
+            )}
+            <Button
+              size="xs"
+              variant="ghost"
+              className={headerButtonStyle}
+              aria-label={placementLabel}
+              onClick={togglePlacement}
+              prefix={
+                <ExperimentalIcon
+                  name={isFloating ? "sidebar" : "externalLink"}
+                  size={14}
+                />
+              }
+              tooltip={placementLabel}
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              className={headerButtonStyle}
+              aria-label={`Close ${PANEL_LABEL}`}
+              onClick={onClose}
+              prefix={<ExperimentalIcon name="close" size={14} />}
+              tooltip="Close"
+            />
+          </div>
+          <div
+            className={bodyStyle}
+            role="tabpanel"
+            id={`tabpanel-${activeTab}`}
+            aria-labelledby={`tab-${activeTab}`}
           >
-            {PANEL_LABEL}
-          </Title>
-          <HorizontalTabsHeader
-            subViews={TABS}
-            activeTabId={activeTab}
-            onTabChange={(tabId) => setActiveTab(tabId as TabId)}
-          />
-          {status === null ? null : (
-            <span className={statusStyle} role="status">
-              {status}
-            </span>
-          )}
-          <Button
-            size="xs"
-            variant="ghost"
-            className={headerButtonStyle}
-            aria-label={placementLabel}
-            onClick={() => {
-              if (!isFloating) {
-                onPlacementChange("floating");
-                return;
-              }
-              onPlacementChange("docked");
-              if (width > DOCKED_MAX_WIDTH) {
-                onWidthChange(DOCKED_MAX_WIDTH);
-              }
-            }}
-            prefix={
-              <ExperimentalIcon
-                name={isFloating ? "sidebar" : "externalLink"}
-                size={14}
-              />
-            }
-            tooltip={placementLabel}
-          />
-          <Button
-            size="xs"
-            variant="ghost"
-            className={headerButtonStyle}
-            aria-label={`Close ${PANEL_LABEL}`}
-            onClick={onClose}
-            prefix={<ExperimentalIcon name="close" size={14} />}
-            tooltip="Close"
-          />
-        </div>
-        <div
-          className={bodyStyle}
-          role="tabpanel"
-          id={`tabpanel-${activeTab}`}
-          aria-labelledby={`tab-${activeTab}`}
-        >
-          {lambdaHir.status === "error" ? (
-            <div className={notesStyle}>
-              <p className={messageStyle}>
-                The net&apos;s code could not be compiled: {lambdaHir.error}
-              </p>
-            </div>
-          ) : result === null ? (
-            <div className={notesStyle}>
-              <p className={mutedStyle}>Compiling…</p>
-            </div>
-          ) : output === null ? (
-            <div className={notesStyle}>
-              <p className={messageStyle}>
-                This net cannot be compiled to a reactive module yet.
-              </p>
-              <DiagnosticList diagnostics={result.errors} />
-            </div>
-          ) : (
-            <>
-              <div className={editorBoxStyle}>
-                <Suspense
-                  fallback={
-                    <div className={notesStyle}>
-                      <p className={mutedStyle}>Loading editor…</p>
-                    </div>
-                  }
-                >
-                  <ExportViewer
-                    languages={languages}
-                    tab={activeTab}
-                    value={output}
-                  />
-                </Suspense>
+            {lambdaHir.status === "error" ? (
+              <div className={notesStyle}>
+                <p className={messageStyle}>
+                  The net&apos;s code could not be compiled: {lambdaHir.error}
+                </p>
               </div>
-              {result.warnings.length > 0 ? (
-                <div className={footerStyle}>
-                  <p className={mutedStyle}>Left out of the net:</p>
-                  <DiagnosticList diagnostics={result.warnings} />
+            ) : result === null ? (
+              <div className={notesStyle}>
+                <p className={mutedStyle}>Compiling…</p>
+              </div>
+            ) : output === null ? (
+              <div className={notesStyle}>
+                <p className={messageStyle}>
+                  This net cannot be compiled to a reactive module yet.
+                </p>
+                <DiagnosticList diagnostics={result.errors} />
+              </div>
+            ) : (
+              <>
+                <div className={editorBoxStyle}>
+                  <Suspense
+                    fallback={
+                      <div className={notesStyle}>
+                        <p className={mutedStyle}>Loading editor…</p>
+                      </div>
+                    }
+                  >
+                    <ExportViewer
+                      languages={languages}
+                      tab={activeTab}
+                      value={output}
+                    />
+                  </Suspense>
                 </div>
-              ) : null}
-            </>
-          )}
+                {result.warnings.length > 0 ? (
+                  <div className={footerStyle}>
+                    <p className={mutedStyle}>Left out of the net:</p>
+                    <DiagnosticList diagnostics={result.warnings} />
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 
   return container === undefined ? panel : createPortal(panel, container);

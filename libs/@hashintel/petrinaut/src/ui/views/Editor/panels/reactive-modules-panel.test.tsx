@@ -1,5 +1,11 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -51,6 +57,33 @@ const renderPanel = (
   return { onPlacementChange, onWidthChange };
 };
 
+const dockSpace = () => {
+  const spacer = document.querySelector<HTMLElement>("[data-dock-space]");
+  if (spacer === null) {
+    throw new Error("The dock spacer is not rendered.");
+  }
+  return spacer;
+};
+
+/** A docked panel in a dock, owning its placement like the plugin does. */
+const Toggling = () => {
+  const [placement, setPlacement] =
+    useState<ReactiveModulesPanelPlacement>("docked");
+  return (
+    <SideDockProvider>
+      <main>Workspace</main>
+      <SideDockColumn />
+      <ReactiveModulesPanel
+        onClose={() => {}}
+        placement={placement}
+        onPlacementChange={setPlacement}
+        width={560}
+        onWidthChange={() => {}}
+      />
+    </SideDockProvider>
+  );
+};
+
 describe("ReactiveModulesPanel", () => {
   test("floats as a movable dialog that docks from its title bar", () => {
     const { onPlacementChange } = renderPanel("floating");
@@ -78,24 +111,75 @@ describe("ReactiveModulesPanel", () => {
     expect(onWidthChange).toHaveBeenCalledWith(720);
   });
 
-  test("keeps the same element across a placement toggle", () => {
-    const Toggling = () => {
-      const [placement, setPlacement] =
-        useState<ReactiveModulesPanelPlacement>("docked");
-      return (
-        <SideDockProvider>
-          <main>Workspace</main>
-          <SideDockColumn />
-          <ReactiveModulesPanel
-            onClose={() => {}}
-            placement={placement}
-            onPlacementChange={setPlacement}
-            width={560}
-            onWidthChange={() => {}}
-          />
-        </SideDockProvider>
-      );
+  test("reserves the docked width with a spacer and none while floating", () => {
+    render(<Toggling />);
+    const spacer = dockSpace();
+    expect(spacer.style.getPropertyValue("--dock-width")).toBe("560px");
+    expect(spacer.nextElementSibling).toBe(
+      screen.getByLabelText("Zeroth Reactive Modules"),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Float Zeroth Reactive Modules" }),
+    );
+    expect(spacer.style.getPropertyValue("--dock-width")).toBe("0px");
+  });
+
+  test("moves the window between placements and settles the transition", () => {
+    const listeners = new Map<string, () => void>();
+    const animation = {
+      addEventListener: (type: string, listener: () => void) => {
+        listeners.set(type, listener);
+      },
+      removeEventListener: (type: string) => {
+        listeners.delete(type);
+      },
+      cancel: vi.fn(),
     };
+    const animate = vi.fn(() => animation);
+    Object.defineProperty(HTMLElement.prototype, "animate", {
+      configurable: true,
+      value: animate,
+    });
+    try {
+      render(<Toggling />);
+      const panel = screen.getByLabelText("Zeroth Reactive Modules");
+      const spacer = dockSpace();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Float Zeroth Reactive Modules" }),
+      );
+      expect(animate).toHaveBeenCalledTimes(1);
+      const [keyframes, options] = animate.mock.calls[0] as unknown as [
+        Keyframe[],
+        KeyframeAnimationOptions,
+      ];
+      expect(keyframes).toHaveLength(2);
+      expect(keyframes[1]?.transform).toBe("none");
+      expect(options).toEqual({ duration: 150, easing: "ease-in-out" });
+      expect(panel.getAttribute("data-animating")).toBe("true");
+      expect(spacer.getAttribute("data-animating")).toBe("true");
+      act(() => listeners.get("finish")?.());
+      expect(panel.hasAttribute("data-animating")).toBe(false);
+      expect(spacer.hasAttribute("data-animating")).toBe(false);
+
+      // A second move while the first still runs cancels it and detaches its
+      // listener, so the stale animation cannot settle the new move.
+      fireEvent.click(
+        screen.getByRole("button", { name: "Dock Zeroth Reactive Modules" }),
+      );
+      const settleFirst = listeners.get("finish");
+      const cancelsBefore = animation.cancel.mock.calls.length;
+      fireEvent.click(
+        screen.getByRole("button", { name: "Float Zeroth Reactive Modules" }),
+      );
+      expect(animation.cancel.mock.calls.length).toBe(cancelsBefore + 1);
+      expect(listeners.get("finish")).not.toBe(settleFirst);
+      expect(panel.getAttribute("data-animating")).toBe("true");
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, "animate");
+    }
+  });
+
+  test("keeps the same element across a placement toggle", () => {
     render(<Toggling />);
     const docked = screen.getByLabelText("Zeroth Reactive Modules");
     fireEvent.click(

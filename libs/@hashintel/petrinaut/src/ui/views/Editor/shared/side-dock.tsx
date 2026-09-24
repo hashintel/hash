@@ -22,15 +22,17 @@ export const SideDockProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Not positioned: a panel floating out of the column positions against the
-// workspace row, the column's containing block, while a docked panel is laid
-// out in the column and gives it its width.
+// A docked panel reserves the column's width with an in-flow spacer and lays
+// its window over it, so the column is positioned only while one is docked.
+// Otherwise a floating window positions against the workspace row, the
+// column's containing block.
 const columnStyle = css({
   display: "flex",
   flexShrink: 0,
   minWidth: "[0]",
   minHeight: "[0]",
   height: "full",
+  '&:has([data-placement="docked"])': { position: "relative" },
 });
 
 /**
