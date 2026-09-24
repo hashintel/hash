@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
+import { brunchHeaders } from "@hashintel/brunch-agent";
 import { parseWorkedModelNetProjectionDefinitionUpdate } from "@hashintel/brunch-agent-plugin-sdcpn/worked-model";
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import type { WorkedModelStore } from "../worked-model-store.ts";
 
@@ -19,7 +19,7 @@ export const createWorkedModelNetProjectionRouter = (
 
   router.get("/bundles/:bundleKey", async (context) => {
     const principalKey = principalFrom(
-      context.req.header(BRUNCH_PRINCIPAL_HEADER),
+      context.req.header(brunchHeaders.principal),
     );
     if (principalKey === undefined)
       return context.json({ error: "unauthorized" }, 401);
@@ -38,7 +38,7 @@ export const createWorkedModelNetProjectionRouter = (
   // Compatibility path: "copies" currently creates only a fresh net projection.
   router.post("/bundles/:bundleKey/copies", async (context) => {
     const principalKey = principalFrom(
-      context.req.header(BRUNCH_PRINCIPAL_HEADER),
+      context.req.header(brunchHeaders.principal),
     );
     if (principalKey === undefined)
       return context.json({ error: "unauthorized" }, 401);
@@ -57,7 +57,7 @@ export const createWorkedModelNetProjectionRouter = (
   // Compatibility path: "copies" currently updates only projection net state.
   router.put("/copies/:copyId/definition", async (context) => {
     const principalKey = principalFrom(
-      context.req.header(BRUNCH_PRINCIPAL_HEADER),
+      context.req.header(brunchHeaders.principal),
     );
     if (principalKey === undefined)
       return context.json({ error: "unauthorized" }, 401);

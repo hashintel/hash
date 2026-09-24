@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
   definePetrinautAiInteractiveTool,
@@ -258,7 +258,7 @@ test("projects typed, Voice-tool, and stopped fixture history after remount", as
           ],
           purpose: "dispatch",
           role: "system",
-          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          signal: { tagName: brunchSignals.clientToolResult },
         },
       ],
       settlements: [{ outcome: "completed", submissionId: "voice-submission" }],

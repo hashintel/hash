@@ -30,6 +30,7 @@ export default defineConfig({
         "client-tools": fileURLToPath(
           new URL("src/client-tools.ts", import.meta.url),
         ),
+        constants: fileURLToPath(new URL("src/constants.ts", import.meta.url)),
         flue: fileURLToPath(new URL("src/flue.ts", import.meta.url)),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
         workpiece: fileURLToPath(new URL("src/workpiece.ts", import.meta.url)),

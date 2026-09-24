@@ -12,9 +12,9 @@ import {
 
 import elicitationSkill from "@hashintel/brunch-agent/skills/elicitation/SKILL.md";
 
+import { brunchStateKeys } from "./constants";
 import systemPrompt from "./prompts/SYSTEM.md?raw";
 import {
-  workpieceRevisionStateKey,
   type WorkpieceEvidenceServices,
   type WorkpieceRevision,
 } from "./workpiece";
@@ -47,7 +47,7 @@ export function useBrunchAgent(
   useModel(model, options);
   useSkill(elicitationSkill);
   const [revision, setRevision] = usePersistentState<WorkpieceRevision | null>(
-    workpieceRevisionStateKey,
+    brunchStateKeys.workpieceRevision,
     null,
   );
   useTool(

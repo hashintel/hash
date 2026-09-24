@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { Pool } from "pg";
 import { describe, expect, test } from "vitest";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
 import { createWorkedModelNetProjectionRouter } from "../src/http/worked-models.ts";
 import { createPostgresRunnerFromPool } from "../src/postgres.ts";
@@ -194,7 +194,7 @@ describe("complete worked-model bundle copy acceptance debt", () => {
         new Request(
           "http://brunch.test/api/worked-models/bundles/inventory-purchasing",
           {
-            headers: { [BRUNCH_PRINCIPAL_HEADER]: "principal-a" },
+            headers: { [brunchHeaders.principal]: "principal-a" },
           },
         ),
       );

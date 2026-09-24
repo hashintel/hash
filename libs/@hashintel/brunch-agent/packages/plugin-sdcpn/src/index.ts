@@ -5,16 +5,11 @@ export {
   type ClientToolResultMetadata,
 } from "./browser-metadata";
 export {
-  INTEGRATED_BRUNCH_MODE,
-  STOCK_OVER_FLUE_MODE,
   isIntegratedPetrinautMode,
   type CanonicalPetrinautMode,
   type IntegratedPetrinautMode,
 } from "./construction-mode";
-export {
-  CANONICAL_PETRINAUT_TOOL_NAMES,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-} from "./construction-tool-names";
+export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./construction-tool-names";
 export {
   sdcpnInitialDataSchema,
   type BrowserContext,
@@ -23,7 +18,6 @@ export {
 export {
   draftPetrinautExperimentInputSchema,
   draftPetrinautExperimentOutputSchema,
-  draftPetrinautExperimentToolName,
   isDraftPetrinautExperimentToolName,
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,

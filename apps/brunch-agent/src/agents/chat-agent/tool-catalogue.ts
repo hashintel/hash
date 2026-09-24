@@ -1,9 +1,5 @@
-import {
-  INTEGRATED_BRUNCH_MODE,
-  draftPetrinautExperimentToolName,
-  STOCK_OVER_FLUE_MODE,
-  type CanonicalPetrinautMode,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
+import { type CanonicalPetrinautMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautAiTools,
   type PetrinautAiToolName,
@@ -116,7 +112,7 @@ export const canonicalPetrinautToolCatalogue = Object.keys(
 );
 
 const draftBrunchTool: BrunchToolCatalogueEntry = {
-  name: draftPetrinautExperimentToolName,
+  name: brunchTools.draftPetrinautExperiment,
   definitionOwner: "sdcpn-plugin",
   executionOwner: "petrinaut-website",
   capability: "petrinaut-experiment-draft",
@@ -130,37 +126,37 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
     capability: "substrate",
   },
   {
-    name: "activate_skill",
+    name: brunchTools.activateSkill,
     definitionOwner: "flue",
     executionOwner: "flue",
     capability: "substrate",
   },
   {
-    name: "read_skill_resource",
+    name: brunchTools.readSkillResource,
     definitionOwner: "flue",
     executionOwner: "flue",
     capability: "substrate",
   },
   {
-    name: "mutate_workpiece",
+    name: brunchTools.mutateWorkpiece,
     definitionOwner: "brunch-core",
     executionOwner: "brunch-app",
     capability: "ledger",
   },
   {
-    name: "read_workpiece",
+    name: brunchTools.readWorkpiece,
     definitionOwner: "brunch-core",
     executionOwner: "brunch-app",
     capability: "ledger",
   },
   {
-    name: "query_workpiece",
+    name: brunchTools.queryWorkpiece,
     definitionOwner: "brunch-app",
     executionOwner: "brunch-app",
     capability: "explanation",
   },
   {
-    name: "ping",
+    name: brunchTools.ping,
     definitionOwner: "brunch-app",
     executionOwner: "brunch-app",
     capability: "diagnostic",
@@ -176,6 +172,6 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
 export const toolCatalogueByMode: Readonly<
   Record<CanonicalPetrinautMode, readonly BrunchToolCatalogueEntry[]>
 > = {
-  [STOCK_OVER_FLUE_MODE]: canonicalPetrinautToolCatalogue,
-  [INTEGRATED_BRUNCH_MODE]: integratedBrunchTools,
+  [brunchModes.stockOverFlue]: canonicalPetrinautToolCatalogue,
+  [brunchModes.integrated]: integratedBrunchTools,
 };

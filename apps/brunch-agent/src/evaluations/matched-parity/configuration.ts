@@ -2,6 +2,8 @@ import { resolve } from "node:path";
 
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 
+import { brunchEnv } from "@hashintel/brunch-agent";
+
 export const matchedParityReasoning = "medium" as const;
 export const matchedParityArms = ["S", "F", "I"] as const;
 export type EvaluationArm = (typeof matchedParityArms)[number];
@@ -65,8 +67,8 @@ export const resolveMatchedParityConfiguration = (
   } = {},
 ): MatchedParityConfiguration => {
   const stockModel = required(environment, "PETRINAUT_AI_MODEL");
-  const brunchModel = required(environment, "BRUNCH_CHAT_MODEL");
-  const brunchThinking = required(environment, "BRUNCH_CHAT_THINKING");
+  const brunchModel = required(environment, brunchEnv.chatModel);
+  const brunchThinking = required(environment, brunchEnv.chatThinking);
   const expectedBrunchModel = `openai/${stockModel}`;
   if (brunchModel !== expectedBrunchModel)
     throw new Error(
@@ -153,12 +155,12 @@ export const evaluationEnvironment = (
   const environment: NodeJS.ProcessEnv = {
     ...base,
     PETRINAUT_AI_MODEL: configuration.stock.model,
-    BRUNCH_CHAT_MODEL: configuration.brunch.model,
-    BRUNCH_CHAT_THINKING: configuration.brunch.reasoning,
-    VITE_BRUNCH_CHAT_ENDPOINT: "/agents/chat",
+    [brunchEnv.chatModel]: configuration.brunch.model,
+    [brunchEnv.chatThinking]: configuration.brunch.reasoning,
+    [brunchEnv.viteChatEndpoint]: "/agents/chat",
     VITE_PETRINAUT_DEFAULT_ASSISTANT: configuration.arms[arm].assistant,
   };
-  if (websiteMode === null) delete environment.VITE_BRUNCH_EVALUATION_MODE;
-  else environment.VITE_BRUNCH_EVALUATION_MODE = websiteMode;
+  if (websiteMode === null) delete environment[brunchEnv.viteEvaluationMode];
+  else environment[brunchEnv.viteEvaluationMode] = websiteMode;
   return environment;
 };

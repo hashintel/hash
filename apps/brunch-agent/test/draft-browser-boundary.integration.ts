@@ -13,7 +13,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes } from "@hashintel/brunch-agent";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
@@ -173,7 +173,7 @@ try {
     };
   };
   assert.equal(firstRequest.kind, "user");
-  assert.equal(firstRequest.initialData.mode, INTEGRATED_BRUNCH_MODE);
+  assert.equal(firstRequest.initialData.mode, brunchModes.integrated);
   const binding = firstRequest.initialData.construction.binding;
   assert.equal(binding.documentId, "draft-net");
   assert.equal(binding.incarnationId, "draft-incarnation");

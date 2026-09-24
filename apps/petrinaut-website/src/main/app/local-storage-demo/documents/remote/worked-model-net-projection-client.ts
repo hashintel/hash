@@ -3,7 +3,7 @@ import {
   type WorkedModelNetProjection,
   type WorkedModelNetProjectionDefinitionUpdate,
 } from "@hashintel/brunch-agent-plugin-sdcpn/worked-model";
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders, brunchRoutes } from "@hashintel/brunch-agent/constants";
 
 export { parseWorkedModelNetProjection, type WorkedModelNetProjection };
 
@@ -12,7 +12,7 @@ export const workedModelApiUrl = (
   currentOrigin: string,
 ): URL => {
   const url = new URL(chatEndpoint, currentOrigin);
-  url.pathname = "/api/worked-models";
+  url.pathname = brunchRoutes.workedModels;
   url.search = "";
   url.hash = "";
   return url;
@@ -34,7 +34,7 @@ const netProjectionRequest = async (
   const response = await fetcher(url, {
     method: input.method ?? "GET",
     headers: {
-      [BRUNCH_PRINCIPAL_HEADER]: input.principalKey,
+      [brunchHeaders.principal]: input.principalKey,
       ...(input.body === undefined
         ? {}
         : { "content-type": "application/json" }),

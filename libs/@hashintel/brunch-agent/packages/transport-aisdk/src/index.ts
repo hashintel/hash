@@ -34,10 +34,8 @@ export {
   type ClientToolHistoryMessage,
   type ClientToolHistoryResult,
 } from "./client-tool-history";
-export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
 export {
   CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
-  CLIENT_TOOL_RESULT_SIGNAL,
   clientToolResultSignal,
   isClientToolResult,
   isClientToolResultDelivery,

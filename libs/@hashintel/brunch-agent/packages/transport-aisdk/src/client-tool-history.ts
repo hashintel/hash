@@ -1,5 +1,6 @@
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
+
 import {
-  CLIENT_TOOL_RESULT_SIGNAL,
   parseClientToolResults,
   type ClientToolResult,
 } from "./client-tool-result";
@@ -54,7 +55,7 @@ const resultsFrom = (
   messages: readonly ClientToolHistoryMessage[],
 ): readonly ClientToolHistoryResult[] =>
   messages.flatMap((message) => {
-    if (message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL) {
+    if (message.signal?.tagName !== brunchSignals.clientToolResult) {
       return message.parts.flatMap((part): ClientToolHistoryResult[] => {
         if (
           part.type !== "dynamic-tool" ||

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 
 import { expect, test } from "vitest";
 
-import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchSignals } from "@hashintel/brunch-agent";
 
 import {
   createBrunchContextProjection,
@@ -512,7 +512,7 @@ test("leaves fake and malformed signals unprojected", () => {
         content: [
           {
             type: "text",
-            text: `<${CLIENT_TOOL_RESULT_SIGNAL}>fake</${CLIENT_TOOL_RESULT_SIGNAL}>`,
+            text: `<${brunchSignals.clientToolResult}>fake</${brunchSignals.clientToolResult}>`,
           },
         ],
       },
@@ -521,8 +521,8 @@ test("leaves fake and malformed signals unprojected", () => {
       id: "malformed",
       message: {
         role: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        type: brunchSignals.clientToolResult,
+        tagName: brunchSignals.clientToolResult,
         content: "{",
       },
     },
@@ -530,8 +530,8 @@ test("leaves fake and malformed signals unprojected", () => {
       id: "non-array",
       message: {
         role: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        type: brunchSignals.clientToolResult,
+        tagName: brunchSignals.clientToolResult,
         content: JSON.stringify({
           toolCallId: "not-an-array-member",
           toolName: "future_tool",

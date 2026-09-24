@@ -1,7 +1,6 @@
-import type { DeliveredMessage } from "@flue/sdk";
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
 
-/** Signal type and tag under which completed browser results return to the agent. */
-export const CLIENT_TOOL_RESULT_SIGNAL = "client-tool-result";
+import type { DeliveredMessage } from "@flue/sdk";
 
 /** Keep transient model context comfortably below Flue's delivered-message limit. */
 export const CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH = 32_000;
@@ -107,8 +106,8 @@ export const isClientToolResultDelivery = (
   delivery: DeliveredMessage,
 ): delivery is Extract<DeliveredMessage, { kind: "signal" }> =>
   delivery.kind === "signal" &&
-  delivery.type === CLIENT_TOOL_RESULT_SIGNAL &&
-  delivery.tagName === CLIENT_TOOL_RESULT_SIGNAL;
+  delivery.type === brunchSignals.clientToolResult &&
+  delivery.tagName === brunchSignals.clientToolResult;
 
 /** The signal that carries completed client-tool results back into the conversation. */
 export const clientToolResultSignal = (
@@ -123,8 +122,8 @@ export const clientToolResultSignal = (
     .map(({ toolCallId }) => toolCallId);
   return {
     kind: "signal",
-    type: CLIENT_TOOL_RESULT_SIGNAL,
-    tagName: CLIENT_TOOL_RESULT_SIGNAL,
+    type: brunchSignals.clientToolResult,
+    tagName: brunchSignals.clientToolResult,
     body: JSON.stringify(
       context === undefined ? results : { results, context },
     ),

@@ -2,10 +2,11 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, test, vi } from "vitest";
 
+import { brunchTools } from "@hashintel/brunch-agent/constants";
+
 import {
   draftPetrinautExperimentInputSchema,
   draftPetrinautExperimentOutputSchema,
-  draftPetrinautExperimentToolName,
   isDraftPetrinautExperimentToolName,
 } from "../src/draft-experiment";
 import { createDraftExperimentTool } from "../src/tools/draft-experiment";
@@ -72,7 +73,9 @@ const withExperiment = (
 
 describe("draft_petrinaut_experiment input schema", () => {
   test("names the tool", () => {
-    expect(draftPetrinautExperimentToolName).toBe("draft_petrinaut_experiment");
+    expect(brunchTools.draftPetrinautExperiment).toBe(
+      "draft_petrinaut_experiment",
+    );
     expect(
       isDraftPetrinautExperimentToolName("draft_petrinaut_experiment"),
     ).toBe(true);

@@ -1,16 +1,17 @@
+import { type CanonicalPetrinautMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
-  INTEGRATED_BRUNCH_MODE,
-  STOCK_OVER_FLUE_MODE,
-  type CanonicalPetrinautMode,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+  brunchEnv,
+  brunchModes,
+  previewConversationIdPrefix,
+} from "@hashintel/brunch-agent/constants";
 
 export type BrunchEvaluationMode = "F" | "I";
 
 const evaluationModes: Readonly<
   Record<BrunchEvaluationMode, CanonicalPetrinautMode>
 > = {
-  F: STOCK_OVER_FLUE_MODE,
-  I: INTEGRATED_BRUNCH_MODE,
+  F: brunchModes.stockOverFlue,
+  I: brunchModes.integrated,
 };
 
 /** Build-time-only evaluation selection. Blank defaults to I; invalid labels fail. */
@@ -21,7 +22,7 @@ export const parseBrunchEvaluationMode = (
   if (candidate === undefined || candidate === "") return "I";
   if (candidate === "F" || candidate === "I") return candidate;
   throw new Error(
-    `Invalid VITE_BRUNCH_EVALUATION_MODE ${JSON.stringify(value)}; expected F or I.`,
+    `Invalid ${brunchEnv.viteEvaluationMode} ${JSON.stringify(value)}; expected F or I.`,
   );
 };
 
@@ -40,4 +41,4 @@ export const resolveBrunchPreviewConfig = (
 };
 
 export const createBrunchPreviewConversationId = (netId: string): string =>
-  `petrinaut-preview:${netId}`;
+  `${previewConversationIdPrefix}${netId}`;

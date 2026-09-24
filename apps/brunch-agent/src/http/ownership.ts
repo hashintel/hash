@@ -1,8 +1,5 @@
 /** Hono middleware for the mounted Flue conversation route. */
-import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
 import { ownsFlueInstance } from "../conversation/identity.ts";
 
@@ -11,9 +8,9 @@ import type { MiddlewareHandler } from "hono";
 export const agentOwnershipGuard =
   (mountPrefix: string, _agentName: string): MiddlewareHandler =>
   async (context, next) => {
-    const principalKey = context.req.header(BRUNCH_PRINCIPAL_HEADER)?.trim();
+    const principalKey = context.req.header(brunchHeaders.principal)?.trim();
     const conversationId = context.req
-      .header(BRUNCH_CONVERSATION_HEADER)
+      .header(brunchHeaders.conversation)
       ?.trim();
     if (!principalKey || !conversationId)
       return context.json({ error: "unauthorized" }, 401);

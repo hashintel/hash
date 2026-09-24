@@ -12,7 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { STOCK_OVER_FLUE_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes } from "@hashintel/brunch-agent";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -106,7 +106,7 @@ try {
     };
   } | null;
   assert.equal(first?.kind, "user");
-  assert.equal(first.initialData?.mode, STOCK_OVER_FLUE_MODE);
+  assert.equal(first.initialData?.mode, brunchModes.stockOverFlue);
   const binding = first.initialData.construction?.binding;
   assert(binding, "Missing actual F-mode browser conversation binding");
   const principalKey = await page.evaluate(() => {

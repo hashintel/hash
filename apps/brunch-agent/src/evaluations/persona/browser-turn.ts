@@ -9,14 +9,11 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
+import { brunchHeaders } from "@hashintel/brunch-agent";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { isAwaitingClient } from "../../conversation/client-tools.ts";
-import {
-  agentOwnershipHeaders,
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "../../conversation/identity.ts";
+import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 
 import type { Page, Response as BrowserResponse } from "@playwright/test";
 
@@ -141,8 +138,8 @@ export const submitPersonaBrowserTurn = async (
         request.kind === "user",
       "Persona utterance must be a user submission",
     );
-    const principalKey = headers[BRUNCH_PRINCIPAL_HEADER];
-    const conversationId = headers[BRUNCH_CONVERSATION_HEADER];
+    const principalKey = headers[brunchHeaders.principal];
+    const conversationId = headers[brunchHeaders.conversation];
     assert(principalKey && conversationId && admission.uid);
     const session: PersonaBrowserSession = {
       url: first.url(),

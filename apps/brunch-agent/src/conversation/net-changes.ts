@@ -1,4 +1,4 @@
-import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 import { parseClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -167,7 +167,7 @@ export const latestSettledWorkpieceBefore = (
   for (const part of parts.toReversed()) {
     if (
       part.type !== "dynamic-tool" ||
-      part.toolName !== MUTATE_WORKPIECE_TOOL_NAME ||
+      part.toolName !== brunchTools.mutateWorkpiece ||
       part.state !== "output-available"
     )
       continue;

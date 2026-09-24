@@ -1,16 +1,15 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes, brunchRoutes } from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
-import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
-const mount = `/agents/${CHAT_AGENT_ROUTE}`;
+const mount = `/agents/${brunchRoutes.chatAgent}`;
 const app = new Hono();
 app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
 app.all(`${mount}/*`, (context) => context.text("admitted"));
@@ -53,7 +52,7 @@ test("an I document binding cannot name another conversation", async () => {
       },
       body: JSON.stringify({
         initialData: {
-          mode: INTEGRATED_BRUNCH_MODE,
+          mode: brunchModes.integrated,
           construction: {
             binding: {
               conversationId: "another",

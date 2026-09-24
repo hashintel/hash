@@ -4,12 +4,10 @@ import { basename, dirname, join } from "node:path";
 
 import { type FlueConversationSnapshot } from "@flue/sdk";
 
-import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
+import { brunchTools, runbookIrFence } from "@hashintel/brunch-agent";
 
 import {
-  ACTIVATE_SKILL_TOOL_NAME,
   isAwaitingClient,
-  READ_SKILL_RESOURCE_TOOL_NAME,
   type DynamicToolPart,
 } from "../../conversation/client-tools.ts";
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
@@ -153,7 +151,7 @@ export const deriveProofTrace = (
       }
       if (part.type !== "dynamic-tool") continue;
 
-      if (part.toolName === ACTIVATE_SKILL_TOOL_NAME) {
+      if (part.toolName === brunchTools.activateSkill) {
         append({
           type: "activate",
           turn,
@@ -164,7 +162,7 @@ export const deriveProofTrace = (
         });
         continue;
       }
-      if (part.toolName === READ_SKILL_RESOURCE_TOOL_NAME) {
+      if (part.toolName === brunchTools.readSkillResource) {
         const path = stringInputField(part, "path");
         append({
           type: "read",

@@ -2,16 +2,19 @@ import {
   canonicalContent,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const workpieceMutationToolNames: ReadonlySet<string> = new Set([
-  "mutate_workpiece",
+  brunchTools.mutateWorkpiece,
 ]);
-const workpieceReadToolNames: ReadonlySet<string> = new Set(["read_workpiece"]);
+const workpieceReadToolNames: ReadonlySet<string> = new Set([
+  brunchTools.readWorkpiece,
+]);
 const workpieceQueryToolNames: ReadonlySet<string> = new Set([
-  "query_workpiece",
+  brunchTools.queryWorkpiece,
 ]);
 
 export type BrunchWorkpieceHistoryMessage = {

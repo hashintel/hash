@@ -1,12 +1,8 @@
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import {
-  INTEGRATED_BRUNCH_MODE,
-  STOCK_OVER_FLUE_MODE,
-  draftPetrinautExperimentToolName,
-  sdcpnInitialDataSchema,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
+import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautAiCapabilityGuidance,
   petrinautAiPrompt,
@@ -73,7 +69,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 test("F preserves Stock's exact prompt and catalogue without Brunch contributions", async () => {
-  mounted.initialData = { mode: STOCK_OVER_FLUE_MODE, construction };
+  mounted.initialData = { mode: brunchModes.stockOverFlue, construction };
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
   expect(renderChatAgent({ id: "stock-control" })).toBe(petrinautAiPrompt);
@@ -84,7 +80,7 @@ test("F preserves Stock's exact prompt and catalogue without Brunch contribution
 });
 
 test("I mounts the complete canonical catalogue plus Brunch workpiece and draft", async () => {
-  mounted.initialData = { mode: INTEGRATED_BRUNCH_MODE, construction };
+  mounted.initialData = { mode: brunchModes.integrated, construction };
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
   expect(renderChatAgent({ id: "integrated" })).toContain("Ledger");
@@ -94,7 +90,7 @@ test("I mounts the complete canonical catalogue plus Brunch workpiece and draft"
       "mutate_workpiece",
       "read_workpiece",
       "query_workpiece",
-      draftPetrinautExperimentToolName,
+      brunchTools.draftPetrinautExperiment,
       ...Object.keys(petrinautAiTools),
     ]),
   );
@@ -105,13 +101,13 @@ test("I mounts the complete canonical catalogue plus Brunch workpiece and draft"
 });
 
 test("only F and I are admitted with immutable document bindings", () => {
-  for (const mode of [STOCK_OVER_FLUE_MODE, INTEGRATED_BRUNCH_MODE])
+  for (const mode of [brunchModes.stockOverFlue, brunchModes.integrated])
     expect(v.parse(sdcpnInitialDataSchema, { mode, construction })).toEqual({
       mode,
       construction,
     });
   expect(
-    v.safeParse(sdcpnInitialDataSchema, { mode: INTEGRATED_BRUNCH_MODE })
+    v.safeParse(sdcpnInitialDataSchema, { mode: brunchModes.integrated })
       .success,
   ).toBe(false);
 });
@@ -121,15 +117,15 @@ test("catalogues classify every canonical tool for F/I", () => {
   expect(canonicalPetrinautToolCatalogue.map(({ name }) => name)).toEqual(
     canonicalNames,
   );
-  expect(toolCatalogueByMode[STOCK_OVER_FLUE_MODE]).toEqual(
+  expect(toolCatalogueByMode[brunchModes.stockOverFlue]).toEqual(
     canonicalPetrinautToolCatalogue,
   );
   expect(
-    toolCatalogueByMode[INTEGRATED_BRUNCH_MODE].map(({ name }) => name),
+    toolCatalogueByMode[brunchModes.integrated].map(({ name }) => name),
   ).toEqual(expect.arrayContaining(canonicalNames));
   expect(
-    toolCatalogueByMode[INTEGRATED_BRUNCH_MODE].map(({ name }) => name),
-  ).toContain(draftPetrinautExperimentToolName);
+    toolCatalogueByMode[brunchModes.integrated].map(({ name }) => name),
+  ).toContain(brunchTools.draftPetrinautExperiment);
   expect(() =>
     assertPetrinautToolCatalogueConformance([
       ...canonicalNames,

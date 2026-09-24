@@ -20,6 +20,7 @@ import { createFlueClient, FlueExecutionError } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
+import { brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
 import { agentOwnershipHeaders } from "../../conversation/identity.ts";
@@ -164,11 +165,11 @@ export const personaEnvironment = (
       "Unset DEBUG before persona launch; environment values must not be logged",
     );
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
-  loaded.BRUNCH_CHAT_MODEL = roles.brunchModel;
-  loaded.BRUNCH_CHAT_THINKING = roles.brunchThinking;
+  loaded[brunchEnv.chatModel] = roles.brunchModel;
+  loaded[brunchEnv.chatThinking] = roles.brunchThinking;
   // An explicit empty value also overrides Vite env files on backend startup.
   // Historical campaign ledgers must not gate persona requests or resumed runs.
-  loaded.BRUNCH_STEP_A_ACCOUNTING = "";
+  loaded[brunchEnv.stepAAccounting] = "";
   return loaded;
 };
 export const paneIdFrom = (stdout: string) => {
@@ -422,7 +423,7 @@ export const launchPersona = async (
     );
   if (resume && panelOrigin !== resume.config.panelOrigin)
     throw new Error(
-      `Resume requires the original panel origin ${resume.config.panelOrigin}; set BRUNCH_PANEL_PORT accordingly`,
+      `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
     );
   const settings = resume ? roleSettingsFromRun(resume.config) : roles;
   const axisSettings = resume ? axisSettingsFromRun(resume.config) : axes;
@@ -447,9 +448,9 @@ export const launchPersona = async (
   const runs = join(appRoot, ".data-wipe-me/persona-runs");
   await mkdir(runs, { recursive: true });
   const run = resume?.run ?? (await mkdtemp(join(runs, "run-")));
-  env.BRUNCH_DEV_DB_PATH = join(run, "conversation.db");
-  env.BRUNCH_DB_KIND = "sqlite";
-  delete env.BRUNCH_CHAT_DB_PATH;
+  env[brunchEnv.devDbPath] = join(run, "conversation.db");
+  env[brunchEnv.dbKind] = "sqlite";
+  delete env[brunchEnv.chatDbPath];
   const browserProfile =
     resume?.config.browserProfile ??
     (await mkdtemp(join(tmpdir(), "brunch-persona-browser-")));
@@ -470,7 +471,7 @@ export const launchPersona = async (
   const record = {
     caseDirectory,
     ...personaSettingsRecord(settings, axisSettings),
-    databasePath: env.BRUNCH_DEV_DB_PATH,
+    databasePath: env[brunchEnv.devDbPath],
     browserProfile,
     panelOrigin,
     route,
@@ -549,7 +550,7 @@ export const launchPersona = async (
     );
     if (available.includes(true))
       throw new Error(
-        "Persona needs its own services. Leave existing services running and choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
+        `Persona needs its own services. Leave existing services running and choose unused ${brunchEnv.chatPort} and ${brunchEnv.panelPort} values.`,
       );
     report("Building local app dependencies…");
     await execute(
@@ -874,10 +875,10 @@ if (
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>] [--persona-verbosity terse|default|expansive] [--persona-disclosure reticent|default|forthcoming]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low, persona verbosity default, persona disclosure default. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT, and each selected provider's API key (OPENAI_API_KEY or ANTHROPIC_API_KEY). Ctrl-C stops owned resources; run data is retained.",
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>] [--persona-verbosity terse|default|expansive] [--persona-disclosure reticent|default|forthcoming]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low, persona verbosity default, persona disclosure default. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and each selected provider's API key (OPENAI_API_KEY or ANTHROPIC_API_KEY). Ctrl-C stops owned resources; run data is retained.`,
     );
     report(
-      "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database, exact Pi session, and retained effective persona axes. Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
+      `Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database, exact Pi session, and retained effective persona axes. Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();

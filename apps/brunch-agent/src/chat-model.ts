@@ -1,3 +1,4 @@
+import { brunchEnv } from "@hashintel/brunch-agent";
 import { petrinautAiModel } from "@hashintel/petrinaut-core";
 
 /** Bare Anthropic Sonnet id used by tests, legacy resume, and the persona default. */
@@ -30,7 +31,7 @@ export const isChatThinkingLevel = (
 export const selectChatModelSpecifier = (
   environment: NodeJS.ProcessEnv = process.env,
 ): string => {
-  const selected = environment.BRUNCH_CHAT_MODEL;
+  const selected = environment[brunchEnv.chatModel];
   if (!selected) return DEFAULT_CHAT_MODEL;
   return selected.includes("/") ? selected : `anthropic/${selected}`;
 };
@@ -38,9 +39,9 @@ export const selectChatModelSpecifier = (
 export const selectChatThinking = (
   environment: NodeJS.ProcessEnv = process.env,
 ): ChatThinkingLevel => {
-  const value = environment.BRUNCH_CHAT_THINKING;
+  const value = environment[brunchEnv.chatThinking];
   if (!value) return DEFAULT_CHAT_THINKING;
   if (!isChatThinkingLevel(value))
-    throw new Error("Unsupported BRUNCH_CHAT_THINKING");
+    throw new Error(`Unsupported ${brunchEnv.chatThinking}`);
   return value;
 };

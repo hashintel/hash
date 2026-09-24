@@ -1,7 +1,8 @@
 /**
  * `@hashintel/brunch-agent` — the harness.
  *
- * Active authority: tool naming and the harness reply-event contract.
+ * Active authority: Brunch's named constants, tool naming and the harness
+ * reply-event contract.
  * The retired YAML plugin definition, repertoire, and typed interpretation
  * machinery were removed on 2026-09-02. Consumerless suspended orchestration
  * is not part of the package surface.
@@ -14,9 +15,9 @@
  * `apps/brunch-agent/test/architecture/import-direction.test.ts`.
  */
 
+export * from "./constants";
 export {
   OPERATIONS,
-  PRODUCT_NAME,
   toolName,
   toolPrefix,
   type Operation,

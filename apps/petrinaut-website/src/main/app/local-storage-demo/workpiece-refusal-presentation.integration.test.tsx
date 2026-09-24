@@ -24,12 +24,12 @@ import {
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchModes } from "@hashintel/brunch-agent/constants";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import {
@@ -185,7 +185,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     {
       clientToolNames: new Set(),
       initialData: {
-        mode: INTEGRATED_BRUNCH_MODE,
+        mode: brunchModes.integrated,
         construction: {
           binding: {
             conversationId: identity.conversationId,
