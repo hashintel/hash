@@ -6,7 +6,7 @@
     },
     "build": {
       "dependsOn": ["railroad-plugin#build:wasm", "^manifest"],
-      "outputs": ["dist/main.html"]
+      "outputs": ["dist/**"]
     },
     "dev": {
       "dependsOn": ["railroad-plugin#build:wasm"]

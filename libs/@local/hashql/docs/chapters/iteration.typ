@@ -1,5 +1,5 @@
 #set text(lang: "en", region: "GB")
-#import "../template/lib.typ": note, proof, rule
+#import "../template/lib.typ": incomplete, note, proof, rule
 
 #let reject(body) = html.details(class: "note reject")[
   #html.elem("summary")[Rejected idea]
@@ -7,6 +7,8 @@
 ]
 
 == Iteration <iteration>
+
+#incomplete("chapter")
 
 HashQL requires two distinct forms of iteration. Inter-vertex iteration is provided by the graph effect and its body transformations. Intra-vertex iteration occurs within a body transformation and supports computations performed on an individual vertex. Its uses include aggregating property values, filtering or transforming an entity's properties, and traversing the property declarations of an entity type.
 
