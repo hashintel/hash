@@ -28,7 +28,7 @@ Open the Command Palette and run **Show Zeroth Reactive Modules**. The window op
 
 Guards, rates, kernels and equations appear as code: the body of the function you wrote, with the net's parameters replaced by their values and the places named as the IR names them. A condition or rate that does not read its tokens is evaluated to a constant instead, so a plain net still reads as a plain net. Keys are UpperCamelCase names derived from your names, and transitions appear in the order a simulation step sweeps them.
 
-**Python Reactive Module** is a Python file that builds the module with `zrth.sugar`: the initial marking as `init` and one Petrinaut simulation step as `update`. A plain transition fires whenever it is enabled. A stochastic transition with rate λ is tested against an external uniform draw and fires when the draw is at least e^(−λ·dt), so given the same draw per transition and step, the module and a Petrinaut run take the same step. A Petrinaut run draws from one seeded stream, and only for the transitions whose tokens allow a firing, so a Petrinaut seed does not transfer to the module.
+**Python Reactive Module** is a Python file that builds the module with `zrth.sugar`: the initial marking as `init` and one Petrinaut simulation step as `update`. A plain transition fires whenever it is enabled. A stochastic transition with rate λ is tested against an external uniform draw and fires when the draw is at least e^(−λ·dt), so given the same draw per transition and step, the module and a Petrinaut run take the same step. A Petrinaut run draws from one seeded stream, and only for the transitions whose tokens allow a firing, so a Petrinaut seed does not transfer to the module. The **Rates** flag below can compile a stochastic net with clocks in continuous time instead.
 
 <!-- prose-check: off -->
 
@@ -51,12 +51,17 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 - **Monolithic** (default) generates one module that drives every place. Its `update` is the whole step: transitions swept in order, tokens consumed at once, produced tokens landing at the end, and a capped place tracked as what it would hold if the step ended now.
 - **Modular** generates one module per transition and one per place, composed into the system with `compose`. A transition module drives a Bool flag, `fire_Name`, that says it fires this round; a place module awaits the flags of its transitions and applies their tokens. A transition reads its places as they were at the start of the step, so when an earlier transition takes from the same place, or moves tokens in a capped place it fills, it awaits that transition's flag and rebuilds the count the sweep would give it. The firings and the markings are the same as the monolithic module's, step for step. Each module has its own interface, so another module, such as a controller, can be composed with the transitions and places it awaits.
 
-**Layout** applies to the modular shape and decides how many files the Python is written as.
+**Rates** applies to a stochastic net without colours or dynamics and decides how a rate becomes a firing.
+
+- **Coin** (default) tests each rate against a uniform draw each step of `dt`, as described above, in a linear theory.
+- **Clock** compiles the net in Zeroth's SPN theory, as Zeroth's own `birth_death.py` is written. Each transition owns a clock, `clk_Name`, armed with an exponential delay at its rate and run down against the external time reference `t` while its input arcs allow a firing, and an event, `ev_Name`, that it toggles when the clock expires. Each place is a Nat counter that reads the events with `fired` and moves one token at a time. The modules have `next` and `flow` methods and are composed with the clocks hidden, so Shape, Marking, Control, dt and Syntax do not apply; Layout does. A place applies one exclusive case per transition that moves its tokens, so two events in one step leave the count unchanged; Zeroth's executor advances time to the first expiry, so it never produces one.
+
+**Layout** applies to a composed system, the modular shape or Clock rates, and decides how many files the Python is written as.
 
 - **Single file** (default) holds the variables, every module class and the `compose` call in `net.py`.
 - **File per module** writes each module class to a file named after it, `transition_infection.py` or `place_susceptible.py`, and keeps the variables, the imports and the `compose` call in `net.py`. Run from the directory the files are written to, `net.py` imports each module by its file name.
 
-**Marking** applies to a stochastic net and decides what a place counts in. A plain net always counts in Int.
+**Marking** applies to a stochastic net under Coin rates and decides what a place counts in. A plain net always counts in Int, and Clock rates count in Nat.
 
 - **Real** (default) types every place as Real, because each transition's guard compares its draw, a Real, in the same module.
 - **Int** types every place as Int and moves each draw test into a module of its own, `Draw_Name`, that turns the draw into a Bool flag the guard reads. Whole-number markings suit invariants and other analyses over the places.
@@ -64,14 +69,14 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 **Control** applies when a transition's metadata marks it `control: controllable`, the convention the flexible manufacturing cell model follows.
 
 - **Closed** (default) compiles such a transition like any other: it fires whenever it is enabled, as in Petrinaut.
-- **Open** adds an external Bool, `go_Name`, for each controllable transition, which then fires only when it is enabled and chosen. The system is open to a controller module that drives the choices, the starting point for controller synthesis.
+- **Open** adds an external Bool, `go_Name`, for each controllable transition, which then fires only when it is enabled and chosen. The system is open to a controller module that drives the choices, the starting point for controller synthesis. Clock rates take no external choice.
 
-**Syntax** names the step method of every generated module.
+**Syntax** names the step method of every generated module under Coin rates; under Clock rates the methods are `next` and `flow`.
 
 - **init / update** (default) is the name every zrth release accepts.
 - **init / next** is the name zrth's tangent work introduces beside `flow`, and needs a zrth that knows it.
 
-The time step a rate is tested over and dynamics step by is the `dt` of the Simulation Settings; the IR records it under `zeroth` when it is not 1.
+The time step a rate is tested over and dynamics step by is the `dt` of the Simulation Settings; the IR records it under `zeroth` when it is not 1. Under Clock rates there is no step, and `dt` is not recorded.
 
 <!-- prose-check: off -->
 
@@ -92,3 +97,5 @@ Parameters are baked into the net as constants. `return true` keeps a plain tran
 The IR holds every net that has no component instances: plain, stochastic and mixed transitions, coloured tokens with real, integer, boolean and string attributes, read and inhibitor arcs, kernels and differential equations. When something stops the IR, the window lists the places and transitions concerned, with the reason for each.
 
 The Python module holds what Zeroth's linear theories can express. Guards, rates, kernels and equations may add, subtract, scale by a constant, compare, combine with `&&`, `||` and `!`, branch with `?:`, use `Math.max`, `Math.min` and `Math.abs`, compare string attributes for equality, and draw `Distribution.Gaussian` or `Distribution.Uniform` with constant spreads. Refused, each with its reason under the output: a product or quotient of two token values, powers, `Math.exp`, `Math.log` and the other nonlinear functions, `Math.random`, `Distribution.Lognormal`, uuid attributes, string methods, and a coloured net under the modular shape. The IR tab still shows the whole document when the Python tab refuses.
+
+Clock rates hold less, because the SPN theory tests a count against zero and moves one token at a time. Refused by name: a transition without a rate, a rate that reads its tokens, a rate that is not positive, a guard or a kernel beside the rate, an arc that carries more than one token, a capacity, a coloured place and dynamics. Switch to Coin rates for such a net.

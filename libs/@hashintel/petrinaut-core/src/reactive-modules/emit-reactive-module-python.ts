@@ -1,4 +1,12 @@
 import { walkReactiveExpr } from "./reactive-module-graph";
+import {
+  composeLines,
+  INDENT,
+  moduleFileStem,
+  moduleFileStems,
+  type ReactiveModuleFile,
+  tupleLiteral,
+} from "./shared/python-layout";
 
 import type {
   ReactiveExpr,
@@ -26,12 +34,6 @@ export type EmitReactiveModuleOptions = {
   syntax?: ReactiveModuleSyntax;
 };
 
-export type ReactiveModuleFile = {
-  /** Relative to the output directory, `net.py` for the main file. */
-  path: string;
-  text: string;
-};
-
 const SORT_CONSTANTS: Record<ReactiveSort, { name: string; ctor: string }> = {
   int: { name: "INT", ctor: "Int" },
   real: { name: "REAL", ctor: "Real" },
@@ -40,8 +42,6 @@ const SORT_CONSTANTS: Record<ReactiveSort, { name: string; ctor: string }> = {
 
 const SORT_ORDER: ReactiveSort[] = ["int", "real", "bool"];
 const ROLE_ORDER: ReactiveVariable["role"][] = ["place", "input", "flag"];
-const INDENT = "    ";
-const LINE_WIDTH = 88;
 
 /** A Python literal: integers become floats where every sort is Real. */
 const literal = (value: number, asFloat: boolean): string =>
@@ -105,9 +105,6 @@ const expr = (node: ReactiveExpr, theory: ReactiveTheory): string => {
       return `relu(${expr(node.operand, theory)})`;
   }
 };
-
-const tupleLiteral = (names: string[]): string =>
-  names.length === 1 ? `(${names[0]},)` : `(${names.join(", ")})`;
 
 /** Whether some node of the expression satisfies `test`. */
 const some = (
@@ -277,18 +274,11 @@ const system = (graph: ReactiveModuleGraph): string[] => {
     return [`net = ${construction(decl(graph.root.module))}`];
   }
   const instances = graph.root.modules;
-  const oneLine = `net = compose(${instances.join(", ")})`;
   return [
     ...instances.map(
       (instance) => `${instance} = ${construction(decl(instance))}`,
     ),
-    ...(oneLine.length <= LINE_WIDTH
-      ? [oneLine]
-      : [
-          "net = compose(",
-          ...instances.map((instance) => `${INDENT}${instance},`),
-          ")",
-        ]),
+    ...composeLines(instances),
   ];
 };
 
@@ -312,35 +302,6 @@ export const emitReactiveModulePython = (
     ...system(graph),
   ];
   return `${lines.join("\n")}\n`;
-};
-
-/** `Transition_FooBar` → `transition_foo_bar`: the Python module a class file imports as. */
-export const moduleFileStem = (className: string): string =>
-  className
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .toLowerCase();
-
-/**
- * One stem per module. IR names differ by case alone at times, `Ab` and `AB`,
- * and lowercasing joins them, so a later module that lands on a taken stem
- * gets a numbered one: `place_ab`, `place_ab_2`.
- */
-const moduleFileStems = (
-  modules: ReactiveModuleDecl[],
-): ReadonlyMap<string, string> => {
-  const taken = new Set<string>();
-  const stems = new Map<string, string>();
-  for (const module of modules) {
-    const base = moduleFileStem(module.className);
-    let stem = base;
-    for (let index = 2; taken.has(stem); index += 1) {
-      stem = `${base}_${index}`;
-    }
-    taken.add(stem);
-    stems.set(module.className, stem);
-  }
-  return stems;
 };
 
 const moduleFile = (
@@ -410,7 +371,9 @@ export const emitReactiveModuleFiles = (
   graph: ReactiveModuleGraph,
   { syntax = "update" }: EmitReactiveModuleOptions = {},
 ): ReactiveModuleFile[] => {
-  const stems = moduleFileStems(graph.modules);
+  const stems = moduleFileStems(
+    graph.modules.map((module) => module.className),
+  );
   return [
     mainFile(graph, stems),
     ...graph.modules.map((module) =>

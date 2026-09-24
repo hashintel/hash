@@ -15,13 +15,13 @@ import {
 import { tracePetriNetIr, traceReactiveModulePython } from "./provenance";
 import { sdcpnToPetriNetIr } from "./sdcpn-to-petri-net-ir";
 
-import type { ReactiveModuleFile } from "./emit-reactive-module-python";
 import type { Trace } from "./provenance";
 import type {
   PetriNetIrDiagnostic,
   PetriNetIrOrigins,
   SdcpnToPetriNetIrInput,
 } from "./sdcpn-to-petri-net-ir";
+import type { ReactiveModuleFile } from "./shared/python-layout";
 
 export type ReactiveModuleExportInput = Omit<
   SdcpnToPetriNetIrInput,
@@ -55,6 +55,7 @@ export type ReactiveModuleExport = {
   /** Every Python file, the main one first, each with its trace; `null` with `python`. */
   files: ReactiveModuleExportFile[] | null;
   errors: PetriNetIrDiagnostic[];
+  /** The IR builder's warnings, then the lowering's. */
   warnings: PetriNetIrDiagnostic[];
 };
 
@@ -107,6 +108,6 @@ export const compileReactiveModuleExport = ({
         }))
       : null,
     errors: compiled.ok ? [] : compiled.errors,
-    warnings: outcome.warnings,
+    warnings: [...outcome.warnings, ...compiled.warnings],
   };
 };

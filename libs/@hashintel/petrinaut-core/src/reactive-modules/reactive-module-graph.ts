@@ -95,6 +95,8 @@ export type ReactiveModuleDecl = {
 };
 
 export type ReactiveModuleGraph = {
+  /** A graph in a linear theory; the SPN module graph is the other language. */
+  language: "linear";
   /** The first line of the generated file, naming the net and its origin. */
   header: string;
   variables: ReactiveVariable[];

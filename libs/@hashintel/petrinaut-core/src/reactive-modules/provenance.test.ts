@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { emitReactiveModulePython } from "./emit-reactive-module-python";
 import { renderPetriNetIr } from "./petri-net-ir";
 import { compilePetriNetIr } from "./petri-net-ir-to-reactive-module";
 import {
@@ -8,6 +7,7 @@ import {
   tracePetriNetIr,
   traceReactiveModulePython,
 } from "./provenance";
+import { birthDeathIr } from "./shared/birth-death.fixtures";
 
 import type { PetriNetIr } from "./petri-net-ir";
 
@@ -126,7 +126,7 @@ describe("traceReactiveModulePython", () => {
   if (!outcome.ok) {
     throw new Error("expected the queue to compile");
   }
-  const text = emitReactiveModulePython(outcome.graph);
+  const text = outcome.python;
   const trace = traceReactiveModulePython(outcome.graph, queue, text);
 
   it("describes variables, modules, methods, statements and the system", () => {
@@ -189,7 +189,7 @@ describe("traceReactiveModulePython", () => {
     if (!single.ok) {
       throw new Error("expected the monolithic queue to compile");
     }
-    const python = emitReactiveModulePython(single.graph);
+    const python = single.python;
     const singleTrace = traceReactiveModulePython(single.graph, queue, python);
     expect(provenanceAt(singleTrace, lineOf(python, "net = "))).toMatchObject({
       what: "The system",
@@ -202,5 +202,103 @@ describe("traceReactiveModulePython", () => {
 
   it("returns null off every range", () => {
     expect(provenanceAt([], 3)).toBeNull();
+  });
+});
+
+describe("traceReactiveModulePython under clock rates", () => {
+  const outcome = compilePetriNetIr(birthDeathIr);
+  if (!outcome.ok) {
+    throw new Error("expected the birth-death net to compile");
+  }
+  const text = outcome.python;
+  const trace = traceReactiveModulePython(outcome.graph, birthDeathIr, text);
+  const irText = renderPetriNetIr(birthDeathIr);
+  const irTrace = tracePetriNetIr(birthDeathIr, irText);
+
+  it("describes the time reference, the clocks, the events and their locals", () => {
+    expect(provenanceAt(trace, lineOf(text, "t = Var(Clock())"))).toEqual({
+      what: "The time reference",
+      why: "External and driven by nothing: a clock's flow is a rate against d(t), so a module that reads it awaits t.",
+    });
+    expect(provenanceAt(trace, lineOf(text, "clk_Birth = Var("))).toMatchObject(
+      {
+        what: "Time left until Birth fires",
+        source: { kind: "transition", name: "Birth" },
+      },
+    );
+    expect(provenanceAt(trace, lineOf(text, "ev_Death = Var("))).toMatchObject({
+      what: "Toggles when Death fires",
+      source: { kind: "transition", name: "Death" },
+    });
+    expect(
+      provenanceAt(trace, lineOf(text, "Population = Var(Nat())")),
+    ).toMatchObject({ what: "The tokens in Population" });
+    expect(
+      provenanceAt(trace, lineOf(text, "        fires_Birth = "))?.what,
+    ).toBe("Sets fires_Birth: Birth's clock ran out and its arcs allow it");
+    expect(
+      provenanceAt(trace, lineOf(text, "        fired_Death = ")),
+    ).toMatchObject({
+      what: "Sets fired_Death: Death fired this step",
+      source: { kind: "transition", name: "Death" },
+    });
+  });
+
+  it("describes the methods, their returns, the instances and the hidden clocks", () => {
+    expect(
+      provenanceAt(trace, lineOf(text, "    def next(self, clk_Birth")),
+    ).toMatchObject({
+      what: "A firing: the statements, then the next values",
+    });
+    expect(
+      provenanceAt(trace, lineOf(text, "    def flow(self, clk_Birth")),
+    ).toEqual({
+      what: "The tangents between firings, one per driven variable",
+      why: "A clock counts down against t while its transition is enabled; None leaves an event still.",
+    });
+    expect(
+      provenanceAt(trace, lineOf(text, "        return if_then(clk_Birth >= 0"))
+        ?.what,
+    ).toBe("The tangents, one per driven variable, None where it has no flow");
+    expect(
+      provenanceAt(trace, lineOf(text, "        return exp(2.0), False"))?.what,
+    ).toBe("The initial values, one per driven variable");
+    expect(
+      provenanceAt(trace, lineOf(text, "class Transition_Birth(Module):")),
+    ).toMatchObject({
+      what: "The module of transition Birth",
+      why: "Birth: nothing -> Population, at rate 2",
+    });
+    expect(
+      provenanceAt(trace, lineOf(text, "transition_Birth = Transition_Birth("))
+        ?.why,
+    ).toBe("Drives clk_Birth, ev_Birth and reads t.");
+    expect(
+      provenanceAt(trace, lineOf(text, "    hide={clk_Birth, clk_Death},")),
+    ).toMatchObject({
+      what: "The clocks kept private",
+      source: { kind: "net", name: "birth_death" },
+    });
+    expect(provenanceAt(trace, lineOf(text, "net = compose("))).toMatchObject({
+      what: "The system",
+      why: "Every module composed: a variable one module drives is awaited by the others, in an order the awaits allow.",
+    });
+  });
+
+  it("describes the rates flag and a rate as a clock in the IR", () => {
+    expect(provenanceAt(irTrace, lineOf(irText, "  rates: clock"))).toEqual({
+      what: "The rates flag: a rate as a coin tested each step over dt, or as a clock armed with exp(rate) in continuous time",
+      ir: "zeroth.rates",
+    });
+    expect(provenanceAt(irTrace, lineOf(irText, "    rate: 2"))).toMatchObject({
+      what: "Birth's firing rate",
+      why: "Arms an exponential clock with this rate when the transition fires.",
+    });
+    expect(provenanceAt(irTrace, lineOf(irText, "  Death:"))?.why).toBe(
+      "takes from Population; adds nothing; fires at rate 1, a clock armed with exp(1) each time it fires.",
+    );
+    expect(provenanceAt(irTrace, lineOf(irText, "kind: stochastic"))?.why).toBe(
+      "Every transition has a rate; each arms an exponential clock and fires when it expires.",
+    );
   });
 });

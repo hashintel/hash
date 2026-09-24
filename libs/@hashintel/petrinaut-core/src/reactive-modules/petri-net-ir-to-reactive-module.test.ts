@@ -7,6 +7,7 @@ import {
   compilePetriNetIr,
   petriNetIrToReactiveModule,
 } from "./petri-net-ir-to-reactive-module";
+import { birthDeathIr, birthDeathPython } from "./shared/birth-death.fixtures";
 
 import type { HirFunction } from "../hir/hir";
 import type { CodeParser } from "./lower-petri-net-ir/step-plan";
@@ -869,6 +870,104 @@ net = Conflict(theory=LIA, ctrl=(Pool, Left, Right), extl=(go_TakeLeft,))
   });
 });
 
+describe("petriNetIrToReactiveModule under clock rates", () => {
+  it("compiles the birth-death net to the modules of Zeroth's birth_death.py", () => {
+    expect(petriNetIrToReactiveModule(birthDeathIr)).toBe(birthDeathPython);
+  });
+
+  it("writes net.py and one file per module under the per-module layout", () => {
+    const outcome = compilePetriNetIr({
+      ...birthDeathIr,
+      zeroth: { rates: "clock", layout: "per-module" },
+    });
+    if (!outcome.ok) {
+      throw new Error("expected the birth-death net to compile");
+    }
+    expect(outcome.files.map((file) => file.path)).toEqual([
+      "net.py",
+      "transition_birth.py",
+      "transition_death.py",
+      "place_population.py",
+    ]);
+    expect(outcome.python).toBe(outcome.files[0]?.text);
+    expect(outcome.python).toContain(
+      "from zrth import SPN, Clock, Event, Nat, Var\nfrom zrth import Module as compose\n\nfrom transition_birth import Transition_Birth\nfrom transition_death import Transition_Death\nfrom place_population import Place_Population\n",
+    );
+    expect(outcome.python).toContain("    hide={clk_Birth, clk_Death},\n");
+    expect(outcome.python).not.toContain("class ");
+    const place = outcome.files.find(
+      (file) => file.path === "place_population.py",
+    );
+    expect(place?.text).toContain(
+      '"""\n\nfrom zrth.sugar import Module, ite, fired\n\n\nclass Place_Population(Module):',
+    );
+    expect(place?.text).not.toContain("from zrth import");
+    expect(place?.text).not.toContain("def flow(");
+  });
+
+  it("returns the lowering's warning about an open control beside the module", () => {
+    const outcome = compilePetriNetIr({
+      ...birthDeathIr,
+      transitions: {
+        ...birthDeathIr.transitions,
+        Death: { ...birthDeathIr.transitions.Death, controllable: true },
+      },
+      zeroth: { rates: "clock", control: "open" },
+    });
+    expect(outcome).toMatchObject({
+      ok: true,
+      warnings: [{ code: "control-open-clocks" }],
+    });
+  });
+
+  it("tests read and inhibitor arcs, applies one exclusive case per mover, and leaves an untouched place alone", () => {
+    const python = petriNetIrToReactiveModule({
+      name: "clocked",
+      kind: "stochastic",
+      places: { A: null, B: null, C: null, Lone: null },
+      marking: { A: 3, B: 1 },
+      transitions: {
+        In: {
+          inputs: { B: { kind: "read" }, C: { kind: "inhibitor" } },
+          outputs: { A: null },
+          rate: 0.5,
+        },
+        Out: { inputs: { A: null }, rate: 1 },
+        Move: { inputs: { A: null, B: null }, outputs: { C: null }, rate: 2 },
+        Loop: { inputs: { B: null }, outputs: { B: null }, rate: 3 },
+      },
+      zeroth: { rates: "clock" },
+    });
+    expect(python).toContain(
+      "        fires_In = (clk_In == 0) & (B != 0) & (C == 0)\n        return ite(fires_In, exp(0.5), clk_In), if_then(fires_In, ~ev_In)\n\n    def flow(self, clk_In, ev_In, B, C, t):\n        return if_then(clk_In >= 0, ite((B != 0) & (C == 0), -1 * d(t), 0 * d(t))), None\n",
+    );
+    expect(python).toContain(
+      "        fires_Move = (clk_Move == 0) & (A != 0) & (B != 0)\n",
+    );
+    expect(python).toContain('"""Loop: B -> B, at rate 3"""');
+    expect(python).toContain(
+      "    def init(self, B, t):\n        return exp(3.0), False\n\n    def next(self, clk_Loop, ev_Loop, B, t):\n        fires_Loop = (clk_Loop == 0) & (B != 0)\n",
+    );
+    expect(python).toContain(
+      '    """A: added by In, taken by Out, Move"""\n\n    def init(self, ev_In, ev_Out, ev_Move):\n        return 3\n\n    def next(self, A, ev_In, ev_Out, ev_Move):\n        fired_In = fired(ev_In)\n        fired_Out = fired(ev_Out)\n        fired_Move = fired(ev_Move)\n        return ite(fired_In & ~fired_Out & ~fired_Move, A + 1, ite(fired_Out & ~fired_In & ~fired_Move & (A != 0), A - 1, ite(fired_Move & ~fired_In & ~fired_Out & (A != 0), A - 1, A)))\n',
+    );
+    expect(python).toContain(
+      '    """B: taken by Move"""\n\n    def init(self, ev_Move):\n        return 1\n\n    def next(self, B, ev_Move):\n        fired_Move = fired(ev_Move)\n        return ite(fired_Move & (B != 0), B - 1, B)\n',
+    );
+    expect(python).toContain("        return ite(fired_Move, C + 1, C)\n");
+    expect(python).toContain(
+      '    """Lone: no transition moves its tokens"""\n\n    def init(self):\n        return 0\n\n    def next(self, Lone):\n        return Lone\n',
+    );
+    expect(python).toContain(
+      "place_Lone = Place_Lone(theory=SPN, ctrl=(Lone,))\n",
+    );
+    expect(python).toContain(
+      "    hide={clk_In, clk_Out, clk_Move, clk_Loop},\n",
+    );
+    expect(python.match(/def flow\(/gu)).toHaveLength(4);
+  });
+});
+
 describe("compilePetriNetIr with the per-module layout", () => {
   it("writes net.py and one file per module of the modular shape", () => {
     const outcome = compilePetriNetIr({
@@ -923,6 +1022,9 @@ describe("compilePetriNetIr with the per-module layout", () => {
       throw new Error("expected the cycle to compile");
     }
     expect(outcome.files.map((file) => file.path)).toEqual(["net.py"]);
+    if (outcome.graph.language !== "linear") {
+      throw new Error("expected a graph in a linear theory");
+    }
     expect(outcome.python).toBe(emitReactiveModulePython(outcome.graph));
   });
 });

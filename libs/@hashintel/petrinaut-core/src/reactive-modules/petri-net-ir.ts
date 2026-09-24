@@ -143,6 +143,17 @@ export type ZerothTarget = {
    */
   shape?: "monolithic" | "modular";
   /**
+   * Stochastic nets without colours or dynamics. `coin`: a rate is tested
+   * against a uniform draw each step of `dt`, in a linear theory. `clock`:
+   * the net is compiled in Zeroth's SPN theory, after its `birth_death.py`:
+   * each transition owns a clock armed with `exp(rate)` and an event it
+   * toggles when it fires, each place is a Nat counter, and time is
+   * continuous. Composed one module per transition and place with `next`
+   * and `flow`, so `shape`, `marking`, `control`, `dt` and `syntax` do not
+   * apply.
+   */
+  rates?: "coin" | "clock";
+  /**
    * Stochastic nets only. `real`: every place is a Real and each guard tests
    * its own uniform draw. `int`: places are Int, and one LRA module per
    * transition turns its draw into a Bool flag the guard reads.
@@ -165,10 +176,10 @@ export type ZerothTarget = {
    */
   slots?: number;
   /**
-   * Modular shape only. `single`: one Python file holds the variables, the
-   * modules and the system. `per-module`: each module class has a file of
-   * its own, and `net.py` declares the variables, imports the modules and
-   * composes them.
+   * A composed system: the modular shape, or clock rates. `single`: one
+   * Python file holds the variables, the modules and the system.
+   * `per-module`: each module class has a file of its own, and `net.py`
+   * declares the variables, imports the modules and composes them.
    */
   layout?: "single" | "per-module";
   /**
@@ -183,6 +194,7 @@ export type ResolvedZerothTarget = Required<ZerothTarget>;
 
 export const ZEROTH_TARGET_DEFAULTS: ResolvedZerothTarget = {
   shape: "monolithic",
+  rates: "coin",
   marking: "real",
   control: "closed",
   dt: 1,
@@ -196,6 +208,7 @@ export const resolveZerothTarget = (
   target: ZerothTarget | undefined,
 ): ResolvedZerothTarget => ({
   shape: target?.shape ?? ZEROTH_TARGET_DEFAULTS.shape,
+  rates: target?.rates ?? ZEROTH_TARGET_DEFAULTS.rates,
   marking: target?.marking ?? ZEROTH_TARGET_DEFAULTS.marking,
   control: target?.control ?? ZEROTH_TARGET_DEFAULTS.control,
   dt: target?.dt ?? ZEROTH_TARGET_DEFAULTS.dt,
@@ -204,13 +217,19 @@ export const resolveZerothTarget = (
   syntax: target?.syntax ?? ZEROTH_TARGET_DEFAULTS.syntax,
 });
 
+/** Whether the flags compose modules: the modular shape, or the clocks strategy. */
+export const zerothTargetComposes = (target: ResolvedZerothTarget): boolean =>
+  target.shape === "modular" || target.rates === "clock";
+
 /**
  * The flags a document carries for a net: the ones off their default, and
- * only those that apply to the net. `marking` belongs to a stochastic net
- * without colours, `dt` to a net with rates or dynamics, `control` to a net
- * with a controllable transition, `slots` to a net with a coloured place,
- * `layout` to the modular shape; `syntax` applies to every net. `undefined`
- * when every flag is at its default.
+ * only those that apply to the net. `rates` belongs to a stochastic net
+ * without colours or dynamics, `marking` to a stochastic net without
+ * colours, `dt` to a net with rates or dynamics, `control` to a net with a
+ * controllable transition, `slots` to a net with a coloured place, `layout`
+ * to a composed system; `syntax` applies to every net. Under `clock` rates
+ * only `rates` and `layout` are written: the composition is fixed and there
+ * is no step. `undefined` when every flag is at its default.
  */
 export const zerothTargetForNet = (
   target: ZerothTarget | undefined,
@@ -224,29 +243,42 @@ export const zerothTargetForNet = (
   const controllable = Object.values(net.transitions).some(
     (transition) => transition.controllable === true,
   );
+  const clocksApply = stochastic && !coloured && !dynamic;
+  const clocks = clocksApply && resolved.rates === "clock";
+  const composes = zerothTargetComposes({
+    ...resolved,
+    rates: clocks ? "clock" : "coin",
+  });
   const section: ZerothTarget = {
-    ...(resolved.shape === ZEROTH_TARGET_DEFAULTS.shape
-      ? {}
-      : { shape: resolved.shape }),
-    ...(stochastic &&
+    ...(!clocks && resolved.shape !== ZEROTH_TARGET_DEFAULTS.shape
+      ? { shape: resolved.shape }
+      : {}),
+    ...(clocksApply && resolved.rates !== ZEROTH_TARGET_DEFAULTS.rates
+      ? { rates: resolved.rates }
+      : {}),
+    ...(!clocks &&
+    stochastic &&
     !coloured &&
     resolved.marking !== ZEROTH_TARGET_DEFAULTS.marking
       ? { marking: resolved.marking }
       : {}),
-    ...(controllable && resolved.control !== ZEROTH_TARGET_DEFAULTS.control
+    ...(!clocks &&
+    controllable &&
+    resolved.control !== ZEROTH_TARGET_DEFAULTS.control
       ? { control: resolved.control }
       : {}),
-    ...((stochastic || dynamic) && resolved.dt !== ZEROTH_TARGET_DEFAULTS.dt
+    ...(!clocks &&
+    (stochastic || dynamic) &&
+    resolved.dt !== ZEROTH_TARGET_DEFAULTS.dt
       ? { dt: resolved.dt }
       : {}),
     ...(coloured && resolved.slots !== ZEROTH_TARGET_DEFAULTS.slots
       ? { slots: resolved.slots }
       : {}),
-    ...(resolved.shape === "modular" &&
-    resolved.layout !== ZEROTH_TARGET_DEFAULTS.layout
+    ...(composes && resolved.layout !== ZEROTH_TARGET_DEFAULTS.layout
       ? { layout: resolved.layout }
       : {}),
-    ...(resolved.syntax !== ZEROTH_TARGET_DEFAULTS.syntax
+    ...(!clocks && resolved.syntax !== ZEROTH_TARGET_DEFAULTS.syntax
       ? { syntax: resolved.syntax }
       : {}),
   };

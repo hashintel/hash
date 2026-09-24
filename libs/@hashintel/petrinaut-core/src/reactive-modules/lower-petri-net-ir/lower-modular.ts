@@ -239,6 +239,7 @@ export const lowerModular = (
     ...plan.places.map((place) => placeModule(plan, place.name)),
   ];
   return {
+    language: "linear",
     header,
     variables: [
       ...placeVariables,
