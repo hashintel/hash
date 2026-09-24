@@ -27,8 +27,12 @@ const PANEL_LABEL = "Zeroth Reactive Modules";
 /** A movable window over the workspace, or a column beside it. */
 export type ReactiveModulesPanelPlacement = "docked" | "floating";
 
-/** Width bounds in CSS pixels, the same in both placements. */
+/** Width bounds in CSS pixels. */
 const PANEL_LIMITS = { minWidth: 360, maxWidth: 1200 };
+
+// The AI assistant's docked cap. A wider column docked beside the assistant
+// leaves the workspace, which is the only row item that gives way, no room.
+const DOCKED_MAX_WIDTH = 720;
 
 type TabId = "ir";
 
@@ -68,8 +72,12 @@ const shellStyle = cva({
   variants: {
     placement: {
       // Positions against the workspace row: the dock column it renders in
-      // is not positioned.
-      floating: { position: "absolute" },
+      // is not positioned. One layer above the docked panels, which share the
+      // base layer and come later in the row.
+      floating: {
+        position: "absolute",
+        zIndex: "[calc(var(--z-index-sticky) + 3)]",
+      },
       docked: { position: "relative", flexShrink: 0, height: "full" },
     },
   },
@@ -362,7 +370,7 @@ export const ReactiveModulesPanel = ({
             size={width}
             onResize={onWidthChange}
             minSize={PANEL_LIMITS.minWidth}
-            maxSize={PANEL_LIMITS.maxWidth}
+            maxSize={DOCKED_MAX_WIDTH}
             label={`Resize ${PANEL_LABEL}`}
           />
         </div>
@@ -395,9 +403,16 @@ export const ReactiveModulesPanel = ({
             variant="ghost"
             className={headerButtonStyle}
             aria-label={placementLabel}
-            onClick={() =>
-              onPlacementChange(isFloating ? "docked" : "floating")
-            }
+            onClick={() => {
+              if (!isFloating) {
+                onPlacementChange("floating");
+                return;
+              }
+              onPlacementChange("docked");
+              if (width > DOCKED_MAX_WIDTH) {
+                onWidthChange(DOCKED_MAX_WIDTH);
+              }
+            }}
             prefix={
               <ExperimentalIcon
                 name={isFloating ? "sidebar" : "externalLink"}

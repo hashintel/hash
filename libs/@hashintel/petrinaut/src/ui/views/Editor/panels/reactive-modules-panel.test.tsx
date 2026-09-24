@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { SideDockColumn, SideDockProvider } from "../shared/side-dock";
@@ -23,7 +24,7 @@ afterEach(cleanup);
 
 const renderPanel = (
   placement: ReactiveModulesPanelPlacement,
-  { docked = false } = {},
+  { docked = false, width = 560 } = {},
 ) => {
   const onPlacementChange = vi.fn();
   const onWidthChange = vi.fn();
@@ -32,7 +33,7 @@ const renderPanel = (
       onClose={() => {}}
       placement={placement}
       onPlacementChange={onPlacementChange}
-      width={560}
+      width={width}
       onWidthChange={onWidthChange}
     />
   );
@@ -67,6 +68,44 @@ describe("ReactiveModulesPanel", () => {
       screen.getByRole("button", { name: "Dock Zeroth Reactive Modules" }),
     );
     expect(onPlacementChange).toHaveBeenCalledWith("docked");
+  });
+
+  test("narrows a wide window to the docked cap when it docks", () => {
+    const { onWidthChange } = renderPanel("floating", { width: 1000 });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Dock Zeroth Reactive Modules" }),
+    );
+    expect(onWidthChange).toHaveBeenCalledWith(720);
+  });
+
+  test("keeps the same element across a placement toggle", () => {
+    const Toggling = () => {
+      const [placement, setPlacement] =
+        useState<ReactiveModulesPanelPlacement>("docked");
+      return (
+        <SideDockProvider>
+          <main>Workspace</main>
+          <SideDockColumn />
+          <ReactiveModulesPanel
+            onClose={() => {}}
+            placement={placement}
+            onPlacementChange={setPlacement}
+            width={560}
+            onWidthChange={() => {}}
+          />
+        </SideDockProvider>
+      );
+    };
+    render(<Toggling />);
+    const docked = screen.getByLabelText("Zeroth Reactive Modules");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Float Zeroth Reactive Modules" }),
+    );
+    const floating = screen.getByRole("dialog", {
+      name: "Zeroth Reactive Modules",
+    });
+    expect(floating).toBe(docked);
+    expect(floating.getAttribute("data-placement")).toBe("floating");
   });
 
   test("docks as a column resized from its left edge that floats again", () => {

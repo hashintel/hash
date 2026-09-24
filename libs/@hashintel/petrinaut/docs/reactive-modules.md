@@ -4,9 +4,9 @@ The **Zeroth Reactive Modules** window shows the current net compiled for [Zerot
 
 ## Opening the window
 
-Open the Command Palette and run **Show Zeroth Reactive Modules**. A floating window opens over the workspace.
+Open the Command Palette and run **Show Zeroth Reactive Modules**. The window opens over the workspace, floating the first time.
 
-- Drag the title to move the window, or focus the title and use the arrow keys.
+- While floating, drag the title to move the window, or focus the title and use the arrow keys.
 - Drag any edge or corner to resize it.
 - Close it with the **×** button. Run the command again to reopen it.
 - If the window fails to load, run the command again to try once more.

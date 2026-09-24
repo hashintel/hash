@@ -19,7 +19,19 @@ const panel = vi.hoisted(() => ({ mounts: 0, fail: false }));
 vi.mock("../../views/Editor/panels/reactive-modules-panel", async () => {
   const { useEffect } = await import("react");
   return {
-    ReactiveModulesPanel: ({ onClose }: { onClose: () => void }) => {
+    ReactiveModulesPanel: ({
+      onClose,
+      placement,
+      onPlacementChange,
+      width,
+      onWidthChange,
+    }: {
+      onClose: () => void;
+      placement: "docked" | "floating";
+      onPlacementChange: (placement: "docked" | "floating") => void;
+      width: number;
+      onWidthChange: (width: number) => void;
+    }) => {
       if (panel.fail) {
         throw new Error("panel failure");
       }
@@ -27,9 +39,20 @@ vi.mock("../../views/Editor/panels/reactive-modules-panel", async () => {
         panel.mounts += 1;
       }, []);
       return (
-        <aside role="dialog" aria-label="Zeroth Reactive Modules">
+        <aside
+          role="dialog"
+          aria-label="Zeroth Reactive Modules"
+          data-placement={placement}
+          data-width={width}
+        >
           <button type="button" onClick={onClose}>
             Close
+          </button>
+          <button type="button" onClick={() => onPlacementChange("docked")}>
+            Dock
+          </button>
+          <button type="button" onClick={() => onWidthChange(700)}>
+            Widen
           </button>
         </aside>
       );
@@ -99,6 +122,27 @@ describe("reactiveModulesPlugin", () => {
     act(() => screen.getByRole("button", { name: "Close" }).click());
     expect(dialog.isConnected).toBe(false);
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("reopens the window where it was left", async () => {
+    const { show } = renderEditorPlugins();
+    await show();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.getAttribute("data-placement")).toBe("floating");
+    expect(dialog.getAttribute("data-width")).toBe("560");
+
+    act(() => screen.getByRole("button", { name: "Dock" }).click());
+    act(() => screen.getByRole("button", { name: "Widen" }).click());
+    expect(dialog.getAttribute("data-placement")).toBe("docked");
+    expect(dialog.getAttribute("data-width")).toBe("700");
+
+    act(() => screen.getByRole("button", { name: "Close" }).click());
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await show();
+    const reopened = await screen.findByRole("dialog");
+    expect(reopened.getAttribute("data-placement")).toBe("docked");
+    expect(reopened.getAttribute("data-width")).toBe("700");
   });
 
   it("keeps an open window mounted when the command runs again", async () => {

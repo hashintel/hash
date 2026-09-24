@@ -43,5 +43,5 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.
 - [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, and Labs.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.
-- [Zeroth Reactive Modules](reactive-modules.md) -- Show the current net as a Petri net IR and as a Python reactive module for Zeroth, recompiled as you edit.
+- [Zeroth Reactive Modules](reactive-modules.md) -- Show the current net as the Petri net IR that Zeroth's reactive modules read, floating or docked beside the canvas, recompiled as you edit.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.
