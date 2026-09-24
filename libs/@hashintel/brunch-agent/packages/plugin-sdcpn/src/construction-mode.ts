@@ -16,6 +16,3 @@ export const isIntegratedPetrinautMode = (
   mode: string | undefined,
 ): mode is IntegratedPetrinautMode =>
   INTEGRATED_PETRINAUT_MODES.some((integratedMode) => integratedMode === mode);
-
-/** @deprecated Use STOCK_OVER_FLUE_MODE. */
-export const CANONICAL_PETRINAUT_TOOLS_MODE = STOCK_OVER_FLUE_MODE;

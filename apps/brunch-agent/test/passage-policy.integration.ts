@@ -18,8 +18,8 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { workpieceReadOutputSchema } from "@hashintel/brunch-agent/flue";
+import { workpieceReadOutputSchema } from "@hashintel/brunch-agent";
+import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { workpieceRevisionPointerSchema } from "@hashintel/brunch-agent/workpiece";
 
 import {

@@ -6,7 +6,15 @@
 
 Build-time evaluation modes are isolated by conversation identity, not product UI choices. F (`canonical-petrinaut-tools`) mounts Petrinaut's exact Stock prompt and complete catalogue over Flue without Brunch contributions. I (`integrated-brunch-canonical`) adds the Brunch prompt, skill, workpiece, reviewed experiment draft and explanation tool while preserving every canonical Petrinaut tool. A conversation admitted without a mode retains the plugin skill and documentation tool but no canonical construction tools.
 
-The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input. Prompts are imported with `?raw`. The skill is an Agent Skills directory packaged by Flue, so its agent hooks live under `./agent`; `./flue` stays loadable in plain Node. Gherkin is packaged but unmounted; Dafny and Claims are unmounted experimental packages.
+The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input. Prompts are imported with `?raw`. Each skill is an Agent Skills directory whose `SKILL.md` the package exports and imports natively; library builds leave that import in place and the consuming Flue application packages the directory. Gherkin is packaged but unmounted; Dafny and Claims are unmounted experimental packages.
+
+## Package entries
+
+Each Brunch package has a main entry and a `./flue` entry. The main entry holds everything that loads without a Flue build: constants, schemas, types and pure functions, plus core's workpiece tools. `./flue` holds the agent hooks and the skills they mount; a `SKILL.md` import loads only in code Flue builds, so only the Flue application imports `./flue`. The persona launcher, scripts and the website import the main entries. The SDCPN main entry stays browser-safe because the website imports it, so its Flue tool definitions live behind `./flue`; core additionally exposes browser-safe `./client-tools` and `./workpiece` slices. Tests exercise the hooks with the `SKILL.md` import mocked; the Flue build is what packages and validates the skills.
+
+## Loading workspace source in dev
+
+Each Brunch package points TypeScript at `src` but runs from `dist`. So that a dev server does not run stale code, every export in these packages carries an `"@dev/source"` condition, placed after `types` and before `import`, that names the TypeScript source. The Brunch and website Vite configs prepend that condition to Vite's default client and server conditions only when they serve; builds, Vitest and plain Node never enable it and keep resolving `dist`. The name is a custom condition rather than `source` or `development`: Vite enables `development` by default in dev, and some published packages ship a `source` condition, so either would also switch third-party packages to unbuilt code. A new Brunch package export adds the condition beside its `types` entry. Petrinaut and petrinaut-core do not use it: they need their own build (Panda CSS and Vite-only imports), so their dev servers run from `dist`.
 
 ## Browser and conversation boundary
 
@@ -22,6 +30,6 @@ The model-context projection reduces superseded workpiece and net-read bodies be
 
 ## Runtime and persistence
 
-Local development and tests use Flue's SQLite store; production requires Postgres. The separate worked-model store remains in-memory locally and Postgres in production. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`. Every Brunch package uses `dist` for plain Node and an `@dev/source` export condition for Vite's dev server; builds and tests use `dist`. Petrinaut and petrinaut-core build independently (Panda CSS and Vite-only imports).
+Local development and tests use Flue's SQLite store; production requires Postgres. The separate worked-model store remains in-memory locally and Postgres in production. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`.
 
 The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0` and `@earendil-works/pi-ai@0.83.0` for context projection, native tool input and complete provider schemas. Re-evaluate this patch boundary together when upgrading Flue or Pi.

@@ -1,9 +1,6 @@
-import { markdownImportPlugin } from "@flue/vite/internal";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  // Brunch packages import SKILL.md natively; Flue packages those imports.
-  plugins: [markdownImportPlugin()],
   test: {
     include: ["test/integration/**/*.test.ts"],
     // These tests spawn a child process that imports the built application and

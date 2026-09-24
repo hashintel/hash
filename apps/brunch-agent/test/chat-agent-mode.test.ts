@@ -6,7 +6,7 @@ import {
   STOCK_OVER_FLUE_MODE,
   draftPetrinautExperimentToolName,
   sdcpnInitialDataSchema,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautAiCapabilityGuidance,
   petrinautAiPrompt,
@@ -43,6 +43,14 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useSkill: (skill: { name: string }) => mounted.skills.push(skill.name),
   useTool: (tool: { name: string }) => mounted.tools.push(tool.name),
 }));
+// Only the Flue build packages skills; these tests exercise the composition around them.
+vi.mock("@hashintel/brunch-agent/skills/elicitation/SKILL.md", () => ({
+  default: { name: "elicitation" },
+}));
+vi.mock(
+  "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md",
+  () => ({ default: { name: "sdcpn-modelling" } }),
+);
 const construction = {
   binding: {
     conversationId: "conversation",

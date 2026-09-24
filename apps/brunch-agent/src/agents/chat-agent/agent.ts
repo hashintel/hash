@@ -18,19 +18,19 @@ import {
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
-import {
-  SDCPN_MODELLING_SKILL_NAME,
-  useSdcpnPlugin,
-} from "@hashintel/brunch-agent-plugin-sdcpn/agent";
+import { createWorkpieceReadTool } from "@hashintel/brunch-agent";
 import {
   STOCK_OVER_FLUE_MODE,
   INTEGRATED_BRUNCH_MODE,
   sdcpnInitialDataSchema,
   type BrowserContext,
   type SdcpnInitialData,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  SDCPN_MODELLING_SKILL_NAME,
+  useSdcpnPlugin,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { useBrunchAgent } from "@hashintel/brunch-agent/agent";
-import { createWorkpieceReadTool } from "@hashintel/brunch-agent/flue";
+import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 import {
   getLatestNetDefinitionToolName,
   petrinautAiPrompt,
@@ -193,7 +193,8 @@ When the user asks why a visible element exists, do not answer from memory. If n
 }
 
 /**
- * Pinned, and never to be edited: conversation storage keys on this literal.
+ * Pinned, and never to be edited: conversation storage keys on this literal,
+ * and Flue requires it to be a literal here.
  */
 ChatAgent.agentName = "brunch-chat-agent";
 ChatAgent.initialData = sdcpnInitialDataSchema;

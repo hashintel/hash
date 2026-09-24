@@ -21,7 +21,6 @@ import {
   BRUNCH_PRINCIPAL_HEADER,
 } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
-import { ChatAgent } from "../../src/agents/chat-agent/agent";
 import { loadBuiltBrunchApplication } from "../load-built-application";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
@@ -72,7 +71,7 @@ describe("the emitted server bundle", () => {
         ),
       ].map((match) => match[1]!),
     );
-    expect(bound.has(ChatAgent.agentName)).toBe(true);
+    expect(bound.has("brunch-chat-agent")).toBe(true);
   });
 
   test("includes the fail-closed production store", () => {

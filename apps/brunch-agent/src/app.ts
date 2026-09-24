@@ -11,7 +11,7 @@ import { Hono } from "hono";
 import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
   READ_PETRINAUT_DOCS_TOOL_NAME,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";

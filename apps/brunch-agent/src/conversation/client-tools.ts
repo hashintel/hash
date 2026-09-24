@@ -1,6 +1,6 @@
 /** Flue-side client-tool signal contract: awaiting sentinel, result signal, tool names. */
 
-import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isClientToolResultDelivery,

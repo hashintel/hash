@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import type {
   ContextProjection,

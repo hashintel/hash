@@ -12,7 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { STOCK_OVER_FLUE_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { STOCK_OVER_FLUE_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 

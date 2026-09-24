@@ -1,7 +1,7 @@
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
-import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
+import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent";
 
 import {
   callsForElement,
@@ -11,7 +11,7 @@ import {
 } from "./net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 

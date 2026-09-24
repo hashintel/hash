@@ -11,11 +11,6 @@
       "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./agent": {
-      "types": "./src/agent.ts",
-      "@dev/source": "./src/agent.ts",
-      "import": "./dist/agent.js"
-    },
     "./flue": {
       "types": "./src/flue.ts",
       "@dev/source": "./src/flue.ts",
@@ -43,7 +38,6 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@flue/vite": "2.0.3",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",
