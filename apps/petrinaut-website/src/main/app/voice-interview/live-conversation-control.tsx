@@ -7,6 +7,9 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import {
@@ -20,6 +23,8 @@ import {
   VoiceInterviewRetry,
 } from "./voice-interview-disclosure";
 
+import type { UtteranceJudgmentMode } from "../../../shared/live-utterance-judgment";
+import type { WithheldUtterance } from "./live-utterance-gate";
 import type { VoiceInterviewControl } from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -42,7 +47,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     >[0]["submit"];
     readonly connectionTimeoutMs: number;
     readonly isDisclosureAcknowledged: () => boolean;
-    readonly utteranceJudgment?: "log";
+    readonly utteranceJudgment?: Exclude<UtteranceJudgmentMode, "off">;
   };
 
 export const LiveConversationControl = ({
@@ -78,6 +83,7 @@ export const LiveConversationControl = ({
   );
   const [consented, setConsented] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [withheld, setWithheld] = useState<readonly WithheldUtterance[]>([]);
   const [microphoneMuted, setMicrophoneMutedState] = useState(false);
   const [speakerMuted, setSpeakerMutedState] = useState(false);
   const [speakerVolume, setSpeakerVolumeState] = useState(1);
@@ -101,6 +107,8 @@ export const LiveConversationControl = ({
       status,
       stopped,
       canAcceptVoiceInput,
+      currentInterviewQuestion:
+        selectCanonicalSpeech(messages).questionSegment?.text ?? null,
       segments: selectCanonicalSpeech(messages).segments,
       settlements: settlements ?? [],
       snapshot,
@@ -123,18 +131,18 @@ export const LiveConversationControl = ({
     stopped,
   ]);
   useLayoutEffect(() => {
-    const segments = selectCanonicalSpeech(messages).segments.map(
-      (segment) => ({
-        ...segment,
-        submissionIds: resolveResponseSubmission?.(segment.messageId),
-      }),
-    );
+    const speech = selectCanonicalSpeech(messages);
+    const segments = speech.segments.map((segment) => ({
+      ...segment,
+      submissionIds: resolveResponseSubmission?.(segment.messageId),
+    }));
     latest.current = {
       submit,
       chat: {
         status,
         stopped,
         canAcceptVoiceInput,
+        currentInterviewQuestion: speech.questionSegment?.text ?? null,
         segments,
         settlements: settlements ?? [],
         snapshot,
@@ -248,8 +256,10 @@ export const LiveConversationControl = ({
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
       notice: setWarningMessage,
+      enforce: utteranceJudgment === "enforce",
+      withheldChanged: setWithheld,
       judge:
-        utteranceJudgment === "log"
+        utteranceJudgment === "log" || utteranceJudgment === "enforce"
           ? createUtteranceJudgmentRequester(globalThis.fetch.bind(globalThis))
           : undefined,
     });
@@ -410,6 +420,79 @@ export const LiveConversationControl = ({
     };
   }, [reportVoiceSessionState, setVoiceActive]);
 
+  if (inputMode === "voice" && phase === "connected" && withheld.length > 0) {
+    return (
+      <details
+        className={css({
+          width: "full",
+          padding: "3",
+          borderTopWidth: "thin",
+          borderTopStyle: "solid",
+          borderTopColor: "neutral.a20",
+          backgroundColor: "neutral.bg.subtle",
+          color: "neutral.s100",
+          fontSize: "sm",
+        })}
+      >
+        <summary className={css({ cursor: "pointer", fontWeight: "medium" })}>
+          Not sent to Brunch ({withheld.length})
+        </summary>
+        <p
+          className={css({
+            color: "neutral.s80",
+            fontSize: "xs",
+            marginTop: "2",
+          })}
+        >
+          Held by the experimental filter. Send an answer it missed. This list
+          clears when voice ends.
+        </p>
+        <ul
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "2",
+            maxHeight: "[200px]",
+            overflowY: "auto",
+            marginTop: "2",
+          })}
+        >
+          {withheld.map((input) => (
+            <li
+              key={input.id}
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "start",
+                gap: "2",
+                padding: "2",
+                borderRadius: "lg",
+                backgroundColor: "neutral.s00",
+              })}
+            >
+              <p
+                className={css({
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  width: "full",
+                })}
+              >
+                {input.text}
+              </p>
+              <Button
+                size="xs"
+                variant="subtle"
+                type="button"
+                onClick={() => bridge.current?.release(input.id)}
+              >
+                Send to Brunch
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
   if (inputMode !== "voice" || phase === "connecting" || phase === "connected")
     return null;
   const exitVoiceMode = () => {

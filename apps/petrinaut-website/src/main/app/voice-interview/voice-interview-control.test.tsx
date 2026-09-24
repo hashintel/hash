@@ -355,7 +355,11 @@ describe("voice interview control", () => {
 
   test.each([
     ["log", "live", { ...config, provider: "live", utteranceJudgment: "log" }],
-    ["enforce", "live", { ...config, provider: "live" }],
+    [
+      "enforce",
+      "live",
+      { ...config, provider: "live", utteranceJudgment: "enforce" },
+    ],
     ["off", "live", { ...config, provider: "live" }],
     ["unknown", "live", { ...config, provider: "live" }],
     ["log", "realtime", { ...config, provider: "realtime" }],

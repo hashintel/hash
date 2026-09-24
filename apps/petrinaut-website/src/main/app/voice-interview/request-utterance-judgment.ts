@@ -8,7 +8,7 @@ import type {
 /** Log-only measurement window for the latency tail, not an enforcement deadline. */
 const utteranceJudgmentTimeoutMs = 10_000;
 
-/** One request, no retry. Failure affects the diagnostic only, never Brunch. */
+/** One request, no retry. The enforcement gate supplies its shorter abort deadline. */
 export const createUtteranceJudgmentRequester =
   (fetch: typeof globalThis.fetch) =>
   async (

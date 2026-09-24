@@ -134,8 +134,8 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `OPENAI_VOICE_API_KEY`              | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
 | `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for the log-only Live experiment.                                                       |
-| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission. Unset, unknown, and `enforce` values are off.       |
+| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for Live utterance experiments.                                                         |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` observes; `enforce` gates locally with manual recovery (see below). Unset and unknown values are off.      |
 | `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                                           |
 | `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
 | `VITE_PETRINAUT_DEFAULT_ASSISTANT`  | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
@@ -273,9 +273,61 @@ Acceptance requires a real log-only support-desk run: opening modelling request,
 the five metadata-only triples and latency p50, verify one unchanged submission
 per eligible utterance, and check `JSON.stringify(trace)` contains none of the
 spoken or relayed text. Synthetic fixtures and a working endpoint do not prove
-classification quality or real latency. Enforcement is not implemented in this
-milestone; threshold, timeout and any later delegation override remain subject
-to a separate owner decision after reviewing those traces.
+classification quality or real latency. Log mode never enforces its decisions.
+
+#### Local utterance gating (FE-1779)
+
+The owner-approved local trial uses `PETRINAUT_LIVE_UTTERANCE_JUDGMENT=enforce`
+with the same server-side keys and Live enablement as above. Start with
+`NODE_ENV=development`; `VERCEL_ENV` must be unset. Preview/production enforcement
+is disabled. This is not authentication: keep the dev server private.
+
+Each eligible finalized transcript is judged once with the latest finalized
+Brunch turn and last successfully offered Brunch prose as context. All three
+text fields go to TypeSafe, never to diagnostic traces. A short confirmation
+can be interview content; mixed content and requests to send information to
+Brunch take priority over incidental speech.
+
+Submit the original transcript for interview content, confidence below 0.8,
+failure, or a one-second deadline expiry. Other contributions at confidence
+0.8 or higher are withheld. Live voice remains independent. The deadline bounds
+classification wait, not composer/admission wait; eligible submissions queue
+in transcript order while the composer is busy.
+
+Stopping a response cancels pending gated work; a fresh voice turn can still
+submit. Already withheld speech remains available for explicit recovery.
+
+Expand **Not sent to Brunch** to recover an utterance using **Send to Brunch**.
+Recovery queues its original ID and text after already queued inputs, bypasses
+judgment, and cannot submit twice. Withheld text exists only in this voice session;
+ending voice clears it and cancels pending work. No automatic retry or replay
+occurs after reconnect. Check canonical history if admission is unconfirmed.
+
+GPT-Live delegation neither chooses nor releases a transcript. Gated results
+are relayed as general session commentary, without arrival-order matching.
+This replaces automatic later-delegation recovery with explicit user recovery.
+`judgment.result` records the applied decision; `judgment.released` records a
+recovery request, not proof of admission. Both contain metadata only.
+
+For readable browser console lines, add `?voiceDebug=1` to the page URL (or
+`&voiceDebug=1` if it already has query parameters), reload, and filter DevTools
+Console by `[Petrinaut Voice debug]`. This local-development-only option works
+in log and enforce modes; it does not enable voice or change the gate mode.
+Match lines by `inputId`: **Submission attempted** is not confirmation;
+**Reached Brunch** means Flue admitted it and supplied a `submissionId`.
+Log-only judgments say **Judgment only; submissions unchanged**, even when the
+recommendation is to withhold. Enforcement distinguishes withholding, permission
+to submit, timeout fallback, and manual release. A response failure after
+admission remains **Reached Brunch; response unconfirmed**. These lines contain
+only selected metadata, never transcript or relayed prose. Remove the parameter
+or set `voiceDebug=0` to disable the extra lines; existing structured
+`[Petrinaut Live trace]` diagnostics remain unchanged.
+
+The threshold and deadline are trial settings, not validated production policy.
+Before shared enablement, run the support-desk script plus contextual short
+answers; measure false withholding, recovery use, Brunch-start delay, and avoided
+submissions. Synthetic tests do not establish classification quality, real Live
+responsiveness, or latency reliability. Shared enforcement needs separate sign-off.
 
 ### Brunch Voice mode
 

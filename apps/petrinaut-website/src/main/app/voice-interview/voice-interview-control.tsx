@@ -30,6 +30,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { UtteranceJudgmentMode } from "../../../shared/live-utterance-judgment";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
@@ -134,7 +135,7 @@ export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
   readonly provider?: "realtime" | "live";
-  readonly utteranceJudgment?: "log";
+  readonly utteranceJudgment?: Exclude<UtteranceJudgmentMode, "off">;
 }
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
@@ -272,7 +273,8 @@ export const loadOpenAIVoiceConfig = async (
       ...(body.provider === undefined
         ? {}
         : { provider: body.provider as "realtime" | "live" }),
-      ...(body.provider === "live" && body.utteranceJudgment === "log"
+      ...(body.provider === "live" &&
+      (body.utteranceJudgment === "log" || body.utteranceJudgment === "enforce")
         ? { utteranceJudgment: body.utteranceJudgment }
         : {}),
     };

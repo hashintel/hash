@@ -10,6 +10,7 @@ interface VoiceEnvironment {
   readonly PETRINAUT_LIVE_UTTERANCE_JUDGMENT?: string;
   readonly TYPESAFE_API_KEY?: string;
   readonly VERCEL_ENV?: string;
+  readonly NODE_ENV?: string;
 }
 
 /**
@@ -27,16 +28,23 @@ export const getVoiceProvider = (
   return provider === "realtime" || provider === "live" ? provider : null;
 };
 
-/** Only the log-only experiment is authorized; unknown modes remain off. */
+/** Enforcement is restricted to local development; shared rollout is not approved. */
 export const getUtteranceJudgmentMode = (
   environment: VoiceEnvironment,
-): UtteranceJudgmentMode =>
-  getOpenAIVoiceAvailability(environment).available &&
-  getVoiceProvider(environment) === "live" &&
-  environment.TYPESAFE_API_KEY?.trim() &&
-  environment.PETRINAUT_LIVE_UTTERANCE_JUDGMENT === "log"
-    ? "log"
+): UtteranceJudgmentMode => {
+  if (
+    !getOpenAIVoiceAvailability(environment).available ||
+    getVoiceProvider(environment) !== "live" ||
+    !environment.TYPESAFE_API_KEY?.trim()
+  )
+    return "off";
+  if (environment.PETRINAUT_LIVE_UTTERANCE_JUDGMENT === "log") return "log";
+  return environment.PETRINAUT_LIVE_UTTERANCE_JUDGMENT === "enforce" &&
+    environment.NODE_ENV === "development" &&
+    !environment.VERCEL_ENV
+    ? "enforce"
     : "off";
+};
 
 export const createOpenAIVoiceConfigHandler =
   (environment: VoiceEnvironment) =>

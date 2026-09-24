@@ -36,6 +36,27 @@ const answer = {
 };
 
 describe("utterance judgment handler", () => {
+  test("passes current question as bounded classifier data in local enforcement", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json({ answers: { contribution: answer } }));
+    const handler = createUtteranceJudgmentHandler({
+      environment: {
+        ...environment,
+        NODE_ENV: "development",
+        PETRINAUT_LIVE_UTTERANCE_JUDGMENT: "enforce",
+      },
+      fetch,
+    });
+    const current = { ...state, currentInterviewQuestion: "PRIVATE QUESTION" };
+    expect(
+      (await handler(request({ body: JSON.stringify(current) }))).status,
+    ).toBe(200);
+    const body = fetch.mock.calls[0]?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected a JSON request");
+    expect(JSON.parse(body).state).toEqual(current);
+  });
+
   test.each([
     [{ method: "GET", body: undefined }, 405],
     [
@@ -66,6 +87,7 @@ describe("utterance judgment handler", () => {
     [{ body: JSON.stringify({ ...state, transcript: 42 }) }, 400],
     [{ body: JSON.stringify({ transcript: "hello" }) }, 400],
     [{ body: JSON.stringify({ ...state, transcript: " " }) }, 400],
+    [{ body: JSON.stringify({ ...state, currentInterviewQuestion: 42 }) }, 400],
     [
       { body: JSON.stringify({ ...state, transcript: "a".repeat(32_001) }) },
       400,
