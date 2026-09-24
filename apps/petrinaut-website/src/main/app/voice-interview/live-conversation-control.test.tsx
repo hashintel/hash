@@ -9,10 +9,20 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { createReadableStore } from "@hashintel/petrinaut-core";
+import {
+  PetrinautInstanceContext,
+  prepareExperiment,
+} from "@hashintel/petrinaut/react";
+
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
+import {
+  resetSessionDrafts,
+  sessionDraftsFor,
+} from "../shared/brunch-draft-experiment-drafts";
 import { createLiveConversation } from "./live-conversation";
 import {
   LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
@@ -22,6 +32,12 @@ import {
 } from "./voice-interview-control";
 
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
+import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type {
+  Petrinaut,
+  PetrinautExperimentRequest,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 const liveConversationMocks = vi.hoisted(() => ({
@@ -64,6 +80,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   window.localStorage.clear();
+  resetSessionDrafts();
 });
 
 const context = (): PetrinautAiVoiceModeContext => ({
@@ -1090,3 +1107,84 @@ test.each(["commentary", "instructions"] as const)(
     expect(props.reportVoiceSessionState).not.toHaveBeenCalled();
   },
 );
+
+test("inside a Petrinaut editor, a playback word reaches the canvas and a drafted experiment reaches Live as quiet context", async () => {
+  const definition = createReadableStore<SDCPN>({
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+    scenarios: [
+      {
+        id: "scenario__peak",
+        name: "Weekday peak",
+        scenarioParameters: [
+          { identifier: "agents", type: "integer", default: 5 },
+        ],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      },
+    ],
+    metrics: [
+      { id: "metric__wait", name: "Average waiting time", code: "return 1;" },
+    ],
+  });
+  const instance = { definition } as unknown as Petrinaut;
+  const props = context();
+  render(
+    <PetrinautInstanceContext.Provider value={instance}>
+      <VoiceInterviewControl {...props} config={config} />
+    </PetrinautInstanceContext.Provider>,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+    .value as ReturnType<typeof createLiveConversation>;
+  act(() => call[0]({ phase: "connected", message: null }));
+
+  act(() => call[3]("delegation-play"));
+  await act(async () => call[2]({ id: "utterance-1", text: "Play." }));
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Playing.",
+    "delegation-play",
+  );
+
+  const request: PetrinautExperimentRequest = {
+    name: "Staffing the peak",
+    scenarioId: "scenario__peak",
+    scenarioParameterValues: { agents: { mode: "range", min: 2, max: 8 } },
+    runCount: 20,
+    seed: 7,
+    dt: 1,
+    maxTime: 120,
+    metricIds: ["metric__wait"],
+    execution: {
+      mode: "optimize",
+      objectiveMetricId: "metric__wait",
+      direction: "minimize",
+      steps: 3,
+      runsPerStep: 5,
+    },
+  };
+  act(() => {
+    sessionDraftsFor(definition).register({
+      toolCallId: "call_draft_1",
+      input: {
+        experiment: request,
+      } as unknown as DraftPetrinautExperimentInput,
+      definition: definition.get(),
+      prepared: prepareExperiment(request, definition.get(), "Support desk"),
+      invalid: null,
+      dismissed: false,
+      run: { phase: "idle" },
+    });
+  });
+  expect(session.appendThinking).toHaveBeenCalledWith(
+    expect.stringContaining(
+      "Brunch drafted an experiment for this session. It has not run. Vary agents 2–8 under Weekday peak",
+    ),
+    null,
+  );
+});

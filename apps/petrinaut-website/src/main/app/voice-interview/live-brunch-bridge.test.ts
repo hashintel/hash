@@ -1255,3 +1255,96 @@ test("retries the coverage note only while the local send fails, and ignores ref
   });
   expect(fixture.appendThinking).toHaveBeenCalledTimes(2);
 });
+
+test("answers a whole-utterance playback command from the canvas without a Brunch turn", async () => {
+  const fixture = setup();
+  const playback = {
+    play: vi.fn(async () => {}),
+    pause: vi.fn(),
+    stop: vi.fn(),
+  };
+  const bridge = new LiveBrunchBridge({
+    appendCommentary: fixture.appendCommentary,
+    appendInstructions: fixture.appendInstructions,
+    appendThinking: fixture.appendThinking,
+    notice: fixture.notice,
+    submit: fixture.submit,
+    playback,
+  });
+  // Playback does not wait for Brunch admission to be available.
+  bridge.update({
+    status: "ready",
+    canAcceptVoiceInput: false,
+    segments: [],
+    settlements: [],
+  });
+  bridge.acceptDelegation("delegation-play");
+  await bridge.accept({ id: "one", text: "Okay, play the simulation." });
+  expect(playback.play).toHaveBeenCalledOnce();
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Playing.",
+    "delegation-play",
+  );
+  expect(fixture.notice).not.toHaveBeenCalled();
+
+  // A longer remark that mentions pausing is still a Brunch turn.
+  bridge.update({
+    status: "ready",
+    canAcceptVoiceInput: true,
+    segments: [],
+    settlements: [],
+  });
+  await bridge.accept({
+    id: "two",
+    text: "Pause it there, the queue never gets that long in practice.",
+  });
+  expect(playback.pause).not.toHaveBeenCalled();
+  expect(fixture.submit).toHaveBeenCalledOnce();
+});
+
+test("a playback control that fails is reported, never spoken as done", async () => {
+  const fixture = setup();
+  const playback = {
+    play: vi.fn(async () => {
+      throw new Error("No scenario selected");
+    }),
+    pause: vi.fn(),
+    stop: vi.fn(),
+  };
+  const bridge = new LiveBrunchBridge({
+    appendCommentary: fixture.appendCommentary,
+    appendInstructions: fixture.appendInstructions,
+    appendThinking: fixture.appendThinking,
+    notice: fixture.notice,
+    submit: fixture.submit,
+    playback,
+  });
+  bridge.acceptDelegation("delegation-play");
+  await bridge.accept({ id: "one", text: "Play" });
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining(
+      "could not play the simulation: No scenario selected",
+    ),
+    "delegation-play",
+  );
+  expect(fixture.notice).toHaveBeenCalledWith(
+    "The simulation could not play: No scenario selected",
+  );
+
+  // Without a delegation there is nothing to redirect; the notice stands alone.
+  await bridge.accept({ id: "two", text: "Stop the simulation" });
+  expect(playback.stop).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Stopped. The simulation is back at the start.",
+    null,
+  );
+});
+
+test("without canvas controls, a playback word is an ordinary Brunch turn", async () => {
+  const fixture = setup();
+  await fixture.bridge.accept({ id: "one", text: "Play" });
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+});

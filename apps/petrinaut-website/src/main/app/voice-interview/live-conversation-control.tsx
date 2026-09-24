@@ -1,4 +1,5 @@
 import {
+  use,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -7,12 +8,22 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import {
+  PetrinautInstanceContext,
+  useCurrentViewedFrame,
+  usePlaybackActions,
+  usePlaybackState,
+} from "@hashintel/petrinaut/react";
+
+import { sessionDraftsFor } from "../shared/brunch-draft-experiment-drafts";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
+import { ExperimentVoiceRelay } from "./live-conversation-control/experiment-voice-relay";
+import { describePlaybackChange } from "./live-conversation-control/playback-voice-note";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
@@ -42,6 +53,13 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     readonly connectionTimeoutMs: number;
     readonly isDisclosureAcknowledged: () => boolean;
   };
+
+const noDrafts: ReturnType<ReturnType<typeof sessionDraftsFor>["get"]> = {
+  currentToolCallId: null,
+  drafts: new Map(),
+};
+const subscribeToNothing = () => () => {};
+const getNoDrafts = () => noDrafts;
 
 export const LiveConversationControl = ({
   acknowledgeDisclosure,
@@ -103,6 +121,45 @@ export const LiveConversationControl = ({
       snapshot,
     },
   });
+  // Inside a Petrinaut editor the canvas and the experiment card are in view,
+  // so the voice is told what they do. Standalone there is no instance and
+  // every utterance is a Brunch turn.
+  const instance = use(PetrinautInstanceContext);
+  const playbackActions = usePlaybackActions();
+  const playbackState = usePlaybackState();
+  const viewedFrame = useCurrentViewedFrame();
+  const drafts = instance ? sessionDraftsFor(instance.definition) : null;
+  const draftsState = useSyncExternalStore(
+    drafts?.subscribe ?? subscribeToNothing,
+    drafts?.get ?? getNoDrafts,
+    drafts?.get ?? getNoDrafts,
+  );
+  const relay = useRef<ExperimentVoiceRelay | null>(null);
+  const latestDrafts = useRef(draftsState);
+  const latestPlayback = useRef(playbackActions);
+  useLayoutEffect(() => {
+    latestPlayback.current = playbackActions;
+  }, [playbackActions]);
+  useLayoutEffect(() => {
+    latestDrafts.current = draftsState;
+    relay.current?.update(draftsState);
+  }, [draftsState]);
+  const previousPlaybackState = useRef(playbackState);
+  useEffect(() => {
+    const previous = previousPlaybackState.current;
+    previousPlaybackState.current = playbackState;
+    if (previous === playbackState || phase !== "connected" || !instance)
+      return;
+    const note = describePlaybackChange({
+      previous,
+      next: playbackState,
+      frame: viewedFrame,
+      definition: instance.definition.get(),
+    });
+    // Best effort, like every quiet note: a transition that fails to send is
+    // not replayed, since the canvas has moved on.
+    if (note) session.current?.appendThinking(note, null);
+  }, [playbackState, phase, instance, viewedFrame]);
   useLayoutEffect(() => {
     audioSettingsStore.setPreviewAvailability({
       connected: phase === "connected",
@@ -165,6 +222,7 @@ export const LiveConversationControl = ({
   );
   const end = useCallback(async () => {
     bridge.current?.stop();
+    relay.current?.stop();
     sessionActive.current = false;
     const closing = session.current?.stop();
     setVoiceActive(false);
@@ -189,6 +247,7 @@ export const LiveConversationControl = ({
           // The Live channel was closed when the bridge first saw the chat, so
           // any quiet context it tried to offer then failed locally. Re-offer.
           bridge.current?.update(latest.current.chat);
+          relay.current?.update(latestDrafts.current);
         }
         if (
           nextState.phase !== "connected" ||
@@ -211,8 +270,10 @@ export const LiveConversationControl = ({
           nextState.phase === "error" ||
           nextState.phase === "ended" ||
           nextState.phase === "stopping"
-        )
+        ) {
           bridge.current?.stop();
+          relay.current?.stop();
+        }
         setState(nextState);
         setVoiceActive(
           nextState.phase === "connecting" || nextState.phase === "connected",
@@ -256,13 +317,33 @@ export const LiveConversationControl = ({
       appendInstructions: next.appendInstructions,
       appendThinking: next.appendThinking,
       notice: setWarningMessage,
+      ...(instance
+        ? {
+            playback: {
+              play: () => latestPlayback.current.play(),
+              pause: () => latestPlayback.current.pause(),
+              stop: () => latestPlayback.current.stop(),
+            },
+          }
+        : {}),
     });
     bridge.current.update(latest.current.chat);
+    relay.current = new ExperimentVoiceRelay({
+      appendThinking: next.appendThinking,
+      appendCommentary: next.appendCommentary,
+    });
+    relay.current.update(latestDrafts.current);
     session.current = next;
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
+  }, [
+    audioSettingsStore,
+    connectionTimeoutMs,
+    instance,
+    phase,
+    setVoiceActive,
+  ]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;
@@ -308,6 +389,7 @@ export const LiveConversationControl = ({
   useEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       bridge.current?.stop();
+      relay.current?.stop();
       void session.current?.stop();
     }
   }, [inputMode, isAiAssistantOpen]);
@@ -393,6 +475,7 @@ export const LiveConversationControl = ({
   useEffect(() => {
     const leave = () => {
       bridge.current?.stop();
+      relay.current?.stop();
       void session.current?.stop();
     };
     window.addEventListener("pagehide", leave);
@@ -402,6 +485,7 @@ export const LiveConversationControl = ({
       session.current = null;
       sessionActive.current = false;
       bridge.current?.stop();
+      relay.current?.stop();
       void current?.stop();
       setVoiceActive(false);
       reportVoiceSessionState(null);

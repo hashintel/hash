@@ -25,19 +25,19 @@ import {
 } from "@hashintel/petrinaut/ui";
 
 import {
+  resetSessionDrafts,
+  sessionDraftsFor,
+} from "../shared/brunch-draft-experiment-drafts";
+import {
   describeBudget,
   describeExperiment,
   metricRoles,
   preparationDiffers,
   summarizeForAgent,
-} from "./brunch-draft-experiment-interactive-tool/describe-draft";
-import {
-  resetSessionDrafts,
-  sessionDraftsFor,
-} from "./brunch-draft-experiment-interactive-tool/session-drafts";
+} from "../shared/brunch-draft-experiment-summary";
 import { observeBrowserDefinition } from "./mutation-record";
 
-import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
+import type { PreparedExperiment } from "../shared/brunch-draft-experiment-summary";
 import type {
   PetrinautExperimentRequest,
   SDCPN,
