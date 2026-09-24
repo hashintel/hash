@@ -27,7 +27,7 @@ import type {
 
 export type VoiceSubmissionSettlement = Pick<
   FlueConversationSettlement,
-  "outcome" | "submissionId"
+  "outcome" | "submissionId" | "answeredBySubmissionId"
 >;
 
 export interface CancelPendingSpeechOptions {

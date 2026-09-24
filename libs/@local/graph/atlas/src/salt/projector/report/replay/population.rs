@@ -16,7 +16,7 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum Novelty {
-    /// The exact bytes occur in `G0`, so the model has seen this input.
+    /// The exact bytes occur in `G0`: the model has seen this input.
     Seen,
     /// The bytes occur nowhere in `G0`: the reading that tests generalization.
     Novel,
@@ -55,7 +55,7 @@ hashql_core::id::newtype! {
 }
 
 /// One stable identity's rows in both generations.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub(super) struct StablePair {
     /// The identity's earlier-generation row.
     pub earlier_row: NodeRowId,
@@ -79,7 +79,7 @@ pub(super) struct Populations {
 ///
 /// The representative is the class's lowest-later-row member: a deterministic rule, independent
 /// of any draw.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub(super) struct StableClass {
     /// The representative member's rows.
     pub representative: StablePair,
@@ -90,8 +90,8 @@ pub(super) struct StableClass {
 /// One byte-exact representation class of the arrival population.
 ///
 /// The representative is the class's lowest-later-row member: a deterministic rule, independent
-/// of any draw. Byte-equal arrivals share their novelty by construction, so the class carries it
-/// whole.
+/// of any draw. Byte-equal arrivals share their novelty by construction, and the class therefore
+/// carries it whole.
 #[derive(Copy, Clone)]
 pub(super) struct ArrivalClass {
     /// The representative member's later-generation row.
@@ -268,7 +268,7 @@ impl IncidentStats {
             .collect();
 
         for &[source, target] in edges {
-            // A self-referential edge is incident once, so it enters once.
+            // A self-referential edge is incident once and therefore enters once.
             let both = [(source, target), (target, source)];
             let ends = if source == target {
                 &both[..1]

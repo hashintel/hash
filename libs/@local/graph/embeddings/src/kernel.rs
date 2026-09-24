@@ -428,7 +428,7 @@ pub unsafe fn nearest4(
 
 #[cfg(test)]
 mod tests {
-    #![expect(clippy::float_cmp, clippy::integer_division_remainder_used)]
+    #![expect(clippy::integer_division_remainder_used)]
 
     use super::*;
 

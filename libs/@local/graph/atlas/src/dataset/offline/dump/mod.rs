@@ -1,34 +1,34 @@
 //! Writing a dump directory from a live [`Dataset`].
 //!
 //! A dump drains every stream of one dataset into the directory layout
-//! [`OfflineDataset`](super::OfflineDataset) accepts and stores the embeddings an offline fit
-//! will look up. Each stream file serializes as one rkyv archive straight to disk through a
-//! digesting writer, and the manifest seals the directory last, so an interrupted dump leaves a
-//! directory the reader refuses instead of a truncated dataset that parses. A stale manifest
-//! from an earlier dump into the same directory is removed before the first stream write, so an
+//! [`OfflineDataset`](super::OfflineDataset) accepts and stores the embeddings an offline fit will
+//! look up. Each stream file serializes as one rkyv archive straight to disk through a digesting
+//! writer, and the manifest seals the directory last. An interrupted dump leaves a directory the
+//! reader refuses instead of a truncated dataset that parses. The dump deletes a stale manifest
+//! left by an earlier dump into the same directory before it writes the first stream. An
 //! interrupted rewrite cannot leave the old manifest vouching for new files.
 //!
 //! The work splits into a read phase ([`read`]) that drains the dataset and an embed phase
-//! ([`embed`]) that spends the provider budget and seals the manifest, so a caller may close
-//! its source snapshot between the two.
+//! ([`embed`]) that spends the provider budget and seals the manifest. A caller may close its
+//! source snapshot between the two.
 //!
 //! # Canonical coverage
 //!
 //! Full canonical embeddings are the one stream a fit consumes only in part. The admission probe
-//! fetches exactly the sample its seed, anchor count, and comparison count derive, so the dump
-//! replays that derivation over the node rows it wrote and dumps the sampled nodes' embeddings
-//! alone. Requesting every node instead ([`DumpOptions::all_canonicals`], or a sample no smaller
-//! than the corpus) trades dump size for freedom in the offline fit's probe parameters, and the
-//! manifest records which coverage the stream holds.
+//! fetches exactly the sample its seed, anchor count, and comparison count derive. The dump replays
+//! that derivation over the node rows it wrote and dumps the sampled nodes' embeddings alone.
+//! Requesting every node instead ([`DumpOptions::all_canonicals`], or a sample no smaller than the
+//! corpus) trades dump size for freedom in the offline fit's probe parameters, and the manifest
+//! records which coverage the stream holds.
 //!
 //! # Card embeddings
 //!
-//! An offline fit renders its own cards and hands the texts to its embedder, so the dump embeds
-//! the texts its render produces and stores each vector under its text hash, where
+//! An offline fit renders its own cards and hands the texts to its embedder. The dump embeds the
+//! texts its render produces and stores each vector under its text hash, where
 //! [`OfflineEmbedder`](super::embedder::OfflineEmbedder) finds it. A supplied annotation corpus
-//! renders further texts inside its assembly, so the dump runs the same assembly the fit would
-//! run and merges those vectors into the stream. An offline fit whose supplies match the dump's
-//! then resolves every text without a provider.
+//! renders further texts inside its assembly. The dump runs the same assembly the fit would run and
+//! merges those vectors into the stream. An offline fit whose supplies match the dump's then
+//! resolves every text without a provider.
 
 use core::{error::Error, fmt, num::NonZero};
 use std::{fs, io};
@@ -79,8 +79,8 @@ pub(crate) struct DumpOptions<'corpus> {
     pub all_canonicals: bool,
     /// The annotation corpus the offline fit will run with, when it runs with one.
     ///
-    /// Assembly renders and embeds its own card texts, so a fit supplied with a corpus the dump
-    /// never assembled would request embeddings the dump does not hold.
+    /// Assembly renders and embeds its own card texts. A fit supplied with a corpus the dump never
+    /// assembled would request embeddings the dump does not hold.
     pub annotations: Option<&'corpus AnnotationCorpus>,
     /// The assembly settings for the annotation corpus's embedding pass.
     pub assembly: AssemblyConfig,
@@ -88,9 +88,8 @@ pub(crate) struct DumpOptions<'corpus> {
 
 /// Writing a dump directory failed.
 ///
-/// Every variant that names a stream carries the [`StreamKind`] whose file was being written,
-/// and the kind displays as the file's name inside the directory, so the report points at one
-/// path.
+/// Every variant that names a stream carries the [`StreamKind`] whose file was being written, and
+/// the kind displays as the file's name inside the directory. The report points at one path.
 #[derive(Debug)]
 pub(crate) enum DumpError<D, E> {
     /// Creating the dump directory failed.
@@ -173,8 +172,8 @@ where
 
 /// Per-stream record counts, measured as the streams were written.
 ///
-/// The manifest identifies files by length and digest alone, so the counts a report renders
-/// come from here, one field per [`StreamKind`].
+/// The manifest identifies files by length and digest alone. The counts a report renders come from
+/// here, one field per [`StreamKind`].
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct RecordCounts {
     pub nodes: u64,
@@ -216,9 +215,8 @@ pub(crate) struct Dump {
 
 /// The read phase's yield, carried into the embed phase.
 ///
-/// Every dataset-derived stream is already on disk, and the value borrows nothing from the
-/// dataset, so the caller may close the source snapshot before the embed phase spends provider
-/// budget.
+/// Every dataset-derived stream is already on disk, and the value borrows nothing from the dataset.
+/// The caller may close the source snapshot before the embed phase spends provider budget.
 pub(crate) struct DumpReading {
     axes: Option<TemporalAxes>,
     coverage: CanonicalCoverage,
@@ -236,9 +234,9 @@ pub(crate) struct DumpReading {
 /// Drains every dataset stream into the directory: the dump's read phase.
 ///
 /// The directory is created when absent, and a stale manifest from an earlier dump is removed
-/// before the first stream write. The returned reading borrows nothing from the dataset, so the
-/// caller may close the source snapshot before [`embed`] runs. Only [`embed`] writes the
-/// manifest, so a directory holding this phase's files alone is one the reader refuses.
+/// before the first stream write. The returned reading borrows nothing from the dataset. The caller
+/// may close the source snapshot before [`embed`] runs. Only [`embed`] writes the manifest. A
+/// directory holding this phase's files alone is one the reader refuses.
 ///
 /// # Errors
 ///
@@ -248,6 +246,12 @@ pub(crate) struct DumpReading {
 /// when the source fails to deliver a stream, [`DumpError::Cards`] when the card stream fails,
 /// and [`DumpError::CanonicalCount`] when the canonical stream's delivery count differs from
 /// the request.
+///
+/// # Panics
+///
+/// Choosing the canonical coverage sums [`anchors`](DumpOptions::anchors) and
+/// [`comparisons`](DumpOptions::comparisons). This panics when their total leaves `usize` where
+/// overflow checks are on, and draws a wrapped sample where they are off.
 pub(crate) async fn read<D, E>(
     dataset: &D,
     directory: &Utf8Path,
@@ -263,8 +267,8 @@ where
     fs::create_dir_all(directory).map_err(DumpError::Directory)?;
 
     // Remove a stale manifest before the first stream write: the manifest is the acceptance
-    // boundary, so an interrupted rewrite must leave a directory the reader refuses rather than
-    // an old manifest beside new files.
+    // boundary. An interrupted rewrite must leave a directory the reader refuses rather than an old
+    // manifest beside new files.
     match fs::remove_file(directory.join(Manifest::FILE_NAME)) {
         Ok(()) => {}
         Err(error) if error.kind() == io::ErrorKind::NotFound => {}
@@ -319,7 +323,7 @@ where
     })
 }
 
-/// Mints the card embeddings and seals the manifest: the dump's embed phase, its one paid step.
+/// Creates the card embeddings and seals the manifest: the dump's embed phase, its one paid step.
 ///
 /// # Errors
 ///

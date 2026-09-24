@@ -25,12 +25,13 @@ graph TD
     class 13 root
     14[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
     15[<a href="../error_stack/index.html">error-stack</a>]
-    16[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    17[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    16[<a href="../problematic/index.html">problematic</a>]
+    17[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    18[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     0 --> 5
     1 --> 9
-    1 -.-> 17
+    1 -.-> 18
     2 -.-> 3
     2 --> 12
     4 -.-> 6
@@ -45,11 +46,13 @@ graph TD
     8 --> 10
     8 --> 14
     9 --> 2
-    10 -.-> 17
+    10 -.-> 18
     12 -.-> 11
     12 --> 11
     12 --> 15
     13 --> 1
+    13 --> 16
     14 --> 1
-    16 -.-> 4
-    17 --> 8
+    16 --> 15
+    17 -.-> 4
+    18 --> 8

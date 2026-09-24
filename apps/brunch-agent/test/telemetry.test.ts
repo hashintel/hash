@@ -1,3 +1,5 @@
+import { type AddressInfo, createServer } from "node:net";
+
 import { createOpenTelemetryInstrumentation } from "@flue/opentelemetry";
 import {
   type Span,
@@ -10,7 +12,9 @@ import { afterEach, expect, test, vi } from "vitest";
 import {
   createBrunchTelemetryInstrumentation,
   errorCode,
+  probeCollector,
   recordOperationalFailure,
+  withReachableCollector,
 } from "../src/telemetry.ts";
 
 import type {
@@ -105,6 +109,61 @@ test("trims collector configuration supplied through the environment", async () 
       serviceName: "Brunch Test",
     }),
   );
+});
+
+test("drops an unreachable collector outside production and keeps a reachable one", async () => {
+  const unreachable = vi.fn<(endpoint: string) => Promise<boolean>>(
+    async () => false,
+  );
+  const withoutCollector = await withReachableCollector(
+    { NODE_ENV: "development", HASH_OTLP_ENDPOINT: collectorEndpoint },
+    unreachable,
+  );
+  expect(unreachable).toHaveBeenCalledWith(collectorEndpoint);
+  expect(withoutCollector.HASH_OTLP_ENDPOINT).toBeUndefined();
+  expect(withoutCollector.NODE_ENV).toBe("development");
+
+  const reachable = vi.fn<(endpoint: string) => Promise<boolean>>(
+    async () => true,
+  );
+  const withCollector = await withReachableCollector(
+    { NODE_ENV: "development", HASH_OTLP_ENDPOINT: collectorEndpoint },
+    reachable,
+  );
+  expect(withCollector.HASH_OTLP_ENDPOINT).toBe(collectorEndpoint);
+});
+
+test("never probes or drops the collector in production", async () => {
+  const probe = vi.fn<(endpoint: string) => Promise<boolean>>(
+    async () => false,
+  );
+  const environment = {
+    NODE_ENV: "production",
+    HASH_OTLP_ENDPOINT: collectorEndpoint,
+  };
+  expect(await withReachableCollector(environment, probe)).toBe(environment);
+  expect(probe).not.toHaveBeenCalled();
+});
+
+test("probes a closed port as unreachable", async () => {
+  // A listening-then-closed server yields a port nothing is bound to.
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  expect(await probeCollector(`http://127.0.0.1:${port}`, 500)).toBe(false);
+  expect(await probeCollector("not a url")).toBe(false);
+});
+
+test("probes a listening port as reachable", async () => {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    expect(await probeCollector(`http://127.0.0.1:${port}`)).toBe(true);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
 
 test("runs without exporters when no collector is configured outside production", async () => {

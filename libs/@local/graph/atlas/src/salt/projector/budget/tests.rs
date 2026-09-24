@@ -1,7 +1,7 @@
 //! Certificates for the budget diagnostics and the gradient surrogate.
 //!
 //! The measurement assertions are bit-exact where every intermediate is dyadic. The surrogate
-//! certificates establish the seam the training loop depends on: one backward pass through the
+//! certificates establish the contract the training loop depends on: one backward pass through the
 //! surrogate deposits exactly the requested coordinate gradient, both at a detached coordinate leaf
 //! and through the full model Jacobian.
 
@@ -22,8 +22,13 @@ use crate::{
     salt::projector::model::{Architecture, Projector, ProjectorInput},
 };
 
+/// The CPU device the surrogate tensors live on, resolved once.
 static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
+/// Records both norms in `measure` and lets the floor bind under a small semantic gradient.
+///
+/// `measure` records the semantic and relation norms and takes the semantic norm as baseline unless
+/// it falls under the floor, which then binds, including for a vanished gradient.
 #[test]
 fn measure_records_the_baseline_convention() {
     let budget = Budget {
@@ -63,6 +68,7 @@ fn summary_reports_hand_computed_ratios() {
     assert_eq!(summary.mean_ratio(), Some(8.03125));
 }
 
+/// A fresh summary has no nodes and no mean ratio.
 #[test]
 fn summary_is_empty_before_any_record() {
     let summary = BudgetSummary::new();
@@ -71,6 +77,7 @@ fn summary_is_empty_before_any_record() {
     assert_eq!(summary.mean_ratio(), None);
 }
 
+/// Backpropagating the surrogate at a coordinate leaf deposits the requested gradient bit for bit.
 #[test]
 fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
     let device = &*DEVICE;
@@ -98,7 +105,7 @@ fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
 /// Nudges every parameter off its initialization.
 ///
 /// The identity-contract layers initialize to zero and would block gradient flow into the deep
-/// block parameters, leaving the surrogate certificate comparing zeros with zeros; a deterministic
+/// block parameters, leaving the surrogate certificate comparing zeros with zeros. A deterministic
 /// ramp makes every parameter's gradient generically nonzero.
 struct Perturb;
 
@@ -122,9 +129,8 @@ impl ModuleMapper<Training> for Perturb {
         let shape = tensor.shape();
         let device = tensor.device();
         let ramp = Tensor::from_data(TensorData::new(ramp, shape), &device);
-        // The sum is an interior autodiff node; re-rooting it as a
-        // required-gradient leaf is what lets gradients accumulate at
-        // the perturbed parameter.
+        // The sum is an interior autodiff node. Re-rooting it as a required-gradient leaf is
+        // what lets gradients accumulate at the perturbed parameter.
         Param::from_mapped_value(id, (tensor + ramp).detach().require_grad(), mapper)
     }
 }
@@ -149,6 +155,7 @@ impl ModuleVisitor<Training> for GradientCollector<'_> {
     }
 }
 
+/// Collects every parameter's gradient from `gradients` keyed by parameter id, in id order.
 fn parameter_gradients(
     model: &Projector<Training>,
     gradients: &<Training as AutodiffBackend>::Gradients,
@@ -161,13 +168,16 @@ fn parameter_gradients(
     collector.collected
 }
 
+/// Reproduces the direct backpropagation gradient through the surrogate on all 23 parameters.
+///
+/// Handing the detached coordinate gradient of `Σ y²` to the surrogate produces the same gradient
+/// on all 23 trainable parameters as backpropagating the loss through the model directly.
 #[test]
 fn surrogate_matches_ordinary_autodiff_through_the_model() {
-    // Reference: L(y) = sum(y · y) has coordinate gradient 2 · y. Path
-    // A backpropagates L through the model directly; path B evaluates
-    // the same coordinate gradient detached and hands it to the
-    // surrogate. Equal parameter gradients certify that one surrogate
-    // backward deposits J^T g for the full FiLM-residual Jacobian.
+    // Reference: L(y) = Σ y·y has coordinate gradient 2·y. Path A backpropagates L through the
+    // model directly. Path B evaluates the same coordinate gradient detached and hands it to
+    // the surrogate. Equal parameter gradients certify that one surrogate backward deposits
+    // Jᵀ·g for the full FiLM-residual Jacobian.
     let device = &*DEVICE;
     let architecture = Architecture {
         width: nz!(8),

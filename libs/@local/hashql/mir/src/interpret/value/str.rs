@@ -2,7 +2,7 @@
 
 use alloc::{alloc::Global, rc::Rc};
 use core::{
-    alloc::{AllocError, Allocator},
+    alloc::{AllocError, Allocator, AllocatorClone},
     cmp, fmt,
 };
 
@@ -13,7 +13,6 @@ use hashql_core::{
 };
 
 /// Internal storage for string values.
-#[derive(Clone)]
 enum StrInner<'heap, A: Allocator> {
     Owned(Rc<str, A>),
     Interned(Symbol<'heap>),
@@ -24,6 +23,28 @@ impl<A: Allocator> StrInner<'_, A> {
         match self {
             StrInner::Owned(value) => value,
             StrInner::Interned(value) => value.as_str(),
+        }
+    }
+}
+
+impl<A> Clone for StrInner<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        match self {
+            Self::Owned(value) => Self::Owned(Rc::clone(value)),
+            Self::Interned(value) => Self::Interned(*value),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        match (self, source) {
+            (Self::Owned(this), Self::Owned(other)) => this.clone_from(other),
+            (Self::Interned(this), Self::Interned(other)) => *this = *other,
+            (this, other) => *this = other.clone(),
         }
     }
 }
@@ -66,7 +87,6 @@ impl<A: Allocator> Ord for StrInner<'_, A> {
 /// assert_eq!(a.as_str(), "hello");
 /// assert_eq!(a, b);
 /// ```
-#[derive(Clone)]
 pub struct Str<'heap, A: Allocator = Global> {
     inner: StrInner<'heap, A>,
 }
@@ -122,6 +142,24 @@ impl<A: Allocator> Str<'_, A> {
                 inner: StrInner::Owned(Rc::clone_from_ref_in(value.as_str(), alloc)),
             },
         }
+    }
+}
+
+impl<A> Clone for Str<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { inner } = self;
+        inner.clone_from(&source.inner);
     }
 }
 

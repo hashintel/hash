@@ -1,18 +1,23 @@
 import type {
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
+  VoiceAudioSettingsActions,
 } from "./types";
 
 /** Lifecycle actions Petrinaut's own Voice surfaces invoke. */
 export type VoiceSessionActions = {
+  audioSettings?: VoiceAudioSettingsActions;
   end: () => void;
   pause: () => void;
   readFullResponse?: () => void;
-  reconnect: () => void;
+  reconnect?: () => void;
   repeatQuestion?: () => void;
-  resume: () => void;
+  retryPlayback?: () => void;
+  resume?: () => void;
   setInterruptionBySpeaking?: (enabled: boolean) => void;
-  setMicrophoneMuted: (muted: boolean) => void;
+  setMicrophoneMuted?: (muted: boolean) => void;
+  setSpeakerMuted?: (muted: boolean) => void;
+  setSpeakerVolume?: (volume: number) => void;
   takeTurn?: () => Promise<void> | void;
 };
 

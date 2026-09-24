@@ -1,26 +1,30 @@
 /**
  * Decoding the device's histogram buffer into per-frame metric frames.
  *
- * The buffer holds `frameLimit × metrics × bins` u32 counts, frame-major then
- * metric-major; a bin's value is its window position, `lo + bin × stride`.
+ * The buffer holds `(frameLimit + 1) × metrics × bins` u32 counts, one row
+ * per frame from the initial marking to the final state, frame-major then
+ * metric-major; bin `b` covers the values `[lo + b × stride, lo + (b + 1) ×
+ * stride)` of its metric's window. An integer window labels the bin by its
+ * middle integer, exact at stride 1; a real window labels it by its centre.
  */
 import type { MetricWindow } from "../metric-windows";
 
 export type GpuHistogramFrame = {
   /**
-   * CPU-aligned frame number: frame 0 is the initial state (built by the
-   * host — the device never samples it), and the histogram's bin `f` holds
-   * the state after step `f`, published as frame `f + 1`.
+   * CPU-aligned frame number: row `f` holds the state after `f` steps,
+   * sampled before step `f`; frame 0 is the initial marking, sampled on the
+   * device like every other frame.
    */
   frameNumber: number;
   metricId: string;
   /** `[value, frequency]` pairs, ascending, zero bins omitted. */
   bins: [number, number][];
   /**
-   * The counts a bin stands for, as a reach below and above its label: a
-   * stride-`s` window bin labelled `v` holds the integer counts in
+   * The values a bin stands for, as a reach below and above its label. An
+   * integer window's stride-`s` bin labelled `v` holds the integers in
    * `[v - below, v + above)`, half a count either side of its outermost
-   * integers.
+   * integers; a real window's bin reaches `stride / 2` either side of its
+   * centre.
    */
   binExtent: { below: number; above: number };
   /** Runs that contributed a sample; equals the active run count. */
@@ -47,15 +51,29 @@ export const decodeHistogramFrames = (options: {
   const frames: GpuHistogramFrame[] = [];
   for (let frame = 0; frame < frameCount; frame++) {
     for (const [metricIndex, metricId] of metricIds.entries()) {
-      const window = windows[metricIndex] ?? { lo: 0, stride: 1 };
-      // A bin covers `stride` counts; labelling its middle keeps a wide
-      // window's means unbiased where the low edge skewed them down by
-      // (stride − 1) / 2. Exact (offset 0) at stride 1.
-      const binMidpoint = Math.floor((window.stride - 1) / 2);
-      const binExtent = {
-        below: binMidpoint + 0.5,
-        above: window.stride - binMidpoint - 0.5,
+      const window = windows[metricIndex] ?? {
+        lo: 0,
+        stride: 1,
+        integer: true,
       };
+      // An integer bin covers `stride` counts; labelling its middle keeps a
+      // wide window's means unbiased where the low edge skewed them down by
+      // (stride − 1) / 2. Exact (offset 0) at stride 1. A real bin is
+      // labelled by its centre.
+      const binMidpoint = window.integer
+        ? Math.floor((window.stride - 1) / 2)
+        : null;
+      const binExtent =
+        binMidpoint === null
+          ? { below: window.stride / 2, above: window.stride / 2 }
+          : {
+              below: binMidpoint + 0.5,
+              above: window.stride - binMidpoint - 0.5,
+            };
+      const label = (bin: number): number =>
+        binMidpoint === null
+          ? window.lo + (bin + 0.5) * window.stride
+          : window.lo + bin * window.stride + binMidpoint;
       const offset =
         frame * histogramBins * metricCount + metricIndex * histogramBins;
       const bins: [number, number][] = [];
@@ -63,7 +81,7 @@ export const decodeHistogramFrames = (options: {
       for (let bin = 0; bin < histogramBins; bin++) {
         const frequency = data[offset + bin] ?? 0;
         if (frequency > 0) {
-          bins.push([window.lo + bin * window.stride + binMidpoint, frequency]);
+          bins.push([label(bin), frequency]);
           sampleCount += frequency;
         }
       }

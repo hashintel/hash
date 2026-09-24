@@ -45,7 +45,6 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "0.26.3",
     "@anthropic-ai/sdk": "0.74.0",
-    "@apps/hash-graph": "workspace:*",
     "@aws-sdk/credential-providers": "3.1055.0",
     "@blockprotocol/core": "0.1.5",
     "@blockprotocol/graph": "workspace:*",
@@ -119,7 +118,7 @@
     "ts-json-schema-generator": "1.5.1",
     "typescript": "5.9.3",
     "vite": "8.2.2",
-    "vitest": "4.1.10",
+    "vitest": "4.1.11",
     "wait-on": "9.0.1"
   }
 }

@@ -69,9 +69,21 @@ export type SweepAxisSelection = { from: number; to: number };
 
 /**
  * The navigator's selection: an inclusive position range per swept
- * parameter. The default selection spans every axis whole.
+ * parameter.
  */
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
+
+/**
+ * The midpoint of a selection's range on one axis, in position space. The
+ * selection is normalized, so every axis has a range.
+ */
+export const selectionMidpoint = (
+  selection: SweepSelection,
+  axis: ExperimentParameterAxis,
+): number => {
+  const range = selection[axis.identifier]!;
+  return (range.from + range.to) / 2;
+};
 
 /**
  * Cumulative run targets a combination climbs through as it is refined:
@@ -80,7 +92,9 @@ export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
  * while the user stays on a selection. Extended ×5/×2 beyond the last step
  * for very large run budgets.
  */
-export const EXPERIMENT_RUN_LADDER: readonly number[] = [8, 25, 100, 500, 1000];
+export const EXPERIMENT_RUN_LADDER = [
+  8, 25, 100, 500, 1000,
+] as const satisfies readonly number[];
 
 /**
  * The next cumulative run target for a combination that currently has
@@ -245,6 +259,23 @@ export function axisPositionFor(
   );
 }
 
+/** The sweep point an optimizer's suggestion lands on. */
+export const sweepPointFor = (
+  axes: readonly ExperimentParameterAxis[],
+  values: Readonly<Record<string, number | boolean>>,
+): SweepSelection | null => {
+  const selection: Record<string, { from: number; to: number }> = {};
+  for (const axis of axes) {
+    const value = values[axis.identifier];
+    if (typeof value !== "number") {
+      return null;
+    }
+    const position = axisPositionFor(axis, value);
+    selection[axis.identifier] = { from: position, to: position };
+  }
+  return selection;
+};
+
 /** The default selection: every axis spans its whole interval. */
 export function fullSweepSelection(
   axes: readonly ExperimentParameterAxis[],
@@ -276,6 +307,19 @@ export function normalizeSweepSelection(
     }),
   );
 }
+
+export const pointSweepSelection = (
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): SweepSelection => {
+  const normalized = normalizeSweepSelection(axes, selection);
+  return Object.fromEntries(
+    axes.map((axis) => {
+      const position = Math.round(selectionMidpoint(normalized, axis));
+      return [axis.identifier, { from: position, to: position }];
+    }),
+  );
+};
 
 // One prime base per swept axis: two axes sharing a base would draw along a
 // diagonal. A sweep can range every scenario parameter, so the list is long.

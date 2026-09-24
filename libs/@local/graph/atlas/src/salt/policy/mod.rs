@@ -3,7 +3,7 @@
 //! Every relation type in scope resolves to a distribution over the [`GeometryClass`]es, which
 //! downstream stages turn into attraction, protection, and admission decisions. The open-world
 //! [`classifier`] supplies the distribution for relation types without a higher-precedence explicit
-//! policy record; [`precedence`] resolves the winning source per relation into the certified policy
+//! policy record. [`precedence`] resolves the winning source per relation into the certified policy
 //! table.
 //!
 //! The classes describe geometric behaviour, never semantic valence: opposition, contradiction, and
@@ -11,7 +11,7 @@
 //! attraction stays bounded while a mistaken repulsion destroys local structure.
 #![expect(clippy::empty_enums, reason = "zerocopy derive")]
 
-use core::{fmt, mem, ops};
+use core::{fmt, marker::PhantomData, mem, ops};
 
 use crate::{
     identity::OntologyRowId,
@@ -26,8 +26,10 @@ mod precedence;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use self::precedence::PolicySource;
 pub(crate) use self::precedence::{
-    Classification, CoincidentAdmission, PolicyOverride, PolicySource, ResolveError, resolve,
+    Classification, CoincidentAdmission, PolicyOverride, ResolveError, resolve,
 };
 
 /// Geometry classes a relation type distributes over.
@@ -79,8 +81,8 @@ impl GeometryClass {
         clippy::cast_possible_truncation,
         reason = "the variant count is far below `u8::MAX`"
     )]
-    // SAFETY: the discriminants are the dense range `0..COUNT`, so every transmuted index is a
-    // declared `repr(u8)` variant.
+    // SAFETY: the discriminants are the dense range `0..COUNT`. Every transmuted index is
+    // therefore a declared `repr(u8)` variant.
     pub(crate) const VARIANTS: [Self; Self::COUNT] = core::array::from_fn(const |index| unsafe {
         core::mem::transmute::<u8, Self>(index as u8)
     });
@@ -103,13 +105,42 @@ impl fmt::Display for GeometryClass {
     }
 }
 
+/// A decoded posterior does not sum to one.
+#[derive(Debug)]
+struct UnvalidatedPosteriorError {
+    _marker: PhantomData<()>,
+}
+
+impl fmt::Display for UnvalidatedPosteriorError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("posterior must sum to one")
+    }
+}
+
+/// Raw posterior components admitted by [`Posterior::new`].
+#[derive(Debug, serde::Deserialize)]
+struct UnvalidatedPosterior([UnitFraction; GeometryClass::COUNT]);
+
+impl TryFrom<UnvalidatedPosterior> for Posterior {
+    type Error = UnvalidatedPosteriorError;
+
+    fn try_from(
+        UnvalidatedPosterior(components): UnvalidatedPosterior,
+    ) -> Result<Self, Self::Error> {
+        Self::new(components).ok_or(UnvalidatedPosteriorError {
+            _marker: PhantomData,
+        })
+    }
+}
+
 /// A distribution over the geometry classes.
 ///
 /// Components are [`UnitFraction`]s stored in class order and sum to one within floating-point
 /// rounding. Construction sites are the softmax (which satisfies the invariant by construction) and
 /// validated artifact reads.
 // The sum invariant excludes byte-level constructors: no zerocopy derives.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedPosterior")]
 pub(crate) struct Posterior([UnitFraction; GeometryClass::COUNT]);
 
 impl Posterior {
@@ -125,29 +156,30 @@ impl Posterior {
     /// and zero is a legal component. Rejecting negative zero would make admission depend on the
     /// sign bit of a value arithmetic treats as zero.
     #[must_use]
-    pub(crate) fn new(components: [f64; GeometryClass::COUNT]) -> Option<Self> {
-        let mut validated = [UnitFraction::ZERO; GeometryClass::COUNT];
-        for (slot, value) in validated.iter_mut().zip(components) {
-            *slot = UnitFraction::new(value)?;
-        }
+    pub(crate) fn new(components: [UnitFraction; GeometryClass::COUNT]) -> Option<Self> {
+        let sum = components
+            .iter()
+            .map(|component| component.get())
+            .sum::<f64>();
 
-        let sum = components.iter().sum::<f64>();
         if (sum - 1.0).abs() > Self::SUM_TOLERANCE {
             return None;
         }
 
-        Some(Self(validated))
+        Some(Self(components))
     }
 
     /// Computes the temperature-scaled softmax of class logits.
     ///
     /// The logits shift by their maximum before the temperature division, then pass through the
-    /// max-shifted [`DVecN::softmax`], so finite logits and a positive finite temperature always
-    /// produce a valid distribution: components in the unit interval that sum to one. The order
-    /// matters. Dividing first can overflow one quotient to `+∞`, and a single infinite
+    /// max-shifted [`DVecN::softmax`]. Finite logits and a positive finite temperature therefore
+    /// always produce a valid distribution: components in the unit interval that sum to one. The
+    /// order matters. Dividing first can overflow one quotient to `+∞`, and a single infinite
     /// component then poisons the whole shifted vector with `∞ - ∞`. Shifting first is free,
     /// since softmax is shift-invariant. It also closes the overflow path: a pre-shifted logit
-    /// is never positive, so its quotient by any positive temperature never reaches `+∞`.
+    /// is never positive, and its quotient by any positive temperature therefore never reaches
+    /// `+∞`. A quotient can reach `−∞` under a small enough temperature. Its exponential is
+    /// then zero and the result is still a valid distribution.
     #[must_use]
     pub(crate) fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> Self {
         let max = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
@@ -176,11 +208,11 @@ impl Posterior {
 
 /// The Coincident and Proximal components of a relation class distribution.
 ///
-/// Overlay, the third class, carries no geometric weight, so the two stored components are the
+/// Overlay, the third class, carries no geometric weight, and the two stored components are the
 /// distribution's entire geometric content. Each component lies in `0.0..=1.0`.
-// The fields carry their own construction invariants, so the byte-level constructor is the
-// validating try-cast derive: a candidate is a distribution pair exactly when both fields
-// hold stored fractions.
+// The fields carry their own construction invariants, and the byte-level constructor is therefore
+// the validating try-cast derive. A candidate is a distribution pair exactly when both fields hold
+// stored fractions.
 #[derive(
     Debug,
     Copy,
@@ -221,7 +253,8 @@ impl ClassProbabilities {
 /// - Attraction weights come from the effective attraction distribution.
 /// - Protection masses come from the selected distribution and applicability.
 /// - The attraction group receives the strength multiplier unchanged.
-// This type has no construction invariant of its own, so the derives admit byte-level construction.
+// This type has no construction invariant of its own, and the derives therefore admit byte-level
+// construction.
 // The `repr(C)` layout is the policy file's pinned wire row, checked field for field where the
 // artifact casts, and the try-cast derive validates every domain-typed field's bits at that cast.
 #[derive(
@@ -250,14 +283,14 @@ pub(crate) struct RelationPolicy {
     pub applicability: UnitFraction,
     /// The frozen strength multiplier `h`, exactly 1 while the strength head is off.
     pub strength: NonNegative,
-    /// Layout filler pinning the tail padding; writers emit zero, readers ignore.
+    /// Layout filler pinning the tail padding. Writers emit zero, and readers ignore it.
     pub _pad: [u8; 4],
 }
 
 /// The certified policy table, strictly ascending by relation row.
 ///
-/// [`resolve`] mints the table sorted with duplicate relations refused, so the order is a
-/// construction fact. The checked door certifies tables assembled anywhere else.
+/// [`resolve`] creates the table sorted with duplicate relations refused, and the order is a
+/// construction fact. The checked constructor certifies tables assembled anywhere else.
 #[derive(Debug)]
 pub(crate) struct CertifiedPolicies(Vec<RelationPolicy>);
 

@@ -14,13 +14,15 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { AddDifferentialEquationAction } from "./entities-tree/add-differential-equation-action";
+import { AddParameterAction } from "./entities-tree/add-parameter-action";
+import { AddTypeAction } from "./entities-tree/add-type-action";
 import {
   RowMenu,
   createFilterableListSubView,
 } from "./filterable-list-sub-view";
-import { ParametersHeaderAction } from "./parameters-list";
-import { TypesSectionHeaderAction } from "./types-list";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
@@ -51,14 +53,19 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
+  const { enabled, entries, open } = useCodeNavigation();
+  const codeItems = enabled
+    ? entries
+        .filter((entry) => entry.selection.id === item.id)
+        .map((entry) => ({
+          id: entry.path,
+          text: `Open ${entry.label.toLowerCase()}`,
+          onClick: () => open(entry.path),
+        }))
+    : [];
   const type = item.selectionItem?.type;
 
   if (!type) {
-    return null;
-  }
-
-  // Nodes (places/transitions) don't have a row menu
-  if (type === "place" || type === "transition") {
     return null;
   }
 
@@ -75,21 +82,26 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   };
   const deleteAction = deleteActions[type];
 
-  if (!deleteAction) {
+  if (!deleteAction && codeItems.length === 0) {
     return null;
   }
 
   return (
     <RowMenu
       items={[
-        {
-          id: "delete",
-          text: "Delete",
-          icon: "trash",
-          tone: "error",
-          disabled: isReadOnly,
-          onClick: deleteAction,
-        },
+        ...codeItems,
+        ...(deleteAction
+          ? [
+              {
+                id: "delete",
+                text: "Delete",
+                icon: "trash" as const,
+                tone: "error" as const,
+                disabled: isReadOnly,
+                onClick: deleteAction,
+              },
+            ]
+          : []),
       ]}
     />
   );
@@ -106,6 +118,12 @@ function useEntityTreeItems(): EntityTreeItem[] {
     },
   } = use(ActiveNetContext);
   const { extensions } = use(SDCPNContext);
+  const presentation = usePetrinautPresentation();
+
+  // Adding an entity is a mutation, so a presentation that hides authoring
+  // chrome hides a group's Add button with it.
+  const addAction = (action: ComponentType): ComponentType | undefined =>
+    presentation.showMutationActions ? action : undefined;
 
   return [
     {
@@ -133,7 +151,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
             id: "group-types",
             name: "Token Types",
             emptyGroupMessage: "No token types",
-            renderGroupAction: TypesSectionHeaderAction,
+            renderGroupAction: addAction(AddTypeAction),
             children: types.map((t) => ({
               id: t.id,
               name: t.name,
@@ -150,7 +168,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
             id: "group-equations",
             name: "Differential Equations",
             emptyGroupMessage: "No differential equations",
-            renderGroupAction: DifferentialEquationsSectionHeaderAction,
+            renderGroupAction: addAction(AddDifferentialEquationAction),
             children: differentialEquations.map((eq) => ({
               id: eq.id,
               name: eq.name,
@@ -169,7 +187,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
             id: "group-parameters",
             name: "Parameters",
             emptyGroupMessage: "No parameters",
-            renderGroupAction: ParametersHeaderAction,
+            renderGroupAction: addAction(AddParameterAction),
             children: parameters.map((p) => ({
               id: p.id,
               name: p.name,

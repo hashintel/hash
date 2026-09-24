@@ -9,7 +9,6 @@ import {
   fauxText,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -22,6 +21,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { deriveProofTrace } from "../../src/evaluations/persona/proof-artifacts.ts";
 import {
   interviewerToolNamesFrom,
@@ -72,7 +72,7 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
 });
-setProvider(faux.provider);
+installFauxProvider(faux.provider);
 
 faux.setResponses([
   fauxAssistantMessage(

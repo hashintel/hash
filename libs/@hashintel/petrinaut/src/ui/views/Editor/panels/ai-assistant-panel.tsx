@@ -11,17 +11,21 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
 import {
   aiCommandActionInputSchemas,
+  createExperimentToolName,
+  petrinautExperimentRequestSchema,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentResult,
   type AiCommandActionName,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
-  type Petrinaut,
   type PetrinautAiMutationToolName,
   readPetrinautDocToolInputSchema,
   readPetrinautDocToolName,
@@ -29,6 +33,8 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
+import { ExperimentHostContext } from "../../../../react/experiment-host/context";
 import { useLatest } from "../../../../react/hooks/use-latest";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
@@ -43,22 +49,18 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
-import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
-import {
-  REVIEW_CHIPS,
-  STARTER_CHIPS,
-} from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
+import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
-import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
+import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -75,8 +77,10 @@ import type {
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
+import type { FrameSceneResult } from "../../SDCPN/canvas-renderer";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
 export type {
@@ -84,6 +88,7 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
+export { petrinautDocsContent };
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -142,14 +147,32 @@ const isRunnableStaticToolPart = (
  * will execute and then continue, so the turn is not over even though the AI
  * SDK reports `ready`.
  */
-const hasRunnableStaticToolCalls = (
+const isRunnableAutomaticDynamicToolPart = (
+  part: PetrinautAiMessagePart,
+  automaticTools: PetrinautAiAssistant["automaticTools"],
+): part is Extract<
+  PetrinautAiMessagePart,
+  { type: "dynamic-tool"; state: "input-available" }
+> =>
+  part.type === "dynamic-tool" &&
+  part.providerExecuted !== true &&
+  part.state === "input-available" &&
+  automaticTools?.some(({ toolName }) => toolName === part.toolName) === true;
+
+/** True when the last assistant message contains automatic work the panel still owes. */
+const hasRunnableAutomaticToolCalls = (
   messages: PetrinautAiMessage[],
+  automaticTools: PetrinautAiAssistant["automaticTools"],
 ): boolean => {
   const message = messages.at(-1);
   return (
     message?.role === "assistant" &&
     !message.metadata?.stopped &&
-    message.parts.some((part) => isRunnableStaticToolPart(part))
+    message.parts.some(
+      (part) =>
+        isRunnableStaticToolPart(part) ||
+        isRunnableAutomaticDynamicToolPart(part, automaticTools),
+    )
   );
 };
 
@@ -249,7 +272,14 @@ const addDynamicToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
   >["addToolOutput"],
-  params: { tool: string; toolCallId: string; output: unknown },
+  params:
+    | { tool: string; toolCallId: string; output: unknown }
+    | {
+        tool: string;
+        toolCallId: string;
+        state: "output-error";
+        errorText: string;
+      },
 ): Promise<void> => {
   // AI SDK models dynamic tool parts at runtime, but its addToolOutput generic
   // is keyed only by the message's statically declared tools. Keep the cast at
@@ -432,77 +462,59 @@ export const addMappedToolOutput = async ({
   }
 };
 
-const waitForDiagnosticsRefresh = async ({
-  consumePendingMutationDiagnosticsVersion,
-  diagnosticsVersionRef,
-}: {
-  consumePendingMutationDiagnosticsVersion: () => number | null;
-  diagnosticsVersionRef: { current: number };
-}) => {
-  const pendingVersion = consumePendingMutationDiagnosticsVersion();
-
-  if (
-    pendingVersion === null ||
-    diagnosticsVersionRef.current > pendingVersion
-  ) {
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    const timeoutAt = Date.now() + 1_000;
-
-    const check = () => {
-      if (
-        diagnosticsVersionRef.current > pendingVersion ||
-        Date.now() >= timeoutAt
-      ) {
-        resolve();
-        return;
-      }
-
-      setTimeout(check, 25);
-    };
-
-    check();
-  });
-};
-
 const applyPetrinautAiCommand = async ({
   aiToolCall,
-  instance,
+  applyAutoLayoutAndFrame,
 }: {
   aiToolCall: Extract<AiToolCall, { toolName: AiCommandActionName }>;
-  instance: Petrinaut;
+  applyAutoLayoutAndFrame: () => Promise<{
+    commitCount: number;
+    frameStatus: FrameSceneResult;
+  }>;
 }): Promise<AiToolOutput> => {
   // Exhaustive switch over AiCommandActionName — extending the AI command
   // surface will surface a TypeScript error here until the new case is added.
   switch (aiToolCall.toolName) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case "applyAutoLayout": {
-      const { commitCount } = await instance.commands.applyAutoLayout();
+      const { commitCount } = await applyAutoLayoutAndFrame();
       return toPetrinautAiToolOutput(summarizeApplyAutoLayout({ commitCount }));
+    }
+    default: {
+      const unhandledToolName: never = aiToolCall.toolName;
+      return unhandledToolName;
     }
   }
 };
 
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
+  applyAutoLayoutAndFrame?: () => Promise<{
+    commitCount: number;
+    frameStatus: FrameSceneResult;
+  }>;
+  focusRequest?: number;
+  frameSceneAfterRender?: () => Promise<FrameSceneResult>;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
+  offerStartPosture?: boolean;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
+  applyAutoLayoutAndFrame,
+  focusRequest = 0,
+  frameSceneAfterRender,
   initialInteractionMode,
   initialMessage,
+  offerStartPosture = false,
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
-  // The wrapped AI transport closes over several refs (diagnostics version,
-  // pending mutation version, diagnostics context) so the transport's
-  // `sendMessages` can read the latest values when it eventually runs. React
+  // The wrapped AI transport reads the latest language client through a ref
+  // when `sendMessages` eventually runs. React
   // Compiler can't prove those reads happen off-render, so we opt out here.
   "use no memo";
 
@@ -514,19 +526,61 @@ const ConversationAiAssistantPanel = ({
     readOnlyReasonRef.current = readOnlyReason;
   }, [readOnlyReason]);
 
-  const { diagnosticsByUri } = use(LanguageClientContext);
+  const { requestDiagnostics } = use(LanguageClientContext);
+  const requestDiagnosticsRef = useLatest(requestDiagnostics);
+  const experimentHost = use(ExperimentHostContext);
+  const experimentControllersRef = useRef(new Map<string, AbortController>());
+  const [experimentStates, setExperimentStates] = useState<
+    Record<
+      string,
+      {
+        active: boolean;
+        progress?: PetrinautExperimentProgress;
+        result?: PetrinautExperimentResult;
+      }
+    >
+  >({});
+  const cancelExperiment = useCallback((toolCallId: string) => {
+    experimentControllersRef.current.get(toolCallId)?.abort();
+  }, []);
+  useEffect(() => {
+    const controllers = experimentControllersRef.current;
+    return () => {
+      for (const controller of controllers.values()) controller.abort();
+      controllers.clear();
+    };
+  }, []);
 
   const {
-    hasSelection,
     isAiAssistantOpen,
+    isAiAssistantCollapsed: voiceDockCollapsed,
     navigateTo,
-    propertiesPanelWidth,
     selectItem,
+    setAiAssistantCollapsed: setVoiceDockCollapsed,
     setAiAssistantOpen,
   } = use(EditorContext);
 
-  const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
+  const { petriNetDefinition, setTitle, title, titleEditable } =
+    use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
+  const errorTracker = use(ErrorTrackerContext);
+  const errorTrackerRef = useLatest(errorTracker);
+  // Operational failures — the stream, tool execution, continuation, Stop —
+  // reach the host's tracker at their source. Expected refusals (empty text,
+  // busy composer, ambiguous tool match) stay UI state only.
+  const reportOperationalFailure = useCallback(
+    (
+      error: unknown,
+      source: string,
+      tags?: Readonly<Record<string, string | number | boolean>>,
+    ) => {
+      errorTrackerRef.current.captureException(error, {
+        source: `ai-assistant.${source}`,
+        ...(tags === undefined ? {} : { tags }),
+      });
+    },
+    [errorTrackerRef],
+  );
 
   const [input, setInput] = useState("");
   const [voiceActive, setVoiceActiveState] = useState(false);
@@ -536,7 +590,17 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
-  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(false);
+  const initializedLayoutRef = useRef(false);
+  useLayoutEffect(() => {
+    // A new conversation starts expanded. Effect replay preserves its voice setup.
+    if (initializedLayoutRef.current) {
+      return;
+    }
+    initializedLayoutRef.current = true;
+    if (voiceDockCollapsed) {
+      setVoiceDockCollapsed(false);
+    }
+  }, [setVoiceDockCollapsed, voiceDockCollapsed]);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
     (
@@ -553,16 +617,15 @@ const ConversationAiAssistantPanel = ({
         setComposerFocusRequest((request) => request + 1);
       }
     },
-    [],
+    [setVoiceDockCollapsed],
   );
   const setVoiceActive = useCallback((active: boolean) => {
     voiceActiveRef.current = active;
     setVoiceActiveState(active);
   }, []);
   const voiceHandoffPendingRef = useRef(false);
-  const voiceModeControlsRef = useRef<PetrinautAiVoiceModeControls | null>(
-    null,
-  );
+  const voiceModeControlsRef =
+    useRef<PetrinautAiVoiceModeSessionControls | null>(null);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
   const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
     null,
@@ -574,66 +637,24 @@ const ConversationAiAssistantPanel = ({
     titleRef.current = title;
   }, [title]);
 
-  const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
-  const diagnosticsVersionRef = useRef(0);
-  const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
+  const readDiagnosticsContext = useCallback(() => {
+    if (!instance) throw new Error("The AI assistant has no editor instance.");
+    return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
+  }, [instance, requestDiagnosticsRef]);
 
-  useEffect(() => {
-    diagnosticsVersionRef.current += 1;
-  }, [diagnosticsByUri]);
-
-  useEffect(() => {
-    diagnosticsContextRef.current = formatDiagnosticsForAi({
-      definition: petriNetDefinition,
-      diagnosticsByUri,
-    });
-  }, [diagnosticsByUri, petriNetDefinition]);
-
-  /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
-     above: the refs are only read when the wrapped transport runs, never during
-     render. The lint rule can't see that. */
-  const buildWrappedTransport = (transport: typeof aiAssistant.transport) =>
-    // The timing wrapper sits on the outside so reasoning-chunk receipt is
-    // tagged with `Date.now()` even when the inner diagnostics wrapper has
-    // added the post-tool diagnostics context message to the request. Order
-    // matters here only insofar as the timing wrapper consumes the *response*
-    // stream from whatever inner transport produced it — it does not touch
-    // the request side.
-    createReasoningTimingAwareAiTransport(
-      createDiagnosticsAwareAiTransport({
-        getDiagnosticsContext: () => diagnosticsContextRef.current,
-        transport,
-        waitForDiagnosticsRefresh: () =>
-          waitForDiagnosticsRefresh({
-            consumePendingMutationDiagnosticsVersion: () => {
-              const pendingVersion =
-                pendingMutationDiagnosticsVersionRef.current;
-              pendingMutationDiagnosticsVersionRef.current = null;
-              return pendingVersion;
-            },
-            diagnosticsVersionRef,
-          }),
-      }),
-    );
-
-  const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
-    () => ({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    }),
+  // The wrapper is render-derived from the host transport. Delaying this to an
+  // effect leaves useChat on the previous host for one committed render.
+  // Timing stays outside diagnostics so it tags receipt of the response chunks.
+  const diagnosticsTransport = useMemo(
+    () =>
+      createReasoningTimingAwareAiTransport(
+        createDiagnosticsAwareAiTransport({
+          readDiagnosticsContext,
+          transport: aiAssistant.transport,
+        }),
+      ),
+    [aiAssistant.transport, readDiagnosticsContext],
   );
-
-  useEffect(() => {
-    if (diagnosticsTransportState.source === aiAssistant.transport) {
-      return;
-    }
-
-    setDiagnosticsTransportState({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    });
-  }, [aiAssistant.transport, diagnosticsTransportState.source]);
-  /* eslint-enable react-hooks-js/refs */
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
   // are otherwise opaque to the user — `useChat` resets `status` to `"ready"`
@@ -693,10 +714,13 @@ const ConversationAiAssistantPanel = ({
     [voiceSessionStore],
   );
 
-  const registerVoiceModeControls = useCallback(
-    (controls: PetrinautAiVoiceModeControls) => {
+  const registerVoiceModeSessionControls = useCallback(
+    (controls: PetrinautAiVoiceModeSessionControls) => {
       voiceModeControlsRef.current = controls;
       voiceSessionStore.setActions({
+        ...(controls.audioSettings
+          ? { audioSettings: controls.audioSettings }
+          : {}),
         // Ending returns the composer to text, which is also the path that
         // invalidates the host's active generation.
         end: () => requestInputMode("text"),
@@ -704,18 +728,40 @@ const ConversationAiAssistantPanel = ({
         ...(controls.readFullResponse
           ? { readFullResponse: () => controls.readFullResponse?.() }
           : {}),
-        reconnect: () => controls.reconnect(),
+        ...(controls.reconnect
+          ? { reconnect: () => controls.reconnect?.() }
+          : {}),
         ...(controls.repeatQuestion
           ? { repeatQuestion: () => controls.repeatQuestion?.() }
           : {}),
-        resume: () => controls.resume(),
+        ...(controls.retryPlayback
+          ? { retryPlayback: () => controls.retryPlayback?.() }
+          : {}),
+        ...(controls.resume ? { resume: () => controls.resume?.() } : {}),
         ...(controls.setInterruptionBySpeaking
           ? {
               setInterruptionBySpeaking: (enabled: boolean) =>
                 controls.setInterruptionBySpeaking?.(enabled),
             }
           : {}),
-        setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
+        ...(controls.setMicrophoneMuted
+          ? {
+              setMicrophoneMuted: (muted: boolean) =>
+                controls.setMicrophoneMuted?.(muted),
+            }
+          : {}),
+        ...(controls.setSpeakerMuted
+          ? {
+              setSpeakerMuted: (muted: boolean) =>
+                controls.setSpeakerMuted?.(muted),
+            }
+          : {}),
+        ...(controls.setSpeakerVolume
+          ? {
+              setSpeakerVolume: (volume: number) =>
+                controls.setSpeakerVolume?.(volume),
+            }
+          : {}),
         ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });
 
@@ -729,6 +775,11 @@ const ConversationAiAssistantPanel = ({
     },
     [requestInputMode, voiceSessionStore],
   );
+  const registerVoiceModeControls = useCallback(
+    (controls: PetrinautAiVoiceModeControls) =>
+      registerVoiceModeSessionControls(controls),
+    [registerVoiceModeSessionControls],
+  );
 
   const stopRequestedRef = useRef(false);
   // Advances on composer submissions and conversation changes so late work
@@ -737,12 +788,36 @@ const ConversationAiAssistantPanel = ({
   const toolHostIdentityRef = useRef<string | null>(null);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(null);
+  const followedMessagesRef = useRef<PetrinautAiMessage[] | undefined>(
+    undefined,
+  );
+  // Authority is distinct from execution deduplication. Hydration/setMessages
+  // never invokes SDK onToolCall, so external/reloaded calls cannot enter here.
+  const locallyStreamedToolCallsRef = useRef(new Map<string, number>());
   const automaticToolCallExecutionsRef = useRef(new Set<string>());
   const pendingAutomaticToolCallExecutionsRef = useRef(new Set<string>());
   const automaticToolTerminationRef = useRef<{
     generation: number;
     kind: "stopped" | "failed";
   } | null>(null);
+  const automaticToolAbortsRef = useRef(new Set<AbortController>());
+  const abortAutomaticTools = () => {
+    for (const controller of automaticToolAbortsRef.current) {
+      controller.abort();
+    }
+    automaticToolAbortsRef.current.clear();
+  };
+  // Conversation switch remounts this panel via key; abort here, not only
+  // when conversationId changes on the same instance.
+  useEffect(
+    () => () => {
+      for (const controller of automaticToolAbortsRef.current) {
+        controller.abort();
+      }
+      automaticToolAbortsRef.current.clear();
+    },
+    [],
+  );
   const automaticToolExecutionTimersRef = useRef(
     new Map<ReturnType<typeof setTimeout>, string>(),
   );
@@ -752,6 +827,10 @@ const ConversationAiAssistantPanel = ({
     typeof setTimeout
   > | null>(null);
   const suppressedAutomaticSendsRef = useRef(0);
+  // Host-owned widgets can submit before their response stream settles. Keep
+  // their calls here until the explicit ready-state continuation begins so
+  // AI SDK's later stream-end auto-send is suppressed as well.
+  const explicitContinuationToolCallIdsRef = useRef(new Set<string>());
   const addToolOutputRef = useRef<
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"] | null
   >(null);
@@ -762,6 +841,7 @@ const ConversationAiAssistantPanel = ({
   // Flue had nothing left to abort once that step settled, so withholding the
   // follow-up is what makes the Stop real.
   const withholdContinuationForStop = () => {
+    explicitContinuationToolCallIdsRef.current.clear();
     stopRequestedRef.current = false;
     setContinuationPending(false);
     setStreamError(null);
@@ -838,11 +918,108 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.dynamic) {
+      const automaticTool = aiAssistant.automaticTools?.find(
+        ({ toolName }) => toolName === toolCall.toolName,
+      );
+      if (automaticTool) {
+        const abortController = new AbortController();
+        automaticToolAbortsRef.current.add(abortController);
+        let output: unknown;
+        try {
+          const toolInput = automaticTool.inputSchema.parse(toolCall.input);
+          output = automaticTool.outputSchema.parse(
+            await automaticTool.execute({
+              input: toolInput,
+              mutations: instance.mutations,
+              commands: instance.commands,
+              handle: instance.handle,
+              readDiagnosticsContext,
+              viewport: {
+                frameSceneAfterRender: () =>
+                  frameSceneAfterRender?.() ?? Promise.resolve("no-renderer"),
+              },
+              toolCallId: toolCall.toolCallId,
+              signal: abortController.signal,
+            }),
+          );
+        } catch (error) {
+          automaticToolAbortsRef.current.delete(abortController);
+          throw error;
+        }
+        automaticToolAbortsRef.current.delete(abortController);
+        if (abortController.signal.aborted) {
+          pendingAutomaticToolCallExecutionsRef.current.delete(
+            `${executionConversationId}:${toolCall.toolCallId}`,
+          );
+          return;
+        }
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output,
+        } as never);
+        return;
+      }
       resolveDynamicInteractiveTool(
         toolCall.toolName,
         toolCall.input,
         aiAssistant.interactiveTools ?? [],
       );
+      return;
+    }
+
+    if (toolCall.toolName === createExperimentToolName) {
+      const request = petrinautExperimentRequestSchema.parse(toolCall.input);
+      const controller = new AbortController();
+      experimentControllersRef.current.set(toolCall.toolCallId, controller);
+      setExperimentStates((states) => ({
+        ...states,
+        [toolCall.toolCallId]: { active: true },
+      }));
+      const isCurrentRequest = () =>
+        generation === submissionGenerationRef.current &&
+        executionConversationId === toolHostIdentityRef.current &&
+        experimentControllersRef.current.get(toolCall.toolCallId) ===
+          controller;
+      try {
+        const result = await experimentHost.runExperiment(request, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            if (!isCurrentRequest()) return;
+            setExperimentStates((states) => ({
+              ...states,
+              [toolCall.toolCallId]: { active: true, progress },
+            }));
+          },
+        });
+        if (isCurrentRequest()) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { active: false, result },
+          }));
+        }
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: result,
+        });
+      } finally {
+        if (isCurrentRequest()) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: {
+              ...states[toolCall.toolCallId],
+              active: false,
+            },
+          }));
+        }
+        if (
+          experimentControllersRef.current.get(toolCall.toolCallId) ===
+          controller
+        ) {
+          experimentControllersRef.current.delete(toolCall.toolCallId);
+        }
+      }
       return;
     }
 
@@ -860,18 +1037,10 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === getNetCompilationErrorsToolName) {
-      await waitForDiagnosticsRefresh({
-        consumePendingMutationDiagnosticsVersion: () => {
-          const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
-          pendingMutationDiagnosticsVersionRef.current = null;
-          return pendingVersion;
-        },
-        diagnosticsVersionRef,
-      });
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: diagnosticsContextRef.current,
+        output: await readDiagnosticsContext(),
       });
       return;
     }
@@ -887,6 +1056,18 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === setNetTitleToolName) {
+      if (titleEditable !== true) {
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: false,
+            reason: "The host application does not provide title editing.",
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+
       const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
       if (setNetTitleReadOnlyReason !== null) {
         await addAutomaticToolOutput({
@@ -963,9 +1144,6 @@ const ConversationAiAssistantPanel = ({
         return;
       }
 
-      pendingMutationDiagnosticsVersionRef.current =
-        diagnosticsVersionRef.current;
-
       const aiToolCall = {
         toolName,
         input: commandInput,
@@ -973,7 +1151,12 @@ const ConversationAiAssistantPanel = ({
 
       const output = await applyPetrinautAiCommand({
         aiToolCall,
-        instance,
+        applyAutoLayoutAndFrame:
+          applyAutoLayoutAndFrame ??
+          (async () => {
+            const { commitCount } = await instance.commands.applyAutoLayout();
+            return { commitCount, frameStatus: "no-renderer" };
+          }),
       });
       await addAutomaticToolOutput({
         tool: toolName,
@@ -987,9 +1170,6 @@ const ConversationAiAssistantPanel = ({
       toolCall.input,
     );
 
-    pendingMutationDiagnosticsVersionRef.current =
-      diagnosticsVersionRef.current;
-
     const aiToolCall = {
       toolName,
       input: toolInput,
@@ -998,6 +1178,8 @@ const ConversationAiAssistantPanel = ({
     const output = applyPetrinautAiMutation({
       aiToolCall,
       instance,
+      toolCallId: toolCall.toolCallId,
+      executeMutation: aiAssistant.executeMutation,
     });
 
     await addAutomaticToolOutput({
@@ -1021,9 +1203,10 @@ const ConversationAiAssistantPanel = ({
       ? {}
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
-    transport: diagnosticsTransportState.transport,
-    // Interactive tools retain AI SDK's native continuation; static tools
-    // suppress it while addAutomaticToolOutput owns the explicit chain.
+    transport: diagnosticsTransport,
+    // Built-in interactive commands retain AI SDK's native continuation.
+    // Automatic tools and host-owned dynamic widgets coordinate an explicit
+    // continuation below so stream settlement cannot duplicate their send.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       if (
         suppressedAutomaticSendsRef.current !== 0 ||
@@ -1034,6 +1217,9 @@ const ConversationAiAssistantPanel = ({
         return false;
       }
       if (automaticToolTurnIsTerminated(submissionGenerationRef.current)) {
+        return false;
+      }
+      if (explicitContinuationToolCallIdsRef.current.size !== 0) {
         return false;
       }
       if (!stopRequestedRef.current) {
@@ -1053,6 +1239,7 @@ const ConversationAiAssistantPanel = ({
     onError: (chatError) => {
       const submissionError =
         chatError instanceof Error ? chatError : new Error(String(chatError));
+      reportOperationalFailure(submissionError, "stream");
       setStreamError(submissionError);
       const recoverPendingSubmission = pendingSubmissionRecoveryRef.current;
       pendingSubmissionRecoveryRef.current = null;
@@ -1074,7 +1261,10 @@ const ConversationAiAssistantPanel = ({
         (lastAssistantMessageIsCompleteWithToolCalls({
           messages: finishedMessages,
         }) ||
-          hasRunnableStaticToolCalls(finishedMessages));
+          hasRunnableAutomaticToolCalls(
+            finishedMessages,
+            aiAssistant.automaticTools,
+          ));
       setContinuationPending(followUpPending);
       if (isAbort) {
         // The SDK fires `onFinish` for every abort. Only act on a deliberate
@@ -1118,8 +1308,20 @@ const ConversationAiAssistantPanel = ({
     },
     // AI SDK does not auto-submit outputs added while a response is still
     // streaming. The ready-state effect below owns static tool execution.
-    onToolCall: ({ toolCall }) =>
-      toolCall.dynamic ? executeToolCall({ toolCall }) : undefined,
+    onToolCall: ({ toolCall }) => {
+      locallyStreamedToolCallsRef.current.set(
+        `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
+        submissionGenerationRef.current,
+      );
+      if (!toolCall.dynamic) return undefined;
+      if (
+        aiAssistant.automaticTools?.some(
+          ({ toolName }) => toolName === toolCall.toolName,
+        )
+      )
+        return undefined;
+      return executeToolCall({ toolCall });
+    },
   });
   useLayoutEffect(() => {
     toolHostIdentityRef.current = conversationId;
@@ -1155,14 +1357,18 @@ const ConversationAiAssistantPanel = ({
         return;
       }
       const sendContinuation = sendAutomaticToolContinuationRef.current;
+      explicitContinuationToolCallIdsRef.current.clear();
       if (sendContinuation === null) {
         setContinuationPending(false);
-        setStreamError(new Error("The AI assistant tool host is not ready."));
+        const hostError = new Error("The AI assistant tool host is not ready.");
+        reportOperationalFailure(hostError, "continuation");
+        setStreamError(hostError);
         return;
       }
       void sendContinuation().catch((caught: unknown) => {
         if (generation !== submissionGenerationRef.current) return;
         setContinuationPending(false);
+        reportOperationalFailure(caught, "continuation");
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );
@@ -1174,6 +1380,7 @@ const ConversationAiAssistantPanel = ({
     continuationPending,
     conversationId,
     messages,
+    reportOperationalFailure,
   ]);
   useEffect(
     () => () => {
@@ -1198,7 +1405,15 @@ const ConversationAiAssistantPanel = ({
   const submissionConversationIdRef = useRef(conversationId);
   useLayoutEffect(() => {
     if (submissionConversationIdRef.current === conversationId) return;
+    for (const controller of experimentControllersRef.current.values())
+      controller.abort();
+    experimentControllersRef.current.clear();
+    setExperimentStates({});
     submissionConversationIdRef.current = conversationId;
+    followedMessagesRef.current = undefined;
+    locallyStreamedToolCallsRef.current.clear();
+    abortAutomaticTools();
+    explicitContinuationToolCallIdsRef.current.clear();
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
     setContinuationPending(false);
@@ -1211,8 +1426,99 @@ const ConversationAiAssistantPanel = ({
       : continuationPending && chatStatus === "ready"
         ? "submitted"
         : chatStatus;
+  const [hostTabSelected, setHostTabSelected] = useState(false);
+  const [hostAttentionCount, setHostAttentionCount] = useState(0);
+  const [primaryAttention, setPrimaryAttention] = useState(false);
+  const [attentionAnnouncement, setAttentionAnnouncement] = useState("");
+  const seenHostActivityRef = useRef<Set<string> | undefined>(undefined);
+  const conversationWasBusyRef = useRef(false);
+  const hostActivityIdentities = aiAssistant.additionalTab?.activityIdentities;
 
   useEffect(() => {
+    if (hostActivityIdentities === undefined) {
+      return;
+    }
+    const currentIdentities = new Set(
+      hostActivityIdentities.map(
+        (identity) => `${typeof identity}:${String(identity)}`,
+      ),
+    );
+    const previousIdentities = seenHostActivityRef.current;
+    if (previousIdentities === undefined) {
+      seenHostActivityRef.current = currentIdentities;
+      return;
+    }
+
+    let additions = 0;
+    for (const identity of currentIdentities) {
+      if (!previousIdentities.has(identity)) {
+        additions += 1;
+        previousIdentities.add(identity);
+      }
+    }
+    if (additions === 0 || (isAiAssistantOpen && hostTabSelected)) {
+      return;
+    }
+    const nextAttentionCount = hostAttentionCount + additions;
+    setHostAttentionCount(nextAttentionCount);
+    setAttentionAnnouncement(
+      `${nextAttentionCount} unseen ${aiAssistant.additionalTab?.label ?? "tab"} update${nextAttentionCount === 1 ? "" : "s"}`,
+    );
+  }, [
+    aiAssistant.additionalTab?.label,
+    hostActivityIdentities,
+    hostAttentionCount,
+    hostTabSelected,
+    isAiAssistantOpen,
+  ]);
+
+  useEffect(() => {
+    if (isAiAssistantOpen && hostTabSelected) {
+      setHostAttentionCount(0);
+    }
+    if (isAiAssistantOpen && !hostTabSelected) {
+      setPrimaryAttention(false);
+    }
+  }, [hostTabSelected, isAiAssistantOpen]);
+
+  useEffect(() => {
+    const isBusy = status === "submitted" || status === "streaming";
+    if (
+      conversationWasBusyRef.current &&
+      !isBusy &&
+      isAiAssistantOpen &&
+      hostTabSelected
+    ) {
+      setPrimaryAttention(true);
+      setAttentionAnnouncement(
+        `${aiAssistant.primaryLabel ?? "AI"} needs your attention`,
+      );
+    }
+    conversationWasBusyRef.current = isBusy;
+  }, [aiAssistant.primaryLabel, hostTabSelected, isAiAssistantOpen, status]);
+
+  useEffect(() => {
+    if (attentionAnnouncement.length === 0) {
+      return;
+    }
+    const timeout = setTimeout(() => setAttentionAnnouncement(""), 0);
+    return () => clearTimeout(timeout);
+  }, [attentionAnnouncement]);
+
+  useEffect(() => {
+    if (aiAssistant.followMessages !== undefined) {
+      if (
+        aiAssistant.messages === undefined ||
+        (chatStatus !== "ready" && chatStatus !== "error") ||
+        continuationPending ||
+        followedMessagesRef.current === aiAssistant.messages ||
+        !aiAssistant.followMessages.canReplace()
+      )
+        return;
+      followedMessagesRef.current = aiAssistant.messages;
+      setMessages(aiAssistant.messages);
+      return;
+    }
     if (
       aiAssistant.messages === undefined ||
       status !== "ready" ||
@@ -1239,7 +1545,16 @@ const ConversationAiAssistantPanel = ({
     }
     hydratedConversationIdRef.current = conversationId;
     setMessages(aiAssistant.messages);
-  }, [aiAssistant.messages, conversationId, messages, setMessages, status]);
+  }, [
+    aiAssistant.followMessages,
+    aiAssistant.messages,
+    chatStatus,
+    continuationPending,
+    conversationId,
+    messages,
+    setMessages,
+    status,
+  ]);
 
   useEffect(() => {
     // Keyed on the SDK's own status: the derived composer status stays busy
@@ -1251,17 +1566,33 @@ const ConversationAiAssistantPanel = ({
     for (const message of messages) {
       if (message.metadata?.stopped) continue;
       for (const part of message.parts) {
-        if (!isRunnableStaticToolPart(part)) {
-          continue;
-        }
+        const isStatic = isRunnableStaticToolPart(part);
+        const isAutomaticDynamic = isRunnableAutomaticDynamicToolPart(
+          part,
+          aiAssistant.automaticTools,
+        );
+        if (!isStatic && !isAutomaticDynamic) continue;
 
-        const toolCall = {
-          dynamic: false,
-          input: part.input,
-          toolCallId: part.toolCallId,
-          toolName: getStaticToolName(part),
-        } as Extract<PetrinautAiToolCall, { dynamic?: false }>;
+        const toolCall = isAutomaticDynamic
+          ? {
+              dynamic: true as const,
+              input: part.input,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+            }
+          : ({
+              dynamic: false,
+              input: part.input,
+              toolCallId: part.toolCallId,
+              toolName: getStaticToolName(part),
+            } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
         const executionKey = `${conversationId}:${toolCall.toolCallId}`;
+        if (
+          aiAssistant.followMessages !== undefined &&
+          locallyStreamedToolCallsRef.current.get(executionKey) !==
+            submissionGenerationRef.current
+        )
+          continue;
         if (automaticToolCallExecutionsRef.current.has(executionKey)) continue;
         automaticToolCallExecutionsRef.current.add(executionKey);
         pendingAutomaticToolCallExecutionsRef.current.add(executionKey);
@@ -1299,24 +1630,38 @@ const ConversationAiAssistantPanel = ({
                 kind: "failed",
               };
               setContinuationPending(false);
+              reportOperationalFailure(caught, "automatic-tool", {
+                toolName: toolCall.toolName,
+                toolCallId: toolCall.toolCallId,
+              });
               setStreamError(
                 caught instanceof Error
                   ? caught
                   : new Error(browserToolErrorText(caught)),
               );
-              // A static failure belongs to this call, not just the toast. Do
+              // An automatic-tool failure belongs to this call, not just the toast. Do
               // not let recording its error trigger an implicit continuation.
               suppressedAutomaticSendsRef.current += 1;
               await Promise.resolve()
-                .then(() =>
-                  addToolOutputRef.current?.({
-                    tool: toolCall.toolName,
+                .then(() => {
+                  const currentAddToolOutput = addToolOutputRef.current;
+                  return currentAddToolOutput
+                    ? addDynamicToolOutput(currentAddToolOutput, {
+                        tool: toolCall.toolName,
+                        toolCallId: toolCall.toolCallId,
+                        state: "output-error",
+                        errorText: browserToolErrorText(caught),
+                      })
+                    : undefined;
+                })
+                .catch((outputError: unknown) => {
+                  // The failed call's error part could not be recorded; the
+                  // toast already shows the original failure.
+                  reportOperationalFailure(outputError, "tool-output", {
+                    toolName: toolCall.toolName,
                     toolCallId: toolCall.toolCallId,
-                    state: "output-error",
-                    errorText: browserToolErrorText(caught),
-                  }),
-                )
-                .catch(() => {})
+                  });
+                })
                 .then(() => {
                   suppressedAutomaticSendsRef.current -= 1;
                 });
@@ -1326,17 +1671,21 @@ const ConversationAiAssistantPanel = ({
       }
     }
   }, [
+    aiAssistant.automaticTools,
+    aiAssistant.followMessages,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,
     executeToolCallRef,
     messages,
+    reportOperationalFailure,
     toolHostIdentityRef,
   ]);
 
   const composerSubmissionStateRef = useLatest({
     addToolOutput,
     interactiveTools: aiAssistant.interactiveTools,
+    followMessages: aiAssistant.followMessages,
     messages,
     sendMessage,
     setMessages,
@@ -1388,6 +1737,7 @@ const ConversationAiAssistantPanel = ({
       const {
         addToolOutput: submitToolOutput,
         interactiveTools,
+        followMessages,
         messages: currentMessages,
         sendMessage: submitMessage,
         setMessages: updateMessages,
@@ -1411,7 +1761,11 @@ const ConversationAiAssistantPanel = ({
         for (const part of message.parts) {
           if (
             part.type !== "dynamic-tool" ||
-            part.state !== "input-available"
+            part.state !== "input-available" ||
+            (followMessages !== undefined &&
+              locallyStreamedToolCallsRef.current.get(
+                `${toolHostIdentityRef.current}:${part.toolCallId}`,
+              ) !== submissionGenerationRef.current)
           ) {
             continue;
           }
@@ -1459,6 +1813,11 @@ const ConversationAiAssistantPanel = ({
             text: submissionText,
           });
         } catch (caught) {
+          // A host `fromComposerText` threw: a host defect, not a refusal.
+          reportOperationalFailure(caught, "composer-mapping", {
+            toolName: mappedToolCall.toolName,
+            toolCallId: mappedToolCall.toolCallId,
+          });
           const submissionError =
             caught instanceof Error ? caught : new Error(String(caught));
           setStreamError(submissionError);
@@ -1487,6 +1846,10 @@ const ConversationAiAssistantPanel = ({
           });
         } catch (caught) {
           composerToolSubmissionsRef.current.delete(mappedToolCall.toolCallId);
+          reportOperationalFailure(caught, "tool-output", {
+            toolName: mappedToolCall.toolName,
+            toolCallId: mappedToolCall.toolCallId,
+          });
           const submissionError =
             caught instanceof Error ? caught : new Error(String(caught));
           setStreamError(submissionError);
@@ -1506,6 +1869,8 @@ const ConversationAiAssistantPanel = ({
       setStreamError(null);
       setStopped(false);
       stopRequestedRef.current = false;
+      abortAutomaticTools();
+      explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
       await submitMessage({
         id: messageId,
@@ -1515,7 +1880,7 @@ const ConversationAiAssistantPanel = ({
       });
       return { kind: "message", messageId };
     },
-    [composerSubmissionStateRef],
+    [composerSubmissionStateRef, reportOperationalFailure],
   );
 
   const stopStateRef = useLatest({
@@ -1621,6 +1986,9 @@ const ConversationAiAssistantPanel = ({
 
     const generation = submissionGenerationRef.current;
     automaticToolTerminationRef.current = { generation, kind: "stopped" };
+    abortAutomaticTools();
+    for (const controller of experimentControllersRef.current.values())
+      controller.abort();
     stopRequestedRef.current = true;
     if (requestStop !== undefined) {
       try {
@@ -1641,6 +2009,7 @@ const ConversationAiAssistantPanel = ({
         stopRequestedRef.current = false;
         setContinuationPending(false);
         setStopped(false);
+        reportOperationalFailure(caught, "stop");
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );
@@ -1648,7 +2017,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
     await stopCurrentResponse();
-  }, [stopStateRef]);
+  }, [reportOperationalFailure, stopStateRef]);
 
   const submitUserText = useCallback(
     (text: string, target: "auto" | "message" = "auto") => {
@@ -1817,11 +2186,11 @@ const ConversationAiAssistantPanel = ({
     petriNetDefinition.places.length === 0 &&
     petriNetDefinition.transitions.length === 0;
 
-  const promptChips = isNetEmpty
-    ? hasConversation
-      ? []
-      : STARTER_CHIPS
-    : REVIEW_CHIPS;
+  const promptChips = selectPromptChips({
+    hasConversation,
+    isNetEmpty,
+    offerStartPosture,
+  });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
@@ -1831,9 +2200,6 @@ const ConversationAiAssistantPanel = ({
     stop: stopComposer,
     submitText,
   };
-  /* eslint-disable react-hooks-js/refs -- The public render prop receives
-     stable event callbacks that read their refs only when the host invokes
-     them from an event handler or effect. */
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
   );
@@ -1843,27 +2209,45 @@ const ConversationAiAssistantPanel = ({
     inputMode: interactionMode,
     isAiAssistantOpen,
     registerVoiceModeControls,
+    registerVoiceModeSessionControls,
     reportVoiceSessionState,
     setInputMode: requestInputMode,
     setVoiceActive,
     submitVoiceInput,
   });
-  /* eslint-enable react-hooks-js/refs */
+  const hiddenAutomaticToolNames = new Set(
+    aiAssistant.automaticTools
+      ?.filter(({ visibility }) => visibility === "hidden")
+      .map(({ toolName }) => toolName),
+  );
 
   return (
     <AiAssistantContents
+      additionalTab={aiAssistant.additionalTab}
+      attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
-      composerFocusRequest={composerFocusRequest}
+      composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
+      experimentStates={experimentStates}
+      onCancelExperiment={cancelExperiment}
       input={input}
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
+      hostAttentionCount={hostAttentionCount}
+      hostTabSelected={hostTabSelected}
+      hiddenToolNames={hiddenAutomaticToolNames}
       messages={messages}
       onClearMessages={() => {
+        abortAutomaticTools();
+        for (const controller of experimentControllersRef.current.values())
+          controller.abort();
+        experimentControllersRef.current.clear();
+        setExperimentStates({});
+        explicitContinuationToolCallIdsRef.current.clear();
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
         // with `isAbort`. Drop the stop flag first so that handler treats this
@@ -1889,6 +2273,18 @@ const ConversationAiAssistantPanel = ({
       onInputChange={setInput}
       onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
+        // Widgets (including built-in layout consent) can outlive their stream.
+        // Observed/reloaded calls must not gain authority through completion.
+        if (
+          aiAssistant.followMessages !== undefined &&
+          locallyStreamedToolCallsRef.current.get(
+            `${toolHostIdentityRef.current}:${toolCallId}`,
+          ) !== submissionGenerationRef.current
+        ) {
+          return Promise.reject(
+            new Error("This observed AI tool is display-only."),
+          );
+        }
         if (!isPetrinautAiCommandToolName(toolName)) {
           if (
             !aiAssistant.interactiveTools?.some(
@@ -1898,11 +2294,23 @@ const ConversationAiAssistantPanel = ({
             throw new Error(`Unknown AI tool: ${toolName}`);
           }
 
+          // Retain suppression through stream settlement: addToolOutput skips
+          // its own continuation while streaming, but AI SDK checks again when
+          // the stream reaches ready. The ready-state effect owns the one send.
+          explicitContinuationToolCallIdsRef.current.add(toolCallId);
           return addDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
             output,
-          });
+          }).then(
+            () => {
+              setContinuationPending(true);
+            },
+            (caught: unknown) => {
+              explicitContinuationToolCallIdsRef.current.delete(toolCallId);
+              throw caught;
+            },
+          );
         }
 
         const petrinautOutput = output as AiToolOutput;
@@ -1934,10 +2342,9 @@ const ConversationAiAssistantPanel = ({
           return;
         }
 
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
-
-        void instance.commands.applyAutoLayout().then((result) => {
+        void (
+          applyAutoLayoutAndFrame?.() ?? instance.commands.applyAutoLayout()
+        ).then((result) => {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
@@ -1947,6 +2354,7 @@ const ConversationAiAssistantPanel = ({
           });
         });
       }}
+      onHostTabSelectedChange={setHostTabSelected}
       onSelectToolTarget={(target) =>
         selectTarget(target, {
           navigateTo,
@@ -1966,13 +2374,16 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
-      rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
+      primaryAttention={primaryAttention}
+      primaryLabel={aiAssistant.primaryLabel}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
       voiceDockCollapsed={voiceDockCollapsed}
       voiceMode={voiceMode}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+      resolveToolPresentation={aiAssistant.resolveToolPresentation}
+      workingLabel={aiAssistant.workingLabel}
     />
   );
 };

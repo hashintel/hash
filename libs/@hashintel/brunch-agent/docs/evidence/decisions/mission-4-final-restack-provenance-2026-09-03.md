@@ -2,7 +2,7 @@
 
 Date: 2026-09-03
 
-Status: **verified after `gt sync && gt restack`; content manifests are authoritative and commit SHAs are historical provenance only.**
+Status: **historical verification after `gt sync && gt restack`.** The manifests and run bundles described below were subsequently retired. Content-identity findings describe the verification at that time, not artifacts still available in this tree.
 
 ## Restack result
 
@@ -13,9 +13,9 @@ The restack rewrote commit identities but not instrument or run-artifact content
 - v1 manifest SHA-256: `ec6399fd19914b15c9fe5e43d268b56f3e4816e128b02f3e694f7a807e7d1987`;
 - v2 manifest SHA-256: `91bc02e59dad3ed2d7791e3e1b095435c18fca8c78b4302e9e3bb43872e727a9`.
 
-The `instrumentCommit` and `executionHead` values retained in accepted manifests and `run.json` files state where those bytes lived when execution occurred. They are useful historical provenance, not evidence primary keys, current-ancestry requirements, or promises that Git will retain those objects forever. The records remain unchanged because they accurately describe execution time, not because current consumers must resolve those SHAs.
+The `instrumentCommit` and `executionHead` values retained in accepted manifests and `run.json` files state where those bytes lived when execution occurred. They are useful historical provenance, not evidence primary keys, current-ancestry requirements, or promises that Git will retain those objects forever. The records were left unchanged at that time because they described execution time, not because future consumers had to resolve those SHAs.
 
-`git patch-id --stable` and complete manifest verification confirmed that the first post-sync chain was patch-equivalent and that both frozen instrument manifests still matched all 33 and 35 current worktree files respectively. A later `gt sync` rewrote the chain again when its parent advanced, demonstrating why a maintained old-to-new SHA map would be churn rather than durable evidence. No such map is retained. Every per-run manifest remains valid.
+`git patch-id --stable` and complete manifest verification confirmed that the first post-sync chain was patch-equivalent and that both frozen instrument manifests still matched all 33 and 35 current worktree files respectively. A later `gt sync` rewrote the chain again when its parent advanced, demonstrating why a maintained old-to-new SHA map would be churn rather than durable evidence. No such map is retained. Every per-run manifest passed that historical verification.
 
 ## Future campaign rule
 
@@ -25,4 +25,4 @@ Future protocols should separate `instrumentId` from `provenanceAtExecution`. `i
 
 The Mission 4 stack and current Voice stack remain parallel. Their observed merge base is `807fc0481ae3eed147f911d5d4a49ef9031a8afe`; neither is the other's parent. The Voice stack begins from `kostandin/fe-1570-voice-optimized-brunch-responses` (PR #9496, base `main`), continues through `kah-6763-temporary-brunch-ask` (PR #9507), and ends at `kah-6800-improve-petrinaut-voice-turn-taking-and-answer-provenance` (PR #9512). Coordination therefore requires an explicit reconciliation branch or parent choice after the involved PR owners choose integration order; ordinary `gt restack` on Mission 4 does not combine them.
 
-The detailed file/ownership collision map remains in [`mission-4-voice-integration-handoff.md`](../implementations/mission-4-voice-integration-handoff.md). Its main constraint survives synchronization: port Voice behavior into Mission 4's package-composed agent and relocated conversation modules rather than restoring the Voice branch's older app-local stub.
+The detailed file/ownership collision map was recorded in the now-retired `mission-4-voice-integration-handoff.md`. Its main constraint survived synchronization: port Voice behavior into Mission 4's package-composed agent and relocated conversation modules rather than restoring the Voice branch's older app-local stub.

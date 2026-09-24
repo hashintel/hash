@@ -29,8 +29,9 @@ use crate::{
 pub(crate) enum ReceiptDetail {
     /// No stored receipts: the routine posture.
     None,
-    /// One receipt per started outer iteration, start-state digests included: a debugging
-    /// consumer's request.
+    /// One receipt per started outer iteration, start-state digests included.
+    ///
+    /// A debugging consumer's request.
     Digests,
 }
 
@@ -51,8 +52,8 @@ pub(crate) struct OuterReceipt {
     /// Trust radius entering the iteration.
     pub radius: DPositive,
     /// Accepted objective entering the iteration.
-    // Raw on purpose: the first outer iteration after an admitted non-finite origin objective
-    // records the admission honestly.
+    // Raw on purpose: the first outer iteration can retain an admitted non-finite origin
+    // objective, which a finite domain type could not record.
     pub objective: f64,
     /// Accepted scaled-gradient norm entering the iteration.
     pub gradient_norm: DNonNegative,
@@ -108,8 +109,9 @@ pub(crate) enum CurvatureDiagnostic {
 pub(crate) struct OuterOutcome {
     /// The inner Newton outcome tag.
     pub tag: Option<NewtonTag>,
-    /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of the priced Newton point: the per-outer
-    /// certificate of the factorization against the oracle.
+    /// The relative Newton residual of the priced Newton point.
+    ///
+    /// `‖Hζ·p_N + gζ‖/‖gζ‖` is the per-outer certificate of the factorization against the oracle.
     pub newton_residual: Option<DNonNegative>,
     /// Norm of the returned step `‖p‖`.
     pub step_norm: Option<DNonNegative>,
@@ -133,7 +135,7 @@ pub(crate) struct OuterOutcome {
 
 /// The exposed coordinate/version identity of one run's receipts and digests.
 ///
-/// Archived digest bytes are not self-describing, so this value names the digest version and the
+/// Archived digest bytes are not self-describing, and this value names the digest version and the
 /// coordinate system that generated them. The domain tag and declared dimension are byte-identical
 /// to the prefix of every digest preimage. This identity exposes the coordinate system on its own,
 /// and the coordinate system does not enter the preimage.
@@ -156,8 +158,10 @@ impl ReceiptCoordinates {
     };
 }
 
-/// The digest of a flat solver vector: the domain tag's UTF-8 bytes, the declared dimension, then
-/// every component in vector order, both as native in-memory bytes.
+/// Computes the digest of a flat solver vector.
+///
+/// The preimage is the domain tag's UTF-8 bytes, the declared dimension, then every component in
+/// vector order, both as native in-memory bytes.
 ///
 /// Digest identity is environment-scoped. A replay in the same environment reproduces the bytes
 /// bit-for-bit, and byte identity does not extend across builds or architectures.

@@ -1,14 +1,19 @@
-import { use, useId, useLayoutEffect, useRef } from "react";
+import {
+  type CSSProperties,
+  use,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { BottomBarCollapseContext } from "./collapse-context";
 
 /**
- * The group folds by animating its grid column to nothing while the content
- * inside keeps its natural width. That keeps the content measurable whether it
- * is shown or hidden, so the bar can tell how wide it would be with everything
- * shown without laying the controls out twice.
+ * The content stays at its natural width while its container animates. Measuring
+ * both keeps the fully expanded bar width stable throughout the animation.
  *
  * The reveal is a selector on the bar rather than state passed back down: the
  * browser maintains `:hover` and `:focus-within` itself, where mirroring them
@@ -22,30 +27,37 @@ import { BottomBarCollapseContext } from "./collapse-context";
  */
 const groupStyle = cva({
   base: {
-    display: "grid",
-    gridTemplateColumns: "[1fr]",
-    transition: "[grid-template-columns 160ms ease-in, opacity 160ms ease-in]",
+    "--group-duration": "180ms",
+    "--group-easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    width: "[var(--group-width, max-content)]",
+    flexShrink: 0,
+    transition:
+      "[width var(--group-duration) var(--group-easing), opacity 100ms ease-out]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
   },
   variants: {
+    animateEntry: {
+      true: {
+        "@starting-style": { width: "[0px]", opacity: "[0]" },
+      },
+    },
     collapsed: {
       true: {
-        gridTemplateColumns: "[0fr]",
+        "--group-duration": "120ms",
+        "--group-easing": "cubic-bezier(0.4, 0, 1, 1)",
+        width: "[0px]",
         opacity: "[0]",
         pointerEvents: "none",
-        // Revealing answers the pointer, so it runs shorter and decelerates;
-        // folding is not a response to anything and eases in. The selector
-        // stays on one line: Panda writes the key into the class name, and a
-        // wrapped one stops matching the rule it generated.
+        // Keep the selector on one line: Panda includes it in the class name.
         '[data-bottom-bar]:hover &, [data-bottom-bar]:focus-within &, [data-bottom-bar]:has([data-state="open"]) &':
           {
-            gridTemplateColumns: "[1fr]",
+            "--group-duration": "180ms",
+            "--group-easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+            width: "[var(--group-width, max-content)]",
             opacity: "[1]",
             pointerEvents: "auto",
-            transition:
-              "[grid-template-columns 120ms ease-out, opacity 120ms ease-out]",
           },
       },
     },
@@ -72,37 +84,35 @@ const contentStyle = css({
  * reveals them, so making the subtree inert would leave a keyboard with no way
  * in.
  */
-export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const CollapsibleGroup: React.FC<{
+  children: React.ReactNode;
+  animateEntry?: boolean;
+}> = ({ children, animateEntry = false }) => {
   const { isCollapsed, reportGroupWidth } = use(BottomBarCollapseContext);
   const groupId = useId();
-  const clipRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [naturalWidth, setNaturalWidth] = useState<number | undefined>(
+    animateEntry ? 0 : undefined,
+  );
 
   useLayoutEffect(() => {
-    const clip = clipRef.current;
+    const group = groupRef.current;
     const content = contentRef.current;
-    if (!clip || !content) {
+    if (!group || !content) {
       return;
     }
 
     const measure = () => {
       const natural = content.getBoundingClientRect().width;
-      const rendered = clip.getBoundingClientRect().width;
-      reportGroupWidth(groupId, {
-        natural,
-        hidden: Math.max(natural - rendered, 0),
-      });
+      const rendered = group.getBoundingClientRect().width;
+      setNaturalWidth(natural);
+      reportGroupWidth(groupId, { natural, rendered });
     };
     measure();
 
-    // Both boxes are watched: the content changes when a control appears, and
-    // the clip changes on every frame of the fold. Reporting the pair from one
-    // observer keeps the two in step, so the width the bar derives from them
-    // is right mid-animation too.
     const observer = new ResizeObserver(measure);
-    observer.observe(clip);
+    observer.observe(group);
     observer.observe(content);
 
     return () => {
@@ -112,8 +122,17 @@ export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
   }, [groupId, reportGroupWidth]);
 
   return (
-    <div className={groupStyle({ collapsed: isCollapsed })}>
-      <div ref={clipRef} className={clipStyle}>
+    <div
+      ref={groupRef}
+      className={groupStyle({ collapsed: isCollapsed, animateEntry })}
+      style={
+        {
+          "--group-width":
+            naturalWidth === undefined ? undefined : `${naturalWidth}px`,
+        } as CSSProperties
+      }
+    >
+      <div className={clipStyle}>
         <div ref={contentRef} className={contentStyle}>
           {children}
         </div>

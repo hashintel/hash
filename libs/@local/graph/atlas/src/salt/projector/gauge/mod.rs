@@ -2,7 +2,7 @@
 //!
 //! The contrast compares distances in the zero-condition frame. The zero side is read directly,
 //! and the canonical side is read through a similarity fitted over the gauge anchors - rows drawn
-//! disjoint from movement participants, held-out pair endpoints, and matched controls, so the
+//! disjoint from movement participants, held-out pair endpoints, and matched controls, and the
 //! optimizer cannot own the frame it is measured in. Rotation and translation cancel in pair
 //! distances, which concentrates the whole alignment in the fitted scale `s`. The fit is live:
 //! `s` carries a derivative into both fields' anchor coordinates, and hiding either path would
@@ -18,20 +18,20 @@
 //! - zero: `∂s/∂x₀(g) = (R·u(g)) / D`
 //!
 //! Centring makes each raw-coordinate derivative the centred one minus the mean of all centred
-//! derivatives, and both means vanish over centred sums (`Σu = Σv = 0`), so the forms above are
-//! exact in the raw coordinates. The tests pin the Euler laws this buys: `Σ u·∂s/∂x_c = −s` and
-//! `Σ v·∂s/∂x₀ = +s`, because the scale is degree −1 in the canonical constellation and degree
-//! +1 in the zero one. The per-anchor magnitude falls as `1/(|G|·spread)`, which is what makes
-//! the gauge channel a reading rather than a lever.
+//! derivatives, and both means vanish over centred sums (`Σu = Σv = 0`). The forms above are
+//! therefore exact in the raw coordinates. Because the scale is degree −1 in the canonical
+//! constellation and degree +1 in the zero one, the Euler laws `Σ u·∂s/∂x_c = −s` and
+//! `Σ v·∂s/∂x₀ = +s` follow. The per-anchor magnitude falls as `1/(|G|·spread)`, which is what
+//! makes the gauge channel a reading rather than a lever.
 //!
-//! Each fit rule is a shape fixed by the derivation with an owner-valued number, and a rule
-//! whose number is not yet declared does not bind. The minimum spread (`spread_G/band ≥ κ`) and
-//! the minimum effective count (the Kish form over anchors deduplicated by duplicate class) bind
-//! at the freeze. The maximum normalized residual binds at every fit. Any degeneracy - the
-//! closed form's own refusals or a residual above its bar - lands in the one refusal class,
-//! [`GaugeRefusal`], whose outcome is fixed: publish no activation candidate and record the
-//! failed reading. The fit always runs on all of the anchors, never a subsample, because the
-//! estimator's contract needs `s` to be a function of the fields alone.
+//! Each fit rule is a shape fixed by the derivation with a declared number, and a rule whose
+//! number is not declared does not bind. The minimum spread (`spread_G/band ≥ κ`) and the
+//! minimum effective count (the Kish form over anchors deduplicated by duplicate class) bind at
+//! the freeze. The maximum normalized residual binds at every fit. Any degeneracy - the closed
+//! form's own refusals or a residual above its bar - is one refusal class, [`GaugeRefusal`],
+//! whose outcome is fixed: publish no activation candidate and record the failed reading. The
+//! fit always runs on all of the anchors, never a subsample, because the estimator's contract
+//! needs `s` to be a function of the fields alone.
 
 mod refusal;
 #[cfg(test)]
@@ -50,8 +50,9 @@ hashql_core::id::newtype! {
 }
 
 hashql_core::id::newtype! {
-    /// The split's duplicate-class covariate, under which byte-identical embedding rows share
-    /// one class.
+    /// The split's duplicate-class covariate.
+    ///
+    /// Byte-identical embedding rows share one class under it.
     ///
     /// The draw machinery assigns the ids. This module consumes them for the effective count,
     /// where duplicates of one class are the same evidence and count once.
@@ -62,29 +63,33 @@ hashql_core::id::newtype! {
 /// The band-conditioned minimum-spread rule.
 ///
 /// Present when the replicate-band artifact exists. A frame whose defining spread is commensurate
-/// with the band has noise-owned units, so the anchors' frozen spread must satisfy
+/// with the band has noise-owned units. The anchors' frozen spread must therefore satisfy
 /// `spread_G / band ≥ κ`.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpreadFloor {
-    /// `κ`: the owner's spread factor. Its value is an open owner decision. Its role is not.
+    /// `κ`: the declared spread factor. Its value remains an open choice. Its role is fixed.
     pub kappa: Positive,
     /// The constraint radius in world units: the same-frame reconstruction `β_proj · s_ref`.
     pub band: Positive,
 }
 
-/// The frozen gauge population holds the anchor rows with their duplicate classes beside the
-/// frozen spread and the effective count.
+/// The frozen gauge population.
+///
+/// It pairs the anchor rows and their duplicate classes with the frozen spread and the effective
+/// count.
 #[derive(Debug, PartialEq)]
 pub(crate) struct GaugeAnchors<N> {
     /// The anchor rows in draw order.
     rows: Box<IdSlice<GaugeOrdinal, N>>,
     /// Each anchor's duplicate class, aligned with `rows`.
     classes: Box<IdSlice<GaugeOrdinal, DuplicateClassId>>,
-    /// `spread_G(Z_K)`: the anchors' centred RMS spread in the boundary snapshot, the frozen
-    /// denominator of every normalized residual and the minimum-spread rule's reading.
+    /// `spread_G(Z_K)`: the anchors' centred RMS spread in the boundary snapshot.
+    ///
+    /// The frozen denominator of every normalized residual and the minimum-spread rule's reading.
     frozen_spread: Positive,
-    /// `n_eff_G`: the Kish effective count over anchors deduplicated by duplicate class. With
-    /// equal per-anchor weights this is the distinct class count, and a stratified-weighted
+    /// `n_eff_G`: the Kish effective count over anchors deduplicated by duplicate class.
+    ///
+    /// With equal per-anchor weights this is the distinct class count, and a stratified-weighted
     /// draw would supply its own weights.
     effective_count: DNonNegative,
 }
@@ -134,8 +139,8 @@ where
 
         #[expect(
             clippy::cast_possible_truncation,
-            reason = "the frozen constant lives in the working f32 precision; the domain check \
-                      reads the narrowed value"
+            reason = "the frozen constant lives in the working f32 precision, and the domain \
+                      check reads the narrowed value"
         )]
         let frozen_spread =
             Positive::new(spread as f32).ok_or(GaugeRefusal::DegenerateSpread { spread })?;
@@ -170,10 +175,9 @@ where
 
     /// Fits the alignment over pre-gathered anchor constellations in draw order.
     ///
-    /// The trainer's per-step evaluation holds the anchors' coordinates in a batch-local frame
-    /// rather than in whole-corpus fields, so this entry takes the two constellations already
-    /// gathered - `source` the anchors' canonical coordinates and `target` their zero-frame
-    /// coordinates, both in draw order.
+    /// This entry takes the two constellations already gathered - `source` the anchors' canonical
+    /// coordinates and `target` their zero-frame coordinates, both in draw order - for a caller
+    /// that holds the anchors in a batch-local frame rather than in whole-corpus fields.
     ///
     /// Both constellations cover the anchor draw - a wiring contract checked in debug builds,
     /// since the gather and the frozen draw come from one gauge.
@@ -246,22 +250,28 @@ where
     }
 }
 
-/// One evaluation's fitted alignment carries the similarity and its scale beside the normalized
-/// residual and the scale's exact adjoints into both fields' anchor coordinates.
+/// One evaluation's fitted alignment.
+///
+/// It holds the similarity and its scale, the normalized residual, and the scale's exact adjoints
+/// into both fields' anchor coordinates.
 #[derive(Debug, PartialEq)]
 pub(crate) struct GaugeFit {
     /// The fitted similarity, canonical onto zero: the evidence bridge between frames.
     similarity: Similarity,
     /// The fitted scale `s`, the one live alignment quantity pair distances consume.
     scale: Positive,
-    /// `RMS(S(x_c(g)) − x₀(g)) / spread_G(Z_K)`: the non-similarity deformation of the gauge
-    /// constellation, recorded at every fit and bounded by the bar when one is declared.
+    /// `RMS(S(x_c(g)) − x₀(g)) / spread_G(Z_K)`: the constellation's non-similarity deformation.
+    ///
+    /// Recorded at every fit and bounded by the bar when one is declared.
     residual: DNonNegative,
-    /// `∂s/∂x_c(g)` per anchor: the adjoint that fans the objective's pull on `s` into the
-    /// canonical anchor coordinates.
+    /// `∂s/∂x_c(g)` per anchor: the adjoint into the canonical anchor coordinates.
+    ///
+    /// It fans the objective's pull on `s` into those coordinates.
     canonical_adjoints: Box<FinitePointField<GaugeOrdinal>>,
-    /// `∂s/∂x₀(g)` per anchor: the zero-field twin, present for the same reason the contrast's
-    /// zero slope is - hiding a real path would misstate the derivative.
+    /// `∂s/∂x₀(g)` per anchor: the zero-field twin of the canonical adjoint.
+    ///
+    /// Present for the same reason the contrast's zero slope is - hiding a real path would
+    /// misstate the derivative.
     zero_adjoints: Box<FinitePointField<GaugeOrdinal>>,
 }
 
@@ -303,7 +313,7 @@ type AdjointFields = (
 
 /// Evaluates both adjoint fields at the fitted optimum, per anchor in parallel.
 ///
-/// The rotation and scale re-widen from the fitted f32 coefficients, so the adjoints
+/// The rotation and scale re-widen from the fitted f32 coefficients. The adjoints therefore
 /// differentiate the alignment the forward pass actually uses. `D` re-accumulates in f64 through
 /// the deterministic chunked reduction.
 fn adjoints(
@@ -312,7 +322,7 @@ fn adjoints(
     similarity: Similarity,
     scale: Positive,
 ) -> Result<AdjointFields, GaugeRefusal> {
-    // The fields carry the finiteness proof, so the statistics evaluate with no scan.
+    // The fields carry the finiteness proof, and the statistics evaluate with no scan.
     let source_centre = source.centroid();
     let target_centre = target.centroid();
 

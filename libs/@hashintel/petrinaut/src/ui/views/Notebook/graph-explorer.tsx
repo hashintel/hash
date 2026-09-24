@@ -268,7 +268,7 @@ export interface GraphExplorerProps {
 }
 
 /**
- * The right-hand pane of the notebook view. Always draws the whole net as a
+ * The right-hand pane of the Definitions view. Always draws the whole net as a
  * layered graph of places and transitions; when a node is selected it and its
  * direct dependencies and dependents are highlighted there. Below the graph,
  * the selected cell's dependencies and dependents are listed in full — those

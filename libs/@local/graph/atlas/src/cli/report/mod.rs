@@ -1,8 +1,10 @@
-//! Analysis instruments over published generations, one submodule per report.
+//! Analyses over published generations, one submodule per report.
 //!
-//! Every instrument reads artifacts a fit already published and returns its readings. The host
-//! renders them. The certified refit and the live assessment also write their evidence record,
-//! because a bundle outlives the terminal that shows it.
+//! An analysis reads artifacts a fit already published and returns its readings for the host to
+//! render. The probe stands outside both halves of that: it solves a corpus a published generation
+//! or supplied artifacts carry, and prints each solve's record as it goes. The certified refit and
+//! the live assessment also write their evidence record, because a bundle outlives the terminal
+//! that shows it.
 
 use core::{
     error::Error,
@@ -76,6 +78,8 @@ impl Display for ReportVerdict {
 pub(crate) enum ReportError {
     /// Writing the report bundle failed.
     Io(io::Error),
+    /// Serializing the report failed.
+    Serialize(serde_json::Error),
     /// Dialing the store connection failed.
     Connect(super::ConnectError),
     /// The live assessment failed.
@@ -94,9 +98,10 @@ impl Display for ReportError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(_) => fmt.write_str("the report bundle could not be written"),
+            Self::Serialize(_) => fmt.write_str("report serialization failed"),
             Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
-            // Each instrument's own chain names the step that failed;
-            // this level adds no step of its own.
+            // Each analysis's own chain names the step that failed. This level adds no step of its
+            // own.
             Self::Assess(error) => Display::fmt(error, fmt),
             Self::Clumps(error) => Display::fmt(error, fmt),
             Self::KnnBackend(error) => Display::fmt(error, fmt),
@@ -110,6 +115,7 @@ impl Error for ReportError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
+            Self::Serialize(error) => Some(error),
             Self::Connect(error) => Some(error),
             Self::Assess(error) => error.source(),
             Self::Clumps(error) => error.source(),
@@ -120,11 +126,18 @@ impl Error for ReportError {
     }
 }
 
-/// The report subcommands, one per instrument.
+impl From<serde_json::Error> for ReportError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Serialize(error)
+    }
+}
+
+/// The report subcommands, one per analysis.
 #[derive(Debug, clap::Subcommand)]
 pub(crate) enum ReportCommand {
-    /// Refits a published generation's classifier from its staged corpus and certifies the bytes
-    /// against the deployed artifact, then writes the report bundle.
+    /// Refits a published generation's classifier and writes the report bundle.
+    ///
+    /// The refit reads the staged corpus and certifies the bytes against the deployed artifact.
     Classifier(ClassifierArgs),
 
     /// Reads the clump grouping's shape at every candidate ε over a published k-NN table.
@@ -136,14 +149,16 @@ pub(crate) enum ReportCommand {
     /// Audits NN-Descent neighbour constructions over the active generation.
     KnnDescent(DescentArgs),
 
-    /// Reads the relation effect of the condition ladder in world units over a published
-    /// generation - endpoint-distance contraction of the engaged pairs against the zero-condition
-    /// step - and writes the report bundle.
+    /// Reads the condition ladder's relation effect in world units over a published generation.
+    ///
+    /// The effect is the endpoint-distance contraction of the engaged pairs against the
+    /// zero-condition step. The run writes the report bundle.
     Ladder(LadderArgs),
 
-    /// Solves one fold subset from a frozen classifier corpus - a published generation's or
-    /// supplied artifacts' - and dumps every receipt; a budget-refused solve additionally traces
-    /// its stalling inner recurrence.
+    /// Solves one fold subset from a frozen classifier corpus and dumps every solve record.
+    ///
+    /// The corpus is a published generation's or supplied artifacts'. A budget-refused solve
+    /// additionally traces its stalling inner recurrence.
     Probe(ProbeArgs),
 
     /// Assesses the active generation's map fidelity over the live store and writes the report.
@@ -151,20 +166,20 @@ pub(crate) enum ReportCommand {
 
     /// Certifies a generation's recorded target readings against the padded pass's realization.
     ///
-    /// No published generation records target evidence, so every invocation resolves its
-    /// generation and refuses.
+    /// No published generation records target evidence. Every invocation resolves its generation
+    /// and refuses.
     Realization(RealizationArgs),
 }
 
 impl ReportCommand {
     /// Runs the selected report.
     ///
-    /// The probe dumps its receipts as it solves, so it is the one instrument whose product is not
-    /// a verdict.
+    /// The probe dumps its records as it solves and answers `Ok(None)`, the one analysis that
+    /// returns no verdict. Realization answers with its refusal instead.
     ///
     /// # Errors
     ///
-    /// Returns a [`ReportError`] when the instrument fails or the process cannot write its record.
+    /// Returns a [`ReportError`] when the analysis fails or the process cannot write its record.
     pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, ReportError> {
         match self {
             Self::Classifier(args) => args.run().await.map(ReportVerdict::Classifier).map(Some),

@@ -11,9 +11,9 @@ npm install @hashintel/refractive
 `refractive` is a higher-order component (HOC) that can wrap any React component to apply refractive glass effects.
 The `refraction` prop allows you to customize the appearance of the effect.
 
-The HOC uses SVG filters to create the refractive effect, which is applied via the `backdrop-filter` CSS property.
+The HOC uses SVG backdrop filters for glass distortion on Chromium browsers. The `blur` setting uses native CSS backdrop blur in every browser, including Firefox and Safari, which receive blur without the SVG effect. Browsers without SVG refraction skip filter generation and resize observation.
 
-> Caution: `refractive` will override `style.backdropFilter` and `style.borderRadius` of the wrapped component.
+> Caution: `refractive` will override `style.backdropFilter`, `style.WebkitBackdropFilter`, and `style.borderRadius` of the wrapped component.
 
 ### Example
 

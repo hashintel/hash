@@ -9,23 +9,21 @@
 //! [`select_diverse_examples`]:
 //!
 //! 1. process candidates in the order of a SHA-256 key over the relation and candidate identities,
-//!    so the outcome is a property of the facts alone, independent of row order;
+//!    which makes the outcome a property of the facts alone, independent of row order;
 //! 2. collapse interior whitespace in endpoint labels and drop candidates with a blank label on
 //!    either side;
 //! 3. keep the first candidate of every endpoint pair;
 //! 4. group each candidate under the constraining source type nearest in its type closure, matched
 //!    by id; and
-//! 5. claim one rendered-pair conflict token per candidate, so textually identical examples from
-//!    separate webs appear at most once.
+//! 5. claim one rendered-pair conflict token per candidate, which admits textually identical
+//!    examples from separate webs at most once.
 //!
 //! Candidates matching no source type surface only when every per-source group is empty, as one
-//! unlabelled group; with no constraining source types at all, every candidate forms one unlabelled
-//! group.
+//! unlabelled group. With no constraining source types at all, every candidate forms one
+//! unlabelled group.
 
-use alloc::{
-    alloc::{Allocator, Global},
-    borrow::Cow,
-};
+use alloc::{alloc::Global, borrow::Cow};
+use core::alloc::Allocator;
 use std::collections::HashSet;
 
 use super::{
@@ -333,8 +331,8 @@ fn normalized_examples<'text, A: Allocator + Clone>(
 
 /// Keys one candidate's position in the deterministic processing order.
 ///
-/// The digest covers the relation and candidate identities separated by NUL bytes, so the order is
-/// a property of the facts alone.
+/// The digest covers the relation and candidate identities separated by NUL bytes. The order is a
+/// property of the facts alone.
 fn order_key<A: Allocator>(relation_id: &str, row: &ExampleRow<'_, A>) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(relation_id.as_bytes());
@@ -350,7 +348,7 @@ fn order_key<A: Allocator>(relation_id: &str, row: &ExampleRow<'_, A>) -> Sha256
 ///
 /// Grouping matches type ids, so title collisions between source types leave assignment unchanged.
 /// Candidates matching no source type appear only when every per-source group is empty, as one
-/// unlabelled group; with no source types at all, every candidate forms one unlabelled group.
+/// unlabelled group. With no source types at all, every candidate forms one unlabelled group.
 fn example_groups<'text, A: Allocator + Clone>(
     associations: &[EndpointAssociation<'text, A>],
     candidates: Vec<NormalizedExample<'text, A>, A>,
@@ -459,7 +457,7 @@ fn example_group<'text, A: Allocator + Clone>(
 /// Builds a candidate's rendered-pair conflict token.
 ///
 /// The token joins the casefolded group title (empty for the unlabelled group) and both casefolded
-/// endpoint labels with NUL bytes under the `rendered:` prefix, so one card never repeats a line of
+/// endpoint labels with NUL bytes under the `rendered:` prefix. One card never repeats a line of
 /// identical rendered text even when the underlying entities differ.
 fn rendered_pair(title: Option<&str>, source_label: &str, target_label: &str) -> String {
     let mut token = String::from("rendered:");
@@ -473,8 +471,9 @@ fn rendered_pair(title: Option<&str>, source_label: &str, target_label: &str) ->
 
 /// Scores a candidate by its endpoints' prominence.
 ///
-/// Prominence is `ln(1 + frequency)` summed over both endpoints, so a pair of moderately connected
-/// entities outranks one hub paired with an obscure partner.
+/// Prominence is `ln(1 + frequency)` summed over both endpoints. At equal total frequency, the
+/// logarithm's concavity favors balanced endpoints. The computation uses [`f64`], and rounding can
+/// give different frequency pairs equal scores.
 fn recognizability<A: Allocator>(row: &ExampleRow<'_, A>) -> f64 {
     ln_count(row.source_frequency) + ln_count(row.target_frequency)
 }
@@ -482,8 +481,8 @@ fn recognizability<A: Allocator>(row: &ExampleRow<'_, A>) -> f64 {
 /// Returns `ln(1 + count)`.
 #[expect(
     clippy::cast_precision_loss,
-    reason = "the widening is the operation: counts above 2^53 round to the nearest representable \
-              float, and the logarithm leaves that error far below the score's discrimination"
+    reason = "prominence uses an approximate logarithmic score, including rounded conversions of \
+              counts above 2⁵³"
 )]
 fn ln_count(count: u64) -> f64 {
     (count as f64).ln_1p()
@@ -496,7 +495,7 @@ fn casefolded(text: &str) -> impl Iterator<Item = char> {
 
 /// Extracts the relation's slug: the last path segment of its base id.
 ///
-/// Trailing slashes do not count as segment boundaries, so the canonical `.../entity-type/<slug>/`
+/// Trailing slashes do not count as segment boundaries. The canonical `.../entity-type/<slug>/`
 /// shape yields `<slug>`.
 fn slug(id: &str) -> &str {
     id.trim_end_matches('/')

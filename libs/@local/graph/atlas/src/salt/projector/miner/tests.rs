@@ -3,12 +3,6 @@
 //! Exhaustive set-algebra agreement with a brute-force reference, dyadic rank weights, honest short
 //! sets, channel-correct protection vetoes, max-weight pooling, and determinism.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "fixture coordinates are small integers, so squared distances and dyadic rank \
-              weights are exact in both the reference and the kd-tree path"
-)]
-
 use core::num::NonZero;
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
@@ -30,17 +24,19 @@ use crate::{
     },
 };
 
+/// A `NonZero<usize>` from a literal test count.
 fn nonzero(value: usize) -> NonZero<usize> {
     NonZero::new(value).expect("test counts are nonzero")
 }
 
+/// Miner options from plain neighbour count, margin, maximum weight and rank exponent.
 fn options(neighbours: usize, margin: usize, maximum_weight: f32, exponent: f32) -> MinerOptions {
-    MinerOptions::new(
-        nonzero(neighbours),
-        nonzero(margin),
-        Positive::new(maximum_weight).expect("test weight bounds are positive"),
-        Positive::new(exponent).expect("test exponents are positive"),
-    )
+    MinerOptions {
+        neighbours: nonzero(neighbours),
+        search_margin: nonzero(margin),
+        maximum_weight: Positive::new(maximum_weight).expect("test weight bounds are positive"),
+        rank_exponent: Positive::new(exponent).expect("test exponents are positive"),
+    }
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
@@ -85,8 +81,9 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     }
 }
 
-/// An instance of `relation` between `source` and `target` with the given link confidence (`None`
-/// means unscored, the neutral 1).
+/// Builds an instance of `relation` between `source` and `target` with a link confidence.
+///
+/// `None` means unscored, the neutral 1.
 fn instance(
     edge: u64,
     relation: u64,
@@ -107,6 +104,7 @@ fn instance(
     }
 }
 
+/// Builds the relation indexes over `rows` from the given instances under a single proximal policy.
 fn relation_indexes(
     rows: usize,
     instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
@@ -124,8 +122,14 @@ fn relation_indexes(
 /// A hard channel tripping at the given evidence mass.
 fn hard_config(threshold: f32) -> ProtectionConfig {
     ProtectionConfig::new(
-        ChannelConfig::new(0.0, threshold).expect("the fixture channel is in domain"),
-        ChannelConfig::new(0.0, threshold).expect("the fixture channel is in domain"),
+        ChannelConfig {
+            floor: UnitFraction::ZERO,
+            threshold: NonNegative::new(threshold).expect("the threshold is non-negative"),
+        },
+        ChannelConfig {
+            floor: UnitFraction::ZERO,
+            threshold: NonNegative::new(threshold).expect("the threshold is non-negative"),
+        },
         true,
     )
     .expect("the fixture channels are ordered")
@@ -153,7 +157,7 @@ fn reference_mine(
     config: ProtectionConfig,
     options: MinerOptions,
 ) -> Vec<Vec<(u32, f32)>> {
-    let quota = options.neighbours().get();
+    let quota = options.neighbours.get();
     (0..coordinates.len())
         .map(|row| {
             let mut candidates: Vec<(f32, usize)> = (0..coordinates.len())
@@ -259,7 +263,7 @@ fn mined_rows_match_a_brute_force_reference() {
         // Every weight satisfies the bounded rank-weight contract.
         for &(_, weight) in expected {
             assert!(weight > 0.0);
-            assert!(weight <= options.maximum_weight());
+            assert!(weight <= options.maximum_weight);
         }
     }
 
@@ -295,6 +299,7 @@ fn mined_rows_match_a_brute_force_reference() {
     );
 }
 
+/// With a full quota of four and unit exponent the rank weights are exactly `1, 3/4, 1/2, 1/4`.
 #[test]
 fn rank_weights_are_dyadic_at_unit_exponent() {
     // With five points and no exclusions, row 0 fills its quota of four, and the unit-exponent
@@ -346,6 +351,7 @@ fn fully_explained_neighbourhoods_yield_honest_short_sets() {
     assert!(negatives.row(NodeRowId::new(3)).len() > 0);
 }
 
+/// Mining the same field twice yields equal frames.
 #[test]
 fn mining_is_deterministic() {
     let coordinates = line_frame();

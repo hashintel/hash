@@ -10,7 +10,7 @@ Labels such as **Expert evidence**, **Working account**, **Agent inference**, **
 
 Use the cross-cutting issue ledger only when an unresolved matter affects several authoritative claims or needs a later return path. Ledger entries reference those claims; they do not summarize them again.
 
-Whenever this workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit the full latest document again before a construction handoff and before workpiece-only delivery.
+Follow core's `elicitation` guidance for workpiece settlement, evidence and locator handling. The `sdcpn-modelling` skill owns the settled-revision construction handoff; this template supplies the operational recording shape, not a separate update trigger or workpiece authority.
 
 ```markdown
 # Process-Model Workpiece

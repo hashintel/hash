@@ -112,6 +112,21 @@ describe("fitViewportToBounds", () => {
       ).zoom,
     ).toBe(0.3);
   });
+
+  it("centres within asymmetric panel insets", () => {
+    const result = fitViewportToBounds(
+      { x: 0, y: 0, width: 200, height: 100 },
+      { width: 1000, height: 600 },
+      0.1,
+      10,
+      0,
+      { left: 100, right: 300, bottom: 200 },
+    );
+    expect(result.zoom).toBe(3);
+    // The visible area is x=[100,700], y=[0,400].
+    expect(result.x).toBe(400 - 100 * 3);
+    expect(result.y).toBe(200 - 50 * 3);
+  });
 });
 
 describe("getInitialViewport", () => {

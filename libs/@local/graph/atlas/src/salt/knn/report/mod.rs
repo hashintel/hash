@@ -1,18 +1,21 @@
-//! Audits and sweeps over a published generation's neighbour construction.
+//! Neighbour-construction comparisons over published projector representations.
 //!
-//! Each instrument reopens the active generation's projector representation artifact and replays
-//! the production fit's random streams for the stage it measures. It then scores one construction
-//! against an exact reference. [`backend`] sweeps the hannoy backend over its `ef_construction` ×
-//! `ef_search` grid and [`descent`] audits NN-Descent constructions across candidate caps. An
-//! instrument observes the construction stage. No fit consumes anything here, and a reading
-//! describes a generation that is already published.
+//! [`backend`] sweeps hannoy over its `ef_construction` × `ef_search` grid. [`descent`] compares
+//! NN-Descent candidate caps. Both read the active generation's representation artifact and return
+//! measurements without changing its published artifacts.
 //!
-//! Every instrument replays [`stage_rng`](crate::salt::fit::stage_rng) per fit seed, so a grid
-//! point reproduces what a live fit at that seed and setting would have measured, and a repeated
-//! seed measures the construction's own nondeterminism rather than seed spread. An instrument
-//! computes the exact reference once per distinct seed and scores every reading against it.
+//! Both comparisons use the fit's [`stage_rng`](crate::salt::fit::stage_rng) derivation. A repeated
+//! seed exposes construction nondeterminism separately from seed spread. The backend sweep reuses
+//! one exact reference per distinct seed and scores every build against every reference. The
+//! descent comparison uses one reference from its first seed, or seed zero when the seed list is
+//! empty.
 //!
-//! An instrument returns its readings and its host renders them.
+//! # Measurement scope
+//!
+//! These comparisons operate on the published corpus rows with fixed-size reference samples of up
+//! to 2,048 queries. The fit constructs on its distinct-representation quotient and uses staged
+//! recall sampling. These readings share that seed derivation without replaying the fit's table or
+//! admission interval. They compare settings within each report's fixed corpus and sampling design.
 
 use core::{
     error::Error,
@@ -26,6 +29,7 @@ use hashql_core::id::IdSlice;
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, OpenArrayError},
         generation::{CurrentError, GenerationId, GenerationRoot, OpenError},
     },
@@ -39,12 +43,13 @@ pub(crate) mod descent;
 #[cfg(test)]
 mod tests;
 
-// The reference size stays fixed because an instrument compares settings against each other. One
-// sizing of the samples yields SE ~0.007 at the measured per-row deviation and resolves the
-// construction effect. The production check stages its sizing per reading instead.
+// a fixed reference lets settings share the same queries. At a per-row deviation of 0.32, 2,048
+// rows give an uncorrected standard error of 0.32 / √2048 ≈ 0.0071. The fit's check sizes each
+// verdict separately.
+/// The maximum reference sample size every comparison uses.
 const REFERENCE_ROWS: NonZero<usize> = NonZero::new(2_048).expect("the reference size is nonzero");
 
-/// A setup failure that stopped an instrument from reading the published representations.
+/// A failure to access the published representations for comparison.
 #[derive(Debug)]
 pub(crate) enum SetupError {
     /// Reading the root's current-generation pointer failed.
@@ -119,7 +124,7 @@ impl<N: fmt::Debug + fmt::Display + 'static, E: Error + 'static> Error for Audit
     }
 }
 
-/// A wall-clock reading, rendered on the scale every instrument measures on.
+/// A wall-clock duration formatted in seconds to one decimal place.
 ///
 /// Seconds to one decimal, padded to the caller's width so a reading aligns inside a column of
 /// them.
@@ -154,9 +159,8 @@ impl Representations {
     ///
     /// # Errors
     ///
-    /// Returns a [`SetupError`] when reading the current-generation pointer fails, when the root
-    /// holds no activated generation, or when the generation or its representation artifact fails
-    /// to open.
+    /// Returns [`SetupError`] when the active generation or its representation artifact cannot be
+    /// opened.
     fn open(root: &GenerationRoot) -> Result<Self, SetupError> {
         let id = root
             .current()
@@ -179,7 +183,7 @@ impl Representations {
     ///
     /// # Errors
     ///
-    /// Returns [`SetupError::Width`] when the artifact holds another element type or width.
+    /// Returns [`SetupError`] when the artifact holds another element type or width.
     fn rows(&self) -> Result<&IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>, SetupError> {
         self.file
             .vectors()

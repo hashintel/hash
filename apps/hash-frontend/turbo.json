@@ -42,7 +42,8 @@
       ]
     },
     "dev": {
-      "dependsOn": ["codegen", "^build"]
+      "dependsOn": ["codegen", "^build"],
+      "passThroughEnv": ["PORT"]
     },
     "test:unit": {
       "dependsOn": ["codegen", "^build"]

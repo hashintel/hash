@@ -1,5 +1,6 @@
-//! Checkpoint artifacts: the published model checkpoint, and the error vocabulary both checkpoint
-//! flavours share.
+//! Checkpoint artifacts.
+//!
+//! The published model checkpoint, and the error vocabulary both checkpoint flavours share.
 //!
 //! Both artifacts are burn's own named-MessagePack record format, written and parsed by the
 //! framework - the deliberate framework-parse exception to the crate's zerocopy mapping doctrine,
@@ -12,7 +13,7 @@
 //! on any backend for inference. It lives here as [`RecordedModel`] and [`open_model`]. The resume
 //! checkpoint is the fork point of the tuning protocol - the full training state at entry of the
 //! boundary step, from which a ladder segment resumes bit-equally on a deterministic backend - and
-//! rides on the state it serializes, as
+//! is defined on the state it serializes, as
 //! [`BoundaryState::write_checkpoint`](crate::salt::projector::train::BoundaryState::write_checkpoint)
 //! and
 //! [`BoundaryState::open_checkpoint`](crate::salt::projector::train::BoundaryState::open_checkpoint).
@@ -29,6 +30,7 @@ use burn::{
     tensor::backend::Backend,
 };
 
+use super::train::fit::TrainingScheduleError;
 use crate::{
     file::{WriteAs, WriteInto, salt::artifact},
     integrity::{Sha256, Sha256Digest, Writer},
@@ -54,11 +56,12 @@ pub(crate) enum CheckpointError {
     /// The decoded parameters do not describe the architecture.
     Architecture(ArchitectureMismatch),
     /// The decoded schedule fields do not form a valid schedule.
+    InvalidSchedule(TrainingScheduleError),
     #[cfg_attr(
         not(test),
         expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
     )]
-    InvalidSchedule,
+    MalformedSchedule,
     /// The decoded scheduler position does not sit at the schedule's boundary.
     ///
     /// The record's parts describe two different runs.
@@ -77,7 +80,8 @@ impl core::fmt::Display for CheckpointError {
                 write!(fmt, "could not encode or decode the checkpoint: {error}")
             }
             Self::Architecture(error) => error.fmt(fmt),
-            Self::InvalidSchedule => fmt.write_str(
+            Self::InvalidSchedule(error) => error.fmt(fmt),
+            Self::MalformedSchedule => fmt.write_str(
                 "the checkpoint's schedule fields do not form a valid training schedule",
             ),
             Self::SchedulerPosition { position, boundary } => write!(
@@ -95,8 +99,15 @@ impl core::error::Error for CheckpointError {
             Self::Io(error) => Some(error),
             Self::Record(error) => Some(error),
             Self::Architecture(error) => Some(error),
-            Self::InvalidSchedule | Self::SchedulerPosition { .. } => None,
+            Self::InvalidSchedule(error) => Some(error),
+            Self::SchedulerPosition { .. } | Self::MalformedSchedule => None,
         }
+    }
+}
+
+impl From<TrainingScheduleError> for CheckpointError {
+    fn from(value: TrainingScheduleError) -> Self {
+        Self::InvalidSchedule(value)
     }
 }
 
@@ -123,7 +134,7 @@ impl From<ArchitectureMismatch> for CheckpointError {
 /// One recorded model checkpoint holding the framework's serialized bytes, ready to stage.
 ///
 /// The record-then-stage split keeps the two failure domains apart: recording fails only in the
-/// framework's encoder while staging fails only in the writer, so neither error path has to
+/// framework's encoder while staging fails only in the writer, and neither error path has to
 /// explain the other. Its writer marking admits the value as the published
 /// [`artifact::Projector`] entry.
 pub(crate) struct RecordedModel(Vec<u8>);
@@ -131,14 +142,14 @@ pub(crate) struct RecordedModel(Vec<u8>);
 impl RecordedModel {
     /// Records the model's parameters as the checkpoint's byte form.
     ///
-    /// Consumes the model. Recording moves the parameters into the record, so a caller that
-    /// keeps its own copy clones at the call site where the copy is visible.
+    /// Consumes the model. Recording moves the parameters into the record. A caller that keeps
+    /// its own copy clones at the call site, where the copy is visible.
     ///
     /// # Errors
     ///
     /// Returns an error when the framework cannot encode the record.
     pub(crate) fn record<B: Backend>(model: Projector<B>) -> Result<Self, CheckpointError> {
-        // Burn's "full" precision is f32 (as opposed to half); the model is f32 end to end, so
+        // Burn's "full" precision is f32 (as opposed to half). The model is f32 end to end, and
         // the recorder round-trips the parameters exactly.
         let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
         let bytes = recorder.record(model.into_record(), ())?;

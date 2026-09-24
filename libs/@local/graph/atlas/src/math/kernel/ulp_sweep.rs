@@ -1,16 +1,17 @@
-//! Exhaustive ULP verification for the vendored transcendental kernels.
+//! Exhaustive finite-input error measurements for the single-precision kernels.
 //!
-//! Each sweep compares a kernel against an `f64` libm reference on every `f32` bit pattern the
-//! backstop clamps do not decide, threaded across all cores. Every test here carries `#[ignore]`,
-//! so run them in release mode, where the full set takes tens of seconds:
+//! Each sweep compares every `f32` bit pattern in its stated intervals against an `f64` libm
+//! reference, distributed across worker threads. These intervals contain billions of inputs.
+//! Every test here carries `#[ignore]`. Run them in release mode:
 //!
 //! ```text
 //! cargo test --release -p hash-graph-atlas --features bench ulp_sweep -- --ignored --nocapture
 //! ```
 //!
-//! An `f64` reference carries far more precision than one `f32` ULP, so it measures the `f32`
-//! kernels exactly. It cannot certify `exp_f64` to sub-ULP. [`sleef`](super::sleef)'s tests pin
-//! that kernel's overflow classes exhaustively, and the strided sweep there bounds its distance.
+//! The measurements use a wider scalar libm reference, which resolves much smaller differences than
+//! one `f32` ULP but is itself approximate, and do not certify correct or faithful rounding against
+//! the exact real function. [`sleef`](super::sleef)'s separate `f64` tests sample
+//! representation-step distances and scan a narrow interval around its overflow transition.
 #![expect(
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,
@@ -27,6 +28,7 @@ use super::{
     sleef::{exp_f32, exp2_f32, log2_f32},
 };
 
+/// Lanes per kernel call in a sweep.
 const LANES: usize = 8;
 
 /// Error statistics accumulated over one sweep.
@@ -42,6 +44,7 @@ struct Accumulator {
 }
 
 impl Accumulator {
+    /// Folds another thread's statistics into this one, keeping the larger worst case.
     fn merge(&mut self, other: &Self) {
         if other.max_ulp > self.max_ulp {
             self.max_ulp = other.max_ulp;
@@ -54,6 +57,11 @@ impl Accumulator {
         self.misclassified += other.misclassified;
     }
 
+    /// Scores one argument: `kernel` against the `f64` `reference`, in ULPs at the reference.
+    ///
+    /// NaN references require a NaN result. References that round to infinity require that same
+    /// infinity, and an infinite kernel result against a finite rounded reference counts as a
+    /// misclassification. Finite pairs contribute their distance in ULPs at the reference.
     fn record(&mut self, bits: u32, kernel: f32, reference: f64) {
         self.total += 1;
         if reference.is_nan() {
@@ -80,6 +88,7 @@ impl Accumulator {
         }
     }
 
+    /// Prints the sweep's statistics under `name`.
     fn report(&self, name: &str) {
         println!(
             "{name}: n={}  max={:.4} ulp at x={:?} ({:#010x})  not-correctly-rounded={} ({:.3}%)  \
@@ -100,7 +109,7 @@ impl Accumulator {
 /// Spacing of `f32` at the magnitude of `reference`.
 ///
 /// For `|reference| = m · 2^e` with `m ∈ [1, 2)`, one ULP is `2^(e - 23)`, clamped to the subnormal
-/// spacing `2^-149` below the normal range.
+/// spacing `2⁻¹⁴⁹` below the normal range.
 fn ulp32_at(reference: f64) -> f64 {
     let magnitude = reference.abs();
     if magnitude < f64::from(f32::MIN_POSITIVE) {
@@ -110,8 +119,13 @@ fn ulp32_at(reference: f64) -> f64 {
     2_f64.powi(exponent - 23)
 }
 
-/// Sweeps every bit pattern in each inclusive range through `kernel`, lane-wise against
-/// `reference`, spread across all cores.
+/// Measures each bit pattern in the inclusive ranges against a scalar reference.
+///
+/// Each range must have its lower endpoint at or below its upper endpoint.
+///
+/// # Panics
+///
+/// Panics if a worker running `kernel` or `reference` panics, or if a worker cannot be spawned.
 fn sweep(
     ranges: &[(u32, u32)],
     kernel: fn(Simd<f32, LANES>) -> Simd<f32, LANES>,

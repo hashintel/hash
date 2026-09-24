@@ -11,17 +11,18 @@ import {
   type FlueChatResponseMessageCompletedEvent,
   type FlueChatResponseMessageStartedEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { Button, Checkbox } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "./canonical-speech";
+import { LiveConversationControl } from "./live-conversation-control";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   RealtimeBrunchBridge,
   type RealtimeBrunchAdmissionTarget,
   type VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
+import { VoiceAudioSettings } from "./voice-audio-settings";
+import { VoiceInterviewDisclosure } from "./voice-interview-disclosure";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
@@ -30,7 +31,7 @@ import {
 } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
-import type { AgentSendResult } from "@flue/sdk";
+import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
@@ -132,10 +133,13 @@ export const submitVoiceInputWithAdmission = async ({
 export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
+  readonly provider?: "realtime" | "live";
 }
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
   "petrinaut:voice-interview-disclosure:v1";
+export const LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
+  "petrinaut:live-voice-interview-disclosure:v1";
 const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
 
 const getVoiceInterviewDisclosureStorage = (): Storage | null => {
@@ -179,7 +183,8 @@ export const saveInterruptionBySpeakingPreference = (
   }
 };
 
-export const isVoiceInterviewDisclosureAcknowledged = (
+const isDisclosureAcknowledged = (
+  storageKey: string,
   storage: Pick<
     Storage,
     "getItem"
@@ -187,29 +192,49 @@ export const isVoiceInterviewDisclosureAcknowledged = (
 ): boolean => {
   try {
     return (
-      storage?.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY) ===
-      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
+      storage?.getItem(storageKey) === VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
     );
   } catch {
     return false;
   }
 };
 
-export const acknowledgeVoiceInterviewDisclosure = (
+export const isVoiceInterviewDisclosureAcknowledged = (
+  storage?: Pick<Storage, "getItem"> | null,
+): boolean =>
+  isDisclosureAcknowledged(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY, storage);
+
+const isLiveVoiceInterviewDisclosureAcknowledged = (
+  storage?: Pick<Storage, "getItem"> | null,
+): boolean =>
+  isDisclosureAcknowledged(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    storage,
+  );
+
+const acknowledgeDisclosure = (
+  storageKey: string,
   storage: Pick<
     Storage,
     "setItem"
   > | null = getVoiceInterviewDisclosureStorage(),
 ): void => {
   try {
-    storage?.setItem(
-      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED,
-    );
+    storage?.setItem(storageKey, VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED);
   } catch {
     // Storage is optional; the disclosure will appear again next time.
   }
 };
+
+export const acknowledgeVoiceInterviewDisclosure = (
+  storage?: Pick<Storage, "setItem"> | null,
+): void =>
+  acknowledgeDisclosure(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY, storage);
+
+const acknowledgeLiveVoiceInterviewDisclosure = (
+  storage?: Pick<Storage, "setItem"> | null,
+): void =>
+  acknowledgeDisclosure(LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY, storage);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -231,6 +256,9 @@ export const loadOpenAIVoiceConfig = async (
     if (
       !isRecord(body) ||
       body.available !== true ||
+      (body.provider !== undefined &&
+        body.provider !== "realtime" &&
+        body.provider !== "live") ||
       !Number.isInteger(body.connectionTimeoutMs) ||
       (body.connectionTimeoutMs as number) < 1_000 ||
       (body.connectionTimeoutMs as number) > 60_000
@@ -240,204 +268,13 @@ export const loadOpenAIVoiceConfig = async (
     return {
       available: true,
       connectionTimeoutMs: body.connectionTimeoutMs as number,
+      ...(body.provider === undefined
+        ? {}
+        : { provider: body.provider as "realtime" | "live" }),
     };
   } catch {
     return null;
   }
-};
-
-const VoiceModeIcon = () => (
-  <svg
-    aria-hidden="true"
-    fill="none"
-    height="16"
-    viewBox="0 0 20 20"
-    width="16"
-  >
-    <path
-      d="M3 8.5v3M6.5 5.5v9M10 3v14M13.5 6v8M17 8.5v3"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeWidth="1.8"
-    />
-  </svg>
-);
-
-const disclosureFrameStyle = css({
-  width: "full",
-  padding: "2",
-  borderTopWidth: "thin",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.a20",
-  backgroundColor: "neutral.bg.subtle",
-  color: "neutral.s100",
-  _focus: { outline: "none" },
-});
-
-const disclosureCardStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  padding: "3",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a20",
-  borderRadius: "xl",
-  backgroundColor: "neutral.s00",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0,0,0,0.03), 0px 8px 16px -12px rgba(0,0,0,0.18)]",
-});
-
-const disclosureHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-});
-
-const disclosureIconStyle = css({
-  display: "inline-flex",
-  width: "7",
-  height: "7",
-  flexShrink: "0",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "lg",
-  backgroundColor: "blue.a20",
-  color: "blue.s90",
-});
-
-const disclosureTitleStyle = css({
-  display: "flex",
-  minWidth: "[0]",
-  flexDirection: "column",
-  gap: "0.5",
-});
-
-const disclosureHeadingStyle = css({
-  fontSize: "sm",
-  fontWeight: "semibold",
-  lineHeight: "tight",
-});
-
-const disclosureSubtitleStyle = css({
-  color: "neutral.s80",
-  fontSize: "xs",
-});
-
-const disclosureCopyStyle = css({
-  color: "neutral.s90",
-  fontSize: "xs",
-  lineHeight: "relaxed",
-});
-
-const disclosureConsentStyle = css({
-  width: "full",
-  padding: "2",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a10",
-  color: "neutral.s100",
-});
-
-const disclosureActionsStyle = css({
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: "2",
-});
-
-const disclosureStatusStyle = css({
-  minHeight: "[18px]",
-  color: "neutral.s80",
-  fontSize: "xs",
-  lineHeight: "relaxed",
-});
-
-const VoiceInterviewDisclosure = ({
-  checkingMicrophone,
-  consented,
-  microphoneCheck,
-  onCheckMicrophone,
-  onConsentChange,
-  onStart,
-}: {
-  readonly checkingMicrophone: boolean;
-  readonly consented: boolean;
-  readonly microphoneCheck: string;
-  readonly onCheckMicrophone: () => void;
-  readonly onConsentChange: (consented: boolean) => void;
-  readonly onStart: () => void;
-}) => {
-  const disclosureRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    disclosureRef.current?.focus();
-  }, []);
-
-  return (
-    <section
-      aria-label="Voice mode consent"
-      className={disclosureFrameStyle}
-      ref={disclosureRef}
-      tabIndex={-1}
-    >
-      <div className={disclosureCardStyle}>
-        <div className={disclosureHeaderStyle}>
-          <span className={disclosureIconStyle}>
-            <VoiceModeIcon />
-          </span>
-          <div className={disclosureTitleStyle}>
-            <strong className={disclosureHeadingStyle}>
-              Start a voice conversation
-            </strong>
-            <span className={disclosureSubtitleStyle}>
-              Talk through your process with AI
-            </span>
-          </div>
-        </div>
-        <p className={disclosureCopyStyle}>
-          OpenAI processes live audio and speaks the interviewer’s words.
-          Petrinaut saves finalized answers—not audio.
-        </p>
-        <Checkbox
-          className={disclosureConsentStyle}
-          label="I understand how voice data is handled."
-          onChange={onConsentChange}
-          size="xs"
-          tone="brand"
-          value={consented}
-        />
-        <div className={disclosureActionsStyle}>
-          <Button
-            disabled={!consented}
-            onClick={onStart}
-            size="xs"
-            tone="brand"
-            type="button"
-          >
-            Start voice
-          </Button>
-          <Button
-            aria-describedby="voice-microphone-check-status"
-            loading={checkingMicrophone}
-            onClick={onCheckMicrophone}
-            size="xs"
-            type="button"
-            variant="subtle"
-          >
-            Test microphone
-          </Button>
-        </div>
-        <div
-          aria-atomic="true"
-          aria-live="polite"
-          className={disclosureStatusStyle}
-          id="voice-microphone-check-status"
-        >
-          {microphoneCheck}
-        </div>
-      </div>
-    </section>
-  );
 };
 
 const recordLatency = (event: VoiceLatencyEvent): void => {
@@ -485,7 +322,12 @@ const AvailableVoiceInterviewControl = ({
     let latestResolveInputSubmission = resolveInputSubmission;
     let latestSubscribeToAdmission = subscribeToAdmission;
     let latestSubscribeToAdmissionFailure = subscribeToAdmissionFailure;
+    const audioSettings = new VoiceAudioSettings(
+      "realtime",
+      navigator.mediaDevices,
+    );
     const session = new OpenAIRealtimeSession({
+      audioSettings,
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
       createAudioContext: () => new AudioContext(),
@@ -518,9 +360,29 @@ const AvailableVoiceInterviewControl = ({
     controller.setInterruptionBySpeaking(
       readInterruptionBySpeakingPreference(),
     );
+    let previewChatBusy = false;
+    const updatePreviewAvailability = () => {
+      const current = controller.getSnapshot();
+      audioSettings.setPreviewAvailability({
+        connected:
+          current.connection === "connected" && current.input !== "paused",
+        microphoneMuted: !current.microphoneEnabled,
+        busy:
+          previewChatBusy ||
+          current.input === "submitting" ||
+          current.lastAnswerDelivery === "pending" ||
+          (current.output !== "idle" && current.output !== "interrupted"),
+      });
+    };
+    controller.subscribe(updatePreviewAvailability);
     return {
+      audioSettings,
       bridge,
       controller,
+      setPreviewChatBusy: (busy: boolean) => {
+        previewChatBusy = busy;
+        updatePreviewAvailability();
+      },
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
@@ -545,6 +407,11 @@ const AvailableVoiceInterviewControl = ({
     store.subscribe,
     store.getSnapshot,
     store.getSnapshot,
+  );
+  const audioSettings = useSyncExternalStore(
+    store.audioSettings.subscribe,
+    store.audioSettings.getSnapshot,
+    store.audioSettings.getSnapshot,
   );
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [consented, setConsented] = useState(false);
@@ -580,6 +447,10 @@ const AvailableVoiceInterviewControl = ({
   );
 
   useLayoutEffect(() => {
+    store.setPreviewChatBusy(
+      !context.stopped &&
+        (context.status === "submitted" || context.status === "streaming"),
+    );
     store.updateSubmissionContext(
       context.submitVoiceInput,
       resolveInputSubmission,
@@ -596,7 +467,7 @@ const AvailableVoiceInterviewControl = ({
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: canonicalSpeech.segments.map(correlateSegment),
-      ...(canonicalSpeech.questionSegment
+      ...(context.status === "ready" && canonicalSpeech.questionSegment
         ? { questionSegment: correlateSegment(canonicalSpeech.questionSegment) }
         : {}),
       settlements,
@@ -622,6 +493,7 @@ const AvailableVoiceInterviewControl = ({
   useEffect(
     () =>
       registerVoiceModeControls({
+        audioSettings: store.audioSettings.actions,
         end: () => store.controller.end(),
         pause: () => store.controller.pause(),
         readFullResponse: () => store.controller.readFullResponse(),
@@ -638,6 +510,8 @@ const AvailableVoiceInterviewControl = ({
         },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
+        setSpeakerMuted: (muted) => store.controller.setSpeakerMuted(muted),
+        setSpeakerVolume: (volume) => store.controller.setSpeakerVolume(volume),
         takeTurn: () => store.controller.takeTurn(),
       }),
     [registerVoiceModeControls, store],
@@ -661,6 +535,7 @@ const AvailableVoiceInterviewControl = ({
     if (inputMode === "text") {
       handledVoiceSelectionRef.current = false;
       if (!active) {
+        // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes this consent-state machine
         setShowDisclosure(false);
       }
       return;
@@ -688,8 +563,9 @@ const AvailableVoiceInterviewControl = ({
   // Petrinaut owns every live Voice surface, so this control only reports the
   // session's state and keeps the consent step to itself.
   useEffect(() => {
-    reportVoiceSessionState(toVoiceSessionState({ snapshot }));
-  }, [reportVoiceSessionState, snapshot]);
+    const state = toVoiceSessionState({ snapshot });
+    reportVoiceSessionState(state ? { ...state, audioSettings } : null);
+  }, [reportVoiceSessionState, snapshot, audioSettings]);
 
   useEffect(
     () => () => {
@@ -752,11 +628,12 @@ const AvailableVoiceInterviewControl = ({
   return null;
 };
 
-export const VoiceInterviewControl = ({
+const PinnedVoiceInterviewControl = ({
   config,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
+  snapshot,
   subscribeToAdmission,
   subscribeToAdmissionFailure,
   subscribeToResponseMessageCompleted,
@@ -768,23 +645,64 @@ export const VoiceInterviewControl = ({
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly snapshot?: FlueConversationState;
   readonly subscribeToAdmission?: SubscribeToAdmission;
   readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
   readonly subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
   readonly subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
-}) => (
-  <AvailableVoiceInterviewControl
-    key={context.conversationId}
-    config={config}
-    context={context}
-    resolveInputSubmission={resolveInputSubmission}
-    resolveResponseSubmission={resolveResponseSubmission}
-    settlements={settlements}
-    subscribeToAdmission={subscribeToAdmission}
-    subscribeToAdmissionFailure={subscribeToAdmissionFailure}
-    subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
-    subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
-    subscribeToStopRequested={subscribeToStopRequested}
-  />
-);
+}) => {
+  // Configuration changes only apply after a new conversation mount / page load.
+  // Never replace a running provider or resubmit its input.
+  const [sessionConfig] = useState(config);
+  if (sessionConfig.provider === "live") {
+    if (!context.registerVoiceModeSessionControls) return null;
+    return (
+      <LiveConversationControl
+        {...context}
+        acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
+        connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
+        isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}
+        registerVoiceModeSessionControls={
+          context.registerVoiceModeSessionControls
+        }
+        resolveResponseSubmission={resolveResponseSubmission}
+        settlements={settlements}
+        snapshot={snapshot}
+        subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+        subscribeToResponseMessageCompleted={
+          subscribeToResponseMessageCompleted
+        }
+        subscribeToStopRequested={subscribeToStopRequested}
+        submit={(input) =>
+          submitVoiceInputWithAdmission({
+            input,
+            resolveInputSubmission,
+            subscribeToAdmission,
+            subscribeToAdmissionFailure,
+            submitVoiceInput: context.submitVoiceInput,
+          })
+        }
+      />
+    );
+  }
+  return (
+    <AvailableVoiceInterviewControl
+      key={context.conversationId}
+      config={sessionConfig}
+      context={context}
+      resolveInputSubmission={resolveInputSubmission}
+      resolveResponseSubmission={resolveResponseSubmission}
+      settlements={settlements}
+      subscribeToAdmission={subscribeToAdmission}
+      subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+      subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
+      subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+      subscribeToStopRequested={subscribeToStopRequested}
+    />
+  );
+};
+
+export const VoiceInterviewControl = (
+  props: Parameters<typeof PinnedVoiceInterviewControl>[0],
+) => <PinnedVoiceInterviewControl key={props.conversationId} {...props} />;

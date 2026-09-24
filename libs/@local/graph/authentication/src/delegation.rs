@@ -112,6 +112,7 @@ mod tests {
         service_secret::SERVICE_AUTH_SCHEME,
     };
     use http::HeaderMap;
+    use problematic::error_stack::ReportExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId};
     use uuid::Uuid;
 
@@ -236,6 +237,12 @@ mod tests {
             AuthenticationErrorKind::ActorNotFound { .. },
             "a delegated actor that does not exist should be rejected"
         );
+        let problem = report
+            .problem_details()
+            .next()
+            .expect("the unknown actor should carry a public problem");
+        assert_eq!(problem.status, 401);
+        assert_eq!(problem.detail.as_deref(), Some("actor does not exist"));
     }
 
     #[tokio::test]

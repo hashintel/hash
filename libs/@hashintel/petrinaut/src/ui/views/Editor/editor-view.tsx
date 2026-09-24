@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { use, useState } from "react";
+import { Activity, use, useState } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -27,9 +27,9 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
+import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -41,22 +41,39 @@ import {
   willShowWalkthroughDialog,
 } from "../../components/walkthrough/walkthrough-context";
 import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
+import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { KeyboardShortcut } from "../../keyboard-shortcut";
+import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
+import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
+import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
+import {
+  createNewNetMenuItem,
+  shouldShowBrunchCreateNew,
+} from "./editor-view/create-new-net-menu";
+import { EditViewSelector } from "./editor-view/edit-view-selector";
+import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
+import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
-import { SimulateView } from "./panels/SimulateView/simulate-view";
+import {
+  SimulateView,
+  SimulateViewTabs,
+} from "./panels/SimulateView/simulate-view";
+import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
-import { EditorCommands } from "./use-editor-commands";
+import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
@@ -94,15 +111,45 @@ const formatRelativeTime = (isoTimestamp: string): string => {
 // overflow, scrollIntoView can still scroll it programmatically — pushing the
 // TopBar out of view.
 const rowContainerStyle = css({
+  position: "relative",
+  containerType: "inline-size",
   flex: "[1]",
+  minWidth: "[0]",
   minHeight: "[0]",
   userSelect: "none",
 });
 
 const canvasContainerStyle = css({
-  width: "full",
+  minWidth: "[0]",
+  minHeight: "[0]",
   position: "relative",
-  flexGrow: 1,
+  flex: "[1]",
+});
+
+const workspaceStyle = css({
+  position: "relative",
+  "--edit-view-selector-width": "[160px]",
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minWidth: "[0]",
+  minHeight: "[0]",
+});
+
+// `white-space` inherits down to the item text, whose `overflow: hidden;
+// text-overflow: ellipsis` only elides on a non-wrapping line. `&&` outranks
+// the menu's own max-height class, which ties on specificity.
+const openSubmenuStyle = css({
+  whiteSpace: "nowrap",
+  "&&": {
+    maxWidth: "[min(600px, 70vw)]",
+    maxHeight: "[min(800px, 80vh, var(--available-height, 100vh))]",
+  },
+});
+
+const editViewSelectorSpaceStyle = css({
+  width: "[var(--edit-view-selector-width)]",
+  flexShrink: "0",
 });
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -116,10 +163,11 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView = ({
+const EditorViewContent = ({
   aiAssistant,
   hideNetManagementControls,
   slots,
+  titleEditable,
   viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
@@ -128,9 +176,11 @@ export const EditorView = ({
    */
   hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
+  titleEditable: boolean;
   viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
+  const navigation = usePetrinautNavigation();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
   // otherwise offer an item that silently does nothing.
   const isReadOnly = useIsReadOnly();
@@ -145,9 +195,18 @@ export const EditorView = ({
     setTitle,
   } = use(SDCPNContext);
   const { applyAutoLayout } = usePetrinautCommands();
+  const {
+    frameSceneAfterRender,
+    registerController,
+    requestFrameOnNextRegistration,
+  } = useCanvasControllerRegistration();
+  const runAutoLayoutAndFrame = () =>
+    applyAutoLayoutAndFrame({ applyAutoLayout, frameSceneAfterRender });
 
   // Get editor context
   const {
+    globalMode,
+    editViewMode,
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
@@ -157,6 +216,7 @@ export const EditorView = ({
     setCursorMode,
     clearSelection,
     setAiAssistantOpen,
+    setAiAssistantCollapsed,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
@@ -168,17 +228,31 @@ export const EditorView = ({
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
+  const [offerStartPosture, setOfferStartPosture] = useState(false);
+  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
   const {
-    enableNotebookView,
+    brunchDemoMode,
+    enableExperimentalIconPack,
+    showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
+  const showBrunchCreateNew = shouldShowBrunchCreateNew({
+    brunchDemoMode,
+    hasAiAssistant: aiAssistant !== undefined,
+  });
   const walkthrough = use(WalkthroughContext);
 
-  // Shared with useReadOnlyReason so the rendered view and the mutation
-  // rules never disagree.
-  const effectiveMode = useEffectiveGlobalMode();
+  const toggleAiAssistant = () => {
+    if (isAiAssistantOpen) {
+      setAiAssistantOpen(false);
+      return;
+    }
+    setAiAssistantCollapsed(false);
+    setAiAssistantOpen(true);
+    setAiAssistantFocusRequest((request) => request + 1);
+  };
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -203,21 +277,25 @@ export const EditorView = ({
   function handleCreateEmpty() {
     createNewNet({
       title: "Untitled",
-      petriNetDefinition: {
-        places: [],
-        transitions: [],
-        types: [],
-        differentialEquations: [],
-        parameters: [],
-        subnets: [],
-        componentInstances: [],
-      },
+      petriNetDefinition: emptyPetriNetDefinition,
     });
     clearSelection();
   }
 
-  function handleNew() {
+  function handleStartBlank() {
+    setOfferStartPosture(false);
+    setIsAiCtaDismissed(true);
     handleCreateEmpty();
+    if (aiAssistant !== undefined) {
+      setAiAssistantOpen(false);
+    }
+  }
+
+  function handleBuildWithBrunch() {
+    setIsAiCtaDismissed(true);
+    setOfferStartPosture(true);
+    handleCreateEmpty();
+    setAiAssistantOpen(true);
   }
 
   function handleExport(format: DocumentFormat) {
@@ -282,6 +360,9 @@ export const EditorView = ({
       }
     }
 
+    if (hadMissingPositions) {
+      requestFrameOnNextRegistration();
+    }
     createNewNet({
       title: loadedSDCPN.title,
       petriNetDefinition: sdcpnToLoad,
@@ -292,11 +373,11 @@ export const EditorView = ({
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
       ? [
-          {
-            id: "new",
-            text: "New",
-            onClick: handleNew,
-          },
+          createNewNetMenuItem({
+            showBrunchOptions: showBrunchCreateNew,
+            onBuildWithBrunch: handleBuildWithBrunch,
+            onStartBlank: handleStartBlank,
+          }),
         ]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
@@ -304,6 +385,7 @@ export const EditorView = ({
           {
             id: "open",
             text: "Open",
+            menuClassName: openSubmenuStyle,
             subItems: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               text: net.title,
@@ -362,8 +444,9 @@ export const EditorView = ({
           {
             id: "layout",
             text: "Layout",
+            suffix: <KeyboardShortcut shortcut={autoLayoutShortcut} inMenu />,
             onClick: () => {
-              void applyAutoLayout();
+              void runAutoLayoutAndFrame();
             },
           },
         ]),
@@ -450,6 +533,16 @@ export const EditorView = ({
         ]
       : []),
     {
+      id: "user-settings",
+      text: "User settings",
+      suffix: <KeyboardShortcut shortcut="mod+," inMenu />,
+      onClick: () =>
+        navigation.navigate(
+          { overlay: { type: "user-settings", section: "general" } },
+          { cause: "user", action: "overlay" },
+        ),
+    },
+    {
       id: "docs",
       text: "Docs",
       onClick: () => {
@@ -470,8 +563,21 @@ export const EditorView = ({
     isEmptySDCPN(petriNetDefinition);
 
   return (
-    <>
-      <EditorCommands />
+    <ExperimentalIconProvider
+      enabled={enableExperimentalIconPack}
+      motion={showAnimations ? "auto" : "none"}
+    >
+      <EditorCommands
+        applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+      />
+      <UserSettings settingsLabs={slots?.settingsLabs} />
+      <CreateNewNetCommands
+        enabled={showNetManagementMenuItems}
+        showBrunchOptions={showBrunchCreateNew}
+        onBuildWithBrunch={handleBuildWithBrunch}
+        onStartBlank={handleStartBlank}
+      />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -488,12 +594,12 @@ export const EditorView = ({
       {/* Top Bar - always visible */}
       <TopBar
         actualModeAvailable={actualMode.available}
-        notebookViewAvailable={enableNotebookView}
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
+        titleEditable={titleEditable}
         hideNetManagementControls={hideNetManagementControls}
-        mode={effectiveMode}
+        mode={globalMode}
         onModeChange={setGlobalMode}
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
@@ -505,71 +611,122 @@ export const EditorView = ({
           the session and the toolbar segment that controls it. */}
       <VoiceSessionProvider>
         <Stack direction="row" className={rowContainerStyle}>
-          {effectiveMode === "simulate" ? (
-            <SimulateView />
-          ) : effectiveMode === "notebook" ? (
-            <NotebookView key={petriNetId ?? "no-net"} />
-          ) : (
-            <Box className={canvasContainerStyle}>
-              {/* Left Sidebar - Tools and content panels */}
-              <LeftSideBar />
+          {globalMode === "simulate" && <SimulateViewTabs />}
+          <SimulationWorkspace>
+            {globalMode === "simulate" ? (
+              <SimulateView />
+            ) : (
+              <div className={workspaceStyle}>
+                {globalMode === "edit" && <EditViewSelector />}
+                <Activity
+                  mode={
+                    globalMode === "actual" || editViewMode === "canvas"
+                      ? "visible"
+                      : "hidden"
+                  }
+                >
+                  <Box className={canvasContainerStyle}>
+                    {/* Left Sidebar - Tools and content panels */}
+                    <LeftSideBar />
 
-              {/* Properties Panel - Right Side */}
-              <PropertiesPanel />
+                    {/* Properties Panel - Right Side */}
+                    <PropertiesPanel />
 
-              {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+                    {/* SDCPN Visualization */}
+                    <SDCPNView
+                      onControllerChange={registerController}
+                      viewportActions={viewportActions}
+                    />
 
-              {showEmptyAiHero && (
-                <AiCtaModal
-                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                  onDismiss={() => setIsAiCtaDismissed(true)}
-                  onStartVoiceMode={() => {
-                    setPendingAiInteractionMode("voice");
-                    setAiAssistantOpen(true);
-                  }}
-                  onSubmit={(message) => {
-                    setPendingAiAssistantMessage(message);
-                    setPendingAiInteractionMode("text");
-                    setAiAssistantOpen(true);
-                  }}
-                  voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
-                />
-              )}
+                    {showEmptyAiHero && (
+                      <AiCtaModal
+                        bottomClearance={
+                          isBottomPanelOpen ? bottomPanelHeight : 0
+                        }
+                        onDismiss={() => setIsAiCtaDismissed(true)}
+                        onStartVoiceMode={() => {
+                          setPendingAiInteractionMode("voice");
+                          setAiAssistantOpen(true);
+                        }}
+                        onSubmit={(message) => {
+                          setPendingAiAssistantMessage(message);
+                          setPendingAiInteractionMode("text");
+                          setAiAssistantOpen(true);
+                        }}
+                        voiceModeAvailable={
+                          aiAssistant.renderVoiceMode !== undefined
+                        }
+                      />
+                    )}
 
-              {/* Bottom Panel */}
-              <BottomPanel />
-
+                    {/* Bottom Panel */}
+                    <BottomPanel />
+                  </Box>
+                </Activity>
+                <Activity
+                  mode={
+                    globalMode === "edit" && editViewMode === "definitions"
+                      ? "visible"
+                      : "hidden"
+                  }
+                >
+                  <NotebookView
+                    key={petriNetId ?? "no-net"}
+                    toolbarStart={
+                      <div aria-hidden className={editViewSelectorSpaceStyle} />
+                    }
+                  />
+                </Activity>
+              </div>
+            )}
+            <Activity
+              mode={
+                globalMode === "actual" ||
+                (globalMode === "edit" && editViewMode === "canvas")
+                  ? "visible"
+                  : "hidden"
+              }
+            >
               <BottomBar
-                mode={effectiveMode}
+                mode={globalMode}
                 editionMode={editionMode}
                 onEditionModeChange={setEditionMode}
                 cursorMode={cursorMode}
                 onCursorModeChange={setCursorMode}
                 hasAiAssistant={aiAssistant !== undefined}
               />
-
-              {aiAssistant && (
-                <AiAssistantPanel
-                  /** Reset state (e.g. initial messages) when the active net changes */
-                  key={petriNetId ?? "no-net"}
-                  aiAssistant={aiAssistant}
-                  initialMessage={pendingAiAssistantMessage}
-                  initialInteractionMode={pendingAiInteractionMode}
-                  onInitialMessageConsumed={() =>
-                    setPendingAiAssistantMessage(null)
-                  }
-                  onInitialInteractionModeConsumed={() =>
-                    setPendingAiInteractionMode(null)
-                  }
-                />
-              )}
-            </Box>
+            </Activity>
+            <SimulationCreationDrawer />
+          </SimulationWorkspace>
+          {aiAssistant && (
+            <AiAssistantPanel
+              /** Reset state (e.g. initial messages) when the active net changes */
+              key={`ai-assistant-${petriNetId ?? "no-net"}`}
+              aiAssistant={aiAssistant}
+              applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+              focusRequest={aiAssistantFocusRequest}
+              frameSceneAfterRender={frameSceneAfterRender}
+              initialMessage={pendingAiAssistantMessage}
+              initialInteractionMode={pendingAiInteractionMode}
+              offerStartPosture={offerStartPosture}
+              onInitialMessageConsumed={() =>
+                setPendingAiAssistantMessage(null)
+              }
+              onInitialInteractionModeConsumed={() =>
+                setPendingAiInteractionMode(null)
+              }
+            />
           )}
         </Stack>
       </VoiceSessionProvider>
-
-      <SimulationCreationDrawer />
-    </>
+    </ExperimentalIconProvider>
   );
 };
+
+export const EditorView = (
+  props: React.ComponentProps<typeof EditorViewContent>,
+) => (
+  <CodeNavigationProvider>
+    <EditorViewContent {...props} />
+  </CodeNavigationProvider>
+);

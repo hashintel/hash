@@ -1,21 +1,16 @@
 [package]
-name          = "error-stack"
-version       = "0.8.0"
 authors       = { workspace = true }
-edition       = "2021"
-rust-version  = "1.83.0"
-license       = "MIT OR Apache-2.0"
+categories    = ["rust-patterns", "no-std"]
 description   = "A context-aware error-handling library that supports arbitrary attached user data"
 documentation = "https://docs.rs/error-stack"
-repository    = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
+edition       = "2021"
+exclude       = ["macros", "experimental"]
 keywords      = ["error", "errorstack", "error-handling", "report", "no_std"]
-categories    = ["rust-patterns", "no-std"]
-exclude       = ["package.json", "macros", "experimental"]
-
-[package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@rust/error-stack-macros", version = "workspace:*" },
-]
+license       = "MIT OR Apache-2.0"
+name          = "error-stack"
+repository    = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
+rust-version  = "1.83.0"
+version       = "0.8.0"
 
 [dependencies]
 # Public workspace dependencies
@@ -57,13 +52,13 @@ rustc_version = { workspace = true }
 [features]
 default = ["std", "backtrace"]
 
-std       = ["anyhow?/std"] # Enables support for `Error`
 backtrace = ["std"]         # Enables automatic capturing of `Backtrace`s (requires Rust 1.65+)
+std       = ["anyhow?/std"] # Enables support for `Error`
 
-tracing   = ["dep:tracing"]                         # Uses the `tracing` library if messages would be printed to the terminal
-spantrace = ["dep:tracing-error", "tracing", "std"] # Enables automatic capturing of `SpanTrace`s
-serde     = ["dep:serde_core"]                      # Enables serialization support
 hooks     = ['dep:spin']                            # Enables hooks on `no-std` platforms using spin locks
+serde     = ["dep:serde_core"]                      # Enables serialization support
+spantrace = ["dep:tracing-error", "tracing", "std"] # Enables automatic capturing of `SpanTrace`s
+tracing   = ["dep:tracing"]                         # Uses the `tracing` library if messages would be printed to the terminal
 
 anyhow = ["dep:anyhow"]      # Provides `into_report` to convert `anyhow::Error` to `Report`
 eyre   = ["dep:eyre", "std"] # Provides `into_report` to convert `eyre::Report` to `Report`
@@ -81,24 +76,24 @@ cargo-args   = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples"]
 targets      = ["x86_64-unknown-linux-gnu"]
 
 [[example]]
+doc-scrape-examples = true
 name                = "demo"
 required-features   = ["std"]
-doc-scrape-examples = true
 
 [[example]]
+doc-scrape-examples = true
 name                = "exit_code"
 required-features   = ["std"]
-doc-scrape-examples = true
 
 [[example]]
+doc-scrape-examples = true
 name                = "parse_config"
 required-features   = ["std"]
-doc-scrape-examples = true
 
 [[example]]
+doc-scrape-examples = true
 name                = "detect"
 required-features   = ['std']
-doc-scrape-examples = true
 
 [[test]]
 name = "common"

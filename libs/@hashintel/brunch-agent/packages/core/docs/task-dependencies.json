@@ -10,10 +10,6 @@
         "@local/eslint#build"
       ]
     },
-    "linear:graph": {
-      "dependsOn": [],
-      "cache": false
-    },
     "lint:eslint": {
       "dependsOn": [
         "@local/eslint#build"

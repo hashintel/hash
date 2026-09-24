@@ -1,8 +1,8 @@
 //! Corpus-card rendering through the canonical template.
 //!
-//! The classifier trains on exactly the card text production serves, so every corpus card renders
-//! through the same template, budgets, and lint as generation-time cards; helpers here adapt the
-//! corpus wire shapes to the template's inputs.
+//! The classifier trains on exactly the card text production serves. Every corpus card therefore
+//! renders through the same template, budgets, and lint as generation-time cards, and the helpers
+//! here adapt the corpus wire shapes to the template's inputs.
 
 use super::{
     super::{Card, CardIdentity, Content, Phrase},
@@ -43,6 +43,11 @@ fn examples<'text>(
 }
 
 /// Builds one card's rendered endpoint constraints.
+///
+/// # Errors
+///
+/// Returns [`AssemblyError::Cardinality`] when a constraint's minimum target count exceeds its
+/// maximum.
 fn endpoint_constraints<'text, E>(
     index: usize,
     content: &'text Content,
@@ -77,6 +82,12 @@ fn endpoint_constraints<'text, E>(
 }
 
 /// Renders one corpus card through the canonical template.
+///
+/// # Errors
+///
+/// Returns [`AssemblyError::Language`] when the card declares a language other than the
+/// template's, [`AssemblyError::Cardinality`] when an endpoint constraint's minimum exceeds its
+/// maximum, and [`AssemblyError::Render`] when the template refuses the card.
 pub(super) fn render_card<E>(
     index: usize,
     corpus_card: &Card,
@@ -139,7 +150,7 @@ pub(super) fn render_card<E>(
     };
 
     // The wikidata entity token is the card's resolved source
-    // identifier; hash identities are URLs, which the structural lint
+    // identifier. Hash identities are URLs, which the structural lint
     // already forbids.
     let forbidden = match &corpus_card.identity {
         CardIdentity::Wikidata { url, .. } => url.rsplit('/').next(),

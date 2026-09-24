@@ -15,7 +15,7 @@ use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy
 
 use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
 
-/// Deterministic, sign-varying components crossing multiple 8-lane chunks.
+/// Generates sign-varying components from the index and an offset.
 fn scattered<const N: usize>(offset: f32) -> [f32; N] {
     core::array::from_fn(|index| {
         let value = f32::from(u8::try_from(index % 200).expect("bounded by modulus"));
@@ -24,7 +24,7 @@ fn scattered<const N: usize>(offset: f32) -> [f32; N] {
     })
 }
 
-/// Plain-f64 reference for every product-sum kernel under test.
+/// Sums separately rounded `f64` products over the slices' common prefix.
 fn reference_dot(left: &[f32], right: &[f64]) -> f64 {
     left.iter()
         .zip(right)
@@ -34,8 +34,8 @@ fn reference_dot(left: &[f32], right: &[f64]) -> f64 {
 
 #[test]
 fn is_finite_rejects_any_non_finite_component() {
-    // N = 11 crosses one full 8-lane chunk plus a remainder. Index 3
-    // poisons the lane path and index 9 poisons the remainder path.
+    // N = 11 includes one full eight-lane chunk and a remainder. Indices 3 and 9 exercise the two
+    // paths separately.
     let finite: [f32; 11] = scattered(0.25);
     assert!(VecN::new(finite).is_finite());
 
@@ -84,8 +84,15 @@ fn aligned_dot_wide_matches_f64_reference() {
     );
 }
 
+// The dimensions cover an empty sum, a scalar remainder alone, an exact chunk and multiple chunks
+// with and without a remainder.
 #[test]
 fn dot_matches_f64_reference_across_chunk_sizes() {
+    /// Compares the narrowed dot product with a scalar `f64` accumulation.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the absolute error exceeds 10⁻⁶ · (|expected| + 1).
     fn check<const N: usize>() {
         let left: [f32; N] = scattered(0.5);
         let right: [f32; N] = scattered(-1.25);
@@ -149,7 +156,7 @@ fn cosine_distance_matches_known_geometry() {
     x_axis[0] = 2.0;
     y_axis[1] = 0.5;
 
-    // Orthogonal: one. Parallel (any positive scaling): zero. Opposite: two.
+    // the axis-aligned fixture has exactly representable dot products and norms
     assert_eq!(
         VecN::new(x_axis).cosine_distance(VecN::from_ref(&y_axis)),
         1.0,
@@ -174,6 +181,7 @@ fn cosine_distance_of_zero_vectors_follows_the_contract() {
     assert_eq!(unit.cosine_distance(&zero), 1.0);
 }
 
+/// Over 100 components the cosine distance agrees with the clamped `f64` reference within `1e-6`.
 #[test]
 fn cosine_distance_matches_f64_reference() {
     let left: [f32; 100] = scattered(0.75);
@@ -207,6 +215,7 @@ fn dot_wide_matches_f64_reference() {
     );
 }
 
+/// The aligned box's `dot`, `norm_squared` and `cosine_distance` return exactly the `VecN` results.
 #[test]
 fn aligned_kernels_agree_with_vecn() {
     let left: [f32; 24] = scattered(1.5);
@@ -225,17 +234,15 @@ fn aligned_kernels_agree_with_vecn() {
     );
 }
 
-/// Components bounded to the well-conditioned `-1e3..1e3` range, in the fixed dimension 19.
+/// Generates 19 bounded components spanning two SIMD chunks and a remainder.
 ///
-/// Two full 8-lane chunks plus a remainder of three, so every fold exercises both the batched body
-/// and the remainder.
+/// The magnitude bound avoids overflow, while mixed signs still allow cancellation.
 fn components_strategy() -> impl Strategy<Value = [f32; 19]> {
     proptest::array::uniform19(-1e3_f32..1e3)
 }
 
-/// The dot product commutes bit for bit.
-///
-/// Both orders accumulate the same products in the same order.
+// Swapping operands preserves every rounded product and the accumulation grouping. These bounded
+// inputs permit an exact numeric comparison.
 #[property_test]
 fn dot_is_commutative(
     #[strategy = components_strategy()] left: [f32; 19],
@@ -247,15 +254,11 @@ fn dot_is_commutative(
     );
 }
 
-/// The squared norm is non-negative: it accumulates squares.
 #[property_test]
 fn norm_squared_is_non_negative(#[strategy = components_strategy()] components: [f32; 19]) {
     prop_assert!(VecN::new(components).norm_squared() >= 0.0);
 }
 
-/// Cosine distance lies in `[0, 2]`.
-///
-/// The distance from a non-zero vector to itself is zero up to rounding.
 #[property_test]
 fn cosine_distance_stays_in_range_and_vanishes_on_self(
     #[strategy = components_strategy()] left: [f32; 19],
@@ -271,9 +274,8 @@ fn cosine_distance_stays_in_range_and_vanishes_on_self(
     prop_assert!(left.cosine_distance(&left) < 1e-6);
 }
 
-/// The fused SIMD dot product matches a plain-f64 reference loop.
-///
-/// The tolerance is relative, plus a small absolute floor for cancelled sums.
+// Different summation groupings can disagree after cancellation. The comparison permits 10⁻⁶
+// relative error plus an absolute allowance of 10⁻³.
 #[property_test]
 fn dot_matches_a_plain_f64_reference(
     #[strategy = components_strategy()] left: [f32; 19],
@@ -290,10 +292,8 @@ fn dot_matches_a_plain_f64_reference(
     );
 }
 
-/// The checking slice wrapper refuses an offset view of aligned storage.
-///
-/// Eight `f32` components fill exactly one `f32x8` group, so the width condition holds and only
-/// the address decides. One component in, the view sits four bytes past the boundary.
+// shifting an eight-component slice by one component preserves its width and offsets its address by
+// four bytes, isolating the SIMD alignment check.
 #[test]
 fn aligned_from_slice_mut_checks_the_address() {
     let mut boxed = BoxedVecN::new(&VecN::new([7.0_f32; 16]));
@@ -303,18 +303,13 @@ fn aligned_from_slice_mut_checks_the_address() {
     assert!(AlignedVecN::<8>::from_slice_mut(&mut array[1..9]).is_none());
 }
 
-/// Hashes one value with the std default hasher.
+/// Hashes one value with [`DefaultHasher`].
 fn hash_of(value: impl Hash) -> u64 {
     let mut hasher = DefaultHasher::new();
     value.hash(&mut hasher);
     hasher.finish()
 }
 
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here wraps, boxes or lane-splits component storage in place and checks the alignment
-/// invariant those views carry. The profile selects by module path, so moving a test in or out of
-/// this module is the whole edit.
 mod miri {
     use core::{
         iter,
@@ -346,7 +341,6 @@ mod miri {
             f32::from(u8::try_from(index).expect("test dimensions are small"))
         });
 
-        // Allocate sixteen boxes so one aligned pointer cannot be luck.
         let boxes: Vec<BoxedVecN<24>> =
             iter::repeat_with(|| BoxedVecN::new(VecN::from_ref(&source)))
                 .take(16)
@@ -396,7 +390,7 @@ mod miri {
         wrapped_mut[1] = *VecN::from_ref(&[9.0; 8]);
         assert_eq!(
             source[1], [9.0; 8],
-            "a write through the mut wrapper must land in the source"
+            "a write through the mut wrapper must update the source"
         );
     }
 
@@ -408,7 +402,7 @@ mod miri {
         let boxed = BoxedVecN::new(VecN::from_ref(&source));
 
         let (lanes, remainder) = boxed.lanes();
-        assert!(remainder.is_empty());
+        assert_eq!(remainder, [] as [f32; 0]);
         assert_eq!(
             lanes.iter().map(|lane| lane.to_array()).collect::<Vec<_>>(),
             [
@@ -424,6 +418,7 @@ mod miri {
         assert_eq!(maximum, 15.0);
     }
 
+    /// `lanes` over eleven components yields one full group and a three-component remainder.
     #[test]
     fn lanes_split_off_partial_group_as_remainder() {
         let source: [f32; 11] = core::array::from_fn(|index| {
@@ -444,7 +439,7 @@ mod miri {
     fn aligned_vecn_rejects_misaligned_storage() {
         let boxed = BoxedVecN::new(&VecN::new([0.0_f32; 16]));
 
-        // The box's own storage meets the f32x8 alignment, so wrapping it succeeds.
+        // the box provides an f32x8-aligned base
         assert!(AlignedVecN::<16>::from_ref(boxed.as_array()).is_some());
 
         // One component past an aligned base breaks the f32x8 alignment.
@@ -474,6 +469,7 @@ mod miri {
         assert_eq!(clone.as_array()[7], 8.0);
     }
 
+    /// `clone_from` copies the contents into the existing buffer without reallocating.
     #[test]
     fn boxed_vecn_clone_from_reuses_the_allocation() {
         let source = BoxedVecN::from([9.0_f32; 8]);
@@ -526,7 +522,7 @@ mod miri {
     fn try_as_aligned_agrees_between_shared_and_mutable() {
         let mut boxed = BoxedVecN::from([3.0_f32; 8]);
 
-        // Boxed storage meets the f32x8 alignment, so both reinterpretations succeed.
+        // boxed storage provides f32x8 alignment for the shared and mutable views
         assert!(VecN::from_ref(boxed.as_array()).try_as_aligned().is_some());
 
         let vecn = VecN::from_mut(boxed.as_array_mut());
@@ -564,19 +560,15 @@ mod miri {
         let matrix = BoxedVecN::<32>::zero();
         let components = matrix.as_array().as_slice();
 
-        // A zero dimension fails compilation outright; only the runtime
-        // conditions remain to certify.
-
-        // A partial trailing row cannot be a vector.
+        // N = 12 can fail the row-stride alignment check before the partial-row check.
         assert!(AlignedVecN::<12>::from_slice(components).is_none());
 
-        // One component past an aligned base breaks the alignment: a single
-        // `f32` is narrower than `f32x8`'s alignment on every supported target.
+        // the offset is four bytes, below the SIMD alignment on the tested target
         assert!(AlignedVecN::<8>::from_slice(&components[1..25]).is_none());
 
         // An empty slice at an aligned base yields zero rows.
         let empty = AlignedVecN::<8>::from_slice(&components[..0]).expect("zero rows are valid");
-        assert!(empty.is_empty());
+        assert_eq!(empty, [] as [AlignedVecN<8>; 0]);
     }
 
     /// `Hash` follows the components and `Debug` prints them.
@@ -585,7 +577,7 @@ mod miri {
         let low = BoxedVecN::new(&VecN::new([0.5_f32, 1.5]));
         let high = BoxedVecN::new(&VecN::new([1.0_f32, 1.5]));
 
-        // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
+        // these two fixtures produce different hashes with the tested DefaultHasher
         assert_ne!(hash_of(&low), hash_of(&high));
         assert_eq!(format!("{low:?}"), "AlignedVecN([0.5, 1.5])");
     }

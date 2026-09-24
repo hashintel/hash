@@ -36,7 +36,9 @@ export type TruncatedPlace = {
   total: number;
 };
 
-function literalExpression(value: number | boolean | bigint | string): string {
+export function literalExpression(
+  value: number | boolean | bigint | string,
+): string {
   switch (typeof value) {
     case "number":
       return String(value);

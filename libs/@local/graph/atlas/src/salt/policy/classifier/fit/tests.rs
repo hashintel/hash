@@ -3,19 +3,26 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use core::{assert_matches, num::NonZeroU64};
-use std::sync::Mutex;
+use alloc::sync::Arc;
+use core::{assert_matches, mem, time::Duration};
+use std::sync::{Condvar, Mutex};
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
+use tracing::{Dispatch, Event, Span, Subscriber, span::Id};
+use tracing_subscriber::{
+    Layer, Registry,
+    layer::{Context, SubscriberExt as _},
+    registry::LookupSpan,
+};
 
 use super::{
-    FitConfig, FitError, FoldedTraining, TrainingRow, TrainingSet, TrainingSetError, applicability,
-    calibration, fit, grouped_folds,
+    FitConfig, FitError, FitOptions, FoldedTraining, TrainingRow, TrainingSet, TrainingSetError,
+    applicability, calibration, fit, grouped_folds,
     objective::{PARAMETER_COUNT, Parameters},
     regularization,
     solver::{
         Gram, PreparationError, PreparationSettings, SolverConfig, SolverConfigError,
-        SolverFailure, WorkCounters,
+        SolverFailure, SolverOptions, WorkCounters,
     },
     split_parameters,
 };
@@ -23,11 +30,12 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedVecN, DNonNegative, DPositive, d_positive},
+    math::{AlignedVecN, BoxedVecN, DNonNegative, DPositive, d_positive, nz},
     progress::{NoProgress, Progress},
     salt::policy::GeometryClass,
 };
 
+/// The most rows a fixture corpus holds.
 const CAPACITY: usize = 8;
 
 /// An owned training corpus growing row by row.
@@ -37,6 +45,7 @@ struct Corpus {
 }
 
 impl Corpus {
+    /// An empty corpus with zeroed storage.
     fn new() -> Self {
         Self {
             storage: BoxedVecN::zero(),
@@ -44,6 +53,13 @@ impl Corpus {
         }
     }
 
+    /// Appends a row with the given leading embedding components, soft target, weight and group.
+    ///
+    /// The embedding starts with `leading` and is zero beyond it.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the corpus already holds [`CAPACITY`] rows.
     fn push(
         &mut self,
         leading: &[f32],
@@ -62,6 +78,7 @@ impl Corpus {
         });
     }
 
+    /// The pushed rows' embeddings as an aligned card-row slice.
     fn embeddings(&self) -> &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> {
         let raw = AlignedVecN::from_slice(
             &self.storage.as_array()[..self.rows.len() * CANONICAL_DIMENSIONS],
@@ -70,20 +87,30 @@ impl Corpus {
         IdSlice::from_raw(raw)
     }
 
+    /// The validated training set over the pushed rows.
     fn training(&self) -> TrainingSet<'_> {
         TrainingSet::new(self.embeddings(), &self.rows).expect("the fixture corpus validates")
     }
 }
 
+/// The SHA-256 digest of `bytes`, used as a group identity.
 fn digest(bytes: &[u8]) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     hasher.finalize()
 }
 
+/// Admits a fixture's raw solver options.
+fn solver_config(options: SolverOptions) -> SolverConfig {
+    SolverConfig::new(options).expect("the solver config is valid")
+}
+
+/// Builds a two-fold fit config at seed 17.
+///
+/// Regularisation `0.5`, default solver settings otherwise.
 fn config() -> FitConfig {
-    FitConfig {
-        solver: SolverConfig {
+    FitConfig::new(FitOptions {
+        solver: SolverOptions {
             preparation: PreparationSettings {
                 regularization: d_positive!(0.5),
                 ..
@@ -92,7 +119,8 @@ fn config() -> FitConfig {
         },
         folds: 2,
         seed: 17,
-    }
+    })
+    .expect("the fit config is valid")
 }
 
 /// Builds a two-row corpus with mixed targets and distinct groups.
@@ -108,6 +136,11 @@ fn mixed_corpus() -> Corpus {
     corpus
 }
 
+/// Rejects malformed `TrainingSet::new` inputs with the variant naming the offending row and value.
+///
+/// `TrainingSet::new` rejects an empty corpus, mismatched row counts, a non-finite embedding
+/// component, a target outside `[0, 1]`, a target not summing to one and a zero weight, each with
+/// the variant naming the offending row and value.
 #[test]
 fn training_set_rejects_contract_violations() {
     let empty = TrainingSet::new(IdSlice::empty(), IdSlice::empty())
@@ -242,6 +275,7 @@ fn one_hot_corpus() -> Corpus {
     corpus
 }
 
+/// The Euclidean norm of the coefficient block of `parameters`, intercepts excluded.
 fn coefficient_norm(parameters: &Parameters) -> f64 {
     parameters.as_array()[..PARAMETER_COUNT - GeometryClass::COUNT]
         .iter()
@@ -250,22 +284,25 @@ fn coefficient_norm(parameters: &Parameters) -> f64 {
         .sqrt()
 }
 
+/// Shrinks the coefficient norm under regularisation `10` against `0.1`.
+///
+/// Fitting the one-hot corpus at regularisation `10` yields a smaller coefficient norm than at
+/// `0.1`.
 #[test]
 fn stronger_regularization_shrinks_the_fitted_coefficients() {
     let corpus = one_hot_corpus();
     let training = corpus.training();
 
     let regularized = |regularization| FitConfig {
-        solver: SolverConfig {
+        solver: solver_config(SolverOptions {
             preparation: PreparationSettings { regularization, .. },
             ..
-        },
+        }),
         ..config()
     };
 
     let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
-    // Every row assigned to fold 0: a raw fixture driving the fold fit directly,
-    // since a single-fold run is the point of this fixture.
+    // every row belongs to fold 0. Passing None fits the complete corpus at each strength.
     let folded = FoldedTraining {
         training,
         folds: IdSlice::from_raw(&[0, 0, 0]),
@@ -285,6 +322,10 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     assert!(coefficient_norm(&strong) < coefficient_norm(&weak));
 }
 
+/// A corpus with no coincident mass fails with `MissingClassMass` naming the class.
+///
+/// A corpus with no mass on the coincident class fails with `PreparationError::MissingClassMass`
+/// naming that class.
 #[test]
 fn fit_model_requires_complete_class_mass() {
     let mut corpus = Corpus::new();
@@ -292,7 +333,7 @@ fn fit_model_requires_complete_class_mass() {
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
 
     let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
-    // Every row assigned to fold 0: a raw fixture driving the fold fit directly.
+    // every row belongs to fold 0. Passing None fits the complete corpus.
     let error = FoldedTraining {
         training: corpus.training(),
         folds: IdSlice::from_raw(&[0, 0]),
@@ -324,11 +365,13 @@ fn overconfident_logits_calibrate_above_one() {
 
     let temperature = calibration::fit_temperature(rows, logits);
 
-    // softmax([6, 0, 0] / T) equals the target at exp(6 / T) = 3, an
-    // interior optimum of the [0.05, 20] bracket. Near the optimum the
-    // cross-entropy is flat below f64 resolution over a relative
-    // window of √(2 · ε / 0.24) ~ 3e-8 in ln T, so the
-    // search cannot localize tighter than that.
+    // for x = ln T and a = 6e⁻ˣ, these identical rows have mean cross-entropy H(x) = ln(eᵃ + 2) −
+    // 0.6a near the optimum, where the probability floor is inactive. With p = eᵃ/(eᵃ + 2), Hₐ = p
+    // − 0.6 vanishes at a = ln 3. This gives T = 6/ln 3 inside [0.05, 20] and curvature Hₓₓ =
+    // 0.24(ln 3)². An absolute objective perturbation η gives the local scale √(2η/[0.24(ln 3)²])
+    // in ln T, approximately the relative change in T. Taking η = 2⁻⁵² gives about 3.9 × 10⁻⁸.
+    // Therefore the 10⁻⁶ relative tolerance leaves margin over this illustrative scale, without
+    // treating η as a bound on the implementation's rounding error.
     let expected = 6.0 / 3.0_f64.ln();
     assert!(temperature > 1.0);
     assert!((temperature - expected).abs() <= 1.0e-6 * expected);
@@ -344,6 +387,10 @@ fn overconfident_logits_calibrate_above_one() {
     }
 }
 
+/// Keeps the calibrated cross-entropy at or below the raw one.
+///
+/// The fitted temperature's calibrated cross-entropy never exceeds the raw one, since the unit
+/// temperature is always a candidate.
 #[test]
 fn calibration_never_worsens_cross_entropy() {
     let rows = [
@@ -370,6 +417,10 @@ fn calibration_never_worsens_cross_entropy() {
     assert!(metrics.calibrated_cross_entropy <= metrics.raw_cross_entropy);
 }
 
+/// Reads cross-entropy `ln 3` and Brier score `2/3` for uniform logits against a one-hot target.
+///
+/// Uniform logits against a one-hot target give cross-entropy `ln 3` and Brier score `2/3` within
+/// `1e-15`.
 #[test]
 fn metrics_match_hand_computed_values() {
     let rows = [TrainingRow {
@@ -382,7 +433,7 @@ fn metrics_match_hand_computed_values() {
     let metrics = calibration::metrics(IdSlice::from_raw(&rows), IdSlice::from_raw(&logits), 1.0)
         .expect("finite fixture rows have finite metrics");
 
-    // Uniform probabilities: CE = ln 3, Brier = (2/3)^2 + 2 · (1/3)^2.
+    // uniform probabilities: CE = ln 3, Brier = (2/3)² + 2 · (1/3)².
     assert!((metrics.raw_cross_entropy.get() - 3.0_f64.ln()).abs() <= 1.0e-15);
     assert!((metrics.raw_brier.get() - 2.0 / 3.0).abs() <= 1.0e-15);
 }
@@ -415,8 +466,8 @@ fn applicability_matches_hand_computed_values() {
     assert!((scales[0] - expected_scales.0).abs() <= 1.0e-9 * expected_scales.0);
     assert!((scales[1] - expected_scales.1).abs() <= 1.0e-9 * expected_scales.1);
 
-    // Both rows sit one leading unit from the mean, so their distances
-    // agree: √(scale^2 / dimensions).
+    // both rows differ from the mean by one unit in the leading coordinate. Their distances agree:
+    // √(scale² / dimensions).
     let expected_distance = (expected_scales.0 * expected_scales.0 / 3072.0).sqrt();
     assert_eq!(fitted.distances.len(), 2);
     for &distance in &fitted.distances {
@@ -424,6 +475,7 @@ fn applicability_matches_hand_computed_values() {
     }
 }
 
+/// A corpus of identical embeddings standardizes to unit inverse scales and zero distances.
 #[test]
 fn constant_corpus_gets_unit_scales_and_zero_distances() {
     let mut corpus = Corpus::new();
@@ -444,6 +496,10 @@ fn constant_corpus_gets_unit_scales_and_zero_distances() {
     assert!(fitted.distances.iter().all(|distance| *distance == 0.0));
 }
 
+/// Maps each class's coefficient block and the trailing intercepts in `split_parameters`.
+///
+/// `split_parameters` maps each class's coefficient block to its row and the trailing three entries
+/// to the intercepts.
 #[test]
 fn split_parameters_places_rows_and_intercepts() {
     let mut parameters = Parameters::zero();
@@ -482,6 +538,11 @@ fn soft_corpus() -> Corpus {
     corpus
 }
 
+/// Fits the separable soft corpus with each returned quantity inside its bounds.
+///
+/// Fitting the separable soft corpus yields a temperature inside `(0.05, 20)`, a fold per row below
+/// the fold count, finite out-of-fold logits, calibrated cross-entropy no worse than raw, weak
+/// regularisation, and raw posteriors within `0.05` of every generating target.
 #[test]
 fn fit_recovers_the_generating_distributions() {
     let corpus = soft_corpus();
@@ -516,9 +577,8 @@ fn fit_recovers_the_generating_distributions() {
     assert!(fitted.evidence.regularization <= DPositive::ONE);
     assert!(fitted.evidence.iterations >= 1);
 
-    // The separable corpus rewards weak regularization out of fold, so the
-    // selection stays weak and the fitted raw posteriors reproduce the
-    // generating soft targets on the training rows.
+    // weak regularization minimizes out-of-fold loss for this separable corpus. The deployment
+    // fit's raw posteriors approximate the generating soft targets on its training rows.
     for (row, expected) in corpus.rows.iter_enumerated() {
         let prediction = fitted
             .classifier
@@ -534,6 +594,10 @@ fn fit_recovers_the_generating_distributions() {
     }
 }
 
+/// Picks the interior minimum, the improving end and the stronger tie in `regularization::winner`.
+///
+/// `regularization::winner` picks the interior minimum, the last candidate of an improving curve,
+/// and on an exact tie the stronger penalty.
 #[test]
 fn regularization_winner_takes_the_minimum_and_ties_prefer_the_stronger_penalty() {
     let reading = |regularization: f64, cross_entropy: f64| regularization::RegularizationReading {
@@ -574,8 +638,9 @@ fn fit_selects_regularization_and_records_the_curve() {
 
     let winner = regularization::winner(curve);
     assert_eq!(fitted.evidence.regularization, curve[winner].regularization);
-    // The winner's reading and the reported raw metric are the same reduction
-    // over the same logits, so the equality is exact.
+    // identical arithmetic over identical inputs gives identical results. The winner's reading and
+    // the raw metric use the same cross-entropy reduction over the same rows and logits at T = 1.
+    // Therefore the equality is exact.
     assert_eq!(
         fitted.evidence.raw_cross_entropy,
         curve[winner].cross_entropy
@@ -589,16 +654,17 @@ fn fit_selects_regularization_and_records_the_curve() {
     assert_eq!(again.evidence.selection, fitted.evidence.selection);
 }
 
+/// A one-iteration outer budget fails the fit with `SolverFailure::OuterIterationBudget`.
 #[test]
 fn exhausted_outer_iteration_budget_is_an_error() {
     let corpus = soft_corpus();
     let error = fit(
         corpus.training(),
         FitConfig {
-            solver: SolverConfig {
-                maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            solver: solver_config(SolverOptions {
+                maximum_outer_iterations: nz!(1),
                 ..
-            },
+            }),
             ..config()
         },
         &NoProgress,
@@ -608,33 +674,141 @@ fn exhausted_outer_iteration_budget_is_an_error() {
     assert_matches!(error, FitError::Solver(SolverFailure::OuterIterationBudget));
 }
 
+/// One solver diagnostic as the layer saw it.
+///
+/// The rayon worker that emitted it and the span ids from the root down.
+struct SolveEvent {
+    worker: usize,
+    scope: Vec<Id>,
+}
+
+/// A tracing layer that waits for two fit diagnostics and records their worker and span ids.
+struct SolveScopes {
+    events: Arc<Mutex<Vec<SolveEvent>>>,
+    another_worker: Condvar,
+}
+
+impl<S: Subscriber + for<'lookup> LookupSpan<'lookup>> Layer<S> for SolveScopes {
+    /// Records a fit-target event's worker and spans, waiting for a second matching event.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a matching event is not on a rayon pool worker, fewer than two matching events
+    /// have been recorded after ten seconds, or the fixture mutex is poisoned.
+    fn on_event(&self, event: &Event<'_>, context: Context<'_, S>) {
+        if event.metadata().target() != "hash_graph_atlas::salt::policy::classifier::fit" {
+            return;
+        }
+
+        let scope = context.event_scope(event).map_or_else(Vec::new, |scope| {
+            scope.from_root().map(|span| span.id()).collect()
+        });
+        let both_workers = {
+            let mut events = self.events.lock().expect("should lock the solve events");
+            events.push(SolveEvent {
+                worker: rayon::current_thread_index().expect("should execute on a pool worker"),
+                scope,
+            });
+            self.another_worker.notify_all();
+
+            // hold the first diagnostic until another worker emits one, before either solve returns
+            // its error. The timeout bounds a failed rendezvous.
+            self.another_worker
+                .wait_timeout_while(events, Duration::from_secs(10), |events| events.len() < 2)
+                .map(|(events, _)| events.len() >= 2)
+                .expect("should await another worker's diagnostic")
+        };
+        assert!(both_workers, "should observe both workers before returning");
+    }
+}
+
+/// Nested fold solves retain the active span and release it after a solver error.
+#[test]
+fn select_tracing_context() {
+    let corpus = soft_corpus();
+    let config = FitConfig {
+        solver: solver_config(SolverOptions {
+            maximum_outer_iterations: nz!(1),
+            ..
+        }),
+        ..config()
+    };
+    let folds = grouped_folds(&corpus.rows, config.folds, config.seed)
+        .expect("should assign the corpus groups");
+    let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
+    let folded = FoldedTraining {
+        training: corpus.training(),
+        folds: &folds,
+        gram: &gram,
+    };
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let dispatch = Dispatch::new(Registry::default().with(SolveScopes {
+        events: Arc::clone(&events),
+        another_worker: Condvar::new(),
+    }));
+
+    tracing::dispatcher::with_default(&dispatch, || {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .build_scoped(
+                |thread| tracing::dispatcher::with_default(&dispatch, || thread.run()),
+                |pool| {
+                    let requests = [
+                        tracing::info_span!("request"),
+                        tracing::info_span!("request"),
+                        Span::none(),
+                    ];
+                    for request in requests {
+                        let classifier = if request.is_none() {
+                            Span::none()
+                        } else {
+                            request.in_scope(|| tracing::info_span!("classifier-fit"))
+                        };
+                        let expected: Vec<_> = [request.id(), classifier.id()]
+                            .into_iter()
+                            .flatten()
+                            .collect();
+                        let result = pool
+                            .install(|| classifier.in_scope(|| folded.select(config, &NoProgress)));
+                        assert_eq!(
+                            result.err().expect("should exhaust the iteration budget"),
+                            FitError::Solver(SolverFailure::OuterIterationBudget)
+                        );
+
+                        let observed = mem::take(
+                            &mut *events.lock().expect("should lock the recorded diagnostics"),
+                        );
+                        let mut workers: Vec<_> =
+                            observed.iter().map(|event| event.worker).collect();
+                        workers.sort_unstable();
+                        workers.dedup();
+                        assert_eq!(workers, [0, 1]);
+                        for event in observed {
+                            assert_eq!(event.scope, expected);
+                        }
+                        assert_eq!(pool.broadcast(|_| Span::current().id()), [None, None]);
+                    }
+                },
+            )
+            .expect("should build and join the subscribed pool");
+    });
+}
+
+/// The constructor names a single fold and an inverted radius range.
 #[test]
 fn configuration_violations_are_named() {
-    let corpus = mixed_corpus();
-
-    let error = fit(
-        corpus.training(),
-        FitConfig {
-            folds: 1,
-            ..config()
-        },
-        &NoProgress,
-    )
-    .expect_err("one fold cannot hold anything out");
+    let error =
+        FitConfig::new(FitOptions { folds: 1, .. }).expect_err("one fold cannot hold anything out");
     assert_matches!(error, FitError::FoldCount { folds: 1 });
 
-    let error = fit(
-        corpus.training(),
-        FitConfig {
-            solver: SolverConfig {
-                radius_minimum: d_positive!(2.0),
-                radius_maximum: d_positive!(1.0),
-                ..
-            },
-            ..config()
+    let error = FitConfig::new(FitOptions {
+        solver: SolverOptions {
+            radius_minimum: d_positive!(2.0),
+            radius_maximum: d_positive!(1.0),
+            ..
         },
-        &NoProgress,
-    )
+        ..
+    })
     .expect_err("the radius ordering is violated");
     assert_matches!(
         error,
@@ -650,6 +824,7 @@ struct RecordingProgress {
 }
 
 impl RecordingProgress {
+    /// The fold counts announced by `classifier_started`, in report order.
     fn announced(&self) -> Vec<usize> {
         self.announced
             .lock()
@@ -657,7 +832,7 @@ impl RecordingProgress {
             .clone()
     }
 
-    /// The completed folds, ascending: the pool finishes them in its own order.
+    /// Returns completed folds in ascending order, independent of worker completion order.
     fn completed(&self) -> Vec<usize> {
         let mut folds = self
             .completed
@@ -671,7 +846,6 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
-    /// The fixture watches folds, so nothing crosses into owning machinery.
     type Detached = NoProgress;
 
     fn detach(&self) -> NoProgress {
@@ -693,6 +867,10 @@ impl Progress for RecordingProgress {
     }
 }
 
+/// Announces three folds once and completes each exactly once with no deployment completion.
+///
+/// A three-fold fit announces three folds once and completes folds `0`, `1` and `2` exactly once
+/// each, and the deployment fit adds no completion.
 #[test]
 fn every_cross_validation_fold_reports_once() {
     let corpus = soft_corpus();
@@ -708,12 +886,14 @@ fn every_cross_validation_fold_reports_once() {
     )
     .expect("the separable corpus fits");
 
-    // The fit trains four models. The fourth holds nothing out and is the deployment model rather
-    // than a fold, so the counter's ceiling is the announced three.
+    // each of the 13 candidate strengths fits three held-out models, followed by one full-corpus
+    // deployment fit: 13 × 3 + 1 = 40. Progress counts folds. Each reports once after its last
+    // candidate succeeds, and the deployment fit adds no fold completion.
     assert_eq!(progress.announced(), [3]);
     assert_eq!(progress.completed(), [0, 1, 2]);
 }
 
+/// A fit whose solver cannot converge announces its folds but completes none of them.
 #[test]
 fn a_fit_that_never_converges_completes_no_fold() {
     let corpus = soft_corpus();
@@ -722,19 +902,18 @@ fn a_fit_that_never_converges_completes_no_fold() {
     fit(
         corpus.training(),
         FitConfig {
-            solver: SolverConfig {
-                maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            solver: solver_config(SolverOptions {
+                maximum_outer_iterations: nz!(1),
                 ..
-            },
+            }),
             ..config()
         },
         &progress,
     )
     .expect_err("one outer iteration cannot converge");
 
-    // The announcement is the workload, not a promise it will land: a
-    // model that failed has not completed, so the bar stays empty
-    // rather than filling as the failures arrive.
+    // a fold reports completion only after all of its candidates succeed. This iteration budget
+    // prevents convergence, and a failed solve returns before decrementing the pending count.
     assert_eq!(progress.announced(), [2]);
     assert_eq!(progress.completed(), [0_usize; 0]);
 }

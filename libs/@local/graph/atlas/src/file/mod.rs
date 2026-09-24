@@ -1,7 +1,7 @@
-//! On-disk storage for atlas artifacts.
+//! Storage and file formats for atlas artifacts.
 //!
-//! Artifacts are plain files in a directory, one artifact per file, described by metadata stored
-//! beside them. No container format exists: the filesystem is the container. Publishing a
+//! Local artifacts are plain files in a directory, one artifact per file, described by metadata
+//! stored beside them. No container format exists: the filesystem is the container. Publishing a
 //! generation writes every file to a temporary directory, syncs, and renames it into place. A
 //! generation is therefore either absent or complete. Published files never change, hence caching
 //! them forever is safe.
@@ -35,6 +35,7 @@
 //!   of and the metadata describing them.
 //! - [`generation`] is the directory layer around them, with staging, the atomic publish, and the
 //!   current-generation pointer.
+//! - [`storage`] provides local and S3 file access through configured backends.
 //!
 //! Integrity mechanisms layer by cost. Array headers validate by parsing, because the pinned magic
 //! and version make foreign bytes fail to parse. The one structural rule is the file length
@@ -180,7 +181,7 @@
 //! fields rather than as files of their own. Activation is one current-generation pointer above the
 //! versioned directories.
 
-use std::io;
+use std::{io, path::Path};
 
 use crate::integrity::Sha256Digest;
 
@@ -198,6 +199,33 @@ pub(crate) mod region;
 pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;
+pub(crate) mod storage;
+
+/// A reader that opens one artifact format from a path.
+///
+/// This is the read half of [`WriteInto`]. Implementations validate the format properties needed
+/// to open their artifact, including its magic, layout version, and geometry. This contract does
+/// not include verification against a repository digest. [`repository::Binding::open`] verifies a
+/// bound artifact before opening it through this trait.
+pub(crate) trait ArtifactFile {
+    /// Why a file of this format failed to open.
+    type Error: core::error::Error;
+
+    /// Opens the file at `path` in this format.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Self::Error`] when the bytes at `path` are not a file this format accepts, and
+    /// when reading or mapping them fails.
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+}
+
+/// A reader for the file format of artifact `A`.
+///
+/// See [`WriteAs`] for the corresponding writer marker.
+pub(crate) trait OpenAs<A>: ArtifactFile {}
 
 /// A value that writes itself as one artifact stream and names the written bytes.
 ///
@@ -230,10 +258,9 @@ where
     }
 }
 
-/// Marks a value as an admitted writer of the artifact `A`.
+/// A writer for the file format of artifact `A`.
 ///
-/// A staged write for `A` accepts exactly the values marked here, so which container may produce
-/// which published file is a compile-time fact rather than a convention at the call sites.
+/// See [`OpenAs`] for the corresponding reader marker.
 pub(crate) trait WriteAs<A>: WriteInto {}
 
 impl<T, A> WriteAs<A> for &T where T: WriteAs<A> + ?Sized {}
@@ -251,7 +278,7 @@ pub(crate) fn digest_file(path: impl AsRef<camino::Utf8Path>) -> io::Result<Sha2
         accumulator: crate::integrity::Sha256::new(),
         writer: io::sink(),
     };
-    io::copy(&mut std::fs::File::open(path)?, &mut writer)?;
+    io::copy(&mut std::fs::File::open_buffered(path)?, &mut writer)?;
 
     Ok(writer.accumulator.finalize())
 }

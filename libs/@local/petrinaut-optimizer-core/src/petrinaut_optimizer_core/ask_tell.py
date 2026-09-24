@@ -23,6 +23,7 @@ from .study import Scalar, suggest
 Evaluate: TypeAlias = Callable[[dict[str, Scalar]], Awaitable[Mapping[str, Any]]]
 OnTrial: TypeAlias = Callable[[dict[str, Any]], object]
 IsCancelled: TypeAlias = Callable[[], bool]
+IsPaused: TypeAlias = Callable[[], bool]
 
 _STATE_NAMES = {
     TrialState.COMPLETE: "complete",
@@ -123,6 +124,7 @@ async def run_study(
     evaluate: Evaluate,
     on_trial: OnTrial,
     is_cancelled: IsCancelled = lambda: False,
+    is_paused: IsPaused = lambda: False,
     parallelism: int = 1,
 ) -> dict[str, Any]:
     """Drive `trials` ask/tell rounds and return the study summary.
@@ -136,7 +138,13 @@ async def run_study(
     Cancellation is polled once before each batch of up to `parallelism` asks
     and once after each wait for an evaluation to settle. A cancelled study
     waits for the evaluations in flight to settle, reports none of them, and
-    returns its summary early with `cancelled` set. An outcome that is neither
+    returns its summary early with `cancelled` set. A pause is polled at the
+    same points: a paused study asks no further trial, waits for the
+    evaluations in flight to settle, tells and reports every one of them, and
+    returns its summary early with `paused` set. Nothing is told failed by a
+    pause, so the same study continues from the trials it holds. A pause
+    detected once the last trial was asked drains into a plain completion,
+    with `paused` unset. An outcome that is neither
     a finite objective nor a pruned marker, and any exception from `evaluate`
     or `on_trial`, ends the study with that error after cancelling the
     evaluations still in flight. Either way, every trial asked and not
@@ -166,17 +174,21 @@ async def run_study(
 
     asked = 0
     cancelled = False
+    paused = False
     try:
         while asked < trials or in_flight:
             if is_cancelled():
                 cancelled = True
                 break
-            while asked < trials and len(in_flight) < parallelism:
+            paused = paused or is_paused()
+            while not paused and asked < trials and len(in_flight) < parallelism:
                 trial = study.ask()
                 untold[trial.number] = trial
                 values = suggest(trial, description.parameters)
                 in_flight.add(asyncio.ensure_future(evaluate_trial(trial, values)))
                 asked += 1
+            if not in_flight:
+                break
             done, _ = await asyncio.wait(in_flight, return_when=asyncio.FIRST_COMPLETED)
             in_flight.difference_update(done)
             for task in done:
@@ -195,4 +207,8 @@ async def run_study(
         for trial in untold.values():
             trial.set_user_attr(UNREPORTED_ATTR, True)
             study.tell(trial, state=TrialState.FAIL)
-    return {**study_summary(study), "cancelled": cancelled}
+    return {
+        **study_summary(study),
+        "cancelled": cancelled,
+        "paused": paused and not cancelled and asked < trials,
+    }

@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "test:integration": {
-      "dependsOn": ["^manifest", "@apps/hash-graph#start:test:healthcheck"]
+      "dependsOn": ["^manifest", "hash-graph#start:test:healthcheck"]
     }
   }
 }

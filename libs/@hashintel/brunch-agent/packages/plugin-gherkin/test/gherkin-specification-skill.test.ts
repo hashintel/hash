@@ -24,9 +24,9 @@ describe("the authored gherkin-specification skill directory", () => {
     }
   });
 
-  test("routes universal judgment to core's elicitation skill and names only packaged resources", () => {
+  test("names only packaged resources and excludes the obsolete target vocabulary", () => {
     const instructions = gherkinSpecificationSkill.instructions;
-    expect(instructions).toContain("Activate the `elicitation` skill");
+    expect(instructions).not.toContain("runbook-ir");
     for (const referenced of instructions.matchAll(
       /`((?:references|templates)\/[\w-]+\.md)`/gu,
     )) {

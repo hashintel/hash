@@ -8,9 +8,10 @@
 //! contract. One defective sampled row refutes the contract, and the evidence lists every defective
 //! sampled row with its diagnosis.
 //!
-//! The check reads the rows a mapped `f32[N, 512]` artifact yields, so it faults only the sampled
-//! pages. The check visits sampled rows in ascending order, which keeps a cold mapping's faults
-//! forward. The sample is small and each row is one kernel pass, so the check runs serially.
+//! The check reads the rows a mapped `f32[N, 512]` artifact yields, and it therefore faults only
+//! the sampled pages. The check visits sampled rows in ascending order, which keeps a cold
+//! mapping's faults forward. The sample is small and each row is one kernel pass, and the check
+//! therefore runs serially.
 
 use core::{error::Error, fmt};
 
@@ -30,21 +31,26 @@ use crate::{
 // prefix's share of the parent vector's unit energy (1/6 for energy spread evenly over 3072
 // components), thousands of tolerances from one. The sampling budget matches the crate's other
 // acceptance checks: 688 rows certify a 1% defect rate at 99.9% confidence when all pass.
+/// The default admitted deviation of a row's squared norm from one.
 const DEFAULT_TOLERANCE: DPositive = d_positive!(1e-4);
+/// The default defect rate the sample size certifies.
 const DEFAULT_DEFECT_RATE: OpenUnitFraction = open_unit_fraction!(0.01);
+/// The default confidence level of the certification.
 const DEFAULT_CONFIDENCE: OpenUnitFraction = open_unit_fraction!(0.999);
 
 // The magnitudes the tolerance sits between: the squared-norm perturbation of narrowing one row to
 // f32, and the deviation of the nearest real failure mode (a prefix that kept 1/6 of the parent
 // vector's unit energy).
+/// The squared-norm perturbation of narrowing one `f64`-normalized row to `f32`.
 const NARROWING_PERTURBATION: DPositive = d_positive!(1e-6);
+/// The squared-norm deviation of a prefix that kept one sixth of the parent vector's unit energy.
 const UNRENORMALIZED_DEVIATION: DPositive = d_positive!(1.0 - 1.0 / 6.0);
 const _: () = assert!(
     DEFAULT_TOLERANCE > NARROWING_PERTURBATION && DEFAULT_TOLERANCE < UNRENORMALIZED_DEVIATION
 );
 
 /// Pinned tolerance and sampling settings for one norm spot check.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SpotCheckOptions {
     /// Admitted deviation of a row's squared norm from one, two-sided.
     pub tolerance: DPositive = DEFAULT_TOLERANCE,
@@ -138,7 +144,7 @@ impl Error for SpotCheckError {}
 
 /// Verifies the representation contract on a uniform sample of rows.
 ///
-/// `embeddings` holds the persisted representations in row order; a mapped `f32[N, 512]` artifact
+/// `embeddings` holds the persisted representations in row order. A mapped `f32[N, 512]` artifact
 /// yields the slice directly. The check covers a corpus smaller than the sample size exhaustively,
 /// making the certification exact.
 ///

@@ -57,7 +57,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -70,14 +70,16 @@ mod tests;
 mod write;
 
 pub(crate) use self::{
-    read::{ArrayFile, OpenArrayError},
+    read::{ArrayFile, InvalidColumnError, OpenArrayError},
     write::{ArrayWriter, ColumnScalar, SizedArrayWriter, SizedColumn},
 };
 use super::region::machine::{Architecture, Machine};
 use crate::file::region::{PAGE, header::header};
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -144,9 +146,9 @@ pub(crate) enum Version {
 /// The element type of an array file.
 #[expect(
     dead_code,
-    reason = "currently unused variants constitute valid variantions and may be used in the \
-              immediate future, omitting them now means that the variant indices would be out of \
-              order and would require breaking changes."
+    reason = "the wire format declares the little-endian half of the element matrix. A reader \
+              accepts every tag from a header, but this crate constructs only the widths its \
+              writers emit"
 )]
 #[derive(
     Debug,
@@ -340,7 +342,7 @@ impl ArrayShape {
 
     /// Returns the number of elements.
     ///
-    /// The empty shape has zero elements; a shape whose product overflows `u64` returns `None` and
+    /// The empty shape has zero elements. A shape whose product overflows `u64` returns `None` and
     /// matches no real file.
     #[must_use]
     pub(crate) fn element_count(&self) -> Option<u64> {

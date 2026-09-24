@@ -1,15 +1,21 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Button,
-  Drawer,
+  Checkbox,
   Icon,
   LoadingSpinner,
   NumberInput,
   Select,
   TextInput,
-  Toggle,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -18,27 +24,31 @@ import {
   isWebGpuAvailable,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
-import {
-  ExperimentsActionsContext,
-  type ExperimentMetricSpecInput,
-} from "../../../../../../react/experiments/context";
 import {
   axisDisplayName,
   buildAdHocSweepAxes,
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
-  type ExperimentParameterRangeInput,
 } from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import {
+  OverlayScrollArea,
+  overlayScrollDrawerBodyStyle,
+  overlayScrollDrawerViewportStyle,
+} from "../../../../../components/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
+import { FocusControls } from "../../../../../worksheet/focus-controls";
+import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { useMetricLspSession } from "../metrics/metric-form";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import {
@@ -48,7 +58,30 @@ import {
   type MetricKindGroup,
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
+import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
+import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
+import {
+  type ConstraintDraftsState,
+  EMPTY_CONSTRAINT_DRAFTS,
+} from "./create-experiment-drawer/constraint-drafts";
+import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
+import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
+import {
+  fieldStyle,
+  gridStyle,
+  labelStyle,
+} from "./create-experiment-drawer/form-field-styles";
+import {
+  constraintPolicyFor,
+  lowerConstraintDrafts,
+  stateConstraintGateSpecs,
+} from "./create-experiment-drawer/lower-constraint-drafts";
+import {
+  MetricObjectiveControl,
+  OptimizationBudget,
+} from "./create-experiment-drawer/metric-optimization";
+import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
@@ -56,76 +89,24 @@ import {
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
+import {
+  EMPTY_SWEEP_OBJECTIVE,
+  resolveObjectiveMetricId,
+  sweepObjectiveError,
+  sweepObjectiveFor,
+} from "./shared/sweep-objective";
+import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
+import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
   Scenario,
-  ScenarioParameter,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+import type { ReactNode } from "react";
 
 // -- Styles -------------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "3",
-});
-
-const paramRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
-
-const paramNameStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  width: "[140px]",
-  flexShrink: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const paramTypeStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  width: "[60px]",
-  flexShrink: 0,
-});
-
-const paramSweepToggleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flexShrink: 0,
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const paramRangeStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flex: "1",
-  minWidth: "[0]",
-  "& > *": { flex: "1", minWidth: "[0]" },
-});
 
 const sweepSummaryStyle = css({
   fontSize: "xs",
@@ -162,6 +143,10 @@ const metricRowStyle = css({
   borderRadius: "md",
   backgroundColor: "neutral.s00",
   overflow: "hidden",
+  "&[data-objective=true]": {
+    borderColor: "purple.s60",
+    backgroundColor: "purple.s10",
+  },
 });
 
 const metricRowHeaderStyle = css({
@@ -192,6 +177,10 @@ const metricCollapseButtonStyle = css({
   background: "[transparent]",
   color: "neutral.s120",
   cursor: "pointer",
+  _focusVisible: {
+    outline: "[2px solid {colors.neutral.s100}]",
+    outlineOffset: "[2px]",
+  },
 });
 
 const metricCollapseIconStyle = css({
@@ -211,6 +200,14 @@ const metricTitleGroupStyle = css({
 const metricTitleInputStyle = css({
   fontWeight: "semibold",
   marginRight: "1",
+});
+
+const metricTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const metricKindTriggerLabelStyle = css({
@@ -252,15 +249,6 @@ const codeDiagnosticStyle = css({
   fontSize: "xs",
   color: "red.s100",
   whiteSpace: "pre-wrap",
-});
-
-const emptyParamsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingY: "[16px]",
-  fontSize: "sm",
-  color: "neutral.s80",
 });
 
 const errorStyle = css({
@@ -381,23 +369,35 @@ function getMetricSummaryLabel(
   return getMetricKindLabel(metric.kind);
 }
 
-function getDefaultMetricLabel(
-  kind: ExperimentMetricKind,
+const getMetricLabel = (
+  metric: ExperimentMetricDraft,
   sdcpn: SDCPN,
-): string {
-  switch (kind) {
-    case "placeTokenCountMean":
-      return sdcpn.places[0]
-        ? `${sdcpn.places[0].name} tokens`
-        : "Place tokens";
-    case "transitionFiringCount":
-      return sdcpn.transitions[0]
-        ? `${sdcpn.transitions[0].name} firing`
+): string => {
+  switch (metric.kind) {
+    case "placeTokenCountMean": {
+      const selectedPlace = sdcpn.places.find(
+        (place) => place.id === metric.placeId,
+      );
+      return selectedPlace ? `${selectedPlace.name} tokens` : "Place tokens";
+    }
+    case "transitionFiringCount": {
+      const selectedTransition = sdcpn.transitions.find(
+        (transition) => transition.id === metric.transitionId,
+      );
+      const mode =
+        metric.transitionMode === "cumulative" ? "cumulative" : "per frame";
+      return selectedTransition
+        ? `${selectedTransition.name} firing (${mode})`
         : "Transition firing";
+    }
     case "expression":
-      return "Custom metric";
+      return (
+        sdcpn.metrics?.find(
+          (candidate) => candidate.id === metric.sourceMetricId,
+        )?.name ?? metric.label.trim()
+      );
   }
-}
+};
 
 function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   const trimmed = label.trim();
@@ -405,11 +405,6 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   return new Set([
     "",
     "Custom metric",
-    "Place tokens",
-    "Transition firing",
-    getDefaultMetricLabel("placeTokenCountMean", sdcpn),
-    getDefaultMetricLabel("transitionFiringCount", sdcpn),
-    getDefaultMetricLabel("expression", sdcpn),
     ...(sdcpn.metrics ?? []).map((metric) => metric.name),
   ]).has(trimmed);
 }
@@ -426,7 +421,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
   return {
     id: crypto.randomUUID(),
     kind,
-    label: getDefaultMetricLabel(kind, sdcpn),
+    label: "Custom metric",
     expanded: true,
     placeId: place?.id ?? "",
     transitionId: transition?.id ?? "",
@@ -447,7 +442,7 @@ function buildMetricSpecs(
   }
 
   return drafts.map((draft, index) => {
-    const label = draft.label.trim();
+    const label = getMetricLabel(draft, sdcpn);
 
     if (label === "") {
       throw new Error(`Metric ${index + 1} needs a label`);
@@ -512,81 +507,6 @@ function buildMetricSpecs(
 
 // -- Component ----------------------------------------------------------------
 
-/** The interval a parameter starts sweeping with: around its default. */
-function initialRangeFor(
-  param: ScenarioParameter,
-): ExperimentParameterRangeInput {
-  const base = typeof param.default === "number" ? param.default : 0;
-  if (param.type === "ratio") {
-    return { mode: "range", min: 0, max: 1 };
-  }
-  const spread = Math.max(Math.abs(base), 1);
-  const min =
-    param.type === "integer" ? Math.round(base - spread) : base - spread;
-  const max =
-    param.type === "integer" ? Math.round(base + spread) : base + spread;
-  return { mode: "range", min, max };
-}
-
-const ScenarioParameterRow = ({
-  param,
-  value,
-  sweepable,
-  onChange,
-}: {
-  param: ScenarioParameter;
-  value: ExperimentParameterInput;
-  /** Whether the parameter may be turned into an interval. */
-  sweepable: boolean;
-  onChange: (value: ExperimentParameterInput) => void;
-}) => (
-  <div className={paramRowStyle}>
-    <span className={paramNameStyle}>{param.identifier}</span>
-    <span className={paramTypeStyle}>{param.type}</span>
-    {value.mode === "range" ? (
-      <div className={paramRangeStyle}>
-        <NumberInput
-          size="sm"
-          aria-label={`${param.identifier} minimum`}
-          step="any"
-          value={Number.isFinite(value.min) ? value.min : null}
-          onChange={(min) => onChange({ ...value, min: min ?? Number.NaN })}
-        />
-        <NumberInput
-          size="sm"
-          aria-label={`${param.identifier} maximum`}
-          step="any"
-          value={Number.isFinite(value.max) ? value.max : null}
-          onChange={(max) => onChange({ ...value, max: max ?? Number.NaN })}
-        />
-      </div>
-    ) : (
-      <CodeEditor
-        singleLine
-        language="typescript"
-        value={value.value}
-        onChange={(v) => onChange({ mode: "fixed", value: v ?? "" })}
-        placeholder={String(param.default)}
-      />
-    )}
-    {sweepable && param.type !== "boolean" ? (
-      <span className={paramSweepToggleStyle}>
-        Sweep
-        <Toggle
-          size="sm"
-          aria-label={`Sweep ${param.identifier}`}
-          value={value.mode === "range"}
-          onChange={(checked) =>
-            onChange(
-              checked ? initialRangeFor(param) : { mode: "fixed", value: "" },
-            )
-          }
-        />
-      </span>
-    ) : null}
-  </div>
-);
-
 const ExperimentMetricLspSession = ({
   code,
   metricSessionId,
@@ -617,12 +537,14 @@ const ExperimentExpressionMetricEditor = ({
   lspDiagnostics,
   readOnly = false,
   onChange,
+  onEscape,
 }: {
   code: string;
   metricSessionId: string;
   lspDiagnostics: MetricLspDiagnosticSummary;
   readOnly?: boolean;
   onChange: (code: string) => void;
+  onEscape: () => void;
 }) => {
   const codeUri = getMetricDocumentUri(metricSessionId);
 
@@ -635,7 +557,12 @@ const ExperimentExpressionMetricEditor = ({
         value={code}
         onChange={(value) => onChange(value ?? "")}
         height="260px"
-        options={readOnly ? { readOnly: true } : undefined}
+        options={{
+          readOnly,
+          tabFocusMode: true,
+          ariaLabel: "Custom metric code",
+        }}
+        onEscape={onEscape}
       />
       {lspDiagnostics.count > 0 ? (
         <span className={codeDiagnosticStyle}>
@@ -651,21 +578,31 @@ const ExperimentMetricRow = ({
   sdcpn,
   kindGroups,
   autoFocusLabel,
+  isObjective,
   onChange,
   onLspDiagnosticsChange,
   onRemove,
+  footer,
+  triggerRef,
 }: {
   metric: ExperimentMetricDraft;
   sdcpn: SDCPN;
   kindGroups: MetricKindGroup[];
   autoFocusLabel: boolean;
-  onChange: (metric: ExperimentMetricDraft) => void;
+  isObjective: boolean;
+  onChange: (metricId: string, patch: Partial<ExperimentMetricDraft>) => void;
   onLspDiagnosticsChange: (diagnostics: MetricLspDiagnosticSummary) => void;
   onRemove: () => void;
+  footer?: ReactNode;
+  triggerRef: (element: HTMLButtonElement | null) => void;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
   const labelInputRef = useRef<HTMLInputElement>(null);
+  const collapseButtonRef = useRef<HTMLButtonElement>(null);
   const didAutoFocusLabelRef = useRef(false);
+  const metricLabel = getMetricLabel(metric, sdcpn);
+  const isCustomMetric =
+    metric.kind === "expression" && metric.sourceMetricId === null;
   const placeOptions: SelectItem<string>[] = sdcpn.places.map((place) => ({
     value: place.id,
     text: place.name,
@@ -677,7 +614,7 @@ const ExperimentMetricRow = ({
     }),
   );
   const updateMetric = (patch: Partial<ExperimentMetricDraft>) => {
-    onChange({ ...metric, ...patch });
+    onChange(metric.id, patch);
   };
   const handleKindChange = (kindValue: string) => {
     // A custom metric defined on the model becomes an expression metric
@@ -707,7 +644,7 @@ const ExperimentMetricRow = ({
 
     const nextKind = kindValue as ExperimentMetricKind;
     const nextLabel = canReplaceMetricLabel(metric.label, sdcpn)
-      ? getDefaultMetricLabel(nextKind, sdcpn)
+      ? "Custom metric"
       : metric.label;
     const nextPatch: Partial<ExperimentMetricDraft> = {
       kind: nextKind,
@@ -736,20 +673,23 @@ const ExperimentMetricRow = ({
   };
 
   useLayoutEffect(() => {
-    if (!autoFocusLabel || didAutoFocusLabelRef.current) {
+    if (!isCustomMetric || !autoFocusLabel || didAutoFocusLabelRef.current) {
       return;
     }
 
     didAutoFocusLabelRef.current = true;
     labelInputRef.current?.focus();
     labelInputRef.current?.select();
-  }, [autoFocusLabel]);
+  }, [autoFocusLabel, isCustomMetric]);
 
   return (
     <Collapsible.Root
       open={metric.expanded}
       onOpenChange={(details) => updateMetric({ expanded: details.open })}
       className={metricRowStyle}
+      data-objective={isObjective}
+      role="group"
+      aria-label={metricLabel || "Untitled metric"}
     >
       {metric.kind === "expression" ? (
         <ExperimentMetricLspSession
@@ -761,7 +701,14 @@ const ExperimentMetricRow = ({
       <div className={metricRowHeaderStyle}>
         <div className={metricHeaderMainStyle}>
           <Collapsible.Trigger className={metricCollapseButtonStyle} asChild>
-            <button type="button" aria-label="Toggle metric">
+            <button
+              type="button"
+              aria-label="Toggle metric"
+              ref={(element) => {
+                collapseButtonRef.current = element;
+                triggerRef(element);
+              }}
+            >
               <Icon
                 name="chevronRight"
                 size="xs"
@@ -771,21 +718,30 @@ const ExperimentMetricRow = ({
             </button>
           </Collapsible.Trigger>
           <div className={metricTitleGroupStyle}>
-            <TextInput
-              inputRef={labelInputRef}
-              className={metricTitleInputStyle}
-              size="sm"
-              variant="subtle"
-              value={metric.label}
-              placeholder="Untitled metric"
-              aria-label="Metric label"
-              onChange={(label) => {
-                updateMetric({ label });
-              }}
-            />
+            {isCustomMetric ? (
+              <TextInput
+                inputRef={labelInputRef}
+                className={metricTitleInputStyle}
+                size="sm"
+                variant="subtle"
+                value={metric.label}
+                placeholder="Untitled metric"
+                aria-label="Metric label"
+                onChange={(label) => {
+                  updateMetric({ label });
+                }}
+              />
+            ) : (
+              <span className={metricTitleStyle} title={metricLabel}>
+                {metricLabel}
+              </span>
+            )}
           </div>
           <Select
             required
+            aria-label="Metric type"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- adding a metric explicitly moves focus into its row
+            autoFocus={autoFocusLabel && metric.kind !== "expression"}
             value={
               metric.sourceMetricId
                 ? `${MODEL_METRIC_VALUE_PREFIX}${metric.sourceMetricId}`
@@ -839,6 +795,7 @@ const ExperimentMetricRow = ({
                   <span className={labelStyle}>Place</span>
                   <Select
                     required
+                    aria-label="Place"
                     value={metric.placeId}
                     onChange={(placeId) => updateMetric({ placeId })}
                     items={placeOptions}
@@ -852,6 +809,7 @@ const ExperimentMetricRow = ({
                     <span className={labelStyle}>Transition</span>
                     <Select
                       required
+                      aria-label="Transition"
                       value={metric.transitionId}
                       onChange={(transitionId) =>
                         updateMetric({ transitionId })
@@ -864,6 +822,7 @@ const ExperimentMetricRow = ({
                     <span className={labelStyle}>Count</span>
                     <Select
                       required
+                      aria-label="Count mode"
                       value={metric.transitionMode}
                       onChange={(transitionMode) =>
                         updateMetric({ transitionMode })
@@ -884,10 +843,12 @@ const ExperimentMetricRow = ({
               lspDiagnostics={metric.lspDiagnostics}
               readOnly={metric.sourceMetricId !== null}
               onChange={(code) => updateMetric({ code })}
+              onEscape={() => collapseButtonRef.current?.focus()}
             />
           ) : null}
         </div>
       </Collapsible.Content>
+      {footer}
     </Collapsible.Root>
   );
 };
@@ -904,11 +865,9 @@ export const CreateExperimentDrawer = ({
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
-  // Read here, not in ExperimentsProvider: that provider is mounted outside
-  // UserSettingsProvider and so cannot see these settings.
-  const { webGpuEnabled, enableAdHocScenarios, enableParameterSweeps } =
-    use(UserSettingsContext);
-  const { createExperiment } = use(ExperimentsActionsContext);
+  const createOptimizedExperiment = useCreateOptimizedExperiment();
+  const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
+  const optimizationSource = use(PetrinautOptimizationContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -923,12 +882,21 @@ export const CreateExperimentDrawer = ({
   const [dt, setDt] = useState(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
+  const [constraintDrafts, setConstraintDrafts] =
+    useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
+  const [objectiveDraft, setObjectiveDraft] = useState(EMPTY_SWEEP_OBJECTIVE);
+  const [startOptimizerImmediately, setStartOptimizerImmediately] =
+    useState(false);
+  const objectiveGroupName = useId();
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gpuRequested, setGpuRequested] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const addMetricButtonRef = useRef<HTMLButtonElement>(null);
+  const metricTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
 
   const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
     scenarios,
@@ -956,10 +924,9 @@ export const CreateExperimentDrawer = ({
     places: petriNetDefinition.places,
     types: extensions.colors ? petriNetDefinition.types : [],
   };
-  const adHocSweeping =
-    enableAdHocScenarios &&
-    enableParameterSweeps &&
-    effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const adHocSweeping = effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const optimizerConnected =
+    optimizationSource !== null && isConnectedOptimization(optimizationSource);
 
   /**
    * The sweep the current interval inputs define. `error` carries the first
@@ -984,8 +951,10 @@ export const CreateExperimentDrawer = ({
       axes.push(outcome.axis);
     }
     if (adHocSweeping && adHocState) {
-      // A definition that does not synthesize reports at its slots and
-      // refuses to run on submit; the summary only speaks for its sweeps.
+      // A definition that does not synthesize reports at its slots. While a
+      // toggle is on, the summary carries its first error the way a saved
+      // scenario's invalid interval does, so the Objective section and the
+      // footer word hold their place while a bound is being edited.
       const synthesized = synthesizeAdHocOptimization(
         adHocState,
         adHocFormContext,
@@ -996,43 +965,96 @@ export const CreateExperimentDrawer = ({
           return { text: outcome.error, tone: "error", error: true };
         }
         axes.push(...outcome.axes);
+      } else if (hasAdHocIntervalToggle(adHocState)) {
+        const firstError = synthesized.errors[0];
+        if (firstError) {
+          return { text: firstError.message, tone: "error", error: true };
+        }
       }
     }
     if (axes.length === 0) {
       return null;
     }
     const names = axes.map(axisDisplayName).join(", ");
+    const intervals =
+      axes.length === 1 ? "over its interval" : "over their intervals";
     return {
-      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
+      text: `${names} swept ${intervals}`,
       tone: "neutral",
       error: false,
     };
   })();
 
-  // Shown under whichever scenario body is on screen: the classic rows, the
-  // ad-hoc form, or a saved scenario shown through it.
+  // Shown under whichever scenario body is on screen: the form, or a saved
+  // scenario shown through it.
   const sweepSummaryLine = sweepSummary ? (
     <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
       {sweepSummary.text}
     </span>
   ) : null;
 
-  const footerError = error ?? metricFormError;
-  const canRun =
-    !isSubmitting && metricFormError === null && sweepSummary?.error !== true;
+  // Constraints use a saved scenario's parameter names. Hidden drafts stay in
+  // state and are lowered only when their section is enabled.
+  const optimizationAvailable = optimizerConnected && sweepSummary !== null;
+  const objectiveEnabled = optimizationAvailable && startOptimizerImmediately;
+  const constraintsEnabled =
+    optimizationAvailable && selectedScenario !== undefined;
+  const constraintLspError = constraintsEnabled
+    ? summarizeConstraintLspErrors(diagnosticsByUri, constraintDrafts.rows)
+    : null;
+  const objectiveMetricId = resolveObjectiveMetricId(
+    objectiveDraft,
+    metricDrafts,
+  );
+  const objectiveExecution = {
+    dt: Number(dt),
+    maxTime: Number(maxTime),
+    runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
+  };
+  const objectiveError = objectiveEnabled
+    ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
+    : null;
+
+  const formError =
+    metricFormError ??
+    objectiveError ??
+    constraintLspError ??
+    (sweepSummary?.error ? sweepSummary.text : null);
+  const footerError = error ?? formError;
+  const canRun = !isSubmitting && formError === null;
+  const submitLabel = objectiveEnabled
+    ? isSubmitting
+      ? "Starting"
+      : "Optimize"
+    : sweepSummary
+      ? isSubmitting
+        ? "Creating"
+        : "Create sweep"
+      : isSubmitting
+        ? "Starting"
+        : "Run";
 
   // `null` while the drafts are incomplete: the GPU metric gate has nothing to
-  // judge yet, and Run is disabled for the same reason.
+  // judge yet, and Run is disabled for the same reason. A drafted state
+  // constraint rides along as the placeholder spec the gate refuses.
   let draftMetricSpecs: ExperimentMetricSpecInput[] | null = null;
   try {
-    draftMetricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
+    draftMetricSpecs = [
+      ...buildMetricSpecs(metricDrafts, petriNetDefinition),
+      ...(constraintsEnabled
+        ? stateConstraintGateSpecs(
+            constraintDrafts,
+            petriNetDefinition.places[0]?.id,
+          )
+        : []),
+    ];
   } catch {
     draftMetricSpecs = null;
   }
 
   const webGpuAvailable = isWebGpuAvailable();
   const gpu = useGpuAvailability({
-    enabled: open && webGpuEnabled && webGpuAvailable,
+    enabled: open && webGpuAvailable,
     sdcpn: petriNetDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
@@ -1054,6 +1076,9 @@ export const CreateExperimentDrawer = ({
     setDt(DEFAULT_DT);
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
+    setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
+    setObjectiveDraft(EMPTY_SWEEP_OBJECTIVE);
+    setStartOptimizerImmediately(false);
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
@@ -1072,6 +1097,8 @@ export const CreateExperimentDrawer = ({
   const handleScenarioChange = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId);
     setParamInputs({});
+    // The rows type-checked against the previous scenario's parameters.
+    setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setError(null);
   };
 
@@ -1086,10 +1113,15 @@ export const CreateExperimentDrawer = ({
     ]);
   };
 
-  const handleMetricChange = (nextMetric: ExperimentMetricDraft) => {
+  const handleMetricChange = (
+    metricId: string,
+    patch: Partial<ExperimentMetricDraft>,
+  ) => {
     setError(null);
     setMetricDrafts((prev) =>
-      prev.map((metric) => (metric.id === nextMetric.id ? nextMetric : metric)),
+      prev.map((metric) =>
+        metric.id === metricId ? { ...metric, ...patch } : metric,
+      ),
     );
   };
 
@@ -1122,8 +1154,15 @@ export const CreateExperimentDrawer = ({
   };
 
   const handleMetricRemove = (metricId: string) => {
+    const index = metricDrafts.findIndex((metric) => metric.id === metricId);
+    const nextMetric = metricDrafts[index + 1] ?? metricDrafts[index - 1];
     setError(null);
     setMetricDrafts((prev) => prev.filter((metric) => metric.id !== metricId));
+    if (nextMetric) {
+      metricTriggerRefs.current.get(nextMetric.id)?.focus();
+    } else {
+      addMetricButtonRef.current?.focus();
+    }
   };
 
   const handleSubmit = async () => {
@@ -1141,28 +1180,61 @@ export const CreateExperimentDrawer = ({
 
     try {
       const metricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
-      await createExperiment({
-        name,
-        scenarioId:
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-            ? null
-            : effectiveSelectedScenarioId,
-        scenarioParameterValues: paramInputs,
-        adHocScenario:
-          enableAdHocScenarios &&
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-            ? adHocState
-            : null,
-        adHocSweeps: adHocSweeping,
-        runCount: Number(runCount),
-        seed: Number(seed),
-        dt: Number(dt),
-        maxTime: Number(maxTime),
-        metricSpecs,
-        // Read here rather than in ExperimentsProvider, which is mounted outside
-        // UserSettingsProvider and so cannot see this setting.
-        computeBackend,
-      });
+      // Lowered against the net at creation and never re-lowered; a row that
+      // does not compile rejects with its label and lands in the footer.
+      const constraints = constraintsEnabled
+        ? await lowerConstraintDrafts({
+            drafts: constraintDrafts,
+            requestConstraint,
+            context: {
+              netParameters: extensions.parameters
+                ? petriNetDefinition.parameters
+                : [],
+              scenarioParameters: selectedScenario.scenarioParameters,
+              sdcpn: petriNetDefinition,
+              extensions,
+            },
+          })
+        : [];
+      // Create, start the study when there is an objective, then select:
+      // the results drawer mounts with the study already in place, and a
+      // study that cannot start leaves no experiment behind.
+      await createOptimizedExperiment(
+        {
+          name,
+          scenarioId:
+            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+              ? null
+              : effectiveSelectedScenarioId,
+          scenarioParameterValues: paramInputs,
+          adHocScenario:
+            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+              ? adHocState
+              : null,
+          adHocSweeps: adHocSweeping,
+          runCount: Number(runCount),
+          seed: Number(seed),
+          dt: Number(dt),
+          maxTime: Number(maxTime),
+          metricSpecs,
+          // Read here rather than in ExperimentsProvider, which is mounted outside
+          // UserSettingsProvider and so cannot see this setting.
+          computeBackend,
+          constraints,
+          constraintPolicy:
+            constraints.length > 0
+              ? constraintPolicyFor(constraintDrafts.passThresholdPercent)
+              : undefined,
+        },
+        objectiveEnabled
+          ? sweepObjectiveFor(
+              objectiveDraft,
+              objectiveMetricId,
+              objectiveExecution,
+            )
+          : null,
+      );
+      // A no-op on the unmounted drawer once the selection navigated away.
       resetForm();
     } catch (submitError) {
       setIsSubmitting(false);
@@ -1179,265 +1251,369 @@ export const CreateExperimentDrawer = ({
   }
 
   return (
-    <Drawer
-      shouldCloseOn={isSubmitting ? "none" : undefined}
-      showBackdrop={false}
-      onClose={handleClose}
-    >
-      <Drawer.Header
-        title="Create an experiment"
-        description="Run a Monte Carlo experiment from the current model and scenario"
-      />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
-        <SectionList>
-          <Section title="Experiment" collapsible defaultOpen>
-            <div className={fieldStyle}>
-              <span className={labelStyle}>Name</span>
-              <TextInput size="sm" value={name} onChange={setName} />
-            </div>
-            <div className={gridStyle}>
-              <div className={fieldStyle}>
-                {/* A sweep refines each selection progressively (8, 25, 100,
+    <FocusRoot>
+      <FocusStack axis="vertical">
+        <SimulationPanel
+          title="Create an experiment"
+          layer="creation"
+          closeDisabled={isSubmitting}
+          onClose={handleClose}
+          initialFocusRef={nameInputRef}
+        >
+          <FocusControls axis="horizontal">
+            <SimulationPanel.Header description="Run a Monte Carlo experiment from the current model and scenario" />
+          </FocusControls>
+          <SimulationPanel.Body
+            withPadding={false}
+            scrollable={false}
+            className={overlayScrollDrawerBodyStyle}
+          >
+            <OverlayScrollArea
+              viewportClassName={overlayScrollDrawerViewportStyle}
+            >
+              <SectionList>
+                <Section title="Experiment" collapsible defaultOpen>
+                  <FocusControls>
+                    <div className={fieldStyle}>
+                      <label className={labelStyle} htmlFor="experiment-name">
+                        Name
+                      </label>
+                      <TextInput
+                        htmlForId="experiment-name"
+                        inputRef={nameInputRef}
+                        aria-label="Experiment name"
+                        size="sm"
+                        value={name}
+                        onChange={setName}
+                      />
+                    </div>
+                  </FocusControls>
+                  <FocusControls axis="horizontal">
+                    <div className={gridStyle}>
+                      <div className={fieldStyle}>
+                        {/* A sweep refines each selection progressively (8, 25, 100,
                     ... 1000, 5000, ...) up to this budget, so for sweeps this
                     is a ceiling, not a batch size — 100,000 is a reasonable
                     value on the GPU. */}
-                <span className={labelStyle}>
-                  {sweepSummary ? "Max runs per selection" : "Runs"}
-                </span>
-                <NumberInput
-                  size="sm"
-                  min={1}
-                  value={runCount === "" ? null : Number(runCount)}
-                  onChange={(nextRunCount) =>
-                    setRunCount(
-                      nextRunCount === null ? "" : String(nextRunCount),
-                    )
-                  }
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Time step</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  step="any"
-                  value={dt === "" ? null : Number(dt)}
-                  onChange={(nextDt) =>
-                    setDt(nextDt === null ? "" : String(nextDt))
-                  }
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Max time (s)</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  step="any"
-                  value={maxTime === "" ? null : Number(maxTime)}
-                  onChange={(nextMaxTime) =>
-                    setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
-                  }
-                />
-              </div>
-              {/* A labelled cell in the same grid as Runs / Time step / Max time:
+                        <label className={labelStyle} htmlFor="experiment-runs">
+                          {sweepSummary ? "Max runs per selection" : "Runs"}
+                        </label>
+                        <NumberInput
+                          htmlForId="experiment-runs"
+                          size="sm"
+                          min={1}
+                          value={runCount === "" ? null : Number(runCount)}
+                          onChange={(nextRunCount) =>
+                            setRunCount(
+                              nextRunCount === null ? "" : String(nextRunCount),
+                            )
+                          }
+                        />
+                      </div>
+                      <div className={fieldStyle}>
+                        <label
+                          className={labelStyle}
+                          htmlFor="experiment-time-step"
+                        >
+                          Time step
+                        </label>
+                        <NumberInput
+                          htmlForId="experiment-time-step"
+                          size="sm"
+                          min={0}
+                          step="any"
+                          value={dt === "" ? null : Number(dt)}
+                          onChange={(nextDt) =>
+                            setDt(nextDt === null ? "" : String(nextDt))
+                          }
+                        />
+                      </div>
+                      <div className={fieldStyle}>
+                        <label
+                          className={labelStyle}
+                          htmlFor="experiment-max-time"
+                        >
+                          Max time (s)
+                        </label>
+                        <NumberInput
+                          htmlForId="experiment-max-time"
+                          aria-label="Max time (seconds)"
+                          size="sm"
+                          min={0}
+                          step="any"
+                          value={maxTime === "" ? null : Number(maxTime)}
+                          onChange={(nextMaxTime) =>
+                            setMaxTime(
+                              nextMaxTime === null ? "" : String(nextMaxTime),
+                            )
+                          }
+                        />
+                      </div>
+                      {/* A labelled cell in the same grid as Runs / Time step / Max time:
                   the backend is a property of the experiment like the rest, and a
                   bare control below the grid read as an orphan. */}
-              {webGpuEnabled && webGpuAvailable && (
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Backend</span>
-                  <ComputeBackendToggle
-                    gpu={gpu}
-                    selected={gpuSelected}
-                    onSelectedChange={setGpuRequested}
-                  />
-                </div>
-              )}
-            </div>
-            {/* Only shown once WebGPU is switched on in settings — otherwise the
-                choice does not exist and the row would be noise. */}
-          </Section>
-
-          <Section title="Scenario" collapsible defaultOpen>
-            <div className={fieldStyle}>
-              <Select
-                required
-                value={effectiveSelectedScenarioId}
-                onChange={handleScenarioChange}
-                items={scenarioOptions}
-                size="sm"
-                renderItem={(value) => {
-                  const option = scenarioOptions.find(
-                    (opt) => opt.value === value,
-                  );
-                  return (
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      {value === NO_SCENARIO_VALUE && (
-                        <Icon
-                          name="dash"
-                          size="xs"
-                          className={css({ opacity: "[0.4]" })}
-                        />
+                      {webGpuAvailable && (
+                        <div className={fieldStyle}>
+                          <span className={labelStyle}>Backend</span>
+                          <ComputeBackendToggle
+                            gpu={gpu}
+                            selected={gpuSelected}
+                            onSelectedChange={setGpuRequested}
+                          />
+                        </div>
                       )}
-                      {option?.text}
-                    </span>
-                  );
-                }}
-              />
-            </div>
+                    </div>
+                  </FocusControls>
+                  {/* Only shown once WebGPU is switched on in settings — otherwise the
+                choice does not exist and the row would be noise. */}
+                </Section>
 
-            {selectedScenario ? (
-              enableAdHocScenarios ? (
-                // The selected scenario shows through the ad-hoc form in run
-                // mode: scenario parameters editable in worksheet style, and
-                // a collapsed "Computed state" preview of the exact values
-                // and tokens each run starts with.
-                <>
-                  <ExperimentScenarioRun
-                    scenario={selectedScenario}
-                    context={adHocFormContext}
-                    inputs={paramInputs}
-                    sweepable={enableParameterSweeps}
-                    onInputsChange={(updates) =>
-                      setParamInputs((prev) => {
-                        const next = { ...prev };
-                        for (const update of updates) {
-                          next[update.identifier] = update.input;
+                <Section title="Scenario" collapsible defaultOpen>
+                  <FocusControls>
+                    <div className={fieldStyle}>
+                      <Select
+                        required
+                        aria-label="Scenario"
+                        value={effectiveSelectedScenarioId}
+                        onChange={handleScenarioChange}
+                        items={scenarioOptions}
+                        size="sm"
+                        renderItem={(value) => {
+                          const option = scenarioOptions.find(
+                            (opt) => opt.value === value,
+                          );
+                          return (
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              {value === NO_SCENARIO_VALUE && (
+                                <Icon
+                                  name="dash"
+                                  size="xs"
+                                  className={css({ opacity: "[0.4]" })}
+                                />
+                              )}
+                              {option?.text}
+                            </span>
+                          );
+                        }}
+                      />
+                    </div>
+                  </FocusControls>
+
+                  {selectedScenario ? (
+                    // The selected scenario shows through the form in run mode:
+                    // scenario parameters editable in worksheet style, and a
+                    // collapsed "Computed state" preview of the exact values and
+                    // tokens each run starts with.
+                    <>
+                      <ExperimentScenarioRun
+                        scenario={selectedScenario}
+                        context={adHocFormContext}
+                        inputs={paramInputs}
+                        selection="sweep"
+                        onInputsChange={(updates) =>
+                          setParamInputs((prev) => {
+                            const next = { ...prev };
+                            for (const update of updates) {
+                              next[update.identifier] = update.input;
+                            }
+                            return next;
+                          })
                         }
-                        return next;
-                      })
-                    }
-                  />
-                  {sweepSummaryLine}
-                </>
-              ) : selectedScenario.scenarioParameters.length === 0 ? (
-                <div className={emptyParamsStyle}>No scenario parameters</div>
-              ) : (
-                <>
-                  {selectedScenario.scenarioParameters.map((param) => (
-                    <ScenarioParameterRow
-                      key={param.identifier}
-                      param={param}
-                      sweepable={enableParameterSweeps}
-                      value={
-                        paramInputs[param.identifier] ?? {
-                          mode: "fixed",
-                          value: "",
-                        }
-                      }
-                      onChange={(v) =>
-                        setParamInputs((prev) => ({
-                          ...prev,
-                          [param.identifier]: v,
-                        }))
-                      }
+                      />
+                      {sweepSummaryLine}
+                    </>
+                  ) : (
+                    // With no scenario, the experiment's Initial State + Parameters
+                    // are defined inline and compile through a scenario generated
+                    // at experiment start, never persisted. Left untouched, the
+                    // experiment runs from the model's own initial marking.
+                    <>
+                      <AdHocScenarioForm
+                        state={adHocState ?? EMPTY_AD_HOC_STATE}
+                        onChange={setAdHocState}
+                        context={adHocFormContext}
+                        selection="sweep"
+                      />
+                      {sweepSummaryLine}
+                    </>
+                  )}
+                </Section>
+
+                <Section
+                  title={objectiveEnabled ? "Metrics & objective" : "Metrics"}
+                  collapsible
+                  defaultOpen
+                >
+                  <FocusControls>
+                    <div className={metricListStyle}>
+                      {optimizationAvailable ? (
+                        <Checkbox
+                          size="sm"
+                          label="Start optimizer immediately"
+                          value={startOptimizerImmediately}
+                          onChange={setStartOptimizerImmediately}
+                          disabled={isSubmitting}
+                        />
+                      ) : null}
+                      <div className={metricHeaderStyle}>
+                        <span className={metricCountStyle}>
+                          {metricDrafts.length === 0
+                            ? objectiveEnabled
+                              ? "Add a metric to optimize"
+                              : "No experiment metrics"
+                            : `${metricDrafts.length} experiment metric${
+                                metricDrafts.length === 1 ? "" : "s"
+                              }`}
+                        </span>
+                        <Button
+                          variant="subtle"
+                          tone="neutral"
+                          size="sm"
+                          prefix={<Icon name="plus" size="sm" />}
+                          onClick={handleAddMetric}
+                          ref={addMetricButtonRef}
+                        >
+                          Add metric
+                        </Button>
+                      </div>
+
+                      {metricDrafts.map((metric) => (
+                        <ExperimentMetricRow
+                          key={metric.id}
+                          metric={metric}
+                          sdcpn={petriNetDefinition}
+                          kindGroups={metricKindGroups}
+                          autoFocusLabel={metric.id === metricLabelFocusId}
+                          isObjective={
+                            objectiveEnabled && metric.id === objectiveMetricId
+                          }
+                          onChange={handleMetricChange}
+                          onLspDiagnosticsChange={(diagnostics) =>
+                            handleMetricLspDiagnosticsChange(
+                              metric.id,
+                              diagnostics,
+                            )
+                          }
+                          onRemove={() => handleMetricRemove(metric.id)}
+                          footer={
+                            objectiveEnabled ? (
+                              <MetricObjectiveControl
+                                metricId={metric.id}
+                                metricLabel={getMetricLabel(
+                                  metric,
+                                  petriNetDefinition,
+                                )}
+                                groupName={objectiveGroupName}
+                                direction={
+                                  metric.id === objectiveMetricId
+                                    ? objectiveDraft.direction
+                                    : null
+                                }
+                                disabled={isSubmitting}
+                                onSelect={() =>
+                                  setObjectiveDraft((draft) => ({
+                                    ...draft,
+                                    metricId: metric.id,
+                                  }))
+                                }
+                                onDirectionChange={(direction) =>
+                                  setObjectiveDraft((draft) => ({
+                                    ...draft,
+                                    direction,
+                                  }))
+                                }
+                              />
+                            ) : undefined
+                          }
+                          triggerRef={(element) => {
+                            if (element) {
+                              metricTriggerRefs.current.set(metric.id, element);
+                            } else {
+                              metricTriggerRefs.current.delete(metric.id);
+                            }
+                          }}
+                        />
+                      ))}
+
+                      {objectiveEnabled && metricDrafts.length > 0 ? (
+                        <OptimizationBudget
+                          steps={objectiveDraft.steps}
+                          error={objectiveError}
+                          onChange={(steps) =>
+                            setObjectiveDraft((draft) => ({ ...draft, steps }))
+                          }
+                          disabled={isSubmitting}
+                        />
+                      ) : null}
+                    </div>
+                  </FocusControls>
+                </Section>
+
+                {constraintsEnabled ? (
+                  <FocusControls>
+                    <ConstraintsSection
+                      drafts={constraintDrafts}
+                      onChange={setConstraintDrafts}
+                      scenarioParameters={selectedScenario.scenarioParameters}
+                      placeNames={petriNetDefinition.places.map(
+                        (place) => place.name,
+                      )}
+                      disabled={isSubmitting}
                     />
-                  ))}
-                  {sweepSummaryLine}
-                </>
-              )
-            ) : enableAdHocScenarios ? (
-              // With no scenario, the experiment's Initial State + Parameters
-              // are defined inline and compile through a scenario generated
-              // at experiment start, never persisted. Left untouched, the
-              // experiment runs exactly as before. Behind the Ad-hoc
-              // scenarios setting; off, no scenario means the model's own
-              // initial marking, as before the feature.
-              <>
-                <AdHocScenarioForm
-                  state={adHocState ?? EMPTY_AD_HOC_STATE}
-                  onChange={setAdHocState}
-                  context={adHocFormContext}
-                  selection={enableParameterSweeps ? "sweep" : "none"}
-                />
-                {sweepSummaryLine}
-              </>
-            ) : null}
-          </Section>
-
-          <Section title="Metrics" collapsible defaultOpen>
-            <div className={metricListStyle}>
-              <div className={metricHeaderStyle}>
-                <span className={metricCountStyle}>
-                  {metricDrafts.length === 0
-                    ? "No experiment metrics"
-                    : `${metricDrafts.length} experiment metric${
-                        metricDrafts.length === 1 ? "" : "s"
-                      }`}
-                </span>
+                  </FocusControls>
+                ) : null}
+              </SectionList>
+            </OverlayScrollArea>
+          </SimulationPanel.Body>
+          <SimulationPanel.Footer
+            secondaryActions={
+              footerError ? (
+                <span className={errorStyle}>{footerError}</span>
+              ) : undefined
+            }
+            actions={
+              <FocusControls axis="horizontal">
                 <Button
                   variant="subtle"
                   tone="neutral"
                   size="sm"
-                  prefix={<Icon name="plus" size="sm" />}
-                  onClick={handleAddMetric}
+                  disabled={isSubmitting}
+                  onClick={handleClose}
                 >
-                  Add metric
+                  Cancel
                 </Button>
-              </div>
-
-              {metricDrafts.map((metric) => (
-                <ExperimentMetricRow
-                  key={metric.id}
-                  metric={metric}
-                  sdcpn={petriNetDefinition}
-                  kindGroups={metricKindGroups}
-                  autoFocusLabel={metric.id === metricLabelFocusId}
-                  onChange={handleMetricChange}
-                  onLspDiagnosticsChange={(diagnostics) =>
-                    handleMetricLspDiagnosticsChange(metric.id, diagnostics)
+                <Button
+                  variant="solid"
+                  tone="neutral"
+                  size="sm"
+                  disabled={!canRun}
+                  tooltip={formError ?? undefined}
+                  prefix={
+                    isSubmitting ? (
+                      <LoadingSpinner size="sm" variant="bars" />
+                    ) : objectiveEnabled ? (
+                      <Icon name="sparkles" size="sm" />
+                    ) : sweepSummary ? undefined : (
+                      <Icon name="play" size="sm" />
+                    )
                   }
-                  onRemove={() => handleMetricRemove(metric.id)}
-                />
-              ))}
-            </div>
-          </Section>
-        </SectionList>
-      </Drawer.Body>
-      <Drawer.Footer
-        secondaryActions={
-          footerError ? (
-            <span className={errorStyle}>{footerError}</span>
-          ) : undefined
-        }
-        actions={
-          <>
-            <Button
-              variant="subtle"
-              tone="neutral"
-              size="sm"
-              disabled={isSubmitting}
-              onClick={handleClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              tone="neutral"
-              size="sm"
-              disabled={!canRun}
-              tooltip={metricFormError ?? undefined}
-              prefix={
-                isSubmitting ? (
-                  <LoadingSpinner size="sm" variant="bars" />
-                ) : (
-                  <Icon name="play" size="sm" />
-                )
-              }
-              onClick={() => {
-                void handleSubmit();
-              }}
-            >
-              {isSubmitting ? "Starting" : "Run"}
-            </Button>
-          </>
-        }
-      />
-    </Drawer>
+                  onClick={() => {
+                    void handleSubmit();
+                  }}
+                >
+                  {submitLabel}
+                </Button>
+              </FocusControls>
+            }
+          />
+        </SimulationPanel>
+      </FocusStack>
+    </FocusRoot>
   );
 };

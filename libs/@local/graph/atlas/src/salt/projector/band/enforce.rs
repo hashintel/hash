@@ -13,7 +13,7 @@ use crate::math::{DNonNegative, DPositive, DVec2, DVec2x4T, Vec2};
 
 /// One application's enforcement arithmetic, over the frozen constraint's derived readings.
 ///
-/// The readings are copies taken from the projection itself, so no call site can pair them
+/// The readings are copies taken from the projection itself, and no call site can pair them
 /// wrongly. The pass exists only after [`BandProjection::apply`]'s entry scan certifies every
 /// row finite, and its unchecked constructions consume that certificate.
 pub(super) struct EnforcementPass {
@@ -46,8 +46,8 @@ impl EnforcementPass {
 
     /// Enforces one chunk, four rows at a time on SIMD lanes.
     ///
-    /// The widened distance kernel agrees bit for bit with the scalar form, so the batch and
-    /// remainder paths read identical displacements for identical rows.
+    /// The widened distance kernel agrees bit for bit with the scalar form. The batch and
+    /// remainder paths therefore read identical displacements for identical rows.
     pub(super) fn enforce_chunk(
         &self,
         rows: &mut [Vec2],
@@ -99,8 +99,8 @@ impl EnforcementPass {
 
     /// Enforces one row from its widened squared displacement.
     ///
-    /// The running maximum updates before the clip test, so the record reads the pre-projection
-    /// displacement whether or not the radius binds.
+    /// The running maximum updates before the clip test, and the record therefore reads the
+    /// pre-projection displacement whether or not the radius binds.
     fn enforce_row(
         &self,
         row: &mut Vec2,
@@ -112,7 +112,7 @@ impl EnforcementPass {
         let distance = square.sqrt();
         // Proven finite: the entry scan and the freeze admit only finite rows and centres, and
         // the widest f32 displacement quotient by the smallest positive spread stays far inside
-        // the f64 range, so the re-entry needs no check.
+        // the f64 range. The re-entry needs no check.
         let normalized = (distance / self.spread_wide).finish_unchecked();
         *maximum = (*maximum).max(normalized);
 
@@ -150,12 +150,12 @@ pub(super) struct ChunkOutcome {
 }
 
 impl ChunkOutcome {
-    /// Rows this chunk clipped.
+    /// Returns the rows this chunk clipped.
     pub(super) const fn clipped(&self) -> u64 {
         self.clipped
     }
 
-    /// The chunk's largest normalized overshoot.
+    /// Returns the chunk's largest normalized overshoot.
     pub(super) const fn overshoot(&self) -> DNonNegative {
         self.overshoot
     }

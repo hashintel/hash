@@ -79,8 +79,8 @@ impl EstimandData {
     /// This fires when a sequence declares an exact length whose embedding matrix layout cannot
     /// fit `isize`, since the matrix is allocated from that declared length before any of its
     /// pairs is consumed. It also fires when a pair sequence yields fewer items than its
-    /// declared exact length, so a short sequence cannot leave silently zeroed embedding rows
-    /// behind. The pair indexes must stay inside their columns as well: every pair's
+    /// declared exact length, and a short sequence therefore cannot leave silently zeroed
+    /// embedding rows behind. The pair indexes must stay inside their columns as well: every pair's
     /// `earlier_row` lies inside the earlier wire column while its `later_row` lies inside the
     /// representation column, and only a universe pair's `later_row` reaches the later wire
     /// column.

@@ -1,0 +1,772 @@
+import { describe, expect, test } from "vitest";
+
+import { createPetrinautActions, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  petrinautAiTools,
+  type PetrinautAiToolInput,
+} from "@hashintel/petrinaut-core/ai";
+
+import {
+  deriveMutationEffects,
+  expectedNodeDefinition,
+} from "../src/mutation-record";
+import { parseConstructionWhyInput } from "../src/root-node";
+import { assertStateIdentity, locateRootState } from "../src/root-state";
+import {
+  constructionRequest as request,
+  emptyDefinition as empty,
+  observedOutcome as outcome,
+} from "./fixtures";
+
+const type = {
+  id: "test-type",
+  name: "TestType",
+  iconSlug: "circle",
+  displayColor: "#0088ff",
+  elements: [{ elementId: "test-value", name: "value", type: "string" }],
+} satisfies SDCPN["types"][number];
+const continuousType = {
+  id: "test-continuous-values",
+  name: "TestContinuousValues",
+  iconSlug: "circle",
+  displayColor: "#0088ff",
+  elements: [
+    {
+      elementId: "test-continuous-value",
+      name: "continuousValue",
+      type: "real",
+    },
+  ],
+} satisfies SDCPN["types"][number];
+const place = {
+  id: "test-place",
+  name: "TestPlace",
+  colorId: type.id,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
+} satisfies SDCPN["places"][number];
+const scenario = {
+  id: "test-scenario",
+  name: "TestScenario",
+  scenarioParameters: [],
+  initialState: {
+    type: "per_place",
+    content: { [place.id]: [["2"], ["bad"]] },
+  },
+} satisfies PetrinautAiToolInput<"addScenario">;
+const setup = () => {
+  const definition = empty();
+  const actions = createPetrinautActions(
+    (mutate) => mutate(definition),
+    undefined,
+    { sanitizeAfterMutation: false },
+  );
+  actions.addType(type);
+  actions.addPlace(place);
+  actions.addScenario(petrinautAiTools.addScenario.inputSchema.parse(scenario));
+  return definition;
+};
+
+describe("native typed state construction", () => {
+  test("admits a root parameter and locates it for ordinary why", () => {
+    const parameter = {
+      id: "line_rate",
+      name: "Line rate",
+      variableName: "line_rate",
+      type: "real" as const,
+      defaultValue: "1",
+    };
+    const before = empty();
+    const req = request("addParameter", parameter);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.parameters).toEqual([parameter]);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(() => assertStateIdentity(req, after, [])).toThrow("Duplicate");
+    expect(() => assertStateIdentity(req, before, [after])).toThrow("retired");
+    expect(
+      locateRootState(after, {
+        kind: "parameter",
+        name: parameter.id,
+        field: "entity",
+      }),
+    ).toMatchObject({
+      id: parameter.id,
+      nodePath: "/parameters/0",
+      path: "/parameters/0",
+      value: parameter,
+    });
+    const defaultField = locateRootState(after, {
+      kind: "parameter",
+      name: parameter.name,
+      field: "defaultValue",
+    });
+    expect(defaultField).toMatchObject({
+      path: "/parameters/0/defaultValue",
+      value: "1",
+    });
+    expect(defaultField.formalism).toContain("concrete declared default");
+    expect(
+      parseConstructionWhyInput({ kind: "parameter", name: parameter.id }),
+    ).toEqual({
+      kind: "parameter",
+      name: parameter.id,
+      field: "entity",
+    });
+  });
+  test("admits one root differential equation with native coloured-type reference semantics", () => {
+    const equation = {
+      id: "test-continuous-value",
+      name: "Test continuous value",
+      colorId: continuousType.id,
+      code: "return tokens.map(() => ({ continuousValue: 0 }));",
+    } satisfies PetrinautAiToolInput<"addDifferentialEquation">;
+    const req = request("addDifferentialEquation", equation);
+    expect(() => assertStateIdentity(req, empty(), [])).toThrow(
+      "Differential equations require a unique existing root type ID.",
+    );
+    const before = empty();
+    before.types.push(continuousType);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.differentialEquations).toEqual([equation]);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(() => assertStateIdentity(req, after, [])).toThrow("Duplicate");
+    expect(() => assertStateIdentity(req, before, [after])).toThrow("retired");
+    const target = locateRootState(after, {
+      kind: "differential-equation",
+      name: equation.id,
+      field: "code",
+    });
+    expect(target).toMatchObject({
+      id: equation.id,
+      nodePath: "/differentialEquations/0",
+      path: "/differentialEquations/0/code",
+      value: equation.code,
+    });
+    expect(target.formalism).toContain("real-valued token derivatives");
+    expect(
+      parseConstructionWhyInput({
+        kind: "differential-equation",
+        name: equation.id,
+      }),
+    ).toEqual({
+      kind: "differential-equation",
+      name: equation.id,
+      field: "entity",
+    });
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.derived).toEqual([]);
+    expect(effects.created).toContainEqual({
+      kind: "created",
+      path: "/differentialEquations/0/colorId",
+      after: continuousType.id,
+    });
+    expect(effects.created).toContainEqual({
+      kind: "created",
+      path: "/differentialEquations/0/code",
+      after: equation.code,
+    });
+  });
+  test("preserves the native nullable differential-equation type reference", () => {
+    const equation = {
+      id: "test-untyped-continuous-value",
+      name: "Test untyped continuous value",
+      colorId: null,
+      code: "return tokens.map(() => ({}));",
+    } satisfies PetrinautAiToolInput<"addDifferentialEquation">;
+    const before = empty();
+    const req = request("addDifferentialEquation", equation);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.differentialEquations).toEqual([equation]);
+    expect(outcome(req, before, after)).toBe("applied");
+  });
+  test.each([
+    ["real", "0"],
+    ["boolean", "false"],
+  ] as const)(
+    "preserves native %s parameter default %s",
+    (parameterType, defaultValue) => {
+      const parameter = {
+        id: "test-input",
+        name: "Test input",
+        variableName: "test_input",
+        type: parameterType,
+        defaultValue,
+      } satisfies PetrinautAiToolInput<"addParameter">;
+      const before = empty();
+      const req = request("addParameter", parameter);
+      const after = expectedNodeDefinition(req, before);
+      expect(after.parameters).toEqual([parameter]);
+      expect(outcome(req, before, after)).toBe("applied");
+    },
+  );
+  test("scenario input omission survives while the canonical execution inserts its own default", () => {
+    expect(
+      petrinautAiTools.addScenario.inputSchema.toJSONSchema({ io: "input" })
+        .required,
+    ).not.toContain("parameterOverrides");
+    const before = empty();
+    before.types.push(type);
+    before.places.push(place);
+    const req = request("addScenario", scenario);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.scenarios?.[0]?.parameterOverrides).toEqual({});
+    expect(outcome(req, before, after)).toBe("applied");
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.derived).toEqual([
+      { kind: "created", path: "/scenarios/0/parameterOverrides", after: {} },
+    ]);
+    expect(effects.created).toContainEqual({
+      kind: "created",
+      path: "/scenarios/0/initialState",
+      after: scenario.initialState,
+    });
+  });
+  test("explicit empty overrides are authored, not an omitted-input default", () => {
+    const before = empty();
+    before.types.push(type);
+    before.places.push(place);
+    const req = request("addScenario", { ...scenario, parameterOverrides: {} });
+    expect(
+      deriveMutationEffects(req, before, expectedNodeDefinition(req, before))
+        .derived,
+    ).toEqual([]);
+  });
+  test("canonical add-element migration is fully derived, never inherited operation basis", () => {
+    const before = setup();
+    const req = request("addTypeElement", {
+      typeId: type.id,
+      element: { elementId: "test-active", name: "active", type: "boolean" },
+    });
+    const after = expectedNodeDefinition(req, before);
+    expect(after.scenarios?.[0]?.initialState).toEqual({
+      type: "per_place",
+      content: {
+        [place.id]: [
+          ["2", false],
+          ["bad", false],
+        ],
+      },
+    });
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.created.map((effect) => effect.path)).toEqual([
+      "/types/0/elements/1/elementId",
+      "/types/0/elements/1/name",
+      "/types/0/elements/1/type",
+    ]);
+    expect(effects.derived.map((effect) => effect.path)).toEqual([
+      "/scenarios/0/initialState/content/test-place/0/1",
+      "/scenarios/0/initialState/content/test-place/1/1",
+    ]);
+    expect(outcome(req, before, after)).toBe("applied");
+    const falsified = structuredClone(after);
+    falsified.scenarios![0]!.name = "Unrecorded";
+    expect(outcome(req, before, falsified)).toBe("unknown");
+  });
+  test("canonical change-type coerces and defaults invalid text, not operational inventory", () => {
+    const before = setup();
+    const req = request("updateTypeElement", {
+      typeId: type.id,
+      elementId: "test-value",
+      update: { type: "integer" },
+    });
+    const after = expectedNodeDefinition(req, before);
+    expect(after.scenarios?.[0]?.initialState).toEqual({
+      type: "per_place",
+      content: { [place.id]: [[2], [0]] },
+    });
+    expect(deriveMutationEffects(req, before, after).updated).toEqual([
+      {
+        kind: "updated",
+        path: "/types/0/elements/0/type",
+        before: "string",
+        after: "integer",
+      },
+    ]);
+    expect(deriveMutationEffects(req, before, after).derived).toHaveLength(2);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(outcome(req, before, before)).toBe("unknown");
+  });
+  test("explicit scenario correction only attributes actual changed cells", () => {
+    const before = setup();
+    const req = request("updateScenario", {
+      scenarioId: scenario.id,
+      update: {
+        initialState: {
+          type: "per_place",
+          content: { [place.id]: [["2"], ["3"]] },
+        },
+      },
+    });
+    const after = expectedNodeDefinition(req, before);
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.updated).toEqual([
+      {
+        kind: "updated",
+        path: "/scenarios/0/initialState/content/test-place/1/0",
+        before: "bad",
+        after: "3",
+      },
+    ]);
+    expect(effects.derived).toEqual([]);
+  });
+  test("rejects duplicate and known-retired root identities before canonical addType courtesy", () => {
+    const current = setup();
+    expect(() =>
+      assertStateIdentity(request("addType", type), current, []),
+    ).toThrow(/Duplicate/);
+    expect(() =>
+      assertStateIdentity(request("addType", type), empty(), [current]),
+    ).toThrow(/retired/);
+    expect(() =>
+      assertStateIdentity(
+        request("addScenario", { ...scenario, id: place.id }),
+        current,
+        [],
+      ),
+    ).toThrow(/Duplicate/);
+    const canonicalOnly = empty();
+    const actions = createPetrinautActions((mutate) => mutate(canonicalOnly));
+    actions.addType(type);
+    actions.addType(type);
+    expect(canonicalOnly.types).toHaveLength(2);
+  });
+  test("rejects duplicate, missing and known-retired parent-scoped element identities", () => {
+    const current = setup();
+    expect(() =>
+      assertStateIdentity(
+        request("addType", {
+          ...type,
+          id: "new",
+          elements: [type.elements[0]!, type.elements[0]!],
+        }),
+        current,
+        [],
+      ),
+    ).toThrow(/Duplicate nested/);
+    expect(() =>
+      assertStateIdentity(
+        request("addTypeElement", {
+          typeId: type.id,
+          element: type.elements[0]!,
+        }),
+        current,
+        [],
+      ),
+    ).toThrow(/Duplicate/);
+    const removed = structuredClone(current);
+    removed.types[0]!.elements = [];
+    expect(() =>
+      assertStateIdentity(
+        request("addTypeElement", {
+          typeId: type.id,
+          element: type.elements[0]!,
+        }),
+        removed,
+        [current],
+      ),
+    ).toThrow(/retired/);
+    expect(() =>
+      assertStateIdentity(
+        request("updateTypeElement", {
+          typeId: type.id,
+          elementId: "missing",
+          update: { name: "newName" },
+        }),
+        current,
+        [],
+      ),
+    ).toThrow(/Unknown/);
+    current.types[0]!.elements.push(type.elements[0]!);
+    expect(() =>
+      assertStateIdentity(
+        request("updateTypeElement", {
+          typeId: type.id,
+          elementId: "test-value",
+          update: { name: "newName" },
+        }),
+        current,
+        [],
+      ),
+    ).toThrow(/Ambiguous/);
+  });
+  test("refuses missing initial-state and override references rather than silently ignoring them", () => {
+    const current = setup();
+    expect(() =>
+      assertStateIdentity(
+        request("updateScenario", {
+          scenarioId: scenario.id,
+          update: {
+            initialState: { type: "per_place", content: { missing: [] } },
+          },
+        }),
+        current,
+        [],
+      ),
+    ).toThrow(/existing place/);
+    expect(() =>
+      assertStateIdentity(
+        request("updateScenario", {
+          scenarioId: scenario.id,
+          update: { parameterOverrides: { missing: "1" } },
+        }),
+        current,
+        [],
+      ),
+    ).toThrow(/existing parameter/);
+  });
+  test("keeps code scenario footprints unavailable without replacing their canonical schema", () => {
+    const current = setup();
+    const input = {
+      scenarioId: scenario.id,
+      update: {
+        initialState: { type: "code" as const, content: "return {};" },
+      },
+    };
+    expect(
+      petrinautAiTools.updateScenario.inputSchema.safeParse(input).success,
+    ).toBe(true);
+    expect(() =>
+      assertStateIdentity(request("updateScenario", input), current, []),
+    ).toThrow(/code and ad-hoc/);
+    expect(() =>
+      locateRootState(current, {
+        kind: "type",
+        name: type.name,
+        field: "/elements/length",
+      }),
+    ).toThrow(/absent/);
+  });
+  test("name/field lookup follows stable identity across each exact permutation snapshot", () => {
+    const current = setup();
+    current.types.unshift({
+      ...type,
+      id: "other",
+      name: "OtherType",
+      elements: [],
+    });
+    expect(
+      locateRootState(current, {
+        kind: "type-element",
+        type: type.id,
+        name: "value",
+        field: "type",
+      }).path,
+    ).toBe("/types/1/elements/0/type");
+    current.types.reverse();
+    expect(
+      locateRootState(current, {
+        kind: "type-element",
+        type: type.id,
+        name: "value",
+        field: "type",
+      }).path,
+    ).toBe("/types/0/elements/0/type");
+    expect(() =>
+      locateRootState(current, {
+        kind: "type-element",
+        type: "missing-parent",
+        name: "value",
+        field: "type",
+      }),
+    ).toThrow(/parent/);
+    expect(() =>
+      locateRootState(current, {
+        kind: "scenario",
+        name: scenario.name,
+        field: "/initialState/content/missing",
+      }),
+    ).toThrow(/absent/);
+    expect(
+      parseConstructionWhyInput({
+        kind: "type-element",
+        type: type.name,
+        name: "value",
+        field: "type",
+      }),
+    ).toMatchObject({ kind: "type-element" });
+    expect(() =>
+      parseConstructionWhyInput({
+        kind: "scenario",
+        name: scenario.name,
+        transition: "mixed",
+      }),
+    ).toThrow(/Invalid input/u);
+  });
+});
+
+describe("saved scenarios and metrics an experiment names", () => {
+  const agents = {
+    id: "agents",
+    name: "Agents",
+    colorId: null,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+  } satisfies SDCPN["places"][number];
+  const metric = {
+    id: "average-wait",
+    name: "Average wait",
+    code: "return state.places.Agents.count;",
+  } satisfies PetrinautAiToolInput<"addMetric">;
+  const staffing = {
+    id: "peak-demand",
+    name: "Peak demand",
+    scenarioParameters: [
+      { identifier: "active_agents", type: "integer", default: 4 },
+    ],
+    initialState: {
+      type: "per_place",
+      content: { [agents.id]: "scenario.active_agents" },
+    },
+  } satisfies PetrinautAiToolInput<"addScenario">;
+  const withAgents = () => {
+    const definition = empty();
+    definition.places.push(agents);
+    return definition;
+  };
+  const expectMetricMutationsSupported = (before: SDCPN) => {
+    const afterAdd = expectedNodeDefinition(
+      request("addMetric", metric),
+      before,
+    );
+    expect(afterAdd.metrics).toEqual([metric]);
+    const afterUpdate = expectedNodeDefinition(
+      request("updateMetric", {
+        metricId: metric.id,
+        update: { name: "Average waiting time" },
+      }),
+      afterAdd,
+    );
+    expect(afterUpdate.metrics?.[0]?.name).toBe("Average waiting time");
+  };
+
+  test("admits a scenario whose integer parameter sets a place count by expression", () => {
+    const before = withAgents();
+    const req = request("addScenario", staffing);
+    assertStateIdentity(req, before, []);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.scenarios?.[0]).toMatchObject({
+      id: staffing.id,
+      scenarioParameters: [{ identifier: "active_agents", type: "integer" }],
+    });
+    expect(outcome(req, before, after)).toBe("applied");
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.created.map((change) => change.path).sort()).toEqual([
+      "/scenarios/0/id",
+      "/scenarios/0/initialState",
+      "/scenarios/0/name",
+      "/scenarios/0/scenarioParameters",
+    ]);
+    const located = locateRootState(after, {
+      kind: "scenario",
+      name: staffing.name,
+      field: "/scenarioParameters/0/type",
+    });
+    expect(located).toMatchObject({
+      path: "/scenarios/0/scenarioParameters/0/type",
+      value: "integer",
+    });
+    expect(located.formalism).toContain("not an operating range");
+  });
+
+  test("the first metric is one entity creation, not a collection creation, and is located by kind", () => {
+    const before = withAgents();
+    expect(before.metrics).toBeUndefined();
+    const req = request("addMetric", metric);
+    assertStateIdentity(req, before, []);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.metrics).toEqual([metric]);
+    expect(outcome(req, before, after)).toBe("applied");
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.created.map((change) => change.path).sort()).toEqual([
+      "/metrics/0/code",
+      "/metrics/0/id",
+      "/metrics/0/name",
+    ]);
+    expect(effects.derived).toEqual([]);
+    const located = locateRootState(after, {
+      kind: "metric",
+      name: metric.name,
+      field: "code",
+    });
+    expect(located).toMatchObject({
+      kind: "metric",
+      id: metric.id,
+      nodePath: "/metrics/0",
+      path: "/metrics/0/code",
+      value: metric.code,
+    });
+    expect(located.formalism).toContain("name it as an objective");
+    expect(
+      parseConstructionWhyInput({ kind: "metric", name: metric.id }),
+    ).toEqual({ kind: "metric", name: metric.id, field: "entity" });
+    // A metric identity collides with every other root identity, and a
+    // retired one is not reused.
+    expect(() =>
+      assertStateIdentity(request("addMetric", metric), after, []),
+    ).toThrow(/Duplicate/);
+    expect(() =>
+      assertStateIdentity(
+        request("addMetric", { ...metric, id: agents.id }),
+        before,
+        [],
+      ),
+    ).toThrow(/Duplicate/);
+    expect(() =>
+      assertStateIdentity(request("addMetric", metric), before, [after]),
+    ).toThrow(/retired/);
+  });
+
+  test("a metric edit attributes only the requested field and refuses an unknown metric", () => {
+    const before = withAgents();
+    before.metrics = [metric];
+    const req = request("updateMetric", {
+      metricId: metric.id,
+      update: { name: "Average waiting time" },
+    });
+    assertStateIdentity(req, before, []);
+    const after = expectedNodeDefinition(req, before);
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.updated).toEqual([
+      {
+        kind: "updated",
+        path: "/metrics/0/name",
+        before: metric.name,
+        after: "Average waiting time",
+      },
+    ]);
+    expect(effects.derived).toEqual([]);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(() =>
+      assertStateIdentity(
+        request("updateMetric", {
+          metricId: "missing",
+          update: { name: "Nothing" },
+        }),
+        before,
+        [],
+      ),
+    ).toThrow(/Unknown or ambiguous metric/);
+  });
+
+  test("refuses duplicate metric names before they can make every run fail", () => {
+    const before = withAgents();
+    before.metrics = [
+      metric,
+      { ...metric, id: "queue-length", name: "Queue length" },
+    ];
+
+    expect(() =>
+      assertStateIdentity(
+        request("addMetric", {
+          ...metric,
+          id: "duplicate-name",
+        }),
+        before,
+        [],
+      ),
+    ).toThrow(/metric name/u);
+    expect(() =>
+      assertStateIdentity(
+        request("updateMetric", {
+          metricId: "queue-length",
+          update: { name: metric.name },
+        }),
+        before,
+        [],
+      ),
+    ).toThrow(/metric name/u);
+    expect(() =>
+      assertStateIdentity(
+        request("updateMetric", {
+          metricId: metric.id,
+          update: { name: metric.name },
+        }),
+        before,
+        [],
+      ),
+    ).not.toThrow();
+  });
+
+  test("metric changes are independent of code-authored scenario footprints", () => {
+    const before = withAgents();
+    before.scenarios = [
+      {
+        id: "code-scenario",
+        name: "Code scenario",
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "code", content: "return {};" },
+      },
+    ];
+    expectMetricMutationsSupported(before);
+  });
+
+  test("metric changes are independent of nested nets", () => {
+    const before = withAgents();
+    before.subnets = [
+      {
+        id: "nested-net",
+        name: "Nested net",
+        places: [],
+        transitions: [],
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+        componentInstances: [],
+      },
+    ];
+    expectMetricMutationsSupported(before);
+  });
+
+  test("removals of a scenario or metric are one direct deletion at the located index", () => {
+    const before = withAgents();
+    before.scenarios = [
+      { ...staffing, id: "baseline", name: "Baseline", parameterOverrides: {} },
+      { ...staffing, parameterOverrides: {} },
+    ];
+    before.metrics = [metric, { ...metric, id: "queue-length", name: "Queue" }];
+    const dropScenario = request("removeScenario", { scenarioId: "baseline" });
+    const afterScenario = expectedNodeDefinition(dropScenario, before);
+    expect(afterScenario.scenarios?.map((entry) => entry.id)).toEqual([
+      staffing.id,
+    ]);
+    const scenarioEffects = deriveMutationEffects(
+      dropScenario,
+      before,
+      afterScenario,
+    );
+    expect(scenarioEffects.deleted.map((change) => change.path)).toEqual([
+      "/scenarios/0",
+    ]);
+    expect(scenarioEffects.derived).toEqual([]);
+    expect(outcome(dropScenario, before, afterScenario)).toBe("applied");
+
+    const dropMetric = request("removeMetric", { metricId: metric.id });
+    const afterMetric = expectedNodeDefinition(dropMetric, before);
+    expect(afterMetric.metrics?.map((entry) => entry.id)).toEqual([
+      "queue-length",
+    ]);
+    const metricEffects = deriveMutationEffects(
+      dropMetric,
+      before,
+      afterMetric,
+    );
+    expect(metricEffects.deleted.map((change) => change.path)).toEqual([
+      "/metrics/0",
+    ]);
+    expect(metricEffects.derived).toEqual([]);
+    expect(outcome(dropMetric, before, afterMetric)).toBe("applied");
+    // A missing target has no located index; the canonical no-op is not laundered as a removal.
+    expect(() =>
+      deriveMutationEffects(
+        request("removeMetric", { metricId: "missing" }),
+        before,
+        before,
+      ),
+    ).toThrow(/Unknown or ambiguous/);
+  });
+});

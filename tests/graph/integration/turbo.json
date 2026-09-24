@@ -2,7 +2,14 @@
   "extends": ["//"],
   "tasks": {
     "test:integration": {
-      "dependsOn": ["^manifest"]
+      "command": ["cargo", "nextest", "run", "--all-features", "--all-targets"],
+      "dependsOn": ["^manifest", "hash-graph#start:test:healthcheck"]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
     }
   }
 }

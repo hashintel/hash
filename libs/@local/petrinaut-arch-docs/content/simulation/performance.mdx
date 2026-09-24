@@ -397,10 +397,9 @@ Only the pair case (`weight ≤ 2`) has a closed-form unranking that preserves
 the engine's ordering; wider arcs are refused. With kernels emitting too, the
 whole satellites net compiles once its places declare capacities — three
 lambdas, one dynamics, three kernels, 333 lines of WGSL over 552 bytes of
-state per run. (Its own experiment still runs on the CPU for an unrelated
-reason: two of its metrics reduce over token attributes, which only an
-expression metric can express, and the GPU serves only place-token-count
-metrics.)
+state per run. (Its two token-reducing metrics now compile as loops over the
+live slots; across the bundled examples only the two `.concat` metrics keep an
+experiment on the CPU.)
 
 Bring-up left five records worth keeping:
 
@@ -482,7 +481,18 @@ figure predates FE-1499: redrawing diverged against the then-inflated CPU
 test. With the CPU fixed, one consumed draw per enabled transition per frame
 is the shared rule, and FE-1553 aligned the shader to it — the committed
 `Dev / GpuParity` Storybook harness now measures the agreement instead of a
-hand-run comparison.)
+hand-run comparison. The harness also carries SIR's **Infected Fraction**
+expression metric beside the place count, sampling `all` runs as the optimizer
+objective does, so the same run checks a metric body evaluated in f32 on the
+device against the CPU's f64, the shader's run-status guard and the final
+frame row. Measured on 2026-09-11, 2000 runs, `maxTime` 30, `dt` 0.1, seed
+42, Apple M1 Max: the Infected Fraction means agree to 0.033% on average
+and 0.085% at the worst of 301 frames, beside 0.221% / 0.578% for the Infected
+count on the same runs — the fraction averages out the count's sampling
+noise — at 158 ms on the GPU against 1028 ms on the four-shard CPU pool. Its
+final-frame KS statistic of 0.06 is a binning artefact: the CPU bins each f64
+fraction exactly while the device bins into a calibrated 1024-bin window, so
+the two step functions are compared at different resolutions.)
 
 The run-count bound is gone: an experiment larger than the device's buffers
 runs as sequential tiles over one shared histogram buffer, which merges itself

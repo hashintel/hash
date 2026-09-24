@@ -14,7 +14,7 @@ hashql_core::id::newtype! {
         serde::Serialize,
         serde::Deserialize,
     )]
-    #[id(endian = little, unaligned, const)]
+    #[id(endian = little, unaligned, const, derive(Step))]
     #[serde(into = "u64", try_from = "u64")]
     pub struct NodeRowId(u64)
 }
@@ -40,6 +40,11 @@ impl From<NodeRowId> for u64 {
 }
 
 impl From<NodeRowId> for usize {
+    /// Converts the row to a platform-sized index.
+    ///
+    /// # Warning
+    ///
+    /// On targets narrower than 64 bits, the conversion keeps only the low `usize::BITS` bits.
     #[inline]
     fn from(id: NodeRowId) -> Self {
         id.as_usize()

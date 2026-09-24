@@ -1,6 +1,10 @@
 import { expect, test } from "vitest";
 
-import { CLIENT_TOOL_RESULT_SIGNAL, snapshotToUiMessages } from "../src";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  snapshotToUiMessages,
+  type ClientToolResult,
+} from "../src";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -31,7 +35,6 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
 
 const projectionOptions = {
   clientToolNames: new Set(["readPetrinautDoc"]),
-  hiddenToolNames: new Set(["brunch_mark_question"]),
 };
 
 test("retains Voice origins from folded continuation messages", () => {
@@ -67,9 +70,10 @@ test("retains Voice origins from folded continuation messages", () => {
             text: JSON.stringify([
               {
                 toolCallId: `tool-${ordinal}`,
+                toolName: "readPetrinautDoc",
                 output: "A spoken answer",
                 source: "voice",
-              },
+              } satisfies ClientToolResult,
             ]),
           },
         ],
@@ -139,6 +143,29 @@ test("leaves an unfinished client tool available to run", () => {
       parts: [
         {
           type: "tool-readPetrinautDoc",
+          toolCallId: "tool-doc-1",
+          state: "input-available",
+          input: { doc: "ai-assistant" },
+        },
+      ],
+    },
+  ]);
+});
+
+test("rehydrates host-defined client tools as dynamic", () => {
+  expect(
+    snapshotToUiMessages(snapshotWithPendingClientTool, {
+      ...projectionOptions,
+      dynamicClientToolNames: new Set(["readPetrinautDoc"]),
+    }),
+  ).toEqual([
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        {
+          type: "dynamic-tool",
+          toolName: "readPetrinautDoc",
           toolCallId: "tool-doc-1",
           state: "input-available",
           input: { doc: "ai-assistant" },
@@ -435,49 +462,64 @@ test("folds a client-tool continuation into the assistant message it resumed", (
   ]);
 });
 
-test("hides a question-marker tool while retaining its durable data", () => {
-  const question = "Which line should run this order?";
-  const snapshot: FlueConversationSnapshot = {
-    v: 1,
-    conversationId: "conversation-1",
-    offset: "0",
+test("treats reordered object keys as the same browser result and refuses a changed payload", () => {
+  const pending = snapshotWithPendingClientTool.messages[0]!;
+  const delivery = (text: string): FlueConversationSnapshot => ({
+    ...snapshotWithPendingClientTool,
     messages: [
+      pending,
       {
-        id: "assistant-question",
-        role: "assistant",
-        purpose: "assistant",
-        display: "visible",
+        id: "signal-first",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
         parts: [
           {
-            type: "dynamic-tool",
-            toolCallId: "tool-question-1",
-            toolName: "brunch_mark_question",
-            state: "output-available",
-            input: { question },
-            output: { marked: true },
+            type: "text",
+            state: "done",
+            text: JSON.stringify([
+              {
+                toolCallId: "tool-doc-1",
+                toolName: "readPetrinautDoc",
+                output: { markdown: "Saved", ordinal: 1 },
+              },
+            ]),
           },
-          {
-            type: "data-brunch-question",
-            data: { question, toolCallId: "tool-question-1" },
-          },
-          { type: "text", text: question, state: "done" },
         ],
       },
+      {
+        id: "signal-second",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [{ type: "text", state: "done", text }],
+      },
     ],
-    settlements: [],
-  };
-
-  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
-    {
-      id: "assistant-question",
-      role: "assistant",
-      parts: [
-        {
-          type: "data-brunch-question",
-          data: { question, toolCallId: "tool-question-1" },
-        },
-        { type: "text", text: question, state: "done" },
-      ],
-    },
-  ]);
+  });
+  const partOf = (snapshot: FlueConversationSnapshot) =>
+    snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts[0];
+  expect(
+    partOf(
+      delivery(
+        '[{"output":{"ordinal":1,"markdown":"Saved"},"toolName":"readPetrinautDoc","toolCallId":"tool-doc-1"}]',
+      ),
+    ),
+  ).toMatchObject({
+    toolCallId: "tool-doc-1",
+    state: "output-available",
+    output: { markdown: "Saved", ordinal: 1 },
+  });
+  expect(
+    partOf(
+      delivery(
+        '[{"toolCallId":"tool-doc-1","toolName":"readPetrinautDoc","output":{"markdown":"Changed","ordinal":1}}]',
+      ),
+    ),
+  ).toMatchObject({
+    state: "output-error",
+    errorText:
+      "Conflicting browser result deliveries; the outcome is unknown. Do not reapply.",
+  });
 });

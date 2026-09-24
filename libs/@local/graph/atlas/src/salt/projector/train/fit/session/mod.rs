@@ -4,15 +4,15 @@
 //! shared step loop both phases execute.
 //!
 //! A [`Session`] is everything the loop derives deterministically from the borrowed inputs and
-//! options; [`Training`] is the mutable state a step advances - model, optimizer, scheduler,
+//! options. [`Training`] is the mutable state a step advances - model, optimizer, scheduler,
 //! evidence. The split is what makes the phase boundary first-class: the opening segment and
 //! the ladder run the same loop body over the same session, and a resumed ladder rebuilds its
 //! session from the same artifacts while the training state arrives from the checkpoint.
 //!
 //! Refresh products (mined negatives, per-step scale tables) never cross a [`Session::run`] call:
-//! the boundary step opens with an unconditional refresh, so a ladder segment re-derives them from
-//! the model it starts with. That property is what makes a checkpointed resume bit-equal to the
-//! straight run on a deterministic backend.
+//! the boundary step opens with an unconditional refresh, and a ladder segment re-derives them
+//! from the model it starts with. That property is what makes a checkpointed resume bit-equal to
+//! the straight run on a deterministic backend.
 
 use core::ops::Range;
 
@@ -120,10 +120,11 @@ where
             )?),
             None => None,
         };
+
         let mut plan = options.plan;
         if vacuous {
-            // No group exerts force, so relation draws would be dead
-            // weight at every step; the ladder still runs for the lens
+            // No group exerts force, and relation draws would be dead
+            // weight at every step. The ladder still runs for the lens
             // conditioning.
             plan.relation_types = 0;
         }
@@ -169,17 +170,19 @@ where
         })
     }
 
-    /// Runs the loop over one step range and returns the segment's terminal state: the
-    /// advanced training state, or the target refusal carrying everything measured before it.
+    /// Runs the loop over one step range and returns the segment's terminal state.
+    ///
+    /// The state is the advanced training state, or the target refusal carrying everything measured
+    /// before it.
     ///
     /// The body is phase-agnostic. The opening segment passes `0..boundary` and the ladder passes
     /// `boundary..steps`, while the boundary work (radius freeze, unconditional refresh) triggers
     /// on the step index alone.
     ///
-    /// The loop is the only place a step's loss exists before the run ends, so it reports every
+    /// The loop is the only place a step's loss exists before the run ends, and it reports every
     /// step to `progress` against the whole schedule rather than against its own range, which is
     /// one phase of it. This selects the snapshot sample the refresh ticks report once per phase
-    /// from the observer's stated appetite. The choice consumes no randomness, so the run's draws
+    /// from the observer's stated appetite. The choice consumes no randomness, and the run's draws
     /// are the same under every observer.
     pub(super) fn run<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
         &mut self,
@@ -209,7 +212,7 @@ where
                 let (energy, boundary, frame) = self.boundary(&model, step_index, device)?;
                 self.evaluation.options.relation = energy;
                 // The boundary record enters the run record the moment the radius freeze
-                // completes, so a target freeze refusal takes the completed measurement
+                // completes, and a target freeze refusal takes the completed measurement
                 // with it.
                 evidence.boundary = Some(boundary);
                 phase = match self.freeze_phase(frame, step_index) {
@@ -218,12 +221,8 @@ where
                 };
             }
 
-            #[expect(
-                clippy::integer_division_remainder_used,
-                reason = "the refresh cadence is a step-count modulus"
-            )]
-            let tick = step_index == schedule.boundary()
-                || step_index % schedule.refresh_interval().get() == 0;
+            let tick =
+                step_index == schedule.boundary() || step_index % schedule.refresh_interval() == 0;
             if tick {
                 let outcome = self.refresh.tick(
                     &model.valid(),
@@ -278,7 +277,7 @@ where
                 TargetPass::Step(step) => Some(step),
                 TargetPass::Refused(cause) => {
                     // The phase seals its accumulated record into the run record, and the
-                    // whole record rides the refusal.
+                    // whole record accompanies the refusal.
                     evidence.target = Some(
                         phase
                             .take()
@@ -317,9 +316,9 @@ where
 
     /// Seals the target phase into its run evidence, when a phase exists.
     ///
-    /// The loop's final optimizer update landed after its own step's enforcement application,
-    /// so the record closes over the returned model's zero field before the evidence seals:
-    /// every update of the interval is read, the last one included.
+    /// The loop's final optimizer update comes after its own step's enforcement application.
+    /// The record therefore closes over the returned model's zero field before the evidence
+    /// seals: every update of the interval is read, the last one included.
     fn seal_target<B: AutodiffBackend<FloatElem = f32>>(
         &self,
         phase: Option<TargetPhase<N>>,
@@ -365,8 +364,8 @@ where
 
     /// Reads a scale-bearing tick's boundary-drift fraction, when the boundary froze a radius.
     ///
-    /// The boundary froze against the low step, so each scale-bearing tick re-asks the
-    /// freeze-time question of its own low-step frame: what share of reviewed mass now sits
+    /// The boundary froze against the low step, and each scale-bearing tick therefore re-asks
+    /// the freeze-time question of its own low-step frame: what share of reviewed mass now sits
     /// at or inside the frozen radius.
     fn drift_fraction(
         &self,
@@ -381,14 +380,14 @@ where
             self.inputs.attraction,
             ScaledFrame::new(frame, &tables[0]),
             calibration_options(self.options),
-            energy.proximal().radius(),
+            energy.proximal().radius,
         )
     }
 
     /// Runs one step's target pass, when a phase exists.
     ///
     /// The pass reads the draws in the corpus domain before assembly re-indexes the released
-    /// families away from it. The evidence reading rides the tick cadence and consumes the
+    /// families away from it. The evidence reading follows the tick cadence and consumes the
     /// pass's own live fit and projected zero field: the fit becomes the recorded
     /// objective-shape reading, and the bridge ends derive from the whole-corpus fields inside
     /// the reading itself.
@@ -457,8 +456,8 @@ where
     /// Runs the phase boundary's measurement.
     ///
     /// Forwards the boundary's zero-condition frame once and freezes the Proximal radius
-    /// against it. The frame returns beside the freeze's evidence, so the loop's target
-    /// freeze reads the identical coordinates.
+    /// against it. The frame returns beside the freeze's evidence, and the loop's target
+    /// freeze therefore reads the identical coordinates.
     ///
     /// On a vacuous run - no attraction force at all - nothing exists to measure or compose.
     /// The evidence records the fact and the relation term stays absent. No frame returns

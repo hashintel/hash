@@ -7,6 +7,71 @@ import {
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
+import {
+  layoutPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+} from "../construction-tool-names";
+
+import type {
+  DefinitionObservation,
+  ConstructionMutationRequest,
+} from "../mutation-record";
+import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
+
+/** Settled-revision authority every browser-bound construction tool checks basis against. */
+export interface WorkpieceAuthorityOptions {
+  readonly currentRevision: WorkpieceRevision | null;
+  readonly retainedRevisionFor: (
+    revisionId: string,
+  ) => Promise<WorkpieceRevision | undefined>;
+}
+
+export { layoutPetrinautNetToolName } from "../construction-tool-names";
+
+export const observedDefinitionReadTool = defineTool({
+  name: readPetrinautNetToolName,
+  description: `${petrinautAiTools.getLatestNetDefinition.description}\nThe browser output also returns observation: copy its toolCallId and sha256 into mutate_petrinaut_net.observation.toolCallId and baseHash. For query_workpiece, copy the same toolCallId into selector.observationToolCallId. These identify this exact document read, not the workpiece. Call in its own proposal and wait for the browser result before using it; obtain a fresh read after any mutation or layout.`,
+  input: petrinautAiTools.getLatestNetDefinition.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+export const observedCompilationReadTool = defineTool({
+  name: readPetrinautDiagnosticsToolName,
+  description: petrinautAiTools.getNetCompilationErrors.description,
+  input: petrinautAiTools.getNetCompilationErrors.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+/**
+ * Canonical Petrinaut ELK layout, executed by the browser as its own recorded
+ * command. Its client result carries `metadata.layoutRecord` with the observed
+ * pre/post hashes and position effects; the post hash is the next base.
+ */
+export const observedLayoutCommandTool = defineTool({
+  name: layoutPetrinautNetToolName,
+  description: `${petrinautAiTools.applyAutoLayout.description}\nLayout is a recorded document mutation, separate from mutate_petrinaut_net. Call it in its own proposal after a batch that added or restructured places or transitions, never after a batch that only changed types, parameters or dynamics. Obtain a fresh read_petrinaut_net after layout and before any further mutation; host-only layout provenance is not model context.`,
+  input: petrinautAiTools.applyAutoLayout.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+/** Resolves an earlier verified browser read so a mutation can cite its exact base. */
+export interface ObservedConstructionOptions extends WorkpieceAuthorityOptions {
+  readonly observationFor: (
+    id: string,
+    mutation?: Pick<ConstructionMutationRequest, "toolName" | "input">,
+  ) => Promise<DefinitionObservation>;
+}
+
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",
   "addType",
@@ -16,14 +81,8 @@ export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "addArc",
 ] as const satisfies readonly (keyof typeof petrinautAiTools)[];
 
-export const petrinautFixtureToolNames = [
-  "getLatestNetDefinition",
-  "addArc",
-] as const satisfies readonly (keyof typeof petrinautAiTools)[];
-
 export type PetrinautConstructionToolName =
   (typeof PETRINAUT_CONSTRUCTION_TOOL_NAMES)[number];
-type PetrinautFixtureToolName = (typeof petrinautFixtureToolNames)[number];
 
 const issuePathFrom = (
   input: Record<string, unknown>,
@@ -49,8 +108,21 @@ const issuePathFrom = (
 };
 
 const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
+  if (toolName === "addType") {
+    const canonical = petrinautAiTools.addType;
+    return {
+      description: [
+        canonical.description,
+        "Canonical Petrinaut input JSON Schema:",
+        JSON.stringify(canonical.inputSchema.toJSONSchema({ io: "input" })),
+      ].join("\n"),
+      schema: canonical.inputSchema,
+    };
+  }
   const canonicalTool = petrinautAiTools[toolName];
   const jsonSchema = canonicalTool.inputSchema.toJSONSchema();
+  // Headless construction tools keep a loose carrier and validate canonically below.
+  const carrier = v.looseObject({});
 
   return {
     description: [
@@ -64,7 +136,7 @@ const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
       JSON.stringify(jsonSchema),
     ].join("\n"),
     schema: v.pipe(
-      v.looseObject({}),
+      carrier,
       v.rawTransform((context) => {
         const normalizedInput = normalizePetrinautAiToolInput(
           toolName,
@@ -106,17 +178,4 @@ const definePetrinautConstructionTool = (
 
 export const petrinautConstructionTools = PETRINAUT_CONSTRUCTION_TOOL_NAMES.map(
   definePetrinautConstructionTool,
-);
-
-const isPetrinautFixtureTool = (
-  tool: (typeof petrinautConstructionTools)[number],
-): tool is (typeof petrinautConstructionTools)[number] & {
-  readonly name: PetrinautFixtureToolName;
-} =>
-  petrinautFixtureToolNames.some((fixtureToolName) => {
-    return fixtureToolName === tool.name;
-  });
-
-export const petrinautFixtureTools = petrinautConstructionTools.filter(
-  isPetrinautFixtureTool,
 );

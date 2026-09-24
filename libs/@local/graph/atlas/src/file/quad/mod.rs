@@ -73,10 +73,12 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
-use core::{fmt, ops::Range};
+use core::fmt;
+#[cfg(test)]
+use core::ops::Range;
 
 use zerocopy::{LE, U32, U64, Unalign};
 
@@ -88,8 +90,10 @@ mod tests;
 
 use crate::file::region::{PAGE, header::header, machine::Machine, padded_size};
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -188,8 +192,8 @@ impl Node {
 
     /// Creates a node record.
     ///
-    /// `children` are node indexes in Morton child order, [`None`] for absent quadrants;
-    /// `start..start + length` is the own-bucket run in base delivery positions; `points` counts
+    /// `children` are node indexes in Morton child order, with [`None`] for absent quadrants.
+    /// `start..start + length` is the own-bucket run in base delivery positions. `points` counts
     /// the whole subtree.
     ///
     /// # Panics
@@ -250,6 +254,7 @@ impl Node {
     /// Base delivery positions of the points this node's tile delivers first.
     #[inline]
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn run(&self) -> Range<u64> {
         let start = self.start.get();
         start..start + self.length.get() as u64

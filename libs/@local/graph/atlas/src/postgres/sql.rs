@@ -6,12 +6,12 @@
 //!
 //! - [`current_identity_join`], [`time_axis_conjunction`] and [`edition_conjunction`] hold
 //!   "current" to one definition across every statement that resolves an entity or its edition.
-//! - [`type_mapping`] unnests the bound type table with its ordinality, so the store re-derives
-//!   every type's position and both ends share the ordinal map by construction.
+//! - [`type_mapping`] unnests the bound type table with its ordinality. The store re-derives every
+//!   type's position, and both ends share the ordinal map by construction.
 //! - [`Axes`] and [`AttachmentVocabulary`] bind the axis points and the link-attachment
 //!   discriminants as the store's own wire-typed parameters.
-//! - [`json_text`] and [`json_field`] route JSON keys through [`PathToken`], so a key renders
-//!   through the store's own quoting and carries a name at the site that uses it.
+//! - [`json_text`] and [`json_field`] route JSON keys through [`PathToken`]. A key renders through
+//!   the store's own quoting and carries a name at the site that uses it.
 //! - [`first_label`] reads the edition cache's first display label, the one spelling every legend
 //!   and display statement shares.
 //! - [`nearest_declared_icon`] picks a type's nearest declared icon out of its closed schema, the
@@ -35,8 +35,8 @@ use crate::dataset::TemporalAxes;
 
 /// The temporal-axes placeholders every currency condition consumes.
 ///
-/// One bind per axis, shared by every fragment of the statement, so the statement carries the
-/// axes once however many conditions cite them.
+/// One bind per axis, shared by every fragment of the statement. The statement carries the axes
+/// once however many conditions cite them.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Axes {
     /// The transaction-time point.
@@ -57,7 +57,7 @@ impl Axes {
 
 /// The link-attachment discriminants, bound as their store-typed values.
 ///
-/// The values travel as parameters of the store's own enum types, so the statement compares the
+/// The statement binds the values as parameters of the store's own enum types. It compares the
 /// `kind` and `direction` columns against values the wire protocol type-checks instead of against
 /// quoted literals a schema migration can silently strand.
 #[derive(Debug, Copy, Clone)]
@@ -162,15 +162,15 @@ pub(crate) fn first_label(cache: Aliased<EntityEditionCache>) -> Expression {
     cache.column(&EntityEditionCache::Labels).array_element(1)
 }
 
-/// The `uuid[]` type, for casting a bound identity array where inference needs the annotation.
+/// Returns the `uuid[]` cast type where a bound identity array needs an explicit annotation.
 pub(crate) fn uuid_array() -> PostgresType {
     PostgresType::Array(Box::new(PostgresType::Uuid))
 }
 
 /// Extracts the text at a JSON key.
 ///
-/// The key travels as a [`PathToken`], so it renders through the store's own key quoting. Pass
-/// a named constant, so the key's meaning has a name at the site that uses it.
+/// The key renders as a quoted field name through [`PathToken`]. Pass a named constant: the key's
+/// meaning has a name at the site that uses it.
 ///
 /// # SQL
 ///
@@ -186,8 +186,8 @@ pub(crate) fn json_text(expression: impl Into<Expression>, key: &'static str) ->
 
 /// Extracts the `jsonb` at a JSON key.
 ///
-/// The key travels as a [`PathToken`], so it renders through the store's own key quoting. Pass
-/// a named constant, so the key's meaning has a name at the site that uses it.
+/// The key renders as a quoted field name through [`PathToken`]. Pass a named constant: the key's
+/// meaning has a name at the site that uses it.
 ///
 /// # SQL
 ///
@@ -231,10 +231,9 @@ impl DatabaseColumn<'_> for Mapping {
 
 /// Builds the `mapping` rows: the bound type table unnested beside each type's ordinality.
 ///
-/// The type table travels as one bound array and the store re-derives the position of every
-/// type, so both ends share the ordinal map by construction. Every statement that resolves
-/// ordinals builds its FROM item here, which is what makes the shared derivation one
-/// declaration.
+/// The builder binds the type table as one array and the store re-derives the position of every
+/// type. Both ends share the ordinal map by construction. Every statement that resolves ordinals
+/// builds its FROM item here, which is what makes the shared derivation one declaration.
 ///
 /// # SQL
 ///
@@ -298,8 +297,7 @@ impl DatabaseColumn<'_> for NearestIcon {
 /// The subquery picks the nearest declared icon in the joined type's closed schema: ascending
 /// inheritance depth, position in the `allOf` array breaking ties, one row at most. A chain
 /// without a declared icon answers no row, which a LEFT LATERAL join turns into SQL NULL for
-/// the decoder to default. The selection rule mirrors the serving side's type-icon resolution
-/// in `serve::hydrate`'s tile hydration query, and a change to either belongs in both.
+/// the decoder to default. Every read of the rule builds it here, from this one definition.
 ///
 /// # SQL
 ///
@@ -373,6 +371,11 @@ pub(crate) fn nearest_declared_icon(types: Aliased<EntityTypes>) -> SelectStatem
 /// statement at execution with an unread-parameter error. The scan also catches a placeholder
 /// rendered without a bind, which the kit cannot produce but a hand-assembled statement could
 /// reintroduce.
+///
+/// # Panics
+///
+/// Panics when the placeholders `sql` cites are not exactly `$1` through `$parameter_count`,
+/// which is either failure above.
 #[cfg(test)] // Every statement module's tests assert placeholder density.
 #[track_caller]
 pub(crate) fn assert_placeholders_dense(sql: &str, parameter_count: usize) {

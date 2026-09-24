@@ -19,15 +19,10 @@ export type ExperimentCompletion = {
  * produced and disposes it.
  *
  * Stopping a running batch early is the caller's job: call `handle.cancel()`
- * and this resolves with the `cancelled` event. `onRunResults` fires on every
- * per-run values update while the batch runs, for consumers that paint
- * partial results.
+ * and this resolves with the `cancelled` event.
  */
 export async function runExperimentToCompletion(
   handle: MonteCarloExperiment,
-  options: {
-    onRunResults?: (results: MonteCarloExperimentRunResults) => void;
-  } = {},
 ): Promise<ExperimentCompletion> {
   const terminal = new Promise<MonteCarloExperimentEvent>((resolve) => {
     const off = handle.events.subscribe((event) => {
@@ -35,11 +30,6 @@ export async function runExperimentToCompletion(
       resolve(event);
     });
   });
-  const offRunResults = options.onRunResults
-    ? handle.runResults.subscribe(() => {
-        options.onRunResults?.(handle.runResults.get());
-      })
-    : null;
   try {
     handle.start();
     const event = await terminal;
@@ -49,7 +39,6 @@ export async function runExperimentToCompletion(
       runResults: handle.runResults.get(),
     };
   } finally {
-    offRunResults?.();
     handle.dispose();
   }
 }

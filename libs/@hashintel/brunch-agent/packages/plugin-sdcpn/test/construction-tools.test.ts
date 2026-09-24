@@ -4,15 +4,13 @@ import { describe, expect, test } from "vitest";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
+  batchedConstructionMode,
   sdcpnInitialDataSchema,
   VALIDATED_CONSTRUCTION_MODE,
-  validatedFixtureMutationMode,
 } from "../src/flue";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  petrinautFixtureToolNames,
   petrinautConstructionTools,
-  petrinautFixtureTools,
 } from "../src/tools/petrinaut-construction";
 
 const toolByName = (toolName: string) => {
@@ -25,35 +23,40 @@ const toolByName = (toolName: string) => {
 };
 
 describe("Petrinaut construction tools", () => {
-  test("accepts only the ordinary headless and prepared-fixture modes", () => {
+  test("accepts only the headless runbook and bound batched construction modes", () => {
     expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
     expect(
       v.parse(sdcpnInitialDataSchema, {
         mode: VALIDATED_CONSTRUCTION_MODE,
       }),
     ).toEqual({ mode: VALIDATED_CONSTRUCTION_MODE });
+    const construction = {
+      binding: {
+        conversationId: "conversation",
+        documentId: "document",
+        incarnationId: "incarnation",
+      },
+    };
     expect(
       v.parse(sdcpnInitialDataSchema, {
-        mode: validatedFixtureMutationMode,
+        mode: batchedConstructionMode,
+        construction,
       }),
-    ).toEqual({ mode: validatedFixtureMutationMode });
+    ).toEqual({ mode: batchedConstructionMode, construction });
     expect(() =>
       v.parse(sdcpnInitialDataSchema, {
-        mode: "unrestricted-construction",
+        mode: batchedConstructionMode,
       }),
+    ).toThrow(/distinct immutable binding/u);
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, {
+        mode: VALIDATED_CONSTRUCTION_MODE,
+        construction,
+      }),
+    ).toThrow(/distinct immutable binding/u);
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, { mode: "unrestricted-construction" }),
     ).toThrow(/Invalid type/u);
-  });
-
-  test("exposes exactly the bounded canonical subset", () => {
-    expect(petrinautConstructionTools.map((tool) => tool.name)).toEqual([
-      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-    ]);
-  });
-
-  test("limits prepared fixtures to one canonical read and arc mutation", () => {
-    expect(petrinautFixtureTools.map((tool) => tool.name)).toEqual([
-      ...petrinautFixtureToolNames,
-    ]);
   });
 
   test("mechanically carries the canonical input contract", () => {
@@ -68,28 +71,9 @@ describe("Petrinaut construction tools", () => {
     }
   });
 
-  test("delegates accepted and rejected inputs to Petrinaut's Zod schemas", () => {
+  test("normalizes a finite provider numeric-string arc weight", async () => {
     const addArc = toolByName("addArc");
-    const invalidArc = {
-      transitionId: "transition",
-      arcDirection: "input",
-      placeId: "place",
-      weight: 0,
-      targetSubnetId: null,
-    };
-    const validArc = { ...invalidArc, weight: 1 };
-
-    expect(v.safeParse(addArc.input!, invalidArc).success).toBe(
-      petrinautAiTools.addArc.inputSchema.safeParse(invalidArc).success,
-    );
-    expect(v.safeParse(addArc.input!, validArc).success).toBe(
-      petrinautAiTools.addArc.inputSchema.safeParse(validArc).success,
-    );
-  });
-
-  test("normalizes a finite provider numeric-string arc weight", () => {
-    const addArc = toolByName("addArc");
-    const result = v.parse(addArc.input!, {
+    const result = await addArc.input!["~standard"].validate({
       transitionId: "transition",
       arcDirection: "input",
       placeId: "place",
@@ -97,10 +81,10 @@ describe("Petrinaut construction tools", () => {
       type: "standard",
     });
 
-    expect(result).toMatchObject({ weight: 1 });
+    expect(result).toMatchObject({ value: { weight: 1 } });
   });
 
-  test("retains nested values in canonical validation paths", () => {
+  test("retains nested values in canonical validation paths", async () => {
     const addType = toolByName("addType");
     const invalidElement = {
       elementId: "speed",
@@ -114,13 +98,9 @@ describe("Petrinaut construction tools", () => {
       displayColor: "#808080",
       elements: [invalidElement],
     };
-    const result = v.safeParse(addType.input!, invalidType);
-    if (result.success) throw new Error("Expected nested type rejection");
+    const result = await addType.input!["~standard"].validate(invalidType);
+    if (!result.issues) throw new Error("Expected nested type rejection");
 
-    expect(result.issues[0].path).toMatchObject([
-      { input: invalidType, key: "elements", value: invalidType.elements },
-      { input: invalidType.elements, key: 0, value: invalidElement },
-      { input: invalidElement, key: "type", value: "not-a-type" },
-    ]);
+    expect(result.issues[0]?.path).toEqual(["elements", 0, "type"]);
   });
 });

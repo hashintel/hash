@@ -73,12 +73,11 @@ fn batch_of(vectors: [DVec2; 4]) -> DVec2x4T {
     )
 }
 
-/// Four full-mantissa vector pairs on which the fused and separate distance forms disagree.
+/// Returns vector pairs whose squared distances distinguish fused from separate evaluation.
 ///
-/// Points widened from `f32` cannot discriminate: their lane differences and squares are exact
-/// in `f64`, so a fused mutant agrees with the unfused kernel on that whole domain. These pairs
-/// come from a search for the property that `dx.mul_add(dx, dy * dy)` differs from
-/// `dx * dx + dy * dy` in every lane.
+/// Every pair gives different values for `dx.mul_add(dx, dy * dy)` and `dx * dx + dy * dy`.
+/// Widening `f32` coordinates does not generally make their squared differences exact either: dx =
+/// 1 − 2⁻²⁷ and dy = 2⁻²⁷ already distinguish the two evaluations.
 fn distance_pairs() -> ([DVec2; 4], [DVec2; 4]) {
     (
         [
@@ -135,7 +134,54 @@ fn products_refine_the_f32_counterparts(
     prop_assert!((narrow_dot - wide_dot).abs() <= tolerance);
 }
 
-/// The lane metric is the scalar metric, bit for bit, on every input.
+#[property_test]
+fn perp_dot_wide_matches_the_widened_perp_dot_bitwise(
+    #[strategy = -1e30_f32..1e30] ax: f32,
+    #[strategy = -1e30_f32..1e30] ay: f32,
+    #[strategy = -1e30_f32..1e30] bx: f32,
+    #[strategy = -1e30_f32..1e30] by: f32,
+) {
+    let left = Vec2::new(ax, ay);
+    let right = Vec2::new(bx, by);
+
+    let wide = left.perp_dot_wide(right);
+    let widened = DVec2::from(left).perp_dot(DVec2::from(right)).into_raw();
+
+    prop_assert_eq!(wide.to_bits(), widened.to_bits());
+}
+
+/// Exercises antisymmetry with rounded `f64` products.
+///
+/// The coordinate bounds keep the products finite. Equality is numerical, including signed zeros.
+#[property_test]
+fn perp_dot_is_antisymmetric(
+    #[strategy = -1e150_f64..1e150] ax: f64,
+    #[strategy = -1e150_f64..1e150] ay: f64,
+    #[strategy = -1e150_f64..1e150] bx: f64,
+    #[strategy = -1e150_f64..1e150] by: f64,
+) {
+    let left = DVec2::new(ax, ay);
+    let right = DVec2::new(bx, by);
+
+    prop_assert_eq!(
+        left.perp_dot(right).into_raw(),
+        -right.perp_dot(left).into_raw()
+    );
+}
+
+#[property_test]
+fn batch_perp_dot_is_antisymmetric(
+    #[strategy = -1e150_f64..1e150] ax: f64,
+    #[strategy = -1e150_f64..1e150] ay: f64,
+    #[strategy = -1e150_f64..1e150] bx: f64,
+    #[strategy = -1e150_f64..1e150] by: f64,
+) {
+    let left = DVec2x4T::splat(DVec2::new(ax, ay));
+    let right = DVec2x4T::splat(DVec2::new(bx, by));
+
+    prop_assert_eq!(left.perp_dot(right), -right.perp_dot(left));
+}
+
 #[property_test]
 fn distance_squared_lanes_match_the_scalar_metric_bitwise(
     #[strategy = -1e150_f64..1e150] ax: f64,
@@ -151,10 +197,6 @@ fn distance_squared_lanes_match_the_scalar_metric_bitwise(
     prop_assert_eq!(distances, DVecN::new([source.distance_squared(target); 4]));
 }
 
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here runs the transposed double-precision batch beside its scalar twin, lane by lane.
-/// The profile selects by module path, so moving a test in or out of this module is the whole edit.
 mod miri {
     use super::{batch_of, batch_points, distance_pairs};
     use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
@@ -186,8 +228,6 @@ mod miri {
         let perp_dot = source.perp_dot(target);
         let length_squared = source.length_squared();
 
-        // The lane kernels share `DVec2`'s fused shape, so the paths agree
-        // bit for bit on every input.
         for index in 0..4 {
             let source = DVec2::from(sources[index]);
             let target = DVec2::from(targets[index]);
@@ -228,14 +268,13 @@ mod miri {
     #[test]
     #[expect(
         clippy::suboptimal_flops,
-        reason = "the potency guard contrasts the fused and separate forms, so the separate form \
-                  must stay unfused"
+        reason = "products and sum must round separately to distinguish the unfused and fused \
+                  results"
     )]
     fn dvec2x4t_distance_squared_matches_the_scalar_twin_per_lane() {
         let (sources, targets) = distance_pairs();
 
-        // The fixture can fail under fusion: every lane's fused form disagrees with the separate
-        // form, so a `mul_add` mutant in the kernel dies in all four lanes.
+        // each pair distinguishes separate rounding from a fused multiply-add
         for (source, target) in sources.iter().zip(&targets) {
             let dx = source.x() - target.x();
             let dy = source.y() - target.y();

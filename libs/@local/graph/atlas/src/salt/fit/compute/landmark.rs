@@ -12,6 +12,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         generation::Generation,
         identity::{Key, read::IdentityFile},
         landmark::read::LandmarkFile,
@@ -20,7 +21,12 @@ use crate::{
     identity::NodeRowId,
     math::DPositive,
     salt::{
-        fit::{Stage, error::PriorError, prepare::identity::IdentityTableArchive, stage_rng},
+        fit::{
+            Stage,
+            error::PriorError,
+            prepare::{IdentityProvider as _, identity::IdentityTableArchive},
+            stage_rng,
+        },
         knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
             artifact::{LandmarkSkeleton, LandmarkSkeletonArchive},
@@ -37,8 +43,8 @@ use crate::{
 
 /// The landmark stage failed and staged no skeleton.
 ///
-/// One variant per way the stage refuses, so a landmark failure attributes to this stage by
-/// construction. The published failure surface speaks corpus rows.
+/// One variant per way the stage refuses. A landmark failure therefore attributes to this stage
+/// by construction. The published failure surface names corpus rows.
 #[derive(Debug)]
 pub(crate) enum LandmarkError {
     /// The landmark selection rejected its input.
@@ -135,8 +141,9 @@ impl PriorMarks {
     ///
     /// # Errors
     ///
-    /// Returns a [`PriorError`] when a prior artifact does not map or the prior skeleton names a
-    /// row beyond the prior identity table.
+    /// Returns a [`PriorError`] when a prior artifact does not map, does not hold a valid
+    /// skeleton or identity table, or the prior skeleton names a row beyond the prior identity
+    /// table.
     #[tracing::instrument(name = "prior-translation", skip_all)]
     pub(super) fn translated<I>(
         prior: &Generation,
@@ -163,7 +170,7 @@ impl PriorMarks {
         );
         for &row in skeleton.selected_rows() {
             let id = prior_ids
-                .id(row)
+                .key_of(row)
                 .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.as_u64() })?;
 
             if let Some(current_row) = current.row_of(id) {
@@ -229,19 +236,20 @@ impl<'fit> LandmarkSurvey<'fit> {
 
     /// Selects, assigns, contracts, and lays out the landmark skeleton, and stages it.
     ///
-    /// Candidates are uniform over the distinct rows; the prior marks name the rows competing
+    /// Candidates are uniform over the distinct rows, and the prior marks name the rows competing
     /// for the retained share. The skeleton builds over the distinct representation rows and
     /// publishes over the corpus row domain: selected rows name their first corpus rows, and
     /// every corpus row takes its representative's landmark. It returns owned beside its typed
-    /// binding, so the placement stage reads the value this call built rather than the staged
+    /// binding, and the placement stage reads the value this call built rather than the staged
     /// bytes.
     ///
     /// # Errors
     ///
     /// Returns [`LandmarkError::Selection`] when the landmark selection rejects its input,
-    /// [`LandmarkError::Index`] when the assignment's search backend fails,
-    /// [`LandmarkError::Quotient`] when the graph contraction rejects its input,
-    /// [`LandmarkError::Layout`] when the layout rejects its input, and an I/O error when the
+    /// [`LandmarkError::Index`] when the assignment's search backend fails to construct,
+    /// [`LandmarkError::Assignment`] when the assignment fails, [`LandmarkError::Quotient`] when
+    /// the graph contraction rejects its input, [`LandmarkError::Layout`] when the layout rejects
+    /// its input, and an I/O error when the assignment scratch directory does not create or the
     /// staged skeleton does not write.
     #[tracing::instrument(name = "landmark-survey", skip_all)]
     pub(super) fn run(
@@ -251,7 +259,7 @@ impl<'fit> LandmarkSurvey<'fit> {
         LandmarkError,
     > {
         let training = self.quotient.training();
-        // The skeleton builds over distinct rows; the published failure surface speaks corpus
+        // The skeleton builds over distinct rows, and the published failure surface names corpus
         // rows.
         let corpus = |row: DistinctRowId| self.quotient.representative(row);
 
@@ -313,9 +321,9 @@ impl<'fit> LandmarkSurvey<'fit> {
         )?;
         drop(contracted);
 
-        // Publication crosses back to the corpus row domain; the
-        // first-row map ascends strictly, so the selection's order and
-        // the assignment's ordinal vocabulary carry over unchanged.
+        // Publication crosses back to the corpus row domain. The first-row map ascends strictly,
+        // and the selection's order and the assignment's ordinal vocabulary therefore carry
+        // over unchanged.
         let skeleton = LandmarkSkeleton::new(
             selection.map_rows(|row| self.quotient.representative(row)),
             assignment.reindex(self.quotient.classes().iter().copied()),

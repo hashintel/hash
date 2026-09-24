@@ -1,19 +1,24 @@
-//! The postings archive and the membership views it serves.
+//! Validation and mapped lookup of published type postings.
+//!
+//! The archive checks run ordering and domains before exposing membership and parent views.
 
-use core::ops::Range;
+use std::path::Path;
 
 use hashql_core::id::Id as _;
 
 use crate::{
-    bitset::{DenseBitSlice, RowsIn},
-    file::postings::read::PostingsFile,
+    bitset::DenseBitSlice,
+    file::{
+        ArtifactFile,
+        postings::read::{OpenPostingsError, PostingsFile},
+    },
     identity::{BasePosition, OntologyRowId},
     runs::{RunsError, RunsView},
 };
 
-/// An opened postings file does not hold a valid postings artifact.
+/// A violation of the postings artifact's run or membership-count contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum InvalidPostingsFile {
+pub(crate) enum InvalidPostingsFile {
     /// The list fenceposts break anchoring, ordering, or coverage at `position`.
     ListPosts { position: usize },
     /// The parent fenceposts break anchoring, ordering, or coverage at `position`.
@@ -97,21 +102,71 @@ impl core::fmt::Display for InvalidPostingsFile {
 
 impl core::error::Error for InvalidPostingsFile {}
 
+/// A failure to open or validate a published postings artifact.
+#[derive(Debug)]
+pub(crate) enum OpenPostingsArchiveError {
+    /// The postings file failed to open.
+    Open(OpenPostingsError),
+    /// The file does not hold a valid postings artifact.
+    Invalid(InvalidPostingsFile),
+}
+
+const impl From<OpenPostingsError> for OpenPostingsArchiveError {
+    fn from(error: OpenPostingsError) -> Self {
+        Self::Open(error)
+    }
+}
+
+const impl From<InvalidPostingsFile> for OpenPostingsArchiveError {
+    fn from(error: InvalidPostingsFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+impl core::fmt::Display for OpenPostingsArchiveError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the postings file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(
+                    fmt,
+                    "the file does not hold a valid postings artifact: {error}"
+                )
+            }
+        }
+    }
+}
+
+impl core::error::Error for OpenPostingsArchiveError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
 /// A published postings artifact opened over its mapped file.
 ///
-/// Construction checks the artifact contract once - fencepost anchoring/ordering/coverage in all
-/// three fencepost regions, list ascent and domains, empty list runs for dense types, parent
-/// ascent and domains, direct ascent and domains, and the pair count tying the direct map to the
-/// membership total. An open postings therefore only serves valid runs and consumers re-validate
-/// nothing. The bit set
-/// frames were already validated when the file opened, where the format's geometry lives. The
-/// archive holds the mapped file alone, and each lookup re-borrows its fencepost and items
-/// regions as a [`RunsView`] pair the construction validated. A dense type's frame index is the
-/// flag population below its row, read from the mapped flags frame at each lookup, so every
-/// answer comes from file bytes and the regions stay in the page cache under memory pressure.
+/// Construction validates fencepost anchoring, ordering and coverage in all three run regions. It
+/// also checks strict ordering and domains in list, parent and direct runs, requires empty list
+/// runs for dense types, and compares the direct entry count with the membership total. This count
+/// check does not establish full transpose agreement between direct types and memberships.
+///
+/// Lookups borrow the validated runs or dense frames from the mapped file without rebuilding them.
+/// A dense type's frame index is the flag population below its row, computed at each lookup.
 #[derive(Debug)]
 pub(crate) struct PostingsArchive {
     file: PostingsFile,
+}
+
+impl ArtifactFile for PostingsArchive {
+    type Error = OpenPostingsArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
+        let file = PostingsFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
 }
 
 impl PostingsArchive {
@@ -119,7 +174,7 @@ impl PostingsArchive {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates the artifact contract.
+    /// Returns [`InvalidPostingsFile`] when the file violates the artifact contract.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: PostingsFile) -> Result<Self, InvalidPostingsFile> {
         let types = file.types();
@@ -182,8 +237,8 @@ impl PostingsArchive {
             }
         }
 
-        // Every position-type pair appears once in each direction, so the direct entry count is
-        // the membership total: the list entries plus the dense populations.
+        // a transpose has one occurrence of each position-type pair in each direction. Compare the
+        // totals as a necessary condition, without reconstructing the full transpose.
         let dense_sets = file.dense_sets();
         let membership = lists.items().len() as u64
             + (0..dense_sets.len())
@@ -244,7 +299,11 @@ impl PostingsArchive {
     }
 
     /// Returns `position`'s direct type rows, strictly ascending, when the position is in domain.
+    // Production reads no direct types through the archive: construction validates the region
+    // against the membership total, and that is the region's whole production use. The postings
+    // tests read it to verify the written direct map restates the input type column.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn direct_types(&self, position: BasePosition) -> Option<&[OntologyRowId]> {
         let index = position.as_u64();
         if index >= self.file.points() {
@@ -265,16 +324,18 @@ impl PostingsArchive {
     }
 
     /// Re-borrows the direct-map regions construction validated.
+    #[cfg(test)] // Only `direct_types` re-borrows the region after validation.
     fn direct_runs(&self) -> RunsView<'_, BasePosition, OntologyRowId> {
         RunsView::from_parts_unchecked(self.file.direct_posts(), self.file.direct_ids())
     }
 }
 
-/// Names the fencepost position a [`RunsError`] faults, for the per-region error variants.
+/// Locates the invalid fencepost described by a [`RunsError`].
 ///
-/// A missing column and a broken anchor fault the first post, a break in the order faults its
-/// own index, and a closing mismatch faults the last post - exactly the positions the archive
-/// reported before the fencepost law moved into [`RunsView`].
+/// A missing column or broken anchor identifies the first post, an order violation identifies its
+/// own index, and a closing mismatch identifies the last post.
+///
+/// `posts` must be the length of the fencepost column that produced `error`.
 const fn post_position(error: RunsError, posts: usize) -> usize {
     match error {
         RunsError::Missing | RunsError::Anchor => 0,
@@ -301,50 +362,6 @@ impl Membership<'_> {
         match self {
             Self::List(positions) => positions.binary_search(&position).is_ok(),
             Self::Dense(set) => set.contains(position),
-        }
-    }
-
-    /// Iterates the member positions inside `range`, ascending.
-    ///
-    /// The shape a delivered run's mask column interleaves from.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `range.start` exceeds `range.end`. Every caller supplies an ascending range
-    /// by construction.
-    pub(crate) fn positions_in(&self, range: Range<BasePosition>) -> MembershipPositions<'_> {
-        match self {
-            Self::List(positions) => {
-                assert!(
-                    range.start <= range.end,
-                    "an inverted position range matches no delivered run",
-                );
-                let start = positions.partition_point(|&position| position < range.start);
-                let end = positions.partition_point(|&position| position < range.end);
-
-                MembershipPositions::List(positions[start..end].iter())
-            }
-            Self::Dense(set) => MembershipPositions::Dense(set.iter_in(range)),
-        }
-    }
-}
-
-/// Iterator over one membership's positions inside a range.
-#[derive(Debug)]
-pub(crate) enum MembershipPositions<'map> {
-    /// The member slice of a list run.
-    List(core::slice::Iter<'map, BasePosition>),
-    /// The dense set's own range cursor.
-    Dense(RowsIn<'map, BasePosition>),
-}
-
-impl Iterator for MembershipPositions<'_> {
-    type Item = BasePosition;
-
-    fn next(&mut self) -> Option<BasePosition> {
-        match self {
-            Self::List(positions) => positions.next().copied(),
-            Self::Dense(rows) => rows.next(),
         }
     }
 }

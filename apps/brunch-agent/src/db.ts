@@ -3,8 +3,14 @@ import { postgres } from "@flue/postgres";
 import { loadDatabaseConfig } from "./database-config.ts";
 import { conversationDbPath } from "./db-path.ts";
 import { createPostgresRunner } from "./postgres.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
+import { standardWorkedModelFixtures } from "./standard-worked-model-fixtures.ts";
 import { shutdownBrunchTelemetry } from "./telemetry-bootstrap.ts";
 import { recordOperationalFailure } from "./telemetry.ts";
+import {
+  createInMemoryWorkedModelStore,
+  createPostgresWorkedModelStore,
+} from "./worked-model-store.ts";
 
 /**
  * The substrate's conversation storage — host-authored because Flue requires
@@ -16,10 +22,25 @@ import { recordOperationalFailure } from "./telemetry.ts";
 const openDatabase = async () => {
   try {
     const config = loadDatabaseConfig();
-    return config.kind === "postgres"
-      ? postgres(createPostgresRunner(config, shutdownBrunchTelemetry))
-      : (await import("@flue/runtime/node")).sqlite(conversationDbPath());
+    if (config.kind === "postgres") {
+      const runner = createPostgresRunner(config, shutdownBrunchTelemetry);
+      const workedModelStore = createPostgresWorkedModelStore(runner);
+      await workedModelStore.seed(standardWorkedModelFixtures);
+      return {
+        database: postgres(runner),
+        workedModelStore,
+      };
+    }
+    const workedModelStore = createInMemoryWorkedModelStore();
+    await workedModelStore.seed(standardWorkedModelFixtures);
+    return {
+      database: (await import("@flue/runtime/node")).sqlite(
+        conversationDbPath(),
+      ),
+      workedModelStore,
+    };
   } catch (error) {
+    diagnostics.report("database.configuration", error);
     // The process exits right after this, so flush the failure span first.
     await recordOperationalFailure("database_configuration", error);
     try {
@@ -31,6 +52,8 @@ const openDatabase = async () => {
   }
 };
 
-const database = await openDatabase();
+const opened = await openDatabase();
 
-export default database;
+export const workedModelStore = opened.workedModelStore;
+
+export default opened.database;

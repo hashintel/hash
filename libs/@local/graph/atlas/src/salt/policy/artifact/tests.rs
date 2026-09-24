@@ -23,6 +23,7 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+/// Builds a policy with distinct selected and attraction distributions.
 fn policy(relation: u64, coincident: UnitFraction) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
@@ -40,6 +41,7 @@ fn policy(relation: u64, coincident: UnitFraction) -> RelationPolicy {
     }
 }
 
+/// Builds ascending policies spanning zero, intermediate, and full Coincident mass.
 fn fixture() -> Vec<RelationPolicy> {
     vec![
         policy(2, unit_fraction!(0.0)),
@@ -48,6 +50,7 @@ fn fixture() -> Vec<RelationPolicy> {
     ]
 }
 
+/// The certified fixture table written to bytes.
 fn fixture_bytes() -> Vec<u8> {
     let policies = CertifiedPolicies::new(fixture()).expect("the fixture is strictly ascending");
     let mut bytes = Vec::new();
@@ -65,6 +68,7 @@ fn reopen(name: &str, bytes: &[u8]) -> Result<PolicyTableArchive, InvalidPolicyF
     PolicyTableArchive::new(file)
 }
 
+/// Writing the fixture table and reopening it yields the same three policies.
 #[test]
 fn round_trip_is_bit_exact() {
     let table = reopen("roundtrip.plcy", &fixture_bytes()).expect("the fixture is valid");
@@ -73,6 +77,7 @@ fn round_trip_is_bit_exact() {
     assert_eq!(table.policies(), fixture());
 }
 
+/// `find` returns the policy for a present relation and `None` for absent ones on either side.
 #[test]
 fn find_resolves_by_relation() {
     let table = reopen("find.plcy", &fixture_bytes()).expect("the fixture is valid");
@@ -85,6 +90,7 @@ fn find_resolves_by_relation() {
     assert_eq!(table.find(OntologyRowId::new(10)), None);
 }
 
+/// An empty certified table writes, reopens with zero rows and finds nothing.
 #[test]
 fn empty_table_maps() {
     let policies =
@@ -99,6 +105,10 @@ fn empty_table_maps() {
     assert_eq!(table.find(OntologyRowId::new(0)), None);
 }
 
+/// The open fails with `UnorderedRelations` on a raised or duplicated stored relation.
+///
+/// Raising or duplicating a stored relation fails the open with `UnorderedRelations` naming the
+/// row.
 #[test]
 fn rejects_unordered_and_duplicate_relations() {
     // Row 1's relation raised above row 2's.
@@ -119,6 +129,10 @@ fn rejects_unordered_and_duplicate_relations() {
     );
 }
 
+/// The open fails with `Domain` naming the row for each out-of-domain value.
+///
+/// A probability above one, a `-0.0` bit pattern, a negative strength and a NaN applicability each
+/// fail the open with `Domain` naming the row.
 #[test]
 fn rejects_out_of_domain_values() {
     // Row 1's attraction Coincident raised above one.
@@ -159,6 +173,7 @@ fn rejects_out_of_domain_values() {
     );
 }
 
+/// `CertifiedPolicies::new` returns `None` for descending relations.
 #[test]
 fn certification_rejects_unordered_tables() {
     assert!(

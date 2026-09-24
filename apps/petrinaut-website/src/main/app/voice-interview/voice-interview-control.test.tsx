@@ -30,13 +30,15 @@ import { VoiceTurnController } from "./voice-turn-controller";
 import type { AgentSendResult } from "@flue/sdk";
 import type {
   PetrinautAiVoiceModeContext,
-  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "@hashintel/petrinaut/ui";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
-let registeredVoiceModeControls: PetrinautAiVoiceModeControls | undefined;
+let registeredVoiceModeControls:
+  | PetrinautAiVoiceModeSessionControls
+  | undefined;
 
 const VoiceInterviewHarness = () => {
   "use no memo";
@@ -136,7 +138,7 @@ const stubUnavailableMicrophone = () => {
     },
   );
   vi.stubGlobal("navigator", {
-    mediaDevices: { getUserMedia },
+    mediaDevices: Object.assign(new EventTarget(), { getUserMedia }),
   });
   return getUserMedia;
 };
@@ -458,7 +460,9 @@ describe("voice interview control", () => {
           resolveCheck = resolve;
         }),
     );
-    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    vi.stubGlobal("navigator", {
+      mediaDevices: Object.assign(new EventTarget(), { getUserMedia }),
+    });
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
@@ -484,11 +488,11 @@ describe("voice interview control", () => {
       failure: "getUserMedia throws synchronously",
       stubMedia: () =>
         vi.stubGlobal("navigator", {
-          mediaDevices: {
+          mediaDevices: Object.assign(new EventTarget(), {
             getUserMedia: () => {
               throw new DOMException("Unavailable", "NotSupportedError");
             },
-          },
+          }),
         }),
     },
   ])(
@@ -553,6 +557,26 @@ describe("voice interview control", () => {
     );
     expect(registeredVoiceModeControls?.takeTurn).toBeTypeOf("function");
     expect(registeredVoiceModeControls?.repeatQuestion).toBeTypeOf("function");
+  });
+
+  test("keeps idle speaker controls inert and retires them on unmount", async () => {
+    const setSpeakerMuted = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerMuted")
+      .mockImplementation(() => {});
+    const setSpeakerVolume = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerVolume")
+      .mockImplementation(() => {});
+    const { unmount } = render(<VoiceInterviewHarness />);
+    await waitFor(() => expect(registeredVoiceModeControls).toBeDefined());
+
+    registeredVoiceModeControls?.setSpeakerMuted?.(true);
+    registeredVoiceModeControls?.setSpeakerVolume?.(0.35);
+
+    expect(setSpeakerMuted).not.toHaveBeenCalled();
+    expect(setSpeakerVolume).not.toHaveBeenCalled();
+
+    unmount();
+    expect(registeredVoiceModeControls).toBeUndefined();
   });
 
   test("restarts when Voice is reselected before teardown completes", async () => {

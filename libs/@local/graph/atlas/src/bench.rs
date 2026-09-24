@@ -1,13 +1,12 @@
-//! Measurement seams for the crate's benchmark targets.
+//! Input builders and stage-level measurements for Atlas benchmarks.
 //!
-//! Benchmark targets are external crates, so pipeline stages that are private implementation detail
-//! everywhere else surface here behind the `bench` cargo feature. A target can synthesize realistic
-//! inputs and run one stage at a time. Every result it reads is a plain number, and no internal
-//! type escapes. The one deliberate exception is the Morton key vocabulary ([`Depth`],
-//! [`MortonKey`], [`MortonCell`]), which crosses typed: a target addresses cells with the same
-//! invariant-carrying types production uses instead of re-deriving their contracts from raw
-//! integers. Nothing here is API for consumers of the crate. The feature exists for the
-//! `[[bench]]` targets and is off by default.
+//! The `bench` feature is off by default. Enable it to expose selected pipeline operations to
+//! standalone benchmark targets. These interfaces separate input preparation from the operations
+//! under measurement, without requiring a complete fit.
+//!
+//! The Morton types ([`Depth`], [`MortonKey`] and [`MortonCell`]) preserve key and cell invariants
+//! when constructing benchmark requests. These interfaces serve crate development and follow the
+//! internal pipeline.
 
 pub use crate::{
     math::{bench as math, kernel::bench as kernel},

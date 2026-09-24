@@ -13,7 +13,11 @@ use crate::math::{BoxedDVecN, DVecN};
 
 #[test]
 fn max_and_sum_match_scalar_folds_across_chunk_sizes() {
-    // 0, remainder-only, exact-chunk, and chunk-plus-remainder lengths.
+    /// Compares the maximum and sum with scalar folds.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the maxima differ or the sum's absolute difference is not below `1e-12`.
     fn check<const N: usize>(components: [f64; N]) {
         let vec = DVecN::new(components);
 
@@ -27,6 +31,8 @@ fn max_and_sum_match_scalar_folds_across_chunk_sizes() {
         );
     }
 
+    // these lengths cover the empty, remainder-only, exact four-lane chunk, and
+    // chunk-plus-remainder paths used by `max` and `sum`.
     check([]);
     check([-3.5]);
     check([0.5, -1.25, 2.0]);
@@ -168,9 +174,7 @@ fn add_widened_matches_scalar_reference() {
 
 #[test]
 fn div_assign_divides_every_component() {
-    // N = 11 crosses one full 8-lane group plus a remainder, so both the batched body and the
-    // remainder divide; the operation is a plain IEEE division either way, so the results are
-    // bit-equal.
+    // N = 11 exercises one eight-lane SIMD group and a three-component scalar remainder
     let components = core::array::from_fn::<f64, 11, _>(|index| {
         f64::from(u8::try_from(index).expect("test sizes are small")).mul_add(0.75, -4.0)
     });
@@ -204,7 +208,7 @@ fn add_squared_deviation_matches_scalar_reference() {
     assert_eq!(accumulator.as_array(), &expected);
 }
 
-/// Deterministic, sign-varying components crossing multiple 8-lane chunks.
+/// Generates a repeating sign-varying sequence plus `offset`.
 #[expect(clippy::integer_division_remainder_used)]
 fn scattered<const N: usize>(offset: f64) -> [f64; N] {
     core::array::from_fn(|index| {
@@ -216,6 +220,11 @@ fn scattered<const N: usize>(offset: f64) -> [f64; N] {
 
 #[test]
 fn dot_matches_a_plain_reference_across_chunk_sizes() {
+    /// Compares a dot product with the scalar product sum.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the absolute difference exceeds `expected.abs().mul_add(1e-12, 1e-12)` or is NaN.
     fn check<const N: usize>() {
         let left: [f64; N] = scattered(0.5);
         let right: [f64; N] = scattered(-1.25);
@@ -260,15 +269,11 @@ fn norm_squared_and_abs_sum_match_plain_references() {
 // (two full chunks plus a remainder of three) and `add_scaled`'s 8-lane
 // boundary (one chunk plus three).
 
-/// Logits bounded to `-50..50`, where `exp` is well-conditioned.
-///
-/// The example-based tests above pin the shifted form's stability under logits large enough to
-/// overflow a naive `exp`.
+/// Generates eleven finite logits in `-50..50`.
 fn logits_strategy() -> impl Strategy<Value = [f64; 11]> {
     proptest::array::uniform11(-50.0_f64..50.0)
 }
 
-/// Softmax outputs are probabilities: each lies in `[0, 1]` and they sum to one up to rounding.
 #[property_test]
 fn softmax_outputs_form_a_distribution(#[strategy = logits_strategy()] logits: [f64; 11]) {
     let probabilities = DVecN::new(logits).softmax();
@@ -338,18 +343,31 @@ fn add_scaled_matches_a_scalar_reference_loop(
     prop_assert_eq!(actual.as_array(), &expected);
 }
 
-/// A small test index as an exact double, per the house cast discipline.
+/// Converts a test index to an exactly representable double.
+///
+/// # Panics
+///
+/// Panics if `index` exceeds `u8::MAX`.
 fn coordinate(index: usize) -> f64 {
     f64::from(u8::try_from(index).expect("test sizes are small"))
 }
 
-/// An aligned copy of the same components, for cross-type bit agreement.
+/// Allocates an aligned copy of the components.
+///
+/// # Panics
+///
+/// Panics if [`BoxedDVecN::new`] cannot represent the aligned layout.
 fn aligned<const N: usize>(components: &[f64; N]) -> BoxedDVecN<N> {
     BoxedDVecN::new(DVecN::from_ref(components))
 }
 
 #[test]
 fn max_abs_matches_the_scalar_fold_across_chunk_sizes() {
+    /// Compares each vector type's maximum magnitude with a scalar fold.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a result differs from the reference or [`aligned`] rejects the layout.
     fn check<const N: usize>(components: [f64; N]) {
         let expected = components
             .iter()
@@ -381,6 +399,11 @@ fn max_abs_ignores_nan_in_favor_of_finite_magnitudes() {
 
 #[test]
 fn stable_l2_matches_exact_norms_on_both_types() {
+    /// Asserts the finite scaled norm equals `expected` on both vector types.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either result differs from `expected`.
     fn check<const N: usize>(components: [f64; N], expected: f64) {
         assert_eq!(DVecN::new(components).stable_l2(), expected);
         assert_eq!(aligned(&components).stable_l2(), expected);
@@ -394,6 +417,7 @@ fn stable_l2_matches_exact_norms_on_both_types() {
     check([4.0, 0.0, -3.0], 5.0);
 }
 
+/// Inserting zeros into a scalar-tail norm preserves the nonzero accumulation order.
 #[test]
 fn stable_l2_zero_components_contribute_exactly_nothing() {
     let dense = [0.3, -1.7, 2.9];
@@ -427,13 +451,17 @@ fn stable_l2_survives_huge_components() {
 fn stable_l2_propagates_non_finite_components() {
     assert!(DVecN::new([1.0, f64::NAN]).stable_l2().is_nan());
     assert!(!DVecN::new([f64::INFINITY, 1.0]).stable_l2().is_finite());
-    // A NaN alongside only zeros hides from the maxNum scale, so the zero-scale finiteness check
-    // catches it.
+    // a NaN alongside only zeros gives a zero maxNum scale despite the non-finite component
     assert!(DVecN::new([0.0, f64::NAN, 0.0]).stable_l2().is_nan());
 }
 
 #[test]
 fn stable_l2_agrees_between_types_across_chunk_sizes() {
+    /// Asserts equal finite scaled norms from both vector types.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the results differ.
     fn check<const N: usize>(components: [f64; N]) {
         assert_eq!(
             DVecN::new(components).stable_l2(),
@@ -452,6 +480,11 @@ fn stable_l2_agrees_between_types_across_chunk_sizes() {
 
 #[test]
 fn is_finite_detects_non_finite_components_in_lanes_and_remainder() {
+    /// Checks both vector types against the expected finiteness result.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either result differs from `expected` or [`aligned`] rejects the layout.
     fn check<const N: usize>(components: [f64; N], expected: bool) {
         assert_eq!(DVecN::new(components).is_finite(), expected, "over {N}");
         assert_eq!(
@@ -475,6 +508,11 @@ fn is_finite_detects_non_finite_components_in_lanes_and_remainder() {
 
 #[test]
 fn mul_add_matches_the_componentwise_fused_multiply_add() {
+    /// Compares fused updates with scalar multiply-adds bit for bit.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either result differs from the scalar reference or [`aligned`] rejects the layout.
     fn check<const N: usize>(base: [f64; N], direction: [f64; N], factor: f64) {
         let mut updated = DVecN::new(base);
         updated.mul_add(DVecN::from_ref(&direction), factor);
@@ -588,7 +626,7 @@ fn scalar_multiply_and_divide_assign_scale_every_component() {
     let mut scaled = aligned(&components);
     *scaled *= 2.0;
     for (&result, &input) in scaled.as_array().iter().zip(&components) {
-        // Doubling is exact in binary floating point.
+        // these small binary fractions double without overflow or rounding
         assert_eq!(result, input * 2.0);
     }
 
@@ -600,6 +638,13 @@ fn scalar_multiply_and_divide_assign_scale_every_component() {
 
 #[test]
 fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
+    /// Compares the unaligned and aligned vector reductions.
+    ///
+    /// The dot and squared norm use numeric equality. The absolute sum compares result bits.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a comparison fails or [`aligned`] rejects the layout.
     fn check<const N: usize>(components: [f64; N], other: [f64; N]) {
         let unaligned = DVecN::new(components);
         let unaligned_other = DVecN::new(other);
@@ -637,9 +682,9 @@ fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
 
 /// The interleaved reductions visit a third lane group and the remainder in one call.
 ///
-/// Twenty-five components split as three 8-lane groups plus one remainder component, so the
-/// two-accumulator fold revisits accumulator zero at group index two. Signed integer components
-/// keep every partial sum exact.
+/// Twenty-five components exercise three 8-lane groups and one remainder component. The third group
+/// reuses accumulator zero in the two-accumulator fold. Signed integer components keep every
+/// partial sum exact.
 #[test]
 fn abs_sum_interleaves_three_lane_groups() {
     let components = core::array::from_fn::<f64, 25, _>(|index| {
@@ -669,7 +714,6 @@ fn stable_l2_interleaves_three_lane_groups() {
     assert_eq!(DVecN::new(components).stable_l2(), 5.0);
 }
 
-/// Negation flips the aligned lane groups of guaranteed-aligned storage.
 #[test]
 fn negate_flips_the_aligned_lane_groups() {
     let mut boxed = BoxedDVecN::from([1.0, -2.0, 3.0, -4.0, 5.0, -6.0, 7.0, -8.0]);
@@ -682,18 +726,17 @@ fn negate_flips_the_aligned_lane_groups() {
     );
 }
 
-/// Hashes one value with the std default hasher.
+/// Hashes a value with [`DefaultHasher`].
+///
+/// # Panics
+///
+/// Propagates panics from the value's [`Hash`] implementation.
 fn hash_of(value: impl Hash) -> u64 {
     let mut hasher = DefaultHasher::new();
     value.hash(&mut hasher);
     hasher.finish()
 }
 
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here wraps or boxes double-precision component storage and checks the alignment those
-/// views require. The profile selects by module path, so moving a test in or out of this module is
-/// the whole edit.
 mod miri {
     use super::{hash_of, scattered};
     use crate::math::{AlignedDVecN, BoxedDVecN, DVecN, test_alloc::CountingAllocator};
@@ -771,7 +814,6 @@ mod miri {
         assert_eq!(zero.norm_squared().into_raw(), 0.0);
     }
 
-    /// The checking wrapper admits aligned storage and refuses an offset view of it.
     #[test]
     fn aligned_from_mut_checks_alignment() {
         let mut boxed = BoxedDVecN::from([7.0_f64; 9]);
@@ -788,8 +830,6 @@ mod miri {
         assert!(AlignedDVecN::from_mut(tail).is_none());
     }
 
-    /// The checking wrapper admits aligned storage and refuses an offset view of it, through a
-    /// shared reference.
     #[test]
     fn aligned_from_ref_checks_alignment() {
         let boxed = BoxedDVecN::from([7.0_f64; 9]);
@@ -804,7 +844,6 @@ mod miri {
         assert!(AlignedDVecN::from_ref(tail).is_none());
     }
 
-    /// `clone_from` reuses the target's existing allocation instead of reallocating.
     #[test]
     fn boxed_dvecn_clone_from_reuses_the_allocation() {
         let source = BoxedDVecN::from([9.0_f64; 8]);
@@ -821,7 +860,6 @@ mod miri {
         );
     }
 
-    /// `Hash` follows the components and `Debug` prints them.
     #[test]
     fn boxed_hash_and_debug_follow_the_components() {
         let low = BoxedDVecN::from([0.5, 1.5]);
@@ -832,7 +870,6 @@ mod miri {
         assert_eq!(format!("{low:?}"), "AlignedDVecN([0.5, 1.5])");
     }
 
-    /// Dropping a box returns its buffer to the allocator that provided it.
     #[test]
     fn boxed_drop_returns_the_buffer_to_its_allocator() {
         let alloc = CountingAllocator::new();

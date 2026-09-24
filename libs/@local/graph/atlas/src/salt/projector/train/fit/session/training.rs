@@ -17,13 +17,6 @@ use crate::salt::projector::model::Projector;
 pub(crate) type TrainerOptimizer<B> = OptimizerAdaptor<Adam, Projector<B>, B>;
 
 /// Per-parameter Adam moments for the trainer's optimizer.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "the resume checkpoint record is its consumer, and nothing resumes yet"
-    )
-)]
 pub(crate) type TrainerOptimizerRecord<B> =
     <TrainerOptimizer<B> as Optimizer<Projector<B>, B>>::Record;
 
@@ -61,19 +54,22 @@ pub(crate) fn scheduler(schedule: TrainingSchedule) -> CosineAnnealingLrSchedule
 /// The terminal state of one run segment.
 ///
 /// A segment either completes with the advanced training state or ends at the target refusal.
-/// The record measured before the refusal rides the refusal as a value, so no unwinding call
-/// can drop it.
+/// The record measured before the refusal accompanies the refusal as a returned value rather
+/// than as an error, and the return path therefore carries it to the caller intact. A panic in a
+/// later caller drops it like any other value.
 // No Debug: the optimizer adaptor inside `Training` does not implement it.
 #[expect(
     clippy::large_enum_variant,
-    reason = "the outcome is constructed and consumed once per run segment, so the size \
-              difference never rides a hot path"
+    reason = "the outcome is constructed and consumed once per run segment, and the size \
+              difference is never on a hot path"
 )]
 pub(crate) enum RunOutcome<N, B: AutodiffBackend<FloatElem = f32>> {
     /// The segment completed and the training state advanced.
     Completed(Training<N, B>),
-    /// The target objective refused, so the run publishes no activation candidate and
-    /// everything measured before the refusal rides it.
+    /// The target objective refused.
+    ///
+    /// The run publishes no activation candidate, and everything measured before the refusal
+    /// accompanies it.
     Refused(TargetRefusal<N>),
 }
 

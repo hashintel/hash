@@ -1,52 +1,48 @@
-//! The relation-effect report over one published generation's condition ladder.
+//! Endpoint contraction and corpus displacement across a published condition ladder.
 //!
-//! The ladder's evidence records how far each step moved and what the frozen relation loss read,
-//! both in the trainer's own vocabulary of RMS movement after alignment and loss in local-scale
-//! units. Neither states the product's named claim - that the relation lens ends related entities
-//! closer on the published map. This report reads that claim in the map's own units. For every
-//! force-bearing relation instance it takes the distance between its endpoints at the
-//! zero-condition step against the same distance at every other step, aggregated with the
-//! trainer's own engagement mass. The bridge between the two vocabularies is the point of the
-//! bundle: the manifest's loss column rides beside the measured contraction so a reader can see
-//! where they disagree.
+//! Frozen relation loss measures the [projector](crate::salt::projector)'s locally normalized
+//! objective, while this report asks whether retained relation endpoints become closer in map
+//! units. It compares every stored attraction instance's endpoint distance at the [zero-condition
+//! step](super::Conditions) with its distance at each later step. Loss and contraction appear
+//! together to expose disagreement between the objective and map geometry.
 //!
 //! # What the report reads
 //!
-//! Everything comes from the published generation directory; the report dials no store and mutates
-//! nothing. The trained checkpoint projects the representation matrix at every step condition of
-//! the recorded schedule (rows project independently, so this reproduces the fit's own frames),
-//! each raw frame maps into the baseline frame through its recorded manifest alignment, and the
-//! attraction index supplies the engaged pairs with their weights. Frames are rebuilt rather than
-//! read because the fit persists them only as scratch. The checkpoint, the schedule, and the
-//! alignments together determine them exactly.
+//! The published generation supplies the checkpoint, representations, recorded schedule and
+//! alignments, plus the attraction index. The report reconstructs all step frames on the supplied
+//! device and applies each recorded alignment into the baseline frame. Per-step raw frames are fit
+//! scratch artifacts and are not available as published columns. Row-independent projection
+//! establishes the mathematical reconstruction, but backend kernels and floating-point behavior can
+//! change its bits. No database or embedding provider is contacted.
 //!
 //! # The certificate
 //!
-//! Before the report takes any reading, the canonical step's rebuilt aligned frame must reproduce
-//! the published coordinate column within [`CERTIFICATE_TOLERANCE`] world units per component. A
-//! report whose forward pass does not reproduce the published bytes would describe a lookalike,
-//! so failure panics instead of reporting. The tolerance derives from measurement. Independent
-//! full-corpus reproductions of two prior generations reached a maximum component error near
-//! `1e-4`, and the bound stands one order above that floor. The bundle carries the measured
-//! residual, so drift toward the bound is visible long before it fails.
+//! The canonical reconstruction must have absolute component error strictly below
+//! [`CERTIFICATE_TOLERANCE`] (0.001 world units) against the published coordinate column. Failure
+//! panics. This establishes numerical agreement at the canonical step, not byte equality or
+//! reconstruction accuracy at every other step. The bound uses a calibration of full-corpus
+//! reconstructions of two generations with maximum component error near 0.0001. The report includes
+//! the measured residual for comparison with that bound.
 //!
 //! # Bases, stated
 //!
-//! - Distances are Euclidean world units in the baseline frame after each step's own manifest
-//!   alignment. The alignment quotients the global similarity freedom the projector never promises
-//!   to pin down, exactly as the ladder's published movement evidence does; a uniform rescale of a
-//!   whole frame is therefore not read as contraction.
-//! - The engagement mass of an instance is the trainer's own loss factor, computed identically:
-//!   `confidence * degree_normalization * strength`. Mass-weighted and unweighted aggregates ride
-//!   together, and every group row carries its channel weights, so no single convention hides the
-//!   other.
-//! - Populations are exact. Every retained instance and every corpus row enters, with no sampling
-//!   anywhere. Byte-identical duplicate rows project identically and enter with their multiplicity,
-//!   the same convention the trainer's loss uses. Confidence machinery over these point readings is
-//!   a later concern. Nothing here is an estimate.
-//! - The contracted fraction counts instances whose endpoint distance strictly shrank against the
-//!   baseline; ties - including coincident duplicates at distance zero on both steps - do not
-//!   count.
+//! - Distances use the baseline frame's world units after each step's recorded alignment. A pure
+//!   source similarity is removed by an ideal exact alignment, up to the implementation's rounding.
+//!   Changing the baseline's unit scale changes the reported magnitudes.
+//! - For instance i, engagement mass is mᵢ = confidenceᵢ · normalizationᵢ · strengthᵢ. This uses
+//!   the loss readout's per-instance factor expression. Channel weights and locally normalized
+//!   class energies are separate parts of the loss, and the report shows the channel weights per
+//!   group.
+//! - With contraction Δᵢ = distanceᵢ,zero − distanceᵢ,step, the mass-weighted mean is Σᵢ mᵢΔᵢ/Σᵢ
+//!   mᵢ, or zero at zero mass. The unweighted mean is Σᵢ Δᵢ/E for E instances, or zero at E = 0.
+//!   Positive values mean contraction. The contracted fraction counts only Δᵢ > 0, excluding ties.
+//! - The report measures every stored instance and every corpus row. It preserves stored
+//!   multiplicity and does not deduplicate oriented pairs or sample them. This population differs
+//!   from the distinct-row training domain and its capped draws. Complete coverage removes sampling
+//!   error, not numerical error or uncertainty about causal effects.
+//! - Endpoint differences and lengths compute in `f32` before widening to `f64` for the serial
+//!   aggregates. Even finite fields can overflow this distance path. The report refuses non-finite
+//!   aggregate results instead of treating them as measurements.
 
 #[cfg(test)]
 mod tests;
@@ -61,6 +57,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::PhysicalDevice,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         generation::{GenerationId, GenerationRoot},
@@ -103,14 +100,18 @@ pub(crate) struct LadderReport {
     pub canonical_condition: NonNegative,
     /// The schedule index with the largest mass-weighted mean contraction.
     ///
-    /// Ties keep the first. Index `0` states that no step contracts the engaged pairs against the
-    /// baseline at all.
+    /// Ties keep the first. With the baseline's zero contraction at index 0, a selected index of 0
+    /// means no step has a strictly positive mass-weighted mean. Individual pairs can still
+    /// contract.
     pub contraction_argmax_index: usize,
     /// Whether the published step is the contraction argmax.
     pub canonical_is_argmax: bool,
     /// The canonical step's reproduction residual against the published coordinate column.
     pub certificate: Certificate,
-    /// One reading per step, in schedule order. The baseline step is the all-zero row.
+    /// One reading per step, in schedule order.
+    ///
+    /// The baseline has zero contraction and displacement, while retaining its counts, masses and
+    /// recorded loss.
     pub steps: Vec<StepReading>,
 }
 
@@ -132,7 +133,7 @@ pub(crate) struct Certificate {
 pub(crate) struct StepReading {
     /// The step's condition value.
     pub condition: NonNegative,
-    /// The manifest's frozen relation loss at projection time, local-scale units.
+    /// The manifest's frozen relation loss using locally normalized distances.
     pub relation_loss: DNonNegative,
     /// The manifest's RMS movement against the baseline field after alignment.
     pub baseline_movement: DNonNegative,
@@ -158,7 +159,7 @@ pub(crate) struct ContractionReading {
     pub edge_count: usize,
     /// Total engagement mass of those instances.
     pub total_mass: DNonNegative,
-    /// Mass-weighted mean of `baseline distance - step distance`, world units.
+    /// Mass-weighted mean of baseline distance minus step distance, in world units.
     ///
     /// Zero when no mass entered.
     pub mass_weighted_mean: DFinite,
@@ -216,8 +217,15 @@ impl LadderReport {
     /// no measured ladder, when an artifact fails to open or disagrees with another about the row
     /// domain, when the echoed schedule and the ladder evidence describe different ladders, or
     /// when the rebuilt canonical frame does not reproduce the published coordinate column within
-    /// [`CERTIFICATE_TOLERANCE`]. A report run has no recovery path, and the error is the
-    /// diagnosis.
+    /// [`CERTIFICATE_TOLERANCE`]. Non-finite projection, alignment, distance or aggregate results
+    /// also panic.
+    ///
+    /// # Complexity
+    ///
+    /// For S steps, N rows, G groups and E stored instances, the reading retains O(S(N + G) + E)
+    /// host data for frames, terms and results, in addition to model and device working memory.
+    /// Group extraction repeatedly validates archive regions, costing O(G(G + E)). Reading all
+    /// steps costs O(S(N + G + E)) after frame reconstruction.
     #[tracing::instrument(skip_all)]
     pub(crate) fn compile(
         root: &GenerationRoot,
@@ -270,7 +278,8 @@ impl LadderReport {
             "the attraction index and the representation matrix disagree on the row domain",
         );
 
-        // The model, opened on the placement backend the fit trained on.
+        // reconstruct on the supplied inference device. The certificate checks its canonical output
+        // against the published column.
         let model: Projector<crate::device::Inference> = artifact::open_model(
             File::open(generation.path_of(&checkpoint.name())).expect("the checkpoint opens"),
             options.architecture,
@@ -328,7 +337,7 @@ struct GroupTerms {
     terms: Vec<EdgeTerm>,
 }
 
-/// The echoed options beside the measured ladder evidence, certified to describe one ladder.
+/// Echoed projector options with a matching recorded condition sequence.
 struct LadderSources<'source> {
     /// The echoed projector options.
     options: &'source ProjectorOptions,
@@ -341,14 +350,17 @@ impl<'source> LadderSources<'source> {
     ///
     /// # Panics
     ///
-    /// This panics when the generation placed rows by landmark baseline, when it published no
-    /// ladder, or when the echoed schedule and the evidence describe different ladders: a
-    /// reading over disagreeing sources would describe neither.
+    /// Panics for landmark-baseline placement, missing projector or ladder evidence, a
+    /// condition-sequence mismatch, an out-of-range recorded canonical index, or disagreement
+    /// between that entry and the recorded canonical condition.
+    ///
+    /// This does not compare the echoed canonical option with the evidence's canonical condition or
+    /// validate the recorded alignments.
     pub(crate) fn new(repository: &'source SaltRepository) -> Self {
         let PlacementOptions::Projector(options) =
             &repository.metadata.reproducibility.config.placement
         else {
-            panic!("the generation placed rows by landmark baseline; no ladder exists to read");
+            panic!("ladder reporting requires projector placement");
         };
 
         let evidence = repository
@@ -359,7 +371,7 @@ impl<'source> LadderSources<'source> {
             .expect("a projector placement records its training evidence")
             .ladder
             .as_ref()
-            .expect("the corpus carries relation force; a forceless ladder never publishes");
+            .expect("should contain recorded ladder evidence for reporting");
 
         let schedule = options.ladder.conditions.values();
         assert_eq!(
@@ -385,12 +397,15 @@ impl<'source> LadderSources<'source> {
     }
 }
 
-/// Rebuilds every step: the production forward pass at the step's condition, then the recorded
-/// manifest alignment into the baseline frame.
+/// Reprojects each recorded condition and applies its recorded baseline alignment.
+///
+/// The representation and role columns must cover the same rows. All aligned frames remain
+/// allocated in the result.
 ///
 /// # Panics
 ///
-/// This panics when a forward slice reads back a non-finite coordinate.
+/// Panics when the columns do not cover a requested row range, projection fails, or applying an
+/// alignment produces a non-finite coordinate.
 fn rebuild_frames<B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
     columns: NodeColumns<'_, NodeRowId>,
@@ -424,7 +439,10 @@ fn rebuild_frames<B: Backend<FloatElem = f32>>(
         .collect()
 }
 
-/// Materializes every group's instances with the trainer's own loss factor as their mass.
+/// Materializes every stored instance with its confidence-normalization-strength mass.
+///
+/// Each group lookup revalidates archive regions. Extracting G groups over E edges costs O(G(G +
+/// E)) work and O(G + E) result storage.
 fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Vec<GroupTerms> {
     (0..attraction.group_count())
         .map(|index| {
@@ -438,7 +456,7 @@ fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Ve
                     .map(|edge| EdgeTerm {
                         source: edge.source,
                         target: edge.target,
-                        // The trainer's loss factor, computed identically (`relation_loss`).
+                        // preserve the loss readout's factor expression and multiplication order.
                         mass: (edge.confidence.value() * edge.normalization)
                             * weights.strength.widen(),
                     })
@@ -448,8 +466,15 @@ fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Ve
         .collect()
 }
 
-/// Reads every step against the baseline: contraction per group and in aggregate, and the point
-/// displacement of both row populations.
+/// Reads per-step contraction and participant/nonparticipant displacement.
+///
+/// `aligned` must follow the evidence's step order. The frames, endpoints and participant mask must
+/// describe the same row domain.
+///
+/// # Panics
+///
+/// Panics when the baseline or a recorded step is missing, an indexed row is outside its frame, or
+/// a contraction or displacement aggregate is non-finite.
 fn read_steps(
     evidence: &LadderEvidence,
     aligned: &[Box<FinitePointField<NodeRowId>>],
@@ -498,9 +523,11 @@ fn read_steps(
 ///
 /// # Panics
 ///
-/// This panics when the largest absolute component error reaches [`CERTIFICATE_TOLERANCE`] and
-/// when any rebuilt component is non-finite: the rebuilt frames would describe a lookalike of the
-/// published generation, and no reading over them is evidence about it.
+/// Panics when frame lengths differ, a measured residual is non-finite, or the largest absolute
+/// component error is at least [`CERTIFICATE_TOLERANCE`].
+///
+/// Component subtraction and point lengths use `f32` before widening. Empty paired fields yield
+/// zero residuals and pass the bound.
 #[expect(
     clippy::cast_precision_loss,
     reason = "corpus row counts sit orders of magnitude below the f64 mantissa"
@@ -528,8 +555,8 @@ fn certify(
     }
     let components = (rebuilt.len() * 2) as f64;
 
-    // `f64::max` skips NaN, so the max fold alone cannot certify finiteness. Any NaN component
-    // poisons the component sum, and the mean's constructor is the refusal.
+    // finite input coordinates can still overflow f32 subtraction or length calculation. Validate
+    // the residual summaries before comparing the component bound.
     let non_finite =
         "the rebuilt canonical frame carries a non-finite coordinate and reproduces nothing";
     let certificate = Certificate {
@@ -553,6 +580,14 @@ fn certify(
 }
 
 /// Aggregates endpoint-distance contraction over one instance population.
+///
+/// Distances compute through the `f32` vector-length path. Endpoint differences, their squared
+/// lengths and the subsequent mass and difference folds must remain finite. A [`FinitePointField`]
+/// alone does not establish those arithmetic bounds.
+///
+/// # Panics
+///
+/// Panics for an out-of-frame endpoint or a non-finite completed weighted or unweighted mean.
 #[expect(
     clippy::cast_precision_loss,
     reason = "instance counts sit orders of magnitude below the f64 mantissa"
@@ -565,10 +600,9 @@ fn contract(
     let mut edge_count = 0_usize;
     let mut contracted = 0_usize;
     let mut total_mass = DNonNegative::ZERO;
-    // The mass-weighted fold multiplies two unbounded operands, so it runs as a derivation and
-    // makes its one claim at the mean's construction. The unweighted fold keeps the typed
-    // escape op by its totality theorem: every difference is bounded by 2·f32::MAX and the
-    // population by the corpus rows, so the serial sum stays far inside `f64`.
+    // the weighted mean validates its completed derivation. If the f32 distances remain finite,
+    // each unweighted difference has magnitude below 2¹²⁸. Fewer than 2⁶⁴ terms then keep the sum
+    // below 2¹⁹². Finiteness of the input coordinates alone does not establish the first premise.
     let mut weighted_sum = Derivation::<DFinite>::ZERO;
     let mut unweighted_sum = DFinite::ZERO;
 
@@ -610,7 +644,14 @@ fn contract(
 
 /// Summarizes point displacement between two aligned frames over one row population.
 ///
-/// `engaged` selects which side of the participant mask enters.
+/// `engaged` selects which side of the participant mask enters. Only matching mask positions are
+/// read. Rows beyond the mask's length do not enter either population. Differences and lengths
+/// compute in `f32` before widening.
+///
+/// # Panics
+///
+/// Panics when a selected mask position exceeds either frame or a resulting displacement summary is
+/// non-finite.
 #[expect(
     clippy::cast_precision_loss,
     reason = "row counts sit orders of magnitude below the f64 mantissa"

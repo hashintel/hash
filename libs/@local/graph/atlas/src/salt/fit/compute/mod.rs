@@ -1,19 +1,42 @@
-//! The compute side of one fit, covering every stage after ingest.
+//! Generation construction from ingested dataset artifacts.
 //!
-//! [`Compute::run`] executes on the rayon pool, so the tokio runtime thread stays free while the
-//! CPU-heavy stages - the neighbour link, the landmark layout, the level-of-detail sort - do
-//! their work. Nothing here touches the dataset or the embedding provider: every input is a
-//! staged file or a value carried across the boundary in [`Compute`], and every failure is a
-//! [`ComputeError`].
+//! [`Compute::run`] builds the geometry and relation policy, then seals the staged files into a
+//! published generation. Run it on a Rayon worker to keep its synchronous CPU and file work off
+//! async executor threads. Its inputs consist of owned values and staged files, never a live
+//! dataset or embedding provider.
 //!
-//! Data flows through the run as owned values, and artifacts are its rims. The staged ingest
-//! files map in once at the top - the corpus matrix, the identity table, the endpoint and card
-//! columns - and every stage after that consumes the values the stages before it built: the
-//! quotient carries both row-domain matrices, the admitted neighbour table feeds the semantic
-//! smoothing, the skeleton and the trainer indexes feed the placement. A staging write returns
-//! the repository binding the seal publishes, and nothing reads its own staged bytes back
-//! mid-run. The deliberate exceptions live in the placement's measurement pass, which re-reads
-//! persisted artifacts exactly because the published bytes are what its readings certify.
+//! # Stage dependencies
+//!
+//! Placement combines semantic structure with relation constraints. [`classifier`] and [`policy`]
+//! determine how to interpret relation types, and [`relation`] builds their attraction and
+//! protection indexes. [`neighbours`] constructs and smooths the k-NN table. [`landmark`] derives a
+//! layout from that semantic graph, retaining eligible landmarks from the prior generation.
+//!
+//! [`projector`] produces coordinates using either the trained model or the landmark baseline.
+//! [`lod`] then derives the delivery order, spatial index and type postings from the coordinates
+//! and corpus topology.
+//!
+//! # Row domains
+//!
+//! [`Quotient`] groups byte-identical representations into distinct rows for training. Training
+//! indexes and the semantic graph use that distinct-row domain. The published neighbour and
+//! semantic artifacts cover corpus rows addressed by [`NodeRowId`]. A stage's in-memory training
+//! value can therefore differ from the corpus-domain artifact it stages. [`Staged`] keeps the value
+//! and artifact binding separate.
+//!
+//! # Working data and staged files
+//!
+//! Representations and node identities remain mapped from the start of the run. Policy and relation
+//! preparation open the card and endpoint columns, and verdict resolution opens the ontology
+//! identities.
+//!
+//! The run retains computed products for dependent stages after writing their artifacts. Peak
+//! memory includes these retained products alongside the current stage's working storage.
+//!
+//! Placement reopens its staged coordinates through [`coordinates::Coordinates::open`] to check
+//! finiteness before deriving the delivery structure. Ladder measurements also read the staged
+//! coordinate and attraction columns to measure the bytes that will publish. Temporary matrices and
+//! ladder frames use [`Context::scratch`], separate from the generation's staged artifacts.
 
 #[cfg(test)]
 pub(super) use self::projector::error::ProjectorError;
@@ -35,6 +58,7 @@ use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     device::PhysicalDevice,
     file::{
+        ArtifactFile as _,
         generation::{Generation, PublishedGeneration, ScratchDirectory, StagedGeneration},
         identity::{Key, read::IdentityFile},
         repository::{Artifact as _, Binding, RepositoryVersion},
@@ -63,9 +87,7 @@ mod projector;
 mod quotient;
 mod relation;
 
-/// The relation-policy classifier supply.
-///
-/// Resolved on the async side and carried across the thread boundary.
+/// A supplied relation classifier or the training material needed to fit one.
 pub(super) enum ClassifierPlan {
     /// Use a fitted model supplied to the run.
     Use {
@@ -76,7 +98,7 @@ pub(super) enum ClassifierPlan {
     },
     /// Fit a model from the assembled annotation corpus.
     Fit {
-        /// The assembled training and holdout material, boxed to keep the variants near one size.
+        /// The assembled training examples and holdout material.
         corpus: Box<AssembledCorpus>,
         /// The SHA-256 of the corpus document's bytes.
         source: Sha256Digest,
@@ -85,42 +107,42 @@ pub(super) enum ClassifierPlan {
     },
 }
 
-/// The places and settings of one compute run.
+/// Shared configuration and storage for one generation under construction.
 ///
-/// Every stage reads the same staged generation, the same scratch directory, the same
-/// configuration, and the same device. The run owns them for its whole life and consumes the
-/// staged generation at the seal.
+/// Stages write publishable artifacts into `staging` and temporary working files into `scratch`.
+/// Sealing consumes the staged generation. Dropping the context attempts to remove remaining
+/// staging and scratch files.
 pub(super) struct Context {
-    /// The staged generation every stage writes into and the seal consumes.
+    /// Artifacts awaiting publication as one generation.
     pub staging: StagedGeneration,
-    /// The scratch directory for artifacts that live and die with the run.
+    /// Temporary working files to remove when the run ends.
     pub scratch: ScratchDirectory,
-    /// The fit's configuration, echoed into the metadata.
+    /// Stage settings, also recorded in the generation metadata.
     pub config: FitConfig,
-    /// The device every tensor stage runs on.
+    /// The device for tensor computation.
     pub device: PhysicalDevice,
 }
 
-/// One stage's product, pairing the owned value with its typed binding and its evidence.
+/// A stage result with its artifact binding and recorded evidence.
 ///
-/// The value flows to the stages downstream, while the binding and the evidence flow to the
-/// seal, so everything one stage produced travels as one typed unit until the trunk routes its
-/// parts. The value and the binding need not describe the same bytes: under a real quotient the
-/// neighbour and semantic stages publish the corpus-domain table while the distinct-domain twin
-/// flows on as the value the trainer consumes.
+/// `value` supports further computation. `binding` identifies the staged artifact, and `evidence`
+/// records the stage's measurements for the repository metadata.
+///
+/// The value need not be a decoded copy of the artifact. For example, semantic smoothing returns a
+/// distinct-row training graph while staging the corpus-domain graph when [`Quotient`] groups
+/// duplicate representations.
 pub(super) struct Staged<V, A, E> {
-    /// The owned value the next stages consume.
+    /// The in-memory result available to later stages.
     pub value: V,
     /// The staged file's typed repository binding.
     pub binding: Binding<A>,
-    /// The stage's measurement, echoed into the metadata document.
+    /// The stage's evidence for the metadata document.
     pub evidence: E,
 }
 
-/// One fit's compute run, holding the owned inputs the async side hands across the thread
-/// boundary.
+/// Owned inputs for completing a fit after dataset ingestion.
 pub(super) struct Compute {
-    /// The run's places and settings.
+    /// Storage, configuration and device shared by the stages.
     pub context: Context,
     /// A fitted model, or the assembled corpus to fit one from.
     pub classifier: ClassifierPlan,
@@ -130,21 +152,34 @@ pub(super) struct Compute {
     pub verdicts: Option<SuppliedVerdicts>,
     /// The generation seeding reuse, when the fit received one.
     pub prior: Option<Generation>,
-    /// The staged stream artifacts and drain facts of the ingest.
+    /// Ingested artifact bindings, row-aligned type columns and input measurements.
     pub ingested: Ingested,
 }
 
 impl Compute {
-    /// Runs every compute stage over the staged ingest artifacts and seals the generation.
+    /// Builds the remaining artifacts and publishes the completed generation.
     ///
-    /// `I` is the dataset's node id type: the identity artifacts open under it for
-    /// prior-landmark translation and the ranking tiebreak. `O` is the dataset's ontology id
-    /// type, under which the supplied verdicts resolve.
+    /// `I` and `O` must be the ingested dataset's node and ontology identity types. Node identities
+    /// support prior-landmark translation and ranking tiebreaks. Ontology identities resolve the
+    /// supplied verdicts against the staged ontology table.
+    ///
+    /// Success returns a durable [`PublishedGeneration`]. Publication does not activate it for
+    /// serving.
     ///
     /// # Errors
     ///
-    /// Returns the failing stage's [`ComputeError`]. The staging and scratch directories remove
-    /// themselves on the early return, so a failed run publishes nothing.
+    /// Returns [`ComputeError`] for a failed stage, artifact operation or seal. Every error before
+    /// the seal's rename leaves nothing published. A [`ComputeError::Seal`] from opening or syncing
+    /// the root after the rename leaves the generation directory visible.
+    ///
+    /// On an early return, the staging and scratch directories attempt cleanup and log any cleanup
+    /// failures.
+    ///
+    /// # Panics
+    ///
+    /// Propagates panics from compute stages, including the input and scratch-file conditions of
+    /// [`Quotient::build`] and [`PlacementPass::run`]. A `progress` callback can also panic,
+    /// including the seal-completion callback after publication.
     #[expect(
         clippy::too_many_lines,
         reason = "the run is the fit's one straight line, and splitting it would scatter the data \
@@ -165,9 +200,8 @@ impl Compute {
             ingested,
         } = self;
 
-        // The run maps in two boundary artifacts. The corpus matrix's file is the data's home
-        // for the whole run, and the identity table feeds the prior translation and the ranking
-        // tiebreak.
+        // retain the corpus mapping while later stages borrow its representations. Node identities
+        // translate prior landmarks and break ranking ties.
         let corpus: VectorFile<NodeRowId, PROJECTOR_DIMENSIONS> =
             VectorFile::open(context.staging.path_of(&artifact::Representations::NAME))
                 .map_err(ComputeError::OpenRepresentations)?;
@@ -219,8 +253,8 @@ impl Compute {
                 .run()?;
         progress.stage_completed(Stage::Landmarks);
 
-        // Built ahead of placement: the paired-movement draw derives its salt from these exact
-        // values, and the seal serializes the same ones.
+        // construct these before placement: paired-movement sampling derives its salt from the same
+        // snapshot and configuration that the metadata records.
         let dataset = ingested.origin;
         let snapshot = ingested.snapshot();
         let reproducibility = ingested.reproducibility(context.config.clone(), prior.as_ref());
@@ -255,8 +289,8 @@ impl Compute {
         .stage(&context.staging)?;
         progress.stage_completed(Stage::Lod);
 
-        // Each typed binding and evidence value enters the repository exactly once at the seal,
-        // and the sealed document is the generation's identity.
+        // the repository records both artifact digests and fit evidence. Its serialized bytes
+        // determine the generation ID.
         let (annotation_corpus, annotation_embeddings, annotation_hashes) = acquired
             .annotation
             .map_or((None, None, None), |annotation| {

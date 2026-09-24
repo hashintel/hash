@@ -8,7 +8,9 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
+import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type {
   AgentConversationObservationSnapshot,
@@ -100,6 +102,8 @@ afterEach(() => {
 
 test("renders the microphone action when Brunch and server Voice are available", async () => {
   stubStorage();
+  localStorage.setItem(assistantSelectionStorageKey, "brunch");
+  localStorage.setItem(voicePreferenceStorageKey, "true");
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   vi.stubGlobal(
     "ResizeObserver",

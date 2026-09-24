@@ -1,56 +1,69 @@
 /**
- * A drawer's metric charts: one tile per metric, each resizable between a
- * half-width and a full-width slot. Before any frame has arrived the tiles
- * are stable shells per configured metric, so the first data causes no
- * layout shift.
+ * The metric timeline cards of a results surface, in one fixed grid with
+ * whatever cards follow them. Every card is the same height whatever it
+ * draws, so changing a chart's view moves nothing around it, and before any
+ * frame has arrived the cards are stable shells per configured metric, so
+ * the first data causes no layout shift. The one thing that resizes a card
+ * is its Enlarge button: the card then spans the grid's full row at twice
+ * the row height, the cards after it fill the cells its row has left, and
+ * the rest move below.
  */
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  describeMetricView,
   ExperimentMetricTimeline,
-  type MetricSize,
+  MetricViewMenu,
+  type MetricViewSettings,
 } from "../experiments/experiment-metric-timeline";
+import {
+  CHART_CARD_GRID_GAP,
+  CHART_CARD_MIN_WIDTH,
+  ChartCard,
+  chartCardBodyHeight,
+  ChartCardGrid,
+  chartCardHeight,
+  type ChartCardTone,
+} from "./chart-card";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
+/** One metric timeline card. */
 export type MetricTile = {
   id: string;
-  label: string;
+  /** The card's title: the metric's label, or what point the chart describes. */
+  title: string;
+  /**
+   * The metric's name, put before the view description in the subtitle when
+   * the title says something else; null when the title is the metric.
+   */
+  metricName: string | null;
   frames: readonly MonteCarloUserDefinedMetricFrame[];
   outputType: MonteCarloUserDefinedMetricFrame["outputType"];
 };
 
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  alignItems: "start",
-  gap: "3",
-});
+/** The plot's height inside an experiment's metric cards; the smallest the axes and labels fit in. */
+export const METRIC_PLOT_HEIGHT = 220;
 
-const tileStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[0]",
-  padding: "3",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-});
+/** "large" spans the grid's full row and two of its rows; "default" is one cell. */
+type MetricCardSize = "default" | "large";
 
 const largeTileStyle = css({
   gridColumn: "[1 / -1]",
+  gridRow: "[span 2]",
 });
 
 export const MetricTiles = ({
   tiles,
   timeDomain,
   contentEpoch,
-  defaultSize = "small",
+  plotHeight,
+  tone,
+  children,
 }: {
   tiles: readonly MetricTile[];
   timeDomain: readonly [number, number];
@@ -60,33 +73,81 @@ export const MetricTiles = ({
    * sparse new stream.
    */
   contentEpoch: string;
-  defaultSize?: MetricSize;
+  /** The plot's height inside every card; the grid's row height follows. */
+  plotHeight: number;
+  tone: ChartCardTone;
+  /** Cards after the timelines, in the same grid. */
+  children?: ReactNode;
 }) => {
-  const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
+  const [settingsById, setSettingsById] = useState<
+    Record<string, MetricViewSettings>
+  >({});
+  const [sizeById, setSizeById] = useState<Record<string, MetricCardSize>>({});
+  const rowHeight = chartCardHeight({ bodyHeight: plotHeight });
+  // Two rows and the gap between them, less the card's own chrome.
+  const largePlotHeight = chartCardBodyHeight(
+    2 * rowHeight + CHART_CARD_GRID_GAP,
+  );
 
   return (
-    <div className={gridStyle}>
+    <ChartCardGrid minColumnWidth={CHART_CARD_MIN_WIDTH} rowHeight={rowHeight}>
       {tiles.map((tile) => {
-        const size = sizes[tile.id] ?? defaultSize;
+        const settings = settingsById[tile.id] ?? DEFAULT_METRIC_VIEW_SETTINGS;
+        const view = describeMetricView(settings, tile.outputType);
+        const large = (sizeById[tile.id] ?? "default") === "large";
+        const tilePlotHeight = large ? largePlotHeight : plotHeight;
+        const sizeLabel = large ? "Shrink" : "Enlarge";
         return (
-          <div
+          <ChartCard
             key={tile.id}
-            className={cx(tileStyle, size === "large" && largeTileStyle)}
+            title={tile.title}
+            subtitle={
+              tile.metricName === null ? view : `${tile.metricName} · ${view}`
+            }
+            actions={
+              <>
+                <MetricViewMenu
+                  outputType={tile.outputType}
+                  value={settings}
+                  onChange={(next) =>
+                    setSettingsById((previous) => ({
+                      ...previous,
+                      [tile.id]: next,
+                    }))
+                  }
+                />
+                <Button
+                  iconName={large ? "collapse" : "expand"}
+                  variant="ghost"
+                  size="xs"
+                  pressed={large}
+                  aria-label={sizeLabel}
+                  tooltip={sizeLabel}
+                  onClick={() =>
+                    setSizeById((previous) => ({
+                      ...previous,
+                      [tile.id]: large ? "default" : "large",
+                    }))
+                  }
+                />
+              </>
+            }
+            bodyHeight={tilePlotHeight}
+            tone={tone}
+            className={large ? largeTileStyle : undefined}
           >
             <ExperimentMetricTimeline
               frames={tile.frames}
-              label={tile.label}
+              settings={settings}
               expectedOutputType={tile.outputType}
               timeDomain={timeDomain}
               contentEpoch={contentEpoch}
-              displaySize={size}
-              onDisplaySizeChange={(nextSize) =>
-                setSizes((previous) => ({ ...previous, [tile.id]: nextSize }))
-              }
+              plotHeight={tilePlotHeight}
             />
-          </div>
+          </ChartCard>
         );
       })}
-    </div>
+      {children}
+    </ChartCardGrid>
   );
 };

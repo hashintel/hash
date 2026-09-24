@@ -43,6 +43,35 @@ export const useVoiceSessionMicrophoneMuted = (): boolean => {
   );
 };
 
+export const useVoiceSessionSpeakerMuted = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.speakerMuted ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionSpeakerVolume = (): number => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.speakerVolume ?? 1,
+    () => 1,
+  );
+};
+
+export const useVoiceSessionAudioSettings = () => {
+  const store = use(VoiceSessionContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.audioSettings,
+    () => undefined,
+  );
+};
+
 export const useVoiceSessionErrorMessage = (): string | null => {
   const store = use(VoiceSessionContext);
 
@@ -83,6 +112,16 @@ export const useVoiceSessionCanRepeatQuestion = (): boolean => {
   );
 };
 
+export const useVoiceSessionCanRetryPlayback = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canRetryPlayback ?? false,
+    () => false,
+  );
+};
+
 export const useVoiceSessionCanTakeTurn = (): boolean => {
   const store = use(VoiceSessionContext);
 
@@ -99,6 +138,16 @@ export const useVoiceSessionNotice = (): string | null => {
   return useSyncExternalStore(
     store.subscribe,
     () => store.getSnapshot().state?.notice ?? null,
+    () => null,
+  );
+};
+
+export const useVoiceSessionWarningMessage = (): string | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.warningMessage ?? null,
     () => null,
   );
 };

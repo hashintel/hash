@@ -33,7 +33,13 @@ function compile(
 ): CompiledScenarioResult {
   const outcome = compileScenario(
     constellationScenario!,
-    lowerScenarioToHir(constellationScenario!),
+    lowerScenarioToHir(constellationScenario!, {
+      adHocContext: {
+        places: petriNetDefinition.places,
+        types: petriNetDefinition.types,
+        netParameters: petriNetDefinition.parameters,
+      },
+    }),
     petriNetDefinition.parameters,
     petriNetDefinition.places,
     petriNetDefinition.types,

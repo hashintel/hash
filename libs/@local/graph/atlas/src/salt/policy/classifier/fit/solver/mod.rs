@@ -2,16 +2,16 @@
 //!
 //! The classifier's external objective combines weighted soft-target cross-entropy with
 //! coefficient-only L2 regularization over the class logits. A common shift of the logits moves no
-//! probability, so the solver operates in the contrast space of dimension one below the class
-//! count, reached through the fixed [`basis`], where coefficient regularization plus positive
-//! aggregate class mass makes the minimizer finite and unique.
+//! probability, and the solver therefore operates in the contrast space of dimension one below
+//! the class count, reached through the fixed [`basis`], where coefficient regularization plus
+//! positive aggregate class mass makes the minimizer finite and unique.
 //!
 //! Everything here is deterministic bounded work. Arithmetic visits rows in ascending original
 //! index and classes in discriminant order, no step uses randomness, and explicit counters charge
 //! every row traversal. Every reduction whose value steers a branch goes through the checked
 //! vector reductions ([`AlignedDVecN::checked_dot`], [`AlignedDVecN::checked_norm_squared`], and
-//! [`AlignedDVecN::checked_stable_l2`]), so an overflow or NaN never steers a control decision,
-//! and each call site maps [`None`] onto its own typed failure.
+//! [`AlignedDVecN::checked_stable_l2`]). An overflow or NaN therefore never steers a control
+//! decision, and each call site maps [`None`] onto its own typed failure.
 //!
 //! # Coordinates and vector layout
 //!
@@ -50,7 +50,7 @@ mod work;
 mod tests;
 
 pub(crate) use self::{
-    config::{SolverConfig, SolverConfigError},
+    config::{SolverConfig, SolverConfigError, SolverOptions},
     gram::{Gram, GramView},
     prepare::{PreparationError, PreparationSettings},
     receipt::ReceiptDetail,
@@ -89,7 +89,7 @@ pub(super) struct ContrastVector {
 }
 
 impl ContrastVector {
-    /// The zero vector.
+    /// Returns the zero vector.
     fn zero() -> Self {
         Self {
             coefficients: core::array::from_fn(|_index| BoxedDVecN::zero()),
@@ -126,13 +126,13 @@ impl ContrastVector {
         flat
     }
 
-    /// Whether every coordinate is finite.
+    /// Returns whether every coordinate is finite.
     fn is_finite(&self) -> bool {
         self.coefficients.iter().all(|row| row.is_finite())
             && self.intercepts.iter().all(|value| value.is_finite())
     }
 
-    /// Contrast logits `t = T·x̄`: one wide dot plus the intercept per contrast row.
+    /// Computes the contrast logits `t = T·x̄`: one wide dot plus the intercept per contrast row.
     fn logits(&self, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> [f64; CONTRAST_ROWS] {
         core::array::from_fn(|row| {
             embedding.dot_wide(&self.coefficients[row]) + self.intercepts[row]

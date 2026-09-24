@@ -9,7 +9,10 @@
  * (`sdcpn/lowerConstraint`), Node callers lower inline.
  */
 
-import { lowerTypeScriptToHir } from "../hir/lower-typescript";
+import {
+  lowerStateConstraintToHir,
+  lowerTypeScriptToHir,
+} from "../hir/lower-typescript";
 import {
   buildMetricContext,
   buildScenarioExpressionContext,
@@ -54,10 +57,10 @@ export function lowerConstraint(
   source: ConstraintSource,
   context: LowerConstraintContext,
 ): LowerConstraintResult {
-  const lowered = lowerTypeScriptToHir(
-    source.code,
-    CONSTRAINT_SURFACES[source.space],
-  );
+  const lowered =
+    source.space === "state"
+      ? lowerStateConstraintToHir(source.code)
+      : lowerTypeScriptToHir(source.code, CONSTRAINT_SURFACES.parameters);
   if (!lowered.ok) {
     return { ok: false, diagnostics: lowered.diagnostics };
   }

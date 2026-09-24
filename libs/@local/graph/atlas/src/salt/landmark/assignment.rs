@@ -1,10 +1,9 @@
-//! Nearest-landmark assignment over the search backend.
+//! Corpus-to-landmark assignment through nearest-neighbour search.
 //!
-//! Every corpus row maps to the ordinal of its nearest selected landmark by cosine distance over
-//! the projector representations. Landmarks map to themselves without a search; every other row
-//! asks a backend built over exactly the landmark rows for its single nearest neighbour. The
-//! backend keys landmarks by their corpus node row, and ordinals fall out of the selection's
-//! ascending order.
+//! Landmarks map to themselves without a search. Every other row takes the first result from a
+//! backend built over exactly the selected landmarks, inheriting that backend's approximation
+//! quality. Search keys are input row ids. The selection translates them to [`LandmarkOrdinal`]
+//! positions shared with the quotient and layout.
 
 use core::{error::Error, fmt};
 
@@ -24,7 +23,7 @@ use crate::{
 /// Dense corpus-to-landmark assignment in node-row order.
 ///
 /// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection
-/// whose ordinals it stores, so consumers index landmark-domain tables without re-validation.
+/// whose ordinals it stores.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LandmarkAssignment<N> {
     landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
@@ -35,7 +34,7 @@ impl<N> LandmarkAssignment<N>
 where
     N: Id,
 {
-    /// Wraps precomputed ordinals, for fixtures.
+    /// Validates precomputed fixture ordinals against `landmarks`.
     ///
     /// # Panics
     ///
@@ -74,8 +73,8 @@ where
 
     /// Groups the assigned corpus rows by landmark ordinal.
     ///
-    /// Each landmark's run ascends in row order, because the enumeration ascends over rows:
-    /// consumers that fold a run in order fold it as a serial row pass would.
+    /// Each run preserves ascending row order. Folding it therefore uses the same order as a serial
+    /// pass over the assigned row domain.
     #[must_use]
     pub(super) fn runs(&self) -> Runs<LandmarkOrdinal, N> {
         Runs::from_pairs(
@@ -86,11 +85,11 @@ where
         )
     }
 
-    /// Re-indexes the assignment through `rows`: entry `i` of the result is this assignment's entry
-    /// at the `i`-th yielded row.
+    /// Re-indexes the assignment through the rows yielded in order.
     ///
-    /// This expands an assignment built over a quotient domain onto the domain `rows` maps from:
-    /// every row of the wider domain takes its representative's landmark, under the unchanged
+    /// Result entry `i` takes this assignment's entry at the `i`-th yielded row. This expands an
+    /// assignment built over a quotient domain onto the domain `rows` maps from: every row of
+    /// the wider domain takes its representative's landmark, under the unchanged
     /// ordinal vocabulary.
     ///
     /// # Panics
@@ -186,17 +185,18 @@ impl<N> LandmarkSelection<N>
 where
     N: Id,
 {
-    /// Assigns every corpus row to its nearest selected landmark.
+    /// Assigns every input row to a selected landmark using `index`.
     ///
-    /// `embeddings` holds the projector representations in node-row order; a mapped `f32[N, 512]`
-    /// artifact yields the slice directly. The empty backend ingests exactly the landmark rows,
-    /// links under `rng`, and answers one nearest-neighbour query per non-landmark row, in
-    /// parallel and deterministically for a deterministic backend.
+    /// `embeddings` must hold l2-normalized projector representations in row order, and `index`
+    /// must be empty. The backend ingests exactly the selected rows and builds under `rng`.
+    /// Landmarks map to themselves. Non-landmark rows use the backend's first vector-search result,
+    /// with no independent check of nearestness. A deterministic backend gives deterministic
+    /// assignments despite parallel queries.
     ///
     /// # Errors
     ///
-    /// Returns an error when a selected row lies outside the corpus, the backend fails, or a
-    /// search returns nothing or a non-landmark row.
+    /// Returns [`AssignmentError`] for an out-of-domain selected row, a backend failure, or a
+    /// missing or non-landmark search result.
     #[tracing::instrument(skip_all)]
     pub(crate) fn assign<I>(
         &self,

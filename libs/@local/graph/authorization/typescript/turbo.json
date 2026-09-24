@@ -2,16 +2,16 @@
   "extends": ["//"],
   "tasks": {
     "manifest": {
-      "dependsOn": ["^manifest", "@rust/hash-graph-authorization#manifest"]
+      "dependsOn": ["^manifest", "hash-graph-authorization#manifest"]
     },
     "codegen": {
-      "dependsOn": ["@rust/hash-graph-authorization#build:types"],
+      "dependsOn": ["hash-graph-authorization#build:types"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
           "mode": "dependencyOutputs",
           "globs": ["types/index.snap.d.ts"],
-          "from": ["@rust/hash-graph-authorization#build:types"]
+          "from": ["hash-graph-authorization#build:types"]
         }
       ],
       "outputs": ["src/generated/**"]

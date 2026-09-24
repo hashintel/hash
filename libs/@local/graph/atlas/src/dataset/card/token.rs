@@ -1,3 +1,5 @@
+//! Token counting for the card budgets.
+
 use core::{error::Error, fmt};
 use std::sync::LazyLock;
 
@@ -63,6 +65,7 @@ impl Tokenizer for Cl100kTokenizer {
     }
 }
 
+/// The offline tokenizer the card tests measure budgets with.
 #[cfg(test)]
 mod heuristic {
     use super::Tokenizer;

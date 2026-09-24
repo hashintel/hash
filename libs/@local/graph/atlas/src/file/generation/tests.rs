@@ -1,46 +1,34 @@
+//! Filesystem cases for generation publication, activation, opening and removal.
 #![expect(
     clippy::significant_drop_tightening,
     reason = "fixture stagings deliberately live to the end of their tests"
 )]
-use core::{assert_matches, num::NonZero};
-use std::{fs, io::Write as _};
+use core::assert_matches;
+use std::{
+    fs::{self, File},
+    io::{self, Read as _, Write as _},
+    process::Command,
+};
 
 use camino::Utf8PathBuf;
 
+pub(super) use super::fixture::{
+    digest, make_writable, publish_noncanonical, repository, root, stage_all,
+};
 use super::{
-    ActivateError, CurrentError, GenerationId, GenerationRoot, METADATA_FILE, OpenError, SealError,
-    StagedGeneration,
+    ActivateError, CurrentError, GenerationId, GenerationRoot, LOCK_FILE, METADATA_FILE, OpenError,
+    RemoveError, SealError,
 };
 use crate::{
-    dataset::DatasetOrigin,
-    file::{
-        morton::SEGMENTS,
-        repository::{Artifact, Binding, FileName, RepositoryVersion},
-        salt::{
-            SaltFiles, SaltRepository,
-            metadata::{
-                ClassifierEvidence, Evidence, LandmarkEvidence, Placement, PolicyEvidence,
-                RankingOrigin, Reproducibility, SaltMetadata, Snapshot,
-            },
-        },
-    },
-    integrity::{Sha256, Sha256Digest, Update as _},
-    math::{
-        AffinityCurve, Bounds2, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction,
-        unit_fraction,
-    },
-    morton::Depth,
-    salt::{
-        embedding::{CardEmbeddingStats, EmbedderFingerprint},
-        fit::{FitConfig, prepare::norm::NormSpotCheck},
-        knn::recall::RecallSpotCheck,
-        landmark::select::SelectionOptions,
-        lod::{quad::QuadMeasurements, stage::LodMeasurements},
-        postings::build::PostingsMeasurements,
-        relation::BuildMeasurements,
-    },
+    file::{repository::FileName, salt::SaltRepository},
+    integrity::{Sha256, Update as _},
 };
 
+/// Removes any existing test directory and returns its path.
+///
+/// # Panics
+///
+/// Panics if the temporary directory is not UTF-8 or removing an existing test directory fails.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -48,200 +36,31 @@ fn scratch(name: &str) -> Utf8PathBuf {
             "hash-graph-atlas-generation-{}-{name}",
             std::process::id(),
         ));
-    let _: Result<(), std::io::Error> = fs::remove_dir_all(&dir);
+    if let Err(error) = fs::remove_dir_all(&dir)
+        && error.kind() != io::ErrorKind::NotFound
+    {
+        panic!("should remove the existing test directory: {error}");
+    }
     dir
 }
 
-fn digest(seed: &str) -> Sha256Digest {
-    let mut hasher = Sha256::new();
-    hasher.update(seed.as_bytes());
-    hasher.finalize()
-}
-
+/// Validates a fixture file name.
+///
+/// # Panics
+///
+/// Panics if `name` is not a plain file name.
 fn name(name: &str) -> FileName {
     FileName::new(name.to_owned()).expect("the fixture name is a plain file name")
 }
 
-fn binding<A: Artifact>(seed: &str) -> Binding<A> {
-    Binding::new(digest(seed))
-}
-
-fn config(seed: u64) -> FitConfig {
-    FitConfig {
-        seed,
-        selection: SelectionOptions {
-            maximum_count: NonZero::new(2).expect("the fixture capacity is nonzero"),
-            ..
-        },
-        curve: AffinityCurve::new(1.577, 0.895)
-            .expect("the fixture parameters are finite and strictly positive"),
-        ..
-    }
-}
-
-fn repository() -> SaltRepository {
-    SaltRepository {
-        version: RepositoryVersion::V2,
-        files: SaltFiles {
-            representations: binding("representations.arr"),
-            card_embeddings: binding("card-embeddings.arr"),
-            card_hashes: binding("card-hashes.arr"),
-            knn: binding("knn.sprs"),
-            semantic: binding("semantic.sprs"),
-            landmarks: binding("landmarks.lndm"),
-            classifier: binding("classifier.clsf"),
-            policy: binding("policy.plcy"),
-            attraction: binding("attraction.atrc"),
-            protection: binding("protection.sprs"),
-            coordinates: binding("coordinates.arr"),
-            morton: binding("morton.mrtn"),
-            quad: binding("quadtree.quad"),
-            postings: binding("postings.post"),
-            wire_coordinates: binding("wire-coordinates.arr"),
-            rank_of_position: binding("rank-of-position.arr"),
-            position_of_rank: binding("position-of-rank.arr"),
-            position_of_row: binding("position-of-row.arr"),
-            row_of_position: binding("row-of-position.arr"),
-            node_identities: binding("node-identities.idnt"),
-            edge_identities: binding("edge-identities.idnt"),
-            ontology_identities: binding("ontology-identities.idnt"),
-            edge_endpoints: binding("edge-endpoints.arr"),
-            adjacency: binding("adjacency.sprs"),
-            projector: None,
-            reviewed_verdicts: Some(binding("reviewed-verdicts.json")),
-            annotation_corpus: None,
-            annotation_embeddings: None,
-            annotation_hashes: None,
-        },
-        metadata: SaltMetadata {
-            snapshot: Snapshot {
-                axes: None,
-                nodes: 4,
-                edges: 2,
-                ontology_types: 3,
-            },
-            reproducibility: Reproducibility {
-                config: config(7),
-                embedder: EmbedderFingerprint::new(digest("embedder")),
-                prior: None,
-            },
-            dataset: Some(DatasetOrigin::Memory),
-            placement: Placement::LandmarkBaseline,
-            ranking: RankingOrigin::ConstantColumns,
-            evidence: evidence(),
-        },
-    }
-}
-
-fn evidence() -> Evidence {
-    Evidence {
-        cards: CardEmbeddingStats {
-            reused: 0,
-            embedded: 3,
-        },
-        norm: NormSpotCheck {
-            rows: 4,
-            sampled_rows: 4,
-            tolerance: d_positive!(1.0e-4),
-            defect_rate: open_unit_fraction!(0.01),
-            confidence: open_unit_fraction!(0.999),
-            defects: Vec::new(),
-        },
-        recall: RecallSpotCheck {
-            sampled_rows: 4,
-            neighbours_per_row: 2,
-            matched: 8,
-            expected: 8,
-            deviation: d_non_negative!(0.0),
-            minimum_recall: unit_fraction!(0.89),
-            // The four-row fixture is a census of its corpus: an
-            // exhaustive sample carries no sampling error to bound.
-            resolution: d_non_negative!(0.0),
-            confidence: open_unit_fraction!(0.99),
-        },
-        landmarks: LandmarkEvidence {
-            selected: 2,
-            retained: 1,
-            layout_epochs: NonZero::new(5).expect("the fixture epoch count is nonzero"),
-        },
-        policy: PolicyEvidence {
-            relations: 1,
-            overridden: 0,
-        },
-        classifier: ClassifierEvidence::Supplied {
-            source: digest("classifier.clsf"),
-        },
-        relations: BuildMeasurements {
-            pruning_threshold: non_negative!(0.0),
-            retained_edges: 2,
-            pruned_edges: 0,
-            retained_mass: d_non_negative!(1.5),
-            pruned_mass: d_non_negative!(0.0),
-            self_references: 0,
-            multi_typed_edges: vec![2],
-        },
-        lod: LodMeasurements {
-            world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
-                .expect("the fixture corners are finite and ordered"),
-            bucket_histogram: {
-                let mut histogram = [0; SEGMENTS];
-                histogram[2] = 4;
-                histogram
-            },
-            catch_all_population: 0,
-            co_location_excess: 0,
-            max_tile_delta: 2,
-        },
-        quad: QuadMeasurements {
-            nodes: 1,
-            leaves: 1,
-            depth: Depth::new(0).expect("the root depth is within the key width"),
-            type_entries: 3,
-        },
-        postings: PostingsMeasurements {
-            types: 3,
-            dense_types: 1,
-            list_entries: 4,
-            parent_edges: 2,
-            direct_entries: 6,
-        },
-        projector: None,
-    }
-}
-
-/// Restores the write permission a seal dropped, so a test can tamper with published bytes.
-fn make_writable(path: &camino::Utf8Path) {
-    let mut permissions = fs::metadata(path)
-        .expect("a published file should stat")
-        .permissions();
-    #[expect(
-        clippy::permissions_set_readonly_false,
-        reason = "the test tampers with its own scratch files"
-    )]
-    permissions.set_readonly(false);
-    fs::set_permissions(path, permissions).expect("the permissions should set");
-}
-
-fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
-    for entry in repository.files.files() {
-        let mut file = staging
-            .create(&entry.name)
-            .expect("the staged file should create");
-        file.write_all(entry.name.as_str().as_bytes())
-            .expect("the staged file should write");
-    }
-}
-
 #[test]
-fn sealed_generation_is_complete_and_verifiable() {
+fn seal_round_trip() {
     let root = GenerationRoot::new(scratch("publish")).expect("the root should open");
     let repository = repository();
 
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
     let published = staging.seal(&repository).expect("the staging should seal");
-    // The generation is where the root says it is: the seal writes to the root's own
-    // generation path, so the directory is derived rather than stored.
     let published_path = root.generation_path(published.id());
 
     // Every manifest file is present with its staged bytes.
@@ -251,8 +70,6 @@ fn sealed_generation_is_complete_and_verifiable() {
         assert_eq!(bytes, entry.name.as_str().as_bytes());
     }
 
-    // The directory name is the SHA-256 of the metadata document, so the
-    // identity is recomputable from the published bytes alone.
     let document = fs::read(published_path.join(METADATA_FILE)).expect("the document should read");
     let mut hasher = Sha256::new();
     hasher.update(&document);
@@ -265,7 +82,7 @@ fn sealed_generation_is_complete_and_verifiable() {
 }
 
 #[test]
-fn sealed_files_refuse_rewriting() {
+fn seal_read_only() {
     let root = GenerationRoot::new(scratch("readonly")).expect("the root should open");
     let repository = repository();
 
@@ -274,9 +91,6 @@ fn sealed_files_refuse_rewriting() {
     let published = staging.seal(&repository).expect("the staging should seal");
     let published_path = root.generation_path(published.id());
 
-    // Every published file, the metadata document included, is read-only and
-    // refuses a write handle: the permission drop turns a rewriting accident
-    // into an OS error.
     let mut names: Vec<String> = repository
         .files
         .files()
@@ -300,7 +114,7 @@ fn sealed_files_refuse_rewriting() {
 }
 
 #[test]
-fn seal_rejects_a_manifest_the_staging_disagrees_with() {
+fn seal_manifest_mismatch() {
     let root = GenerationRoot::new(scratch("mismatch")).expect("the root should open");
     let repository = repository();
 
@@ -329,8 +143,11 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
     );
 }
 
+/// Sealing the same repository twice refuses the second attempt and names the generation already
+/// published - the document's digest is the identity, so identical content is the same
+/// generation rather than a new one.
 #[test]
-fn identical_document_publishes_once() {
+fn seal_duplicate_document() {
     let root = GenerationRoot::new(scratch("identical")).expect("the root should open");
     let repository = repository();
 
@@ -347,7 +164,7 @@ fn identical_document_publishes_once() {
 }
 
 #[test]
-fn activation_flips_the_pointer_and_supports_rollback() {
+fn activate_rollback() {
     let root = GenerationRoot::new(scratch("activate")).expect("the root should open");
     assert!(
         root.current()
@@ -402,8 +219,79 @@ fn activation_flips_the_pointer_and_supports_rollback() {
     );
 }
 
+/// Artifact verification retains the root lock while waiting for source bytes.
 #[test]
-fn corrupt_pointer_is_rejected() {
+#[cfg(unix)]
+fn activate_verified_pending_read() {
+    let (_scratch, root) = root();
+    let repository = repository();
+    let staging = root.stage().expect("should create staging");
+    stage_all(&staging, &repository);
+    let published = staging
+        .seal(&repository)
+        .expect("should publish the fixture");
+    let previous = publish(&root, 3);
+    root.activate(previous)
+        .expect("should select the previous generation");
+
+    let first = repository
+        .files
+        .files()
+        .next()
+        .expect("should list an artifact");
+    let path = root
+        .generation_path(published.id())
+        .join(first.name.as_str());
+    fs::remove_file(&path).expect("should remove the fixture artifact");
+    let output = Command::new("mkfifo")
+        .arg(&path)
+        .output()
+        .expect("should create the FIFO");
+    assert!(
+        output.status.success(),
+        "should create the FIFO: {output:?}"
+    );
+
+    let (locked, current, activated) = std::thread::scope(|scope| {
+        let activation = scope.spawn(|| root.activate_verified(published.id()));
+        // opening the write end completes only once verification opens the read end. EOF remains
+        // under our control until the writer closes.
+        let mut writer = File::options()
+            .write(true)
+            .open(&path)
+            .expect("should open the FIFO writer");
+        let independent = File::options()
+            .read(true)
+            .write(true)
+            .open(root.path().join(LOCK_FILE))
+            .expect("should open the independent lock descriptor");
+        let locked = independent.try_lock();
+        drop(independent);
+        let current = root.current();
+
+        // release the reader before asserting, including when the lock observation is wrong.
+        writer
+            .write_all(first.name.as_str().as_bytes())
+            .expect("should supply the artifact bytes");
+        drop(writer);
+        let activated = activation.join().expect("should join verification");
+        (locked, current, activated)
+    });
+
+    assert_matches!(locked, Err(fs::TryLockError::WouldBlock));
+    assert_eq!(
+        current.expect("should read the previous pointer"),
+        Some(previous)
+    );
+    activated.expect("should activate after completing verification");
+    assert_eq!(
+        root.current().expect("should read the selected pointer"),
+        Some(published.id())
+    );
+}
+
+#[test]
+fn current_corrupt_pointer() {
     let root = GenerationRoot::new(scratch("corrupt")).expect("the root should open");
     fs::write(root.path.join("current"), "not a digest").expect("the pointer should write");
 
@@ -411,7 +299,7 @@ fn corrupt_pointer_is_rejected() {
 }
 
 #[test]
-fn activated_generation_opens_verified() {
+fn open_active_generation() {
     let root = GenerationRoot::new(scratch("open")).expect("the root should open");
     let repository = repository();
 
@@ -441,7 +329,7 @@ fn activated_generation_opens_verified() {
 }
 
 #[test]
-fn open_rejects_missing_tampered_and_foreign_documents() {
+fn open_invalid_documents() {
     let root = GenerationRoot::new(scratch("open-reject")).expect("the root should open");
 
     // An unpublished generation.
@@ -481,11 +369,10 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 }
 
 #[test]
-fn open_reports_a_retired_version_before_interpreting_the_body() {
+fn open_version_precedence() {
     let root = GenerationRoot::new(scratch("open-version")).expect("the root should open");
 
-    // Serialized by this crate, so the keys arrive in the order the version check
-    // depends on.
+    // Serializing the repository preserves the field order required by version checking.
     let document = serde_json::to_string(&repository()).expect("the repository should serialize");
     assert!(document.contains(r#""version":2"#));
     assert!(document.contains(r#""reproducibility""#));
@@ -501,12 +388,11 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
     // A body that no longer satisfies the current schema.
     let broken = document.replace(r#""reproducibility""#, r#""reproducibilty""#);
 
-    // A retired version reports the version rather than the body, so the error
-    // tells the operator of a superseded generation to refit.
+    // A retired version takes precedence over an invalid body.
     let retired = broken.replace(r#""version":2"#, r#""version":1"#);
     let error = root
         .open(publish(&retired))
-        .expect_err("a retired version is rejected");
+        .expect_err("a retired version should fail");
     assert!(
         error
             .to_string()
@@ -514,11 +400,10 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
         "the version decides the diagnosis: {error}",
     );
 
-    // The same body under the accepted version fails on the body, so the
-    // assertion above rests on the order and not on a document that parses.
+    // An accepted version exposes the same body's schema error.
     let error = root
         .open(publish(&broken))
-        .expect_err("an invalid body is rejected");
+        .expect_err("an invalid body should fail");
     let message = error.to_string();
     assert!(
         !message.contains("unsupported repository version"),
@@ -527,7 +412,7 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
 }
 
 #[test]
-fn dropped_staging_leaves_nothing_behind() {
+fn staging_drop_cleanup() {
     let path = scratch("abandon");
     let root = GenerationRoot::new(&path).expect("the root should open");
 
@@ -541,6 +426,177 @@ fn dropped_staging_leaves_nothing_behind() {
         .collect();
     assert!(
         entries.is_empty(),
-        "an abandoned staging should be removed: {entries:?}"
+        "dropping an abandoned staging should leave no entries: {entries:?}"
     );
+}
+
+/// Creates an empty directory whose identity repeats `byte`.
+///
+/// The directory satisfies activation's existence check but has no metadata to open.
+///
+/// # Panics
+///
+/// Panics if directory creation fails.
+fn publish(root: &GenerationRoot, byte: u8) -> GenerationId {
+    let id = format!("{byte:02x}")
+        .repeat(32)
+        .parse()
+        .expect("the hexadecimal fixture should name a generation");
+    fs::create_dir_all(root.generation_path(id)).expect("the generation directory should create");
+    id
+}
+
+#[test]
+fn remove_active() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    root.activate(id).expect("the generation should activate");
+
+    let error = root
+        .remove(id)
+        .expect_err("the active generation should remain");
+    assert_matches!(error, RemoveError::Active(active) if active == id);
+    assert!(root.generation_path(id).is_dir());
+    assert_eq!(root.current().expect("the pointer should read"), Some(id));
+}
+
+#[test]
+#[expect(
+    clippy::verbose_file_reads,
+    reason = "the test reads a retained descriptor after removing its path"
+)]
+fn remove_inactive() {
+    let (_scratch, root) = root();
+    let retired = publish(&root, 1);
+    let active = publish(&root, 2);
+    root.activate(active)
+        .expect("the generation should activate");
+    let path = root.generation_path(retired).join("artifact");
+    fs::write(&path, "retained bytes").expect("the artifact should write");
+    let mut reader = File::open(path).expect("the artifact should open");
+
+    root.remove(retired)
+        .expect("the inactive generation should remove");
+
+    assert!(!root.generation_path(retired).exists());
+    assert_eq!(
+        root.current().expect("the pointer should read"),
+        Some(active)
+    );
+    let mut content = String::new();
+    reader
+        .read_to_string(&mut content)
+        .expect("the open descriptor should remain readable");
+    assert_eq!(content, "retained bytes");
+    assert_matches!(root.activate(retired), Err(ActivateError::Unpublished(id)) if id == retired);
+    assert_eq!(
+        root.current().expect("the pointer should read"),
+        Some(active)
+    );
+}
+
+#[test]
+fn remove_corrupt_pointer() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    fs::write(root.path().join("current"), "not a generation")
+        .expect("the corrupt pointer should write");
+
+    let error = root
+        .remove(id)
+        .expect_err("a corrupt pointer should prevent removal");
+
+    assert_matches!(error, RemoveError::Current(CurrentError::Corrupt(_)));
+    assert!(root.generation_path(id).is_dir());
+}
+
+#[test]
+fn remove_missing() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    root.remove(id)
+        .expect("an inactive generation should remove without a current pointer");
+
+    let error = root
+        .remove(id)
+        .expect_err("an absent directory should report its filesystem error");
+
+    assert_matches!(error, RemoveError::Io(error) if error.kind() == io::ErrorKind::NotFound);
+}
+
+#[test]
+fn lock_unavailable() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    fs::create_dir_all(root.path().join(LOCK_FILE))
+        .expect("the lock-path obstruction should create");
+
+    assert_matches!(root.activate(id), Err(ActivateError::Io(_)));
+    let error = root
+        .remove(id)
+        .expect_err("removal should require the root lock");
+    assert_matches!(error, RemoveError::Io(_));
+    assert!(root.generation_path(id).is_dir());
+    assert_eq!(
+        root.current().expect("the absent pointer should read"),
+        None
+    );
+}
+
+/// Independently opened descriptors contend across processes and release on close.
+#[test]
+#[cfg_attr(miri, ignore = "Miri cannot spawn a second test process")]
+fn lock_exclusion() {
+    const ROOT: &str = "HASH_ATLAS_LOCK_TEST_ROOT";
+    const BLOCKED: &str = "HASH_ATLAS_LOCK_TEST_BLOCKED";
+    if let Some(path) = std::env::var_os(ROOT) {
+        let file = File::options()
+            .read(true)
+            .write(true)
+            .open(std::path::Path::new(&path).join(LOCK_FILE))
+            .expect("the parent's lock file should open independently");
+        if std::env::var_os(BLOCKED).is_some() {
+            assert_matches!(file.try_lock(), Err(fs::TryLockError::WouldBlock));
+        } else {
+            file.try_lock()
+                .expect("the closed descriptor should release its lock");
+        }
+        return;
+    }
+
+    let (_scratch, root) = root();
+    let lock = root.lock().expect("the root lock should acquire");
+    let child = |blocked: bool| {
+        let mut command =
+            Command::new(std::env::current_exe().expect("the test binary should resolve"));
+        command
+            .args([
+                "--exact",
+                "file::generation::tests::lock_exclusion",
+                "--nocapture",
+            ])
+            .env(ROOT, root.path())
+            .env_remove(BLOCKED);
+        if blocked {
+            command.env(BLOCKED, "1");
+        }
+        let output = command
+            .output()
+            .expect("the lock-checking child should execute");
+        assert!(
+            output.status.success(),
+            "the child should satisfy the lock assertion: {} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+            "the child should execute its assertion"
+        );
+    };
+
+    child(true);
+    drop(lock);
+    assert!(root.path().join(LOCK_FILE).is_file());
+    child(false);
 }

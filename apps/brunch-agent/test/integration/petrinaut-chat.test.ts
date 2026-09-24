@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
 import { runNodeScript } from "./run-node-script";
 
 import type {
@@ -53,7 +55,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.pingOutput).toEqual({ ok: true, note: "health" });
     expect(result.clientToolCall).toMatchObject({
       type: "tool-input-available",
-      toolName: "readPetrinautDoc",
+      toolName: READ_PETRINAUT_DOCS_TOOL_NAME,
       input: { doc: "ai-assistant" },
     });
     expect(result.clientToolCall).not.toHaveProperty("providerExecuted");
@@ -72,16 +74,10 @@ test("the browser transport streams the mounted Flue agent through server and cl
       type: "finish",
       finishReason: "stop",
     });
-    expect(result.questionMarkerLive).toEqual({
-      question: "Which documentation page should we inspect next?",
-      toolCallId: "tool-question-1",
-    });
-    expect(result.questionToolVisibleLive).toBe(false);
-    expect(result.questionMarkerHistory).toEqual({
-      question: "Which documentation page should we inspect next?",
-      toolCallId: "tool-question-1",
-    });
-    expect(result.questionToolVisibleHistory).toBe(false);
+    expect(result.resumedText).toContain(
+      "Which documentation page should we inspect next?",
+    );
+    expect(result.questionResponseProviderCalls).toBe(1);
     expect(result.historyUserEntryCount).toBe(1);
     expect(result.historyClientToolResultCount).toBe(1);
 
@@ -95,7 +91,9 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.transcript).toContain("Run the FE-1435 transport probe.");
     expect(result.transcript).toContain("Checking the server, then the docs.");
     expect(result.transcript).toContain("tool ping");
-    expect(result.transcript).toContain("tool readPetrinautDoc");
+    expect(result.transcript).toContain(
+      `tool ${READ_PETRINAUT_DOCS_TOOL_NAME}`,
+    );
     expect(result.transcript).toContain("tool activate_skill");
     expect(result.transcript).toContain("tool read_skill_resource");
     expect(result.transcript).toContain(
@@ -116,8 +114,9 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).toContain("activate_skill");
     expect(result.interviewerToolNames).toContain("read_skill_resource");
     expect(result.interviewerToolNames).toContain("ping");
-    expect(result.interviewerToolNames).toContain("readPetrinautDoc");
-    expect(result.interviewerToolNames).toContain("brunch_mark_question");
+    expect(result.interviewerToolNames).toContain(
+      READ_PETRINAUT_DOCS_TOOL_NAME,
+    );
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
@@ -130,16 +129,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
         "addTransition",
         "addArc",
       ]),
-    );
-    expect(result.captureIds.length).toBe(1);
-    expect(result.captureExcerpts).toEqual([
-      "Run the FE-1435 transport probe.",
-    ]);
-    expect(result.capturePayloads).toEqual([{}]);
-    expect(result.recaptureIds).toEqual(result.captureIds);
-    expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
-    expect(result.captureUserText).toContain(
-      "Run the FE-1435 transport probe.",
     );
 
     const resumed = await runNodeScript(
@@ -162,16 +151,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(resumeResult.historyUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
-    expect(resumeResult.questionMarkerHistory).toEqual({
-      question: "Which documentation page should we inspect next?",
-      toolCallId: "tool-question-1",
-    });
-    expect(resumeResult.questionToolVisibleHistory).toBe(false);
     expect(resumeResult.transcript).toContain("tool ping");
-    expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
+    expect(resumeResult.transcript).toContain(
+      `tool ${READ_PETRINAUT_DOCS_TOOL_NAME}`,
+    );
     expect(resumeResult.transcript).toContain("tool activate_skill");
     expect(resumeResult.transcript).toContain("tool read_skill_resource");
-    expect(resumeResult.transcript).toContain("tool brunch_mark_question");
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

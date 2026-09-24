@@ -44,10 +44,6 @@ impl<T> ConnectionDelegateTask<T>
 where
     T: Sink<Response, Error: Debug> + Send,
 {
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
     async fn run(self, cancel: CancellationToken) -> Result<(), T::Error> {
         let sink = self.sink;
         pin!(sink);
@@ -200,10 +196,6 @@ impl ConnectionTask {
         // task is already doing this for us.
     }
 
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
     pub(crate) async fn run<T, U>(
         self,
         sink: T,

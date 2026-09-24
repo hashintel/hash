@@ -14,7 +14,8 @@ export type DraggingStateByNodeId = Record<
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
-export type EditorGlobalMode = "edit" | "simulate" | "actual" | "notebook";
+export type EditorGlobalMode = "edit" | "simulate" | "actual";
+export type EditViewMode = "canvas" | "definitions";
 type EditorEditionMode =
   | "cursor"
   | "add-place"
@@ -31,11 +32,7 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode =
-  | "scenarios"
-  | "metrics"
-  | "experiments"
-  | "optimizations";
+export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -44,11 +41,11 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" }
-  | { type: "create-optimization" };
+  | { type: "create-experiment" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
+  editViewMode?: EditViewMode;
   simulateViewMode?: SimulateViewMode;
   simulateDrawer?: SimulateDrawerState;
   selection?: SelectionMap;
@@ -75,6 +72,7 @@ export type TimelineView =
  */
 export type EditorState = {
   globalMode: EditorGlobalMode;
+  editViewMode: EditViewMode;
   editionMode: EditorEditionMode;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
@@ -87,15 +85,30 @@ export type EditorState = {
    * the surfaces that have to keep clear of it can read it.
    */
   aiAssistantWidth: number;
+  /** Rendered compact dock height; null when expanded or closed. */
+  aiAssistantDockHeight: number | null;
+  aiAssistantPlacement: "docked" | "floating";
+  isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
   componentSubnetId: string | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
-  /** Whether any items on the canvas are currently selected. */
-  hasCanvasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
+  /**
+   * Places whose state visualizer is pinned open on the canvas. A pinned
+   * visualizer stays up when the pointer leaves the place, so it can be
+   * watched while the timeline is scrubbed or the initial state edited.
+   */
+  pinnedVisualizerPlaceIds: Set<string>;
+  /**
+   * The place whose state visualizer has been opened from the button that
+   * pointing at a place offers. It belongs to that hover: moving the pointer
+   * to another place, or off the canvas, closes it again. Pinning is what
+   * outlasts a hover.
+   */
+  openVisualizerPlaceId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
@@ -128,12 +141,16 @@ export type EditorActions = {
   /** Navigate several editor surfaces as one app-history transition. */
   navigateTo: (target: EditorNavigationTarget) => void;
   setGlobalMode: (mode: EditorGlobalMode) => void;
+  setEditViewMode: (view: EditViewMode) => void;
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setLeftSidebarWidth: (width: number) => void;
   setPropertiesPanelWidth: (width: number) => void;
   setAiAssistantWidth: (width: number) => void;
+  setAiAssistantDockHeight: (height: number | null) => void;
+  setAiAssistantPlacement: (placement: "docked" | "floating") => void;
+  setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
@@ -141,12 +158,6 @@ export type EditorActions = {
   setAddComponentMode: (subnetId: string) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
-  /** Check whether a node/edge is connected to any selected item via an arc. */
-  isSelectedConnection: (id: string) => boolean;
-  /** Check whether a node/edge is not connected to any selected item via an arc. */
-  isNotSelectedConnection: (id: string) => boolean;
-  /** Map of all items connected to the current selection, keyed by id. */
-  selectedConnections: SelectionMap;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
     options?: { cause: "normalization" } | { batch: "react-flow" },
@@ -158,12 +169,10 @@ export type EditorActions = {
   clearSelection: () => void;
   setHoveredItem: (item: SelectionItem) => void;
   clearHoveredItem: () => void;
-  /** Check whether a given ID is the currently hovered item. */
-  isHovered: (id: string) => boolean;
-  /** Check whether a given ID is connected to the currently hovered item. */
-  isHoveredConnection: (id: string) => boolean;
-  /** Check whether a given ID is not connected to the currently hovered item. */
-  isNotHoveredConnection: (id: string) => boolean;
+  /** Pin a place's state visualizer open, or release it. */
+  toggleVisualizerPin: (placeId: string) => void;
+  /** Open a place's state visualizer for the hover it is part of. */
+  openPlaceVisualizer: (placeId: string) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -189,6 +198,7 @@ export type EditorContextValue = EditorState &
 
 export const initialEditorState: EditorState = {
   globalMode: "edit",
+  editViewMode: "canvas",
   editionMode: "cursor",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
@@ -197,12 +207,16 @@ export const initialEditorState: EditorState = {
   isBottomPanelOpen: false,
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
+  aiAssistantDockHeight: null,
+  aiAssistantPlacement: "docked",
+  isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
   componentSubnetId: null,
   selection: new Map(),
   hasSelection: false,
-  hasCanvasSelection: false,
   hoveredItem: null,
+  pinnedVisualizerPlaceIds: new Set<string>(),
+  openVisualizerPlaceId: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
@@ -218,21 +232,22 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   ...initialEditorState,
   navigateTo: () => {},
   setGlobalMode: () => {},
+  setEditViewMode: () => {},
   setEditionMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
+  setAiAssistantDockHeight: () => {},
+  setAiAssistantPlacement: () => {},
+  setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
   isSelected: () => false,
-  isSelectedConnection: () => false,
-  isNotSelectedConnection: () => false,
-  selectedConnections: new Map(),
   setSelection: () => {},
   beginSelectionGesture: () => {},
   endSelectionGesture: () => {},
@@ -241,9 +256,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  isHovered: () => false,
-  isHoveredConnection: () => false,
-  isNotHoveredConnection: () => false,
+  toggleVisualizerPin: () => {},
+  openPlaceVisualizer: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

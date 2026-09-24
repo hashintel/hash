@@ -211,6 +211,7 @@ const TransitionResultsContent: React.FC = () => {
 
 export const transitionResultsSubView: SubView = {
   id: "transition-results",
+  canMaximize: true,
   title: "Transition Results",
   defaultCollapsed: true,
   tooltip:

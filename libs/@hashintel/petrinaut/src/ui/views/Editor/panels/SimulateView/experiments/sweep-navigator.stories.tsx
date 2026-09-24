@@ -5,7 +5,7 @@ import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import {
   axisValueAt,
-  fullSweepSelection,
+  pointSweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
@@ -13,7 +13,13 @@ import { NotificationsProvider } from "../../../../../../react/notifications/pro
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../../monaco/provider";
-import { ExperimentMetricTimeline } from "./experiment-metric-timeline";
+import { ChartCard } from "../shared/chart-card";
+import {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  describeMetricView,
+  ExperimentMetricTimeline,
+  MetricViewMenu,
+} from "./experiment-metric-timeline";
 import {
   sirInfectedFrame,
   sirSdcpnContextValue,
@@ -30,7 +36,6 @@ import type {
   SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type { MetricSize } from "./experiment-metric-timeline";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -63,6 +68,7 @@ const axes: ExperimentParameterAxis[] = [
 
 const idleStatus: SweepNavigatorStatus = {
   computing: false,
+  following: null,
   runsCompleted: 25,
   runsSampled: 25,
   runTarget: null,
@@ -84,18 +90,19 @@ const StatefulNavigator = ({
         axes={axes}
         selection={selection}
         status={status}
+        disabled={false}
         onSelectionChange={setSelection}
       />
     </div>
   );
 };
 
-export const FullRanges: Story = {
-  name: "Full ranges",
+export const InitialValues: Story = {
+  name: "Initial values",
   render: () => (
     <StatefulNavigator
-      initialSelection={fullSweepSelection(axes)}
-      status={idleStatus}
+      initialSelection={pointSweepSelection(axes, {})}
+      status={{ ...idleStatus, runsCompleted: 0 }}
     />
   ),
 };
@@ -113,32 +120,46 @@ export const PointSelection: Story = {
   ),
 };
 
-export const MixedSelection: Story = {
-  name: "Range and point mixed",
+export const Sampling: Story = {
+  name: "Sampling",
   render: () => (
     <StatefulNavigator
-      initialSelection={{
-        transmission_rate: { from: 10, to: 38 },
-        recovery_days: { from: 6, to: 6 },
-      }}
-      status={idleStatus}
-    />
-  ),
-};
-
-export const SamplingRanges: Story = {
-  name: "Sampling across ranges",
-  render: () => (
-    <StatefulNavigator
-      initialSelection={fullSweepSelection(axes)}
+      initialSelection={pointSweepSelection(axes, {})}
       status={{
         computing: true,
+        following: null,
         runsCompleted: 25,
         runsSampled: 61,
         runTarget: 100,
         runCount: 100,
       }}
     />
+  ),
+};
+
+/** An optimizer drives the sweep: the controls show its point and take no input. */
+export const FollowingOptimizer: Story = {
+  name: "Following the optimizer",
+  render: () => (
+    <div style={{ width: 640 }}>
+      <SweepNavigator
+        axes={axes}
+        selection={{
+          transmission_rate: { from: 31, to: 31 },
+          recovery_days: { from: 9, to: 9 },
+        }}
+        status={{
+          computing: true,
+          following: { kind: "following", step: 4, total: 30 },
+          runsCompleted: 0,
+          runsSampled: 5,
+          runTarget: 8,
+          runCount: 100,
+        }}
+        disabled
+        onSelectionChange={() => {}}
+      />
+    </div>
   ),
 };
 
@@ -152,6 +173,7 @@ export const RefiningPoint: Story = {
       }}
       status={{
         computing: true,
+        following: null,
         runsCompleted: 8,
         runsSampled: 19,
         runTarget: 25,
@@ -164,6 +186,7 @@ export const RefiningPoint: Story = {
 type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 const STREAM_FRAME_COUNT = 46;
+const STORY_PLOT_HEIGHT = 260;
 const STREAM_TICK_MS = 90;
 
 const selectionOf = (
@@ -185,7 +208,9 @@ const NavigatorWithStreamingMetrics = () => {
     recovery_days: { from: 6, to: 6 },
   });
   const [frames, setFrames] = useState<MetricFrame[]>([]);
-  const [metricSize, setMetricSize] = useState<MetricSize>("large");
+  const [metricSettings, setMetricSettings] = useState(
+    DEFAULT_METRIC_VIEW_SETTINGS,
+  );
 
   // The synthetic model's inputs, as primitives so the streaming effect can
   // key on exactly what changes the curve.
@@ -246,6 +271,7 @@ const NavigatorWithStreamingMetrics = () => {
   const streaming = frames.length < STREAM_FRAME_COUNT;
   const status: SweepNavigatorStatus = {
     computing: streaming,
+    following: null,
     runsCompleted: streaming ? 0 : 25,
     runsSampled: Math.round((25 * frames.length) / STREAM_FRAME_COUNT),
     runTarget: streaming ? 25 : null,
@@ -265,23 +291,29 @@ const NavigatorWithStreamingMetrics = () => {
         axes={axes}
         selection={selection}
         status={status}
+        disabled={false}
         onSelectionChange={setSelection}
       />
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
-          padding: 12,
-        }}
+      <ChartCard
+        title="Infected"
+        subtitle={describeMetricView(metricSettings, "distribution")}
+        actions={
+          <MetricViewMenu
+            outputType="distribution"
+            value={metricSettings}
+            onChange={setMetricSettings}
+          />
+        }
+        bodyHeight={STORY_PLOT_HEIGHT}
       >
         <ExperimentMetricTimeline
           frames={frames}
-          label="Infected"
+          settings={metricSettings}
+          expectedOutputType="distribution"
           timeDomain={[0, STREAM_FRAME_COUNT - 1]}
-          displaySize={metricSize}
-          onDisplaySizeChange={setMetricSize}
+          plotHeight={STORY_PLOT_HEIGHT}
         />
-      </div>
+      </ChartCard>
     </div>
   );
 };
@@ -301,6 +333,7 @@ export const FullySampled: Story = {
       }}
       status={{
         computing: false,
+        following: null,
         runsCompleted: 100,
         runsSampled: 100,
         runTarget: null,
@@ -365,9 +398,8 @@ const realSweepHintStyle: React.CSSProperties = {
 /**
  * The navigator against the real experiments provider: a genuine sweep
  * experiment simulates in browser workers, and moving a slider redirects
- * real compute. With the GPU requested, range selections upload each run's
- * parameter draw to a per-run buffer and run on the GPU too — collapse both
- * parameters to points and the GPU takes over.
+ * real compute. Moving a slider samples the selected values on the requested
+ * backend.
  */
 type RealSweepConfig = {
   runCount: number;
@@ -383,11 +415,17 @@ const RealSweepSession = ({
 }: RealSweepConfig & {
   computeBackend: ExperimentComputeBackend;
 }) => {
-  const { experiments, createExperiment, setSweepSelection } =
-    use(ExperimentsContext);
+  const {
+    experiments,
+    createExperiment,
+    setSelectedExperimentId,
+    setSweepSelection,
+  } = use(ExperimentsContext);
   const startedRef = useRef(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [metricSize, setMetricSize] = useState<MetricSize>("large");
+  const [metricSettings, setMetricSettings] = useState(
+    DEFAULT_METRIC_VIEW_SETTINGS,
+  );
 
   useEffect(() => {
     // Once per story lifetime, surviving StrictMode's double-invoked mount.
@@ -416,8 +454,17 @@ const RealSweepSession = ({
         },
       ],
       computeBackend,
-    }).catch((cause: unknown) => setCreateError(String(cause)));
-  }, [computeBackend, createExperiment, dt, maxTime, runCount]);
+    })
+      .then((experiment) => setSelectedExperimentId(experiment.id))
+      .catch((cause: unknown) => setCreateError(String(cause)));
+  }, [
+    computeBackend,
+    createExperiment,
+    dt,
+    maxTime,
+    runCount,
+    setSelectedExperimentId,
+  ]);
 
   const experiment = experiments.find((candidate) => candidate.sweep !== null);
 
@@ -443,35 +490,43 @@ const RealSweepSession = ({
         {experiment.computeBackendFallbackReason
           ? ` — ${experiment.computeBackendFallbackReason}`
           : ""}
-        {computeBackend === "webgpu"
-          ? " · ranges upload each run's parameter draw to the GPU, so range and point selections both run there when the net qualifies"
-          : ""}
       </p>
       <SweepNavigator
         axes={experiment.parameterAxes}
         selection={experiment.sweep.selection}
         status={{
           computing: experiment.sweep.computing,
+          following: null,
           runsCompleted: experiment.sweep.runsCompleted,
           runsSampled: experiment.sweep.runsSampled,
           runTarget: experiment.sweep.runTarget,
           runCount: experiment.runCount,
         }}
+        disabled={false}
         onSelectionChange={(selection) =>
           setSweepSelection(experiment.id, selection)
         }
       />
-      <div
-        style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}
+      <ChartCard
+        title="Infected"
+        subtitle={describeMetricView(metricSettings, "distribution")}
+        actions={
+          <MetricViewMenu
+            outputType="distribution"
+            value={metricSettings}
+            onChange={setMetricSettings}
+          />
+        }
+        bodyHeight={STORY_PLOT_HEIGHT}
       >
         <ExperimentMetricTimeline
           frames={experiment.metricFrames}
-          label="Infected"
+          settings={metricSettings}
+          expectedOutputType="distribution"
           timeDomain={[0, maxTime]}
-          displaySize={metricSize}
-          onDisplaySizeChange={setMetricSize}
+          plotHeight={STORY_PLOT_HEIGHT}
         />
-      </div>
+      </ChartCard>
     </div>
   );
 };
@@ -537,7 +592,7 @@ export const RealCpuSweep: StoryObj<RealSweepConfig> = {
 };
 
 export const RealGpuSweep: StoryObj<RealSweepConfig> = {
-  name: "Real compute on GPU (points)",
+  name: "Real compute on GPU",
   args: realSweepArgs,
   argTypes: realSweepArgTypes,
   render: (args) => (

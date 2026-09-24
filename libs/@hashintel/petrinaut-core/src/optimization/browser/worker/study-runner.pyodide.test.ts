@@ -224,13 +224,19 @@ describe("createOptimizerStudyRunner", () => {
         expect(event.best?.objective).toBeCloseTo(bestSoFar, 9);
       }
 
-      expect(summary).toEqual({
+      // PED-ANOVA runs under Pyodide on numpy alone; the study's final
+      // estimate rides the summary, and its shares sum to one.
+      const { importances, ...counts } = summary;
+      expect(counts).toEqual({
         requestedTrials: 30,
         completedTrials: 29,
         prunedTrials: 1,
         failedTrials: 0,
         best: run.trials.at(-1)?.best,
       });
+      expect(importances?.completedTrials).toBe(29);
+      const shares = Object.values(importances?.values ?? {});
+      expect(shares.reduce((sum, share) => sum + share, 0)).toBeCloseTo(1, 6);
     },
     loadTimeout,
   );
@@ -310,13 +316,15 @@ describe("createOptimizerStudyRunner", () => {
 
       expect(resumed.trialNumbers).toEqual([5, 6]);
       expect(resumed.trials.map((event) => event.trial)).toEqual([5, 6]);
-      expect(summary).toEqual({
+      const { importances, ...counts } = summary;
+      expect(counts).toEqual({
         requestedTrials: 6,
         completedTrials: 6,
         prunedTrials: 0,
         failedTrials: 0,
         best: resumed.trials.at(-1)?.best,
       });
+      expect(importances?.completedTrials).toBe(6);
     },
     loadTimeout,
   );

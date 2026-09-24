@@ -92,12 +92,15 @@ export {
   spanSchema,
 } from "./hir/hir-schema";
 export {
+  lowerStateConstraintToHir,
   lowerTypeScriptToHir,
   type LowerTypeScriptResult,
 } from "./hir/lower-typescript";
 export {
   AMBIENT_INPUT_NAMES,
+  detectStateConstraintForm,
   detectUserCodeForm,
+  getStateConstraintExpression,
   type DualFormSurfaceKind,
   type UserCodeForm,
 } from "./hir/user-code-form";

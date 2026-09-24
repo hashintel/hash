@@ -8,7 +8,7 @@ import { Menu, type MenuItem } from "../Menu/menu";
 import { Tooltip } from "../Tooltip/tooltip";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { styles } from "./breadcrumbs.recipe";
 import type { ExclusifyUnion } from "type-fest";
 
@@ -35,7 +35,7 @@ export type BreadcrumbSubItem = {
   | { subItems?: Array<ItemOrGroup<BreadcrumbSubItem>> }
 >;
 
-export type BreadcrumbItemProps = BreadcrumbSubItem & {
+export type BreadcrumbItem = BreadcrumbSubItem & {
   /**
    * Caps the crumb's width — hover pill included — while it is visible in the
    * trail (it does not apply inside the ellipsis menu); a longer label
@@ -60,12 +60,12 @@ export type BreadcrumbItemProps = BreadcrumbSubItem & {
  * props to measure, collapse, and render the trail, so `Item` renders nothing on
  * its own and must be used as a direct child of `BreadCrumbs`.
  */
-export const Item = (_props: BreadcrumbItemProps): null => null;
+export const Item = (_props: BreadcrumbItem): null => null;
 Item.displayName = "BreadCrumbs.Item";
 
 const isItemElement = (
   child: React.ReactNode,
-): child is React.ReactElement<BreadcrumbItemProps> =>
+): child is React.ReactElement<BreadcrumbItem> =>
   isValidElement(child) && child.type === Item;
 
 /**
@@ -74,7 +74,7 @@ const isItemElement = (
  * Custom nodes get no crumb styling and never collapse into the ellipsis menu.
  */
 export type BreadcrumbEntry =
-  | { item: BreadcrumbItemProps; node?: never }
+  | { item: BreadcrumbItem; node?: never }
   | { item?: never; node: React.ReactNode };
 
 export const collectEntries = (children: React.ReactNode): BreadcrumbEntry[] =>
@@ -137,7 +137,7 @@ function toMenuSubEntries(
 }
 
 export const toMenuItem = (
-  item: BreadcrumbItemProps,
+  item: BreadcrumbItem,
   originalIndex: number,
 ): MenuItem => {
   const base = {
@@ -156,7 +156,7 @@ export const toMenuItem = (
 };
 
 export const crumbStyle = (
-  item: BreadcrumbItemProps,
+  item: BreadcrumbItem,
 ): React.CSSProperties | undefined =>
   item.maxWidth !== undefined ? { maxWidth: item.maxWidth } : undefined;
 
@@ -173,7 +173,7 @@ export const ItemContent = ({
   classes,
   labelRef,
 }: {
-  item: BreadcrumbItemProps;
+  item: BreadcrumbItem;
   size: FormInputSize;
   classes: Classes;
   labelRef?: React.Ref<HTMLSpanElement>;
@@ -206,7 +206,7 @@ export const VisibleItem = ({
   size,
   classes,
 }: {
-  item: BreadcrumbItemProps;
+  item: BreadcrumbItem;
   isCurrent: boolean;
   size: FormInputSize;
   classes: Classes;

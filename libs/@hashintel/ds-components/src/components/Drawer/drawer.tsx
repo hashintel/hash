@@ -285,8 +285,8 @@ const DrawerRoot = ({
   shouldCloseOn?: OverlayShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
-  initialFocusRef?: React.RefObject<HTMLElement>;
-  returnFocusRef?: React.RefObject<HTMLElement>;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
 

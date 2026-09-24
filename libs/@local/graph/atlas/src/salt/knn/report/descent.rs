@@ -1,9 +1,10 @@
 //! The NN-Descent construction audit over a published generation.
 //!
-//! Constructions run at the production width - the wider of the spot check's depth and the stored
-//! neighbour count - replaying the production fit's `knn-link` stream per seed, and one exact
-//! reference scores every reading. A repeated seed measures construction nondeterminism. A
-//! candidate cap is the knob the audit sweeps.
+//! Constructions use the wider of the default spot-check depth and stored neighbour count, clamped
+//! to the corpus's non-self domain. Each seed uses the fit's `knn-link` stream derivation. One
+//! exact reference, drawn from the first seed or zero if the list is empty, scores every
+//! construction. Repeated seeds expose construction nondeterminism while the comparison varies
+//! candidate caps.
 
 use core::{
     fmt::{self, Display},
@@ -29,11 +30,11 @@ use crate::{
 
 /// Fit seeds the audit replays by default.
 ///
-/// The list holds two distinct seeds and repeats one of them, so the readings carry construction
-/// nondeterminism as well as seed spread.
+/// Repeating seed zero measures build nondeterminism. Seed one adds variation from the seed.
 pub(crate) const DEFAULT_SEEDS: &[u64] = &[0, 0, 1];
-/// Candidate caps audited by default: the constructor's own setting, so a bare invocation reads the
-/// deployed construction.
+/// Candidate caps audited by default.
+///
+/// Uses the constructor's default cap.
 pub(crate) const DEFAULT_CANDIDATES: &[usize] = &[NnDescentOptions::default().maximum_candidates];
 
 /// One NN-Descent construction reading.
@@ -45,7 +46,7 @@ pub(crate) struct Reading {
     pub maximum_candidates: usize,
     /// Wall clock of the construction.
     pub construct_wall: Duration,
-    /// Aggregate recall@50 against the exact reference.
+    /// Aggregate recall at the audit's comparison depth against the exact reference.
     pub recall: f64,
 }
 
@@ -100,8 +101,7 @@ impl Display for Audit {
 ///
 /// # Errors
 ///
-/// Returns an [`AuditError`] when reading the representations fails, when computing the reference
-/// fails, or when a construction fails.
+/// Returns [`AuditError`] when setup, reference computation or a construction fails.
 pub(crate) fn audit(
     root: &GenerationRoot,
     seeds: &[u64],

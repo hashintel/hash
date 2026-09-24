@@ -1,24 +1,18 @@
-//! The operator entry points for one production run.
+//! Operator configuration for live and offline generation runs.
 //!
-//! [`live()`] drives the generation runner end to end over a pinned store snapshot, and
-//! [`offline()`] drives the same runner over a dump directory, so a fit runs where the store does
-//! not. Both
-//! cover prior resolution, fit, admission probe, and the activation decision, configured by
-//! [`Options`] and read back as a plain-number [`Summary`]. Failures return a [`RunError`] naming
-//! the failing step, the step's concrete fault chained beneath.
+//! Use [`live()`] for a pinned store snapshot or [`offline()`] for a dump directory when the store
+//! is unavailable. Both resolve [`Options`] and supplied documents before fitting and admission,
+//! and return statistics plus the admission report in [`Summary`]. [`RunError`] identifies a failed
+//! step and retains its concrete error as a source.
 //!
-//! Types carry the option vocabulary: [`ClassifierSource`] names the classifier supply every run
-//! carries, and [`Placement`] carries exactly the controls its placer consumes, so option
-//! combinations the pipeline cannot honor are unrepresentable.
+//! [`ClassifierSource`] selects a supplied model or an annotation corpus. [`Placement`] keeps
+//! projector controls on the trained-placement variant. Corpus-dependent constraints, including
+//! whether the probe's sample fits, remain runtime checks.
 //!
-//! A live run embeds cards through the external embedding provider the shell constructs and
-//! supplies; the embedder fingerprint recorded in the published artifacts names the provider
-//! contract, and fingerprint equality guards prior-generation reuse. An offline run embeds out of
-//! the dump's own embedding stream under the fingerprint the dump recorded, so the published
-//! artifacts name the provider whose vectors they carry either way.
-//!
-//! Nothing here is API for consumers of the crate; the module exists for the
-//! [`cli`](crate::cli) operator commands, which re-export its vocabulary.
+//! A live run embeds through its supplied external provider, while an offline run looks up
+//! embeddings in the dump's stream under its recorded fingerprint. In either case the fingerprint
+//! declares the embedding contract and guards prior-generation reuse. It does not verify which
+//! provider produced the vectors.
 
 use core::num::NonZero;
 use std::io;
@@ -33,19 +27,22 @@ use crate::{
         postgres::PostgresDatasetError,
     },
     device::PinnedDevice,
+    file::generation::GenerationId,
     math::{AffinityCurve, positive},
     salt::{
         embedding::external::ExternalEmbeddingError,
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
             PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
-            annotations::SupplyError as AnnotationSupplyError,
+            VacuousProjectorPlacement, annotations::SupplyError as AnnotationSupplyError,
             verdicts::SupplyError as VerdictSupplyError,
         },
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
         landmark::select::SelectionOptions,
         projector::train::TrainingSchedule,
-        quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
+        quality::report::{
+            QualityReport, QualityThresholds, ThresholdDomainError, ThresholdOverrides,
+        },
     },
 };
 
@@ -61,10 +58,9 @@ const DEFAULT_ANCHORS: NonZero<usize> = const { NonZero::new(1_024).unwrap() };
 /// The default comparison sample of the admission probe.
 const DEFAULT_COMPARISONS: NonZero<usize> = const { NonZero::new(4_096).unwrap() };
 
-/// The relation classifier's supply, the one input every run names.
+/// A supplied classifier model or annotation corpus for a generation run.
 ///
-/// A run fits the classifier from an annotation corpus or adopts an already-fitted artifact; the
-/// variant carries the document's path.
+/// Select an annotation corpus to fit a classifier in-run, or an artifact to reuse a fitted model.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClassifierSource {
     /// Fit the classifier in-run from the annotation-corpus document at the path.
@@ -76,9 +72,10 @@ pub enum ClassifierSource {
     Artifact(Utf8PathBuf),
 }
 
-/// How one run places rows on the map.
+/// Map placement by landmark assignment or a trained projector.
 ///
-/// Each variant carries exactly the controls its placer consumes.
+/// The default [`Options::placement`] selects the projector with its reference schedule and
+/// relation attraction enabled.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Placement {
     /// Place at the landmark baseline: the fallback placer, without a training stage.
@@ -87,85 +84,83 @@ pub enum Placement {
     Projector {
         /// Override the trained placement's step count.
         ///
-        /// Keeps the ratified options and the midpoint boundary. Absent, the configuration
-        /// default trains.
+        /// A supplied count uses the reference projector settings with the phase boundary at
+        /// `floor(steps / 2)`. This is [`None`] by default, retaining the reference 20,000-step
+        /// schedule with its boundary at step 5,000.
         steps: Option<NonZero<usize>>,
-        /// Withhold the relation evidence from the trained placement.
+        /// Select when training omits relation attraction.
         ///
-        /// Every other objective term trains, and the run needs no reviewed verdicts. For corpora
-        /// without reviewed-Proximal coverage that still want the full trained placement.
-        vacuous: bool,
+        /// [`None`] by default, retaining ordinary training admission. See
+        /// [`VacuousProjectorPlacement`] for unconditional and coverage-dependent selection.
+        vacuous: Option<VacuousProjectorPlacement>,
     },
 }
 
 /// Options of one production run.
 #[derive(Debug, Clone)]
 pub struct Options<P> {
-    /// The fit seed; equal seeds replay every draw of the run, the admission probe's included.
+    /// Fit seed, also used to derive the admission probe's generator.
+    ///
+    /// This is `0` by default. Repeating a draw sequence also requires equal sampling inputs and algorithms.
     pub seed: u64 = 0,
-    /// The landmark capacity `M`.
+    /// Maximum landmark count `M`, `4,096` by default.
     pub landmarks: NonZero<u32> = DEFAULT_LANDMARKS,
     /// Run without a prior even when the root holds an active generation.
+    ///
+    /// This is `false` by default.
     pub fresh: bool = false,
-    /// Sampled anchor rows of the admission probe.
+    /// Upper bound on sampled anchor rows of the admission probe, `1,024` by default.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows of the admission probe.
+    /// Upper bound on sampled comparison rows of the admission probe, `4,096` by default.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
     /// Path of a reviewed-verdicts document to supply to the run.
     ///
-    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
-    /// so a corpus whose relations carry Proximal force needs one to train.
+    /// This is [`None`] by default. At the trained placement's phase boundary, a non-vacuous Proximal attraction requires reviewed pairs to establish its radius.
     pub verdicts: Option<Utf8PathBuf> = None,
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
-    /// The optional fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`,
-    /// `maximum_intrusion_rate`, `maximum_density_spread`, and `minimum_triplet_agreement`. A
-    /// present field overrides its default after domain validation, an absent field keeps it, and
-    /// an unknown field refuses the document. The source defaults are maximally permissive, gating
-    /// evidence presence rather than fidelity.
+    /// This is [`None`] by default. The optional fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`, `maximum_intrusion_rate`, `maximum_density_spread`, and `minimum_triplet_agreement`. A present field overrides its default after domain validation, an absent field keeps it, and an unknown field refuses the document. The source defaults are maximally permissive: admission requires evidence without imposing a measured fidelity threshold.
     pub quality_thresholds: Option<Utf8PathBuf> = None,
     /// The relation classifier's supply.
     pub classifier: ClassifierSource,
-    /// How the run places rows on the map.
+    /// Placement strategy, [`Placement::Projector`] with no overrides by default.
     pub placement: Placement = Placement::Projector {
         steps: None,
-        vacuous: false,
+        vacuous: None,
     },
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
-    /// Either construction answers to the same recall admission.
+    /// This is `false` by default. Either construction answers to the same k-NN recall spot check.
     pub nn_descent: bool = false,
     /// The observer the run reports its progress to.
     pub progress: P,
 }
 
-/// Plain-number summary of one production run.
+/// Generation identity, fit statistics and admission evidence from one run.
 #[derive(Debug, Clone)]
-pub struct Summary {
+pub(crate) struct Summary {
     /// The published generation's identity, in directory-name form.
-    pub generation: String,
+    pub generation: GenerationId,
     /// Nodes the dataset streamed.
     pub nodes: u64,
     /// Edges the dataset streamed.
     pub edges: u64,
     /// The neighbour backend's recall evidence, admission reading included.
     ///
-    /// A published generation carries either an admitted reading or an unresolved one; the
-    /// difference is what the sample demonstrated, not whether the probe measured a number.
+    /// This is the fit's k-NN spot check, distinct from the map-quality report's recall control.
+    /// An unresolved admission interval still records a measured point estimate.
     pub recall: RecallSpotCheck,
     /// Unique card texts copied from the prior generation.
     pub reused: usize,
-    /// Unique card texts submitted to the provider.
+    /// Unique card texts supplied to the embedder rather than copied from the prior.
     pub embedded: usize,
-    /// Whether the admission report's gates held.
-    pub passes: bool,
     /// Whether the run activated the generation.
     pub activated: bool,
-    /// The full admission report as pretty-printed JSON.
-    pub report: String,
+    /// The full structured admission report.
+    pub report: QualityReport,
 }
 
-/// The refusal grounds of a supplied quality-thresholds document.
+/// Failure to read or validate a quality-thresholds override document.
 #[derive(Debug)]
 pub enum ThresholdSupplyError {
     /// The run could not read the document.
@@ -196,21 +191,8 @@ impl core::error::Error for ThresholdSupplyError {
     }
 }
 
-/// One production run's failure, by step.
-///
-/// Every variant names the step that failed and holds that step's concrete fault - nothing erases
-/// to `dyn`.
-///
-/// The run payload's concrete type stays inside the crate. An external caller reads it
-/// through [`Error::source`](core::error::Error::source) as `&dyn Error`, and only in-crate
-/// consumers match on it.
-#[expect(
-    private_interfaces,
-    reason = "the run variant's payload is reachable outside the crate as a `dyn Error` source \
-              alone, and naming its concrete type stays an in-crate capability"
-)]
 #[derive(Debug)]
-pub enum RunError {
+enum RunErrorKind {
     /// The store could not open a snapshot transaction.
     Snapshot(PostgresDatasetError),
     /// The dump directory was refused.
@@ -225,29 +207,44 @@ pub enum RunError {
     Annotations(AnnotationSupplyError),
     /// The run refused the supplied classifier artifact.
     Classifier(ClassifierSupplyError),
-    /// The live run could not reach a verdict.
+    /// The live generation run did not complete successfully.
     Run(RunnerError<PostgresDatasetError, ExternalEmbeddingError>),
-    /// The offline run could not reach a verdict.
+    /// The offline generation run did not complete successfully.
     OfflineRun(RunnerError<OfflineDatasetError, MissingCardText>),
+}
+
+/// A step-specific failure from a live or offline generation run.
+///
+/// Every variant retains the step's concrete error. Use [`core::error::Error::source`] to inspect
+/// the underlying failure, including runner errors whose concrete type is crate-private.
+#[derive(Debug)]
+pub struct RunError {
+    kind: Box<RunErrorKind>,
 }
 
 impl core::fmt::Display for RunError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Snapshot(_) => fmt.write_str("the store could not open a snapshot transaction"),
-            Self::Dump(_) => fmt.write_str("the dump directory was refused"),
-            Self::DumpEmbedder(_) => {
+        match &*self.kind {
+            RunErrorKind::Snapshot(_) => {
+                fmt.write_str("the store could not open a snapshot transaction")
+            }
+            RunErrorKind::Dump(_) => fmt.write_str("the dump directory was refused"),
+            RunErrorKind::DumpEmbedder(_) => {
                 fmt.write_str("the dump's embedding stream was refused as the embedding provider")
             }
-            Self::Verdicts(_) => fmt.write_str("the supplied verdicts document was refused"),
-            Self::Thresholds(_) => {
+            RunErrorKind::Verdicts(_) => {
+                fmt.write_str("the supplied verdicts document was refused")
+            }
+            RunErrorKind::Thresholds(_) => {
                 fmt.write_str("the supplied quality-thresholds document was refused")
             }
-            Self::Annotations(_) => {
+            RunErrorKind::Annotations(_) => {
                 fmt.write_str("the supplied annotation-corpus document was refused")
             }
-            Self::Classifier(_) => fmt.write_str("the supplied classifier artifact was refused"),
-            Self::Run(_) | Self::OfflineRun(_) => {
+            RunErrorKind::Classifier(_) => {
+                fmt.write_str("the supplied classifier artifact was refused")
+            }
+            RunErrorKind::Run(_) | RunErrorKind::OfflineRun(_) => {
                 fmt.write_str("the run could not reach a verdict")
             }
         }
@@ -256,16 +253,88 @@ impl core::fmt::Display for RunError {
 
 impl core::error::Error for RunError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        match self {
-            Self::Snapshot(error) => Some(error),
-            Self::Dump(error) => Some(error),
-            Self::DumpEmbedder(error) => Some(error),
-            Self::Verdicts(error) => Some(error),
-            Self::Thresholds(error) => Some(error),
-            Self::Annotations(error) => Some(error),
-            Self::Classifier(error) => Some(error),
-            Self::Run(error) => Some(error),
-            Self::OfflineRun(error) => Some(error),
+        match &*self.kind {
+            RunErrorKind::Snapshot(error) => Some(error),
+            RunErrorKind::Dump(error) => Some(error),
+            RunErrorKind::DumpEmbedder(error) => Some(error),
+            RunErrorKind::Verdicts(error) => Some(error),
+            RunErrorKind::Thresholds(error) => Some(error),
+            RunErrorKind::Annotations(error) => Some(error),
+            RunErrorKind::Classifier(error) => Some(error),
+            RunErrorKind::Run(error) => Some(error),
+            RunErrorKind::OfflineRun(error) => Some(error),
+        }
+    }
+}
+
+impl From<PostgresDatasetError> for RunError {
+    fn from(error: PostgresDatasetError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Snapshot(error)),
+        }
+    }
+}
+
+impl From<OpenDumpError> for RunError {
+    fn from(error: OpenDumpError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Dump(error)),
+        }
+    }
+}
+
+impl From<OfflineDatasetError> for RunError {
+    fn from(error: OfflineDatasetError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::DumpEmbedder(error)),
+        }
+    }
+}
+
+impl From<VerdictSupplyError> for RunError {
+    fn from(error: VerdictSupplyError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Verdicts(error)),
+        }
+    }
+}
+
+impl From<ThresholdSupplyError> for RunError {
+    fn from(error: ThresholdSupplyError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Thresholds(error)),
+        }
+    }
+}
+
+impl From<AnnotationSupplyError> for RunError {
+    fn from(error: AnnotationSupplyError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Annotations(error)),
+        }
+    }
+}
+
+impl From<ClassifierSupplyError> for RunError {
+    fn from(error: ClassifierSupplyError) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Classifier(error)),
+        }
+    }
+}
+
+impl From<RunnerError<PostgresDatasetError, ExternalEmbeddingError>> for RunError {
+    fn from(error: RunnerError<PostgresDatasetError, ExternalEmbeddingError>) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::Run(error)),
+        }
+    }
+}
+
+impl From<RunnerError<OfflineDatasetError, MissingCardText>> for RunError {
+    fn from(error: RunnerError<OfflineDatasetError, MissingCardText>) -> Self {
+        Self {
+            kind: Box::new(RunErrorKind::OfflineRun(error)),
         }
     }
 }
@@ -274,15 +343,15 @@ impl core::error::Error for RunError {
 ///
 /// # Errors
 ///
-/// Returns [`RunError::Annotations`] or [`RunError::Classifier`] when the run refuses the named
-/// document.
+/// Returns [`RunError`] when the selected annotation corpus or classifier artifact cannot be
+/// admitted.
 fn classifier_input(source: &ClassifierSource) -> Result<ClassifierInput, RunError> {
     match source {
         ClassifierSource::Annotations(path) => Ok(ClassifierInput::Annotations(
-            SuppliedAnnotations::open(path).map_err(RunError::Annotations)?,
+            SuppliedAnnotations::open(path)?,
         )),
         ClassifierSource::Artifact(path) => {
-            ClassifierInput::open_artifact(path).map_err(RunError::Classifier)
+            ClassifierInput::open_artifact(path).map_err(From::from)
         }
     }
 }
@@ -291,8 +360,7 @@ fn classifier_input(source: &ClassifierSource) -> Result<ClassifierInput, RunErr
 ///
 /// # Errors
 ///
-/// Returns a [`ThresholdSupplyError`] when the run cannot read the document, when the document does
-/// not parse as the override shape, or when an override lies outside its control's domain.
+/// Returns [`ThresholdSupplyError`] when a supplied override document cannot be read or validated.
 fn quality_thresholds(
     defaults: QualityThresholds,
     path: Option<&Utf8Path>,
@@ -310,8 +378,10 @@ fn quality_thresholds(
 
 /// Resolves the run's placement options over the configuration default.
 ///
-/// A step-count override rebuilds the ratified options around the shortened schedule; otherwise
-/// the projector controls apply to the configuration default's options.
+/// A step-count override starts from [`ProjectorOptions::live`] and replaces its schedule with
+/// [`TrainingSchedule::shortened`]. Without that override, an initial projector configuration keeps
+/// its settings. An initial baseline uses the reference projector settings. Both projector paths
+/// apply the requested `vacuous` flag.
 fn placement_options(placement: Placement, initial: PlacementOptions) -> PlacementOptions {
     let Placement::Projector { steps, vacuous } = placement else {
         return PlacementOptions::LandmarkBaseline;
@@ -319,12 +389,12 @@ fn placement_options(placement: Placement, initial: PlacementOptions) -> Placeme
 
     let mut projector = match (steps, initial) {
         (Some(steps), _) => {
-            let mut projector = ProjectorOptions::ratified();
+            let mut projector = ProjectorOptions::live();
             projector.schedule = TrainingSchedule::shortened(steps);
             projector
         }
         (None, PlacementOptions::Projector(projector)) => projector,
-        (None, PlacementOptions::LandmarkBaseline) => ProjectorOptions::ratified(),
+        (None, PlacementOptions::LandmarkBaseline) => ProjectorOptions::live(),
     };
 
     projector.vacuous = vacuous;
@@ -332,13 +402,12 @@ fn placement_options(placement: Placement, initial: PlacementOptions) -> Placeme
     PlacementOptions::Projector(projector)
 }
 
-/// The dataset-independent half of one run, resolved from its options.
+/// Runner settings and admitted documents independent of dataset contents.
 ///
-/// Everything here is decided by the operator options, the pinned device, and the documents the
-/// options name, before any dataset exists, so the live and offline entry points resolve it
-/// identically.
+/// Resolution uses operator options, the pinned device and supplied documents without reading
+/// dataset rows. The live and offline paths share this resolution.
 struct ResolvedRun {
-    /// The runner options the entry point hands to the run.
+    /// Fit, probe, prior and device settings.
     runner: RunnerOptions,
     /// The admitted reviewed-verdicts document, when one was supplied.
     verdicts: Option<SuppliedVerdicts>,
@@ -350,8 +419,8 @@ struct ResolvedRun {
 ///
 /// # Errors
 ///
-/// Returns a [`RunError`] naming the refused document: the supplied quality-thresholds,
-/// verdicts, annotation-corpus, or classifier document, in that order.
+/// Returns [`RunError`] when a supplied document cannot be admitted. Quality thresholds resolve
+/// first, then verdicts, then the selected annotation corpus or classifier artifact.
 fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun, RunError> {
     let mut runner_options = RunnerOptions {
         fit: FitConfig {
@@ -378,8 +447,7 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
     runner_options.quality.thresholds = quality_thresholds(
         runner_options.quality.thresholds,
         options.quality_thresholds.as_deref(),
-    )
-    .map_err(RunError::Thresholds)?;
+    )?;
 
     if options.nn_descent {
         runner_options.fit.construction =
@@ -393,8 +461,7 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
         .verdicts
         .as_deref()
         .map(SuppliedVerdicts::open)
-        .transpose()
-        .map_err(RunError::Verdicts)?;
+        .transpose()?;
 
     let classifier = classifier_input(&options.classifier)?;
 
@@ -405,18 +472,19 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
     })
 }
 
-/// Reads one finished run's outcome into the plain-number summary.
-fn summary(outcome: &Outcome) -> Summary {
-    let metadata = &outcome.generation.repository().metadata;
-    Summary {
-        generation: outcome.generation.id().to_string(),
-        nodes: metadata.snapshot.nodes,
-        edges: metadata.snapshot.edges,
-        recall: metadata.evidence.recall,
-        reused: metadata.evidence.cards.reused,
-        embedded: metadata.evidence.cards.embedded,
-        passes: outcome.report.passes(),
-        activated: outcome.admission == Admission::Active,
-        report: serde_json::to_string_pretty(&outcome.report).expect("the report serializes"),
+impl From<Outcome> for Summary {
+    fn from(outcome: Outcome) -> Self {
+        let metadata = &outcome.generation.repository().metadata;
+
+        Self {
+            generation: outcome.generation.id(),
+            nodes: metadata.snapshot.nodes,
+            edges: metadata.snapshot.edges,
+            recall: metadata.evidence.recall,
+            reused: metadata.evidence.cards.reused,
+            embedded: metadata.evidence.cards.embedded,
+            activated: outcome.admission == Admission::Active,
+            report: outcome.report,
+        }
     }
 }

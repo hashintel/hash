@@ -38,25 +38,17 @@ export const fitsWithinBounds = (
 ): boolean => bounds.containerWidth <= 0 || width <= getAvailableWidth(bounds);
 
 /**
- * How far to shift a bar of `barWidth` from the centered position for it to
- * clear both insets: positive to the right, negative to the left, zero while
- * the centered bar already clears them. A bar wider than the space between the
- * insets cannot clear both, and keeps its left edge.
+ * Horizontal translation relative to the bar's own width. CSS resolves the
+ * percentages on each frame, including while hover expands a folded bar.
  */
-export const getBottomBarOffset = (
-  bounds: BottomBarBounds,
-  barWidth: number,
-): number => {
-  if (bounds.containerWidth <= 0 || barWidth <= 0) {
-    return 0;
+export const getBottomBarOffset = (bounds: BottomBarBounds): string => {
+  if (bounds.containerWidth <= 0) {
+    return "0px";
   }
 
-  const centeredLeft = (bounds.containerWidth - barWidth) / 2;
-  const leftLimit = bounds.leftInset + bounds.margin;
-  const rightLimit =
-    bounds.containerWidth - bounds.rightInset - bounds.margin - barWidth;
+  const center = bounds.containerWidth / 2;
+  const left = bounds.leftInset + bounds.margin - center;
+  const right = center - bounds.rightInset - bounds.margin;
 
-  // `Math.max` last so the left limit wins when the two cross, which is what
-  // happens once the bar is wider than the space between the insets.
-  return Math.max(leftLimit, Math.min(centeredLeft, rightLimit)) - centeredLeft;
+  return `max(calc(${left}px + 50%), min(0px, calc(${right}px - 50%)))`;
 };

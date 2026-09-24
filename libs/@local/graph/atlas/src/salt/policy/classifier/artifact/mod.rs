@@ -1,9 +1,9 @@
 //! Publishes a fitted classifier as one combined file and validates it on read.
 //!
-//! A fitted classifier publishes as one [`crate::file::classifier`] file, so the parameters that
+//! A fitted classifier publishes as one [`crate::file::classifier`] file, and the parameters that
 //! predict together cannot fall out of sync. [`Classifier::from_artifact`] validates the domain
-//! invariants once and copies the model into owned aligned storage: the model is kilobyte-scale, so
-//! predictions run from resident parameters and no consumer holds the mapping.
+//! invariants once and copies the model into owned aligned storage. The model is kilobyte-scale:
+//! predictions run from resident parameters, and no consumer holds the mapping.
 
 use core::{error::Error, fmt};
 use std::io;

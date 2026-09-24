@@ -1,11 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  createPreparedWorkpieceDelivery,
   latestRunbookIrBlock,
-  preparedWorkpieceAuthorship,
-  preparedWorkpieceClaimBoundary,
-  preparedWorkpieceSignalTag,
   selectRunbookWorkpiece,
   type WorkpieceHistory,
   type WorkpieceHistoryMessage,
@@ -13,25 +9,6 @@ import {
 
 const workpiece = (name: string): string =>
   `\`\`\`runbook-ir\n# ${name}\n\`\`\``;
-
-const preparedMessage = (
-  id = "prepared",
-  submissionId = "prepare-submission",
-): WorkpieceHistoryMessage => ({
-  id,
-  role: "system",
-  purpose: "dispatch",
-  submissionId,
-  signal: {
-    tagName: preparedWorkpieceSignalTag,
-    attributes: {
-      authorship: preparedWorkpieceAuthorship,
-      claimBoundary: preparedWorkpieceClaimBoundary,
-      fixtureId: "crew-reservation-v1",
-    },
-  },
-  parts: [{ type: "text", text: workpiece("Prepared") }],
-});
 
 const assistantMessage = (
   id: string,
@@ -74,127 +51,42 @@ describe("latestRunbookIrBlock", () => {
   });
 });
 
-describe("prepared workpiece delivery", () => {
-  test("carries explicit authorship and a revision-stable idempotency key", () => {
-    expect(
-      createPreparedWorkpieceDelivery({
-        fixtureId: "crew-reservation-v1",
-        revision: 0,
-        body: workpiece("Prepared"),
-      }),
-    ).toEqual({
-      idempotencyKey: "prepared-fixture:crew-reservation-v1:revision-0",
-      message: {
-        kind: "signal",
-        type: "brunch.fixture.prepared",
-        tagName: "prepared-fixture",
-        body: workpiece("Prepared"),
-        attributes: {
-          fixtureId: "crew-reservation-v1",
-          authorship: "test-authored",
-          claimBoundary: "prepared-not-model-produced",
-        },
-      },
-    });
-  });
-
-  test("refuses prepared content without a runbook-ir block", () => {
-    expect(() =>
-      createPreparedWorkpieceDelivery({
-        fixtureId: "crew-reservation-v1",
-        revision: 0,
-        body: "# Not fenced",
-      }),
-    ).toThrow(/requires a full runbook-ir block/u);
-  });
-});
-
 describe("selectRunbookWorkpiece", () => {
-  test("selects prepared revision zero with its honest authorship", () => {
-    expect(selectRunbookWorkpiece(history([preparedMessage()]))).toMatchObject({
-      authorship: "test-authored",
-      content: "# Prepared",
-      fixtureId: "crew-reservation-v1",
-      revision: 0,
-      sourceKind: "prepared-signal",
-      sourceMessageId: "prepared",
-    });
-  });
-
-  test("ignores the assistant response to preparation", () => {
+  test("returns nothing without an assistant runbook-ir block", () => {
     expect(
-      selectRunbookWorkpiece(
-        history([
-          preparedMessage(),
-          assistantMessage(
-            "preparation-response",
-            "prepare-submission",
-            "Echo",
-          ),
-        ]),
-      ),
-    ).toMatchObject({
-      authorship: "test-authored",
-      content: "# Prepared",
-    });
-  });
-
-  test("selects the latest genuine assistant revision", () => {
-    expect(
-      selectRunbookWorkpiece(
-        history([
-          preparedMessage(),
-          assistantMessage("revision-1", "turn-1", "Revision one"),
-          assistantMessage("revision-2", "turn-2", "Revision two"),
-        ]),
-      ),
-    ).toMatchObject({
-      authorship: "model-produced",
-      content: "# Revision two",
-      revision: 2,
-      sourceKind: "assistant",
-      sourceMessageId: "revision-2",
-    });
-  });
-
-  test("uses canonical log order when the prepared source follows older assistant text", () => {
-    expect(
-      selectRunbookWorkpiece(
-        history([
-          assistantMessage("older", "older-turn", "Older assistant text"),
-          preparedMessage(),
-        ]),
-      ),
-    ).toMatchObject({
-      authorship: "test-authored",
-      content: "# Prepared",
-      revision: 0,
-      sourceMessageId: "prepared",
-    });
-  });
-
-  test("refuses malformed and duplicate prepared sources", () => {
-    expect(() =>
       selectRunbookWorkpiece(
         history([
           {
-            ...preparedMessage(),
-            signal: {
-              tagName: preparedWorkpieceSignalTag,
-              attributes: { authorship: "model-produced" },
-            },
+            id: "user",
+            role: "user",
+            purpose: "user",
+            parts: [{ type: "text", text: workpiece("User authored") }],
           },
         ]),
       ),
-    ).toThrow(/malformed prepared workpiece source/u);
+    ).toBeUndefined();
+  });
 
-    expect(() =>
+  test("selects the latest assistant revision and numbers revisions in log order", () => {
+    expect(
       selectRunbookWorkpiece(
         history([
-          preparedMessage("prepared-1"),
-          preparedMessage("prepared-2", "prepare-submission-2"),
+          assistantMessage("revision-1", "turn-1", "Revision one"),
+          {
+            id: "no-block",
+            role: "assistant",
+            purpose: "assistant",
+            submissionId: "turn-2",
+            parts: [{ type: "text", text: "No fenced block here." }],
+          },
+          assistantMessage("revision-2", "turn-3", "Revision two"),
         ]),
       ),
-    ).toThrow(/more than one prepared workpiece source/u);
+    ).toMatchObject({
+      content: "# Revision two",
+      revision: 1,
+      sourceMessageId: "revision-2",
+      sourceSubmissionId: "turn-3",
+    });
   });
 });

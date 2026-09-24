@@ -23,10 +23,6 @@ impl<C> ConnectionGarbageCollectorTask<C>
 where
     C: IsCancelled + Clone + Send + Sync + 'static,
 {
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
     pub(crate) async fn run(self, cancel: CancellationToken) {
         let mut interval = tokio::time::interval(self.every);
 

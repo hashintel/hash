@@ -19,7 +19,7 @@ use crate::{
 
 /// Opening a postings file failed.
 #[derive(Debug)]
-pub enum OpenPostingsError {
+pub(crate) enum OpenPostingsError {
     /// Reading the header page failed.
     Header(HeaderError),
     /// The file length contradicts the header's geometry.

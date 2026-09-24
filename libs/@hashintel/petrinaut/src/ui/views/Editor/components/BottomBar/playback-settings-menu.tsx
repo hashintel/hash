@@ -10,6 +10,8 @@ import {
   type PlaybackSpeed,
 } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { SettingsIcon } from "../../../../experimental-icons";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { ToolbarButton } from "./toolbar-button";
 
@@ -158,6 +160,7 @@ export const PlaybackSettingsMenu = ({
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
   const playModesVisible = !presentation.compactControls;
   const stoppingConditionsVisible = !presentation.compactControls;
   const speedRows = toSpeedRows(allowedSpeeds);
@@ -204,7 +207,11 @@ export const PlaybackSettingsMenu = ({
         ariaExpanded={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
-        <Icon name="gear" />
+        {enableExperimentalIconPack ? (
+          <SettingsIcon open={open} duration={240} />
+        ) : (
+          <Icon name="gear" />
+        )}
       </ToolbarButton>
       {open && (
         <Popover

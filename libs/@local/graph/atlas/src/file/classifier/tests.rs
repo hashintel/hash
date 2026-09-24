@@ -1,10 +1,7 @@
+//! Certificates for the classifier file's format.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
-)]
-#![expect(
-    clippy::float_cmp,
-    reason = "the format persists parameters verbatim; round trips are bit-exact contracts"
 )]
 use core::assert_matches;
 use std::{fs, path::PathBuf};
@@ -18,6 +15,9 @@ use super::{
 };
 use crate::file::region::{header::HeaderError, machine::Machine};
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 1, this
+/// machine's information, dimension, distance count, temperature and the three intercepts as
+/// little-endian scalars, and zero padding out to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(4, 6, 1.5, [0.25, -0.5, 2.0]));
@@ -78,6 +78,7 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+/// A three-class model over four features, written out as a classifier file's bytes.
 fn fixture_bytes() -> Vec<u8> {
     let coefficients = [
         &[1.0, 2.0, 3.0, 4.0][..],
@@ -102,6 +103,9 @@ fn fixture_bytes() -> Vec<u8> {
     bytes
 }
 
+/// A written file reopens with its dimension, temperature, intercepts, coefficient rows, moment
+/// vectors and distances all reading back bit-exactly - the parameters persist verbatim rather
+/// than being re-derived.
 #[test]
 fn written_regions_reopen_verbatim() {
     let path = scratch("roundtrip.clsf");
@@ -187,6 +191,8 @@ fn open_rejects_foreign_and_torn_bytes() {
     let _file = ClassifierFile::open(&reserved_bits).expect("unknown machine bits still open");
 }
 
+/// A writer handed regions that disagree on the dimension panics rather than sealing a file whose
+/// header describes a model its regions do not hold.
 #[test]
 #[should_panic(expected = "one inverse scale per dimension")]
 fn writer_rejects_disagreeing_regions() {

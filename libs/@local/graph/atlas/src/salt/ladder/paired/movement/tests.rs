@@ -1,8 +1,7 @@
 //! Movement readout expectations.
 //!
-//! The oracle restates one pair reading from full scans over both frames: k-sets by sort, the
-//! union domain, then the counting rule, so the tree-backed readout is checked against a plain
-//! statement of the same tie semantics.
+//! The oracle constructs both neighbour sets by full sort, forms their union and counts rows ahead
+//! of the partner. Its row tie-break supplies an independent comparison for tree-based selection.
 
 use alloc::collections::BTreeSet;
 use core::{iter, num::NonZero};
@@ -17,11 +16,11 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{AnchorRowId, ControlMovement, Movement, MovementError, PairMovement};
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, FinitePointField, KdTree, Vec2, d_non_negative},
+    math::{DNonNegative, FinitePointField, KdTree, Vec2, d_non_negative, nz},
     salt::ladder::paired::fixtures::frame,
 };
 
-/// A seeded frame on a coarse integer lattice, so exact distance ties are common.
+/// Generates a seeded integer-lattice frame with frequent exact distance ties.
 fn lattice_frame(seed: u64, rows: usize) -> Vec<Vec2> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
     iter::repeat_with(|| {
@@ -34,7 +33,14 @@ fn lattice_frame(seed: u64, rows: usize) -> Vec<Vec2> {
     .collect()
 }
 
-/// Restates one pair reading from full scans: k-sets by sort, union, then the counting rule.
+/// Measures one pair using full-scan neighbour sets and union-domain ranks.
+///
+/// Fixture frames must have fewer than 2³² rows.
+///
+/// # Panics
+///
+/// Panics when `source`, `partner` or a union row is outside a compared frame, or the rank cannot
+/// fit `u32`.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "test frames stay far below u32::MAX rows, so row conversions are exact"
@@ -133,16 +139,12 @@ fn an_exact_distance_tie_resolves_by_row_identity() {
         Vec2::new(0.0, 1.0),
         Vec2::new(1.0, 0.0),
     ];
-    let movement = Movement::new(
-        frame(&points),
-        frame(&points),
-        NonZero::new(2).expect("two is nonzero"),
-    )
-    .expect("the frames are finite and equal");
+    let movement = Movement::new(frame(&points), frame(&points), nz!(2))
+        .expect("the frames are finite and equal");
     let scratch = Scratch::new();
 
-    // Row 1 orders before the tied partner 2, so it counts against partner 2 and not the
-    // other way round.
+    // row 1 breaks the distance tie ahead of partner 2. Reversing the partners excludes that
+    // contribution.
     assert_eq!(
         movement.pair(NodeRowId::new(0), NodeRowId::new(2), &scratch),
         PairMovement {
@@ -165,10 +167,10 @@ fn an_exact_distance_tie_resolves_by_row_identity() {
 
 #[test]
 fn a_partner_outside_one_step_ranks_over_the_union_domain() {
-    // At the zero step the k = 2 set of row 0 is {1, 2}, and at the canonical step it is
-    // {4, 3}. Partner 4 enters only the canonical set and partner 1 only the zero set, and each
-    // rank at the partner's absent step needs a union row its own k-set does not carry, so a
-    // single-step candidate domain reads 3 where the union reads 4.
+    // At k = 2, row 0's neighbour sets are {1, 2} at zero and {4, 3} at canonical. Partner 4's
+    // zero-step rank needs row 3, and partner 1's canonical-step rank needs row 2. Each extra row
+    // belongs only to the other step's set. Therefore the union reads rank 4 where a single-step
+    // domain would read 3.
     let zero = [
         Vec2::new(0.0, 0.0),
         Vec2::new(1.0, 0.0),
@@ -185,12 +187,8 @@ fn a_partner_outside_one_step_ranks_over_the_union_domain() {
         Vec2::new(0.5, 0.0),
         Vec2::new(9.0, 9.0),
     ];
-    let movement = Movement::new(
-        frame(&zero),
-        frame(&canonical),
-        NonZero::new(2).expect("two is nonzero"),
-    )
-    .expect("the frames are finite and equal");
+    let movement = Movement::new(frame(&zero), frame(&canonical), nz!(2))
+        .expect("the frames are finite and equal");
     let scratch = Scratch::new();
 
     assert_eq!(
@@ -219,12 +217,8 @@ fn a_partner_outside_one_step_ranks_over_the_union_domain() {
 fn control_readings_are_displacement_and_anchor_proximity() {
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
     let canonical = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 16.0)];
-    let movement = Movement::new(
-        frame(&zero),
-        frame(&canonical),
-        NonZero::new(1).expect("one is nonzero"),
-    )
-    .expect("the frames are finite and equal");
+    let movement = Movement::new(frame(&zero), frame(&canonical), nz!(1))
+        .expect("the frames are finite and equal");
 
     let anchor_frame = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
     let anchors = KdTree::build(FinitePointField::new_unchecked(
@@ -245,7 +239,7 @@ fn control_readings_are_displacement_and_anchor_proximity() {
 fn mismatched_rows() {
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let short = [Vec2::new(0.0, 0.0)];
-    let k = NonZero::new(1).expect("one is nonzero");
+    let k = nz!(1);
 
     assert_eq!(
         Movement::new(frame(&zero), frame(&short), k).expect_err("the row counts disagree"),

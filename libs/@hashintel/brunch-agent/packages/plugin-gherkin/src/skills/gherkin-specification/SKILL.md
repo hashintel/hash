@@ -17,7 +17,7 @@ An early Gherkin draft may be offered after one coherent rule and example are un
 
 ### Render or check only
 
-Use the supplied behavior workpiece or Gherkin document as the complete input. Do not interview. Read `references/gherkin-authoring-and-checks.md`, preserve unaffected material, and perform only the checks the available capabilities support. If a consequential ambiguity prevents faithful authoring or review, report it and the smallest question a later interactive conversation must answer rather than inventing the behavior.
+Apply core's non-interactive routing rule to the supplied behavior workpiece or Gherkin document. Read `references/gherkin-authoring-and-checks.md`, preserve unaffected material, and perform only the checks the available capabilities support.
 
 ## Procedure
 
@@ -33,7 +33,7 @@ For a new account, follow one concrete example through its starting context, one
 
 Keep a near-target behavior account in the person's vocabulary. Record feature purpose, rules, examples, domain terms, current-versus-proposed status, authorship, and consequential open matters. A target-shaped draft does not replace these distinctions while they remain load-bearing.
 
-Whenever the workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit it again before render-only handoff and before workpiece-only delivery. A delta or a `.feature` document without its open matters is not the full recoverable account.
+Follow core's `elicitation` guidance for workpiece settlement, evidence and locator handling. Settle the current behavior account before render-only handoff; a `.feature` document without its open matters is not the full recoverable account.
 
 ### Author or revise Gherkin
 

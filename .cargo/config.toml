@@ -8,6 +8,5 @@ protocol = "sparse"
 rustflags = ["-Ctarget-cpu=x86-64-v3"]
 
 [unstable]
-cargo-lints       = true
 codegen-backend   = true
 public-dependency = true

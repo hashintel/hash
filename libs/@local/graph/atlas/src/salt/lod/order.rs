@@ -1,4 +1,4 @@
-//! The base delivery order.
+//! Bucket-major ordering for aligned serving columns.
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 
@@ -8,13 +8,16 @@ use crate::{
     morton::{Depth, MortonKey},
 };
 
-/// The base delivery order of one generation.
+/// A row permutation ordered by bucket, then Morton key, then importance rank.
 ///
-/// Bucket-major, Morton within bucket, rank within key ties.
+/// Every served column publishes in this order. A bucket occupies one segment, and a tile's keys
+/// within that segment occupy a contiguous run.
 ///
-/// Every served column publishes in this order, filters index it, and a tile is a set of contiguous
-/// runs of it. The order is a pure function of buckets, keys, and ranking - the third sort
-/// component makes ties total, so the permutation is unique and reproducible.
+/// # Properties
+///
+/// For every valid [`Ranking`], ranks are pairwise distinct. The `(bucket, key, rank)` sort key
+/// therefore distinguishes every row. Equal buckets, keys, and ranking give exactly the same
+/// permutation and its inverse.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct BaseOrder {
     /// Each base position's row.
@@ -23,7 +26,7 @@ pub(crate) struct BaseOrder {
     pub row_of_position: Box<IdSlice<BasePosition, NodeRowId>>,
     /// Each row's base position.
     ///
-    /// The row-to-position permutation the filter contract maps entity ids through.
+    /// The inverse of [`Self::row_of_position`].
     pub position_of_row: Box<IdSlice<NodeRowId, BasePosition>>,
 }
 
@@ -32,7 +35,8 @@ impl BaseOrder {
     ///
     /// # Panics
     ///
-    /// This panics when `keys`, `buckets`, and `ranking` disagree on the row count.
+    /// Panics when `keys`, `buckets`, and `ranking.row_of_rank` disagree on the row count, or when
+    /// `ranking.rank_of_row` omits a row in `keys`.
     #[must_use]
     pub(crate) fn new(
         keys: &IdSlice<NodeRowId, MortonKey>,

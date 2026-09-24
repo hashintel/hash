@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 
-import { Signer } from "@aws-sdk/rds-signer";
+import { Signer, type SignerConfig } from "@aws-sdk/rds-signer";
 import { Pool } from "pg";
 
 import {
   type PostgresDatabaseConfig,
   POSTGRES_ENV,
 } from "./database-config.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
 import { errorCode, recordOperationalFailure } from "./telemetry.ts";
 
 import type { PostgresParameter, PostgresRunner } from "@flue/postgres";
@@ -32,12 +33,11 @@ interface ConnectionOptions {
   readonly onIamToken?: () => void;
   readonly onPoolError?: (error: Error) => void;
   readonly readTlsCa?: (path: string) => string;
-  readonly signerFactory?: (config: {
-    hostname: string;
-    port: number;
-    region: string;
-    username: string;
-  }) => Pick<Signer, "getAuthToken">;
+  readonly signerFactory?: (
+    config: Required<
+      Pick<SignerConfig, "hostname" | "port" | "region" | "username">
+    >,
+  ) => Pick<Signer, "getAuthToken">;
 }
 
 export const POSTGRES_CONNECTION_TIMEOUT_MS = 10_000;
@@ -50,6 +50,7 @@ const defaultSignerFactory: NonNullable<ConnectionOptions["signerFactory"]> = (
 ) => new Signer(config);
 
 const reportDatabaseFailure = async (error: unknown): Promise<void> => {
+  diagnostics.report("database.operation", error);
   try {
     await recordOperationalFailure("database_operation", error);
   } catch {
@@ -130,12 +131,8 @@ export const createPostgresPool = (
       return;
     }
     // Idle clients fail outside any request, so nothing else reports this;
-    // stderr keeps it visible even while the collector is unreachable.
-    // eslint-disable-next-line no-console
-    console.error(
-      "[brunch] postgres pool error:",
-      errorCode(error) ?? error.name,
-    );
+    // the diagnostic sink's console transport keeps it visible even while
+    // the collector is unreachable.
     void reportDatabaseFailure(error);
   });
   return pool;

@@ -39,6 +39,85 @@ const definition: SDCPN = {
 };
 
 describe("applyPetrinautAiMutation", () => {
+  test("observes the live definition around one synchronous execution with its call identity", () => {
+    const handle = createJsonDocHandle({
+      id: "a3-observation",
+      initial: definition,
+    });
+    const instance = createPetrinaut({ document: handle });
+    const observations: (SDCPN | undefined)[] = [];
+    let retainedExecute: (() => unknown) | undefined;
+    const output = applyPetrinautAiMutation({
+      instance,
+      toolCallId: "a3-call",
+      aiToolCall: {
+        toolName: "addArc",
+        input: {
+          transitionId: "start",
+          arcDirection: "input",
+          placeId: "crew",
+          weight: 1,
+          type: "standard",
+        },
+      },
+      executeMutation: ({ toolCallId, toolName, input, execute }) => {
+        expect(toolCallId).toBe("a3-call");
+        expect(toolName).toBe("addArc");
+        expect(input).toMatchObject({ placeId: "crew" });
+        retainedExecute = execute;
+        observations.push(structuredClone(handle.doc()));
+        const result = execute();
+        observations.push(structuredClone(handle.doc()));
+        expect(() => execute()).toThrow(/once/u);
+        return result;
+      },
+    });
+    expect(output).toMatchObject({ applied: true });
+    expect(observations[0]?.transitions[0]?.inputArcs).toHaveLength(0);
+    expect(observations[1]?.transitions[0]?.inputArcs).toHaveLength(1);
+    expect(() => retainedExecute?.()).toThrow(/synchronous/u);
+    instance.dispose();
+  });
+
+  test("allows synchronous refusal without applying and closes execution after hook failure", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: definition }),
+    });
+    const aiToolCall = {
+      toolName: "addArc" as const,
+      input: {
+        transitionId: "start",
+        arcDirection: "input" as const,
+        placeId: "crew",
+        weight: 1,
+        type: "standard" as const,
+      },
+    };
+    expect(
+      applyPetrinautAiMutation({
+        instance,
+        aiToolCall,
+        toolCallId: "a3-stale",
+        executeMutation: () => ({ applied: false, reason: "Stale base" }),
+      }),
+    ).toEqual({ applied: false, reason: "Stale base" });
+    let retainedExecute: (() => unknown) | undefined;
+    expect(() =>
+      applyPetrinautAiMutation({
+        instance,
+        aiToolCall,
+        toolCallId: "a3-failed",
+        executeMutation: ({ execute }) => {
+          retainedExecute = execute;
+          throw new Error("Host refused");
+        },
+      }),
+    ).toThrow("Host refused");
+    expect(() => retainedExecute?.()).toThrow(/synchronous/u);
+    expect(instance.definition.get().transitions[0]?.inputArcs).toHaveLength(0);
+    instance.dispose();
+  });
+
   test("reports a duplicate canonical arc as a no-op", () => {
     const instance = createPetrinaut({
       document: createJsonDocHandle({

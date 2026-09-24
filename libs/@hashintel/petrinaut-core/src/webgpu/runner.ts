@@ -15,6 +15,7 @@
  * histogram buffer — bins are sums, so the merge is free.
  */
 import { GPU_WORKGROUP_SIZE } from "./compile-net-shader";
+import { decodeF32OrderKey } from "./metric-windows";
 import {
   createPipeline,
   describeAllocationFailure,
@@ -42,7 +43,7 @@ export type { GpuDeviceHandle, GpuHistogramFrame };
 /**
  * Fixed words in the uniform config block: run_count, base_frame,
  * frame_limit, seed, chunk_frames. Each metric adds two more (its window's
- * lo and stride).
+ * lo and stride, as f32).
  */
 const CONFIG_FIXED_WORDS = 5;
 
@@ -102,7 +103,8 @@ export type GpuExperimentRequest = {
   previewRuns: number | null;
   /**
    * Each metric's histogram window, in `shader.metricIds` order. Defaults to
-   * `{lo: 0, stride: 1}` per metric — the zero-anchored exact layout.
+   * `{lo: 0, stride: 1, integer: true}` per metric — the zero-anchored exact
+   * integer layout.
    */
   metricWindows?: readonly MetricWindow[];
   /**
@@ -143,12 +145,18 @@ export type GpuExperimentResult = {
   /** Wall-clock time spent inside dispatches, excluding setup. */
   dispatchMs: number;
   /**
-   * Per metric, what the device observed: the sampled min/max count and how
+   * Per metric, what the device observed: the sampled min/max value and how
    * many samples escaped the window (clamped into an edge bin). Any escape
    * means the frames are an intermediate picture and the caller should
    * recalibrate the windows and re-run.
    */
   metricRanges: ObservedMetricRange[];
+  /**
+   * Runs halted by a non-finite sample (status `4 + metric`), per metric in
+   * `metricIds` order. The CPU evaluator throws on the same value, so any
+   * count here fails the experiment.
+   */
+  metricErrors: number[];
 };
 
 export async function runGpuExperiment(
@@ -184,20 +192,25 @@ export async function runGpuExperiment(
   }
 
   const metricWindows: MetricWindow[] = shader.metricIds.map(
-    (_, index) => request.metricWindows?.[index] ?? { lo: 0, stride: 1 },
+    (_, index) =>
+      request.metricWindows?.[index] ?? { lo: 0, stride: 1, integer: true },
   );
   const configWords = new Uint32Array(CONFIG_FIXED_WORDS + 2 * metricCount);
+  // The window words are f32 in the shader's `Config`; the view writes them
+  // into the same buffer the u32 words occupy.
+  const configFloats = new Float32Array(configWords.buffer);
   for (const [index, window] of metricWindows.entries()) {
-    configWords[CONFIG_FIXED_WORDS + 2 * index] = window.lo;
-    configWords[CONFIG_FIXED_WORDS + 2 * index + 1] = Math.max(
-      1,
-      window.stride,
-    );
+    configFloats[CONFIG_FIXED_WORDS + 2 * index] = window.lo;
+    configFloats[CONFIG_FIXED_WORDS + 2 * index + 1] = window.stride;
   }
 
   const bytesPerRun = shader.stateWordsPerRun * 4;
   const histWordsPerFrame = shader.histogramBins * metricCount;
-  const histBytes = Math.max(1, frameLimit * histWordsPerFrame) * 4;
+  // Rows 0..frameLimit: row f is the state after f steps, and the last row is
+  // the CPU's final frame, sampled by one loop iteration past the limit in
+  // which nothing runs. Only a metric sampling completed runs writes it.
+  const sampledRows = frameLimit + 1;
+  const histBytes = Math.max(1, sampledRows * histWordsPerFrame) * 4;
 
   const tooLarge = describeBufferOverflow({
     histBytes,
@@ -276,7 +289,7 @@ export async function runGpuExperiment(
       : device.createBuffer({
           size: Math.max(
             4,
-            Math.min(framesPerDispatch, frameLimit) * histWordsPerFrame * 4,
+            Math.min(framesPerDispatch, sampledRows) * histWordsPerFrame * 4,
           ),
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
@@ -341,6 +354,7 @@ export async function runGpuExperiment(
     let deadlockedRuns = 0;
     let completedRuns = 0;
     let overflowRuns = 0;
+    const metricErrors = new Array<number>(metricCount).fill(0);
     let cancelled = false;
     let dispatchMs = 0;
 
@@ -425,7 +439,7 @@ export async function runGpuExperiment(
 
       let baseFrame = 0;
       for (const chunkFrameCount of dispatchChunkFrames(
-        frameLimit,
+        sampledRows,
         framesPerDispatch,
       )) {
         // Frames already advanced stay in the histogram, and the caller is
@@ -450,13 +464,15 @@ export async function runGpuExperiment(
         // Awaiting per chunk (not per frame) keeps the browser responsive and
         // bounds how far ahead the queue runs, at negligible cost.
         await device.queue.onSubmittedWorkDone();
-        const framesDone = Math.min(baseFrame + chunkFrameCount, frameLimit);
+        const rowsDone = baseFrame + chunkFrameCount;
+        // Progress counts steps, so the final sampling row is not a frame done.
+        const framesDone = Math.min(rowsDone, frameLimit);
         if (chunkReadback !== null) {
           // Every frame's bins are final once its dispatch retired, so the
           // chunk's range can be read while later dispatches queue. Later
           // tiles re-read ranges earlier tiles already streamed; the
           // re-decoded frames carry every tile's samples so far.
-          const chunkFrames = framesDone - baseFrame;
+          const chunkFrames = rowsDone - baseFrame;
           const chunkBytes = chunkFrames * histWordsPerFrame * 4;
           const copyEncoder = device.createCommandEncoder();
           copyEncoder.copyBufferToBuffer(
@@ -470,7 +486,7 @@ export async function runGpuExperiment(
           await chunkReadback.mapAsync(GPUMapMode.READ, 0, chunkBytes);
           const decoded = decodeHistogramFrames({
             data: new Uint32Array(chunkReadback.getMappedRange(0, chunkBytes)),
-            firstFrame: baseFrame + 1,
+            firstFrame: baseFrame,
             frameCount: chunkFrames,
             metricIds: shader.metricIds,
             histogramBins: shader.histogramBins,
@@ -489,7 +505,7 @@ export async function runGpuExperiment(
           runsInTile,
           runCount,
         });
-        baseFrame = framesDone;
+        baseFrame = rowsDone;
       }
 
       dispatchMs += now() - start;
@@ -532,6 +548,8 @@ export async function runGpuExperiment(
           completedRuns++;
         } else if (status === 3) {
           overflowRuns++;
+        } else if (status >= 4 && status - 4 < metricCount) {
+          metricErrors[status - 4] = metricErrors[status - 4]! + 1;
         }
         for (let slot = 0; slot < derivedCount; slot++) {
           const runMax = summary[base + placeCount + 1 + slot] ?? 0;
@@ -574,9 +592,14 @@ export async function runGpuExperiment(
       await rangeReadback.mapAsync(GPUMapMode.READ);
       const rangeWords = new Uint32Array(rangeReadback.getMappedRange());
       for (let metric = 0; metric < metricCount; metric++) {
+        const minKey = rangeWords[metric * 4]!;
+        const maxKey = rangeWords[metric * 4 + 1]!;
+        // The min slot's initial u32 maximum and the max slot's initial zero
+        // are no finite value's order key, so both untouched means no sample.
+        const sampled = !(minKey === 0xffffffff && maxKey === 0);
         metricRanges.push({
-          min: rangeWords[metric * 4]!,
-          max: rangeWords[metric * 4 + 1]!,
+          min: sampled ? decodeF32OrderKey(minKey) : Number.POSITIVE_INFINITY,
+          max: sampled ? decodeF32OrderKey(maxKey) : Number.NEGATIVE_INFINITY,
           below: rangeWords[metric * 4 + 2]!,
           above: rangeWords[metric * 4 + 3]!,
         });
@@ -591,10 +614,10 @@ export async function runGpuExperiment(
     const histogram = new Uint32Array(histReadback.getMappedRange());
     const frames = decodeHistogramFrames({
       data: histogram,
-      firstFrame: 1,
+      firstFrame: 0,
       frameCount: sampledFrameCount({
         data: histogram,
-        frameLimit,
+        frameLimit: sampledRows,
         metricCount,
         histogramBins: shader.histogramBins,
       }),
@@ -619,6 +642,7 @@ export async function runGpuExperiment(
         })),
         dispatchMs,
         metricRanges,
+        metricErrors,
       },
     };
   } finally {

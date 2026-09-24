@@ -920,8 +920,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let mut common_table_expressions: Vec<CommonTableExpression> = self
             .with
             .as_ref()
-            .map(|with| with.common_table_expressions.to_vec())
-            .unwrap_or_default();
+            .map_or_default(|with| with.common_table_expressions.to_vec());
         if common_table_expressions
             .iter()
             .any(|cte| matches!(cte.name.as_str(), "roots" | "limited"))

@@ -84,7 +84,7 @@ export const styles = sva({
       "--chip-ring-end": "var(--chip-ring-soft)",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
-      "&:focus-visible": {
+      _focusVisible: {
         boxShadow: "[0 0 0 2px var(--chip-ring-color)]",
       },
       "&:has(:focus-visible)": {

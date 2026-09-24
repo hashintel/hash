@@ -1,8 +1,8 @@
 {
-  "package": "@rust/harpc-wire-protocol",
+  "package": "harpc-wire-protocol",
   "dependencies": [
-    "@rust/error-stack",
-    "@rust/harpc-types"
+    "error-stack",
+    "harpc-types"
   ],
   "tasks": {
     "build:cli": {
@@ -10,11 +10,13 @@
     },
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -24,15 +26,24 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:miri": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

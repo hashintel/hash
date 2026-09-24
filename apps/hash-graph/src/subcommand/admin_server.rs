@@ -3,9 +3,9 @@ use core::{fmt, net::SocketAddr, num::NonZero, str::FromStr as _, time::Duration
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::auth::{
+use hash_graph_api::rest::authentication::{
     AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
-    build_operator_provider,
+    build_environment_provider, build_explicit_providers,
 };
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
@@ -21,7 +21,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
+    subcommand::{HealthcheckArgs, ServerLifecycle},
 };
 
 /// Address configuration for the admin server.
@@ -315,18 +315,17 @@ pub(crate) async fn run_admin_server(
     })?;
 
     let pool = Arc::new(pool);
-    let authentication_provider = Arc::new(build_operator_provider(
-        cloudflare_access,
-        service_secret.clone(),
-        &pool,
+    let authentication_provider = Arc::new((
+        build_explicit_providers(service_secret.clone(), &pool),
+        cloudflare_access.map(|config| build_environment_provider(config, &pool)),
     ));
 
-    let router = hash_graph_api::rest::admin::routes(
+    let router = hash_graph_api::rest::legacy::admin::routes(
         pool,
         authentication_provider,
         Arc::from(service_secret),
         Arc::new(AuthenticationMetrics::new(&meter)),
-        hash_graph_api::rest::admin::ExternalServicesConfig {
+        hash_graph_api::rest::legacy::admin::ExternalServicesConfig {
             kratos_admin_url,
             hydra_admin_url,
             mailchimp_api_key: config.external_services.mailchimp_api_key,
@@ -368,10 +367,6 @@ pub(crate) fn start_admin_server(
 
 /// Standalone `admin-server` subcommand entrypoint.
 #[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
-#[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
@@ -379,22 +374,12 @@ pub async fn admin_server(
     args: AdminServerArgs,
     telemetry: &Telemetry,
 ) -> Result<(), Report<GraphError>> {
-    if args.healthcheck.healthcheck {
-        return wait_healthcheck(
-            || healthcheck(args.config.address.clone()),
-            &args.healthcheck,
-        )
-        .await
-        .change_context(GraphError);
-    }
-
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");

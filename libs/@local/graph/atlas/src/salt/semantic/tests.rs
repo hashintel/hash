@@ -1,7 +1,7 @@
 #![expect(
     clippy::float_cmp,
-    reason = "symmetry is bit-exact by construction and saturated memberships are exactly one; \
-              both are contracts, not coincidences"
+    reason = "the fixtures check exact symmetry, saturated memberships and same-kernel SIMD \
+              results"
 )]
 
 use core::{assert_matches, simd::f32x8};
@@ -21,11 +21,17 @@ use crate::{
     salt::knn::table::{Knn, KnnMatrix},
 };
 
+/// Returns the default calibration settings for fixtures.
 fn options() -> SmoothingOptions {
     SmoothingOptions { .. }
 }
 
-/// Builds a validated k-NN table from uniform per-row neighbour lists.
+/// Builds a k-NN fixture from uniform, ascending-column neighbour lists.
+///
+/// # Panics
+///
+/// This panics if `rows` is empty, the lists violate the sparse structure or k-NN invariants, or
+/// the matrix size exceeds its index encoding.
 fn knn_from_rows(rows: &[Vec<(u32, NonNegative)>]) -> Knn<NodeRowId> {
     let count = rows.len();
     let neighbours = rows[0].len();
@@ -46,7 +52,15 @@ fn knn_from_rows(rows: &[Vec<(u32, NonNegative)>]) -> Knn<NodeRowId> {
     Knn::new(matrix).expect("the fixture satisfies the table invariants")
 }
 
-/// Brute-force cosine k-NN over random points on the unit circle arc.
+/// Builds brute-force cosine k-NN over seeded random points on a quarter-circle arc.
+///
+/// Each row retains at most `neighbours` entries, sorted by column after nearest-distance
+/// selection.
+///
+/// # Panics
+///
+/// This panics if `rows` is below two, `neighbours` is zero, or the row count exceeds the matrix's
+/// `u32` dimension encoding.
 fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn<NodeRowId> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
     let points: Vec<[f32; 2]> = core::iter::repeat_with(|| {
@@ -81,9 +95,14 @@ fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn<NodeRowId> {
     knn_from_rows(&table)
 }
 
-/// The scalar fuzzy-weight reference.
+/// Computes a scalar smooth-kNN reference with libm exponentials.
 ///
-/// The smooth-kNN kernel with libm exponentials, keyed by directed edge.
+/// The result maps each direction of every union edge to its weight. The scalar reference evaluates
+/// the union without fusion, independently of the SIMD path.
+///
+/// # Panics
+///
+/// This panics if `knn` has a nonzero row-pointer offset.
 #[expect(
     clippy::suboptimal_flops,
     clippy::cast_precision_loss,
@@ -208,7 +227,7 @@ fn calibration_solves_the_membership_sum_equation() {
     let mut solver = RowSolver::new(distances.len());
     let bandwidth = solver.calibrate(&distances, target, 1.0, &options());
 
-    // The defining equation, recomputed through scalar libm.
+    // scalar libm supplies an independent evaluation of the membership equation.
     let sum: f64 = distances
         .iter()
         .map(|&distance| {
@@ -242,7 +261,7 @@ fn duplicate_rows_saturate_at_full_membership() {
     let mut solver = RowSolver::new(distances.len());
     let bandwidth = solver.calibrate(&distances, 2.0, 0.25, &options());
 
-    // No positive distance: the floor scales from the fallback.
+    // without a positive distance, the floor scales from the fallback.
     assert_eq!(bandwidth.rho, 0.0);
     assert_eq!(bandwidth.sigma, options().bandwidth_floor * 0.25);
 
@@ -251,17 +270,14 @@ fn duplicate_rows_saturate_at_full_membership() {
     assert_eq!(memberships, [1.0; 4]);
 }
 
-/// The SIMD row pipeline matches the membership definition lane for lane.
-///
-/// The scalar oracle routes through the same vendored kernel, so agreement is bit-exact: the pin
-/// covers the padded tail lanes (partial, exact, and full-plus-partial chunks), the ρ subtraction
-/// with its zero clamp, the membership floor, and same-length solver reuse.
 #[test]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the fixture lengths are far below exact f64 integer precision"
 )]
 fn simd_rows_match_the_scalar_definition_lane_for_lane() {
+    // partial and complete SIMD chunks exercise padding and the copied output tail.
+    // the scalar oracle uses the same kernel to isolate row preparation from kernel accuracy.
     for neighbours in [1_usize, 3, 7, 8, 9, 15, 16, 17] {
         let distances: Vec<NonNegative> = (0..neighbours)
             .map(|slot| {
@@ -276,8 +292,7 @@ fn simd_rows_match_the_scalar_definition_lane_for_lane() {
         let target = (neighbours as f64).log2().max(1.0);
 
         let mut solver = RowSolver::new(neighbours);
-        // A first calibration over reversed distances, so the checked row
-        // reuses scratch another row has written.
+        // reversing the distances checks that same-length reuse replaces the prior row's scratch.
         let reversed: Vec<NonNegative> = distances.iter().rev().copied().collect();
         solver.calibrate(&reversed, target, 0.5, &options());
 
@@ -362,9 +377,8 @@ fn union_support_covers_every_directed_edge() {
 
 #[test]
 fn one_sided_edges_keep_their_directed_membership() {
-    // Row 2 is nobody's neighbour: both of its edges are one-sided, so
-    // their union weights equal its directed memberships, which the
-    // scalar reference computes independently.
+    // row 2 is absent from every neighbour list. Its one-sided edges retain their directed
+    // memberships, which the scalar reference computes independently.
     let knn = knn_from_rows(&[
         vec![(1, non_negative!(0.1)), (3, non_negative!(0.2))],
         vec![(0, non_negative!(0.1)), (3, non_negative!(0.3))],
@@ -431,6 +445,7 @@ fn published_graph_reopens_mapped() {
     assert_eq!(digest, hasher.finalize());
 }
 
+/// Builds a two-row matrix with one edge stored at the given directional weights.
 fn symmetric_pair(weight_forward: f32, weight_reverse: f32) -> SemanticMatrix {
     SemanticMatrix::try_new(
         (2, 2),

@@ -1,18 +1,17 @@
 {
-  "package": "@rust/hash-graph-integration",
+  "package": "hash-graph-integration",
   "dependencies": [
-    "@apps/hash-graph",
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-codec",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-postgres-store",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-test-data",
-    "@rust/hash-graph-types",
-    "@rust/hash-status",
-    "@rust/hash-telemetry"
+    "error-stack",
+    "hash-codec",
+    "hash-graph-authorization",
+    "hash-graph-postgres-store",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
+    "hash-graph-test-data",
+    "hash-graph-types",
+    "hash-status",
+    "hash-telemetry",
+    "type-system"
   ],
   "tasks": {
     "fix:clippy": {
@@ -24,16 +23,21 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:integration": {
-      "dependsOn": [],
+      "dependsOn": [
+        "hash-graph#start:test:healthcheck"
+      ],
       "env": [
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros",
+        "hash-graph"
       ]
     }
   }

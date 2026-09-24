@@ -1,5 +1,5 @@
 {
-  "package": "@rust/error-stack-macros",
+  "package": "error-stack-macros",
   "dependencies": [],
   "tasks": {
     "fix:clippy": {

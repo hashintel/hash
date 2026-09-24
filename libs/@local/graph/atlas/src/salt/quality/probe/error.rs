@@ -1,22 +1,14 @@
-//! Design, domain, and delivery failures that stop the probe.
-
 use core::{error::Error, fmt, num::NonZero};
 
-/// The probe could not run.
+/// A design or canonical-delivery failure that prevents probe completion.
 #[derive(Debug)]
 pub(crate) enum ProbeError<E> {
-    /// The corpus cannot host disjoint anchor and comparison samples.
-    Design {
-        rows: usize,
-        anchors: usize,
-        comparisons: usize,
-    },
     /// The options name no neighbourhood size.
     NoNeighbourhoods,
     /// A neighbourhood size violates the aggregate domain over one of the probe's universes.
     Neighbourhood { k: NonZero<usize>, universe: usize },
-    /// The corpus row count exceeds the crate's `u32` row encoding.
-    RowsExceedProbeDomain { rows: usize },
+    /// A population below the rank domain contains a non-finite embedding component.
+    NonFiniteEmbedding,
     /// The canonical stream failed.
     Dataset(E),
     /// The canonical stream delivered a node the probe never requested.
@@ -30,15 +22,6 @@ pub(crate) enum ProbeError<E> {
 impl<E> fmt::Display for ProbeError<E> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Self::Design {
-                rows,
-                anchors,
-                comparisons,
-            } => write!(
-                fmt,
-                "{rows} corpus rows cannot host {anchors} anchors and {comparisons} disjoint \
-                 comparison rows",
-            ),
             Self::NoNeighbourhoods => {
                 fmt.write_str("the options name no neighbourhood size to read at")
             }
@@ -47,8 +30,8 @@ impl<E> fmt::Display for ProbeError<E> {
                 "neighbourhood size {k} lies outside the aggregate domain over a universe of \
                  {universe}",
             ),
-            Self::RowsExceedProbeDomain { rows } => {
-                write!(fmt, "{rows} rows exceed the crate's u32 row encoding")
+            Self::NonFiniteEmbedding => {
+                fmt.write_str("a probe embedding contains a non-finite component")
             }
             Self::Dataset(_) => fmt.write_str("the canonical embedding stream failed"),
             Self::UnrequestedEmbedding => {
@@ -72,10 +55,9 @@ impl<E: Error + 'static> Error for ProbeError<E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Dataset(error) => Some(error),
-            Self::Design { .. }
-            | Self::NoNeighbourhoods
+            Self::NoNeighbourhoods
+            | Self::NonFiniteEmbedding
             | Self::Neighbourhood { .. }
-            | Self::RowsExceedProbeDomain { .. }
             | Self::UnrequestedEmbedding
             | Self::RepeatedEmbedding
             | Self::MissingEmbeddings { .. } => None,
@@ -83,7 +65,7 @@ impl<E: Error + 'static> Error for ProbeError<E> {
     }
 }
 
-/// An unordered id-keyed delivery did not match its requests.
+/// A failed or mismatched id-keyed delivery stream.
 #[derive(Debug)]
 pub(crate) enum DeliveryError<E> {
     /// The stream failed.
@@ -92,9 +74,8 @@ pub(crate) enum DeliveryError<E> {
     Unrequested,
     /// The stream delivered one requested id twice.
     ///
-    /// A repeat is never a harmless echo. Its payload would replace one the reading has already
-    /// accepted, and nothing at this seam can tell a duplicate of the same bytes from a second,
-    /// different answer arriving under one id.
+    /// Every requested id permits one delivery. Repetition fails regardless of payload equality,
+    /// without selecting one answer over another.
     Repeated,
     /// The stream ended before covering every requested id.
     Missing { requested: usize, delivered: usize },

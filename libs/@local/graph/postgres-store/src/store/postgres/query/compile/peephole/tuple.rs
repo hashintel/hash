@@ -323,11 +323,10 @@ where
 /// one owned array parameter and hands the planner one semi-join over the unnested rows
 /// in place of N branches, so a duplicate tuple cannot multiply result rows, it stays a
 /// `WHERE` condition instead of adding a join, and the statement text no longer changes
-/// with the tuple count, so the driver reuses one prepared statement across batch sizes.
-/// Each array's cast names its own column's stored type, so the values arrive exactly
-/// as the direct equality would have bound them. A bundle whose members mix parameter
-/// variants, or carry a variant no SQL array can hold, falls back to binding every
-/// member as its own parameter inside an array literal.
+/// with the tuple count. Each array's cast names its own column's stored type, so the
+/// values arrive exactly as the direct equality would have bound them. A bundle whose
+/// members mix parameter variants, or carry a variant no SQL array can hold, falls back
+/// to binding every member as its own parameter inside an array literal.
 fn membership<'params, 'filter, 'query, R>(
     compiler: &mut SelectCompiler<'params, 'query, R>,
     columns: Vec<(ColumnReference<'static>, PostgresType)>,

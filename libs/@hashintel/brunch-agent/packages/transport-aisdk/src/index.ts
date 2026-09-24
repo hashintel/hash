@@ -1,11 +1,23 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { getToolName, isToolUIPart } from "ai";
 
-import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import {
+  clientToolResultSignal,
+  type ClientToolResult,
+} from "./client-tool-result";
 import { serializeErrorText } from "./error-text";
-import { createFlueUiStream } from "./ui-stream";
+import {
+  readLiveToolStream,
+  type LiveToolStreamOptions,
+} from "./live-tool-stream";
+import {
+  createFlueUiStream,
+  type ClientToolProjectionOptions,
+  type FlueUiStreamOptions,
+} from "./ui-stream";
 
 import type {
+  AgentPromptOptions,
   AgentSendResult,
   ConversationStreamChunk,
   DeliveredMessage,
@@ -21,7 +33,15 @@ export {
   type ClientToolHistoryResult,
 } from "./client-tool-history";
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
-export { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+export {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  clientToolResultSignal,
+  isClientToolResult,
+  isClientToolResultDelivery,
+  parseClientToolResults,
+  type ClientToolResult,
+  type ClientToolResultParseIssue,
+} from "./client-tool-result";
 export {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -32,15 +52,20 @@ export {
   snapshotToUiMessages,
   type SnapshotToUiMessagesOptions,
   type UiHistoryMessage,
+  type UiHistoryMessageMetadata,
 } from "./transcript";
-export { createFlueUiStream, type FlueUiStreamOptions } from "./ui-stream";
-
-export interface ClientToolResult {
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly output: unknown;
-  readonly source?: "voice";
-}
+export {
+  createFlueUiStream,
+  type ClientToolProjectionOptions,
+  type FlueUiStream,
+  type FlueUiStreamOptions,
+  type FlueUiToolOutputError,
+} from "./ui-stream";
+export {
+  readLiveToolStream,
+  type LiveToolStreamEvent,
+  type LiveToolStreamOptions,
+} from "./live-tool-stream";
 
 export interface FlueChatResponseMessageEvent {
   readonly messageId: string;
@@ -61,14 +86,23 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
-export interface FlueChatTransportOptions {
+export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
-  readonly clientToolNames: ReadonlySet<string>;
-  readonly mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-  }) => unknown;
-  readonly hiddenToolNames?: ReadonlySet<string>;
+  /** Opaque host-owned initialization, sent on user submissions only. */
+  readonly initialData?: AgentPromptOptions["initialData"];
+  readonly clientToolResultMetadata?: (
+    result: ClientToolResult,
+  ) => ClientToolResult["metadata"];
+  /**
+   * Promote verified model-required fields out of a host metadata sidecar.
+   * The callback receives the sidecar produced for this exact result.
+   */
+  readonly clientToolResultOutput?: (
+    result: ClientToolResult,
+    metadata: ClientToolResult["metadata"],
+  ) => ClientToolResult["output"];
+  /** Best-effort pre-admission presentation; canonical Flue history remains authoritative. */
+  readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -80,6 +114,12 @@ export interface FlueChatTransportOptions {
   readonly onResponseMessageCompleted?: (
     event: FlueChatResponseMessageCompletedEvent,
   ) => void;
+  /**
+   * Server tool failures never reach `useChat.onError`; this is the only seam
+   * that sees them. Admission, stream and settlement
+   * failures stay with `onError` so nothing is reported twice.
+   */
+  readonly onToolOutputError?: FlueUiStreamOptions["onToolOutputError"];
 }
 
 export type FlueChatAdmissionFailure =
@@ -300,6 +340,7 @@ const streamSubmission = (
   // controller immediately, so the detached `wait()` settlement below must not
   // write or close again afterwards.
   let closed = false;
+  let disconnectLive: (() => void) | undefined;
 
   return new ReadableStream<UIMessageChunk>({
     start(controller) {
@@ -313,6 +354,8 @@ const streamSubmission = (
       const close = (): void => {
         if (closed) return;
         closed = true;
+        disconnectLive?.();
+        localAbort.abort();
         controller.close();
       };
       const write = (chunk: UIMessageChunk): void => {
@@ -333,15 +376,37 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        dynamicClientToolNames: options.dynamicClientToolNames,
+        validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
-        hiddenToolNames: options.hiddenToolNames,
+        onToolOutputError: options.onToolOutputError,
+        provisionalMessageId: (turnId) =>
+          continuationMessageId ?? `live:${admission.submissionId}:${turnId}`,
         write,
       });
+      disconnectLive = projector.disconnectLive;
+      if (options.liveToolStream !== undefined) {
+        void readLiveToolStream({
+          conversationUrl: options.client.url,
+          onEvent: projector.acceptLive,
+          options: options.liveToolStream,
+          signal,
+          submissionId: admission.submissionId,
+        })
+          .then(() => {
+            if (!signal.aborted) projector.disconnectLive();
+          })
+          .catch((error: unknown) => {
+            options.liveToolStream?.onError?.(error);
+            if (!signal.aborted) projector.disconnectLive();
+          });
+      }
 
       void options.client
         .wait(admission, {
           signal,
           onEvent: (event) => {
+            projector.accept(event);
             if (
               event.type === "message-started" &&
               event.submissionId === admission.submissionId
@@ -349,7 +414,10 @@ const streamSubmission = (
               // Report the id the consumer sees: a client-tool continuation is
               // projected onto the assistant message it resumes.
               responseMessage = {
-                effectiveId: continuationMessageId ?? event.messageId,
+                effectiveId:
+                  continuationMessageId ??
+                  projector.effectiveMessageId(event.messageId) ??
+                  event.messageId,
                 flueId: event.messageId,
               };
               options.onResponseMessage?.({
@@ -358,7 +426,6 @@ const streamSubmission = (
                 submissionId: admission.submissionId,
               });
             }
-            projector.accept(event);
             if (
               event.type === "message-completed" &&
               event.messageId === responseMessage?.flueId
@@ -381,6 +448,7 @@ const streamSubmission = (
     },
     cancel(reason) {
       closed = true;
+      disconnectLive?.();
       localAbort.abort(reason);
     },
   });
@@ -404,13 +472,26 @@ export const createFlueChatTransport = <
             messages,
             messageId,
             options.clientToolNames,
-          ).toSorted((left, right) =>
-            left.toolCallId < right.toolCallId
-              ? -1
-              : left.toolCallId > right.toolCallId
-                ? 1
-                : 0,
-          );
+          )
+            .map((result) => {
+              const metadata = options.clientToolResultMetadata?.(result);
+              const output =
+                options.clientToolResultOutput === undefined
+                  ? result.output
+                  : options.clientToolResultOutput(result, metadata);
+              return {
+                ...result,
+                output,
+                ...(metadata === undefined ? {} : { metadata }),
+              };
+            })
+            .toSorted((left, right) =>
+              left.toolCallId < right.toolCallId
+                ? -1
+                : left.toolCallId > right.toolCallId
+                  ? 1
+                  : 0,
+            );
     const userMessage =
       messageId === undefined ? finalUserMessage(messages) : undefined;
     const message: DeliveredMessage =
@@ -427,25 +508,7 @@ export const createFlueChatTransport = <
                 "The client-tool follow-up has no completed result.",
               );
             }
-            return {
-              kind: "signal",
-              type: CLIENT_TOOL_RESULT_SIGNAL,
-              tagName: CLIENT_TOOL_RESULT_SIGNAL,
-              body: JSON.stringify(toolResults),
-              attributes: {
-                toolCallIds: toolResults
-                  .map((result) => result.toolCallId)
-                  .join(","),
-                ...(toolResults.some(({ source }) => source === "voice")
-                  ? {
-                      voiceToolCallIds: toolResults
-                        .filter(({ source }) => source === "voice")
-                        .map(({ toolCallId }) => toolCallId)
-                        .join(","),
-                    }
-                  : {}),
-              },
-            };
+            return clientToolResultSignal(toolResults);
           })();
     const idempotencyKey =
       messageId === undefined
@@ -463,6 +526,9 @@ export const createFlueChatTransport = <
       admission = await options.client.send({
         idempotencyKey,
         message,
+        ...(messageId === undefined && options.initialData !== undefined
+          ? { initialData: options.initialData }
+          : {}),
         signal: abortSignal,
       });
     } catch (error) {

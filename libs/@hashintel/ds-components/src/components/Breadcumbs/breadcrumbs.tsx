@@ -27,7 +27,7 @@ import type { FormInputSize } from "../../util/form-shared";
 
 export type {
   BreadcrumbEntry,
-  BreadcrumbItemProps,
+  BreadcrumbItem,
   BreadcrumbSubItem,
 } from "./breadcrumbs-item";
 

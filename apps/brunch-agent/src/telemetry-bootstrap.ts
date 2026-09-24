@@ -6,7 +6,9 @@
 
 import { installBrunchTelemetry } from "./telemetry.ts";
 
-const disposeTelemetry = installBrunchTelemetry();
+// Awaited so an unreachable development collector is dropped before Flue
+// reads the OpenTelemetry globals; `db.ts` already awaits at module level.
+const disposeTelemetry = await installBrunchTelemetry();
 
 /**
  * Flushes and shuts the exporters down. The Postgres runner's close hook calls

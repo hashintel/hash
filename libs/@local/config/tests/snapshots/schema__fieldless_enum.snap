@@ -1,0 +1,30 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<Telemetry>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Telemetry",
+  "type": "object",
+  "properties": {
+    "log-format": {
+      "type": "string",
+      "enum": [
+        "full",
+        "json"
+      ]
+    },
+    "log-level": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "full",
+        "json",
+        null
+      ]
+    }
+  },
+  "unevaluatedProperties": false
+}

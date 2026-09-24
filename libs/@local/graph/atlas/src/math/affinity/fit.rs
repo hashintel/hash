@@ -1,38 +1,48 @@
 //! Least-squares fitting of the affinity curve to a membership falloff.
 //!
-//! The fit is a two-parameter Levenberg-Marquardt loop whose normal equations are a symmetric 2x2
-//! system solved in closed form. The loop needs no matrix library and allocates nothing on any
-//! path.
+//! For spread σ > 0 and minimum distance δ ∈ (0, σ], the target is h(d) = 1 for 0 ≤ d < δ and h(d)
+//! = exp(−(d − δ)/σ) otherwise. A grid of m ≥ 8 distances uses dᵢ = i · rσ/(m − 1) for i from 0
+//! through m − 1, where r > 0 is the range multiplier. The objective is Σᵢ(q(dᵢ) − h(dᵢ))², with
+//! q(d) = 1 / (1 + a · d^(2b)).
+//!
+//! A two-parameter Levenberg-Marquardt iteration solves a symmetric damped 2x2 system in closed
+//! form. It uses `f64` arithmetic and constant storage without a matrix library. Relative step and
+//! cost-improvement thresholds terminate the search heuristically. Neither threshold certifies a
+//! stationary point or a global minimum, and grid refinement can change the sampled optimum.
 
 use core::num::NonZero;
 
 use super::AffinityCurve;
-use crate::math::{DNonNegative, DPositive, Positive, positive, scalar::narrow_f32};
+use crate::math::{
+    DFinite, DNonNegative, DPositive, Derivation, Positive, d_finite, d_positive, positive,
+};
 
-/// The sample grid a fit runs over.
+/// Sample count and distance range for the least-squares target.
 ///
 /// [`AffinityCurve::fit`] uses the default grid. [`AffinityCurve::fit_with`] accepts a custom one.
-/// The grid determines which distances vote in the least-squares balance between the fitted curve
-/// and the target falloff: its resolution around the membership breakpoint and how far into the
-/// tail it reaches.
+/// Sample spacing determines resolution near the membership breakpoint, while the range determines
+/// how much of the tail contributes to the objective.
 ///
-/// # Examples
+/// # Example
+///
+/// This example is ignored because the fitting API and configuration are crate-private.
 ///
 /// ```ignore
+/// use crate::math::{AffinityCurve, affinity::fit::AffinityFitConfig, positive};
+///
 /// let default = AffinityCurve::fit(positive!(1.0), positive!(0.1))
 ///     .expect("reference inputs are well-conditioned");
 /// let fine = AffinityCurve::fit_with(
-///     1.0,
-///     0.1,
+///     positive!(1.0),
+///     positive!(0.1),
 ///     AffinityFitConfig {
 ///         samples: 600,
 ///         ..AffinityFitConfig::default()
 ///     },
 /// )
-/// .expect("a finer grid stays well-conditioned");
+/// .expect("the solver accepts this grid and target");
 ///
-/// // Refining the grid moves the fit only slightly: the parameters are
-/// // stable under discretization.
+/// // Compare the grid refinement on this particular target.
 /// assert!((default.a() - fine.a()).abs() < 0.01);
 /// ```
 #[derive(Debug, Copy, Clone, Default)]
@@ -40,42 +50,42 @@ pub(crate) struct AffinityFitConfig {
     /// Number of evenly spaced sample distances for the least-squares target.
     ///
     /// More samples resolve the target falloff more finely, in particular around the
-    /// `minimum_distance` breakpoint, at proportionally more work per solver pass. At least
-    /// [`MIN_SAMPLES`](Self::MIN_SAMPLES).
+    /// `minimum_distance` breakpoint, at proportionally more work per solver pass. The fit requires at least [`MIN_SAMPLES`](Self::MIN_SAMPLES). The grid has 300 samples by default.
     pub samples: u16 = 300,
     /// The sampled range extends this many spreads from zero.
     ///
-    /// A wider range weights the tail of the falloff more: far samples gain votes in the
-    /// least-squares balance, sharpening the fitted tail exponent `b` at the cost of fidelity near
-    /// the breakpoint. Finite and strictly positive.
+    /// Finite and strictly positive, with a value of 3 by default. Increasing the range at a fixed sample count coarsens the spacing and includes more of the tail. It can change the fit without any guaranteed direction of change in b. A range ending below the membership breakpoint samples only the flat plateau.
     pub range_in_spreads: Positive = positive!(3.0),
 }
 
 impl AffinityFitConfig {
     /// Fewest samples [`AffinityCurve::fit_with`] accepts.
     ///
-    /// The two-parameter fit needs the grid to populate both regimes of the piecewise target (the
-    /// flat membership plateau inside `minimum_distance` and the exponential tail beyond it) with a
-    /// handful of points each. Below eight samples the grid underdetermines the fit against the
-    /// target the curve traces.
+    /// The configured fitting entry point requires eight samples, a threshold that by itself
+    /// neither establishes a well-conditioned system nor ensures that both target regimes are
+    /// sampled.
     pub(crate) const MIN_SAMPLES: NonZero<u16> = NonZero::new(8).unwrap();
 }
 
 impl AffinityCurve {
     /// Fits a curve from the desired membership falloff.
     ///
-    /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
-    /// minimum_distance) / spread)` beyond it. This method samples the falloff on the crate's
-    /// default grid (300 evenly spaced distances over `[0, 3 · spread]`) and fits the curve to the
-    /// samples by Levenberg-Marquardt least squares. The fit runs once at initialization in double
-    /// precision and narrows the result to the working `f32` parameters.
+    /// This uses the [membership-falloff model](crate::math::affinity::fit) with 300 evenly spaced
+    /// distances over [0, 3σ], where σ is `spread`. Levenberg-Marquardt iteration estimates the
+    /// parameters in `f64` before narrowing to `f32`.
     ///
-    /// Returns [`None`] when `minimum_distance` exceeds `spread`, or when the least-squares fit
-    /// fails to converge to parameters that [`new`](Self::new) accepts.
+    /// Returns [`None`] when `minimum_distance` exceeds `spread`, when the solver rejects an
+    /// evaluation or exhausts its retry/iteration limits, or when the final parameters do not
+    /// narrow to finite positive `f32` values. Successful termination follows relative step or
+    /// cost-improvement thresholds, without certifying an optimum.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This example is ignored because [`AffinityCurve`] is crate-private.
     ///
     /// ```ignore
+    /// use crate::math::{AffinityCurve, positive};
+    ///
     /// // The reference inputs: spread 1.0, minimum distance 0.1.
     /// let curve = AffinityCurve::fit(positive!(1.0), positive!(0.1))
     ///     .expect("reference inputs are well-conditioned");
@@ -90,16 +100,14 @@ impl AffinityCurve {
 
     /// Fits a curve from the desired membership falloff over a configured sample grid.
     ///
-    /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
-    /// minimum_distance) / spread)` beyond it. This method samples it at
-    /// [`samples`](AffinityFitConfig::samples) evenly spaced distances over `[0, range_in_spreads *
-    /// spread]` and fits the curve to the samples by Levenberg-Marquardt least squares, in double
-    /// precision, narrowing the result to the working `f32` parameters. [`fit`](Self::fit)
-    /// delegates here with the default grid.
+    /// This uses [`fit`](Self::fit)'s target and stopping criteria with
+    /// [`config`](AffinityFitConfig)'s sample count and range. The grid covers [0, rσ], where r is
+    /// [`range_in_spreads`](AffinityFitConfig::range_in_spreads) and σ is `spread`. Each solver
+    /// evaluation takes O(m) time for m samples, with constant additional storage.
     ///
-    /// Returns [`None`] when `minimum_distance` exceeds `spread`, when `config` holds fewer than
-    /// [`MIN_SAMPLES`](AffinityFitConfig::MIN_SAMPLES) samples, or when the least-squares fit
-    /// fails to converge to parameters that [`new`](Self::new) accepts.
+    /// Returns [`None`] when `minimum_distance` exceeds `spread`, when `config` has fewer than
+    /// [`MIN_SAMPLES`](AffinityFitConfig::MIN_SAMPLES) samples, or when the solver or final
+    /// parameter narrowing fails as described by [`fit`](Self::fit).
     #[must_use]
     pub(crate) fn fit_with(
         spread: Positive,
@@ -117,9 +125,9 @@ impl AffinityCurve {
 
         let minimum_distance = minimum_distance.widen();
 
-        // Total: the two range factors are f32-born positives widened exactly, so their product
-        // lies far inside the f64 range in both directions. The divisor, an exact integer in [7,
-        // u16::MAX] by the `MIN_SAMPLES` guard above, keeps the quotient positive.
+        // Positive f32 factors lie in [2⁻¹⁴⁹, 2¹²⁸), and their exact product lies in [2⁻²⁹⁸, 2²⁵⁶).
+        // The guard puts the exact integer divisor in [7, 65534]. The quotient is therefore
+        // positive and finite in f64, well above underflow.
         let step = (config.range_in_spreads.mul_wide(spread)
             / DPositive::from_u16(samples_zero_based))
         .finish_unchecked();
@@ -134,19 +142,19 @@ impl AffinityCurve {
             }
         })?;
 
-        Self::new(narrow_f32(a.get())?, narrow_f32(b.get())?)
+        Some(Self::new(a.narrow()?, b.narrow()?))
     }
 }
 
 /// Initial Levenberg-Marquardt damping factor.
 const INITIAL_DAMPING: f64 = 1e-3;
-/// Multiplicative damping adjustment: accepted steps divide by it, rejected steps multiply.
+/// Multiplicative damping adjustment for accepted and rejected steps.
 const DAMPING_SCALE: f64 = 3.0;
-/// Upper bound on accepted Levenberg-Marquardt iterations.
+/// Upper bound on Levenberg-Marquardt outer iterations.
 const MAX_ITERATIONS: u32 = 100;
 /// Upper bound on consecutively rejected steps within one iteration.
 const MAX_REJECTIONS: u32 = 16;
-/// Relative tolerance below which a step or a cost improvement counts as converged.
+/// Relative step or cost-improvement threshold for successful termination.
 const CONVERGENCE_TOLERANCE: f64 = 1e-10;
 
 /// Evenly spaced sample distances of the fit target, starting at zero.
@@ -160,79 +168,104 @@ pub(super) struct SampleGrid {
 
 impl SampleGrid {
     /// Creates a grid of `samples` distances spaced `step` apart from zero.
+    ///
+    /// Every requested index-times-step product must remain finite. This requirement is numerical
+    /// and is not validated here.
     #[inline]
     #[must_use]
     pub(super) const fn new(samples: u16, step: DPositive) -> Self {
         Self { samples, step }
     }
 
-    /// Returns the sample distance at an index.
+    /// Returns the index-times-spacing product.
+    ///
+    /// The product must be finite, including when `index` lies outside the configured sample count.
     const fn distance(self, index: u16) -> DNonNegative {
-        // The factor is an exact integer below 2^16, so the product leaves the domain only for
-        // a step in the top sixteen exponent shells of `f64`, and every constructed step sits
-        // hundreds of shells below them: an f32-born product in `fit_with`, small literals in
-        // tests. Underflow rounds to zero, inside the domain.
+        // A nonnegative integer times a positive finite step is nonnegative. The grid's numerical
+        // contract supplies finiteness. Therefore the product, including underflow to zero, is in
+        // DNonNegative's domain.
         DNonNegative::new_unchecked(DNonNegative::from_u16(index).get() * self.step.get())
     }
 }
 
-/// Sums of one solver pass: the least-squares objective and the terms of the 2x2 normal equations.
+/// Objective, normal matrix and right-hand-side terms from one solver evaluation.
 ///
-/// With the residual vector `r` and its Jacobian `J` in `(a, b)`, the `j_*` fields are the entries
-/// of the normal matrix `J^T J` and the `g_*` fields the entries of the gradient `J^T r`.
+/// With residual vector r and Jacobian J in parameters (a, b), the `j_*` fields hold `JᵀJ` and the
+/// `g_*` fields hold Jᵀr. The latter is the gradient of half the residual sum of squares.
 #[derive(Debug, Copy, Clone)]
 struct NormalEquations {
     /// Sum of squared residuals, the objective the fit minimizes.
-    residual_sum_of_squares: f64,
+    residual_sum_of_squares: DFinite,
     /// The `a`-`a` entry of the normal matrix.
-    j_aa: f64,
+    j_aa: DFinite,
     /// The symmetric off-diagonal entry of the normal matrix.
-    j_ab: f64,
+    j_ab: DFinite,
     /// The `b`-`b` entry of the normal matrix.
-    j_bb: f64,
-    /// The `a` component of the gradient.
-    g_a: f64,
-    /// The `b` component of the gradient.
-    g_b: f64,
+    j_bb: DFinite,
+    /// The `a` component of Jᵀr.
+    g_a: DFinite,
+    /// The `b` component of Jᵀr.
+    g_b: DFinite,
 }
 
-impl NormalEquations {
-    /// The additive identity every accumulation pass starts from.
+/// Unvalidated sums for one objective and Jacobian evaluation.
+struct NormalEquationsDerivation {
+    residual_sum_of_squares: Derivation<DFinite>,
+    j_aa: Derivation<DFinite>,
+    j_ab: Derivation<DFinite>,
+    j_bb: Derivation<DFinite>,
+    g_a: Derivation<DFinite>,
+    g_b: Derivation<DFinite>,
+}
+
+impl NormalEquationsDerivation {
+    /// Empty sums before the first sample.
     const ZERO: Self = Self {
-        residual_sum_of_squares: 0.0,
-        j_aa: 0.0,
-        j_ab: 0.0,
-        j_bb: 0.0,
-        g_a: 0.0,
-        g_b: 0.0,
+        residual_sum_of_squares: Derivation::ZERO,
+        j_aa: Derivation::ZERO,
+        j_ab: Derivation::ZERO,
+        j_bb: Derivation::ZERO,
+        g_a: Derivation::ZERO,
+        g_b: Derivation::ZERO,
     };
 
-    /// Returns whether every accumulated sum is finite.
-    const fn is_finite(self) -> bool {
-        self.residual_sum_of_squares.is_finite()
-            && self.j_aa.is_finite()
-            && self.j_ab.is_finite()
-            && self.j_bb.is_finite()
-            && self.g_a.is_finite()
-            && self.g_b.is_finite()
+    /// Validates the accumulated sums, returning [`None`] if any is non-finite.
+    const fn finish(self) -> Option<NormalEquations> {
+        Some(NormalEquations {
+            residual_sum_of_squares: self.residual_sum_of_squares.finish().ok()?,
+            j_aa: self.j_aa.finish().ok()?,
+            j_ab: self.j_ab.finish().ok()?,
+            j_bb: self.j_bb.finish().ok()?,
+            g_a: self.g_a.finish().ok()?,
+            g_b: self.g_b.finish().ok()?,
+        })
     }
 }
 
-/// Fits the affinity curve `1 / (1 + a · d^(2b))` to a target sampled on a grid.
+/// Estimates positive affinity parameters for a sampled target.
 ///
-/// By Levenberg-Marquardt least squares.
+/// Both parameters start at one and remain finite and strictly positive. Each iteration solves the
+/// damped 2x2 normal equations of the analytic Jacobian, accepting a step only when it lowers the
+/// computed residual sum of squares. Rejections multiply damping by three, and acceptance divides
+/// it by three.
 ///
-/// Both parameters start at `1` and stay strictly positive throughout. Each iteration solves the
-/// damped 2x2 normal equations of the analytic Jacobian in closed form and accepts the step when it
-/// lowers the residual sum of squares. Rejected steps raise the damping and retry. Returns the
-/// fitted `(a, b)`, or [`None`] when the initial evaluation is non-finite, when every damping retry
-/// of an iteration fails, or when the iteration cap passes without convergence.
+/// Returns the current parameters when both relative damped steps are at most 10⁻¹⁰, or when an
+/// accepted relative cost improvement is at most 10⁻¹⁰. A small damped step can result from large
+/// damping rather than stationarity. Returns [`None`] when the initial evaluation fails its
+/// finiteness check, all 16 retries of an iteration fail, or 100 outer iterations finish without a
+/// stopping criterion.
+///
+/// `grid` must satisfy its finite-distance contract, and `target` must return the same value for a
+/// distance throughout the fit. It can be evaluated repeatedly at every grid point.
+///
+/// # Panics
+///
+/// Propagates a panic from `target`.
 pub(super) fn fit_curve(
     grid: SampleGrid,
     target: impl Fn(DNonNegative) -> f64,
 ) -> Option<(DPositive, DPositive)> {
-    // Both parameters start at 1, the neutral point of the curve's
-    // O(1) parametrization. The damping retries absorb a rough start.
+    // initialize at q(d) = 1 / (1 + d²)
     let (mut a, mut b) = (DPositive::ONE, DPositive::ONE);
 
     let mut equations = evaluate(grid, &target, a, b)?;
@@ -248,17 +281,14 @@ pub(super) fn fit_curve(
                 continue;
             };
 
-            // A negligible step means the damped gradient no longer
-            // moves either parameter: a stationary point.
+            // small damped steps terminate the search without a separate gradient-norm test
             if step_a.abs() <= CONVERGENCE_TOLERANCE * a
                 && step_b.abs() <= CONVERGENCE_TOLERANCE * b
             {
                 return Some((a, b));
             }
 
-            // `AffinityCurve::new` accepts strictly positive parameters
-            // only; a step that leaves the domain is a failed step, not
-            // an error.
+            // reject steps leaving the positive finite parameter domain
             let (Some(next_a), Some(next_b)) =
                 (DPositive::new(a + step_a), DPositive::new(b + step_b))
             else {
@@ -301,40 +331,44 @@ pub(super) fn fit_curve(
 
 /// Accumulates one pass of the fit objective at the given parameters.
 ///
-/// Computes the residual `1 / (1 + a · d^(2b)) - target(d)` and its analytic partial derivatives at
-/// every grid distance, folding the residual sum of squares and the normal-equation sums in a
-/// single pass, accumulated in double precision. `b` is strictly positive, so the zero-distance
-/// sample contributes `d^(2b) = 0` to its residual; its partials are zero in both parameters, and
-/// skipping them keeps `ln` off distance zero.
+/// For P = d^(2b) and Z = 1 + aP, the residual is r = 1/Z − target(d). At d > 0 the analytic
+/// partials are ∂r/∂a = −P/Z² and ∂r/∂b = −2aP ln(d)/Z². At d = 0, positive b gives P = 0 and both
+/// partials vanish. Skipping those partials avoids evaluating ln(0).
 ///
-/// Returns [`None`] when any accumulated sum turns non-finite.
+/// The pass accumulates Σr², `JᵀJ` and Jᵀr in `f64`. Every grid distance must satisfy
+/// [`DNonNegative`]'s finite-result contract. Returns [`None`] when 2b overflows or the final
+/// accumulated sums include a non-finite value.
+///
+/// # Panics
+///
+/// Propagates a panic from `target`.
 fn evaluate(
     grid: SampleGrid,
     target: &impl Fn(DNonNegative) -> f64,
     a: DPositive,
     b: DPositive,
 ) -> Option<NormalEquations> {
-    let mut sums = NormalEquations::ZERO;
+    let mut sums = NormalEquationsDerivation::ZERO;
+    let exponent = (d_positive!(2.0) * b).finish().ok()?;
 
     for index in 0..grid.samples {
-        // Solver interior: the parameters roam during exploration, and an overflow here is an
-        // expected rejection for the pass-end finiteness check rather than a defective input.
-        // The arithmetic is raw until that check.
         let distance = grid.distance(index);
-        let power = distance.powf(2.0 * b).get();
-        let denominator = a.get().mul_add(power, 1.0);
-        let residual = 1.0 / denominator - target(distance);
+        let power = distance.powf(exponent.into());
+
+        let denominator = Derivation::from(DNonNegative::from(a)).mul_add(power, DPositive::ONE);
+        let residual = Derivation::from(DFinite::ONE) / denominator - target(distance);
+
         sums.residual_sum_of_squares = residual.mul_add(residual, sums.residual_sum_of_squares);
 
-        // The zero-distance sample contributes value alone; its partials vanish, and the
-        // narrowing keeps `ln` off distance zero.
+        // the zero-distance sample contributes residual error with zero parameter partials
         let Some(distance) = distance.positive() else {
             continue;
         };
 
         let denominator_squared = denominator * denominator;
-        let partial_a = -power / denominator_squared;
-        let partial_b = -(2.0 * a * power * distance.ln()) / denominator_squared;
+        let partial_a = (Derivation::from(-DFinite::ONE) * power) / denominator_squared;
+        let partial_b = (d_finite!(-2.0) * a * power * distance.ln()) / denominator_squared;
+
         sums.j_aa = partial_a.mul_add(partial_a, sums.j_aa);
         sums.j_ab = partial_a.mul_add(partial_b, sums.j_ab);
         sums.j_bb = partial_b.mul_add(partial_b, sums.j_bb);
@@ -342,33 +376,70 @@ fn evaluate(
         sums.g_b = partial_b.mul_add(residual, sums.g_b);
     }
 
-    sums.is_finite().then_some(sums)
+    sums.finish()
 }
 
-/// Solves the damped normal equations for one Levenberg-Marquardt step in closed form.
+/// Solves the multiplicatively damped 2x2 normal system.
 ///
-/// Dampens each diagonal entry of `J^T J` by `1 + damping` and solves the symmetric 2x2 system `M *
-/// step = -g` by Cramer's rule. Returns [`None`] when the damped determinant falls to the
-/// cancellation floor (the system is numerically singular at this damping; a larger damping factor
-/// restores diagonal dominance) or when the step is non-finite.
+/// With H = `JᵀJ` and g = Jᵀr, the system is MΔ = −g, where M = H + λ diag(H) and λ is `damping`.
+/// Cramer's rule gives each step component from the determinant. For exact positive-semidefinite H
+/// with both diagonal entries positive, λ > 0 makes M positive definite. A zero diagonal remains
+/// zero under this damping.
+///
+/// Returns [`None`] when the computed determinant is non-finite or at most ε · M₀₀ · M₁₁, where ε
+/// is [`f64::EPSILON`], or when a computed step is non-finite. This numerical floor rejects
+/// near-cancellation, without certifying exact conditioning.
 fn solve_damped(equations: NormalEquations, damping: f64) -> Option<(f64, f64)> {
-    let damped_aa = equations.j_aa * (1.0 + damping);
-    let damped_bb = equations.j_bb * (1.0 + damping);
-    let determinant = damped_aa.mul_add(damped_bb, -(equations.j_ab * equations.j_ab));
+    let damped_aa = Derivation::from(equations.j_aa) * (1.0 + damping);
+    let damped_bb = Derivation::from(equations.j_bb) * (1.0 + damping);
+    let determinant = damped_aa
+        .mul_add(damped_bb, -(equations.j_ab * equations.j_ab))
+        .finish()
+        .ok()?
+        .positive()?;
 
-    // The damped matrix is positive definite in exact arithmetic; at or
-    // below the floor the closed form divides cancellation noise.
-    if !determinant.is_finite() || determinant <= f64::EPSILON * damped_aa * damped_bb {
+    // compare determinant cancellation against the product scale of both damped diagonals
+    let determinant_floor = (damped_aa * d_positive!(f64::EPSILON) * damped_bb)
+        .finish()
+        .ok()?;
+    if DFinite::from(determinant) <= determinant_floor {
         return None;
     }
 
-    let step_a = equations
-        .j_ab
+    let step_a = Derivation::from(equations.j_ab)
         .mul_add(equations.g_b, -(damped_bb * equations.g_a))
         / determinant;
-    let step_b = equations
-        .j_ab
+    let step_b = Derivation::from(equations.j_ab)
         .mul_add(equations.g_a, -(damped_aa * equations.g_b))
         / determinant;
-    (step_a.is_finite() && step_b.is_finite()).then_some((step_a, step_b))
+    Some((step_a.finish().ok()?.get(), step_b.finish().ok()?.get()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SampleGrid, evaluate};
+    use crate::math::{DPositive, d_positive};
+
+    #[test]
+    fn evaluation_power_overflow() {
+        // The affinity rounds to zero, but the parameter partials contain ∞/∞.
+        let equations = evaluate(
+            SampleGrid::new(2, d_positive!(1e200)),
+            &|_| 0.0,
+            DPositive::ONE,
+            DPositive::ONE,
+        );
+        assert!(equations.is_none());
+    }
+
+    #[test]
+    fn evaluation_exponent_overflow() {
+        let equations = evaluate(
+            SampleGrid::new(2, DPositive::ONE),
+            &|_| 0.0,
+            DPositive::ONE,
+            d_positive!(f64::MAX),
+        );
+        assert!(equations.is_none());
+    }
 }

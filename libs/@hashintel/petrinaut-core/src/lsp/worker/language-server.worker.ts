@@ -219,6 +219,24 @@ let netDiagnosticsCache: {
   params: readonly PublishDiagnosticsParams[];
 } | null = null;
 
+function checkAndSerializeNetDiagnostics(
+  sdcpn: SDCPN,
+  checkingServer: SDCPNLanguageServer,
+  extensions: PetrinautExtensionSettings,
+): PublishDiagnosticsParams[] {
+  const result = checkSDCPN(sdcpn, checkingServer, extensions);
+  return result.itemDiagnostics.map((item) => {
+    const uri = filePathToUri(item.filePath);
+    const userContent = checkingServer.getUserContent(item.filePath) ?? "";
+    return {
+      uri: uri ?? item.filePath,
+      diagnostics: item.diagnostics.map((diagnostic) =>
+        serializeDiagnostic(diagnostic, userContent),
+      ),
+    };
+  });
+}
+
 function netDiagnostics(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
@@ -229,23 +247,23 @@ function netDiagnostics(
   ) {
     return netDiagnosticsCache.params;
   }
-  const result = checkSDCPN(sdcpn, server!, extensions);
-  const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
-    (item) => {
-      const uri = filePathToUri(item.filePath);
-      // Use user content (without prefix) because diagnostic offsets have
-      // already been adjusted to be relative to user content by adjustDiagnostics.
-      const userContent = server!.getUserContent(item.filePath) ?? "";
-      return {
-        uri: uri ?? item.filePath,
-        diagnostics: item.diagnostics.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
-      };
-    },
-  );
+  const params = checkAndSerializeNetDiagnostics(sdcpn, server!, extensions);
   netDiagnosticsCache = { sdcpn, extensions, params };
   return params;
+}
+
+/** Check a captured definition in an isolated language service. */
+function requestedDiagnostics(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): PublishDiagnosticsParams[] {
+  const requestServer = new SDCPNLanguageServer();
+  try {
+    requestServer.syncFiles(sdcpn, extensions);
+    return checkAndSerializeNetDiagnostics(sdcpn, requestServer, extensions);
+  } finally {
+    requestServer.dispose();
+  }
 }
 
 /** Run diagnostics on all SDCPN code files and push results to the main thread. */
@@ -697,6 +715,18 @@ workerRuntime.onMessage((data) => {
       }
 
       // --- Requests (send response) ---
+
+      case "sdcpn/diagnostics": {
+        const { id } = data;
+        respond(
+          id,
+          requestedDiagnostics(
+            data.params.sdcpn,
+            data.params.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS,
+          ),
+        );
+        break;
+      }
 
       case "sdcpn/compileHirArtifacts": {
         const { id } = data;

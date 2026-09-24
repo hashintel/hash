@@ -1,4 +1,4 @@
-//! Affine transformations of 2D vectors and batches of them.
+//! General affine maps for composition, application and least-squares alignment.
 
 use core::simd::Simd;
 
@@ -13,24 +13,28 @@ mod fit;
 #[cfg(test)]
 mod tests;
 
-/// An affine transformation of 2D space: scale, rotation, and translation.
+/// An affine map of 2D space, including shear, reflection and axis collapse.
 ///
 /// A transform maps a vector `p` to `x_axis · p.x + y_axis · p.y + translation`, where `x_axis` and
-/// `y_axis` are the columns of a 2x2 linear part. This is the top of the usual 3x3 homogeneous
-/// matrix with its constant `[0 0 1]` bottom row omitted, so a transform stores six coefficients
-/// rather than nine. Perspective is intentionally out of scope; every representable transform keeps
-/// parallel lines parallel.
+/// `y_axis` are the columns of a 2x2 linear part. In the usual 3x3 homogeneous matrix, the six
+/// stored coefficients form the first two rows and the constant bottom row is `[0 0 1]`. This model
+/// includes anisotropic scale, shear and reflection. A singular linear part can collapse lines or
+/// the whole plane. Coefficients accept arbitrary `f32` values, and application rounds and can
+/// overflow.
 ///
 /// Build transforms from the constructors ([`from_scale`](Self::from_scale),
 /// [`from_rotation`](Self::from_rotation), [`from_translation`](Self::from_translation), or
 /// [`from_cols`](Self::from_cols) for the general case) and combine them with [`then`](Self::then),
 /// which reads in application order. Apply a transform to a single vector with
-/// [`apply`](Self::apply) or to a whole [`Vec2x4T`] batch with [`apply_x4`](Self::apply_x4), which
-/// stays entirely in SIMD registers.
+/// [`apply`](Self::apply) or to a whole [`Vec2x4T`] batch with [`apply_x4`](Self::apply_x4).
 ///
-/// # Examples
+/// # Example: scaling before translation
+///
+/// This example is ignored because [`Transform`] is crate-private.
 ///
 /// ```ignore
+/// use crate::math::{Transform, Vec2};
+///
 /// // Scale by 2 around the origin, then move 10 to the right.
 /// let transform = Transform::from_scale(Vec2::new(2.0, 2.0))
 ///     .then(Transform::from_translation(Vec2::new(10.0, 0.0)));
@@ -38,9 +42,14 @@ mod tests;
 /// assert_eq!(transform.apply(Vec2::new(3.0, 4.0)), Vec2::new(16.0, 8.0));
 /// ```
 ///
-/// Rotations are exact only where sine and cosine are, so compare with a tolerance:
+/// # Example: applying a rotation
+///
+/// Trigonometric coefficients and application can round. Compare the result with a tolerance. This
+/// example is ignored because [`Transform`] is crate-private.
 ///
 /// ```ignore
+/// use crate::math::{Rotation, Transform, Vec2};
+///
 /// let quarter_turn =
 ///     Transform::from_rotation(Rotation::from_radians(core::f32::consts::FRAC_PI_2));
 /// let rotated = quarter_turn.apply(Vec2::new(1.0, 0.0));
@@ -66,7 +75,7 @@ pub(crate) struct Transform {
 }
 
 impl Transform {
-    /// The transform that maps every vector to itself.
+    /// The identity linear map with zero translation.
     pub(crate) const IDENTITY: Self = Self::from_cols(
         Vec2::new(1.0, 0.0),
         Vec2::new(0.0, 1.0),
@@ -108,24 +117,28 @@ impl Transform {
         )
     }
 
-    /// Creates a transform that moves every vector by `translation`.
+    /// Creates an identity linear map with the given translation.
     #[inline]
     #[must_use]
     pub(crate) const fn from_translation(translation: Vec2) -> Self {
         Self::from_cols(Vec2::new(1.0, 0.0), Vec2::new(0.0, 1.0), translation)
     }
 
-    /// Returns the transform equivalent to applying `self` first, then `next`.
+    /// Composes `self` followed by `next`.
     ///
     /// This reads in application order: `scale.then(translate)` scales before it translates. In
-    /// matrix notation the result is `next · self`.
+    /// homogeneous matrix notation the model is next · self. Coefficient rounding can make the
+    /// result differ from sequential application.
     ///
-    /// `next` is anything convertible into a transform, so [`Rotation`] and [`Translation`] values
-    /// compose directly without widening at the call site.
+    /// You can pass [`Rotation`] and [`Translation`] values directly as `next`.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This example is ignored because [`Transform`] is crate-private.
     ///
     /// ```ignore
+    /// use crate::math::{Rotation, Transform, Vec2, translation::Translation};
+    ///
     /// let transform = Transform::from_scale(Vec2::new(2.0, 2.0))
     ///     .then(Translation::new(10.0, 0.0))
     ///     .then(Rotation::from_radians(core::f32::consts::PI));
@@ -146,7 +159,7 @@ impl Transform {
         )
     }
 
-    /// Transforms a single vector.
+    /// Applies the linear part and translation with separate `f32` products and sums.
     #[inline]
     #[must_use]
     pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
@@ -158,20 +171,20 @@ impl Transform {
         )
     }
 
-    /// Transforms four vectors at once, entirely in SIMD registers.
+    /// Applies the affine map to four vectors with SIMD arithmetic.
     ///
-    /// Each coefficient is splat across a [`Simd<f32, 4>`](Simd) lane group and combined with the
-    /// batch's axis groups, so the whole transformation is two fused multiply-adds per axis with no
-    /// shuffles. Transform batches in the [`Vec2x4T`] layout inside hot loops.
+    /// Each axis uses two fused multiply-adds. Each fused operation rounds its product and addition
+    /// once, independently of native FMA availability. Grouping and fusion differ from
+    /// [`apply`](Self::apply), with no uniform result-relative ULP bound between paths, especially
+    /// near cancellation or overflow.
     ///
-    /// On targets with native FMA each per-axis result takes a single rounding per multiply-add, so
-    /// it can differ from [`apply`](Self::apply) by a few units in the last place of the
-    /// intermediate terms, and by many units in the last place of the result itself where the terms
-    /// cancel.
+    /// # Example
     ///
-    /// # Examples
+    /// This example is ignored because [`Transform`] is crate-private.
     ///
     /// ```ignore
+    /// use crate::math::{Transform, Vec2, Vec2x4T};
+    ///
     /// let batch = Vec2x4T::from([
     ///     Vec2::new(1.0, 1.0),
     ///     Vec2::new(2.0, 1.0),
@@ -212,20 +225,25 @@ impl Transform {
         )
     }
 
-    /// Returns the transform that undoes `self`, when one exists.
+    /// Forms an approximate inverse using the computed determinant.
     ///
-    /// The result maps every output of [`apply`](Self::apply) back to its input, up to
-    /// floating-point rounding. The rounding grows with the condition of the linear part: a
-    /// transform close to collapsing an axis inverts with proportionally amplified error.
+    /// For a nonsingular linear part A and translation t, the inverse model is A⁻¹p − A⁻¹t. This
+    /// computes A⁻¹ from its adjugate and a reciprocal determinant. Near-singular A amplifies
+    /// errors, and application can already have lost information that inversion cannot recover.
     ///
-    /// Returns [`None`] when the determinant of the linear part is zero, subnormal, or not finite,
-    /// in which case no usable inverse exists. Note that [`Rotation::inverse`] and
-    /// [`Translation::inverse`] are infallible and exact; prefer them when you know the transform
-    /// kind.
+    /// Returns [`None`] when the computed `f32` determinant is zero, subnormal or non-finite. This
+    /// check does not establish exact invertibility: product rounding can leave a normal
+    /// determinant for a singular matrix or reject an invertible matrix. Even [`Some`] can contain
+    /// non-finite coefficients or translation after overflow. Use [`Rotation::inverse`] or
+    /// [`Translation::inverse`] when the narrower model applies.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This example is ignored because [`Transform`] is crate-private.
     ///
     /// ```ignore
+    /// use crate::math::{Transform, Vec2};
+    ///
     /// let transform = Transform::from_scale(Vec2::new(2.0, 4.0))
     ///     .then(Transform::from_translation(Vec2::new(10.0, -2.0)));
     /// let inverse = transform.inverse().expect("scale is non-zero");
@@ -276,8 +294,8 @@ impl Transform {
     #[inline]
     const fn apply_linear(self, vec: Vec2) -> Vec2 {
         Vec2::new(
-            self.x_axis.x() * vec.x() + self.y_axis.x() * vec.y(),
-            self.x_axis.y() * vec.x() + self.y_axis.y() * vec.y(),
+            self.y_axis.x().mul_add(vec.y(), self.x_axis.x() * vec.x()),
+            self.y_axis.y().mul_add(vec.y(), self.x_axis.y() * vec.x()),
         )
     }
 }

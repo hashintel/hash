@@ -1,8 +1,7 @@
-//! Production-writer expectations, salt to serialized evidence body.
+//! Complete paired-evidence values from constructed index regions and aligned frames.
 //!
-//! Each pin runs [`measure`] over constructed index regions and frames and asserts the whole
-//! serialized body at once, so the writer's counts, outcome dispatch, and aggregate wiring are
-//! checked on the exact path the fit's writer drives.
+//! Each case checks [`measure`]'s serialized result, including draw counts, outcome dispatch and
+//! aggregate fields.
 
 use serde_json::json;
 
@@ -17,12 +16,12 @@ use crate::{
     },
 };
 
-/// Builds the writer fixture's attraction regions, four Proximal pairs over ten corpus rows.
+/// Builds attraction regions with four Proximal pairs over ten rows.
 ///
-/// Edges `(0,1)`, `(2,3)`, `(4,5)`, and `(6,7)` sit in one force-bearing group, so the pair
-/// domain is the four oriented pairs, the participant set is rows `0..=7`, and rows 8 and 9
-/// are the control candidates. The whole domain sits far under both draw bounds, so every
-/// candidate is drawn and no pinned aggregate depends on the salt-keyed order.
+/// Edges `(0,1)`, `(2,3)`, `(4,5)` and `(6,7)` form the pair domain in one force-bearing group. The
+/// participant set is rows `0..=7`, leaving rows 8 and 9 as the control candidates. Both domains
+/// fit within their quotas and every candidate is drawn. The fixture's bounded integer readings sum
+/// exactly in any draw order.
 fn readout_index() -> (Vec<GroupRecord>, Vec<EdgeRecord<NodeRowId, EdgeRowId>>) {
     (
         vec![group(3, 0, 1.0)],
@@ -30,7 +29,7 @@ fn readout_index() -> (Vec<GroupRecord>, Vec<EdgeRecord<NodeRowId, EdgeRowId>>) 
     )
 }
 
-/// The writer fixture's aligned frames, exact in every drawn reading.
+/// Builds aligned frames with integer pair distances and control displacements.
 ///
 /// The pair clusters sit far apart, and each partner is its source's nearest row at both steps
 /// except one designed movement: row 4 moves ahead of partner 3 at the canonical step, where
@@ -74,12 +73,10 @@ fn readout_frames() -> (Vec<Vec2>, Vec<Vec2>) {
     (zero, canonical)
 }
 
-/// The `P = 0` reading through the production writer: a present vacuous body.
+/// Records an empty pair population as a present vacuous outcome.
 ///
-/// The C1 `--vacuous-placement` fixture cannot stand in for this one. A vacuous placement
-/// publishes no ladder record at all, while this generation measures its ladder and records a
-/// present body whose outcome is vacuous, with the recognized rule and derived salt beside
-/// zero counts on both domains.
+/// This measures a ladder with no Proximal pairs. The outcome keeps the recognized rule and derived
+/// salt beside zero counts, distinguishing it from absent paired evidence.
 #[test]
 fn the_writer_reads_an_empty_pair_domain_as_a_present_vacuous_body() {
     let (_, edges) = readout_index();
@@ -111,13 +108,10 @@ fn the_writer_reads_an_empty_pair_domain_as_a_present_vacuous_body() {
     );
 }
 
-/// An injected typed post-census movement refusal through the production writer.
+/// Retains completed draw counts when the canonical frame is one row short.
 ///
-/// The canonical frame arrives one row short, so the census completes both domains and the
-/// movement readout refuses the frame pair. A non-finite frame cannot enter here at all: the
-/// frames arrive as proven-finite fields. The serialized equality pins the whole body: the
-/// completed draw counts persist, the reason names both row counts, and no partial aggregate
-/// key exists beside them.
+/// The census completes before the frame-length check. The failed outcome names both row counts and
+/// carries no partial aggregates.
 #[test]
 fn an_injected_movement_refusal_keeps_its_counts_and_no_partial_aggregates() {
     let (groups, edges) = readout_index();
@@ -154,7 +148,7 @@ fn an_injected_movement_refusal_keeps_its_counts_and_no_partial_aggregates() {
     );
 }
 
-/// The aggregation fixture on the production path: exact decimal literals, pinned bytes.
+/// Repeats the complete readout over binary-representable fixture values.
 ///
 /// The readout computes twice with byte-identical serialized output. The pinned aggregate
 /// derives by hand from [`readout_frames`]'s table: distance differences `{-6, +4, -1, 0}`
@@ -164,10 +158,6 @@ fn an_injected_movement_refusal_keeps_its_counts_and_no_partial_aggregates() {
 /// Each boundary stratum holds one candidate and one drawn control, and every other stratum
 /// sits individually empty with an absent displacement family.
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the forbidden-shortcut restatement compares exact decimal literals"
-)]
 fn the_readout_reproduces_its_bytes_and_pins_exact_decimal_aggregates() {
     let (groups, edges) = readout_index();
     let (zero, canonical) = readout_frames();
@@ -248,9 +238,8 @@ fn the_readout_reproduces_its_bytes_and_pins_exact_decimal_aggregates() {
         }),
     );
 
-    // The forbidden shortcut over the same readings: subtracting the step medians reads
-    // 2 - 4 = -2 where the pair-first median reads -1, so the pinned aggregate cannot have
-    // come from step-aggregate subtraction.
+    // The step medians are 2 and 4, giving difference −2. The pair-difference median is −1.
+    // Therefore the pair-first aggregate distinguishes these two calculations.
     let typed = |readings: [f64; 4]| {
         readings.map(|reading| DFinite::new(reading).expect("the fixture readings are finite"))
     };

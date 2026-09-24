@@ -1,0 +1,10 @@
+direction: down
+vars: {d2-config: {theme-id: 0}}
+client: "Language client"
+worker: "Language worker"
+snapshot: "Check supplied snapshot"
+reply: "Resolve matching request"
+client -> worker: "snapshot + ID"
+worker -> snapshot
+snapshot -> reply: "diagnostics + ID"
+reply -> client: "result / error"

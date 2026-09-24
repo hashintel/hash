@@ -40,24 +40,93 @@ import type {
   PetrinautAiComposerControl,
   PetrinautAiVoiceMode,
 } from "./types/ai-assistant-composer-control";
+import type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
 import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./views/Editor/panels/ai-assistant-panel";
+import type { PetrinautAiMutationExecutor } from "./views/Editor/panels/ai-assistant-panel/types";
 
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
+
+export type PetrinautAiToolPresentationTone =
+  | "danger"
+  | "info"
+  | "neutral"
+  | "pending"
+  | "success";
+
+export type PetrinautAiToolPresentationContext = {
+  toolName: string;
+  state: PetrinautAiToolPresentationState;
+  input: unknown;
+  output: unknown;
+  error: string | undefined;
+};
+
+export type PetrinautAiToolPresentation = {
+  title: string;
+  detail?: string;
+  tone?: PetrinautAiToolPresentationTone;
+  items?: readonly string[];
+};
+
+export type PetrinautAiToolPresentationResolver = (
+  context: PetrinautAiToolPresentationContext,
+) => PetrinautAiToolPresentation | undefined;
+
 export type PetrinautAiAssistant = {
+  /**
+   * Host-owned content beside the AI transcript in the panel's tab bar.
+   * Switching tabs keeps both bodies mounted and the composer/Voice controls
+   * available. Omitted: the stock assistant has its unchanged single view.
+   */
+  additionalTab?: {
+    label: string;
+    content: React.ReactNode;
+    /**
+     * Opaque, stable identities for host activity represented by this tab.
+     * `undefined` means history is not ready; the first defined collection is
+     * baseline hydration and does not attract attention.
+     */
+    activityIdentities?: readonly (number | string)[];
+  };
+  /** Label for the transcript tab/header. Defaults to "AI". */
+  primaryLabel?: string;
+  /** Status shown while a turn is submitted or streaming. */
+  workingLabel?: string;
+  /** Resolve host tool cards from their identity, lifecycle and payload. */
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   /** Whether the panel may clear this conversation. Defaults to true. */
   canClearMessages?: boolean;
   /** Optional host-owned identity; `useChat` generates one when omitted. */
   conversationId?: string;
+  /**
+   * Optional synchronous boundary around canonical mutations. Hosts can inspect
+   * their bound document before/after `execute()` or refuse without executing.
+   * The panel still owns output insertion, continuation, and cancellation.
+   * Not called for read-only refusals, schema failures, title changes or commands.
+   */
+  executeMutation?: PetrinautAiMutationExecutor;
+  /** Host-owned dynamic tools executed automatically against the mounted editor. */
+  automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
+  /**
+   * Opt into following host history while locally idle. The predicate must
+   * describe the exact snapshot supplied in `messages`, including settlement
+   * of every local admission; message IDs alone cannot prove catch-up.
+   * Observed tools are display-only, including after reload. Only tools from
+   * this panel's own response stream may execute in this mode.
+   * Omitted: messages retain their initial-hydration/recovery behavior.
+   */
+  followMessages?: { canReplace: () => boolean };
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
   /**
@@ -146,7 +215,7 @@ const noop = () => {};
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
   title = "Untitled",
-  setTitle = noop,
+  setTitle,
   readonly = false,
   hideNetManagementControls,
   existingNets = [],
@@ -161,6 +230,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
+  const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
     () => createPetrinaut({ document: handle, readonly }),
@@ -197,6 +267,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 aiAssistant={aiAssistant}
                 hideNetManagementControls={hideNetManagementControls}
                 slots={slots}
+                titleEditable={titleEditable}
                 viewportActions={viewportActions}
               />
             </Stack>

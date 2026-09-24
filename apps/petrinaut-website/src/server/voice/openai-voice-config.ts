@@ -1,10 +1,28 @@
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 
+import type { VoiceProvider } from "../../shared/voice-settings.js";
+
 interface VoiceEnvironment {
   readonly OPENAI_VOICE_API_KEY?: string;
   readonly PETRINAUT_OPENAI_VOICE_ENABLED?: string;
+  readonly PETRINAUT_VOICE_PROVIDER?: string;
   readonly VERCEL_ENV?: string;
 }
+
+/**
+ * An explicit `PETRINAUT_VOICE_PROVIDER` is authoritative. Without one,
+ * Vercel previews default to the Brunch-backed Live experiment and everything
+ * else to Realtime. The enablement flag and API key still decide whether Voice
+ * is offered at all.
+ */
+export const getVoiceProvider = (
+  environment: VoiceEnvironment,
+): VoiceProvider | null => {
+  const provider =
+    environment.PETRINAUT_VOICE_PROVIDER ??
+    (environment.VERCEL_ENV === "preview" ? "live" : "realtime");
+  return provider === "realtime" || provider === "live" ? provider : null;
+};
 
 export const createOpenAIVoiceConfigHandler =
   (environment: VoiceEnvironment) =>
@@ -16,7 +34,16 @@ export const createOpenAIVoiceConfigHandler =
       });
     }
 
-    return Response.json(getOpenAIVoiceAvailability(environment), {
-      headers: { "cache-control": "no-store" },
-    });
+    const availability = getOpenAIVoiceAvailability(environment);
+    const provider = getVoiceProvider(environment);
+    return Response.json(
+      {
+        ...availability,
+        provider,
+        available: availability.available && provider !== null,
+      },
+      {
+        headers: { "cache-control": "no-store" },
+      },
+    );
   };

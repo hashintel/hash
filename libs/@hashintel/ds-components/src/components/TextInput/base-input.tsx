@@ -47,16 +47,21 @@ export type BaseInputProps = {
   connectToRightInput?: boolean;
   /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
   styledValue?: React.ReactNode;
-  /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
-  clearable?: {
-    clearable: boolean;
-    onClear: () => void;
-  };
+  /** Set to allow the input to be cleared. `true` empties the input through the normal change pipeline (`onChange` fires with `""`); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  clearable?: boolean | { onClear: () => void };
   showEditIcon?: boolean;
   /** Defaults to false, set to true to allow browsers to autocomplete an input */
   autocomplete?: boolean;
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
+  /**
+   * Extra props merged onto the inner `<input>` element — the hook for wiring
+   * the input up as a part of a composite ark-ui widget (see Combobox).
+   * Defined entries override the input's own attributes (undefined entries
+   * are dropped), event handlers run before the input's own, and
+   * `value`/`defaultValue` are ignored (the input stays controlled).
+   */
+  inputElementProps?: React.ComponentPropsWithoutRef<"input">;
   min?: number;
   max?: number;
   step?: number | "any";
@@ -171,6 +176,7 @@ export const BaseInput = ({
   showEditIcon,
   onClick,
   onKeyDown,
+  inputElementProps,
   min,
   max,
   step,
@@ -208,7 +214,40 @@ export const BaseInput = ({
 
   const hasBrowserControls = type === "number";
   const noAutocomplete = !!clearable || !autocomplete;
-  const showClear = !!(clearable && !disabled);
+  const showClear = clearable !== undefined && !disabled;
+
+  const {
+    value: _extraValue,
+    defaultValue: _extraDefaultValue,
+    onChange: extraOnChange,
+    onFocus: extraOnFocus,
+    onBlur: extraOnBlur,
+    onKeyDown: extraOnKeyDown,
+    ...extraInputAttrs
+  } = inputElementProps ?? {};
+  // Undefined entries must not override the input's own attributes when spread
+  const definedExtraInputAttrs = Object.fromEntries(
+    Object.entries(extraInputAttrs).filter(([, attr]) => attr !== undefined),
+  ) as typeof extraInputAttrs;
+
+  // Default clear: empties the input through its own change pipeline (native
+  // setter + input event), so `onChange` receives a real ChangeEvent exactly
+  // as if the user had emptied the field.
+  const clearValue = () => {
+    if (typeof clearable === "object") {
+      clearable.onClear();
+      return;
+    }
+    const input = internalRef.current;
+    if (!input) {
+      return;
+    }
+    Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )?.set?.call(input, "");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
   const hasIcons = !!loading || showClear;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
@@ -229,9 +268,7 @@ export const BaseInput = ({
     connectsRight,
     subtlePrefix,
     willClear:
-      showClear &&
-      clearable.clearable &&
-      (value === null || value === undefined),
+      showClear && !!clearable && (value === null || value === undefined),
   });
 
   if (readonly) {
@@ -260,17 +297,27 @@ export const BaseInput = ({
       required={required}
       aria-invalid={invalid ?? undefined}
       onChange={(event) => {
+        extraOnChange?.(event);
         onChange(event.target.value, event);
       }}
       onFocus={(event) => {
+        extraOnFocus?.(event);
         setFocused(true);
         onFocus?.(event);
       }}
       onBlur={(event) => {
+        extraOnBlur?.(event);
         setFocused(false);
         onBlur?.(event);
       }}
-      onKeyDown={onKeyDown}
+      onKeyDown={
+        extraOnKeyDown
+          ? (event) => {
+              extraOnKeyDown(event);
+              onKeyDown?.(event);
+            }
+          : onKeyDown
+      }
       min={min}
       max={max}
       step={step}
@@ -286,6 +333,7 @@ export const BaseInput = ({
       )}
       {...resolveAutoFocusProps(autoFocus)}
       {...ariaProps}
+      {...definedExtraInputAttrs}
     />
   );
 
@@ -335,12 +383,12 @@ export const BaseInput = ({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                clearable.onClear();
+                clearValue();
                 internalRef.current?.focus();
               }}
               className={cx(
                 classes.clear,
-                (!clearable.clearable || !value) && classes.hideClear,
+                (!clearable || !value) && classes.hideClear,
               )}
               aria-label="Clear input"
             >

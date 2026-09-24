@@ -104,7 +104,7 @@ async fn create_person(api: &mut DatabaseApi<'_>) -> EntityId {
 /// Builds a full-width stored embedding pointing along `axis` within the first
 /// [`CLUSTER_DIM`] components, with a small per-entity `jitter` so vectors in
 /// the same group are distinct but remain tightly clustered.
-#[expect(clippy::indexing_slicing, clippy::float_arithmetic)]
+#[expect(clippy::float_arithmetic)]
 fn embedding_along_axis(axis: usize, jitter_axis: usize, jitter: f32) -> Embedding<'static> {
     assert!(axis < usize::from(CLUSTER_DIM));
     assert!(jitter_axis < usize::from(CLUSTER_DIM));

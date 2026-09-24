@@ -17,8 +17,8 @@
 //!
 //! Every fit starts at physical `T₀ = 0`. At zero the normalized initial Hessian diagonal for
 //! coefficient coordinate `j` is `h_jj = (1/(3S))·Σ_i w_i x̄_ij² + λ/S`, identical for both contrast
-//! rows. The intercept moment is `S` itself, so the intercept curvature is exactly `⅓`, and
-//! preparation reads it from [`INTERCEPT_CURVATURE`].
+//! rows. The intercept moment is `S` itself, and the intercept curvature is exactly `⅓`.
+//! Preparation reads it from [`INTERCEPT_CURVATURE`].
 //!
 //! Each coordinate then takes the scale `D_j = √(max(h_jj, floor))` with `floor =
 //! curvature_relative_floor · max_k h_kk`. The floor follows the corpus's measured curvature scale
@@ -36,7 +36,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DPositive},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DPositive, d_positive, nz},
     salt::policy::GeometryClass,
 };
 
@@ -66,29 +66,23 @@ pub(crate) enum PreparationError {
     InvalidTotalWeight { value: f64 },
     /// A class carries no positive aggregate mass.
     MissingClassMass { class: GeometryClass },
-    /// An initial-scaling curvature is not finite, or a constructed scale is not finite and
-    /// positive.
+    /// An initial-scaling curvature or a constructed scale left its domain.
+    ///
+    /// The curvature is not finite, or the scale is not finite and positive.
     InvalidScaling { coordinate: usize, value: f64 },
 }
 
 /// Solver-relevant knobs consumed by preparation.
-///
-/// Every field carries a default, so `PreparationSettings { .. }` is the deployment configuration.
-/// The tolerance default admits targets whose sums carry division rounding only.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparationSettings {
     /// L2 penalty `λ` on contrast coefficients.
     ///
     /// The penalty never reaches the intercepts.
     pub regularization: DPositive = DPositive::ONE,
     /// Unit-sum tolerance for raw targets, in ulps of one.
-    pub target_sum_tolerance_ulps: NonZero<u32> = const {
-        NonZero::new(16).expect("sixteen is nonzero")
-    },
+    pub target_sum_tolerance_ulps: NonZero<u32> = nz!(16),
     /// Floor on the initial Hessian diagonal, as a fraction of the largest curvature.
-    pub curvature_relative_floor: DPositive = const {
-        DPositive::new(1.0e-12).expect("the floor is positive")
-    },
+    pub curvature_relative_floor: DPositive = d_positive!(1.0e-12),
 }
 
 /// Canonicalization and scaling evidence of one successful preparation.
@@ -281,7 +275,7 @@ fn validate_row(
 
 /// The intercept coordinate's normalized initial curvature.
 ///
-/// The intercept moment is the total weight itself, so its normalized curvature is `S/(3S) = ⅓`
+/// The intercept moment is the total weight itself, and its normalized curvature is `S/(3S) = ⅓`
 /// for every corpus. Written as the constant, it survives a `3·S` overflow that would flush the
 /// computed quotient to zero, and it anchors the curvature maximum - and with it the derived
 /// floor - strictly above zero.
@@ -301,7 +295,7 @@ struct InitialScaling {
 ///
 /// Only the coefficient coordinates carry the `λ/S` regularization term. The intercept curvature
 /// is [`INTERCEPT_CURVATURE`]. The floor is the largest curvature scaled by the configured
-/// relative floor, so it follows the corpus's curvature scale.
+/// relative floor, and it follows the corpus's curvature scale.
 fn initial_scaling(
     moments: &AlignedDVecN<CANONICAL_DIMENSIONS>,
     total_weight: DPositive,

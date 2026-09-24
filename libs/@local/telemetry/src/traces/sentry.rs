@@ -128,10 +128,6 @@ pub struct SentryConfig {
     pub event_filter: tracing::Level,
 }
 
-#[expect(
-    clippy::min_ident_chars,
-    reason = "False positive lint on generic bounds"
-)]
 pub fn init<R>(config: &SentryConfig, release: R) -> impl Drop + use<R>
 where
     R: Into<Option<Cow<'static, str>>>,
@@ -162,10 +158,6 @@ where
 // Avoids capturing lifetimes
 // pub type SentryLayer<S: Subscriber + for<'a> LookupSpan<'a>> = impl Layer<S>;
 
-#[expect(
-    clippy::min_ident_chars,
-    reason = "False positive lint on generic bounds"
-)]
 #[must_use]
 pub fn layer<'c, S>(config: &'c SentryConfig) -> impl Layer<S> + use<S>
 where

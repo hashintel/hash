@@ -24,11 +24,13 @@
     "dev": {
       "cache": false,
       "dependsOn": ["codegen", "^build"],
+      "passThroughEnv": ["PORT"],
       "persistent": true
     },
     "dev:ladle": {
       "cache": false,
       "dependsOn": ["codegen", "^build"],
+      "passThroughEnv": ["PORT"],
       "persistent": true
     },
     "fix": {

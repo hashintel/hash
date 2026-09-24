@@ -2,8 +2,8 @@
 //!
 //! [`corpus_facts`] gathers everything the card builder consumes for every type in the dataset's
 //! type table, inside the frozen transaction and at its temporal axes. One query per fact kind
-//! (prose, ancestors, associations, examples) covers the whole table at once, so the expensive
-//! scans over the entity tables amortize across all cards instead of repeating per type:
+//! (prose, ancestors, associations, examples) covers the whole table at once. The expensive scans
+//! over the entity tables amortize across all cards instead of repeating per type:
 //!
 //! - each type's prose and its (depth, id)-ordered ancestor chain, which omits the type itself and
 //!   the link root;
@@ -52,25 +52,32 @@ use crate::dataset::{
 
 /// Content-affecting controls for card extraction.
 ///
-/// A card is deterministic in the dataset's temporal axes and these parameters, so a generation
+/// A card is deterministic in the dataset's temporal axes and these parameters. The generation
 /// records both. The dataset starts from the defaults.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) struct CardParameters {
     /// The most examples one finished card presents.
+    ///
+    /// Defaults to 8.
     pub example_count: usize = 8,
     /// Example candidates fetched per source-type subgroup.
     ///
     /// A multiple of [`example_count`](Self::example_count).
     ///
-    /// The pool bounds what the query transfers, and the diverse selector consumes candidates
-    /// from each subgroup in a deterministic order, so the pool is the slack it has for
-    /// rejecting duplicates and conflicts. The selector never reaches rows beyond the pool.
+    /// The pool bounds what the query transfers, and the diverse selector consumes candidates from each subgroup in a deterministic order. The pool is the slack it has for rejecting duplicates and conflicts. The selector never reaches rows beyond the pool.
+    ///
+    /// Defaults to 8. A default card then draws from eight candidates per subgroup for each
+    /// example it presents.
     pub subgroup_pool_factor: usize = 8,
     /// Example candidates fetched per relation across all subgroups.
     ///
     /// A multiple of [`example_count`](Self::example_count).
+    ///
+    /// Defaults to 32.
     pub pool_factor: usize = 32,
     /// Token budgets for structural truncation.
+    ///
+    /// Defaults to [`CardsConfig`]'s own budgets.
     pub budgets: CardsConfig = CardsConfig { .. },
 }
 
@@ -191,7 +198,7 @@ impl RelationFacts {
 
 /// Gathers card facts for every type in `types` inside `transaction`.
 ///
-/// The `n`-th returned facts belong to `types[n]`, so the result aligns with ontology row order.
+/// The `n`-th returned facts belong to `types[n]`. The result aligns with ontology row order.
 ///
 /// # Errors
 ///
@@ -222,6 +229,12 @@ pub(crate) async fn corpus_facts(
 }
 
 /// Resolves the 1-based `ordinality` column into an index over `facts`.
+///
+/// # Panics
+///
+/// This panics when `ordinality` is below one or past the end of `facts`. Every caller reads it
+/// from a `WITH ORDINALITY` position over the unnested type table that sized `facts`. Either
+/// value means the statement stopped agreeing with that table.
 fn fact_at(facts: &mut [RelationFacts], ordinality: i64) -> &mut RelationFacts {
     let index =
         usize::try_from(ordinality - 1).expect("WITH ORDINALITY yields positions starting at one");

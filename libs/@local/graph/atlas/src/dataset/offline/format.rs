@@ -1,23 +1,22 @@
 //! The dump directory's manifest and stream naming.
 //!
-//! A dump directory holds one `manifest.json` and one stream file per [`StreamKind`]. Each
-//! stream file is one rkyv archive: the stream's records behind a root value at the file's
-//! tail, so a mapped file serves reads in place with no decode pass ahead of use. The archived
-//! record types live in [`record`](super::record), and which root each stream file carries is
-//! that module's contract.
+//! A dump directory holds one `manifest.json` and one stream file per [`StreamKind`]. Each stream
+//! file is one rkyv archive: the stream's records behind a root value at the file's tail. A mapped
+//! file serves reads in place with no decode pass ahead of use. The archived record types live in
+//! [`record`](super::record), and which root each stream file carries is that module's contract.
 //!
-//! The manifest is the acceptance boundary of a dump. The reader admits a directory only when
-//! the manifest parses at the version this module implements, every stream file's whole bytes
-//! hash to the digest recorded here, and the writer's byte order matches the host's. The writer
-//! seals the manifest last, so an abandoned dump never leaves a directory a reader accepts.
+//! The manifest is the acceptance boundary of a dump. The reader admits a directory only when the
+//! manifest parses at the version this module implements, every stream file's whole bytes hash to
+//! the digest recorded here, and the writer's byte order matches the host's. The writer seals the
+//! manifest last. An abandoned dump never leaves a directory a reader accepts.
 //!
 //! # Byte order
 //!
-//! The archives' structural fields - lengths, offsets, counts, row ids - are little-endian on
-//! every host, by rkyv's format and by the id types' own construction. Embedding components and
-//! confidence values stay in the writer's native byte order under the manifest's
-//! [`Architecture`] stamp, so a reader on the other byte order refuses the directory at open
-//! instead of serving reinterpreted floats.
+//! The archives' structural fields - lengths, offsets, counts, row ids - are little-endian on every
+//! host, by rkyv's format and by the id types' own construction. Embedding components and
+//! confidence values stay in the writer's native byte order under the manifest's [`Architecture`]
+//! stamp. A reader on the other byte order refuses the directory at open instead of serving
+//! reinterpreted floats.
 
 use core::{error::Error, fmt};
 
@@ -29,8 +28,8 @@ use crate::{
 
 /// The stream a dump file carries.
 ///
-/// Each kind names one file inside the dump directory, and the kind displays as that file's
-/// name, so an error naming a kind points at one path.
+/// Each kind names one file inside the dump directory, and the kind displays as that file's name.
+/// An error naming a kind points at one path.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum StreamKind {
     /// The node stream, one record per node row.
@@ -91,9 +90,9 @@ impl fmt::Display for StreamKind {
 
 /// A manifest names a layout this module does not implement.
 ///
-/// [`TryFrom`] returns this error for every integer other than the one [`Version`] implements,
-/// so a dump written by a different layout refuses at the manifest parse, before any stream
-/// file is read.
+/// [`TryFrom`] returns this error for every integer other than the one [`Version`] implements. A
+/// dump written by a different layout refuses at the manifest parse, before the reader opens any
+/// stream file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct UnknownVersion(pub u32);
 
@@ -143,9 +142,9 @@ impl TryFrom<u32> for Version {
 ///
 /// The admission probe's canonical fetch is the only corpus-scale consumer of full canonical
 /// embeddings, and its sample is a pure function of the seed, the anchor count, the comparison
-/// count, and the row count. A dump therefore covers either exactly that sample or every node,
-/// and the manifest records which, so an offline fit whose probe parameters differ from the
-/// dump's fails with the mismatch named instead of a bare missing-row count.
+/// count, and the row count. A dump therefore covers either exactly that sample or every node, and
+/// the manifest records which. An offline fit whose probe parameters differ from the dump's fails
+/// with the mismatch named instead of a bare missing-row count.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(crate) enum CanonicalCoverage {
@@ -207,9 +206,11 @@ impl StreamManifests {
 /// The dump directory's manifest, sealed last.
 ///
 /// The manifest binds the directory whole: the layout version, the writer's byte order, and
-/// every stream file's length and content digest. A reader that accepts the manifest and its
-/// digests holds files whose archived roots were written by this module's writer, so a torn or
-/// tampered file refuses at open. A directory without a manifest is an abandoned write.
+/// every stream file's length and content digest. A reader that accepts it holds bytes
+/// consistent with the digests recorded here. That is a consistency check rather than an
+/// authenticity one: nothing signs this JSON, and whoever can replace a stream file can record
+/// its digest beside it. Under an unchanged manifest a torn or altered file refuses at open. A
+/// directory without a manifest is an abandoned write.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Manifest {
@@ -217,12 +218,12 @@ pub(crate) struct Manifest {
     pub version: Version,
     /// The byte order of the machine that wrote the dump.
     ///
-    /// Embedding components and confidence values store native floats, so the reader compares
-    /// this stamp against its own byte order at open.
+    /// Embedding components and confidence values store native floats. The reader compares this
+    /// stamp against its own byte order at open.
     pub machine: Architecture,
     /// The bitemporal point the dumped dataset observed, when its source had temporal axes.
     pub axes: Option<TemporalAxes>,
-    /// The embedding contract that minted every embedding in the dump.
+    /// The embedding contract that produced every embedding in the dump.
     pub embedder: EmbedderFingerprint,
     /// Which nodes the canonical-embedding stream covers.
     pub coverage: CanonicalCoverage,

@@ -1,7 +1,7 @@
 //! The routes' `Cache-Control` postures: sent and documented from one constant each.
 //!
 //! Each handler sends its posture from these constants and each operation documents the same
-//! constant through [`cache_control`], so the OpenAPI document and the wire cannot drift apart.
+//! constant through [`cache_control`]. The OpenAPI document and the wire cannot drift apart.
 
 use aide::openapi;
 
@@ -21,7 +21,7 @@ pub(super) const AUTHORITY: &str = "atlas-authority";
 
 /// The same header in its canonical spelling, for the documents that name it.
 ///
-/// People and generators that echo them verbatim read the OpenAPI parameter and header keys, so the
+/// People and generators that echo them verbatim read the OpenAPI parameter and header keys. The
 /// document carries the canonical form while the wire carries [`AUTHORITY`].
 pub(super) const AUTHORITY_DOCUMENTED: &str = "Atlas-Authority";
 
@@ -40,7 +40,8 @@ pub(super) const NO_STORE: &str = "private, no-store";
 /// alphabet and not the width, and names no sealed field - the token is opaque to every caller.
 #[expect(
     clippy::default_trait_access,
-    reason = "we do not want to pull in a dependency just to pin its default"
+    reason = "examples and extensions are collection types this module never names elsewhere, and \
+              default() avoids importing them only to spell that name"
 )]
 pub(super) fn presented_authority() -> openapi::Parameter {
     let description = "the authority token present in the response's `Atlas-Authority` header, \
@@ -74,7 +75,8 @@ pub(super) fn presented_authority() -> openapi::Parameter {
 /// construction, and no client may depend on it.
 #[expect(
     clippy::default_trait_access,
-    reason = "we do not want to pull in a dependency just to pin its default"
+    reason = "examples and extensions are collection types this module never names elsewhere, and \
+              default() avoids importing them only to spell that name"
 )]
 pub(super) fn authority() -> openapi::ReferenceOr<openapi::Header> {
     openapi::ReferenceOr::Item(openapi::Header {
@@ -100,7 +102,8 @@ pub(super) fn authority() -> openapi::ReferenceOr<openapi::Header> {
 /// Documents the `Retry-After` header every `429` carries.
 #[expect(
     clippy::default_trait_access,
-    reason = "we do not want to pull in a dependency just to pin its default"
+    reason = "examples and extensions are collection types this module never names elsewhere, and \
+              default() avoids importing them only to spell that name"
 )]
 pub(super) fn retry_after() -> openapi::ReferenceOr<openapi::Header> {
     openapi::ReferenceOr::Item(openapi::Header {
@@ -125,7 +128,8 @@ pub(super) fn retry_after() -> openapi::ReferenceOr<openapi::Header> {
 /// Documents a response header that always carries `value`.
 #[expect(
     clippy::default_trait_access,
-    reason = "we do not want to pull in a dependency just to pin its default"
+    reason = "examples and extensions are collection types this module never names elsewhere, and \
+              default() avoids importing them only to spell that name"
 )]
 pub(super) fn cache_control(
     value: &str,

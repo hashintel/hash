@@ -15,6 +15,12 @@ import type { Rect, Size } from "@hashintel/petrinaut-core";
 
 /** The part of the scene a viewport shows, in scene coordinates. */
 export type VisibleSceneRect = Rect & { zoom: number };
+export type CanvasViewportInsets = {
+  readonly left?: number;
+  readonly right?: number;
+  readonly top?: number;
+  readonly bottom?: number;
+};
 
 /** The canvas never zooms in past this when fitting the net into view. */
 export const MAX_FIT_ZOOM = 1.1;
@@ -33,19 +39,26 @@ export const fitViewportToBounds = (
   minZoom: number,
   maxZoom: number,
   padding: number,
+  insets: CanvasViewportInsets = {},
 ): CanvasViewport => {
+  const left = insets.left ?? 0;
+  const right = insets.right ?? 0;
+  const top = insets.top ?? 0;
+  const bottom = insets.bottom ?? 0;
+  const availableWidth = Math.max(1, container.width - left - right);
+  const availableHeight = Math.max(1, container.height - top - bottom);
   const zoom = clamp(
     Math.min(
-      container.width / (bounds.width * (1 + padding)),
-      container.height / (bounds.height * (1 + padding)),
+      availableWidth / (bounds.width * (1 + padding)),
+      availableHeight / (bounds.height * (1 + padding)),
     ),
     minZoom,
     maxZoom,
   );
   return {
     zoom,
-    x: container.width / 2 - (bounds.x + bounds.width / 2) * zoom,
-    y: container.height / 2 - (bounds.y + bounds.height / 2) * zoom,
+    x: left + availableWidth / 2 - (bounds.x + bounds.width / 2) * zoom,
+    y: top + availableHeight / 2 - (bounds.y + bounds.height / 2) * zoom,
   };
 };
 
@@ -57,6 +70,7 @@ export const fitViewportToBounds = (
 export const getInitialViewport = (
   bounds: Rect | null,
   container: Size,
+  insets: CanvasViewportInsets = {},
 ): CanvasViewport => {
   if (!bounds || bounds.width === 0 || bounds.height === 0) {
     return { x: 0, y: 0, zoom: 1 };
@@ -68,6 +82,7 @@ export const getInitialViewport = (
     getMinZoomForBounds(bounds, container),
     MAX_FIT_ZOOM,
     ZOOM_PADDING,
+    insets,
   );
 };
 

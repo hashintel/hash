@@ -8,8 +8,8 @@ export type OptimizationRunLogEvent = WithoutSeq<PetrinautOptimizationEvent>;
 
 /**
  * One run's events, in segments: each segment begins with `started` and ends
- * with a terminal `complete`/`error`, and a study kept in memory may begin
- * another segment when it is extended.
+ * with a terminal `complete` or `error`, and a study kept in memory
+ * may begin another segment when it is extended.
  */
 export type OptimizationRunLog = {
   readonly events: readonly PetrinautOptimizationEvent[];

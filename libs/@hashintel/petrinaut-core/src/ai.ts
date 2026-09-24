@@ -9,9 +9,19 @@ import {
   type AiCommandActionName,
 } from "./command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
+import { petrinautExperimentRequestSchema } from "./experiments/host";
 import { typedKeys } from "./lib/typed-entries";
 
 import type { Petrinaut } from "./instance";
+
+export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentResult,
+  type PetrinautExperimentHost,
+} from "./experiments/host";
 
 export {
   arcEndpointSchema,
@@ -84,6 +94,7 @@ export const getLatestNetDefinitionToolName = "getLatestNetDefinition";
 export const getNetCompilationErrorsToolName = "getNetCompilationErrors";
 export const setNetTitleToolName = "setNetTitle";
 export const readPetrinautDocToolName = "readPetrinautDoc";
+export const createExperimentToolName = "createExperiment";
 
 export const petrinautDocNames = [
   "drawing-a-net",
@@ -93,11 +104,12 @@ export const petrinautDocNames = [
   "scenarios",
   "ad-hoc-scenarios",
   "experiments",
-  "optimization",
+  "simulation-panels",
   "actual-mode",
   "preview",
   "ai-assistant",
   "visual-settings",
+  "code-editor",
   "compilation-output",
   "examples",
 ] as const;
@@ -114,21 +126,23 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   simulation:
     "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
   scenarios:
-    "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
+    "Named simulation configurations authored through the scenario form: Variables exposed as scenario parameters, parameter overrides, per-place initial state blocks, running and switching scenarios, the expression language, scenarios stored per place or as code by files, the AI or earlier versions.",
   "ad-hoc-scenarios":
-    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/count-optimized rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, optimizations), and Optimize selections with generated adhoc.* parameter names.",
+    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/swept-count rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, scenario creation and editing with Scenario Parameter toggles), Sweep interval selections with generated adhoc_* parameter names, saved scenarios shown in run mode.",
   experiments:
-    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
-  optimization:
-    "Optuna search over a selected scenario's flat parameters: explicit scenario selection, fixed vs optimized parameters and typed domains, one saved or run-local custom-code metric with maximize/minimize direction (not Experiment metric shortcuts), streamed trials, cancellation, and results.",
+    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), metric objectives (metric, direction, steps), optional optimizer startup at creation or later from Parameters, Stop and restart, one study per experiment, lifecycle/statuses, cancel/remove, progress and Details, metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
+  "simulation-panels":
+    "Experiment and scenario panels, fullscreen controls, state preservation, docked and floating AI layout, links and browser history, session limits for experiments.",
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   preview:
     "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
+  "code-editor":
+    "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":
-    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output, parameter sweeps, optimization surface.",
+    "General, Viewport, and Labs preferences: animations, keep-panels-mounted, welcome guide, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, notebook, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
@@ -144,7 +158,7 @@ const getLatestNetDefinitionToolInputSchema = z
 const getNetCompilationErrorsToolInputSchema = z
   .strictObject({})
   .describe(
-    "Get the current TypeScript diagnostics for the Petrinaut net code. Use this after the net to check whether the model compiles.",
+    "Validate the current Petrinaut net snapshot and return its TypeScript and HIR diagnostics. Saved scenario and metric compilation is checked separately when creating an experiment.",
   );
 
 export const setNetTitleToolInputSchema = z
@@ -176,6 +190,7 @@ export const petrinautAiToolInputSchemas = {
   [getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
   [setNetTitleToolName]: setNetTitleToolInputSchema,
   [readPetrinautDocToolName]: readPetrinautDocToolInputSchema,
+  [createExperimentToolName]: petrinautExperimentRequestSchema,
 };
 
 export const petrinautAiMutationTools = createToolBundle(
@@ -204,6 +219,10 @@ export const petrinautAiTools = {
   [readPetrinautDocToolName]: {
     description: getSchemaDescription(readPetrinautDocToolInputSchema),
     inputSchema: readPetrinautDocToolInputSchema,
+  },
+  [createExperimentToolName]: {
+    description: getSchemaDescription(petrinautExperimentRequestSchema),
+    inputSchema: petrinautExperimentRequestSchema,
   },
 } satisfies PetrinautAiTools;
 

@@ -4,7 +4,6 @@
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
-    never_type,
     return_type_notation,
 
     // Library Features
@@ -19,3 +18,7 @@ pub(crate) mod identity_provider;
 pub(crate) mod oauth_provider;
 pub mod rest;
 pub mod rpc;
+
+#[cfg(test)]
+#[path = "../tests/openapi/mod.rs"]
+mod openapi_tests;

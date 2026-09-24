@@ -116,5 +116,7 @@ export const toVoiceSessionState = ({
               ? "That answer is too long. Please try a shorter response."
               : null,
     phase: phaseOf(snapshot),
+    speakerMuted: snapshot.speakerMuted,
+    speakerVolume: snapshot.speakerVolume,
   };
 };

@@ -62,6 +62,9 @@ fn instance(
     }
 }
 
+/// Builds the attraction index over `rows` from certified `policies` and instances.
+///
+/// The attraction options are the defaults.
 fn attraction_index(
     rows: usize,
     policies: &[RelationPolicy],
@@ -77,6 +80,7 @@ fn attraction_index(
     .attraction
 }
 
+/// A resolved proximal verdict for `relation`.
 fn proximal_verdict(relation: u64) -> ResolvedVerdict {
     ResolvedVerdict {
         relation: OntologyRowId::new(relation),
@@ -84,19 +88,26 @@ fn proximal_verdict(relation: u64) -> ResolvedVerdict {
     }
 }
 
-/// Scales of 0.75 with the guard 0.25 make every normalization exactly one.
+/// Builds a local scale from a literal test value.
 ///
-/// Measured `z` therefore equals raw 2D distance.
+/// # Panics
+///
+/// Panics unless `value` is finite and non-negative.
 fn scale(value: f32) -> NonNegative {
     NonNegative::new(value).expect("test scales are finite and non-negative")
 }
 
+/// Builds local scales with unit normalization.
+///
+/// The scale `0.75` plus the guard `0.25` is exactly one, and measured `z` therefore equals the
+/// raw 2D distance.
 fn unit_scales(rows: usize) -> LocalScales<NodeRowId> {
     LocalScales::new(IdSlice::from_boxed_slice(
         vec![scale(0.75); rows].into_boxed_slice(),
     ))
 }
 
+/// Calibration options with per-type cap `cap`, quantile `0.25` and temperature `0.5`.
 fn options(cap: usize) -> CalibrationOptions {
     CalibrationOptions::new(
         NonZero::new(cap).expect("test limits are positive"),
@@ -105,13 +116,17 @@ fn options(cap: usize) -> CalibrationOptions {
     )
 }
 
+/// Measures `z = 1`, mass `0.5` and radius one from one pair at distance five.
+///
+/// One pair at distance five, with scales that make the normalization exactly five, measures
+/// `z = 1`, mass `0.5` and radius one, with no leave-one-out radius for the only type.
 #[test]
 fn z_is_measured_in_the_loss_normalization_by_hand() {
-    // One disjoint pair with degrees 1 each, so ν = 1/√(2 · 2) = 0.5.
+    // One disjoint pair with degrees 1 each: ν = 1/√(2 · 2) = 0.5.
     let index = attraction_index(2, &[proximal_policy(5)], vec![instance(0, 5, 0, 1)]);
 
-    // d = 5 (a 3-4-5 triangle). Normalization = √((0.75 + 0.25) · (24.75 + 0.25)) = √(25) = 5, so z
-    // = 1 exactly.
+    // d = 5 (a 3-4-5 triangle). Normalization = √((0.75 + 0.25) · (24.75 + 0.25)) = √25 = 5:
+    // z = 1 exactly.
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
     let scales = LocalScales::new(IdSlice::from_boxed_slice(Box::new([
         scale(0.75),
@@ -139,6 +154,10 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     assert_eq!(outcome.types[0].radius_without, None);
 }
 
+/// Reads total mass two and a low-quartile radius from four equal-weight pairs.
+///
+/// Four equal-weight pairs at `z = 1, 2, 3, 4` give total mass two and a radius at the low quartile
+/// `z = 1`.
 #[test]
 fn radius_is_the_weighted_p25() {
     // The fixture has four disjoint pairs (all ν = 0.5, weight 0.5) at z = 1, 2, 3, 4.
@@ -178,6 +197,11 @@ fn radius_is_the_weighted_p25() {
     assert_eq!(outcome.types[0].radius_without, None);
 }
 
+/// Lets a per-type cap decide which type owns the radius.
+///
+/// A per-type cap of two evens an eight-pair type against a two-pair type so the low-`z` type owns
+/// the radius, while cap eight lets volume buy the radius. The leave-one-out radii name the owner
+/// in both cases.
 #[test]
 fn cap_bounds_a_high_volume_type() {
     // Type 5: eight disjoint pairs at z = 5. Type 9: two disjoint
@@ -204,8 +228,8 @@ fn cap_bounds_a_high_volume_type() {
     let scales = unit_scales(20);
     let verdicts = [proximal_verdict(5), proximal_verdict(9)];
 
-    // Cap 2: type 5's pairs sample at 2/8, so both types weigh 1.0 and
-    // type 9's first pair crosses the p25 threshold (0.5).
+    // Cap 2: type 5's pairs sample at 2/8. Both types then weigh 1.0, and type 9's first pair
+    // crosses the p25 threshold (0.5).
     let capped = ProximalCalibration::new(
         &verdicts,
         &index,
@@ -234,10 +258,14 @@ fn cap_bounds_a_high_volume_type() {
     assert_eq!(uncapped.radius, Some(non_negative!(5.0)));
 }
 
+/// Weighs a four-leaf hub below three disjoint pairs and follows the peers' radius.
+///
+/// A hub with four leaves has more pairs but less mass than three disjoint pairs, the pooled radius
+/// follows the peers' `z = 1`, and each type's leave-one-out radius is the other's atom.
 #[test]
 fn hubs_are_discounted_by_degree() {
     // Type 5 has one hub (node 0) linked to four leaves at z = 2 per pair. Within the group the
-    // hub's degree is 4, so ν = 1/√(5 · 2). Type 9: three disjoint pairs at z = 1 with ν = 1/2.
+    // hub's degree is 4: ν = 1/√(5 · 2). Type 9: three disjoint pairs at z = 1 with ν = 1/2.
     let instances = vec![
         instance(0, 5, 0, 1),
         instance(1, 5, 0, 2),
@@ -296,6 +324,10 @@ fn hubs_are_discounted_by_degree() {
     assert_eq!(peers.radius_without, Some(non_negative!(2.0)));
 }
 
+/// Reads no radius and one zero-mass type entry from verdicts without attraction mass.
+///
+/// A proximal verdict for a relation with no attraction group and an overlay verdict for one with a
+/// group yield no radius and a single zero-mass type entry.
 #[test]
 fn missing_groups_and_foreign_classes_contribute_nothing() {
     let index = attraction_index(2, &[proximal_policy(5)], vec![instance(0, 5, 0, 1)]);
@@ -331,6 +363,7 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
     assert_eq!(outcome.types[0].radius_without, None);
 }
 
+/// With no resolved verdicts the calibration has no radius and no types.
 #[test]
 fn no_verdicts_yield_no_radius() {
     let index = attraction_index(2, &[proximal_policy(5)], vec![instance(0, 5, 0, 1)]);
@@ -354,6 +387,10 @@ fn no_verdicts_yield_no_radius() {
     );
 }
 
+/// Reads the within-radius fraction inclusively at, between and below the atoms.
+///
+/// The within-radius fraction reads the mass at or below a radius inclusively: `0.25` at the
+/// `z = 1` atom, `0.5` between atoms, zero below the population and `None` with no reviewed mass.
 #[test]
 fn the_fraction_instrument_re_measures_the_freeze_population() {
     // The p25 fixture: four disjoint pairs (weight 0.5 each, total 2.0) at z = 1, 2, 3, 4.
@@ -475,6 +512,10 @@ fn the_calibration_carries_its_stability_certificate() {
     assert_eq!(vacuous.stability, None);
 }
 
+/// Reads a pooled radius of one and a leave-one-out spread of four from two equal types.
+///
+/// With two types at `z = 5` and `z = 1` of equal mass, the pooled radius is one and the
+/// leave-one-out spread is the larger movement, four. A vacuous calibration has no spread.
 #[test]
 fn the_leave_one_out_spread_reads_the_owning_review() {
     // Type 5 has two pairs at z = 5 (mass 1.0) and type 9 two pairs at z = 1 (mass 1.0).

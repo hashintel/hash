@@ -5,6 +5,7 @@ import {
   type OpenAIRealtimeSessionEvent,
 } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import { VoiceAudioSettings } from "./voice-audio-settings";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
@@ -43,11 +44,15 @@ const canonicalSegment = (
 });
 
 const createHarness = ({
+  audioSettings,
   connectionTimeoutMs = 15_000,
 }: {
+  readonly audioSettings?: VoiceAudioSettings;
   readonly connectionTimeoutMs?: number;
 } = {}) => {
   let requestNumber = 0;
+  let animationFrameNumber = 0;
+  const animationFrames = new Map<number, FrameRequestCallback>();
   const channels: FakeDataChannel[] = [];
   const localTracks: Array<{
     enabled: boolean;
@@ -56,9 +61,11 @@ const createHarness = ({
   }> = [];
   const remoteAudios: Array<{
     autoplay: boolean;
+    muted: boolean;
     pause: ReturnType<typeof vi.fn>;
     play: ReturnType<typeof vi.fn>;
     srcObject: MediaStream | null;
+    volume: number;
   }> = [];
   const peers: Array<{
     addTrack: ReturnType<typeof vi.fn>;
@@ -72,7 +79,14 @@ const createHarness = ({
     setRemoteDescription: ReturnType<typeof vi.fn<() => Promise<void>>>;
   }> = [];
   const getUserMedia = vi.fn(async () => {
-    const track = { enabled: true, kind: "audio", stop: vi.fn() };
+    const track = {
+      addEventListener: vi.fn(),
+      enabled: true,
+      kind: "audio",
+      readyState: "live",
+      removeEventListener: vi.fn(),
+      stop: vi.fn(),
+    };
     localTracks.push(track);
     return {
       getAudioTracks: () => [track],
@@ -87,7 +101,9 @@ const createHarness = ({
   );
   const reportDiagnostic = vi.fn();
   const session = new OpenAIRealtimeSession({
-    cancelAnimationFrame: vi.fn(),
+    cancelAnimationFrame: vi.fn((handle) => {
+      animationFrames.delete(handle);
+    }),
     connectionTimeoutMs,
     createAudioContext: () =>
       ({
@@ -114,6 +130,7 @@ const createHarness = ({
           sdp: "v=0\r\no=browser offer",
           type: "offer" as RTCSdpType,
         })),
+        getSenders: vi.fn(() => []),
         onconnectionstatechange: null as (() => void) | null,
         ontrack: null as ((event: RTCTrackEvent) => void) | null,
         setLocalDescription: vi.fn(async () => undefined),
@@ -122,12 +139,15 @@ const createHarness = ({
       peers.push(peer);
       return peer as unknown as RTCPeerConnection;
     },
+    audioSettings,
     createRemoteAudio: () => {
       const audio = {
         autoplay: false,
+        muted: false,
         pause: vi.fn(),
         play: vi.fn(async () => undefined),
         srcObject: null as MediaStream | null,
+        volume: 1,
       };
       remoteAudios.push(audio);
       return audio;
@@ -137,7 +157,11 @@ const createHarness = ({
     getUserMedia,
     now: () => 100,
     reportDiagnostic,
-    requestAnimationFrame: vi.fn(() => 1),
+    requestAnimationFrame: vi.fn((callback) => {
+      const handle = ++animationFrameNumber;
+      animationFrames.set(handle, callback);
+      return handle;
+    }),
   });
   const events: OpenAIRealtimeSessionEvent[] = [];
   session.subscribe((event) => events.push(event));
@@ -151,6 +175,14 @@ const createHarness = ({
     peers,
     remoteAudios,
     reportDiagnostic,
+    runAnimationFrame: () => {
+      const nextFrame = animationFrames.entries().next().value;
+      if (!nextFrame) return false;
+      const [handle, callback] = nextFrame;
+      animationFrames.delete(handle);
+      callback(0);
+      return true;
+    },
     session,
   };
 };
@@ -175,6 +207,110 @@ const authorizeLatestSpeechResponse = (
 describe("OpenAIRealtimeSession", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  test("stops voice preview before reopening the Realtime microphone", async () => {
+    const audioSettings = new VoiceAudioSettings("realtime", undefined);
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(false);
+    const stop = vi
+      .spyOn(audioSettings.actions, "stopVoicePreview")
+      .mockImplementation(() => {
+        expect(harness.localTracks[0]?.enabled).toBe(false);
+      });
+    harness.session.setMicrophoneEnabled(true);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(harness.localTracks[0]?.enabled).toBe(true);
+    stop.mockRestore();
+    await harness.session.disconnect();
+  });
+
+  test("continues metering after switching an enabled microphone", async () => {
+    const replacementTrack = {
+      addEventListener: vi.fn(),
+      enabled: false,
+      kind: "audio",
+      readyState: "live",
+      removeEventListener: vi.fn(),
+      stop: vi.fn(),
+    };
+    const replacementStream = {
+      getAudioTracks: () => [replacementTrack],
+      getTracks: () => [replacementTrack],
+    } as unknown as MediaStream;
+    const mediaDevices = Object.assign(new EventTarget(), {
+      enumerateDevices: vi.fn(async () => []),
+      getUserMedia: vi.fn(async () => replacementStream),
+    });
+    const audioSettings = new VoiceAudioSettings("realtime", mediaDevices);
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    expect(harness.runAnimationFrame()).toBe(true);
+
+    await audioSettings.setMicrophone("usb-mic");
+
+    expect(replacementTrack.enabled).toBe(true);
+    expect(harness.runAnimationFrame()).toBe(true);
+    expect(
+      harness.events.some(
+        (event) => event.type === "microphone-level" && event.level > 0,
+      ),
+    ).toBe(true);
+    await harness.session.disconnect();
+  });
+
+  test("defers selected speed until the next response and persists the session voice header", async () => {
+    const storage = {
+      getItem: vi.fn(() => "cedar"),
+      setItem: vi.fn(),
+    };
+    const audioSettings = new VoiceAudioSettings(
+      "realtime",
+      undefined,
+      storage,
+    );
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    const requestHeaders = new Headers(
+      harness.fetch.mock.calls[0]?.[1]?.headers,
+    );
+    expect(requestHeaders.get("x-petrinaut-voice")).toBe("cedar");
+
+    harness.session.speakCanonical([
+      canonicalSegment("first", "First question"),
+    ]);
+    authorizeLatestSpeechResponse(channel, "first-response");
+    channel.receive({
+      type: "output_audio_buffer.started",
+      response_id: "first-response",
+    });
+    channel.send.mockClear();
+
+    audioSettings.actions.setSpeed?.(1.25);
+    harness.session.speakCanonical([
+      canonicalSegment("second", "Second question"),
+    ]);
+    expect(channel.send).not.toHaveBeenCalled();
+
+    channel.receive({
+      type: "response.done",
+      response: { id: "first-response", status: "completed", output: [] },
+    });
+    channel.receive({
+      type: "output_audio_buffer.cleared",
+      response_id: "first-response",
+    });
+
+    expect(sentEvents(channel).map(({ type }) => type)).toEqual([
+      "session.update",
+      "response.create",
+    ]);
+    expect(sentEvents(channel)[0]).toMatchObject({
+      session: { audio: { output: { speed: 1.25 } } },
+    });
   });
 
   test.each([
@@ -621,6 +757,42 @@ describe("OpenAIRealtimeSession", () => {
     expect(remoteTrack.stop).toHaveBeenCalledOnce();
     expect(harness.localTracks[0]!.stop).toHaveBeenCalledOnce();
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("applies cached and live speaker settings only to remote audio", async () => {
+    const harness = createHarness();
+    harness.session.setSpeakerMuted(true);
+    harness.session.setSpeakerVolume(1.5);
+
+    await harness.session.connect();
+
+    expect(harness.remoteAudios[0]).toMatchObject({
+      muted: true,
+      volume: 1,
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(sentEvents(harness.channels[0]!)).toEqual([]);
+
+    harness.session.setSpeakerMuted(false);
+    harness.session.setSpeakerVolume(-0.25);
+    expect(harness.remoteAudios[0]).toMatchObject({
+      muted: false,
+      volume: 0,
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(sentEvents(harness.channels[0]!)).toEqual([]);
+
+    harness.session.setSpeakerMuted(true);
+    harness.session.setSpeakerVolume(0.35);
+    expect(harness.remoteAudios[0]).toMatchObject({
+      muted: true,
+      volume: 0.35,
+    });
+    expect(harness.remoteAudios[0]!.pause).not.toHaveBeenCalled();
+
+    await harness.session.disconnect();
+    expect(harness.remoteAudios[0]!.pause).toHaveBeenCalledOnce();
+    expect(harness.localTracks[0]!.stop).toHaveBeenCalledOnce();
   });
 
   test("keeps the microphone closed and rejects audio detected during playback", async () => {

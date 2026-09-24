@@ -1,9 +1,7 @@
 use super::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig};
 use crate::{identity::NodeRowId, salt::adjacency::Adjacency};
 
-/// The five-node fixture.
-///
-/// A parallel pair `0 → 1`, one `2 → 3`, a self-loop at 3, and node 4 untouched.
+/// Builds five nodes with parallel edges, a self-loop, and an isolated node.
 fn fixture() -> Adjacency {
     let endpoints: [[NodeRowId; 2]; 4] = [
         [NodeRowId::new(0), NodeRowId::new(1)],
@@ -30,9 +28,8 @@ fn constant_column() {
 fn incident_degree_hand_count() {
     let adjacency = fixture();
 
-    // A hand count over the fixture gives these degrees. Node 0 sends the parallel pair, node 1
-    // receives it, node 2 sends once, node 3 receives twice and holds both slots of its self-loop,
-    // and node 4 touches nothing.
+    // nodes 0 and 1 each touch the parallel pair. Node 2 sends one edge. Node 3 receives that edge
+    // and has both slots of its self-loop: 1 + 2 = 3. Node 4 touches nothing.
     let column = DegreeImportance::new(&adjacency).derive(5);
     assert_eq!(*column.as_raw(), [2.0, 2.0, 1.0, 3.0, 0.0]);
 }

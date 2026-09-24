@@ -3,6 +3,7 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "buildCommand": "turbo run build:ladle",
+  "buildCommand": "./vercel-build.sh",
+  "installCommand": "./vercel-install.sh",
   "outputDirectory": ".build/ladle"
 }

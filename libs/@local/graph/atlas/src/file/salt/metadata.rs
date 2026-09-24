@@ -13,14 +13,13 @@ use hashql_core::id::Id as _;
 
 use crate::{
     dataset::{DatasetOrigin, TemporalAxes},
-    file::{generation::GenerationId, morton::SEGMENTS},
+    file::generation::GenerationId,
     identity::{NodeRowId, OntologyRowId},
     integrity::Sha256Digest,
-    math::{Bounds2, DNonNegative, DPositive, NonNegative, OpenUnitFraction, Similarity},
-    morton::Depth,
+    math::{DNonNegative, DPositive, NonNegative, OpenUnitFraction, Similarity},
     salt::{
         embedding::{CardEmbeddingStats, EmbedderFingerprint},
-        fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
+        fit::{FitConfig, prepare::norm::NormSpotCheck},
         importance::RankingConfig,
         knn::recall::RecallSpotCheck,
         ladder::paired::PairedMovementEvidence,
@@ -61,7 +60,7 @@ pub(crate) enum Placement {
 
 /// Where the generation's rank inputs came from.
 ///
-/// The identity keeps the signals distinguishable wherever a reader consumes the ranking; it
+/// The identity keeps the signals distinguishable wherever a reader consumes the ranking. It
 /// mirrors the configured [`RankingConfig`], recording what actually ran.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -111,7 +110,6 @@ pub(crate) struct Reproducibility {
     /// A replay takes its configuration from this echo, not from the defaults compiled into the
     /// replaying binary. Validated fields deserialize through their validating constructors, so a
     /// tampered echo refuses to parse.
-    #[serde(with = "FitConfigDef")]
     pub config: FitConfig,
     /// The embedding contract under which the embedder produced the card embeddings.
     pub embedder: EmbedderFingerprint,
@@ -147,16 +145,12 @@ pub(crate) struct Evidence {
     /// With the fit and holdout measurements when this run fitted it.
     pub classifier: ClassifierEvidence,
     /// The relation build's dropped-instance and pruned-mass account.
-    #[serde(with = "BuildMeasurementsDef")]
     pub relations: BuildMeasurements,
     /// The level-of-detail stage's publish measurements.
-    #[serde(with = "LodMeasurementsDef")]
     pub lod: LodMeasurements,
     /// The quadtree build's publish measurements.
-    #[serde(with = "QuadMeasurementsDef")]
     pub quad: QuadMeasurements,
     /// The postings build's publish measurements.
-    #[serde(with = "PostingsMeasurementsDef")]
     pub postings: PostingsMeasurements,
     /// The projector training and ladder measurements.
     ///
@@ -445,7 +439,7 @@ pub(crate) struct LadderEvidence {
     /// The relation loss re-measured over the persisted aligned column.
     ///
     /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
-    /// total over every attraction instance, with no per-type cap; it does not store the capped
+    /// total over every attraction instance, with no per-type cap. It does not store the capped
     /// trained estimand ([`StepEvidence::capped_relation_loss`]).
     pub persisted_relation_loss: DNonNegative,
     /// The paired-movement readout beside the steps.
@@ -472,7 +466,7 @@ pub(crate) struct StepEvidence {
     pub condition: NonNegative,
     /// The field's frozen relation loss at projection time.
     ///
-    /// The corpus total over every attraction instance, with no per-type cap; it does not store
+    /// The corpus total over every attraction instance, with no per-type cap. It does not store
     /// the capped trained estimand ([`Self::capped_relation_loss`]).
     pub relation_loss: DNonNegative,
     /// The capped trained estimand at this step.
@@ -498,222 +492,11 @@ pub(crate) struct StepEvidence {
     /// The similarity aligning the step's field onto the baseline field.
     ///
     /// The identity for the baseline itself.
-    #[serde(with = "similarity")]
     pub alignment: Similarity,
     /// RMS movement against the baseline field after alignment.
     pub baseline_movement: DNonNegative,
     /// RMS movement against the preceding field after alignment.
     pub adjacent_movement: DNonNegative,
-}
-
-/// Serializes a [`Similarity`] as its decomposed coefficients.
-///
-/// Validates through [`Similarity::new`] on deserialize.
-mod similarity {
-    use serde::{Deserialize as _, Serialize as _, de::Error as _};
-
-    use crate::math::{Positive, Rotation, Similarity, Vec2};
-
-    /// The alignment's wire form.
-    ///
-    /// The rotation is its unit vector.
-    #[derive(serde::Serialize, serde::Deserialize)]
-    struct Record {
-        scale: Positive,
-        rotation: [f32; 2],
-        translation: [f32; 2],
-    }
-
-    pub(super) fn serialize<S>(alignment: &Similarity, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        Record {
-            scale: alignment.scale(),
-            rotation: [alignment.rotation().cos(), alignment.rotation().sin()],
-            translation: [alignment.translation().x(), alignment.translation().y()],
-        }
-        .serialize(serializer)
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Similarity, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let Record {
-            scale,
-            rotation: [cos, sin],
-            translation: [x, y],
-        } = Record::deserialize(deserializer)?;
-
-        // The rotation's unit-circle contract admits the rounding a
-        // fitted alignment carries and nothing more.
-        let unit_defect = f64::from(cos).mul_add(f64::from(cos), f64::from(sin) * f64::from(sin));
-        if !((unit_defect - 1.0).abs() <= 1.0e-6 && x.is_finite() && y.is_finite()) {
-            return Err(D::Error::custom(format_args!(
-                "the rotation ({cos}, {sin}) does not lie on the unit circle or the translation \
-                 ({x}, {y}) is not finite"
-            )));
-        }
-
-        Similarity::new(scale, Rotation::from_cos_sin(cos, sin), Vec2::new(x, y)).ok_or_else(|| {
-            D::Error::custom(format_args!(
-                "the scale {scale} or its reciprocal is not a strictly positive normal number"
-            ))
-        })
-    }
-}
-
-/// Serializes a [`Bounds2`] as its corner coordinates.
-///
-/// Validates through [`Bounds2::new`] on deserialize.
-mod bounds2 {
-    use serde::{Deserialize as _, Serialize as _, de::Error as _};
-
-    use crate::math::{Bounds2, Vec2};
-
-    /// The frame's wire form.
-    #[derive(serde::Serialize, serde::Deserialize)]
-    struct Record {
-        min: [f32; 2],
-        max: [f32; 2],
-    }
-
-    pub(super) fn serialize<S>(bounds: &Bounds2, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        Record {
-            min: [bounds.min().x(), bounds.min().y()],
-            max: [bounds.max().x(), bounds.max().y()],
-        }
-        .serialize(serializer)
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Bounds2, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let Record { min, max } = Record::deserialize(deserializer)?;
-        Bounds2::new(Vec2::new(min[0], min[1]), Vec2::new(max[0], max[1])).ok_or_else(|| {
-            D::Error::custom(
-                "the corners do not form a frame; both must be finite with min <= max per axis",
-            )
-        })
-    }
-}
-
-/// Serializes the bucket histogram as a plain sequence.
-///
-/// Validates the segment count on deserialize.
-mod bucket_histogram {
-    use serde::{Deserialize as _, Serialize as _, de::Error as _};
-
-    use crate::file::morton::SEGMENTS;
-
-    pub(super) fn serialize<S>(
-        histogram: &[u64; SEGMENTS],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        histogram.as_slice().serialize(serializer)
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<[u64; SEGMENTS], D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let lengths = Vec::<u64>::deserialize(deserializer)?;
-        let count = lengths.len();
-        lengths.try_into().map_err(|_lengths| {
-            D::Error::custom(format_args!(
-                "the histogram holds {count} buckets where the schedule has {SEGMENTS}",
-            ))
-        })
-    }
-}
-
-/// serde shadow of [`LodMeasurements`].
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "LodMeasurements")]
-struct LodMeasurementsDef {
-    #[serde(with = "bounds2")]
-    world: Bounds2,
-    #[serde(with = "bucket_histogram")]
-    bucket_histogram: [u64; SEGMENTS],
-    catch_all_population: u64,
-    co_location_excess: u64,
-    max_tile_delta: u64,
-}
-
-/// serde shadow of [`BuildMeasurements`].
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "BuildMeasurements")]
-struct BuildMeasurementsDef {
-    pruning_threshold: NonNegative,
-    retained_edges: usize,
-    pruned_edges: usize,
-    retained_mass: DNonNegative,
-    pruned_mass: DNonNegative,
-    self_references: usize,
-    multi_typed_edges: Vec<u64>,
-}
-
-/// Serializes a [`Depth`] as its subdivision count.
-///
-/// Validates through [`Depth::new`] on deserialize.
-mod depth {
-    use serde::{Deserialize as _, de::Error as _};
-
-    use crate::morton::Depth;
-
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` contract passes the field by reference"
-    )]
-    pub(super) fn serialize<S>(depth: &Depth, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_u8(depth.get())
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Depth, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = u8::deserialize(deserializer)?;
-        Depth::new(value).ok_or_else(|| {
-            D::Error::custom(format_args!(
-                "the depth {value} exceeds the {} subdivisions a 64-bit Morton key resolves",
-                Depth::MAX.get(),
-            ))
-        })
-    }
-}
-
-/// serde shadow of [`QuadMeasurements`].
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "QuadMeasurements")]
-struct QuadMeasurementsDef {
-    nodes: u64,
-    leaves: u64,
-    #[serde(with = "depth")]
-    depth: Depth,
-    type_entries: u64,
-}
-
-/// serde shadow of [`PostingsMeasurements`].
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "PostingsMeasurements")]
-struct PostingsMeasurementsDef {
-    types: u64,
-    dense_types: u64,
-    list_entries: u64,
-    parent_edges: u64,
-    direct_entries: u64,
 }
 
 /// Scale record of the landmark stage.

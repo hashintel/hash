@@ -12,10 +12,9 @@ mod embedded {
 fn create_postgres_migration(value: &refinery::Migration) -> Migration {
     let state = value
         .applied_on()
-        .map(|applied_on| MigrationState::Applied {
+        .map_or_default(|applied_on| MigrationState::Applied {
             applied_at_utc: applied_on.unix_timestamp(),
-        })
-        .unwrap_or_default();
+        });
 
     // Refinery migration names are stripped of their version prefix. We recreate it here, it's
     // just for display purposes as we rely on the checksum/hash to provide proper comparison

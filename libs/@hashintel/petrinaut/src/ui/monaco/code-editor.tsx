@@ -1,4 +1,11 @@
-import { Suspense, use, useRef, useState } from "react";
+import {
+  Suspense,
+  use,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -20,11 +27,36 @@ const SINGLE_LINE_TOTAL_HEIGHT = SINGLE_LINE_HEIGHT + SINGLE_LINE_PADDING_Y * 2;
 const multiLineContainerStyle = cva({
   base: {
     position: "relative",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "sm",
+    borderWidth: "[1px]",
+    borderStyle: "solid",
+    borderColor: "neutral.bd.subtle",
+    borderRadius: "lg",
     overflow: "hidden",
+    marginInline: "0",
+    "[data-subview-full-width-code] &": {
+      borderColor: "[transparent]",
+      borderRadius: "[0]",
+      marginInline: "[calc(-1 * var(--subview-content-inline-padding, 0px))]",
+      boxShadow: "[none]",
+    },
+    "[data-subview-animate] &": {
+      transition:
+        "[border-color 240ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 240ms cubic-bezier(0.22, 1, 0.36, 1), margin-inline 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
+      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    },
+    _focusWithin: {
+      boxShadow: "[0px 0px 0px 2px {colors.neutral.a25}]",
+    },
   },
   variants: {
+    hasError: {
+      true: {
+        borderColor: "red.s90",
+        _focusWithin: {
+          boxShadow: "[0px 0px 0px 2px {colors.red.a25}]",
+        },
+      },
+    },
     isReadOnly: {
       true: {
         filter: "[grayscale(20%) brightness(98%)]",
@@ -137,10 +169,12 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
   tooltip?: string;
   /** Render as a single-line expression input */
   singleLine?: boolean;
-  /** Placeholder text (only used in singleLine mode) */
+  /** Placeholder text shown while the editor is empty. */
   placeholder?: string;
   /** Called when Enter is pressed (only used in singleLine mode) */
   onSubmit?: () => void;
+  /** Leave the editor on Escape after dismissing any completion popup. */
+  onEscape?: () => void;
   /** Called when the editor gains focus */
   onEditorFocus?: () => void;
   /** Called when the editor loses focus */
@@ -171,6 +205,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   singleLine = false,
   placeholder,
   onSubmit,
+  onEscape,
   value,
   onChange,
   mountSelection,
@@ -188,11 +223,45 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   // would, so the placeholder waits for the mount rather than overlapping it.
   const [editorMounted, setEditorMounted] = useState(false);
 
+  useEffect(() => {
+    if (!onEscape) {
+      return;
+    }
+    // Drawer dismissal listens at document capture; handle editor Escape first.
+    const handleEscape = (event: KeyboardEvent) => {
+      const instance = editorRef.current;
+      const editorNode = instance?.getDomNode();
+      if (
+        event.key !== "Escape" ||
+        !instance ||
+        !(event.target instanceof Node) ||
+        !editorNode?.contains(event.target)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (
+        editorNode.querySelector(
+          ".suggest-widget.visible, .parameter-hints-widget.visible",
+        )
+      ) {
+        instance.trigger("keyboard", "hideSuggestWidget", {});
+        instance.trigger("keyboard", "closeParameterHints", {});
+      } else {
+        onEscape();
+      }
+    };
+    window.addEventListener("keydown", handleEscape, true);
+    return () => window.removeEventListener("keydown", handleEscape, true);
+  }, [onEscape]);
+
   const handleMount = (
     editorInstance: editor.IStandaloneCodeEditor,
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
+    setEditorFocused(false);
     setEditorMounted(true);
 
     // With a `path`, @monaco-editor/react reuses the existing model and
@@ -262,6 +331,13 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     onMount?.(editorInstance, monacoInstance);
   };
 
+  // Monaco retains its first onMount callback across Activity reactivation.
+  // Read the current committed props when it recreates the native editor.
+  const handleMountRef = useRef(handleMount);
+  useLayoutEffect(() => {
+    handleMountRef.current = handleMount;
+  });
+
   const editorOptions: EditorProps["options"] = singleLine
     ? {
         minimap: { enabled: false },
@@ -317,14 +393,16 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
 
   return (
     <>
-      {singleLine && placeholder && !value && editorMounted && (
+      {placeholder && !value && editorMounted && (
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
         theme="petrinaut-light"
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
-        onMount={handleMount}
+        onMount={(editorInstance, monacoInstance) =>
+          handleMountRef.current(editorInstance, monacoInstance)
+        }
         value={editorFocused ? undefined : value}
         onChange={onChange}
         {...props}
@@ -348,7 +426,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   const containerClass = singleLine
     ? singleLineContainerStyle({ isReadOnly, hasError, frameless })
-    : multiLineContainerStyle({ isReadOnly });
+    : multiLineContainerStyle({ isReadOnly, hasError });
 
   const fallback = singleLine ? (
     <div className={singleLineLoadingStyle}>Loading...</div>

@@ -565,14 +565,62 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
           ],
           parameterOverrides: {},
           initialState: {
-            type: "code",
-            content: `return {
-  RawMaterial: scenario.raw_material,
-  AvailableMachines: Array.from(
-    { length: scenario.machines_count },
-    () => ({ machine_damage_ratio: scenario.initial_machine_damage }),
-  ),
-};`,
+            type: "adhoc",
+            content: {
+              variables: [
+                {
+                  name: "raw_material",
+                  type: "integer",
+                  expression: "10",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "machines_count",
+                  type: "integer",
+                  expression: "3",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "initial_machine_damage",
+                  type: "ratio",
+                  expression: "0",
+                  exposed: true,
+                  optimize: null,
+                },
+              ],
+              netParameters: [],
+              places: {
+                "place__d662407f-c56d-4a96-bcbb-ead785a9c594": {
+                  kind: "uncoloured",
+                  count: {
+                    expression: "scenario.raw_material",
+                    optimize: null,
+                  },
+                },
+                "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8": {
+                  kind: "coloured",
+                  variables: [],
+                  rows: [
+                    {
+                      kind: "template",
+                      count: {
+                        expression: "scenario.machines_count",
+                        optimize: null,
+                      },
+                      cells: [
+                        {
+                          expression: "scenario.initial_machine_damage",
+                          optimize: null,
+                        },
+                      ],
+                    },
+                  ],
+                  sharedColumns: {},
+                },
+              },
+            },
           },
         },
       ],
