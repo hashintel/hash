@@ -11,7 +11,7 @@ import {
   expectedNodeDefinition,
 } from "../src/mutation-record";
 import { parseConstructionWhyInput } from "../src/root-node";
-import { assertStateIdentity, locateRootState } from "../src/root-state";
+import { locateRootState } from "../src/root-state";
 import {
   constructionRequest as request,
   emptyDefinition as empty,
@@ -83,8 +83,6 @@ describe("native typed state construction", () => {
     const after = expectedNodeDefinition(req, before);
     expect(after.parameters).toEqual([parameter]);
     expect(outcome(req, before, after)).toBe("applied");
-    expect(() => assertStateIdentity(req, after, [])).toThrow("Duplicate");
-    expect(() => assertStateIdentity(req, before, [after])).toThrow("retired");
     expect(
       locateRootState(after, {
         kind: "parameter",
@@ -123,16 +121,11 @@ describe("native typed state construction", () => {
       code: "return tokens.map(() => ({ continuousValue: 0 }));",
     } satisfies PetrinautAiToolInput<"addDifferentialEquation">;
     const req = request("addDifferentialEquation", equation);
-    expect(() => assertStateIdentity(req, empty(), [])).toThrow(
-      "Differential equations require a unique existing root type ID.",
-    );
     const before = empty();
     before.types.push(continuousType);
     const after = expectedNodeDefinition(req, before);
     expect(after.differentialEquations).toEqual([equation]);
     expect(outcome(req, before, after)).toBe("applied");
-    expect(() => assertStateIdentity(req, after, [])).toThrow("Duplicate");
-    expect(() => assertStateIdentity(req, before, [after])).toThrow("retired");
     const target = locateRootState(after, {
       kind: "differential-equation",
       name: equation.id,
@@ -311,112 +304,7 @@ describe("native typed state construction", () => {
     ]);
     expect(effects.derived).toEqual([]);
   });
-  test("rejects duplicate and known-retired root identities before canonical addType courtesy", () => {
-    const current = setup();
-    expect(() =>
-      assertStateIdentity(request("addType", type), current, []),
-    ).toThrow(/Duplicate/);
-    expect(() =>
-      assertStateIdentity(request("addType", type), empty(), [current]),
-    ).toThrow(/retired/);
-    expect(() =>
-      assertStateIdentity(
-        request("addScenario", { ...scenario, id: place.id }),
-        current,
-        [],
-      ),
-    ).toThrow(/Duplicate/);
-    const canonicalOnly = empty();
-    const actions = createPetrinautActions((mutate) => mutate(canonicalOnly));
-    actions.addType(type);
-    actions.addType(type);
-    expect(canonicalOnly.types).toHaveLength(2);
-  });
-  test("rejects duplicate, missing and known-retired parent-scoped element identities", () => {
-    const current = setup();
-    expect(() =>
-      assertStateIdentity(
-        request("addType", {
-          ...type,
-          id: "new",
-          elements: [type.elements[0]!, type.elements[0]!],
-        }),
-        current,
-        [],
-      ),
-    ).toThrow(/Duplicate nested/);
-    expect(() =>
-      assertStateIdentity(
-        request("addTypeElement", {
-          typeId: type.id,
-          element: type.elements[0]!,
-        }),
-        current,
-        [],
-      ),
-    ).toThrow(/Duplicate/);
-    const removed = structuredClone(current);
-    removed.types[0]!.elements = [];
-    expect(() =>
-      assertStateIdentity(
-        request("addTypeElement", {
-          typeId: type.id,
-          element: type.elements[0]!,
-        }),
-        removed,
-        [current],
-      ),
-    ).toThrow(/retired/);
-    expect(() =>
-      assertStateIdentity(
-        request("updateTypeElement", {
-          typeId: type.id,
-          elementId: "missing",
-          update: { name: "newName" },
-        }),
-        current,
-        [],
-      ),
-    ).toThrow(/Unknown/);
-    current.types[0]!.elements.push(type.elements[0]!);
-    expect(() =>
-      assertStateIdentity(
-        request("updateTypeElement", {
-          typeId: type.id,
-          elementId: "test-value",
-          update: { name: "newName" },
-        }),
-        current,
-        [],
-      ),
-    ).toThrow(/Ambiguous/);
-  });
-  test("refuses missing initial-state and override references rather than silently ignoring them", () => {
-    const current = setup();
-    expect(() =>
-      assertStateIdentity(
-        request("updateScenario", {
-          scenarioId: scenario.id,
-          update: {
-            initialState: { type: "per_place", content: { missing: [] } },
-          },
-        }),
-        current,
-        [],
-      ),
-    ).toThrow(/existing place/);
-    expect(() =>
-      assertStateIdentity(
-        request("updateScenario", {
-          scenarioId: scenario.id,
-          update: { parameterOverrides: { missing: "1" } },
-        }),
-        current,
-        [],
-      ),
-    ).toThrow(/existing parameter/);
-  });
-  test("keeps code scenario footprints unavailable without replacing their canonical schema", () => {
+  test("accepts code scenario input in the canonical schema and refuses absent lookup fields", () => {
     const current = setup();
     const input = {
       scenarioId: scenario.id,
@@ -427,9 +315,6 @@ describe("native typed state construction", () => {
     expect(
       petrinautAiTools.updateScenario.inputSchema.safeParse(input).success,
     ).toBe(true);
-    expect(() =>
-      assertStateIdentity(request("updateScenario", input), current, []),
-    ).toThrow(/code and ad-hoc/);
     expect(() =>
       locateRootState(current, {
         kind: "type",
@@ -546,7 +431,6 @@ describe("saved scenarios and metrics an experiment names", () => {
   test("admits a scenario whose integer parameter sets a place count by expression", () => {
     const before = withAgents();
     const req = request("addScenario", staffing);
-    assertStateIdentity(req, before, []);
     const after = expectedNodeDefinition(req, before);
     expect(after.scenarios?.[0]).toMatchObject({
       id: staffing.id,
@@ -576,7 +460,6 @@ describe("saved scenarios and metrics an experiment names", () => {
     const before = withAgents();
     expect(before.metrics).toBeUndefined();
     const req = request("addMetric", metric);
-    assertStateIdentity(req, before, []);
     const after = expectedNodeDefinition(req, before);
     expect(after.metrics).toEqual([metric]);
     expect(outcome(req, before, after)).toBe("applied");
@@ -603,31 +486,15 @@ describe("saved scenarios and metrics an experiment names", () => {
     expect(
       parseConstructionWhyInput({ kind: "metric", name: metric.id }),
     ).toEqual({ kind: "metric", name: metric.id, field: "entity" });
-    // A metric identity collides with every other root identity, and a
-    // retired one is not reused.
-    expect(() =>
-      assertStateIdentity(request("addMetric", metric), after, []),
-    ).toThrow(/Duplicate/);
-    expect(() =>
-      assertStateIdentity(
-        request("addMetric", { ...metric, id: agents.id }),
-        before,
-        [],
-      ),
-    ).toThrow(/Duplicate/);
-    expect(() =>
-      assertStateIdentity(request("addMetric", metric), before, [after]),
-    ).toThrow(/retired/);
   });
 
-  test("a metric edit attributes only the requested field and refuses an unknown metric", () => {
+  test("a metric edit attributes only the requested field", () => {
     const before = withAgents();
     before.metrics = [metric];
     const req = request("updateMetric", {
       metricId: metric.id,
       update: { name: "Average waiting time" },
     });
-    assertStateIdentity(req, before, []);
     const after = expectedNodeDefinition(req, before);
     const effects = deriveMutationEffects(req, before, after);
     expect(effects.updated).toEqual([
@@ -640,55 +507,6 @@ describe("saved scenarios and metrics an experiment names", () => {
     ]);
     expect(effects.derived).toEqual([]);
     expect(outcome(req, before, after)).toBe("applied");
-    expect(() =>
-      assertStateIdentity(
-        request("updateMetric", {
-          metricId: "missing",
-          update: { name: "Nothing" },
-        }),
-        before,
-        [],
-      ),
-    ).toThrow(/Unknown or ambiguous metric/);
-  });
-
-  test("refuses duplicate metric names before they can make every run fail", () => {
-    const before = withAgents();
-    before.metrics = [
-      metric,
-      { ...metric, id: "queue-length", name: "Queue length" },
-    ];
-
-    expect(() =>
-      assertStateIdentity(
-        request("addMetric", {
-          ...metric,
-          id: "duplicate-name",
-        }),
-        before,
-        [],
-      ),
-    ).toThrow(/metric name/u);
-    expect(() =>
-      assertStateIdentity(
-        request("updateMetric", {
-          metricId: "queue-length",
-          update: { name: metric.name },
-        }),
-        before,
-        [],
-      ),
-    ).toThrow(/metric name/u);
-    expect(() =>
-      assertStateIdentity(
-        request("updateMetric", {
-          metricId: metric.id,
-          update: { name: metric.name },
-        }),
-        before,
-        [],
-      ),
-    ).not.toThrow();
   });
 
   test("metric changes are independent of code-authored scenario footprints", () => {

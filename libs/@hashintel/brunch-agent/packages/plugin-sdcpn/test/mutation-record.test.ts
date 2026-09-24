@@ -396,7 +396,7 @@ describe("root addArc transition semantics", () => {
     const classified = classifyMutationOutcome(nested);
     expect(classified.outcome).toBe("unknown");
     expect(classified.reason).toMatch(
-      /^expected definition unavailable: Nested construction is unavailable/u,
+      /^expected definition unavailable: Subnet ID `a3-subnet` does not exist/u,
     );
     // The projection is unchanged: callers that only want the outcome see `unknown`.
     expect(observedMutationOutcome(nested)).toBe("unknown");

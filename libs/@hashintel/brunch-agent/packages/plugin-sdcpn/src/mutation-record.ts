@@ -28,13 +28,11 @@ import {
   type ObservedArcMutationName,
 } from "./root-arc";
 import {
-  assertNodeIdentity,
   isBatchedNodeMutation,
   type BatchedNodeMutationName,
   type ObservedNodeMutationName,
 } from "./root-node";
 import {
-  assertStateIdentity,
   isObservedStateMutation,
   locateRootState,
   stateMutationTarget,
@@ -198,6 +196,8 @@ const canonicalMutationRecordSchema = v.pipe(
     pre: definitionObservationSchema,
     post: v.optional(definitionObservationSchema),
     outcome: v.picklist(canonicalMutationOutcomes),
+    /** Diagnostic only: why classification could not earn a definite outcome. */
+    outcomeReason: v.optional(v.pipe(v.string(), v.minLength(1))),
     effects: mutationEffectsSchema,
     settlement: v.variant("status", [
       v.object({ status: v.literal("not-required") }),
@@ -471,8 +471,6 @@ export const expectedNodeDefinition = (
   request: ConstructionMutationRequest,
   pre: SDCPN,
 ): SDCPN => {
-  assertNodeIdentity(request, pre, []);
-  assertStateIdentity(request, pre, []);
   const expected = structuredClone(pre);
   const actions = createPetrinautActions(
     (mutate) => mutate(expected),

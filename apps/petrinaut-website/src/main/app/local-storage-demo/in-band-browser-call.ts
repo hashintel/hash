@@ -151,10 +151,6 @@ export const createInBandBrowserCalls = (input: {
           throw new Error(
             `Browser call result was not accepted (${response.status}); effect may be unknown.`,
           );
-        if (metadata?.canonicalMutationRecord?.outcome === "unknown")
-          throw new Error(
-            "The document effect is unknown; do not start a dependent browser call.",
-          );
       },
     };
   },

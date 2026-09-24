@@ -61,6 +61,8 @@ type BrowserMutationRecordFor<Name extends CanonicalBrowserMutationName> = {
   readonly pre?: BrowserDefinitionObservation;
   readonly post?: BrowserDefinitionObservation;
   readonly outcome?: CanonicalMutationOutcome;
+  /** Why classification could not earn a definite outcome, when it says so. */
+  readonly outcomeReason?: string;
   readonly effects?: MutationEffects;
   readonly settlement: BrowserSettlementRecord;
   readonly diagnostics: BrowserDiagnosticsRecord;
@@ -123,6 +125,7 @@ export const deriveCanonicalMutationEvidence = <
   post: BrowserDefinitionObservation;
 }): {
   outcome: CanonicalMutationOutcome;
+  outcomeReason?: string;
   effects: MutationEffects;
 } => {
   const binding = {
@@ -149,13 +152,16 @@ export const deriveCanonicalMutationEvidence = <
     pre,
     post,
     effects,
-  }).outcome;
+  });
   return {
     outcome: unchanged
       ? "no-op"
-      : classified === "stale"
+      : classified.outcome === "stale"
         ? "unknown"
-        : classified,
+        : classified.outcome,
+    ...(unchanged || classified.reason === undefined
+      ? {}
+      : { outcomeReason: classified.reason }),
     effects,
   };
 };
