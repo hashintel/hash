@@ -1,10 +1,14 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { TargetHeader, targetHeaderControls } from "./target-header";
+import {
+  scrollFades,
+  TargetHeader,
+  targetHeaderControls,
+} from "./target-header";
 
 import type {
   PetriNetIr,
@@ -123,6 +127,45 @@ describe("TargetHeader", () => {
     expect(group.textContent).toContain("Control");
     expect(group.textContent).not.toContain("dt");
     expect(screen.getByLabelText("Shape flag")).toBeDefined();
+    // The controls scroll as one line; the trailing content stays outside.
+    const scroller = group.querySelector("[data-flags-scroller]");
+    expect(scroller?.contains(screen.getByLabelText("Shape flag"))).toBe(true);
     expect(group.lastElementChild?.textContent).toBe("Files");
+    expect(scroller?.contains(group.lastElementChild)).toBe(false);
+  });
+
+  it("fades the edge that hides more of the flags", () => {
+    expect(
+      scrollFades({ scrollLeft: 0, clientWidth: 300, scrollWidth: 600 }),
+    ).toEqual({ left: false, right: true });
+    expect(
+      scrollFades({ scrollLeft: 300, clientWidth: 300, scrollWidth: 600 }),
+    ).toEqual({ left: true, right: false });
+    expect(
+      scrollFades({ scrollLeft: 0, clientWidth: 300, scrollWidth: 300 }),
+    ).toEqual({ left: false, right: false });
+
+    render(
+      <TargetHeader
+        target={defaults}
+        document={stochastic}
+        onChange={vi.fn()}
+      />,
+    );
+    const group = screen.getByRole("group", { name: "Compiler flags" });
+    const scroller = group.querySelector<HTMLDivElement>(
+      "[data-flags-scroller]",
+    )!;
+    const shell = scroller.parentElement!;
+    Object.defineProperty(scroller, "scrollWidth", { value: 600 });
+    Object.defineProperty(scroller, "clientWidth", { value: 300 });
+    scroller.scrollLeft = 0;
+    fireEvent.scroll(scroller);
+    expect(shell.dataset.fadeLeft).toBe("false");
+    expect(shell.dataset.fadeRight).toBe("true");
+    scroller.scrollLeft = 300;
+    fireEvent.scroll(scroller);
+    expect(shell.dataset.fadeLeft).toBe("true");
+    expect(shell.dataset.fadeRight).toBe("false");
   });
 });

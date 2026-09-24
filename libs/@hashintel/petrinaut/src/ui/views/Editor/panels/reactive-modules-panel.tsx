@@ -508,6 +508,8 @@ export const ReactiveModulesPanel = ({
   const placementLabel = isFloating
     ? `Dock ${PANEL_LABEL}`
     : `Float ${PANEL_LABEL}`;
+  // One file needs no list; the toggle and the list appear with a second.
+  const listedFiles = files !== null && files.length > 1 ? files : null;
   const filesLabel = filesOpen ? "Hide files" : "Show files";
   // The docked width, read by the spacer and the window through CSS.
   const dockedStyle = { "--dock-width": `${width}px` } as CSSProperties;
@@ -657,7 +659,7 @@ export const ReactiveModulesPanel = ({
                     document={result.document}
                     onChange={(patch) => setFlags({ ...flags, ...patch })}
                   >
-                    {files === null ? undefined : (
+                    {listedFiles === null ? null : (
                       <Button
                         size="xs"
                         variant="ghost"
@@ -698,10 +700,10 @@ export const ReactiveModulesPanel = ({
                     </Suspense>
                   </div>
                   {activeTab === "python" &&
-                  files !== null &&
+                  listedFiles !== null &&
                   shownFile !== null ? (
                     <FilesPanel
-                      files={files}
+                      files={listedFiles}
                       selected={shownFile.path}
                       onSelect={setSelectedFile}
                       open={filesOpen}

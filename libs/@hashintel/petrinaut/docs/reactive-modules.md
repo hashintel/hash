@@ -38,7 +38,7 @@ A coloured place becomes a fixed number of slots, its capacity or the **slots** 
 
 Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
 
-The Python tab lists its files on the right: the main file, then the transitions, the places and the draws. Select a file to show it; each file keeps its own scroll position. The panel button at the end of the flags row hides the list and brings it back.
+When the layout writes more than one file, the Python tab lists them on the right: the main file, then the transitions, the places and the draws. Select a file to show it; each file keeps its own scroll position. The panel button at the end of the flags row hides the list and brings it back. The flags themselves stay on one line and scroll sideways when the window is narrow.
 
 ## Compiler flags
 
