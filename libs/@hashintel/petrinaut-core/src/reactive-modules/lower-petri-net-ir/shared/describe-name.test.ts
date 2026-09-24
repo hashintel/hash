@@ -38,6 +38,32 @@ describe("describeName", () => {
     });
   });
 
+  it("reads the clock strategy's names and the bare time reference", () => {
+    expect(describeName("t")).toEqual({
+      what: "The time reference",
+      why: "External and driven by nothing: a clock's flow is a rate against d(t), so a module that reads it awaits t.",
+    });
+    expect(describeName("clk_Birth")).toMatchObject({
+      what: "Time left until Birth fires",
+      source: { kind: "transition", name: "Birth" },
+    });
+    expect(describeName("ev_Death")).toMatchObject({
+      what: "Toggles when Death fires",
+      source: { kind: "transition", name: "Death" },
+    });
+    expect(describeName("fires_Birth")).toEqual({
+      what: "Birth's clock ran out and its arcs allow it",
+      source: { kind: "transition", name: "Birth" },
+    });
+    expect(describeName("fired_Death")).toMatchObject({
+      what: "Death fired this step",
+      source: { kind: "transition", name: "Death" },
+    });
+    expect(describeName("e_Go")?.what).toBe(
+      "Exponential draw for Go's token-dependent rate",
+    );
+  });
+
   it("returns null for a name the lowerings do not coin", () => {
     expect(describeName("Waiting")).toBeNull();
     expect(describeName("net")).toBeNull();

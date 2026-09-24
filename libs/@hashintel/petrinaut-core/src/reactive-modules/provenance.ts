@@ -1,5 +1,9 @@
 import { describeName } from "./lower-petri-net-ir";
-import { petriNetIrArcKind, petriNetIrArcWeight } from "./petri-net-ir";
+import {
+  petriNetIrArcKind,
+  petriNetIrArcWeight,
+  resolveZerothTarget,
+} from "./petri-net-ir";
 
 import type { LoweredGraph } from "./lower-petri-net-ir";
 import type { PetriNetIr, PetriNetIrArc } from "./petri-net-ir";
@@ -63,9 +67,21 @@ const KIND_WHY: Record<string, string> = {
   mixed: "Some transitions fire whenever enabled, others by rate.",
 };
 
+const KIND_WHY_CLOCKS: Record<string, string> = {
+  ...KIND_WHY,
+  stochastic:
+    "Every transition has a rate; each arms an exponential clock and fires when it expires.",
+};
+
+/** Whether the document compiles its rates as clocks rather than coins. */
+const clockRates = (ir: Pick<PetriNetIr, "zeroth">): boolean =>
+  resolveZerothTarget(ir.zeroth).rates === "clock";
+
 const FLAG_WHAT: Record<string, string> = {
   shape:
     "The shape flag: one module for the whole net, or one per transition and place",
+  rates:
+    "The rates flag: a rate as a coin tested each step over dt, or as a clock armed with exp(rate) in continuous time",
   marking:
     "The marking flag: places typed as Real, or as Int with a Draw module per transition",
   control:
@@ -101,7 +117,9 @@ const transitionWhy = (ir: PetriNetIr, name: string): string => {
   if (transition.rate !== undefined) {
     parts.push(
       typeof transition.rate === "number"
-        ? `fires at rate ${transition.rate}, tested over dt each step`
+        ? clockRates(ir)
+          ? `fires at rate ${transition.rate}, a clock armed with exp(${transition.rate}) each time it fires`
+          : `fires at rate ${transition.rate}, tested over dt each step`
         : "fires at a rate its tokens decide, tested over dt each step",
     );
   } else if (transition.guard !== undefined) {
@@ -153,7 +171,11 @@ const describeIrPath = (ir: PetriNetIr, path: string[]): Provenance | null => {
     case "description":
       return { what: "The net's description", ir: irPath };
     case "kind":
-      return { what: `A ${ir.kind} net`, why: KIND_WHY[ir.kind], ir: irPath };
+      return {
+        what: `A ${ir.kind} net`,
+        why: (clockRates(ir) ? KIND_WHY_CLOCKS : KIND_WHY)[ir.kind],
+        ir: irPath,
+      };
     case "colours":
       if (entry === undefined) {
         return {
@@ -285,7 +307,9 @@ const describeIrPath = (ir: PetriNetIr, path: string[]): Provenance | null => {
                   : `${field} of ${entry}`,
         why:
           field === "rate"
-            ? "Tested over dt each step; code when the rate reads its tokens."
+            ? clockRates(ir)
+              ? "Arms an exponential clock with this rate when the transition fires."
+              : "Tested over dt each step; code when the rate reads its tokens."
             : field === "guard"
               ? "Present when the condition reads its tokens; a constant condition is folded away."
               : undefined,
@@ -437,6 +461,27 @@ const METHOD_WHAT: Record<string, Provenance> = {
   flow: { what: "The continuous evolution between steps" },
 };
 
+/** The methods of an SPN module: a step is a firing, and a flow runs the clocks. */
+const SPN_METHOD_WHAT: Record<string, Provenance> = {
+  init: METHOD_WHAT.init!,
+  next: {
+    what: "A firing: the statements, then the next values",
+    why: "Time runs until the first clock expires; its transition re-arms the clock, toggles its event, and the places count.",
+  },
+  flow: {
+    what: "The tangents between firings, one per driven variable",
+    why: "A clock counts down against t while its transition is enabled; None leaves an event still.",
+  },
+};
+
+const RETURN_WHAT: Record<string, string> = {
+  init: "The initial values, one per driven variable",
+  flow: "The tangents, one per driven variable, None where it has no flow",
+};
+
+const NEXT_RETURN_WHAT =
+  "The next values, one per driven variable, in the order the module drives them";
+
 /** Traces the generated Python: variables, modules, methods, statements and the system. */
 export const traceReactiveModulePython = (
   graph: LoweredGraph,
@@ -444,6 +489,7 @@ export const traceReactiveModulePython = (
   text: string,
 ): Trace => {
   const composed = graph.language === "spn" || graph.root.kind === "compose";
+  const methodWhat = graph.language === "spn" ? SPN_METHOD_WHAT : METHOD_WHAT;
   const lines = text.split("\n");
   const trace: Trace = [];
   const variables = new Map(
@@ -454,6 +500,7 @@ export const traceReactiveModulePython = (
   );
   let classRange: TraceRange | null = null;
   let methodRange: TraceRange | null = null;
+  let methodName: string | null = null;
   let importsRange: TraceRange | null = null;
   const settle = (range: TraceRange | null, before: number) => {
     if (range === null) {
@@ -515,7 +562,9 @@ export const traceReactiveModulePython = (
       });
       return;
     }
-    const declaration = /^(\w+) = Var\(\w+\)(?:  # (.*))?$/u.exec(line);
+    const declaration = /^(\w+) = Var\(\w+(?:\(\))?\)(?:  # (.*))?$/u.exec(
+      line,
+    );
     if (declaration !== null) {
       const [, name, comment] = declaration;
       const variable = variables.get(name!);
@@ -567,11 +616,12 @@ export const traceReactiveModulePython = (
     const method = /^    def (\w+)\(/u.exec(line);
     if (method !== null) {
       settle(methodRange, number);
-      const known = METHOD_WHAT[method[1]!];
+      methodName = method[1]!;
+      const known = methodWhat[methodName];
       methodRange = {
         startLine: number,
         endLine: number,
-        provenance: known ?? { what: `The ${method[1]} method` },
+        provenance: known ?? { what: `The ${methodName} method` },
       };
       return;
     }
@@ -599,9 +649,9 @@ export const traceReactiveModulePython = (
         startLine: number,
         endLine: number,
         provenance: {
-          what: methodRange?.provenance.what.startsWith("The initial")
-            ? "The initial values, one per driven variable"
-            : "The next values, one per driven variable, in the order the module drives them",
+          what:
+            (methodName === null ? undefined : RETURN_WHAT[methodName]) ??
+            NEXT_RETURN_WHAT,
         },
       });
       return;
@@ -636,6 +686,18 @@ export const traceReactiveModulePython = (
           what: `An instance of ${className} in the ${theory} theory`,
           why: `Drives ${ctrl!.replace(/,$/u, "")}${reads === "" ? "" : ` and reads ${reads}`}.`,
           source,
+        },
+      });
+      return;
+    }
+    if (/^\s+hide=\{[^}]*\},$/u.test(line)) {
+      trace.push({
+        startLine: number,
+        endLine: number,
+        provenance: {
+          what: "The clocks kept private",
+          why: "Each clock belongs to its transition; the events and the places stay in the interface for a controller or an observer to await.",
+          source: { kind: "net", name: ir.name },
         },
       });
       return;

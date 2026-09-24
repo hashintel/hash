@@ -1,9 +1,13 @@
+import { timeReference } from "./names";
+
 /**
  * Reads the lowerings' identifiers back into words: what a variable holds
  * and which place or transition it belongs to. The prefixes are the ones
  * `names.ts` coins; an IR name carries no underscore, so a prefix and its
  * parts split without ambiguity. An attribute name is the user's own and may
- * carry underscores, so it is always the last part and takes the rest.
+ * carry underscores, so it is always the last part and takes the rest. The
+ * time reference is the one coined name without a prefix: a bare lowercase
+ * letter, which no IR name can be.
  */
 
 export type NameSource = { kind: "place" | "transition"; name: string };
@@ -22,6 +26,12 @@ const place = (name: string): NameSource => ({ kind: "place", name });
 
 /** A description of a coined identifier, or `null` for a name the lowerings do not coin. */
 export const describeName = (name: string): NameDescription | null => {
+  if (name === timeReference) {
+    return {
+      what: "The time reference",
+      why: "External and driven by nothing: a clock's flow is a rate against d(t), so a module that reads it awaits t.",
+    };
+  }
   const slot = /^([A-Z][A-Za-z0-9]*)_(\d+)_([A-Za-z_][\w]*)$/u.exec(name);
   if (slot !== null) {
     const [, placeName, index, attribute] = slot;
@@ -64,6 +74,29 @@ export const describeName = (name: string): NameDescription | null => {
       return {
         what: `External choice for ${first}`,
         why: "A controllable transition also waits for a controller to choose it.",
+        source: transition(first),
+      };
+    case "clk":
+      return {
+        what: `Time left until ${first} fires`,
+        why: "Armed with exp(rate) when the transition fires, run down against t while its arcs allow it; hidden in the composition.",
+        source: transition(first),
+      };
+    case "ev":
+      return {
+        what: `Toggles when ${first} fires`,
+        why: "An event fires by changing value; a place reads it with fired().",
+        source: transition(first),
+      };
+    case "fires":
+      return {
+        what: `${first}'s clock ran out and its arcs allow it`,
+        source: transition(first),
+      };
+    case "fired":
+      return {
+        what: `${first} fired this step`,
+        why: "Its event differs between the latched value and the next.",
         source: transition(first),
       };
     case "fill":
