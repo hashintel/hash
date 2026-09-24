@@ -19,4 +19,3 @@ export type {
 } from "./ui/plugins/plugin";
 export { PetrinautPluginsProvider } from "./ui/plugins/plugins-provider";
 export type { PetrinautPluginsProviderProps } from "./ui/plugins/plugins-provider";
-export type { ViewportAction } from "./ui/types/viewport-action";

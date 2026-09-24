@@ -3,12 +3,16 @@
  * @role Brunch Actual Mode demo: streams a live net from a Brunch endpoint
  */
 
+import { PetrinautPluginsProvider } from "@hashintel/petrinaut/ui";
+
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import { sentryFeedbackPlugin } from "../../../sentry/sentry-feedback-plugin";
 import { BrunchActualModeRoute } from "./brunch-actual-mode-route";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { BrunchRouteSearch } from "./brunch-search";
+
+const brunchPlugins = [sentryFeedbackPlugin];
 
 export const BrunchDemoApp = ({
   onSearchChange,
@@ -20,7 +24,6 @@ export const BrunchDemoApp = ({
   ) => void;
   search: BrunchRouteSearch;
 }) => {
-  const sentryFeedbackAction = useSentryFeedbackAction();
   // Petrinaut only mounts below once the Brunch stream is available, and the
   // stream is the whole point of this route, so the location starts in Actual
   // mode. Without this the controlled state would open in Edit mode and the
@@ -30,10 +33,8 @@ export const BrunchDemoApp = ({
   });
 
   return (
-    <BrunchActualModeRoute
-      navigation={navigation}
-      search={search}
-      viewportActions={[sentryFeedbackAction]}
-    />
+    <PetrinautPluginsProvider plugins={brunchPlugins}>
+      <BrunchActualModeRoute navigation={navigation} search={search} />
+    </PetrinautPluginsProvider>
   );
 };

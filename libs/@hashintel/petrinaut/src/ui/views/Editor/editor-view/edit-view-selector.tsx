@@ -70,9 +70,9 @@ const placementStyle = cva({
 });
 
 /**
- * Switches between the Canvas, the Definitions view and the edit views
- * plugins contribute. An edit view the navigation names but nothing provides
- * reads as the Canvas, which is what the editor shows in that case.
+ * Switches between the Canvas and the edit views plugins contribute. An edit
+ * view the navigation names but no plugin provides reads as the Canvas, which
+ * is what the editor shows in that case.
  */
 export const EditViewSelector = ({
   editViews,
@@ -88,9 +88,7 @@ export const EditViewSelector = ({
     isPanelAnimating,
   } = use(EditorContext);
   const { showAnimations } = use(UserSettingsContext);
-  const isCanvas =
-    editViewMode !== "definitions" &&
-    !editViews.some((view) => view.id === editViewMode);
+  const isCanvas = !editViews.some((view) => view.id === editViewMode);
   const left =
     isCanvas && (isLeftSidebarOpen || isSearchOpen)
       ? leftSidebarWidth + 12
@@ -121,7 +119,6 @@ export const EditViewSelector = ({
         onChange={setEditViewMode}
         items={[
           { label: "Canvas", value: "canvas" },
-          { label: "Definitions", value: "definitions" },
           ...editViews.map((view) => ({ label: view.label, value: view.id })),
         ]}
       />
