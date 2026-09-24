@@ -156,7 +156,7 @@ fn document_rejection_preserves_handler_responses() {
     assert_eq!(
         responses.get(&StatusCode::Code(500)),
         Some(&authentication_error),
-        "should preserve the first response for the status shared by both layers"
+        "should document the internal error both layers list only once"
     );
     assert!(
         responses.contains_key(&StatusCode::Code(429)),

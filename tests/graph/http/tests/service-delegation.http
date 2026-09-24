@@ -60,9 +60,9 @@ Content-Type: application/json
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("detail hides the delegated actor", function() {
+  client.test("detail names the delegated actor", function() {
     client.assert(
-      response.body.detail === "credentials are not accepted",
+      response.body.detail === "the service credential carries no delegated actor",
       `Unexpected detail: ${response.body.detail}`
     );
   });

@@ -141,7 +141,7 @@ mod tests {
                 "type": "about:blank",
                 "title": "Bad Request",
                 "status": 400,
-                "detail": "credentials are malformed",
+                "detail": "`X-Authenticated-User-Actor-Id` header is not a valid UUID",
             })
         );
     }
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn bootstrap_route_rejects_a_wrong_secret() {
+    async fn bootstrap_wrong_secret() {
         let response = delegation_router()
             .oneshot(request_with_secret("/policies/seed", "hash-svc-wrong"))
             .await

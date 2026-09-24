@@ -4,15 +4,11 @@ use alloc::borrow::Cow;
 
 use aide::{
     OperationOutput as _, generate,
-    openapi::{
-        Components, OpenApi, Operation, PathItem, Paths, ReferenceOr, Response,
-        StatusCode as DocumentedStatus,
-    },
-    transform::TransformOpenApi,
+    openapi::{Operation, ReferenceOr, StatusCode as DocumentedStatus},
 };
 use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
 use problematic::{
-    Header, Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant, aide::finish,
+    Header, Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant,
 };
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -52,6 +48,8 @@ impl ProblemVariant for WebNotFound {
 }
 
 /// The entity type of the entity does not exist.
+///
+/// Its URL names the missing type.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("The entity type `{url}` does not exist.")]
 struct EntityTypeNotFound {
@@ -194,7 +192,7 @@ fn document_variant() {
     );
     assert_eq!(
         response["headers"]["Retry-After"]["required"], true,
-        "a header the only variant sends should be required"
+        "a header the only variant lists should be required"
     );
 }
 
@@ -217,12 +215,20 @@ fn document_variants_merged() {
         ["Entity not found", "Web not found", "Entity type not found"],
         "every variant should be documented once, in the order of its first source"
     );
+    assert!(
+        media["schema"]["oneOf"][0]["allOf"]
+            .as_array()
+            .expect("the schema should combine the problem details with the variant")
+            .iter()
+            .any(|part| part["properties"]["id"]["description"] == "The ID of the missing entity."),
+        "the schema of a variant should document its extension members"
+    );
     assert_eq!(
         not_found["description"],
         "- Entity not found: The entity named in the request does not exist.\n- Web not found: \
          The web named in the request does not exist.\n- Entity type not found: The entity type \
-         of the entity does not exist.",
-        "the description should list every variant by title"
+         of the entity does not exist.\n  \n  Its URL names the missing type.",
+        "the description should list every variant by title, indenting its further paragraphs"
     );
     assert_eq!(
         media["examples"],
@@ -252,11 +258,77 @@ fn document_variants_merged() {
     let retry_after = &response(&operation, 503)["headers"]["Retry-After"];
     assert!(
         retry_after.is_object(),
-        "a header some variants send should be documented"
+        "a header some variants list should be documented"
     );
     assert_ne!(
         retry_after["required"], true,
-        "a header only some variants send should not be required"
+        "a header only some variants list should not be required"
+    );
+}
+
+/// The store no longer takes requests.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The store is draining.")]
+struct StoreDraining;
+
+impl ProblemVariant for StoreDraining {
+    const HEADERS: &'static [Header] = &[Header::new::<u64>(
+        "retry-after",
+        "Seconds before retrying the request.",
+    )];
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/store/draining"),
+        title: Cow::Borrowed("Store draining"),
+        status: StatusCode::SERVICE_UNAVAILABLE,
+    };
+
+    fn headers(&self, headers: &mut HeaderMap) {
+        headers.insert(RETRY_AFTER, HeaderValue::from(60));
+    }
+}
+
+struct DrainStore;
+
+impl Problem for DrainStore {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<StoreDraining>()];
+}
+
+#[test]
+fn document_headers_shared() {
+    let mut operation = Operation::default();
+    document::<CreateEntity>(&mut operation);
+    document::<DrainStore>(&mut operation);
+    let headers = response(&operation, 503)["headers"].clone();
+
+    assert_eq!(
+        headers
+            .as_object()
+            .expect("the response should document its headers")
+            .len(),
+        1,
+        "the header should be documented once, whatever the case of its name"
+    );
+    assert_eq!(
+        headers["Retry-After"]["required"], true,
+        "a header every variant lists should be required"
+    );
+}
+
+#[test]
+fn document_headers_optional_kept() {
+    let mut operation = Operation::default();
+    document::<CreateEntity>(&mut operation);
+    document::<CreateEntityType>(&mut operation);
+    document::<DrainStore>(&mut operation);
+    let retry_after = &response(&operation, 503)["headers"]["Retry-After"];
+
+    assert!(
+        retry_after.is_object(),
+        "a header only some variants list should stay documented"
+    );
+    assert_ne!(
+        retry_after["required"], true,
+        "a header only some variants list should stay optional"
     );
 }
 
@@ -287,29 +359,28 @@ fn document_conflict() {
 }
 
 #[test]
-fn document_non_problem_response() {
+fn document_response_without_variants() {
     let mut operation = Operation::default();
-    operation
-        .responses
-        .get_or_insert_default()
-        .responses
-        .insert(
-            DocumentedStatus::Code(404),
-            ReferenceOr::Item(Response {
-                description: String::from("The entity is archived."),
-                ..Response::default()
-            }),
-        );
+    generate::in_context(|context| {
+        let foreign =
+            ProblemDetails::<'_, ()>::operation_response(context, &mut Operation::default())
+                .expect("problem details should document a response");
+        operation
+            .responses
+            .get_or_insert_default()
+            .responses
+            .insert(DocumentedStatus::Code(404), ReferenceOr::Item(foreign));
+    });
     document::<CreateEntity>(&mut operation);
     let not_found = response(&operation, 404);
 
     assert_eq!(
-        not_found["description"], "The entity is archived.",
-        "the response should stay as it was"
+        not_found["description"], "An RFC 9457 problem details document.",
+        "a response documenting no variants should stay as it was"
     );
     assert!(
-        not_found["content"]
-            .get("application/problem+json")
+        not_found["content"]["application/problem+json"]["schema"]
+            .get("oneOf")
             .is_none(),
         "the variants should not be added to the response"
     );
@@ -382,6 +453,85 @@ fn document_standard_member_in_branch() {
     document::<RefreshToken>(&mut Operation::default());
 }
 
+/// Names a standard member in one of its untagged variants.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[serde(untagged)]
+#[expect(
+    dead_code,
+    reason = "The test generates the schema without constructing an occurrence."
+)]
+enum Superseded {
+    #[display("The token was replaced.")]
+    Replaced { by: String },
+    #[display("The token was withdrawn.")]
+    Withdrawn { instance: String },
+}
+
+impl ProblemVariant for Superseded {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/token/superseded"),
+        title: Cow::Borrowed("Token superseded"),
+        status: StatusCode::UNAUTHORIZED,
+    };
+}
+
+struct RotateToken;
+
+impl Problem for RotateToken {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<Superseded>()];
+}
+
+#[test]
+#[should_panic(
+    expected = "the extension members of `/problems/token/superseded` should not name the \
+                standard member `instance`"
+)]
+fn document_standard_member_in_untagged() {
+    document::<RotateToken>(&mut Operation::default());
+}
+
+/// An externally tagged enum, whose variants schemars closes to other members.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[expect(
+    dead_code,
+    reason = "The test generates the schema without constructing an occurrence."
+)]
+enum TokenRejected {
+    #[display("The token expired.")]
+    Expired { at: u64 },
+}
+
+impl ProblemVariant for TokenRejected {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/token/rejected"),
+        title: Cow::Borrowed("Token rejected"),
+        status: StatusCode::UNAUTHORIZED,
+    };
+}
+
+struct CheckToken;
+
+impl Problem for CheckToken {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<TokenRejected>()];
+}
+
+#[test]
+fn document_members_open() {
+    let mut operation = Operation::default();
+    document::<CheckToken>(&mut operation);
+    let rejected =
+        serde_json::to_string(&response(&operation, 401)).expect("the response should serialize");
+
+    assert!(
+        rejected.contains("Expired"),
+        "the schema should document the members of the enum"
+    );
+    assert!(
+        !rejected.contains("additionalProperties"),
+        "the members should not close the problem details to its standard members"
+    );
+}
+
 /// Serializes as a number.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("The entity has too many links.")]
@@ -446,47 +596,6 @@ fn document_without_internal() {
             .and_then(|responses| responses.responses.get(&DocumentedStatus::Code(500)))
             .is_none(),
         "a set without the internal error should document no 500"
-    );
-}
-
-#[test]
-fn finish_removes_merge_state() {
-    let mut operation = Operation::default();
-    document::<CreateEntity>(&mut operation);
-    let hoisted = operation
-        .responses
-        .as_mut()
-        .and_then(|responses| {
-            responses
-                .responses
-                .shift_remove(&DocumentedStatus::Code(503))
-        })
-        .expect("the status should be documented");
-    let mut api = OpenApi {
-        paths: Some(Paths {
-            paths: [(
-                String::from("/entities"),
-                ReferenceOr::Item(PathItem {
-                    post: Some(operation),
-                    ..PathItem::default()
-                }),
-            )]
-            .into(),
-            ..Paths::default()
-        }),
-        components: Some(Components {
-            responses: [(String::from("StoreBusy"), hoisted)].into(),
-            ..Components::default()
-        }),
-        ..OpenApi::default()
-    };
-    let _: TransformOpenApi<'_> = finish(TransformOpenApi::new(&mut api));
-
-    assert!(
-        !serde_json::to_string(&api)
-            .expect("the document should serialize")
-            .contains("x-problem-variants"),
-        "neither operation nor component responses should keep the merge state"
     );
 }
 

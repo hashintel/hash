@@ -332,8 +332,8 @@ impl ProblemVariant for TooManyRequests {
 
 impl IntoResponse for TooManyRequests {
     fn into_response(self) -> Response {
-        // A flood is answered with this rejection, so it must not allocate or serialize per
-        // request: `retry_after` travels in the header only, which leaves the body constant.
+        // A flood is answered with this rejection, so its body is serialized once: `retry_after`
+        // travels in the header only, which leaves the body constant.
         static BODY: LazyLock<&'static [u8]> = LazyLock::new(|| {
             let answer = Answer::<RateLimitProblem>::new(TooManyRequests {
                 retry_after: NonZero::<u64>::MIN,

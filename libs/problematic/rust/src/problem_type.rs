@@ -5,7 +5,7 @@ use http::StatusCode;
 use crate::ProblemDetails;
 
 /// A problem type: the type URI, title and status every occurrence of one kind of problem shares
-/// ([RFC 9457, section 3.1](https://www.rfc-editor.org/rfc/rfc9457#section-3.1)).
+/// ([RFC 9457, section 4](https://www.rfc-editor.org/rfc/rfc9457#section-4)).
 ///
 /// A [`ProblemVariant`](crate::ProblemVariant) specifies its problem type, and the
 /// [`ProblemDetails`] a client receives for the variant are created from it.

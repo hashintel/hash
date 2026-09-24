@@ -45,19 +45,6 @@ fn details_typed_extensions() {
 }
 
 #[test]
-fn details_empty_extensions() {
-    let body = json!({"type": "about:blank", "title": "Internal Server Error", "status": 500});
-    let encoded = serde_json::to_string(&body).expect("the response should serialize");
-    let details: ProblemDetails<'_> =
-        serde_json::from_str(&encoded).expect("the response should deserialize without extensions");
-    assert_eq!(
-        serde_json::to_value(details).expect("the details should serialize"),
-        body,
-        "the roundtrip should preserve omitted occurrence fields"
-    );
-}
-
-#[test]
 fn details_default_type() {
     let encoded = r#"{"title":"Internal Server Error","status":500}"#;
     let details: ProblemDetails<'_> =

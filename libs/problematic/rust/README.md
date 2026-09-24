@@ -8,7 +8,7 @@ A client can act on some errors of an endpoint, such as a missing user. Other er
 - A `Problem` lists the variants one endpoint answers with, and the internal error if an error of the endpoint stays internal.
 - `Expose` maps every error of your error type to one of these variants, or keeps it internal.
 
-Answering with a variant the `Problem` does not list fails to compile. A handler returns `Result<_, Rejection<K>>`, and `?` turns its error into the problem details response that `K` allows.
+Answering with a variant whose type URI and status the `Problem` does not list fails to compile. A handler returns `Result<_, Rejection<K>>`, and `?` turns its error into the problem details response that `K` allows.
 
 `ProblemDetails` serializes and deserializes problem details objects, borrowing strings from the input where it can, and describes them as JSON Schema.
 
@@ -17,7 +17,7 @@ Answering with a variant the `Problem` does not list fails to compile. A handler
 ## Features
 
 - `axum`: a `Rejection` is an [axum](https://docs.rs/axum) response.
-- `aide`: every endpoint documents its errors with [aide](https://docs.rs/aide), one `application/problem+json` response per status.
+- `aide`: the OpenAPI document that [aide](https://docs.rs/aide) generates lists the errors of every endpoint.
 
 No features are enabled by default.
 

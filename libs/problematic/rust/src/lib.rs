@@ -14,15 +14,21 @@
 //!   error of the endpoint stays internal.
 //! - [`Expose`] maps every error of your error type to one of these variants, or keeps it internal.
 //!
-//! Answering with a variant the [`Problem`] does not list fails to compile. A handler returns
-//! <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code>, and `?` turns its error into the problem
-//! details response that `K` allows. With the `aide` feature, the OpenAPI documentation of the
-//! endpoint lists exactly these errors, see [`aide`].
+//! Answering with a variant whose type URI and status the [`Problem`] does not list fails to
+//! compile. A handler returns <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code>, and `?` turns
+//! its error into the problem details response that `K` allows. With the `aide` feature, the
+//! OpenAPI documentation of the endpoint lists these errors next to those of its middlewares, see
+//! [`aide`].
+//!
+//! [`ProblemDetails`] serializes and deserializes problem details objects, borrowing strings from
+//! the input where it can, and describes them as JSON Schema. problematic requires a nightly
+//! toolchain.
 //!
 //! # Features
 //!
 //! - `axum`: a [`Rejection`] is an [axum](https://docs.rs/axum) response.
-//! - `aide`: every endpoint documents its errors with [aide](https://docs.rs/aide).
+//! - `aide`: the OpenAPI document that [aide](https://docs.rs/aide) generates lists the errors of
+//!   every endpoint.
 //!
 //! # Examples
 //!
@@ -83,7 +89,7 @@
 //! }
 //!
 //! // The errors a client can receive from `PATCH /users/{user}`. A failed store stays internal,
-//! // so the set lists the internal error as well.
+//! // so `UpdateUserProblem` lists the internal error as well.
 //! struct UpdateUserProblem;
 //!
 //! impl Problem for UpdateUserProblem {
@@ -105,8 +111,9 @@
 //! #         formatter.write_str("could not update the user")
 //! #     }
 //! # }
-//! #
-//! # impl core::error::Error for UpdateUserError {}
+//!
+//! // A rejection keeps the error it was created from, so the error type implements `Error`.
+//! impl core::error::Error for UpdateUserError {}
 //!
 //! // Maps every error to the variant the client receives, or keeps it internal.
 //! impl Expose<UpdateUserProblem> for UpdateUserError {
@@ -130,18 +137,17 @@
 //!     }
 //! }
 //!
-//! // `?` turns the error into a rejection, which answers with problem details.
+//! // `?` turns the error into a rejection, which becomes the problem details response.
 //! async fn update_user(Path(user): Path<String>) -> Result<(), Rejection<UpdateUserProblem>> {
 //!     update(&user)?;
 //!     Ok(())
 //! }
 //!
-//! // aide documents the errors of the route from the return type of its handler, and `finish`
-//! // completes the error responses.
+//! // aide documents the errors of the route from the return type of its handler.
 //! let mut api = OpenApi::default();
 //! let _router: axum::Router = ApiRouter::new()
 //!     .api_route("/users/{user}", patch(update_user))
-//!     .finish_api_with(&mut api, problematic::aide::finish);
+//!     .finish_api(&mut api);
 //!
 //! let api = serde_json::to_value(&api)?;
 //! let responses = &api["paths"]["/users/{user}"]["patch"]["responses"];

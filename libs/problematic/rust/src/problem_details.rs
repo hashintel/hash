@@ -12,7 +12,7 @@ const fn default_type_uri() -> Cow<'static, str> {
     Cow::Borrowed("about:blank")
 }
 
-/// An integer without bounds: each documented response fixes the status as a constant.
+/// The status as an integer, which the schema of each documented variant fixes to a constant.
 fn status_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
     schemars::json_schema!({ "type": "integer" })
 }
@@ -70,9 +70,8 @@ pub struct ProblemDetails<'a, E = ()> {
     ///
     /// Serialization fails for values other than an object, a unit or `None`, and for top-level
     /// members named `type`, `title`, `status`, `detail`, or `instance`. Nested members may use
-    /// these names. Errors from the
-    /// extension serializer propagate. The extension type must support Serde flattening for
-    /// deserialization.
+    /// these names. Errors from the extension serializer propagate. The extension type must
+    /// support Serde flattening for deserialization.
     #[serde(
         flatten,
         serialize_with = "serialize_extensions",

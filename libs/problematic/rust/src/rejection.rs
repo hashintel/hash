@@ -8,7 +8,8 @@ use crate::{Answer, Expose, Problem, ProblemDetails, problem::INTERNAL};
 /// The error a request handler returns, which becomes a problem details response.
 ///
 /// A handler returns `Result<_, Rejection<K>>`, and `?` creates the rejection from any error that
-/// implements [`Expose<K>`](Expose). The response carries the [`ProblemDetails`] of the answer as
+/// implements [`Expose<K>`](Expose): an [`Error`] or an `error_stack::Report` that is `Send`,
+/// `Sync` and `'static`. The response carries the [`ProblemDetails`] of the answer as
 /// `application/problem+json`, with the headers of the variant. A variant whose details fail to
 /// serialize is logged, and the client receives `500 Internal Server Error` instead.
 /// [`error`](Self::error) returns the error, for example to log it.
@@ -40,6 +41,8 @@ impl<K> Rejection<K> {
     }
 
     /// The error the rejection was created from.
+    ///
+    /// A `Report` is kept as an error that cannot be downcast back to the `Report`.
     #[must_use]
     pub fn error(&self) -> &(dyn Error + Send + Sync + 'static) {
         &*self.rendered.error
@@ -181,12 +184,34 @@ mod tests {
         };
     }
 
+    /// Adds a `Content-Type` of its own.
+    #[derive(Serialize, JsonSchema, derive_more::Display)]
+    #[display("The user is archived.")]
+    struct UserArchived;
+
+    impl ProblemVariant for UserArchived {
+        const HEADERS: &'static [Header] = &[Header::new::<String>(
+            "Content-Type",
+            "The media type of the response.",
+        )];
+        const TYPE: ProblemType = ProblemType {
+            type_uri: Cow::Borrowed("/problems/user/archived"),
+            title: Cow::Borrowed("User archived"),
+            status: StatusCode::GONE,
+        };
+
+        fn headers(&self, headers: &mut HeaderMap) {
+            headers.insert(CONTENT_TYPE, HeaderValue::from_static("text/plain"));
+        }
+    }
+
     struct UpdateUserProblem;
 
     impl Problem for UpdateUserProblem {
         const VARIANTS: &'static [Variant] = &[
             Variant::of::<StoreBusy>(),
             Variant::of::<UserLocked>(),
+            Variant::of::<UserArchived>(),
             Variant::INTERNAL,
         ];
     }
@@ -197,6 +222,8 @@ mod tests {
         Busy,
         #[display("the user is locked")]
         Locked,
+        #[display("the user is archived")]
+        Archived,
         #[display("the user store is unreachable")]
         Unreachable,
     }
@@ -208,6 +235,7 @@ mod tests {
             match self {
                 Self::Busy => Answer::new(StoreBusy { retry_after: 30 }),
                 Self::Locked => Answer::new(UserLocked { status: "locked" }),
+                Self::Archived => Answer::new(UserArchived),
                 Self::Unreachable => Answer::internal(),
             }
         }
@@ -222,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn rejection_exposed() {
+    fn response_exposed() {
         let response = Response::from(Rejection::<UpdateUserProblem>::from(UpdateUserError::Busy));
 
         assert_eq!(
@@ -253,7 +281,20 @@ mod tests {
     }
 
     #[test]
-    fn rejection_internal() {
+    fn response_media_type() {
+        let response = Response::from(Rejection::<UpdateUserProblem>::from(
+            UpdateUserError::Archived,
+        ));
+
+        assert_eq!(
+            response.headers()[CONTENT_TYPE],
+            "application/problem+json",
+            "the headers of the variant should not replace the media type"
+        );
+    }
+
+    #[test]
+    fn response_internal() {
         let rejection = Rejection::<UpdateUserProblem>::from(UpdateUserError::Unreachable);
 
         assert_matches!(
@@ -275,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn rejection_unserializable() {
+    fn response_unserializable() {
         let response = Response::from(Rejection::<UpdateUserProblem>::from(
             UpdateUserError::Locked,
         ));

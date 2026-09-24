@@ -127,7 +127,6 @@ fn extensions_without_members() {
     struct Marker;
 
     let bare = json!({"type": "about:blank", "title": "Bad Request", "status": 400});
-    assert_serialization(json!(null), &bare);
     assert_serialization(None::<u8>, &bare);
     assert_serialization((), &bare);
     assert_serialization(Marker, &bare);

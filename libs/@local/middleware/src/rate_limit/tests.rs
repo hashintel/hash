@@ -4,15 +4,23 @@ use alloc::sync::Arc;
 use core::{
     marker::PhantomData,
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    num::NonZero,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use axum::{Router, body::Body, extract::ConnectInfo, response::Response, routing::get};
+use axum::{
+    Router,
+    body::Body,
+    extract::ConnectInfo,
+    response::{IntoResponse as _, Response},
+    routing::get,
+};
 use error_stack::Report;
 use http::{
     Request, StatusCode,
     header::{CONTENT_TYPE, RETRY_AFTER},
 };
+use problematic::Answer;
 use serde_json::{Value, json};
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -20,7 +28,7 @@ use uuid::Uuid;
 
 use super::{
     CallerLimitLayer, CallerRateLimitConfig, ClientIpSource, IpGateLayer, RateLimitConfig,
-    RateLimitMode, RateLimiters,
+    RateLimitMode, RateLimitProblem, RateLimiters, TooManyRequests,
 };
 use crate::{
     authentication::{
@@ -206,6 +214,19 @@ async fn response_json(response: Response) -> Value {
         .await
         .expect("the response body should be readable");
     serde_json::from_slice(&body).expect("the response body should be JSON")
+}
+
+/// The body is serialized once for every delay, so it is the details of any delay's answer.
+#[tokio::test]
+async fn too_many_requests_body() {
+    let retry_after = NonZero::new(17).expect("should use a nonzero retry delay");
+    let answer = Answer::<RateLimitProblem>::new(TooManyRequests { retry_after });
+
+    assert_eq!(
+        response_json(TooManyRequests { retry_after }.into_response()).await,
+        serde_json::to_value(answer.details()).expect("the details should serialize"),
+        "the body should be the details of the answer with the actual delay"
+    );
 }
 
 #[tokio::test]

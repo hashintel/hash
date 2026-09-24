@@ -6,7 +6,7 @@ use serde_core::Serialize;
 
 use crate::{
     Problem, ProblemDetails, ProblemVariant,
-    problem::{INTERNAL, Occurrence, contains},
+    problem::{INTERNAL, Occurrence, contains, is_internal},
 };
 
 /// Maps an error to the answer its client receives: a variant of the [`Problem`] `K`, or the
@@ -17,7 +17,8 @@ use crate::{
 /// or keeps the error internal through [`Answer::internal`]. As `K` is a local type, it can be
 /// implemented for a foreign error type such as `error_stack::Report<C>`.
 ///
-/// A [`Rejection<K>`](crate::Rejection) can be created from every error implementing `Expose<K>`.
+/// A [`Rejection<K>`](crate::Rejection) can be created from every error implementing `Expose<K>`
+/// that is an [`Error`](core::error::Error) or a `Report`, and `Send`, `Sync` and `'static`.
 pub trait Expose<K: Problem> {
     /// The answer the client receives for this error.
     fn expose(&self) -> Answer<'_, K>;
@@ -33,7 +34,7 @@ pub struct Answer<'s, K> {
 }
 
 enum Answered<'s> {
-    Variant(Box<dyn Occurrence + 's>),
+    Variant(Box<dyn Occurrence + Send + Sync + 's>),
     Internal,
 }
 
@@ -92,12 +93,53 @@ impl<'s, K: Problem> Answer<'s, K> {
     /// // Fails to compile: `GetUserProblem` does not list `EmailTaken`.
     /// let answer = Answer::<GetUserProblem>::new(EmailTaken);
     /// ```
+    ///
+    /// It also fails to compile if `V` has the problem type reserved for the internal error,
+    /// `about:blank` at `500`:
+    ///
+    /// ```compile_fail,E0080
+    /// # use std::{borrow::Cow, fmt};
+    /// use http::StatusCode;
+    /// use problematic::{Answer, Problem, ProblemType, ProblemVariant, Variant};
+    ///
+    /// #[derive(serde::Serialize, schemars::JsonSchema)]
+    /// struct QueryFailed {
+    ///     query: &'static str,
+    /// }
+    /// # impl fmt::Display for QueryFailed {
+    /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         formatter.write_str("The query failed.")
+    /// #     }
+    /// # }
+    ///
+    /// impl ProblemVariant for QueryFailed {
+    ///     const TYPE: ProblemType = ProblemType {
+    ///         type_uri: Cow::Borrowed("about:blank"),
+    ///         title: Cow::Borrowed("Internal Server Error"),
+    ///         status: StatusCode::INTERNAL_SERVER_ERROR,
+    ///     };
+    /// }
+    ///
+    /// /// The errors a client can receive from `GET /users/{id}`.
+    /// struct GetUserProblem;
+    ///
+    /// impl Problem for GetUserProblem {
+    ///     const VARIANTS: &'static [Variant] = &[Variant::INTERNAL];
+    /// }
+    ///
+    /// // Fails to compile: `QueryFailed` would pass as the internal error, with its members.
+    /// let answer = Answer::<GetUserProblem>::new(QueryFailed { query: "SELECT 1" });
+    /// ```
     #[must_use]
-    pub fn new<V: ProblemVariant + 's>(variant: V) -> Self {
+    pub fn new<V: ProblemVariant + Send + Sync + 's>(variant: V) -> Self {
         const {
             assert!(
                 contains(K::VARIANTS, &V::TYPE),
                 "`K::VARIANTS` should list the variant"
+            );
+            assert!(
+                !is_internal(&V::TYPE),
+                "a variant should leave `about:blank` at 500 to `Answer::internal`"
             );
         };
 

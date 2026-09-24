@@ -50,19 +50,23 @@ impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
 /// The `detail` a failure of `kind` is answered with.
 ///
 /// Says nothing about the service's credentials, identities or actors, so several kinds share
-/// one message. [`Display`], used for server-side logs, tells them apart.
-///
-/// [`Display`]: core::fmt::Display
+/// one message. Only a caller that presented the valid service secret learns that its actor-ID
+/// header is missing or malformed. The `Display` of [`AuthenticationErrorKind`], which
+/// server-side logs use, tells every kind apart.
 const fn detail(kind: &AuthenticationErrorKind) -> &'static str {
     match kind {
         AuthenticationErrorKind::MissingCredentials => "no credentials provided",
-        AuthenticationErrorKind::MalformedCredential
-        | AuthenticationErrorKind::InvalidActorIdHeader => "credentials are malformed",
+        AuthenticationErrorKind::MalformedCredential => "credentials are malformed",
+        AuthenticationErrorKind::InvalidActorIdHeader => {
+            "`X-Authenticated-User-Actor-Id` header is not a valid UUID"
+        }
+        AuthenticationErrorKind::MissingDelegatedActor => {
+            "the service credential carries no delegated actor"
+        }
         AuthenticationErrorKind::InvalidSession => "session is invalid or expired",
         AuthenticationErrorKind::InvalidAccessToken => "access token is invalid or expired",
         AuthenticationErrorKind::MissingServiceSecret
         | AuthenticationErrorKind::InvalidServiceSecret
-        | AuthenticationErrorKind::MissingDelegatedActor
         | AuthenticationErrorKind::IdentityWithoutActor
         | AuthenticationErrorKind::NotProvisioned { .. }
         | AuthenticationErrorKind::ActorNotFound { .. }
@@ -142,19 +146,28 @@ impl ProblemVariant for ServiceUnavailable<'_> {
 
 #[cfg(test)]
 mod tests {
+    use error_stack::Report;
+    use problematic::Expose;
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::detail;
-    use crate::authentication::request::every_error;
+    use super::AuthenticationProblem;
+    use crate::authentication::request::{AuthenticationErrorKind, every_error};
 
-    /// Every error the client can reach reports something.
     #[test]
-    fn detail_every_kind() {
+    fn expose_failed_exchange_internal() {
         for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
-            assert!(
-                !detail(error.kind()).is_empty(),
-                "`{error}` should report a detail"
+            let exchange_failed = matches!(
+                error.kind(),
+                AuthenticationErrorKind::ProviderRejection
+                    | AuthenticationErrorKind::InvalidProviderResponse
+            );
+            let message = error.to_string();
+            let report = Report::new(error);
+            assert_eq!(
+                Expose::<AuthenticationProblem>::expose(&report).is_internal(),
+                exchange_failed,
+                "`{message}` should be internal only if the exchange with the provider failed"
             );
         }
     }

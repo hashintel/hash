@@ -600,6 +600,7 @@ pub(crate) mod tests {
     };
     use error_stack::Report;
     use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
+    use hash_middleware::authentication::request::{AuthenticationError, AuthenticationErrorKind};
     use tracing::{
         Dispatch, Event, Level, Subscriber,
         field::{Field, Visit},
@@ -831,5 +832,17 @@ pub(crate) mod tests {
             assert_eq!(document["status"], 503);
             assert_eq!(document["type"], "/problems/atlas/visibility-unavailable");
         }
+    }
+
+    /// A failure the authentication middleware keeps internal answers the `internal` problem.
+    #[test]
+    fn authentication_internal() {
+        let report = Report::new(AuthenticationError::new(
+            AuthenticationErrorKind::InvalidProviderResponse,
+        ));
+        let document =
+            serde_json::to_value(Problem::from(&report)).expect("should serialize the problem");
+        assert_eq!(document["status"], 500);
+        assert_eq!(document["type"], "/problems/atlas/internal");
     }
 }

@@ -11,8 +11,6 @@
 //! [`OperationOutput`] implementation of <code>[Rejection]&lt;K&gt;</code> for the [`Problem`] of
 //! the middleware. Its responses join those of the handler.
 //!
-//! Once every handler and middleware is documented, [`finish`] completes the error responses.
-//!
 //! # Examples
 //!
 //! A router whose handler and rate limit both document their errors:
@@ -27,7 +25,7 @@
 //!     transform::TransformOpenApi,
 //!     util::iter_operations_mut,
 //! };
-//! use problematic::{Rejection, aide::finish};
+//! use problematic::Rejection;
 //! # use http::StatusCode;
 //! # use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Variant};
 //! #
@@ -128,8 +126,7 @@
 //! let mut api = OpenApi::default();
 //! let _router: axum::Router = ApiRouter::new()
 //!     .api_route("/users/{user}", patch(update_user))
-//!     // The middleware is documented before `finish` completes the error responses.
-//!     .finish_api_with(&mut api, |api| api.with(document_rate_limit).with(finish));
+//!     .finish_api_with(&mut api, document_rate_limit);
 //!
 //! // The handler documents `404` and `500`, the rate limit `429`.
 //! let api = serde_json::to_value(&api)?;
@@ -158,8 +155,6 @@ use aide::{
         Example, Header, HeaderStyle, MediaType, Operation, ParameterSchemaOrContent, ReferenceOr,
         Response, SchemaObject, StatusCode,
     },
-    transform::TransformOpenApi,
-    util::iter_operations_mut,
 };
 use schemars::{JsonSchema, Schema, json_schema};
 
@@ -186,6 +181,9 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
     }
 }
 
+/// Documents a rejection through the responses `aide` infers for a handler, or through
+/// [`inferred_responses`](Self::inferred_responses). An explicit
+/// `TransformOperation::response::<N, Rejection<K>>()` documents nothing.
 impl<K: Problem> OperationOutput for crate::Rejection<K> {
     type Inner = Self;
 
@@ -196,8 +194,9 @@ impl<K: Problem> OperationOutput for crate::Rejection<K> {
     /// Documents the variants of `K` on the endpoint, joined with the errors every other
     /// [`Problem`] of the endpoint documents at the same status.
     ///
-    /// A status that already has a response other than problem details keeps it, and the
-    /// variants of `K` for that status are not documented.
+    /// A status that already has a response documenting no variants, such as one for
+    /// [`ProblemDetails`] itself, keeps it, and the variants of `K` for that status are not
+    /// documented.
     ///
     /// # Panics
     ///
@@ -252,41 +251,8 @@ impl<K: Problem> OperationOutput for crate::Rejection<K> {
     }
 }
 
-/// The extension a problem response keeps its variants in until [`finish`] removes it.
-const FRAGMENTS: &str = "x-problem-variants";
-
-/// Completes the error responses of an OpenAPI document once every route is documented.
-///
-/// `aide` builds the OpenAPI document of an `ApiRouter` in `ApiRouter::finish_api_with`, which
-/// applies a transform to it; pass `finish` as that transform. Until then, every error response
-/// carries an `x-problem-variants` extension, which records its variants so that a later handler
-/// or middleware of the endpoint can join them. Errors documented after `finish` are not joined
-/// with the responses it completed.
-pub fn finish(mut transform: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
-    let document = transform.inner_mut();
-    let operations = document
-        .paths
-        .iter_mut()
-        .flat_map(|paths| paths.paths.values_mut())
-        .filter_map(ReferenceOr::as_item_mut)
-        .flat_map(|path| iter_operations_mut(path).map(|(_, operation)| operation))
-        .filter_map(|operation| operation.responses.as_mut())
-        .flat_map(|responses| responses.responses.values_mut());
-    let components = document
-        .components
-        .iter_mut()
-        .flat_map(|components| components.responses.values_mut());
-    for response in operations
-        .chain(components)
-        .filter_map(ReferenceOr::as_item_mut)
-    {
-        response.extensions.shift_remove(FRAGMENTS);
-    }
-    transform
-}
-
 /// One variant as a response documents it.
-#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 struct Fragment {
     type_uri: String,
     title: String,
@@ -297,7 +263,7 @@ struct Fragment {
     headers: Vec<HeaderFragment>,
 }
 
-#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 struct HeaderFragment {
     name: String,
     description: String,
@@ -330,8 +296,137 @@ impl Fragment {
         }
     }
 
+    /// The variant a `branch` of a rendered response documents, with `headers`.
+    ///
+    /// `None` if `branch` does not document a variant.
+    fn read(
+        branch: &serde_json::Value,
+        media: &MediaType,
+        single: bool,
+        headers: &[HeaderFragment],
+    ) -> Option<Self> {
+        let (type_uri, status) = branch.get("allOf")?.as_array()?.iter().find_map(|part| {
+            let properties = part.get("properties")?;
+            Some((
+                properties.get("type")?.get("const")?.as_str()?,
+                properties.get("status")?.get("const")?.as_u64()?,
+            ))
+        })?;
+        let example = if single {
+            media.example.clone()
+        } else {
+            media
+                .examples
+                .get(type_uri)
+                .and_then(ReferenceOr::as_item)
+                .and_then(|example| example.value.clone())
+        };
+
+        Some(Self {
+            type_uri: type_uri.to_owned(),
+            title: branch.get("title")?.as_str()?.to_owned(),
+            status: u16::try_from(status).ok()?,
+            description: branch
+                .get("description")
+                .and_then(serde_json::Value::as_str)
+                .map(ToOwned::to_owned),
+            schema: serde_json::from_value(branch.clone()).ok()?,
+            example,
+            headers: headers.to_vec(),
+        })
+    }
+
     fn same_problem(&self, other: &Self) -> bool {
         self.status == other.status && self.type_uri == other.type_uri
+    }
+
+    /// Whether `other` documents the problem as `self` does, leaving the headers aside: a variant
+    /// read back from a response knows only the headers every variant at its status lists.
+    fn documents_like(&self, other: &Self) -> bool {
+        self.title == other.title
+            && self.description == other.description
+            && self.schema == other.schema
+            && self.example == other.example
+    }
+}
+
+/// The variants documented at one status of an operation.
+#[derive(Default)]
+struct Documented {
+    fragments: Vec<Fragment>,
+    /// The headers only some variants list. A response read back no longer tells which ones.
+    optional_headers: Vec<HeaderFragment>,
+}
+
+impl Documented {
+    /// The variants `response` documents, or `None` if `response` does not document variants.
+    fn read(response: &Response) -> Option<Self> {
+        let media = response.content.get("application/problem+json")?;
+        let schema = media.schema.as_ref()?.json_schema.as_value();
+        let branches = match schema.get("oneOf") {
+            Some(branches) => branches.as_array()?.iter().collect(),
+            None => vec![schema],
+        };
+
+        let mut required_headers = Vec::new();
+        let mut optional_headers = Vec::new();
+        for (name, header) in &response.headers {
+            let header = header.as_item()?;
+            let ParameterSchemaOrContent::Schema(schema) = &header.format else {
+                return None;
+            };
+            let fragment = HeaderFragment {
+                name: name.clone(),
+                description: header.description.clone().unwrap_or_default(),
+                schema: schema.json_schema.clone(),
+            };
+            if header.required {
+                required_headers.push(fragment);
+            } else {
+                optional_headers.push(fragment);
+            }
+        }
+
+        let single = branches.len() == 1;
+        let fragments = branches
+            .into_iter()
+            .map(|branch| Fragment::read(branch, media, single, &required_headers))
+            .collect::<Option<_>>()?;
+        Some(Self {
+            fragments,
+            optional_headers,
+        })
+    }
+
+    /// Adds `fragment` unless it is documented already.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the problem type and status of `fragment` are documented differently.
+    fn join(&mut self, fragment: Fragment) {
+        match self
+            .fragments
+            .iter()
+            .find(|present| present.same_problem(&fragment))
+        {
+            Some(present) => assert!(
+                present.documents_like(&fragment),
+                "`{}` at {} should be documented the same by every source of the operation",
+                fragment.type_uri,
+                fragment.status
+            ),
+            None => self.fragments.push(fragment),
+        }
+    }
+
+    /// The response documenting the variants.
+    fn render(self) -> Response {
+        let mut media = problem_media(response_schema(&self.fragments));
+        add_examples(&mut media, &self.fragments);
+
+        let mut response = problem_response(describe(&self.fragments), media);
+        add_headers(&mut response, &self.fragments, &self.optional_headers);
+        response
     }
 }
 
@@ -351,64 +446,21 @@ fn merge<'v>(
     let responses = operation.responses.get_or_insert_default();
     for (status, fragments) in by_status {
         let status = StatusCode::Code(status);
-        let mut merged = match responses.responses.get(&status) {
-            None => Vec::new(),
-            Some(existing) => match existing.as_item().and_then(fragments_of) {
-                Some(merged) => merged,
-                // A non-problem response keeps its status.
+        let mut documented = match responses.responses.get(&status) {
+            None => Documented::default(),
+            Some(existing) => match existing.as_item().and_then(Documented::read) {
+                Some(documented) => documented,
+                // A response that documents no variants keeps its status.
                 None => continue,
             },
         };
         for fragment in fragments {
-            join(&mut merged, fragment);
+            documented.join(fragment);
         }
         responses
             .responses
-            .insert(status, ReferenceOr::Item(render(merged)));
+            .insert(status, ReferenceOr::Item(documented.render()));
     }
-}
-
-/// The variants a problem response documents, or `None` for a non-problem response.
-fn fragments_of(response: &Response) -> Option<Vec<Fragment>> {
-    let fragments = response.extensions.get(FRAGMENTS)?;
-    Some(
-        serde_json::from_value(fragments.clone())
-            .expect("the documented problem variants should deserialize"),
-    )
-}
-
-/// Adds `fragment` to `fragments` unless it is documented there already.
-///
-/// # Panics
-///
-/// Panics if `fragments` documents the problem type and status of `fragment` differently.
-fn join(fragments: &mut Vec<Fragment>, fragment: Fragment) {
-    match fragments
-        .iter()
-        .find(|present| present.same_problem(&fragment))
-    {
-        Some(present) => assert!(
-            *present == fragment,
-            "`{}` at {} should be documented the same by every source of the operation",
-            fragment.type_uri,
-            fragment.status
-        ),
-        None => fragments.push(fragment),
-    }
-}
-
-/// The response documenting `fragments`, which share one status.
-fn render(fragments: Vec<Fragment>) -> Response {
-    let mut media = problem_media(response_schema(&fragments));
-    add_examples(&mut media, &fragments);
-
-    let mut response = problem_response(describe(&fragments), media);
-    add_headers(&mut response, &fragments);
-    response.extensions.insert(
-        FRAGMENTS.to_owned(),
-        serde_json::to_value(fragments).expect("the problem variants should serialize"),
-    );
-    response
 }
 
 /// The schema of the one variant, or a `oneOf` over every variant.
@@ -448,9 +500,13 @@ fn add_examples(media: &mut MediaType, fragments: &[Fragment]) {
         .collect();
 }
 
-/// Adds every header of the variants, required where each variant sends it.
-fn add_headers(response: &mut Response, fragments: &[Fragment]) {
-    for header in fragments.iter().flat_map(|fragment| &fragment.headers) {
+/// Adds every header the variants list and every one of `optional`, each required if every
+/// variant lists it.
+fn add_headers(response: &mut Response, fragments: &[Fragment], optional: &[HeaderFragment]) {
+    let listed = optional
+        .iter()
+        .chain(fragments.iter().flat_map(|fragment| &fragment.headers));
+    for header in listed {
         if response
             .headers
             .keys()
@@ -458,12 +514,15 @@ fn add_headers(response: &mut Response, fragments: &[Fragment]) {
         {
             continue;
         }
-        let required = fragments.iter().all(|fragment| {
-            fragment
-                .headers
-                .iter()
-                .any(|candidate| candidate.name.eq_ignore_ascii_case(&header.name))
-        });
+        let required = !optional
+            .iter()
+            .any(|candidate| candidate.name.eq_ignore_ascii_case(&header.name))
+            && fragments.iter().all(|fragment| {
+                fragment
+                    .headers
+                    .iter()
+                    .any(|candidate| candidate.name.eq_ignore_ascii_case(&header.name))
+            });
         response.headers.insert(
             header.name.clone(),
             ReferenceOr::Item(Header {
@@ -611,6 +670,28 @@ fn without_members(extensions: &Schema) -> bool {
     })
 }
 
+/// Removes the keywords that close the members' object, and those of every `oneOf`, `anyOf` and
+/// `allOf` branch, to other members.
+///
+/// In the `allOf` of a variant, `additionalProperties` and `unevaluatedProperties` would also
+/// apply to the standard members. schemars adds `additionalProperties: false` to every variant of
+/// an externally tagged enum and to a struct that denies unknown fields.
+fn open(schema: &mut serde_json::Map<String, serde_json::Value>) {
+    schema.remove("additionalProperties");
+    schema.remove("unevaluatedProperties");
+    for keyword in ["oneOf", "anyOf", "allOf"] {
+        for branch in schema
+            .get_mut(keyword)
+            .and_then(serde_json::Value::as_array_mut)
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_object_mut)
+        {
+            open(branch);
+        }
+    }
+}
+
 /// The problem details of `variant`, titled with its problem type and described like the variant.
 fn variant_schema(
     base: &Schema,
@@ -630,6 +711,10 @@ fn variant_schema(
         }),
     ];
     if !without_members(&extensions) {
+        let mut extensions = extensions;
+        if let Some(members) = extensions.as_object_mut() {
+            open(members);
+        }
         all_of.push(extensions);
     }
 
