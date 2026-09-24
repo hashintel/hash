@@ -47,7 +47,7 @@ use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
 };
-use problematic::{Answer, Expose, axum::Rejection};
+use problematic::{Answer, Expose, Rejection};
 use type_system::principal::actor::ActorId;
 
 #[cfg(feature = "aide")]
@@ -159,10 +159,10 @@ pub enum AuthenticationRejection {
 impl Error for AuthenticationRejection {}
 
 impl Expose<AuthenticationProblem> for AuthenticationRejection {
-    fn expose(&self) -> Option<Answer<'_, AuthenticationProblem>> {
+    fn expose(&self) -> Answer<'_, AuthenticationProblem> {
         match self {
             Self::Authentication { report, .. } => report.expose(),
-            Self::Misconfigured { .. } => None,
+            Self::Misconfigured { .. } => Answer::internal(),
         }
     }
 }

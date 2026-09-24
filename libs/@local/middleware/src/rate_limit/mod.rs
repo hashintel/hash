@@ -58,7 +58,7 @@ use opentelemetry::{
     metrics::{Counter, Histogram, Meter},
 };
 use problematic::{
-    Answer, Expose, Header, Problem, ProblemType, ProblemVariant, Variant, axum::Rejection,
+    Answer, Expose, Header, Problem, ProblemType, ProblemVariant, Rejection, Variant,
 };
 use type_system::principal::actor::ActorId;
 
@@ -353,7 +353,7 @@ impl IntoResponse for TooManyRequests {
 pub struct RateLimitProblem;
 
 impl Problem for RateLimitProblem {
-    const VARIANTS: &'static [Variant] = &[Variant::of::<TooManyRequests>()];
+    const VARIANTS: &'static [Variant] = &[Variant::of::<TooManyRequests>(), Variant::INTERNAL];
 }
 
 /// The response a request the caller limiter cannot serve is answered with.
@@ -380,10 +380,10 @@ impl From<TooManyRequests> for RateLimitRejection {
 }
 
 impl Expose<RateLimitProblem> for RateLimitRejection {
-    fn expose(&self) -> Option<Answer<'_, RateLimitProblem>> {
+    fn expose(&self) -> Answer<'_, RateLimitProblem> {
         match self {
-            Self::TooManyRequests(too_many_requests) => Some(Answer::new(*too_many_requests)),
-            Self::Misconfigured => None,
+            Self::TooManyRequests(too_many_requests) => Answer::new(*too_many_requests),
+            Self::Misconfigured => Answer::internal(),
         }
     }
 }

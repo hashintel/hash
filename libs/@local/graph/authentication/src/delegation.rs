@@ -238,8 +238,7 @@ mod tests {
             AuthenticationErrorKind::ActorNotFound { .. },
             "a delegated actor that does not exist should be rejected"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report)
-            .expect("the unknown actor should carry a public problem");
+        let answer = Expose::<AuthenticationProblem>::expose(&*report);
         let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(

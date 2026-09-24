@@ -10,10 +10,9 @@ use aide::{
     },
     transform::TransformOpenApi,
 };
-use http::{HeaderMap, HeaderValue, header::RETRY_AFTER};
+use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
 use problematic::{
-    Header, Problem, ProblemDetails, ProblemType, ProblemVariant, StatusCode, Variant,
-    aide::{document_problem, finish},
+    Header, Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant, aide::finish,
 };
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -116,6 +115,7 @@ impl Problem for CreateEntity {
         Variant::of::<EntityNotFound>(),
         Variant::of::<WebNotFound>(),
         Variant::of::<StoreBusy>(),
+        Variant::INTERNAL,
     ];
 }
 
@@ -126,11 +126,18 @@ impl Problem for CreateEntityType {
         Variant::of::<WebNotFound>(),
         Variant::of::<EntityTypeNotFound>(),
         Variant::of::<StoreMaintenance>(),
+        Variant::INTERNAL,
     ];
 }
 
+/// Documents `P` on `operation` as a handler returning `Rejection<P>` does.
 fn document<P: Problem>(operation: &mut Operation) {
-    generate::in_context(|context| document_problem::<P>(context, operation));
+    generate::in_context(|context| {
+        assert!(
+            Rejection::<P>::inferred_responses(context, operation).is_empty(),
+            "a rejection should document on the operation instead of inferring responses"
+        );
+    });
 }
 
 fn response(operation: &Operation, status: u16) -> Value {
@@ -403,36 +410,43 @@ fn document_non_object_members() {
     document::<LinkEntity>(&mut Operation::default());
 }
 
-#[cfg(feature = "axum")]
 #[test]
-fn rejection_internal_documented() {
-    use problematic::axum::Rejection;
-
+fn document_internal() {
     let mut operation = Operation::default();
-    generate::in_context(|context| {
-        for inferred in [
-            Rejection::<CreateEntity>::inferred_responses(context, &mut operation),
-            Rejection::<CreateEntityType>::inferred_responses(context, &mut operation),
-        ] {
-            assert!(
-                inferred.is_empty(),
-                "a rejection should document on the operation instead of inferring responses"
-            );
-        }
-    });
+    document::<CreateEntity>(&mut operation);
+    document::<CreateEntityType>(&mut operation);
     let internal = response(&operation, 500);
-    let media = &internal["content"]["application/problem+json"];
 
     assert_eq!(
         internal["description"], "An internal error prevented the request from completing.",
         "the internal error should be documented"
     );
     assert_eq!(
-        media["example"],
+        internal["content"]["application/problem+json"]["example"],
         json!({"type": "about:blank", "title": "Internal Server Error", "status": 500}),
-        "the internal error of both rejections should be documented once"
+        "the internal error listed by both sets should be documented once"
     );
-    response(&operation, 404);
+}
+
+struct GetWeb;
+
+impl Problem for GetWeb {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<WebNotFound>()];
+}
+
+#[test]
+fn document_without_internal() {
+    let mut operation = Operation::default();
+    document::<GetWeb>(&mut operation);
+
+    assert!(
+        operation
+            .responses
+            .as_ref()
+            .and_then(|responses| responses.responses.get(&DocumentedStatus::Code(500)))
+            .is_none(),
+        "a set without the internal error should document no 500"
+    );
 }
 
 #[test]

@@ -74,7 +74,7 @@ mod tests {
 
     use axum::{body::to_bytes, response::Response};
     use http::{StatusCode, header::CONTENT_TYPE};
-    use problematic::ProblemType;
+    use problematic::{ProblemDetails, ProblemType};
     use serde::{Serialize, Serializer, ser::Error as _};
     use serde_json::{Value, json};
 
@@ -110,10 +110,10 @@ mod tests {
     #[tokio::test]
     async fn response_extensions() {
         let parameter = String::from("limit");
-        let details = INVALID_PARAMETER
-            .detail("The limit must be positive.")
-            .instance("/problem-occurrences/42")
-            .extensions(Extensions {
+        let details = ProblemDetails::from(&INVALID_PARAMETER)
+            .with_detail("The limit must be positive.")
+            .with_instance("/problem-occurrences/42")
+            .with_extensions(Extensions {
                 parameter: &parameter,
             });
 
@@ -150,9 +150,9 @@ mod tests {
 
     #[tokio::test]
     async fn response_serialization_failure() {
-        let details = INVALID_PARAMETER
-            .detail("private diagnostic")
-            .extensions(FailingExtensions);
+        let details = ProblemDetails::from(&INVALID_PARAMETER)
+            .with_detail("private diagnostic")
+            .with_extensions(FailingExtensions);
 
         let response = problem_response(&details);
 
@@ -174,7 +174,8 @@ mod tests {
 
     #[tokio::test]
     async fn response_invalid_status() {
-        let mut details = INVALID_PARAMETER.detail("private diagnostic");
+        let mut details =
+            ProblemDetails::from(&INVALID_PARAMETER).with_detail("private diagnostic");
         details.status = StatusCode::from_u16(600).expect("should accept 600 as a status code");
 
         let response = problem_response(&details);

@@ -4,7 +4,7 @@ use aide::{
     openapi::{self, Operation, Response},
     transform::TransformOperation,
 };
-use problematic::axum::Rejection;
+use problematic::Rejection;
 
 use super::{AuthenticationProblem, AuthenticationRejection};
 use crate::aide::document_rejection;

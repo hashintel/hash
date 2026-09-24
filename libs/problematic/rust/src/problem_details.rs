@@ -2,10 +2,10 @@ use alloc::borrow::Cow;
 use core::marker::Destruct;
 
 use ::serde::{Deserialize, Serialize};
+use http::StatusCode;
 
-use crate::{
-    StatusCode,
-    serde::{deserialize_optional_cow, deserialize_status, serialize_extensions, serialize_status},
+use crate::serde::{
+    deserialize_optional_cow, deserialize_status, serialize_extensions, serialize_status,
 };
 
 const fn default_type_uri() -> Cow<'static, str> {
@@ -82,7 +82,7 @@ pub struct ProblemDetails<'a, E = ()> {
 }
 
 impl<'a, E> ProblemDetails<'a, E> {
-    /// Sets the human-readable explanation of this occurrence.
+    /// Returns the details with `detail` as the human-readable explanation of this occurrence.
     ///
     /// # Examples
     ///
@@ -91,7 +91,8 @@ impl<'a, E> ProblemDetails<'a, E> {
     /// ```
     /// use std::borrow::Cow;
     ///
-    /// use problematic::{ProblemDetails, ProblemType, StatusCode};
+    /// use http::StatusCode;
+    /// use problematic::{ProblemDetails, ProblemType};
     ///
     /// const INVALID_PARAMETERS: ProblemType = ProblemType {
     ///     type_uri: Cow::Borrowed("https://example.com/problems/invalid-parameters"),
@@ -101,18 +102,18 @@ impl<'a, E> ProblemDetails<'a, E> {
     ///
     /// let parameter = "limit";
     /// let explanation = format!("The {parameter} parameter must be positive.");
-    /// let details = ProblemDetails::from(&INVALID_PARAMETERS).detail(&explanation);
+    /// let details = ProblemDetails::from(&INVALID_PARAMETERS).with_detail(&explanation);
     ///
     /// assert_eq!(details.detail.as_deref(), Some(explanation.as_str()));
     /// # core::assert_matches!(details.detail, Some(Cow::Borrowed(_)));
     /// ```
     #[must_use]
-    pub const fn detail(mut self, detail: impl [const] Into<Cow<'a, str>>) -> Self {
+    pub const fn with_detail(mut self, detail: impl [const] Into<Cow<'a, str>>) -> Self {
         self.detail = Some(detail.into());
         self
     }
 
-    /// Sets the URI reference identifying this occurrence.
+    /// Returns the details with `instance` as the URI reference identifying this occurrence.
     ///
     /// # Examples
     ///
@@ -121,7 +122,8 @@ impl<'a, E> ProblemDetails<'a, E> {
     /// ```
     /// use std::borrow::Cow;
     ///
-    /// use problematic::{ProblemDetails, ProblemType, StatusCode};
+    /// use http::StatusCode;
+    /// use problematic::{ProblemDetails, ProblemType};
     ///
     /// const WRONG_ACTOR_TYPE: ProblemType = ProblemType {
     ///     type_uri: Cow::Borrowed("https://example.com/problems/wrong-actor-type"),
@@ -131,18 +133,19 @@ impl<'a, E> ProblemDetails<'a, E> {
     ///
     /// let occurrence_id = 42;
     /// let details = ProblemDetails::from(&WRONG_ACTOR_TYPE)
-    ///     .instance(format!("/problem-occurrences/{occurrence_id}"));
+    ///     .with_instance(format!("/problem-occurrences/{occurrence_id}"));
     ///
     /// assert_eq!(details.instance.as_deref(), Some("/problem-occurrences/42"));
     /// # core::assert_matches!(details.instance, Some(Cow::Owned(_)));
     /// ```
     #[must_use]
-    pub const fn instance(mut self, instance: impl [const] Into<Cow<'a, str>>) -> Self {
+    pub const fn with_instance(mut self, instance: impl [const] Into<Cow<'a, str>>) -> Self {
         self.instance = Some(instance.into());
         self
     }
 
-    /// Replaces the extension members, changing their type.
+    /// Returns the details with `extensions` as the extension members, which may change their
+    /// type.
     ///
     /// # Examples
     ///
@@ -151,7 +154,8 @@ impl<'a, E> ProblemDetails<'a, E> {
     /// ```
     /// use std::borrow::Cow;
     ///
-    /// use problematic::{ProblemDetails, ProblemType, StatusCode};
+    /// use http::StatusCode;
+    /// use problematic::{ProblemDetails, ProblemType};
     ///
     /// #[derive(serde::Serialize)]
     /// struct WrongActorType {
@@ -165,8 +169,8 @@ impl<'a, E> ProblemDetails<'a, E> {
     /// };
     ///
     /// let details = ProblemDetails::from(&WRONG_ACTOR_TYPE)
-    ///     .detail("This operation requires a machine actor.")
-    ///     .extensions(WrongActorType {
+    ///     .with_detail("This operation requires a machine actor.")
+    ///     .with_extensions(WrongActorType {
     ///         required_actor_type: "machine",
     ///     });
     ///
@@ -180,7 +184,7 @@ impl<'a, E> ProblemDetails<'a, E> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     #[must_use]
-    pub const fn extensions<F>(self, extensions: F) -> ProblemDetails<'a, F>
+    pub const fn with_extensions<F>(self, extensions: F) -> ProblemDetails<'a, F>
     where
         E: [const] Destruct,
     {

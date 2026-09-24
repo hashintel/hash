@@ -13,10 +13,9 @@ version           = "0.0.0"
 # Public workspace dependencies
 
 # Public third-party dependencies
-erased-serde = { workspace = true, public = true, features = ["alloc"] }
-http         = { workspace = true, public = true }
-schemars     = { workspace = true, public = true }
-serde_core   = { workspace = true, public = true }
+http       = { workspace = true, public = true }
+schemars   = { workspace = true, public = true }
+serde_core = { workspace = true, public = true }
 
 # Public third-party dependencies (optional)
 aide      = { workspace = true, public = true, optional = true }
@@ -25,11 +24,14 @@ axum-core = { workspace = true, public = true, optional = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-serde      = { workspace = true, features = ["alloc", "derive"] }
-serde_json = { workspace = true, optional = true, features = ["alloc"] }
-tracing    = { workspace = true, optional = true }
+erased-serde = { workspace = true, features = ["alloc"] }
+serde        = { workspace = true, features = ["alloc", "derive"] }
+serde_json   = { workspace = true, features = ["alloc"] }
+tracing      = { workspace = true }
 
 [dev-dependencies]
+aide        = { workspace = true, features = ["axum"] }
+axum        = { workspace = true }
 derive_more = { workspace = true, features = ["display"] }
 insta       = { workspace = true, features = ["json"] }
 serde_json  = { workspace = true, features = ["arbitrary_precision"] }
@@ -39,8 +41,8 @@ name              = "aide"
 required-features = ["aide"]
 
 [features]
-aide = ["dep:aide", "dep:serde_json"]
-axum = ["dep:axum-core", "dep:serde_json", "dep:tracing"]
+aide = ["dep:aide"]
+axum = ["dep:axum-core"]
 
 [lints]
 workspace = true

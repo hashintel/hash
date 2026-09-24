@@ -9,30 +9,68 @@ use serde_core::Serialize;
 
 use crate::{ProblemDetails, ProblemType};
 
-/// A set of public failures, each a [`ProblemVariant`].
+/// The problem type of an error that stays internal.
+pub(crate) const INTERNAL: ProblemType = ProblemType {
+    type_uri: Cow::Borrowed("about:blank"),
+    title: Cow::Borrowed("Internal Server Error"),
+    status: http::StatusCode::INTERNAL_SERVER_ERROR,
+};
+
+/// An internal error prevented the request from completing.
+#[cfg(feature = "aide")]
+#[derive(JsonSchema)]
+struct Internal;
+
+/// The errors a client can receive from one endpoint.
+///
+/// Define one per endpoint, or per group of endpoints with the same errors, and list its
+/// variants in [`VARIANTS`](Self::VARIANTS). The other types of this crate are parameterized by
+/// it: your error type implements [`Expose<K>`](crate::Expose) to map its errors to the variants
+/// of `K`, an [`Answer<K>`](crate::Answer) carries one of them, and a handler returns a
+/// [`Rejection<K>`](crate::Rejection). With the `aide` feature, the documentation of the endpoint
+/// lists exactly these variants.
 pub trait Problem {
+    /// The variants a client can receive, each listed with [`Variant::of`], and
+    /// [`Variant::INTERNAL`] if an error can stay internal.
+    ///
+    /// Documenting a set that lists two variants with the same type URI and status fails to
+    /// compile.
     const VARIANTS: &'static [Variant];
 }
 
-/// One public failure: its `Display` is the `detail`, its serialized fields are the extension
-/// members.
+/// One kind of error a client can receive, such as "user not found".
 ///
-/// Every occurrence carries the type URI, title and status of [`TYPE`](Self::TYPE).
+/// Implement it on a struct that holds what the client needs to know, and list it in the
+/// [`Problem`] of every endpoint that can answer with it. The client receives the error as
+/// [`ProblemDetails`]: [`TYPE`](Self::TYPE) gives its [`type`](ProblemDetails::type_uri),
+/// [`title`](ProblemDetails::title) and [`status`](ProblemDetails::status), `Display` its
+/// [`detail`](ProblemDetails::detail), and the serialized fields its
+/// [`extensions`](ProblemDetails::extensions).
+///
+/// A variant without fields is a unit struct, and a field needed only for the `detail` or a
+/// header is skipped with `#[serde(skip)]`. No field may serialize under the name of a standard
+/// member: `type`, `title`, `status`, `detail` or `instance`. A client receives such a variant as
+/// `500 Internal Server Error`, and documenting it panics.
+///
+/// With the `aide` feature, the documentation describes the variant with the `description` of its
+/// JSON schema, which `#[derive(JsonSchema)]` takes from its doc comment.
 pub trait ProblemVariant: Display + Serialize + JsonSchema + Sized {
+    /// The problem type of every response for this variant, with a client or server error
+    /// status.
     const TYPE: ProblemType;
 
-    /// The response headers documented for this variant.
+    /// The response headers this variant adds, as the documentation lists them.
     ///
     /// [`headers`](Self::headers) has to add exactly these, by name. Debug builds panic otherwise.
     const HEADERS: &'static [Header] = &[];
 
-    /// Adds the response headers of this occurrence.
+    /// Adds the response headers for this error, such as `Retry-After`, to `headers`.
     fn headers(&self, _headers: &mut HeaderMap) {}
 
-    /// The occurrence documented as the example of this variant.
+    /// The value of this variant the documentation shows as its example response.
     ///
-    /// Without one, a variant without extension members is documented with its bare problem
-    /// type, and a variant with members has no example.
+    /// Without one, a variant without fields is shown with its type URI, title and status alone,
+    /// and a variant with fields has no example.
     #[must_use]
     fn example() -> Option<Self> {
         None
@@ -49,8 +87,8 @@ pub(crate) trait Occurrence {
 impl<V: ProblemVariant> Occurrence for V {
     fn details(&self) -> ProblemDetails<'_, &dyn erased_serde::Serialize> {
         ProblemDetails::from(V::TYPE)
-            .detail(self.to_string())
-            .extensions(self)
+            .with_detail(self.to_string())
+            .with_extensions(self)
     }
 
     fn headers(&self, headers: &mut HeaderMap) {
@@ -74,7 +112,8 @@ impl<V: ProblemVariant> Occurrence for V {
     }
 }
 
-/// A response header in the documentation of a variant.
+/// A response header of a [`ProblemVariant`], as its [`HEADERS`](ProblemVariant::HEADERS) list it
+/// for the documentation.
 #[derive(Debug)]
 pub struct Header {
     name: &'static str,
@@ -85,6 +124,7 @@ pub struct Header {
 }
 
 impl Header {
+    /// The header `name`, documented with `description` and the schema of its value `T`.
     #[must_use]
     #[cfg_attr(
         not(feature = "aide"),
@@ -123,6 +163,10 @@ impl Header {
     }
 }
 
+/// An entry of [`Problem::VARIANTS`].
+///
+/// Your error struct implements [`ProblemVariant`], and a [`Problem`] lists it with the `Variant`
+/// that [`Variant::of`] creates. [`Variant::INTERNAL`] lists the internal error.
 #[derive(Debug)]
 pub struct Variant {
     problem_type: ProblemType,
@@ -135,7 +179,26 @@ pub struct Variant {
 }
 
 impl Variant {
-    /// The documentation of `V`.
+    /// Lists the internal error, which a client receives as `500 Internal Server Error` without
+    /// detail.
+    ///
+    /// A [`Problem`] lists it when an error of its endpoint can stay internal, answered with
+    /// [`Answer::internal`](crate::Answer::internal). Without it, the documentation of the
+    /// endpoint lists no `500 Internal Server Error`.
+    pub const INTERNAL: Self = Self {
+        problem_type: INTERNAL,
+        #[cfg(feature = "aide")]
+        extensions: Internal::json_schema,
+        #[cfg(feature = "aide")]
+        headers: &[],
+        #[cfg(feature = "aide")]
+        example: no_example,
+    };
+
+    /// Lists the [`ProblemVariant`] `V`.
+    ///
+    /// A variant with lifetime parameters is listed with `'static` ones, such as
+    /// `Variant::of::<UserNotFound<'static>>()`.
     ///
     /// # Panics
     ///
@@ -144,25 +207,27 @@ impl Variant {
     ///
     /// ```compile_fail,E0080
     /// # use std::{borrow::Cow, fmt};
-    /// use problematic::{ProblemType, ProblemVariant, StatusCode, Variant};
+    /// use http::StatusCode;
+    /// use problematic::{ProblemType, ProblemVariant, Variant};
     ///
     /// #[derive(serde::Serialize, schemars::JsonSchema)]
-    /// struct WebMoved;
-    /// # impl fmt::Display for WebMoved {
+    /// struct UserMoved;
+    /// # impl fmt::Display for UserMoved {
     /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         formatter.write_str("The web moved.")
+    /// #         formatter.write_str("The user moved.")
     /// #     }
     /// # }
     ///
-    /// impl ProblemVariant for WebMoved {
+    /// impl ProblemVariant for UserMoved {
     ///     const TYPE: ProblemType = ProblemType {
-    ///         type_uri: Cow::Borrowed("/problems/web/moved"),
-    ///         title: Cow::Borrowed("Web moved"),
+    ///         type_uri: Cow::Borrowed("https://example.com/problems/user-moved"),
+    ///         title: Cow::Borrowed("User moved"),
     ///         status: StatusCode::PERMANENT_REDIRECT,
     ///     };
     /// }
     ///
-    /// const VARIANTS: &[Variant] = &[Variant::of::<WebMoved>()];
+    /// // Fails to compile: `UserMoved` has a redirection status.
+    /// const VARIANTS: &[Variant] = &[Variant::of::<UserMoved>()];
     /// ```
     #[must_use]
     pub const fn of<V: ProblemVariant>() -> Self {
@@ -183,23 +248,13 @@ impl Variant {
         variant
     }
 
-    /// A variant of `problem_type` with the extension schema of `E`, and no headers or example.
-    #[cfg(all(feature = "aide", feature = "axum"))]
-    pub(crate) const fn bare<E: JsonSchema>(problem_type: ProblemType) -> Self {
-        Self {
-            problem_type,
-            extensions: E::json_schema,
-            headers: &[],
-            example: no_example,
-        }
-    }
-
     /// The rendered example occurrence, if the variant has one.
     #[cfg(feature = "aide")]
     pub(crate) fn example(&self) -> Option<serde_json::Value> {
         (self.example)()
     }
 
+    /// The problem type of the listed variant.
     #[must_use]
     pub const fn problem_type(&self) -> &ProblemType {
         &self.problem_type
@@ -224,7 +279,7 @@ fn example_of<V: ProblemVariant>() -> Option<serde_json::Value> {
     })
 }
 
-#[cfg(all(feature = "aide", feature = "axum"))]
+#[cfg(feature = "aide")]
 const fn no_example() -> Option<serde_json::Value> {
     None
 }
@@ -302,13 +357,14 @@ mod tests {
     use alloc::{borrow::Cow, string::String};
     use std::panic;
 
+    use http::StatusCode;
     use schemars::JsonSchema;
     use serde::Serialize;
 
     use super::contains;
     #[cfg(feature = "aide")]
     use super::unique;
-    use crate::{ProblemType, ProblemVariant, StatusCode, Variant};
+    use crate::{ProblemType, ProblemVariant, Variant};
 
     const fn status(code: u16) -> StatusCode {
         match StatusCode::from_u16(code) {

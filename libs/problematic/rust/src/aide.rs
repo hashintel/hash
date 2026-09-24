@@ -1,3 +1,147 @@
+//! Documents the errors of every endpoint in the OpenAPI document that
+//! [`aide`](https://docs.rs/aide) generates.
+//!
+//! A handler returning <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code> documents the variants
+//! of `K`, as `aide` reads the responses of a handler from its return type. Each status gets one
+//! `application/problem+json` response, which lists the schema, the description, the example and
+//! the headers of every variant at that status.
+//!
+//! A middleware that rejects requests is not part of that return type. A transform of the OpenAPI
+//! document documents its errors on every operation it applies to, through the
+//! [`OperationOutput`] implementation of <code>[Rejection]&lt;K&gt;</code> for the [`Problem`] of
+//! the middleware. Its responses join those of the handler.
+//!
+//! Once every handler and middleware is documented, [`finish`] completes the error responses.
+//!
+//! # Examples
+//!
+//! A router whose handler and rate limit both document their errors:
+//!
+//! ```
+//! # use std::{borrow::Cow, fmt};
+//! use aide::{
+//!     OperationOutput as _,
+//!     axum::{ApiRouter, routing::patch},
+//!     generate,
+//!     openapi::OpenApi,
+//!     transform::TransformOpenApi,
+//!     util::iter_operations_mut,
+//! };
+//! use problematic::{Rejection, aide::finish};
+//! # use http::StatusCode;
+//! # use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Variant};
+//! #
+//! # /// The user named in the request does not exist.
+//! # #[derive(serde::Serialize, schemars::JsonSchema)]
+//! # struct UserNotFound;
+//! #
+//! # impl fmt::Display for UserNotFound {
+//! #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+//! #         formatter.write_str("The user does not exist.")
+//! #     }
+//! # }
+//! #
+//! # impl ProblemVariant for UserNotFound {
+//! #     const TYPE: ProblemType = ProblemType {
+//! #         type_uri: Cow::Borrowed("https://example.com/problems/user-not-found"),
+//! #         title: Cow::Borrowed("User not found"),
+//! #         status: StatusCode::NOT_FOUND,
+//! #     };
+//! # }
+//! #
+//! # struct UpdateUserProblem;
+//! #
+//! # impl Problem for UpdateUserProblem {
+//! #     const VARIANTS: &'static [Variant] = &[Variant::of::<UserNotFound>(), Variant::INTERNAL];
+//! # }
+//! #
+//! # #[derive(Debug)]
+//! # struct UpdateUserError;
+//! #
+//! # impl fmt::Display for UpdateUserError {
+//! #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+//! #         formatter.write_str("could not update the user")
+//! #     }
+//! # }
+//! #
+//! # impl core::error::Error for UpdateUserError {}
+//! #
+//! # impl Expose<UpdateUserProblem> for UpdateUserError {
+//! #     fn expose(&self) -> Answer<'_, UpdateUserProblem> {
+//! #         Answer::new(UserNotFound)
+//! #     }
+//! # }
+//! #
+//! # fn update() -> Result<(), UpdateUserError> {
+//! #     Err(UpdateUserError)
+//! # }
+//! #
+//! # /// The request exceeded its rate limit.
+//! # #[derive(serde::Serialize, schemars::JsonSchema)]
+//! # struct TooManyRequests;
+//! #
+//! # impl fmt::Display for TooManyRequests {
+//! #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+//! #         formatter.write_str("The request exceeded its rate limit.")
+//! #     }
+//! # }
+//! #
+//! # impl ProblemVariant for TooManyRequests {
+//! #     const TYPE: ProblemType = ProblemType {
+//! #         type_uri: Cow::Borrowed("about:blank"),
+//! #         title: Cow::Borrowed("Too Many Requests"),
+//! #         status: StatusCode::TOO_MANY_REQUESTS,
+//! #     };
+//! # }
+//! #
+//! # struct RateLimitProblem;
+//! #
+//! # impl Problem for RateLimitProblem {
+//! #     const VARIANTS: &'static [Variant] = &[Variant::of::<TooManyRequests>()];
+//! # }
+//!
+//! // The handler documents its errors through its return type: `UpdateUserProblem` lists
+//! // `UserNotFound` and the internal error, so the route documents `404` and `500`.
+//! async fn update_user() -> Result<(), Rejection<UpdateUserProblem>> {
+//!     update()?;
+//!     Ok(())
+//! }
+//!
+//! // The rate limit is a middleware on every route, so it documents its `429` on every
+//! // operation of the document.
+//! fn document_rate_limit(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
+//!     let operations = api
+//!         .inner_mut()
+//!         .paths
+//!         .iter_mut()
+//!         .flat_map(|paths| paths.paths.values_mut())
+//!         .filter_map(|path| path.as_item_mut())
+//!         .flat_map(|path| iter_operations_mut(path).map(|(_, operation)| operation));
+//!     generate::in_context(|context| {
+//!         for operation in operations {
+//!             Rejection::<RateLimitProblem>::inferred_responses(context, operation);
+//!         }
+//!     });
+//!     api
+//! }
+//!
+//! let mut api = OpenApi::default();
+//! let _router: axum::Router = ApiRouter::new()
+//!     .api_route("/users/{user}", patch(update_user))
+//!     // The middleware is documented before `finish` completes the error responses.
+//!     .finish_api_with(&mut api, |api| api.with(document_rate_limit).with(finish));
+//!
+//! // The handler documents `404` and `500`, the rate limit `429`.
+//! let api = serde_json::to_value(&api)?;
+//! let responses = &api["paths"]["/users/{user}"]["patch"]["responses"];
+//! for status in ["404", "429", "500"] {
+//!     assert!(responses[status].is_object(), "should document {status}");
+//! }
+//! # Ok::<(), serde_json::Error>(())
+//! ```
+//!
+//! [Rejection]: crate::Rejection
+
 use alloc::{
     borrow::ToOwned as _,
     collections::BTreeMap,
@@ -19,8 +163,6 @@ use aide::{
 };
 use schemars::{JsonSchema, Schema, json_schema};
 
-#[cfg(feature = "axum")]
-use crate::problem::contains;
 use crate::{Problem, ProblemDetails, Variant, problem::assert_variants, serde::STANDARD_MEMBERS};
 
 impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
@@ -44,136 +186,82 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
     }
 }
 
-/// An internal error prevented the request from completing.
-#[cfg(feature = "axum")]
-#[derive(JsonSchema)]
-struct Internal;
-
-#[cfg(feature = "axum")]
-impl<K: Problem> OperationOutput for crate::axum::Rejection<K> {
+impl<K: Problem> OperationOutput for crate::Rejection<K> {
     type Inner = Self;
 
     fn operation_response(_ctx: &mut GenContext, _operation: &mut Operation) -> Option<Response> {
         None
     }
 
-    /// Documents the variants of `K` and the internal problem on `operation` itself and infers
-    /// nothing, so they join the responses other sources documented for the same status.
+    /// Documents the variants of `K` on the endpoint, joined with the errors every other
+    /// [`Problem`] of the endpoint documents at the same status.
     ///
-    /// Fails at compile time if `K` lists two variants with the same type URI and status, as
-    /// [`document_problem`] does, or lists the internal problem, `about:blank` at `500`:
+    /// A status that already has a response other than problem details keeps it, and the
+    /// variants of `K` for that status are not documented.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the fields of a variant serialize as neither an object nor a unit, or one of them
+    /// is named like a standard member, or if another [`Problem`] of the endpoint documents the
+    /// same type URI and status differently.
+    ///
+    /// Fails at compile time if `K` lists two variants with the same type URI and status:
     ///
     /// ```compile_fail,E0080
     /// # use std::{borrow::Cow, fmt};
     /// use aide::{OperationOutput as _, generate, openapi::Operation};
-    /// use problematic::{Problem, ProblemType, ProblemVariant, StatusCode, Variant, axum::Rejection};
+    /// use http::StatusCode;
+    /// use problematic::{Problem, ProblemType, ProblemVariant, Rejection, Variant};
     ///
     /// #[derive(serde::Serialize, schemars::JsonSchema)]
-    /// struct StoreFailed;
-    /// # impl fmt::Display for StoreFailed {
+    /// struct UserNotFound;
+    /// # impl fmt::Display for UserNotFound {
     /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         formatter.write_str("The store failed.")
+    /// #         formatter.write_str("The user does not exist.")
     /// #     }
     /// # }
     ///
-    /// impl ProblemVariant for StoreFailed {
+    /// impl ProblemVariant for UserNotFound {
     ///     const TYPE: ProblemType = ProblemType {
-    ///         type_uri: Cow::Borrowed("about:blank"),
-    ///         title: Cow::Borrowed("Internal Server Error"),
-    ///         status: StatusCode::INTERNAL_SERVER_ERROR,
+    ///         type_uri: Cow::Borrowed("https://example.com/problems/user-not-found"),
+    ///         title: Cow::Borrowed("User not found"),
+    ///         status: StatusCode::NOT_FOUND,
     ///     };
     /// }
     ///
-    /// struct CreateEntity;
+    /// struct GetUserProblem;
     ///
-    /// impl Problem for CreateEntity {
-    ///     const VARIANTS: &'static [Variant] = &[Variant::of::<StoreFailed>()];
+    /// impl Problem for GetUserProblem {
+    ///     const VARIANTS: &'static [Variant] =
+    ///         &[Variant::of::<UserNotFound>(), Variant::of::<UserNotFound>()];
     /// }
     ///
+    /// // Fails to compile: `GetUserProblem` lists `UserNotFound` twice.
     /// generate::in_context(|context| {
-    ///     Rejection::<CreateEntity>::inferred_responses(context, &mut Operation::default())
+    ///     Rejection::<GetUserProblem>::inferred_responses(context, &mut Operation::default())
     /// });
     /// ```
     fn inferred_responses(
         ctx: &mut GenContext,
         operation: &mut Operation,
     ) -> Vec<(Option<StatusCode>, Response)> {
-        const INTERNAL: Variant = Variant::bare::<Internal>(crate::axum::INTERNAL);
-        const {
-            assert_variants::<K>();
-            assert!(
-                !contains(K::VARIANTS, INTERNAL.problem_type()),
-                "`VARIANTS` should not list the internal problem"
-            );
-        };
+        const { assert_variants::<K>() };
 
-        merge(ctx, operation, K::VARIANTS.iter().chain([&INTERNAL]));
+        merge(ctx, operation, K::VARIANTS);
         Vec::new()
     }
-}
-
-/// Documents the variants of `P` on `operation`, one response per status.
-///
-/// A status another source already documented problems for gets one response with the variants
-/// of both, rendered anew from them: changes made to that response in between are lost. A status
-/// that already has a non-problem response keeps it, and the variants of `P` for that status are
-/// not documented.
-///
-/// # Panics
-///
-/// Panics if a variant's extension members are neither an object nor a unit, or name a standard
-/// member, or if a source of the operation already documented its problem type and status
-/// differently.
-///
-/// Fails at compile time if `P` lists two variants with the same type URI and status:
-///
-/// ```compile_fail,E0080
-/// # use std::{borrow::Cow, fmt};
-/// use aide::{generate, openapi::Operation};
-/// use problematic::{
-///     Problem, ProblemType, ProblemVariant, StatusCode, Variant, aide::document_problem,
-/// };
-///
-/// #[derive(serde::Serialize, schemars::JsonSchema)]
-/// struct WebNotFound;
-/// # impl fmt::Display for WebNotFound {
-/// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-/// #         formatter.write_str("The web does not exist.")
-/// #     }
-/// # }
-///
-/// impl ProblemVariant for WebNotFound {
-///     const TYPE: ProblemType = ProblemType {
-///         type_uri: Cow::Borrowed("/problems/web/not-found"),
-///         title: Cow::Borrowed("Web not found"),
-///         status: StatusCode::NOT_FOUND,
-///     };
-/// }
-///
-/// struct ArchiveWeb;
-///
-/// impl Problem for ArchiveWeb {
-///     const VARIANTS: &'static [Variant] =
-///         &[Variant::of::<WebNotFound>(), Variant::of::<WebNotFound>()];
-/// }
-///
-/// generate::in_context(|context| {
-///     document_problem::<ArchiveWeb>(context, &mut Operation::default());
-/// });
-/// ```
-pub fn document_problem<P: Problem>(context: &mut GenContext, operation: &mut Operation) {
-    const { assert_variants::<P>() };
-
-    merge(context, operation, P::VARIANTS);
 }
 
 /// The extension a problem response keeps its variants in until [`finish`] removes it.
 const FRAGMENTS: &str = "x-problem-variants";
 
-/// Removes the `x-problem-variants` extension that merging keeps on every problem response.
+/// Completes the error responses of an OpenAPI document once every route is documented.
 ///
-/// Apply it after the last source has documented its problems: a response it has run over no
-/// longer merges.
+/// `aide` builds the OpenAPI document of an `ApiRouter` in `ApiRouter::finish_api_with`, which
+/// applies a transform to it; pass `finish` as that transform. Until then, every error response
+/// carries an `x-problem-variants` extension, which records its variants so that a later handler
+/// or middleware of the endpoint can join them. Errors documented after `finish` are not joined
+/// with the responses it completed.
 pub fn finish(mut transform: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
     let document = transform.inner_mut();
     let operations = document

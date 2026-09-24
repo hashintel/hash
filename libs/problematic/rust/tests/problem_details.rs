@@ -3,7 +3,8 @@ extern crate alloc;
 use alloc::{borrow::Cow, string::String, vec::Vec};
 use core::assert_matches;
 
-use problematic::{ProblemDetails, ProblemType, StatusCode};
+use http::StatusCode;
+use problematic::{ProblemDetails, ProblemType};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 

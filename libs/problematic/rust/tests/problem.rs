@@ -2,8 +2,8 @@ extern crate alloc;
 
 use alloc::borrow::Cow;
 
-use http::{HeaderMap, HeaderValue, header::RETRY_AFTER};
-use problematic::{Answer, Header, Problem, ProblemType, ProblemVariant, StatusCode, Variant};
+use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
+use problematic::{Answer, Header, Problem, ProblemType, ProblemVariant, Variant};
 use schemars::JsonSchema;
 use serde::Serialize;
 use serde_json::json;

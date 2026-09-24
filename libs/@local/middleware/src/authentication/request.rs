@@ -693,9 +693,10 @@ mod tests {
             let service_fault = error.fault_domain() == FaultDomain::Service;
             let message = error.to_string();
             let report = Report::new(error);
-            // An error without a public problem is answered as an internal error.
             let server_error = Expose::<AuthenticationProblem>::expose(&report)
-                .is_none_or(|answer| answer.details().status.is_server_error());
+                .details()
+                .status
+                .is_server_error();
             assert_eq!(
                 server_error, service_fault,
                 "`{message}` should report the same fault domain as its status code"

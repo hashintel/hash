@@ -586,8 +586,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             AuthenticationErrorKind::ProviderUnreachable,
             "a failing JWKS endpoint should fail as provider unavailability, not as a bad token"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report)
-            .expect("the provider failure should carry a public problem");
+        let answer = Expose::<AuthenticationProblem>::expose(&*report);
         let problem = answer.details();
         assert_eq!(problem.status, 503);
         assert_eq!(

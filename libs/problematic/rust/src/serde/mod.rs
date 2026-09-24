@@ -1,8 +1,7 @@
 use alloc::borrow::Cow;
 
+use http::StatusCode;
 use serde::{Deserialize, Deserializer, de::Error as _};
-
-use crate::StatusCode;
 
 mod serialization;
 

@@ -1,11 +1,10 @@
 use core::fmt::Display;
 
+use http::StatusCode;
 use serde_core::{
     Serialize, Serializer,
     ser::{Error, Impossible, SerializeMap, SerializeStruct},
 };
-
-use crate::StatusCode;
 
 mod key;
 

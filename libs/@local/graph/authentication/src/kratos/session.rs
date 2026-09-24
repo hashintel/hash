@@ -932,8 +932,7 @@ mod tests {
             AuthenticationErrorKind::InvalidSession,
             "a forbidden session should fail as an invalid session, not as provider unavailability"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report)
-            .expect("the invalid session should carry a public problem");
+        let answer = Expose::<AuthenticationProblem>::expose(&*report);
         let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(

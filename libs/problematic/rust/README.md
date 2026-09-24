@@ -1,14 +1,23 @@
 # problematic
 
-HTTP Problem Details with typed extension members.
+Problem details ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)) for the errors of an HTTP API, with the public and the internal errors of every endpoint kept apart by the compiler.
+
+A client can act on some errors of an endpoint, such as a missing user. Other errors, such as a failed database query, are internal: the client receives `500 Internal Server Error` and nothing more. `problematic` defines on three levels which errors a client receives:
+
+- A `ProblemVariant` is one kind of error a client can receive, with its problem type and extension members.
+- A `Problem` lists the variants one endpoint answers with, and the internal error if an error of the endpoint stays internal.
+- `Expose` maps every error of your error type to one of these variants, or keeps it internal.
+
+Answering with a variant the `Problem` does not list fails to compile. A handler returns `Result<_, Rejection<K>>`, and `?` turns its error into the problem details response that `K` allows.
+
+`ProblemDetails` serializes and deserializes problem details objects, borrowing strings from the input where it can, and describes them as JSON Schema.
+
+`problematic` requires a nightly toolchain.
 
 ## Features
 
-- `serde` enables serialization and deserialization, including borrowing strings from the input.
-- `schemars` enables JSON Schema generation independently of `serde`.
-- `aide` documents `ProblemDetails` responses as `application/problem+json` and includes `schemars`.
-  Inferred responses use the default response because the HTTP status belongs to each occurrence.
-- `error-stack` retrieves problems from error contexts and attachments in frame order and includes `serde`.
+- `axum`: a `Rejection` is an [axum](https://docs.rs/axum) response.
+- `aide`: every endpoint documents its errors with [aide](https://docs.rs/aide), one `application/problem+json` response per status.
 
 No features are enabled by default.
 

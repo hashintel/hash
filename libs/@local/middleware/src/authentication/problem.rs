@@ -16,17 +16,16 @@ impl Problem for AuthenticationProblem {
         Variant::of::<BadRequest<'static>>(),
         Variant::of::<Unauthorized<'static>>(),
         Variant::of::<ServiceUnavailable<'static>>(),
+        Variant::INTERNAL,
     ];
 }
 
 impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
-    fn expose(&self) -> Option<Answer<'_, AuthenticationProblem>> {
+    fn expose(&self) -> Answer<'_, AuthenticationProblem> {
         let kind = self.current_context().kind();
         match kind {
             AuthenticationErrorKind::MalformedCredential
-            | AuthenticationErrorKind::InvalidActorIdHeader => {
-                Some(Answer::new(BadRequest { kind }))
-            }
+            | AuthenticationErrorKind::InvalidActorIdHeader => Answer::new(BadRequest { kind }),
             AuthenticationErrorKind::MissingCredentials
             | AuthenticationErrorKind::MissingServiceSecret
             | AuthenticationErrorKind::InvalidServiceSecret
@@ -36,14 +35,14 @@ impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
             | AuthenticationErrorKind::IdentityWithoutActor
             | AuthenticationErrorKind::NotProvisioned { .. }
             | AuthenticationErrorKind::ActorNotFound { .. }
-            | AuthenticationErrorKind::NotAUser { .. } => Some(Answer::new(Unauthorized { kind })),
+            | AuthenticationErrorKind::NotAUser { .. } => Answer::new(Unauthorized { kind }),
             AuthenticationErrorKind::ProviderUnreachable | AuthenticationErrorKind::StoreError => {
-                Some(Answer::new(ServiceUnavailable { kind }))
+                Answer::new(ServiceUnavailable { kind })
             }
             // The service's own exchange with the provider failed, and a retry meets the same
             // fault.
             AuthenticationErrorKind::ProviderRejection
-            | AuthenticationErrorKind::InvalidProviderResponse => None,
+            | AuthenticationErrorKind::InvalidProviderResponse => Answer::internal(),
         }
     }
 }
