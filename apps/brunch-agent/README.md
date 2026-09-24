@@ -2,7 +2,7 @@
 
 ## Run the Petrinaut panel locally
 
-From the repository root, make `OPENAI_API_KEY` available for the development default and run (or override `BRUNCH_CHAT_MODEL` and supply that provider's credential):
+Brunch and the stock chat route both run `petrinautAiModel` from `@hashintel/petrinaut-core` unless a deployment overrides it (`BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING` for Brunch, `PETRINAUT_AI_MODEL` for the stock route). From the repository root, make `OPENAI_API_KEY` available and run:
 
 ```sh
 yarn dev:brunch

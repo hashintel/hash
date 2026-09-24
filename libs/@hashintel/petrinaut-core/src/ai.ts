@@ -346,6 +346,16 @@ export const petrinautAiCapabilityGuidance = [
   petrinautAiCapabilityExample,
 ].join("\n\n");
 
+/**
+ * The model every Petrinaut assistant runs unless its deployment overrides it:
+ * the stock chat route and each Brunch variant.
+ */
+export const petrinautAiModel = {
+  provider: "openai",
+  id: "gpt-6-luna",
+  reasoningEffort: "xhigh",
+} as const;
+
 export const petrinautAiPrompt = [
   petrinautAiStockBehavioralFrame.introduction,
   petrinautAiCapabilityIntroduction,

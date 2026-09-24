@@ -55,8 +55,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   const { createModels } = await import("@earendil-works/pi-ai");
   const { anthropicProvider } =
     await import("@earendil-works/pi-ai/providers/anthropic");
-  const { openaiProvider } =
-    await import("@earendil-works/pi-ai/providers/openai");
+  const { openaiProviderWithGpt6 } = await import("./openai-provider.ts");
   const appDirectory = join(repoRoot, "apps/brunch-agent");
   const declarations = new Map<string, string>();
   const files = envFiles.map((name) => {
@@ -91,7 +90,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   const selected = parseSpecifier(specifier);
   const models = createModels();
   models.setProvider(anthropicProvider());
-  models.setProvider(openaiProvider());
+  models.setProvider(openaiProviderWithGpt6());
   const knownModel = models.getModel(selected.provider, selected.id);
   const model = knownModel
     ? `${knownModel.provider}/${knownModel.id}`

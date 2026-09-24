@@ -4,7 +4,6 @@ import "./telemetry-bootstrap.ts";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
@@ -43,6 +42,7 @@ import {
 } from "./http/routes.ts";
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { logger } from "./logger.ts";
+import { openaiProviderWithGpt6 } from "./openai-provider.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
@@ -191,7 +191,7 @@ const registerAdmittedProvider = (provider: Provider) => {
   );
 };
 registerAdmittedProvider(anthropicProvider());
-registerAdmittedProvider(openaiProvider());
+registerAdmittedProvider(openaiProviderWithGpt6());
 
 const app = new Hono();
 
