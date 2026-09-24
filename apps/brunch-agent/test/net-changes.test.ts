@@ -221,7 +221,7 @@ test("a refused workpiece write does not displace the latest settled revision fo
   ).toBe("ledger-1");
 });
 
-test("why matches a root arc to canonical addArc by transition, direction and place", () => {
+test("why matches a root arc to canonical addArc by transition, direction and place, and to a batch deletion by its generated ID", () => {
   const arcDefinition = {
     ...definition,
     transitions: [
@@ -259,6 +259,18 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
       },
     },
   };
+  const deletion = (toolCallId: string, arcId: string, after: string) => ({
+    type: "dynamic-tool",
+    toolName: "deleteItemsByIds",
+    toolCallId,
+    state: "output-available",
+    input: { items: [{ type: "arc", id: arcId }] },
+    output: {
+      brunchBrowserResult: true,
+      output: { applied: true },
+      metadata: { documentRevision: { before: "revision-2", after } },
+    },
+  });
   const priorMessage = snapshot.messages.at(-1);
   if (!priorMessage || priorMessage.role !== "assistant")
     throw new Error("Missing canonical calls");
@@ -270,6 +282,8 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
         ...priorMessage,
         parts: [
           ...priorMessage.parts.slice(0, 2),
+          deletion("delete-other-arc", "$A_place:other___serve", "revision-2a"),
+          deletion("delete-arc", "$A_place:queue___serve", "revision-2b"),
           arcCall,
           {
             ...priorMessage.parts[2],
@@ -299,6 +313,7 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
   ).toMatchObject({
     target: { id: "serve:input:queue" },
     changes: [
+      { toolCallId: "delete-arc", operation: "deleteItemsByIds" },
       {
         toolCallId: "add-arc",
         operation: "addArc",
