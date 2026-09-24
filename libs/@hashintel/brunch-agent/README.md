@@ -1,25 +1,27 @@
 # Brunch agent
 
-Brunch is the stateful elicitation harness and package family at `libs/@hashintel/brunch-agent`.
+Brunch is the elicitation agent used by Petrinaut to build and explain operational-process models. This directory groups its reusable packages, runtime guidance, and persona-test cases; it is not itself a package workspace.
 
-- [`AGENTS.md`](./AGENTS.md) is the agent charter.
-- [`MISSION.md`](./MISSION.md) is the current objective and stop conditions.
-  [`MISSION.next.md`](./MISSION.next.md) is the self-contained canonical future spine and is not
-  execution authority. Closed missions live under [`docs/mission-archive/`](./docs/mission-archive/).
-- [`CONTEXT.md`](./CONTEXT.md) defines the domain language.
-- [`docs/specs/`](./docs/specs/) and [`docs/adr/`](./docs/adr/) are historical design hypotheses,
-  not the current harness contract (see [`docs/specs/README.md`](./docs/specs/README.md) and
-  [`docs/adr/README.md`](./docs/adr/README.md)).
-- [`docs/evidence/`](./docs/evidence/) holds observed results and proofs.
-- [`packages/core/`](./packages/core/) is `@hashintel/brunch-agent`; its `./flue` subpath is the
-  production contribution (always-on prompt and the `elicitation` skill), and `./client-tools`
-  carries browser contracts.
-- [`packages/transport-aisdk/`](./packages/transport-aisdk/) is the AI SDK transport.
-- [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) pairs the software-behavior domain typology with the Gherkin target formalism.
-- [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) pairs the operational-process domain typology with the SDCPN target formalism.
-- [`packages/plugin-dafny/`](./packages/plugin-dafny/) is a stubbed software-correctness / Dafny contribution bundle that pressure-tests the core/plugin topology; nothing composes it.
-- [`packages/plugin-claims/`](./packages/plugin-claims/) is a normative-source interference probe; nothing composes it.
-- [`../../../apps/brunch-agent/`](../../../apps/brunch-agent/) is the server and diagnostics app.
+## Packages
 
-HASH's repository root owns package discovery, dependency policy, the lockfile, and the Turbo task
-graph.
+- [`packages/core/`](./packages/core/) — `@hashintel/brunch-agent`: the core prompt, elicitation skill, workpiece contracts, and Flue contribution.
+- [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) — the mounted SDCPN/Petrinaut plugin, including its prompt, modelling skill, and construction tools.
+- [`packages/transport-aisdk/`](./packages/transport-aisdk/) — the AI SDK transport over a caller-provided Flue client.
+- [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) — packaged but not mounted by an application.
+- [`packages/plugin-dafny/`](./packages/plugin-dafny/) and [`packages/plugin-claims/`](./packages/plugin-claims/) — unmounted experimental packages.
+
+The server and composition point live in [`apps/brunch-agent/`](../../../apps/brunch-agent/). Petrinaut’s browser-side integration lives in [`apps/petrinaut-website/`](../../../apps/petrinaut-website/).
+
+## Development
+
+From the repository root:
+
+```sh
+yarn dev:brunch
+yarn workspace @apps/brunch-agent test:unit
+yarn workspace @hashintel/brunch-agent test:unit
+```
+
+Run other checks through the owning workspace or Turbo. The repository root owns dependency resolution and the lockfile.
+
+See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for implemented boundaries and invariants, and [`EVALUATIONS.md`](./EVALUATIONS.md) for the retained persona-testing surface.

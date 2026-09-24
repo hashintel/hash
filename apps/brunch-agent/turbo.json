@@ -50,8 +50,6 @@
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/docs/**",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/evaluations/**",
         "$TURBO_ROOT$/libs/@hashintel/petrinaut/docs/**"
       ]
     }

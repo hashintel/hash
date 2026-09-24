@@ -1,8 +1,6 @@
 # Improve Brunch Voice controls
 
-The child branch's sole execution authority is the
-[Brunch mission](../../libs/@hashintel/brunch-agent/MISSION.md). This file is a
-pointer, not a second mission.
+This file records the historical scope of the completed FE-1722 branch. It is not current execution authority.
 
 FE-1722 selects the reduced Voice-control cut: one compact dock, direct
 microphone mute, one secondary audio popover and the existing conversation
@@ -23,15 +21,12 @@ the squash base incorporating merged
 [FE-1712 PR #9704](https://github.com/hashintel/hash/pull/9704). FE-1712 remains
 the protected behavior and evidence source inherited through that base. Its
 capture preferences, semantic VAD, patient listening, 500 ms output hold and
-unfinished owner-held obligations remain unchanged. Device switching, voice
-and speed selection, helmet animation and persistence remain deferred in the
-[future spine](../../libs/@hashintel/brunch-agent/MISSION.next.md#voice-control-follow-up).
+unfinished owner-held obligations remain unchanged. Device switching, voice and speed selection, helmet animation and persistence were deferred from this branch.
 
 FE-1722 implementation and deterministic verification are established on this
 branch through `49ffd6836a..bdc699c923`. Post-rebase evidence passed 160
 focused Petrinaut tests, 349 focused website unit tests and 5 Voice preview
-tests under network denial; the Brunch mission owns the exact proof and
-remaining limitations. Real microphone, speaker and headphone behavior remains
+tests under network denial; the branch's tests and pull request retain the detailed proof and limitations. Real microphone, speaker and headphone behavior remains
 unproven and owner-held. No agent microphone or provider session is authorized.
 Current owner direction authorizes the subsequent branch push and stacked draft
 PR after the committed final gate; this correction task performs neither.
