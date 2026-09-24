@@ -43,6 +43,8 @@ The activity disclosure opens while **Working…**, when **Approval required**, 
 
 When the host supplies them, Voice also shows a collapsed **Sent to Brunch** brief under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Prepared from what you said** and lists its fields. These optional parts are absent in hosts that do not provide them. Messages have no per-message voice badge.
 
+Work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. Keyboard focus uses Petrinaut's blue outline.
+
 While a response is streaming you can:
 
 - Expand the work disclosure to watch reasoning and tool operations. The working label shimmers while active. Reasoning stays collapsed until you choose to inspect it.
