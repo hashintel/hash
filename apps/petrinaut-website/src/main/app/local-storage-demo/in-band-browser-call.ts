@@ -14,7 +14,7 @@ export const createInBandBrowserCalls = (input: {
   readonly metadataFor: (
     toolCallId: string,
     output: unknown,
-  ) => ClientToolResultMetadata | undefined;
+  ) => Promise<ClientToolResultMetadata | undefined>;
   readonly prepareInput: (call: {
     toolCallId: string;
     toolName: string;
@@ -133,7 +133,7 @@ export const createInBandBrowserCalls = (input: {
       submit: async (output: unknown) => {
         clearInterval(lease);
         if (call.signal.aborted) return;
-        const metadata = input.metadataFor(call.toolCallId, output);
+        const metadata = await input.metadataFor(call.toolCallId, output);
         const response = await fetch(url, {
           method: "POST",
           headers: { ...headers, "content-type": "application/json" },

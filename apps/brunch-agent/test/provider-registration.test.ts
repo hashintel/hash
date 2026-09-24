@@ -53,44 +53,6 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
   return stream.result();
 };
 
-test.each(["mutate_petrinaut_net", "apply_petrinaut_construction"])(
-  "app registration classifies %s as a browser tool",
-  async (browserToolName) => {
-    const registration = vi
-      .mocked(instrument)
-      .mock.calls.find(
-        ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
-      )?.[0];
-    expect(registration).toBeDefined();
-    const provider = vi
-      .mocked(setProvider)
-      .mock.calls.map(([entry]) => entry)
-      .find((entry) => entry.id === "anthropic")!;
-    const model = provider.getModels()[0]!;
-    faux.setResponses([
-      fauxAssistantMessage(
-        [
-          fauxToolCall("mutate_workpiece", {}),
-          fauxToolCall(browserToolName, {}),
-        ],
-        { stopReason: "toolUse" },
-      ),
-    ]);
-
-    await expect(
-      registration!.interceptor(
-        {
-          type: "agent",
-          operationId: `${browserToolName}-classification`,
-          operationKind: "prompt",
-        },
-        { agentName: "brunch-chat-agent" },
-        async () => drain(provider.streamSimple(model, { messages: [] })),
-      ),
-    ).rejects.toThrow("Mixed browser/server proposal");
-  },
-);
-
 test("app registration scopes admission to ChatAgent execution, isolating concurrent agents and delegated tasks", async () => {
   const registration = vi
     .mocked(instrument)

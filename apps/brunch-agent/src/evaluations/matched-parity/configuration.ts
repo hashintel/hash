@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 
 export const matchedParityReasoning = "medium" as const;
-export const matchedParityArms = ["S", "F", "I", "A", "B"] as const;
+export const matchedParityArms = ["S", "F", "I"] as const;
 export type EvaluationArm = (typeof matchedParityArms)[number];
 export type BrunchEvaluationMode = Exclude<EvaluationArm, "S">;
 
@@ -126,16 +126,6 @@ export const resolveMatchedParityConfiguration = (
         websiteMode: "F",
       },
       I: integrated,
-      A: {
-        ...integrated,
-        label: "Declared projection",
-        websiteMode: "A",
-      },
-      B: {
-        ...integrated,
-        label: "Deep construction",
-        websiteMode: "B",
-      },
     },
     budgetUsd,
     executePaid,

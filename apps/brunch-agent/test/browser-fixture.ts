@@ -9,7 +9,7 @@ import { extname, resolve } from "node:path";
 
 import { chromium } from "@playwright/test";
 
-import type { BuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import type { BuiltBrunchApplication } from "./load-built-application.ts";
 
 export const openBrowserFixture = async (
   app: BuiltBrunchApplication,

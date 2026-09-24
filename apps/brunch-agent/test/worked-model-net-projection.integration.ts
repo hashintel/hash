@@ -20,16 +20,16 @@ import {
 import { Hono } from "hono";
 
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { createWorkedModelNetProjectionRouter } from "../src/http/worked-models.ts";
 import {
   createInMemoryWorkedModelStore,
   type WorkedModelFixture,
 } from "../src/worked-model-store.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
-import type { BuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import type { BuiltBrunchApplication } from "./load-built-application.ts";
 
 const output = mkdtempSync(join(tmpdir(), "worked-model-net-projection-"));
 const website = resolve(

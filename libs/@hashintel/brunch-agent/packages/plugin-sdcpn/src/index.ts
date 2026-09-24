@@ -1,72 +1,10 @@
-/**
- * `@hashintel/brunch-agent-plugin-sdcpn` — the operational-process domain
- * typology paired with the SDCPN target formalism.
- *
- * The plugin is a contribution bundle: `prompts/` for always-on policy,
- * `skills/sdcpn-modelling/` for the job skill and its resources, `tools/` for
- * executable Petrinaut capabilities, and `flue.ts` for the selected mounting.
- * The retired YAML definition and typed slot-assertion proposal path were
- * removed on 2026-09-02. The `./flue` subpath owns the production contribution;
- * the root also exposes host-consumed transition verification.
- */
-
 export {
-  assertMutationEffects,
   canonicalContent,
-  classifyMutationOutcome,
-  clientToolResultMetadataSchema,
-  deriveLayoutEffects,
-  deriveMutationEffects,
-  expectedNodeDefinition,
-  hostRecordedCanonicalMutationNames,
-  type HostRecordedCanonicalMutationName,
-  isConstructionMutationName,
-  isHostRecordedCanonicalMutation,
-  isHostRecordedCanonicalMutationName,
-  observedMutationOutcome,
-  type ClassifiedMutationOutcome,
   parseClientToolResultMetadata,
-  reconcileMutationAttempts,
-  verifyMutationAttempt,
-  verifyCanonicalMutationRecord,
-  verifyExperimentRecord,
-  verifyDeepConstructionRecord,
-  verifyDefinitionObservation,
-  reconcileDefinitionObservations,
-  type MutationEffects,
-  type ExperimentRecord,
-  type VerifiedExperimentRecord,
-  type CanonicalMutationRecord,
-  type VerifiedCanonicalMutationRecord,
-  type DeepConstructionRecord,
-  type VerifiedDeepConstructionRecord,
-  type VerifiedDeepConstructionStep,
-  type VerifiedDeepLayoutRecord,
-  type ArcMutationRequest,
   type BrowserBinding,
   type ClientToolResultMetadata,
-  type ConstructionMutationName,
-  type ObservedConstructionMutationName,
-  type ConstructionMutationRequest,
-  type ConstructionMutationAttempt,
-  type ConstructionMutationRecord,
-  type ArcMutationAttempt,
-  type ArcMutationRecord,
-  type DefinitionObservation,
-  type UnverifiedDefinitionObservation,
-} from "./mutation-record";
-
+} from "./browser-metadata";
 export {
-  observedArcMutationNames,
-  browserBindingSchema,
-  rootArcWhyInputSchema,
-  locateRootArc,
-  type ObservedArcMutationName,
-  type RootArcWhyInput,
-} from "./root-arc";
-export {
-  BRUNCH_DECLARED_PROJECTION_MODE,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   CANONICAL_PETRINAUT_TOOLS_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
@@ -74,44 +12,7 @@ export {
   type CanonicalPetrinautMode,
   type IntegratedPetrinautMode,
 } from "./construction-mode";
-export {
-  isLayoutPetrinautNetToolName,
-  isReadPetrinautDocsToolName,
-  isReadPetrinautDiagnosticsToolName,
-  isReadPetrinautNetToolName,
-  layoutPetrinautNetToolName,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautDiagnosticsToolName,
-  readPetrinautNetToolName,
-} from "./construction-tool-names";
-export {
-  APPLY_PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  applyPetrinautConstructionInputSchema,
-  applyPetrinautConstructionOutputSchema,
-  applyPetrinautConstructionToolName,
-  batchedConstructionMode,
-  isMutatePetrinautNetToolName,
-  mutatePetrinetAttemptCallId,
-  mutatePetrinetAttemptOperationId,
-  mutatePetrinetInputSchema,
-  mutatePetrinetOutputSchema,
-  mutatePetrinautNetToolName,
-  type ApplyPetrinautConstructionInput,
-  type ApplyPetrinautConstructionOutput,
-  type MutatePetrinetInput,
-  type MutatePetrinetOperation,
-  type MutatePetrinetOutput,
-} from "./mutate-petrinet";
-export {
-  declarePetrinautProjectionToolName,
-  declaredProjectionInputSchema,
-  declaredProjectionOutputSchema,
-  validateDeclaredBasis,
-  verifyDeclaredProjectionOutput,
-  type DeclaredBasis,
-  type DeclaredProjectionInput,
-  type DeclaredProjectionOutput,
-} from "./declared-basis";
+export { READ_PETRINAUT_DOCS_TOOL_NAME } from "./construction-tool-names";
 export {
   draftPetrinautExperimentInputSchema,
   draftPetrinautExperimentOutputSchema,
@@ -120,26 +21,6 @@ export {
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./draft-experiment";
-export {
-  constructionWhyInputSchema,
-  queryWorkpieceInputSchema,
-  parseConstructionWhyInput,
-  rootNodeWhyInputSchema,
-  type RootNodeWhyInput,
-  observedNodeMutationNames,
-  isObservedNodeMutation,
-  locateRootNode,
-  type ObservedNodeMutationName,
-} from "./root-node";
-
-export {
-  observedStateMutationNames,
-  isObservedStateMutation,
-  rootStateWhyInputSchema,
-  locateRootState,
-  type ObservedStateMutationName,
-  type RootStateWhyInput,
-} from "./root-state";
 
 export const SDCPN_DOMAIN_TYPOLOGY = "operational processes";
 export const SDCPN_TARGET_FORMALISM = "sdcpn";

@@ -7,12 +7,9 @@ import {
   type DraftPetrinautExperimentOutput,
   draftPetrinautExperimentOutputSchema,
   draftPetrinautExperimentToolName,
-  applyPetrinautConstructionToolName,
-  isLayoutPetrinautNetToolName,
-  isMutatePetrinautNetToolName,
-  readPetrinautNetToolName,
+  parseClientToolResultMetadata,
+  type BrowserBinding,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
@@ -41,15 +38,12 @@ import {
   resetEditorDrafts,
   editorDraftsFor,
 } from "./brunch-draft-experiment-interactive-tool/editor-drafts";
-import { deriveCanonicalPetrinautReplay } from "./brunch-petrinaut-tools";
 import {
   foldBrunchWorkpieceHistory,
   settledBrunchWorkpieceRevisionFrom,
 } from "./brunch-workpiece-history";
-import { observeBrowserDefinition } from "./mutation-record";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
-import type { BrowserToolBinding } from "./mutation-record";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
   PetrinautExperimentRequest,
@@ -175,9 +169,8 @@ export const resetBrunchEditorDrafts = resetEditorDrafts;
 /** Resolve only the history before the exact issued call, never a model-supplied citation. */
 export const resolveDraftAuthorityFromHistory = async (
   snapshot: FlueConversationState,
-  binding: BrowserToolBinding,
+  binding: BrowserBinding,
   draftCallId: string,
-  issuedInput: DraftPetrinautExperimentInput,
 ): Promise<string> => {
   const positions = snapshot.messages.flatMap((message, messageIndex) =>
     message.role === "assistant" && message.purpose === "assistant"
@@ -191,38 +184,10 @@ export const resolveDraftAuthorityFromHistory = async (
       : [],
   );
   const position = positions[0];
-  const identityCount = snapshot.messages.reduce(
-    (count, message) =>
-      count +
-      (message.role === "assistant" && message.purpose === "assistant"
-        ? message.parts.filter(
-            (part) =>
-              part.type === "dynamic-tool" && part.toolCallId === draftCallId,
-          ).length
-        : 0),
-    0,
-  );
-  if (positions.length !== 1 || identityCount !== 1 || !position)
-    throw new Error(
-      "Issued draft is absent or ambiguous in fresh conversation history.",
-    );
+  if (!position)
+    throw new Error("Issued draft is absent from conversation history.");
   const message = snapshot.messages[position.messageIndex];
   if (!message) throw new Error("Draft history is incomplete.");
-  const issuedCall = message.parts[position.partIndex];
-  const recordedInput = draftPetrinautExperimentInputSchema.safeParse(
-    issuedCall?.type === "dynamic-tool" ? issuedCall.input : undefined,
-  );
-  const preparedInput =
-    draftPetrinautExperimentInputSchema.safeParse(issuedInput);
-  if (
-    !recordedInput.success ||
-    !preparedInput.success ||
-    canonicalContent(recordedInput.data) !==
-      canonicalContent(preparedInput.data)
-  )
-    throw new Error(
-      "Draft input does not match the exact issued semantic proposal.",
-    );
   const prefix = {
     ...snapshot,
     messages: [
@@ -235,70 +200,35 @@ export const resolveDraftAuthorityFromHistory = async (
       ? entry.parts.filter((part) => part.type === "dynamic-tool")
       : [],
   );
-  const latestSettlement = calls.findLast(
-    (call) => call.toolName === "mutate_workpiece",
-  );
   const ledger = settledBrunchWorkpieceRevisionFrom(
     foldBrunchWorkpieceHistory(prefix.messages, binding),
   );
-  if (!ledger || ledger.revisionId !== latestSettlement?.toolCallId)
+  if (!ledger)
     throw new Error("Draft requires a current settled Ledger basis.");
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(ledger.markdown),
-  );
-  const sha256 = Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
-  if (sha256 !== ledger.sha256)
-    throw new Error("Draft Ledger basis hash differs from its content.");
-  const replay = await deriveCanonicalPetrinautReplay({
-    snapshot: prefix,
-    binding,
-  });
-  // A verified canonical experiment is non-mutating; an unverified one is
-  // unrecorded authority, so it still invalidates the preceding read.
   const relevant = calls.filter(
     (call) =>
-      (canonicalPetrinautClientToolNames.has(call.toolName) &&
-        call.toolName !== "getNetCompilationErrors" &&
-        call.toolName !== "readPetrinautDoc" &&
-        (call.toolName !== "createExperiment" ||
-          !replay.terminalExperiments.has(call.toolCallId) ||
-          replay.blockedCalls.has(call.toolCallId))) ||
-      call.toolName === readPetrinautNetToolName ||
-      isMutatePetrinautNetToolName(call.toolName) ||
-      isLayoutPetrinautNetToolName(call.toolName) ||
-      call.toolName === applyPetrinautConstructionToolName,
+      canonicalPetrinautClientToolNames.has(call.toolName) &&
+      call.toolName !== "getNetCompilationErrors" &&
+      call.toolName !== "readPetrinautDoc" &&
+      call.toolName !== "createExperiment",
   );
   const latest = relevant.at(-1);
-  if (latest?.toolName !== "getLatestNetDefinition")
-    throw new Error(
-      "Draft requires a latest canonical getLatestNetDefinition read after all changes.",
-    );
-  const readCalls = calls.filter(
-    (call) => call.toolCallId === latest.toolCallId,
-  );
-  const readResults = clientToolHistoryFrom(prefix.messages).results.filter(
-    (result) => result.toolCallId === latest.toolCallId,
-  );
   if (
-    readCalls.length !== 1 ||
-    readResults.length !== 1 ||
-    readResults[0]?.toolName !== latest.toolName
+    latest?.toolName !== "getLatestNetDefinition" ||
+    latest.state !== "output-available"
   )
     throw new Error(
-      "Draft canonical read has a conflicting call or result identity.",
+      "Draft requires the latest settled canonical net read after changes.",
     );
-  const retained = replay.terminalReads.get(latest.toolCallId);
-  if (!retained || replay.blockedCalls.has(latest.toolCallId))
-    throw new Error(
-      "Draft canonical read is missing, ambiguous or unverified.",
-    );
-  const observed = retained.metadata.observation;
-  if (!observed || observed.toolCallId !== latest.toolCallId)
-    throw new Error("Draft canonical read has no verified observation.");
-  return observed.observed.sha256;
+  const envelope = latest.output;
+  const metadata =
+    typeof envelope === "object" && envelope !== null && "metadata" in envelope
+      ? parseClientToolResultMetadata(envelope.metadata)
+      : undefined;
+  const revision = metadata?.documentRevision.before;
+  if (revision === undefined)
+    throw new Error("The latest canonical read has no document revision.");
+  return revision;
 };
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<
@@ -362,10 +292,7 @@ export const BrunchDraftExperimentWidget = ({
   toolCallId,
 }: WidgetProps & {
   readTitle: () => string;
-  readDraftAuthority: (
-    toolCallId: string,
-    input: DraftPetrinautExperimentInput,
-  ) => Promise<string>;
+  readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
@@ -409,35 +336,29 @@ export const BrunchDraftExperimentWidget = ({
     // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect starts the one live-model preparation and marks it pending
     setPreparationFailure(null);
     setSubmissionPending(true);
-    // The server hashes the handle snapshot; the readable store may normalize
-    // its property order and therefore produce a different serialized hash.
-    let observation: ReturnType<typeof observeBrowserDefinition>;
-    try {
-      observation = observeBrowserDefinition(instance.handle);
-    } catch (caught) {
+    const initialDefinition = instance.handle.doc();
+    if (!initialDefinition) {
       setPreparationFailure({
         kind: "prepare",
-        message: caught instanceof Error ? caught.message : String(caught),
+        message: "The bound browser document is unavailable.",
       });
       setSubmissionPending(false);
       return;
     }
-    let definition = observation.definition;
     const submitAndRegister = async () => {
+      let definition: SDCPN = initialDefinition;
       let outcome: ReturnType<typeof prepareOrExplain>;
       try {
-        const verifiedBaseHash = await readDraftAuthority(toolCallId, input);
-        // History is fetched asynchronously; preparation must use the live handle
-        // *after* that fetch, not a snapshot that could have changed meanwhile.
-        const live = observeBrowserDefinition(instance.handle);
-        definition = live.definition;
+        const readRevision = await readDraftAuthority(toolCallId);
+        const latestDefinition = instance.handle.doc();
+        if (latestDefinition) definition = latestDefinition;
         outcome =
-          live.sha256 === verifiedBaseHash
+          latestDefinition && instance.handle.revisionId.get() === readRevision
             ? prepareOrExplain(input.experiment, definition, readTitle())
             : {
                 prepared: null,
                 error:
-                  "The model changed since the verified canonical read. Ask Brunch to read the current model and draft again.",
+                  "The model changed since the canonical read. Ask Brunch to read the current model and draft again.",
               };
       } catch (caught) {
         outcome = {
@@ -848,10 +769,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
   readDraftAuthority,
 }: {
   readTitle: () => string;
-  readDraftAuthority: (
-    toolCallId: string,
-    input: DraftPetrinautExperimentInput,
-  ) => Promise<string>;
+  readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
   definePetrinautAiInteractiveTool<
     DraftPetrinautExperimentInput,

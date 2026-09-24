@@ -75,43 +75,6 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
   expect(failBrowserCall(reply)).toBe(false);
 });
 
-it("refuses an invalid browser result before acknowledging it or recording success", async () => {
-  const call = {
-    instanceId: "owner",
-    toolCallId: crypto.randomUUID(),
-    toolName: "addPlace",
-    canonicalInput: {},
-    binding: "same-document",
-    verify: async () => {
-      throw new Error("Missing root mutation record; effect unknown.");
-    },
-  };
-  const result = issueBrowserCall(call);
-  const rejection = expect(result).rejects.toThrow(
-    /Missing root mutation record/,
-  );
-  const capability = claimBrowserCall(
-    call.instanceId,
-    call.toolCallId,
-    call.binding,
-  )?.capability;
-  expect(
-    await settleBrowserCall({
-      ...call,
-      capability: capability!,
-      output: { applied: true },
-    }),
-  ).toBe("invalid");
-  await rejection;
-  expect(
-    await settleBrowserCall({
-      ...call,
-      capability: capability!,
-      output: { applied: true },
-    }),
-  ).toBe("not-issued");
-});
-
 it("settles a claimed failure promptly, without fabricating a canonical output or poisoning an independent read", async () => {
   const mutation = {
     instanceId: "owner",

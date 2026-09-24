@@ -1,9 +1,5 @@
 import {
-  BRUNCH_DECLARED_PROJECTION_MODE,
-  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
-  applyPetrinautConstructionToolName,
-  declarePetrinautProjectionToolName,
   draftPetrinautExperimentToolName,
   STOCK_OVER_FLUE_MODE,
   type CanonicalPetrinautMode,
@@ -30,7 +26,6 @@ export type ToolCapabilityClass =
   | "petrinaut-command"
   | "petrinaut-experiment"
   | "petrinaut-experiment-draft"
-  | "petrinaut-declaration"
   | "explanation"
   | "diagnostic";
 
@@ -174,28 +169,6 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
   draftBrunchTool,
 ];
 
-const deepConstructionTool: BrunchToolCatalogueEntry = {
-  name: applyPetrinautConstructionToolName,
-  definitionOwner: "sdcpn-plugin",
-  executionOwner: "petrinaut-website",
-  capability: "petrinaut-mutation",
-};
-
-const declaredProjectionTools: readonly BrunchToolCatalogueEntry[] = [
-  ...integratedBrunchTools.slice(
-    0,
-    -(canonicalPetrinautToolCatalogue.length + 1),
-  ),
-  {
-    name: declarePetrinautProjectionToolName,
-    definitionOwner: "sdcpn-plugin",
-    executionOwner: "brunch-app",
-    capability: "petrinaut-declaration",
-  },
-  ...canonicalPetrinautToolCatalogue,
-  draftBrunchTool,
-];
-
 /**
  * Expected provider-visible names and ownership for each canonical evaluation
  * mode. Schemas stay with Petrinaut; this map deliberately classifies names only.
@@ -205,9 +178,4 @@ export const toolCatalogueByMode: Readonly<
 > = {
   [STOCK_OVER_FLUE_MODE]: canonicalPetrinautToolCatalogue,
   [INTEGRATED_BRUNCH_MODE]: integratedBrunchTools,
-  [BRUNCH_DECLARED_PROJECTION_MODE]: declaredProjectionTools,
-  [BRUNCH_DEEP_CONSTRUCTION_MODE]: [
-    ...integratedBrunchTools,
-    deepConstructionTool,
-  ],
 };

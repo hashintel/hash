@@ -1,8 +1,6 @@
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
 
-import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
-
 import {
   agentOwnershipHeaders,
   BRUNCH_CONVERSATION_HEADER,
@@ -136,7 +134,6 @@ test("answers an allowed preflight before ownership", async () => {
           "content-type",
           BRUNCH_PRINCIPAL_HEADER,
           BRUNCH_CONVERSATION_HEADER,
-          BRUNCH_DOCUMENT_REVISION_HEADER,
         ].join(","),
       },
     }),
@@ -150,7 +147,7 @@ test("answers an allowed preflight before ownership", async () => {
     "GET,POST,PUT,OPTIONS",
   );
   expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
+    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
   );
   expect(response.headers.get("access-control-max-age")).toBe("600");
   expect(response.headers.get("access-control-allow-credentials")).toBeNull();
@@ -183,7 +180,7 @@ test("answers an allowed worked-model PUT preflight with its actual request enve
     "GET,POST,PUT,OPTIONS",
   );
   expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
+    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
   );
 });
 

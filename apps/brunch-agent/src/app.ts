@@ -10,12 +10,7 @@ import { Hono } from "hono";
 
 import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
-  applyPetrinautConstructionToolName,
-  layoutPetrinautNetToolName,
-  mutatePetrinautNetToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautDiagnosticsToolName,
-  readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
@@ -29,7 +24,6 @@ import {
   renewBrowserCall,
   settleBrowserCall,
 } from "./conversation/browser-call-rendezvous.ts";
-import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
@@ -124,18 +118,15 @@ instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
   interceptor(operation, context, next) {
-    return withReportedDocumentRevisionScope(context.submissionId, () => {
-      if (operation.type === "agent" && context.agentName !== undefined) {
-        return admissionScope.run(
-          context.agentName === ChatAgent.agentName
-            ? { idleRetryAvailable: true }
-            : false,
-          next,
-        );
-      }
-      if (operation.type === "task") return admissionScope.run(false, next);
-      return next();
-    });
+    if (operation.type === "agent" && context.agentName !== undefined)
+      return admissionScope.run(
+        context.agentName === ChatAgent.agentName
+          ? { idleRetryAvailable: true }
+          : false,
+        next,
+      );
+    if (operation.type === "task") return admissionScope.run(false, next);
+    return next();
   },
   dispose() {},
 });
@@ -155,11 +146,6 @@ if (accounting) {
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
   ...CANONICAL_PETRINAUT_TOOL_NAMES,
-  applyPetrinautConstructionToolName,
-  readPetrinautNetToolName,
-  readPetrinautDiagnosticsToolName,
-  layoutPetrinautNetToolName,
-  mutatePetrinautNetToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,
 ]);
 const integratedMixedToolNames = new Set([

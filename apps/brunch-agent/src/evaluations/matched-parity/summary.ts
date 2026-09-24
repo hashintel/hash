@@ -181,11 +181,6 @@ export const deriveComparison = (
         to: "I",
         delta: delta(summaries.F, summaries.I),
       },
-      declaredVsDeepConstruction: {
-        from: "A",
-        to: "B",
-        delta: delta(summaries.A, summaries.B),
-      },
     },
   };
 };

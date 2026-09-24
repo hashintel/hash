@@ -91,10 +91,10 @@ test("launcher Stop bounds an unobserved settlement", async () => {
   });
 });
 
-test("locates the bound Petrinaut document in supported persona modes", () => {
+test("locates the bound Petrinaut document in I", () => {
   expect(
     documentIdFromInitialData({
-      mode: "batched-construction",
+      mode: "integrated-brunch-canonical",
       construction: {
         binding: {
           conversationId: "conversation",
@@ -262,7 +262,7 @@ test.each([false, true])(
             uid: "TEST-uid",
             url: `${config.panelOrigin}/agents/chat/${flueConversationIdFrom(identity)}`,
             initialData: {
-              mode: "batched-construction",
+              mode: "integrated-brunch-canonical",
               construction: {
                 binding: {
                   conversationId: identity.conversationId,

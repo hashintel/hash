@@ -32,8 +32,8 @@ import {
 } from "../../src/conversation/identity.ts";
 import { formatFlueTranscript } from "../../src/conversation/transcript.ts";
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
+import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 import type {
   PetrinautChatResult,

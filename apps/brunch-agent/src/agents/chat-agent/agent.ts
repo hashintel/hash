@@ -8,9 +8,7 @@
  */
 
 import {
-  useAgentStart,
   useContextProjection,
-  useDelivery,
   useInitialData,
   useInstruction,
   useModel,
@@ -21,23 +19,16 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  isReadPetrinautNetToolName,
-  parseClientToolResultMetadata,
-  readPetrinautNetToolName,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
   SDCPN_MODELLING_SKILL_NAME,
   useSdcpnPlugin,
 } from "@hashintel/brunch-agent-plugin-sdcpn/agent";
 import {
   STOCK_OVER_FLUE_MODE,
   INTEGRATED_BRUNCH_MODE,
-  isIntegratedPetrinautMode,
   sdcpnInitialDataSchema,
   type BrowserContext,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { parseClientToolResultPayload } from "@hashintel/brunch-agent-transport-aisdk";
 import { useBrunchAgent } from "@hashintel/brunch-agent/agent";
 import { createWorkpieceReadTool } from "@hashintel/brunch-agent/flue";
 import {
@@ -49,27 +40,15 @@ import {
   selectChatModelSpecifier,
   selectChatThinking,
 } from "../../chat-model.ts";
-import {
-  ACTIVATE_SKILL_TOOL_NAME,
-  isClientToolResultDelivery,
-} from "../../conversation/client-tools.ts";
+import { ACTIVATE_SKILL_TOOL_NAME } from "../../conversation/client-tools.ts";
 import { modelAdmissionScope } from "../../provider-admission.ts";
-import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
 import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
-import { verifyMutationResults } from "../../conversation/mutation-delivery.ts";
 import {
-  deriveNetFreshness,
-  NET_STALE_SIGNAL,
-  netStaleSignalBody,
-} from "../../conversation/net-freshness.ts";
-import {
-  recordedBrowserObservation,
-  verifiedDraftReadBefore,
-} from "../../conversation/net-ledger.ts";
-import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
-import { verifyBrowserCallResult } from "../../conversation/verify-browser-call-result.ts";
+  latestNetReadBefore,
+  latestSettledWorkpieceBefore,
+} from "../../conversation/net-changes.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
@@ -109,12 +88,6 @@ export function ChatAgent({ id }: AgentProps) {
     return useStockOverFlueAgent();
 
   useContextProjection(projectBrunchContext);
-  const delivery = useDelivery();
-  const integratedCanonicalMode = isIntegratedPetrinautMode(initialData?.mode);
-  const integratedBrunchMode = initialData?.mode === INTEGRATED_BRUNCH_MODE;
-  const netDefinitionReadToolName = integratedCanonicalMode
-    ? getLatestNetDefinitionToolName
-    : readPetrinautNetToolName;
   const browserContext: BrowserContext | undefined = initialData?.construction
     ? { binding: initialData.construction.binding }
     : undefined;
@@ -131,30 +104,6 @@ export function ChatAgent({ id }: AgentProps) {
     }).history();
   };
   const readSources = async () => workpieceEvidenceSources(await history());
-  const activeObservationCallIds: string[] = [];
-  const suppliedObservationCallIds: string[] = [];
-  const isClientResultDelivery = isClientToolResultDelivery(delivery);
-  const clientResultPayload = isClientResultDelivery
-    ? parseClientToolResultPayload(delivery.body, (issue) =>
-        diagnostics.note("client-tool-result.parse", {
-          ...issue,
-          instanceId: id,
-        }),
-      )
-    : undefined;
-  if (clientResultPayload) {
-    // Dropped members stay dropped; the drop itself must not be silent.
-    for (const result of clientResultPayload.results) {
-      if (
-        !isReadPetrinautNetToolName(result.toolName) &&
-        result.toolName !== getLatestNetDefinitionToolName
-      )
-        continue;
-      activeObservationCallIds.push(result.toolCallId);
-      if (parseClientToolResultMetadata(result.metadata)?.observation)
-        suppliedObservationCallIds.push(result.toolCallId);
-    }
-  }
   const coreSystemPrompt = useBrunchAgent(
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
@@ -167,51 +116,19 @@ export function ChatAgent({ id }: AgentProps) {
           ? {
               authorizeDraft: async (draftCallId: string) => {
                 const snapshot = await history();
-                const calls = snapshot.messages.flatMap((message) =>
-                  message.role === "assistant" &&
-                  message.purpose === "assistant"
-                    ? message.parts
-                    : [],
+                const revision = latestSettledWorkpieceBefore(
+                  snapshot,
+                  draftCallId,
                 );
-                const draftIndex = calls.findIndex(
-                  (part) =>
-                    part.type === "dynamic-tool" &&
-                    part.toolCallId === draftCallId,
-                );
-                if (
-                  draftIndex < 0 ||
-                  calls.filter(
-                    (part) =>
-                      part.type === "dynamic-tool" &&
-                      part.toolCallId === draftCallId,
-                  ).length !== 1
-                )
-                  throw new Error(
-                    "Issued experiment draft is absent or ambiguous.",
-                  );
-                const settlement = calls
-                  .slice(0, draftIndex)
-                  .findLast(
-                    (part) =>
-                      part.type === "dynamic-tool" &&
-                      part.toolName === "mutate_workpiece",
-                  );
-                const revision =
-                  settlement?.type === "dynamic-tool"
-                    ? retainedSettledRevision(snapshot, settlement.toolCallId)
-                    : undefined;
                 if (!revision)
                   throw new Error(
                     "Experiment draft requires a current settled Ledger basis.",
                   );
-                return {
-                  observation: await verifiedDraftReadBefore(
-                    snapshot,
-                    browserContext,
-                    draftCallId,
-                  ),
-                  revisionId: revision.revisionId,
-                };
+                if (!latestNetReadBefore(snapshot, draftCallId))
+                  throw new Error(
+                    "Experiment draft requires a prior canonical net read.",
+                  );
+                return { revisionId: revision.revisionId };
               },
             }
           : {}),
@@ -230,33 +147,8 @@ export function ChatAgent({ id }: AgentProps) {
                   canonicalInput: input,
                   binding: JSON.stringify(browserContext.binding),
                   signal,
-                  verify: async (call) => {
-                    const metadata = await verifyBrowserCallResult({
-                      call,
-                      canonicalInput: input,
-                      binding: browserContext.binding,
-                    });
-                    return {
-                      toolCallId: call.toolCallId,
-                      toolName: call.toolName,
-                      output: call.output,
-                      ...(metadata === undefined ? {} : { metadata }),
-                    };
-                  },
                 });
                 return { output: result.output, metadata: result.metadata };
-              },
-            }
-          : {}),
-        ...(initialData?.construction
-          ? {
-              observationFor: async (callId: string) => {
-                const snapshot = await history();
-                return recordedBrowserObservation(
-                  snapshot,
-                  initialData.construction!,
-                  callId,
-                );
               },
             }
           : {}),
@@ -268,7 +160,6 @@ export function ChatAgent({ id }: AgentProps) {
             current: currentRevision,
             browser: browserContext,
             history,
-            activeObservationCallIds,
           }),
         );
       }
@@ -279,73 +170,7 @@ export function ChatAgent({ id }: AgentProps) {
       : undefined,
     initialData?.mode === INTEGRATED_BRUNCH_MODE,
   );
-  useAgentStart(async ({ append }) => {
-    if (browserContext && delivery.kind === "user") {
-      // Always consume the reported revision so its per-submission entry is released.
-      const reportedRevisionId = takeReportedDocumentRevision();
-      // Flue history is the only ledger of what the model has observed. The
-      // marker joins this response ahead of the model's first turn; it asks for
-      // a read and never withdraws the tool. It is suspended in I: it was written
-      // for terminal browser tools, where a read ended the submission, and as
-      // the last user-role message it ended I's in-band loop after the read.
-      const freshness = integratedBrunchMode
-        ? undefined
-        : await deriveNetFreshness(
-            await history(),
-            browserContext,
-            reportedRevisionId,
-          );
-      if (freshness !== undefined && freshness.kind !== "current")
-        append({
-          kind: "signal",
-          type: NET_STALE_SIGNAL,
-          tagName: NET_STALE_SIGNAL,
-          attributes: { kind: freshness.kind },
-          body: netStaleSignalBody(freshness),
-        });
-    }
-    if (browserContext && isClientResultDelivery) {
-      // Legacy recorded reads lack this optional sidecar. Only a why lookup that
-      // actually cites an observation requires it; legacy continuation is unchanged.
-      const snapshot = await history();
-      const browser = browserContext;
-      await Promise.all(
-        suppliedObservationCallIds.map((callId) =>
-          recordedBrowserObservation(snapshot, browser, callId),
-        ),
-      );
-      await verifyMutationResults({
-        body: delivery.body,
-        snapshot,
-        ...browserContext,
-        ...(initialData?.construction
-          ? {
-              observationFor: async (callId: string, beforeCallId: string) => {
-                const index = snapshot.messages.findIndex((message) =>
-                  message.parts.some(
-                    (part) =>
-                      part.type === "dynamic-tool" &&
-                      part.toolCallId === beforeCallId,
-                  ),
-                );
-                if (index < 0)
-                  throw new Error("Unknown issued construction call.");
-                return recordedBrowserObservation(
-                  { ...snapshot, messages: snapshot.messages.slice(0, index) },
-                  browserContext,
-                  callId,
-                );
-              },
-            }
-          : {}),
-      });
-    }
-  });
 
-  if (clientResultPayload?.context)
-    useInstruction(
-      `Host diagnostics for this client-result continuation (context only, never user testimony or semantic evidence):\n${clientResultPayload.context}`,
-    );
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
@@ -356,24 +181,10 @@ ${
 }
 `.replace(/^\s+|\s+$/gu, ""),
   );
-  useInstruction(
-    `
-For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
-${
-  integratedBrunchMode
-    ? ""
-    : `A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${netDefinitionReadToolName} and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${netDefinitionReadToolName} result in this conversation is the current net.`
-}
-`.replace(/^\s+|\s+$/gu, ""),
-  );
   if (browserContext)
     useInstruction(
       `
-When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified ${netDefinitionReadToolName} result for the currently confirmed document revision. ${
-        integratedBrunchMode
-          ? `If no verified read exists or the net may have changed since the last one, call ${netDefinitionReadToolName} first, then call query_workpiece after its result returns.`
-          : `If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls ${netDefinitionReadToolName} and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it.`
-      } Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece with the element the user named, resolved to its recorded name or ID; the host attaches the verified read's correlation rather than requiring you to copy a tool-call ID or hash. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+When the user asks why a visible element exists, do not answer from memory. If no current ${getLatestNetDefinitionToolName} read exists or the net may have changed since it, read the net first, then call query_workpiece with the element's kind and recorded name or ID (for an arc, the transition ID, direction and place ID). The answer lists associated applied calls and the workpiece revision current at each call; chronological association is not semantic justification. If no call is associated, say so plainly.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);

@@ -91,7 +91,7 @@ const assertConfigurationMatch = (
 /**
  * Return one proven-complete retained arm, or undefined only when no prior arm
  * directory exists. Legacy stock/brunch artifacts remain historical evidence
- * but cannot be relabeled or resumed as any S/F/I/A/B arm.
+ * but cannot be relabeled or resumed as any S/F/I arm.
  */
 export const loadCompletedArm = async (input: {
   readonly arm: EvaluationArm;

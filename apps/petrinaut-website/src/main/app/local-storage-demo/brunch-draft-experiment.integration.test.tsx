@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 
 import { expect, test, vi } from "vitest";
 
-import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import {
   createJsonDocHandle,
   createPetrinaut,
@@ -33,29 +32,13 @@ vi.hoisted(() => {
     dispatchEvent: () => true,
   });
 });
-
 const binding = {
   documentId: "document",
   incarnationId: "incarnation",
   conversationId: "conversation",
 };
-const markdown =
-  "Decision: vary staffing from 2 to 8 people, minimizing waiting time under peak load for 120 minutes.";
-const sha256 = createHash("sha256").update(markdown).digest("hex");
-const settlement = {
-  type: "dynamic-tool",
-  toolCallId: "ledger-1",
-  toolName: "mutate_workpiece",
-  state: "output-available",
-  input: { markdown },
-  output: {
-    revisionId: "ledger-1",
-    sha256,
-    ordinal: 1,
-    disposition: "applied",
-  },
-};
-const issuedInput = {
+const markdown = "Decision: minimize waiting time under peak load.";
+const input = {
   experiment: {
     name: "Baseline",
     scenarioId: "baseline",
@@ -70,28 +53,28 @@ const issuedInput = {
   declarations: [{ subject: "result", statement: "No guarantee." }],
   unsupported: [],
 };
-const authorize = (
-  snapshot: FlueConversationState,
-  targetBinding: typeof binding,
-  toolCallId: string,
-) =>
-  resolveDraftAuthorityFromHistory(
-    snapshot,
-    targetBinding,
-    toolCallId,
-    issuedInput,
-  );
+const settlement = {
+  type: "dynamic-tool",
+  toolCallId: "ledger-1",
+  toolName: "mutate_workpiece",
+  state: "output-available",
+  input: { markdown },
+  output: {
+    revisionId: "ledger-1",
+    sha256: createHash("sha256").update(markdown).digest("hex"),
+    ordinal: 1,
+    disposition: "applied",
+  },
+};
 const draft = {
   type: "dynamic-tool",
   toolCallId: "draft-1",
   toolName: "draft_petrinaut_experiment",
   state: "output-available",
-  input: issuedInput,
-  output: { awaiting: AWAITING_CLIENT },
+  input,
+  output: { awaiting: "client" },
 };
-
-/** Real canonical host read, correlated via the existing dispatch sidecar. */
-const makeHistory = () => {
+const history = async () => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       id: binding.documentId,
@@ -129,372 +112,68 @@ const makeHistory = () => {
     viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
+  const metadata = await host.clientToolResultMetadataFor("read-1", output);
   const readCall = {
     type: "dynamic-tool",
     toolCallId: "read-1",
     toolName: "getLatestNetDefinition",
     state: "output-available",
     input: {},
-    output: { awaiting: AWAITING_CLIENT },
+    output: { brunchBrowserResult: true, output, metadata },
   };
   const messages = [
     { role: "assistant", purpose: "assistant", parts: [settlement, readCall] },
-    {
-      role: "system",
-      purpose: "dispatch",
-      signal: { tagName: "client-tool-result" },
-      parts: [
-        {
-          type: "text",
-          text: JSON.stringify([
-            {
-              toolCallId: "read-1",
-              toolName: "getLatestNetDefinition",
-              output,
-              metadata: host.clientToolResultMetadataFor("read-1", output),
-            },
-          ]),
-        },
-      ],
-    },
     { role: "assistant", purpose: "assistant", parts: [draft] },
   ];
-  return { snapshot: { messages } as FlueConversationState, host };
+  return {
+    snapshot: { messages } as FlueConversationState,
+    revision: instance.handle.revisionId.get(),
+  };
 };
 
-test("integrated draft is distinct from canonical createExperiment and authorizes the exact host read before its call", async () => {
+test("I retains canonical createExperiment and authorizes a draft from the latest settled Ledger and read revision", async () => {
   expect(canonicalPetrinautClientToolNames.has("createExperiment")).toBe(true);
   expect(
     canonicalPetrinautClientToolNames.has("draft_petrinaut_experiment"),
   ).toBe(false);
-  expect(integratedPetrinautClientToolNames.has("createExperiment")).toBe(true);
   expect(
     integratedPetrinautClientToolNames.has("draft_petrinaut_experiment"),
   ).toBe(true);
-  const { snapshot, host } = makeHistory();
-  expect(host.tools.map((tool) => tool.toolName)).not.toContain(
-    "draft_petrinaut_experiment",
-  );
-  await expect(authorize(snapshot, binding, "draft-1")).resolves.toMatch(
-    /^[a-f0-9]{64}$/u,
-  );
-  await expect(authorize(snapshot, binding, "missing")).rejects.toThrow(
-    /absent or ambiguous/u,
-  );
+  const { snapshot, revision } = await history();
   await expect(
-    authorize(snapshot, { ...binding, conversationId: "other" }, "draft-1"),
-  ).rejects.toThrow(/unverified/u);
-  const collidingPingCall = {
-    role: "assistant",
-    purpose: "assistant",
-    parts: [
-      {
-        type: "dynamic-tool",
-        toolCallId: "read-1",
-        toolName: "ping",
-        state: "output-available",
-        input: {},
-        output: { ok: true },
-      },
-    ],
-  };
+    resolveDraftAuthorityFromHistory(snapshot, binding, "draft-1"),
+  ).resolves.toBe(revision);
   await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [
-          ...snapshot.messages.slice(0, -1),
-          collidingPingCall,
-          snapshot.messages.at(-1)!,
-        ],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).rejects.toThrow(/conflicting call or result identity/u);
-  const collidingPingResult = {
-    role: "system",
-    purpose: "dispatch",
-    signal: { tagName: "client-tool-result" },
-    parts: [
-      {
-        type: "text",
-        text: JSON.stringify([
-          { toolCallId: "read-1", toolName: "ping", output: { ok: true } },
-        ]),
-      },
-    ],
-  };
-  await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [
-          ...snapshot.messages.slice(0, -1),
-          collidingPingResult,
-          snapshot.messages.at(-1)!,
-        ],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).rejects.toThrow(/conflicting call or result identity/u);
-  await expect(
-    resolveDraftAuthorityFromHistory(snapshot, binding, "draft-1", {
-      ...issuedInput,
-      declarations: [],
-    }),
-  ).rejects.toThrow(/does not match/u);
+    resolveDraftAuthorityFromHistory(snapshot, binding, "missing"),
+  ).rejects.toThrow(/absent/u);
 });
 
-test("only a verified intervening canonical experiment preserves the draft read", async () => {
-  const { snapshot } = makeHistory();
-  const dispatch = snapshot.messages[1];
-  if (!dispatch) throw new Error("Missing canonical read dispatch");
-  const recorded = JSON.parse((dispatch.parts[0] as { text: string }).text) as {
-    output: { definition: unknown };
-    metadata: {
-      observation: { observed: { sha256: string; revisionId?: string } };
-    };
-  }[];
-  const read = recorded[0];
-  if (!read) throw new Error("Missing canonical read terminal");
-  const toolCallId = "experiment-1";
-  const input = issuedInput.experiment;
-  const output = {
-    status: "complete",
-    experimentId: toolCallId,
-    name: input.name,
-    runsCompleted: 10,
-    metrics: [{ id: "throughput", label: "Throughput", value: 2 }],
-  };
-  const experimentCall = {
-    role: "assistant",
-    purpose: "assistant",
-    parts: [
-      {
-        type: "dynamic-tool",
-        toolCallId,
-        toolName: "createExperiment",
-        state: "output-available",
-        input,
-        output: { awaiting: AWAITING_CLIENT },
-      },
-    ],
-  };
-  const result = {
-    toolCallId,
-    toolName: "createExperiment",
-    output,
-    metadata: {
-      experimentRecord: {
-        toolCallId,
-        binding,
-        input,
-        source: {
-          definition: read.output.definition,
-          sha256: read.metadata.observation.observed.sha256,
-          revisionId:
-            read.metadata.observation.observed.revisionId ?? "source-revision",
-        },
-        output,
-      },
+test("a changed net after the read requires another canonical read before a draft", async () => {
+  const { snapshot } = await history();
+  const changed = {
+    type: "dynamic-tool",
+    toolName: "addPlace",
+    toolCallId: "changed",
+    state: "output-available",
+    input: { id: "place" },
+    output: {
+      brunchBrowserResult: true,
+      output: { applied: true },
+      metadata: { documentRevision: { before: "old", after: "new" } },
     },
   };
-  const resultMessage = {
-    role: "system",
-    purpose: "dispatch",
-    signal: { tagName: "client-tool-result" },
-    parts: [{ type: "text", text: JSON.stringify([result]) }],
-  };
-  const beforeDraft = snapshot.messages.slice(0, -1);
-  const draftMessage = snapshot.messages.at(-1)!;
-  const verified = {
-    ...snapshot,
-    messages: [...beforeDraft, experimentCall, resultMessage, draftMessage],
-  } as FlueConversationState;
-  await expect(authorize(verified, binding, "draft-1")).resolves.toMatch(
-    /^[a-f0-9]{64}$/u,
-  );
-  const unverified = {
-    ...snapshot,
-    messages: [
-      ...beforeDraft,
-      experimentCall,
-      {
-        ...resultMessage,
-        parts: [
-          {
-            type: "text",
-            text: JSON.stringify([
-              { toolCallId, toolName: "createExperiment", output },
-            ]),
-          },
-        ],
-      },
-      draftMessage,
-    ],
-  } as FlueConversationState;
-  await expect(authorize(unverified, binding, "draft-1")).rejects.toThrow(
-    /after all changes/u,
-  );
-});
-
-test("history prefix refuses a missing or ambiguous Ledger/read rather than choosing another call", async () => {
-  const { snapshot } = makeHistory();
-  const messages = snapshot.messages;
-  const assistant = messages[0];
-  if (!assistant) throw new Error("Missing assistant history");
+  const messages = [
+    {
+      ...snapshot.messages[0]!,
+      parts: [...snapshot.messages[0]!.parts, changed],
+    },
+    ...snapshot.messages.slice(1),
+  ];
   await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [{ ...assistant, parts: [draft] }],
-      } as FlueConversationState,
+    resolveDraftAuthorityFromHistory(
+      { ...snapshot, messages } as FlueConversationState,
       binding,
       "draft-1",
     ),
-  ).rejects.toThrow(/Ledger/u);
-  await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [...messages, { ...assistant, parts: [draft] }],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).rejects.toThrow(/ambiguous/u);
-  const interveningMutation = {
-    ...assistant,
-    parts: [
-      {
-        type: "dynamic-tool",
-        toolCallId: "mutation-1",
-        toolName: "addPlace",
-        state: "output-available",
-        input: {},
-        output: { awaiting: AWAITING_CLIENT },
-      },
-    ],
-  };
-  await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [
-          ...messages.slice(0, -1),
-          interveningMutation,
-          messages.at(-1)!,
-        ],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).rejects.toThrow(/after all changes/u);
-  const diagnostics = {
-    ...assistant,
-    parts: [
-      {
-        type: "dynamic-tool",
-        toolCallId: "diagnostics",
-        toolName: "getNetCompilationErrors",
-        state: "output-available",
-        input: {},
-        output: { awaiting: AWAITING_CLIENT },
-      },
-      {
-        type: "dynamic-tool",
-        toolCallId: "documentation",
-        toolName: "readPetrinautDoc",
-        state: "output-available",
-        input: {},
-        output: { awaiting: AWAITING_CLIENT },
-      },
-    ],
-  };
-  await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [...messages.slice(0, -1), diagnostics, messages.at(-1)!],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).resolves.toMatch(/^[a-f0-9]{64}$/u);
-  for (const [index, toolName] of [
-    "applyAutoLayout",
-    "setNetTitle",
-    "createExperiment",
-    "mutate_petrinaut_net",
-  ].entries()) {
-    const intervening = {
-      ...assistant,
-      parts: [
-        {
-          type: "dynamic-tool",
-          toolCallId: `intervening-${index}`,
-          toolName,
-          state: "output-available",
-          input: {},
-          output: { awaiting: AWAITING_CLIENT },
-        },
-      ],
-    };
-    await expect(
-      authorize(
-        {
-          ...snapshot,
-          messages: [...messages.slice(0, -1), intervening, messages.at(-1)!],
-        } as FlueConversationState,
-        binding,
-        "draft-1",
-      ),
-    ).rejects.toThrow(/after all changes/u);
-  }
-  const colliding = {
-    ...assistant,
-    parts: [
-      {
-        type: "dynamic-tool",
-        toolCallId: "draft-1",
-        toolName: "ping",
-        state: "output-available",
-        input: {},
-        output: {},
-      },
-    ],
-  };
-  await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [...messages.slice(0, -1), colliding, messages.at(-1)!],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).rejects.toThrow(/ambiguous/u);
-  const dispatch = messages[1];
-  if (!dispatch) throw new Error("Missing read dispatch");
-  const readResults = JSON.parse(
-    (dispatch.parts[0] as { text: string }).text,
-  ) as unknown[];
-  const duplicateDispatch = {
-    ...dispatch,
-    parts: [
-      { type: "text", text: JSON.stringify([...readResults, ...readResults]) },
-    ],
-  };
-  await expect(
-    authorize(
-      {
-        ...snapshot,
-        messages: [messages[0]!, duplicateDispatch, messages[2]!],
-      } as FlueConversationState,
-      binding,
-      "draft-1",
-    ),
-  ).rejects.toThrow(/conflicting call or result identity/u);
+  ).rejects.toThrow(/latest settled canonical net read/u);
 });

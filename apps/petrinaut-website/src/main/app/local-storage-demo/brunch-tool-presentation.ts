@@ -16,9 +16,6 @@ export const visibleOrdinaryBrunchToolNames = [
   "read_skill_resource",
   "mutate_workpiece",
   "read_petrinaut_docs",
-  "read_petrinaut_net",
-  "read_petrinaut_diagnostics",
-  "mutate_petrinaut_net",
   "read_workpiece",
   "query_workpiece",
   "ping",
@@ -56,21 +53,6 @@ const lifecycleTitles = {
     pending: "Reading Petrinaut guidance",
     success: "Read Petrinaut guidance",
     error: "Could not read Petrinaut guidance",
-  },
-  read_petrinaut_net: {
-    pending: "Reading current model",
-    success: "Read current model",
-    error: "Could not read current model",
-  },
-  read_petrinaut_diagnostics: {
-    pending: "Checking model diagnostics",
-    success: "Checked model diagnostics",
-    error: "Could not check model diagnostics",
-  },
-  mutate_petrinaut_net: {
-    pending: "Updating model",
-    success: "Updated model",
-    error: "Could not update model",
   },
   read_workpiece: {
     pending: "Reading ledger",
@@ -210,11 +192,6 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
 
     if (toolName === "read_workpiece") {
       titles = readWorkpiecePurpose(context.input);
-    }
-
-    if (toolName === "read_petrinaut_net") {
-      const title = stringProperty(context.output, "title");
-      detail = title ? `Model: ${title}` : undefined;
     }
 
     if (toolName === "task") {

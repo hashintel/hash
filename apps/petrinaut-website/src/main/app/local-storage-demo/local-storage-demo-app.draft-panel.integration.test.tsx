@@ -327,6 +327,10 @@ test.each(["Dismiss", "Run"] as const)(
       viewport: { frameSceneAfterRender: async () => "framed" },
       signal: new AbortController().signal,
     });
+    const readMetadata = await host.clientToolResultMetadataFor(
+      "read-1",
+      readOutput,
+    );
     const markdown =
       "Decision: observe baseline throughput over one unit of time; do not claim a guarantee.";
     let history: FlueConversationState = {
@@ -358,7 +362,11 @@ test.each(["Dismiss", "Run"] as const)(
               toolName: "getLatestNetDefinition",
               state: "output-available",
               input: {},
-              output: { awaiting: "client" },
+              output: {
+                brunchBrowserResult: true,
+                output: readOutput,
+                metadata: readMetadata,
+              },
             },
           ],
         },
@@ -376,10 +384,7 @@ test.each(["Dismiss", "Run"] as const)(
                   toolCallId: "read-1",
                   toolName: "getLatestNetDefinition",
                   output: readOutput,
-                  metadata: host.clientToolResultMetadataFor(
-                    "read-1",
-                    readOutput,
-                  ),
+                  metadata: readMetadata,
                 },
               ]),
             },
@@ -411,9 +416,8 @@ test.each(["Dismiss", "Run"] as const)(
         } as FlueConversationState,
         binding,
         "draft-1",
-        proposal,
       ),
-    ).resolves.toMatch(/^[a-f0-9]{64}$/u);
+    ).resolves.toBe("initial-revision");
     let submissionCount = 0;
     const send = vi.fn<FlueClient["send"]>(async () => ({
       submissionId: `submission-${++submissionCount}`,
@@ -552,10 +556,6 @@ test.each(["Dismiss", "Run"] as const)(
         }),
       ).toBeNull();
     } else {
-      const progress = await screen.findByRole("progressbar", {
-        name: "Experiment runs",
-      });
-      expect(progress.getAttribute("aria-valuemax")).toBe("20");
       await waitFor(() =>
         expect(card.getAttribute("data-draft-status")).toBe("Run complete"),
       );

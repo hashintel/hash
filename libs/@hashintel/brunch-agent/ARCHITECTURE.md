@@ -1,68 +1,27 @@
 # Brunch architecture
 
-This document describes the implementation as it exists. Detailed application operation and deployment configuration live in [`apps/brunch-agent/README.md`](../../../apps/brunch-agent/README.md).
+`apps/brunch-agent` composes the Flue server, Brunch workpiece, SDCPN modelling skill and Petrinaut canonical tools. `apps/petrinaut-website` owns browser-local document state and executes browser tools through Petrinaut's editor. The server imports Petrinaut's published headless catalogue, not the UI package. Native Stock remains a separate panel choice.
 
-The current branch’s target contract and still-unresolved construction-interface decision are recorded in the [Petrinaut tooling remediation replan](docs/refactoring/tooling-remediation-plan.md).
+## Assistant modes
 
-## Runtime composition
+Build-time evaluation modes are isolated by conversation identity, not product UI choices. F (`canonical-petrinaut-tools`) mounts Petrinaut's exact Stock prompt and complete catalogue over Flue without Brunch contributions. I (`integrated-brunch-canonical`) adds the Brunch prompt, skill, workpiece, reviewed experiment draft and explanation tool while preserving every canonical Petrinaut tool. A conversation admitted without a mode retains the plugin skill and documentation tool but no canonical construction tools.
 
-`apps/brunch-agent` is the Flue server and composition point. When Brunch is selected, the product defaults to integrated mode: `ChatAgent` composes Brunch’s context projection, elicitation, Ledger, freshness, provenance, and explanation behavior with the SDCPN skill, Petrinaut-owned capability guidance, and the complete canonical `petrinautAiTools` catalogue.
+The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input. Prompts are imported with `?raw`. The skill is an Agent Skills directory packaged by Flue, so its agent hooks live under `./agent`; `./flue` stays loadable in plain Node. Gherkin is packaged but unmounted; Dafny and Claims are unmounted experimental packages.
 
-Three build-time evaluation modes are isolated by conversation identity and are not product UI choices. `F` is the exact Stock prompt and catalogue over Flue without Brunch or Ledger contributions. `A` adds `declare_petrinaut_projection` before direct canonical construction calls. `B` adds `apply_petrinaut_construction`, a bounded ordered browser operation, while retaining every canonical tool for reads, documentation, experiments, interactive layout, capabilities outside the carrier, and direct corrections. The native Stock assistant remains a separate panel choice.
+## Browser and conversation boundary
 
-Two older non-product composition boundaries remain route-admissible. Batched construction retains the previous observed mutation protocol for historical tests and compatibility. Validated construction mounts a smaller construct-only surface for the headless runbook evaluator.
+Flue's persisted conversation is canonical history. In I, a server-issued canonical browser call waits for a direct one-use HTTP result; the panel orders same-document calls. The browser returns Petrinaut's own output unchanged and host-only `documentRevision: { before?: string; after?: string }`: `before` names the revision observed before the call and `after` exists only when a document change has settled. The model-context projection strips the host envelope before each provider request. F retains the terminal client-result transport and Petrinaut's static tools. Neither the one-use capability nor the document binding authenticates the person; ownership middleware binds the authorized conversation and document incarnation. An attempted write without a settled result is never presumed rolled back or retried after reload.
 
-`@hashintel/brunch-agent-transport-aisdk` projects a caller-provided Flue conversation into AI SDK streams and transcripts; it does not own server state. `apps/petrinaut-website` owns browser-local document state, document/conversation binding, and execution of browser tools.
+The server credits an applied canonical call with its settled `after` revision; it does not re-hash or replay browser-produced evidence. `net-changes.ts` projects those calls in history order. `query_workpiece` looks up a named element in the latest canonical definition read and lists applied calls associated by element ID, each with the workpiece revision current at the call, its turn range and user message IDs. These temporal associations do not prove a semantic basis. A reviewed experiment draft requires an earlier canonical definition read and the latest settled workpiece revision; the browser prepares against the current document revision. Canonical `createExperiment` remains Petrinaut-owned and does not mutate the document.
 
-The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input: implementation source, not project documentation. Prompts are imported with `?raw`. Each skill is an Agent Skills directory whose `SKILL.md` the package exports and imports natively; library builds leave that import in place and the consuming Flue application validates and packages the directory. Only code built by Flue can load a `SKILL.md` import, so the hooks that mount skills live in each package's `./agent` entry, and `./flue` stays loadable in plain Node.
+## Workpiece authority
 
-### Loading workspace source in dev
+`mutate_workpiece` atomically replaces the complete Markdown revision in per-conversation persistent state. A successful revision can be recovered from canonical history by joining its submitted Markdown to the successful result and checking tool-call ID and SHA-256. Evidence cites literal text and authorized user-message IDs and resolves to UTF-16 locators. Dropping a heading or more than a quarter of the body requires explicit source-backed retraction. Expected validation refusal writes no revision; infrastructure failures throw. `read_workpiece` exposes the current revision and focused reads.
 
-Each Brunch package points TypeScript at `src` but runs from `dist`. So that a dev server does not run stale code, every export in these packages carries an `"@dev/source"` condition, placed after `types` and before `import`, that names the TypeScript source. The Brunch and website Vite configs prepend that condition to Vite's default client and server conditions only when they serve; builds, Vitest and plain Node never enable it and keep resolving `dist`. The name is a custom condition rather than `source` or `development`: Vite enables `development` by default in dev, and some published packages ship a `source` condition, so either would also switch third-party packages to unbuilt code. A new Brunch package export adds the condition beside its `types` entry. Petrinaut and petrinaut-core do not use it: they need their own build (Panda CSS and Vite-only imports), so their dev servers run from `dist`.
+The model-context projection reduces superseded workpiece and net-read bodies before provider invocation. It does not change canonical conversation history, public history, call identity or ordering.
 
-Gherkin is packaged but currently unmounted. Dafny and Claims are unmounted experimental packages.
+## Runtime and persistence
 
-## Conversation and workpiece authority
+Local development and tests use Flue's SQLite store; production requires Postgres. The separate worked-model store remains in-memory locally and Postgres in production. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`. Every Brunch package uses `dist` for plain Node and an `@dev/source` export condition for Vite's dev server; builds and tests use `dist`. Petrinaut and petrinaut-core build independently (Panda CSS and Vite-only imports).
 
-Flue’s persisted conversation is the canonical conversation record. In I, the issued canonical browser call waits asynchronously for a direct, one-use HTTP result. The route acknowledges only after checking the issued call's host sidecar, then writes the browser's canonical output and verified sidecar into that call's Flue outcome. The model-context projection removes the host envelope and sidecar before every provider request, leaving exactly the canonical Petrinaut output model-visible; there is no `awaiting: client` result or `client-tool-result` follow-up for those calls. Claiming the issued capability first requires the exact bound conversation/document incarnation, but this binding is not user authentication. The result handoff is process-local and only supports the documented single-owner Node deployment. F/A/B and legacy calls retain their terminal result-signal delivery and correlation. The ephemeral live-tool stream exists only to show pending work; it does not validate or execute tools and is not durable history.
-
-In integrated Brunch modes, the current Ledger (still named `workpiece` in implementation symbols) is per-conversation persistent state. `mutate_workpiece` atomically replaces the complete Markdown revision with its tool outcome. Successful revisions can be reconstructed from canonical history by joining the submitted Markdown to the successful result and verifying the tool-call ID and SHA-256.
-
-Workpiece settlement enforces these invariants:
-
-- the first revision names a `null` base; later revisions name the current revision;
-- replaying one tool-call ID requires identical content;
-- evidence cites literal text in the submitted Markdown and authorized user-message IDs, then resolves to UTF-16 locators;
-- invalid or ambiguous evidence refuses the entire settlement;
-- dropping an existing heading or more than 25% of the prior body requires an explicit, source-backed retraction;
-- an expected validation refusal writes no revision and returns a typed non-applied result; infrastructure and unexpected failures still throw.
-
-`read_workpiece` exposes the current revision and focused source/locator reads. It does not accept replacement content.
-
-## Model-context projection
-
-`apps/brunch-agent/src/agents/chat-agent/context-projection.ts` reduces superseded workpiece and net-read bodies before model invocation. This projection is model-facing and recomputable. It must not modify canonical conversation history, public history, call identity, ordering, or the latest authoritative body.
-
-## Tool boundary
-
-The plugin derives every canonical name, description, and schema directly from `petrinautAiTools`. Petrinaut retains canonical execution and model-visible output semantics. A schema-free Brunch catalogue classifies ownership and capability class; adding a Stock tool fails conformance until Brunch classifies the host mechanics it requires.
-
-Integrated I/A/B modes install host adapters under exact canonical names for the bounded `addPlace → addTransition → addArc` tracer and canonical definition reads. In I, the panel executes issued calls while Flue's response stream remains open; it orders all same-document calls and read barriers in admitted proposal order, while long experiments release the lane after capturing their source. The adapters observe pre/post state, derive effects independently, await exact repository settlement, carry diagnostics, and retain verified sidecars in Flue history. An explicit Stop aborts the wait. Calls never claimed before abort or lease expiry and bound siblings explicitly skipped before execution are unstarted; a claimed browser execution failure is delivered through a one-use negative result, with a potentially attempted document change classified unknown and a non-mutating call classified unchanged. Pending issued siblings receive their own negative result rather than waiting out the lease; a silent lost browser still requires lease expiry rather than instantaneous partition detection. A possible document effect with no accepted result is unknown and is never replayed; its output-error adds an unrecorded change that invalidates the preceding verified read without acquiring Ledger cause. I allows independent browser/server calls in one proposal, but a concurrent Ledger write cannot vouch for a browser effect it has not observed. Other canonical capabilities continue through Petrinaut’s static registry. Canonical `createExperiment` remains Petrinaut-owned; Brunch records its canonical request/result and the source document revision without duplicating progress state or treating the experiment as a document mutation.
-
-Interface A records semantic intent and host-resolved Ledger bases separately from direct calls, then recomputes ordered correlation from history. Interface B’s deep call resolves Ledger excerpts and document authority in the browser host, commits a successful/no-op prefix, leaves a failed or unknown suffix unattempted, settles each changed revision, reads diagnostics once after the prefix, and optionally applies verified layout. Both direct and deep calls recover terminal records from Flue history after remount and fail closed when history is missing, ambiguous, or unverifiable.
-
-The retained legacy batched boundary additionally mounts custom observed tools. Its model-authored observation and basis protocol is compatibility terrain, not the integrated product contract.
-
-## Persistence
-
-Local development and tests default to Flue’s SQLite store. Production requires Postgres and fails rather than falling back to local storage. The application also maintains a separate worked-model store: in-memory locally and Postgres in production. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`.
-
-## Flue and Pi patches
-
-The repository currently pins Flue `2.0.3` and applies root patches to:
-
-- `@flue/runtime@2.0.3` for Brunch’s context-projection and native tool-input behavior, tool-scoped persistent-state handling, and retry integration;
-- `@earendil-works/pi-agent-core@0.83.0` for authoritative tool-argument validation used by the Flue bridge;
-- `@earendil-works/pi-ai@0.83.0` / `^0.83.0` for complete Anthropic tool schemas and valid union-value handling.
-
-The patch files under `.yarn/patches/`, the root `resolutions`, and `ChatAgent`’s `useContextProjection` call are one compatibility boundary. Re-evaluate that boundary when upgrading Flue or Pi rather than deleting an individual patch in isolation.
+The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0` and `@earendil-works/pi-ai@0.83.0` for context projection, native tool input and complete provider schemas. Re-evaluate this patch boundary together when upgrading Flue or Pi.

@@ -21,9 +21,9 @@ import {
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { createStepARequestAccounting } from "../src/provider-accounting.ts";
 import { initializeRequestLedger } from "../src/provider-accounting/request-ledger.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 const childMode = process.argv[2];
 const directory =
