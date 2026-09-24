@@ -12,11 +12,13 @@ oEmbed discovery.
 
 ## Quickstart
 
-```sh
-cp .env.example .env.local
-# add your OPENAI_API_KEY to .env.local, if you want to use the chat feature
+Run these commands from the repository root after installing the toolchains and dependencies in the [root setup guide](../../README.md#setup). On Windows, use Git Bash as described there.
 
-turbo run dev
+```sh
+cp apps/petrinaut-website/.env.example apps/petrinaut-website/.env.local
+# Add OPENAI_API_KEY to apps/petrinaut-website/.env.local to use chat.
+
+turbo run dev --filter=@apps/petrinaut-website
 ```
 
 The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API functions.
