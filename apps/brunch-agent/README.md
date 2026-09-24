@@ -2,7 +2,7 @@
 
 ## Run the Petrinaut panel locally
 
-Brunch and the stock chat route both run `petrinautAiModel` from `@hashintel/petrinaut-core` unless a deployment overrides it (`BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING` for Brunch, `PETRINAUT_AI_MODEL` for the stock route). From the repository root, make `OPENAI_API_KEY` available and run:
+Brunch and the stock chat route both run `petrinautAiModel` from `@hashintel/petrinaut-core` unless a deployment overrides it (`BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING` for Brunch, `PETRINAUT_AI_MODEL` and `PETRINAUT_AI_REASONING_EFFORT` for the stock route). An overriding `BRUNCH_CHAT_MODEL` runs without a thinking level unless `BRUNCH_CHAT_THINKING` sets one. From the repository root, make `OPENAI_API_KEY` available and run:
 
 ```sh
 yarn dev:brunch

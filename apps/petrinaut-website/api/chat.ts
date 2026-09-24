@@ -210,7 +210,9 @@ const fetch = async (request: Request): Promise<Response> => {
         // GPT-6; without this it drops the reasoning effort. Remove once the
         // project-wide version is 3.0.113 or later.
         forceReasoning: true,
-        reasoningEffort: petrinautAiModel.reasoningEffort,
+        reasoningEffort:
+          process.env.PETRINAUT_AI_REASONING_EFFORT ??
+          petrinautAiModel.reasoningEffort,
         reasoningSummary: "auto",
         textVerbosity: "medium",
       },

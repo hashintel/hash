@@ -36,11 +36,13 @@ export const selectChatModelSpecifier = (
   return selected.includes("/") ? selected : `anthropic/${selected}`;
 };
 
+/** The default thinking level belongs to the default model; an overriding model gets none unless one is set. */
 export const selectChatThinking = (
   environment: NodeJS.ProcessEnv = process.env,
-): ChatThinkingLevel => {
+): ChatThinkingLevel | undefined => {
   const value = environment[brunchEnv.chatThinking];
-  if (!value) return DEFAULT_CHAT_THINKING;
+  if (!value)
+    return environment[brunchEnv.chatModel] ? undefined : DEFAULT_CHAT_THINKING;
   if (!isChatThinkingLevel(value))
     throw new Error(`Unsupported ${brunchEnv.chatThinking}`);
   return value;

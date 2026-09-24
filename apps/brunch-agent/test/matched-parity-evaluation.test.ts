@@ -135,6 +135,9 @@ describe("matched parity evaluation configuration", () => {
     expect(
       evaluationEnvironment(configuration, "S").VITE_BRUNCH_EVALUATION_MODE,
     ).toBeUndefined();
+    expect(
+      evaluationEnvironment(configuration, "S").PETRINAUT_AI_REASONING_EFFORT,
+    ).toBe(configuration.stock.reasoning);
     expect(matchedParityPlan(configuration).order).toHaveLength(6);
     const roots = matchedParityArms.map((arm) =>
       armArtifactDirectory("/tmp/run", "surprise-me", arm),
