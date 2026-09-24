@@ -2,10 +2,11 @@ import { createRequire } from "node:module";
 
 import { defineConfig } from "@pandacss/dev";
 
-import { scopedThemeConfig } from "@hashintel/ds-components/preset";
+import {
+  resolvePandaBuildInfoPath,
+  scopedThemeConfig,
+} from "@hashintel/ds-components/preset";
 import petrinautPandaPreset from "@hashintel/petrinaut/panda-preset";
-
-import { resolvePandaBuildInfoPath } from "./panda-config-paths";
 
 /** Panda evaluates this config through CJS, so `__filename` is available here. */
 const require = createRequire(__filename);
