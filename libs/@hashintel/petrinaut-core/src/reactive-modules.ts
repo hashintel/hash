@@ -46,6 +46,7 @@ export {
   type PetriNetIrPlace,
   type PetriNetIrTransition,
   petriNetIrArcWeight,
+  petriNetIrConflictingTransitions,
   petriNetIrInitialTokens,
   petriNetIrPlaceCapacity,
   renderPetriNetIr,

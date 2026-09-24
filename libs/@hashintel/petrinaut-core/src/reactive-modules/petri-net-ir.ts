@@ -154,6 +154,15 @@ export type ZerothTarget = {
    */
   rates?: "coin" | "clock";
   /**
+   * Nets where two transitions share an input place. `sweep`: they fire in
+   * record order and a later one reads the marking the earlier ones left,
+   * as a Petrinaut step does. `nondet`: each transition in a conflict also
+   * waits for an external Bool, `pick_Name`, that nothing drives, so every
+   * resolution of the conflict is a run of the module and a proof ranges
+   * over all of them; all picks true is the sweep.
+   */
+  conflicts?: "sweep" | "nondet";
+  /**
    * Stochastic nets only. `real`: every place is a Real and each guard tests
    * its own uniform draw. `int`: places are Int, and one LRA module per
    * transition turns its draw into a Bool flag the guard reads.
@@ -195,6 +204,7 @@ export type ResolvedZerothTarget = Required<ZerothTarget>;
 export const ZEROTH_TARGET_DEFAULTS: ResolvedZerothTarget = {
   shape: "monolithic",
   rates: "coin",
+  conflicts: "sweep",
   marking: "real",
   control: "closed",
   dt: 1,
@@ -209,6 +219,7 @@ export const resolveZerothTarget = (
 ): ResolvedZerothTarget => ({
   shape: target?.shape ?? ZEROTH_TARGET_DEFAULTS.shape,
   rates: target?.rates ?? ZEROTH_TARGET_DEFAULTS.rates,
+  conflicts: target?.conflicts ?? ZEROTH_TARGET_DEFAULTS.conflicts,
   marking: target?.marking ?? ZEROTH_TARGET_DEFAULTS.marking,
   control: target?.control ?? ZEROTH_TARGET_DEFAULTS.control,
   dt: target?.dt ?? ZEROTH_TARGET_DEFAULTS.dt,
@@ -222,14 +233,35 @@ export const zerothTargetComposes = (target: ResolvedZerothTarget): boolean =>
   target.shape === "modular" || target.rates === "clock";
 
 /**
+ * The transitions in a conflict: each shares an input place with another
+ * transition, whatever the arcs' kinds. In record order.
+ */
+export const petriNetIrConflictingTransitions = (
+  transitions: Record<string, PetriNetIrTransition>,
+): Set<string> => {
+  const readers = new Map<string, string[]>();
+  for (const [name, transition] of Object.entries(transitions)) {
+    for (const place of Object.keys(transition.inputs ?? {})) {
+      readers.set(place, [...(readers.get(place) ?? []), name]);
+    }
+  }
+  const shared = new Set(
+    [...readers.values()].filter((names) => names.length > 1).flat(),
+  );
+  return new Set(Object.keys(transitions).filter((name) => shared.has(name)));
+};
+
+/**
  * The flags a document carries for a net: the ones off their default, and
  * only those that apply to the net. `rates` belongs to a stochastic net
- * without colours or dynamics, `marking` to a stochastic net without
- * colours, `dt` to a net with rates or dynamics, `control` to a net with a
+ * without colours or dynamics, `conflicts` to a net where two transitions
+ * share an input place, `marking` to a stochastic net without colours,
+ * `dt` to a net with rates or dynamics, `control` to a net with a
  * controllable transition, `slots` to a net with a coloured place, `layout`
  * to a composed system; `syntax` applies to every net. Under `clock` rates
- * only `rates` and `layout` are written: the composition is fixed and there
- * is no step. `undefined` when every flag is at its default.
+ * only `rates`, `conflicts` and `layout` are written: the composition is
+ * fixed and there is no step. `undefined` when every flag is at its
+ * default.
  */
 export const zerothTargetForNet = (
   target: ZerothTarget | undefined,
@@ -243,6 +275,8 @@ export const zerothTargetForNet = (
   const controllable = Object.values(net.transitions).some(
     (transition) => transition.controllable === true,
   );
+  const conflicting =
+    petriNetIrConflictingTransitions(net.transitions).size > 0;
   const clocksApply = stochastic && !coloured && !dynamic;
   const clocks = clocksApply && resolved.rates === "clock";
   const composes = zerothTargetComposes({
@@ -255,6 +289,9 @@ export const zerothTargetForNet = (
       : {}),
     ...(clocksApply && resolved.rates !== ZEROTH_TARGET_DEFAULTS.rates
       ? { rates: resolved.rates }
+      : {}),
+    ...(conflicting && resolved.conflicts !== ZEROTH_TARGET_DEFAULTS.conflicts
+      ? { conflicts: resolved.conflicts }
       : {}),
     ...(!clocks &&
     stochastic &&

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type PetriNetIr,
   petriNetIrArcWeight,
+  petriNetIrConflictingTransitions,
   petriNetIrInitialTokens,
   petriNetIrKindOf,
   petriNetIrPlaceCapacity,
@@ -119,6 +120,42 @@ describe("renderPetriNetIr with a zeroth section", () => {
     ).toContain(
       "\nzeroth:\n  shape: modular\n  rates: clock\n  marking: int\n",
     );
+  });
+
+  it("writes the conflicts flag after the rates", () => {
+    expect(
+      renderPetriNetIr({
+        name: "fork",
+        kind: "stochastic",
+        places: { Pool: null },
+        transitions: {
+          Left: { inputs: { Pool: null }, rate: 1 },
+          Right: { inputs: { Pool: null }, rate: 2 },
+        },
+        zeroth: { rates: "clock", conflicts: "nondet", layout: "per-module" },
+      }),
+    ).toContain(
+      "\nzeroth:\n  rates: clock\n  conflicts: nondet\n  layout: per-module\n",
+    );
+  });
+});
+
+describe("petriNetIrConflictingTransitions", () => {
+  it("names the transitions that share an input place, read arcs included, in record order", () => {
+    expect([
+      ...petriNetIrConflictingTransitions({
+        Lone: { inputs: { A: null } },
+        Right: { inputs: { Pool: null, B: null } },
+        Left: { inputs: { Pool: { kind: "read" } } },
+        Source: { outputs: { Pool: null } },
+      }),
+    ]).toEqual(["Right", "Left"]);
+    expect(
+      petriNetIrConflictingTransitions({
+        Go: { inputs: { A: null }, outputs: { B: null } },
+        Back: { inputs: { B: null }, outputs: { A: null } },
+      }).size,
+    ).toBe(0);
   });
 });
 
@@ -284,6 +321,7 @@ describe("zerothTargetForNet", () => {
     expect(resolveZerothTarget(undefined)).toEqual({
       shape: "monolithic",
       rates: "coin",
+      conflicts: "sweep",
       marking: "real",
       control: "closed",
       dt: 1,
@@ -332,6 +370,30 @@ describe("zerothTargetForNet", () => {
       ),
     ).toBeUndefined();
     expect(zerothTargetForNet({ rates: "coin" }, rated)).toBeUndefined();
+  });
+
+  it("keeps the conflicts flag for a net where two transitions share an input place, under either rates", () => {
+    const fork: Pick<PetriNetIr, "kind" | "places" | "transitions"> = {
+      kind: "stochastic",
+      places: { Pool: null },
+      transitions: {
+        Left: { inputs: { Pool: null }, rate: 1 },
+        Right: { inputs: { Pool: null }, rate: 2 },
+      },
+    };
+    expect(zerothTargetForNet({ conflicts: "nondet" }, fork)).toEqual({
+      conflicts: "nondet",
+    });
+    expect(
+      zerothTargetForNet({ rates: "clock", conflicts: "nondet" }, fork),
+    ).toEqual({ rates: "clock", conflicts: "nondet" });
+    expect(zerothTargetForNet({ conflicts: "sweep" }, fork)).toBeUndefined();
+    expect(
+      zerothTargetForNet({ conflicts: "nondet" }, stochastic),
+    ).toBeUndefined();
+    expect(
+      zerothTargetForNet({ conflicts: "nondet" }, cycleIr),
+    ).toBeUndefined();
   });
 
   it("says which flags compose the modules", () => {
