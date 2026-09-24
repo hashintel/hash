@@ -16,9 +16,14 @@
 //!
 //! Answering with a variant whose type URI and status the [`Problem`] does not list fails to
 //! compile. A handler returns <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code>, and `?` turns
-//! its error into the problem details response that `K` allows. With the `aide` feature, the
-//! OpenAPI documentation of the endpoint lists these errors next to those of its middlewares, see
-//! [`aide`].
+//! its error into the problem details response that `K` allows.
+//!
+//! With the `aide` feature, the handler documents the variants of `K` in the OpenAPI document.
+//! Each status gets one `application/problem+json` response with the schema, the description, the
+//! example and the headers of every variant at that status. A middleware that rejects requests is
+//! not part of the handler's return type: a transform of the OpenAPI document documents its errors
+//! through the `inferred_responses` implementation of <code>[Rejection]&lt;K&gt;</code>, and they
+//! join those of the handler.
 //!
 //! [`ProblemDetails`] serializes and deserializes problem details objects, borrowing strings from
 //! the input where it can, and describes them as JSON Schema. problematic requires a nightly
@@ -32,14 +37,19 @@
 //!
 //! # Examples
 //!
-//! The errors of `PATCH /users/{user}`, from the variants to the documented route:
+//! The errors of `PATCH /users/{user}` behind a rate limit, from the variants to the documented
+//! route:
 //!
 //! ```
 //! use std::{borrow::Cow, fmt};
 //!
 //! use aide::{
+//!     OperationOutput as _,
 //!     axum::{ApiRouter, routing::patch},
+//!     generate,
 //!     openapi::OpenApi,
+//!     transform::TransformOpenApi,
+//!     util::iter_operations_mut,
 //! };
 //! use axum::extract::Path;
 //! use http::{Response, StatusCode};
@@ -143,11 +153,55 @@
 //!     Ok(())
 //! }
 //!
-//! // aide documents the errors of the route from the return type of its handler.
+//! # /// The request exceeded its rate limit.
+//! # #[derive(serde::Serialize, schemars::JsonSchema)]
+//! # struct TooManyRequests;
+//! #
+//! # impl fmt::Display for TooManyRequests {
+//! #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+//! #         formatter.write_str("The request exceeded its rate limit.")
+//! #     }
+//! # }
+//! #
+//! # impl ProblemVariant for TooManyRequests {
+//! #     const TYPE: ProblemType = ProblemType {
+//! #         type_uri: Cow::Borrowed("about:blank"),
+//! #         title: Cow::Borrowed("Too Many Requests"),
+//! #         status: StatusCode::TOO_MANY_REQUESTS,
+//! #     };
+//! # }
+//! #
+//! // The errors a client can receive from the rate limit, a middleware in front of every route.
+//! struct RateLimitProblem;
+//!
+//! impl Problem for RateLimitProblem {
+//!     const VARIANTS: &'static [Variant] = &[Variant::of::<TooManyRequests>()];
+//! }
+//!
+//! // A middleware is not part of the return type of a handler, so a transform of the OpenAPI
+//! // document documents the `429` of the rate limit on every operation.
+//! fn document_rate_limit(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
+//!     let operations = api
+//!         .inner_mut()
+//!         .paths
+//!         .iter_mut()
+//!         .flat_map(|paths| paths.paths.values_mut())
+//!         .filter_map(|path| path.as_item_mut())
+//!         .flat_map(|path| iter_operations_mut(path).map(|(_, operation)| operation));
+//!     generate::in_context(|context| {
+//!         for operation in operations {
+//!             Rejection::<RateLimitProblem>::inferred_responses(context, operation);
+//!         }
+//!     });
+//!     api
+//! }
+//!
+//! // aide documents the errors of the route from the return type of its handler, and the
+//! // transform adds those of the rate limit.
 //! let mut api = OpenApi::default();
 //! let _router: axum::Router = ApiRouter::new()
 //!     .api_route("/users/{user}", patch(update_user))
-//!     .finish_api(&mut api);
+//!     .finish_api_with(&mut api, document_rate_limit);
 //!
 //! let api = serde_json::to_value(&api)?;
 //! let responses = &api["paths"]["/users/{user}"]["patch"]["responses"];
@@ -158,6 +212,10 @@
 //! assert_eq!(
 //!     responses["409"]["description"],
 //!     "The email address belongs to another user."
+//! );
+//! assert_eq!(
+//!     responses["429"]["description"],
+//!     "The request exceeded its rate limit."
 //! );
 //! assert_eq!(
 //!     responses["500"]["description"],
@@ -191,7 +249,7 @@
 extern crate alloc;
 
 #[cfg(feature = "aide")]
-pub mod aide;
+mod aide;
 #[cfg(feature = "axum")]
 mod axum;
 mod expose;

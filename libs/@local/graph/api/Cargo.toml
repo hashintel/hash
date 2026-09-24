@@ -51,7 +51,6 @@ hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
 hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
-problematic                    = { workspace = true, features = ["aide"] }
 type-system                    = { workspace = true, features = ["schemars", "utoipa"] }
 
 # Private third-party dependencies
@@ -88,6 +87,7 @@ uuid                 = { workspace = true }
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
 hash-middleware           = { workspace = true, features = ["test-utils"] }
 insta                     = { workspace = true }
+problematic               = { workspace = true, features = ["aide"] }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
