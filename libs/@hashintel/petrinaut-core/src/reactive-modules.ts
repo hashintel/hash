@@ -12,7 +12,13 @@ export {
   type ReactiveModuleExport,
   type ReactiveModuleExportInput,
 } from "./reactive-modules/compile-reactive-module-export";
-export { emitReactiveModulePython } from "./reactive-modules/emit-reactive-module-python";
+export {
+  emitReactiveModuleFiles,
+  emitReactiveModulePython,
+  moduleFileStem,
+  type ReactiveModuleFile,
+  type ReactiveModuleLayout,
+} from "./reactive-modules/emit-reactive-module-python";
 export {
   interpretReactiveModuleGraph,
   type InterpretReactiveModuleGraphOptions,
@@ -47,6 +53,7 @@ export {
 export {
   type PetriNetIrToReactiveModuleOptions,
   petriNetIrToReactiveModule,
+  reactiveModuleLayout,
   RESERVED_MODULE_NAMES,
 } from "./reactive-modules/petri-net-ir-to-reactive-module";
 export type {

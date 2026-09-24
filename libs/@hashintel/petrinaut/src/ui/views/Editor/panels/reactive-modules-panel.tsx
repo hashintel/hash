@@ -26,6 +26,7 @@ import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../shared/floating-resize-handles";
 import { useSideDockContainer } from "../shared/side-dock";
 import { useFloatingPanel } from "../shared/use-floating-panel";
+import { FilesPanel } from "./reactive-modules-panel/files-panel";
 import { loadExportLanguages } from "./reactive-modules-panel/monaco-languages";
 import { TargetHeader } from "./reactive-modules-panel/target-header";
 import { useLambdaHir } from "./reactive-modules-panel/use-lambda-hir";
@@ -61,6 +62,9 @@ const TABS: (HorizontalTabView & { id: TabId })[] = [
  * collapsed regions while the other is shown. The scheme keeps them apart from the language
  * server's documents.
  */
+/** Where the Python files' models live; the IR keeps its own path. */
+const PYTHON_MODEL_ROOT = "petrinaut-reactive-modules://export/";
+
 const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
   ir: {
     language: "yaml",
@@ -230,10 +234,18 @@ const bodyStyle = css({
   minHeight: "[0]",
 });
 
-// The editor owns the whole tab area; the workspace's text-selection lock
-// stops at its boundary so the output can be copied.
+// The editor and, on the Python tab, the file list beside it.
+const splitStyle = css({
+  display: "flex",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+// The editor owns the tab area left of the file list; the workspace's
+// text-selection lock stops at its boundary so the output can be copied.
 const editorBoxStyle = css({
   flex: "[1]",
+  minWidth: "[0]",
   minHeight: "[0]",
   userSelect: "text",
 });
@@ -282,21 +294,24 @@ const listStyle = css({
   color: "neutral.s115",
 });
 
-/** The active tab's text in Monaco, once its grammar is registered. */
+/** The shown text in Monaco, once its grammar is registered. */
 const ExportViewer = ({
   languages,
   tab,
+  path,
   value,
 }: {
   languages: Promise<void>;
   tab: TabId;
+  /** The model's path; one model per file keeps each file's view state. */
+  path: string;
   value: string;
 }) => {
   use(languages);
   return (
     <CodeEditor
       viewer
-      path={TAB_MODELS[tab].path}
+      path={path}
       language={TAB_MODELS[tab].language}
       value={value}
       height="100%"
@@ -358,6 +373,8 @@ export const ReactiveModulesPanel = ({
   const { showAnimations } = use(UserSettingsContext);
   const [activeTab, setActiveTab] = useState<TabId>("ir");
   const [flags, setFlags] = useState<ZerothTarget>({});
+  const [selectedFile, setSelectedFile] = useState("net.py");
+  const [filesOpen, setFilesOpen] = useState(true);
   const target = resolveZerothTarget({ ...flags, dt });
   // One grammar load per window: a failure fails this window once, and the
   // window mounted by the next show loads again.
@@ -459,10 +476,21 @@ export const ReactiveModulesPanel = ({
         ? "Compiling…"
         : null;
 
+  // The Python tab shows one of the compiled files: the selected one, or the
+  // main file when the layout no longer writes the selected one.
+  const files = result?.files ?? null;
+  const shownFile =
+    files === null
+      ? null
+      : (files.find((file) => file.path === selectedFile) ?? files[0] ?? null);
   // The IR stands on its own when only the lowering refuses the net, so the
   // IR tab shows the document while the Python tab lists what stops it.
   const output =
-    result === null ? null : activeTab === "ir" ? result.ir : result.python;
+    result === null
+      ? null
+      : activeTab === "ir"
+        ? result.ir
+        : (shownFile?.text ?? null);
 
   if (container === null) {
     return null;
@@ -619,20 +647,38 @@ export const ReactiveModulesPanel = ({
                     onChange={(patch) => setFlags({ ...flags, ...patch })}
                   />
                 ) : null}
-                <div className={editorBoxStyle}>
-                  <Suspense
-                    fallback={
-                      <div className={notesStyle}>
-                        <p className={mutedStyle}>Loading editor…</p>
-                      </div>
-                    }
-                  >
-                    <ExportViewer
-                      languages={languages}
-                      tab={activeTab}
-                      value={output}
+                <div className={splitStyle}>
+                  <div className={editorBoxStyle}>
+                    <Suspense
+                      fallback={
+                        <div className={notesStyle}>
+                          <p className={mutedStyle}>Loading editor…</p>
+                        </div>
+                      }
+                    >
+                      <ExportViewer
+                        languages={languages}
+                        tab={activeTab}
+                        path={
+                          activeTab === "ir" || shownFile === null
+                            ? TAB_MODELS[activeTab].path
+                            : `${PYTHON_MODEL_ROOT}${shownFile.path}`
+                        }
+                        value={output}
+                      />
+                    </Suspense>
+                  </div>
+                  {activeTab === "python" &&
+                  files !== null &&
+                  shownFile !== null ? (
+                    <FilesPanel
+                      files={files}
+                      selected={shownFile.path}
+                      onSelect={setSelectedFile}
+                      open={filesOpen}
+                      onOpenChange={setFilesOpen}
                     />
-                  </Suspense>
+                  ) : null}
                 </div>
                 {result.warnings.length > 0 ? (
                   <div className={footerStyle}>

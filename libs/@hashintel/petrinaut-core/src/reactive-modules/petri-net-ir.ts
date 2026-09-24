@@ -164,6 +164,13 @@ export type ZerothTarget = {
    * A produced token that finds no free slot sets the place's overflow flag.
    */
   slots?: number;
+  /**
+   * Modular shape only. `single`: one Python file holds the variables, the
+   * modules and the system. `per-module`: each module class has a file of
+   * its own, and `net.py` declares the variables, imports the modules and
+   * composes them.
+   */
+  layout?: "single" | "per-module";
 };
 
 export type ResolvedZerothTarget = Required<ZerothTarget>;
@@ -174,6 +181,7 @@ export const ZEROTH_TARGET_DEFAULTS: ResolvedZerothTarget = {
   control: "closed",
   dt: 1,
   slots: 8,
+  layout: "single",
 };
 
 /** Every flag, the document's value or the default. */
@@ -185,14 +193,16 @@ export const resolveZerothTarget = (
   control: target?.control ?? ZEROTH_TARGET_DEFAULTS.control,
   dt: target?.dt ?? ZEROTH_TARGET_DEFAULTS.dt,
   slots: target?.slots ?? ZEROTH_TARGET_DEFAULTS.slots,
+  layout: target?.layout ?? ZEROTH_TARGET_DEFAULTS.layout,
 });
 
 /**
  * The flags a document carries for a net: the ones off their default, and
  * only those that apply to the net. `marking` belongs to a stochastic net
  * without colours, `dt` to a net with rates or dynamics, `control` to a net
- * with a controllable transition, `slots` to a net with a coloured place.
- * `undefined` when every flag is at its default.
+ * with a controllable transition, `slots` to a net with a coloured place,
+ * `layout` to the modular shape. `undefined` when every flag is at its
+ * default.
  */
 export const zerothTargetForNet = (
   target: ZerothTarget | undefined,
@@ -223,6 +233,10 @@ export const zerothTargetForNet = (
       : {}),
     ...(coloured && resolved.slots !== ZEROTH_TARGET_DEFAULTS.slots
       ? { slots: resolved.slots }
+      : {}),
+    ...(resolved.shape === "modular" &&
+    resolved.layout !== ZEROTH_TARGET_DEFAULTS.layout
+      ? { layout: resolved.layout }
       : {}),
   };
   return Object.keys(section).length === 0 ? undefined : section;

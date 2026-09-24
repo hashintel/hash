@@ -38,6 +38,8 @@ A coloured place becomes a fixed number of slots, its capacity or the **slots** 
 
 Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
 
+The Python tab lists its files on the right, the main file first. Select a file to show it; each file keeps its own scroll position. The chevron above the list collapses it to a narrow strip and brings it back.
+
 ## Compiler flags
 
 The header of the **Python Reactive Module** tab holds the compiler flags. Each flag picks a strategy for the generated module, and the IR records every flag you change from its default in a `zeroth` section, so the IR alone reproduces the Python. A flag that has no effect on the current net is greyed out, with the reason in its tooltip.
@@ -46,6 +48,11 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 
 - **Monolithic** (default) generates one module that drives every place. Its `update` is the whole step: transitions swept in order, tokens consumed at once, produced tokens landing at the end, and a capped place tracked as what it would hold if the step ended now.
 - **Modular** generates one module per transition and one per place, composed into the system with `compose`. A transition module drives a Bool flag, `fire_Name`, that says it fires this round; a place module awaits the flags of its transitions and applies their tokens. A transition reads its places as they were at the start of the step, so when an earlier transition takes from the same place, or moves tokens in a capped place it fills, it awaits that transition's flag and rebuilds the count the sweep would give it. The firings and the markings are the same as the monolithic module's, step for step. Each module has its own interface, so another module, such as a controller, can be composed with the transitions and places it awaits.
+
+**Layout** applies to the modular shape and decides how many files the Python is written as.
+
+- **Single file** (default) holds the variables, every module class and the `compose` call in `net.py`.
+- **File per module** writes each module class to a file named after it, `transition_infection.py` or `place_susceptible.py`, and keeps the variables, the imports and the `compose` call in `net.py`. Run from the directory the files are written to, `net.py` imports each module by its file name.
 
 **Marking** applies to a stochastic net and decides what a place counts in. A plain net always counts in Int.
 

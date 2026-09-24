@@ -1,6 +1,14 @@
-import { emitReactiveModulePython } from "./emit-reactive-module-python";
+import {
+  emitReactiveModuleFiles,
+  emitReactiveModulePython,
+} from "./emit-reactive-module-python";
 import { lowerPetriNetIr } from "./lower-petri-net-ir";
+import { resolveZerothTarget } from "./petri-net-ir";
 
+import type {
+  ReactiveModuleFile,
+  ReactiveModuleLayout,
+} from "./emit-reactive-module-python";
 import type { LowerPetriNetIrOptions } from "./lower-petri-net-ir";
 import type { PetriNetIr } from "./petri-net-ir";
 import type { ReactiveModuleGraph } from "./reactive-module-graph";
@@ -40,8 +48,23 @@ export const RESERVED_MODULE_NAMES: readonly string[] = [
 export type PetriNetIrToReactiveModuleOptions = LowerPetriNetIrOptions;
 
 export type CompilePetriNetIrOutcome =
-  | { ok: true; graph: ReactiveModuleGraph; python: string }
+  | {
+      ok: true;
+      graph: ReactiveModuleGraph;
+      /** The main file: the whole module, or `net.py` under the per-module layout. */
+      python: string;
+      /** Every file, the main one first. One file under the single layout. */
+      files: ReactiveModuleFile[];
+    }
   | { ok: false; errors: PetriNetIrDiagnostic[] };
+
+/** The layout the flags ask for: a module per file only splits the modular shape. */
+export const reactiveModuleLayout = (
+  ir: Pick<PetriNetIr, "zeroth">,
+): ReactiveModuleLayout => {
+  const target = resolveZerothTarget(ir.zeroth);
+  return target.shape === "modular" ? target.layout : "single";
+};
 
 /** Lowers the IR and renders the module as Python, or says what stops it. */
 export const compilePetriNetIr = (
@@ -49,13 +72,19 @@ export const compilePetriNetIr = (
   options: PetriNetIrToReactiveModuleOptions = {},
 ): CompilePetriNetIrOutcome => {
   const lowered = lowerPetriNetIr(ir, options);
-  return lowered.ok
-    ? {
-        ok: true,
-        graph: lowered.graph,
-        python: emitReactiveModulePython(lowered.graph),
-      }
-    : lowered;
+  if (!lowered.ok) {
+    return lowered;
+  }
+  const layout = reactiveModuleLayout(ir);
+  const files =
+    layout === "single"
+      ? [{ path: "net.py", text: emitReactiveModulePython(lowered.graph) }]
+      : emitReactiveModuleFiles(lowered.graph);
+  const [main] = files;
+  if (main === undefined) {
+    throw new Error("the emitter produced no file");
+  }
+  return { ok: true, graph: lowered.graph, python: main.text, files };
 };
 
 /** The Python for an IR the lowering accepts; throws with the first refusal otherwise. */

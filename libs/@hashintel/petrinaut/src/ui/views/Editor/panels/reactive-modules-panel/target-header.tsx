@@ -13,7 +13,7 @@ import type {
  * `targetHeaderControls`, so the row itself only renders.
  */
 
-export type TargetControlId = "shape" | "marking" | "control";
+export type TargetControlId = "shape" | "layout" | "marking" | "control";
 
 export type TargetControl = {
   id: TargetControlId;
@@ -35,6 +35,11 @@ export type TargetHeaderModel = {
 const SHAPE_ITEMS: SelectItem<string>[] = [
   { value: "monolithic", text: "Monolithic" },
   { value: "modular", text: "Modular" },
+];
+
+const LAYOUT_ITEMS: SelectItem<string>[] = [
+  { value: "single", text: "Single file" },
+  { value: "per-module", text: "File per module" },
 ];
 
 const MARKING_ITEMS: SelectItem<string>[] = [
@@ -63,6 +68,15 @@ export const targetHeaderControls = (
   return {
     controls: [
       { id: "shape", label: "Shape", value: target.shape, items: SHAPE_ITEMS },
+      {
+        id: "layout",
+        label: "Layout",
+        value: target.shape === "modular" ? target.layout : "single",
+        items: LAYOUT_ITEMS,
+        ...(target.shape === "modular"
+          ? {}
+          : { disabledReason: "The monolithic shape is one module" }),
+      },
       {
         id: "marking",
         label: "Marking",
