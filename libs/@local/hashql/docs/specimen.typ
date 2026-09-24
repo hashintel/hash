@@ -3,8 +3,8 @@
 #show: body => template(
   body,
   title: "Reference specimen",
-  description: "Synthetic sequence notation for rendering checks. Not part of the HashQL specification.",
-  links: ((label: "HashQL specification", href: "main.html"),),
+  description: "Synthetic sequence notation for rendering checks. Not part of the HashQL Reference.",
+  links: ((label: "HashQL Reference", href: "index.html"),),
   vocabulary: (
     sequence: (name: "sequence", definition: [An ordered collection of symbols.]),
     position: (name: "position", definition: [A zero-based index identifying one occurrence in a sequence.]),

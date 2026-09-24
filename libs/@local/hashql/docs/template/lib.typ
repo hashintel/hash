@@ -4,6 +4,10 @@
   *Note.* #body
 ]
 
+#let incomplete(scope) = html.aside(class: "note", role: "note")[
+  *Implementation status.* The behaviour specified in this #scope is not yet fully implemented.
+]
+
 #let proof(title, body) = html.div(class: "note proof")[
   #html.p[*Proof. #title*]
   #body
@@ -72,7 +76,15 @@
   }
 }
 
-#let template(body, title: "HashQL", description: none, links: (), vocabulary: (:)) = {
+#let template(
+  body,
+  title: "HashQL Reference",
+  description: none,
+  notice: none,
+  home: none,
+  links: (),
+  vocabulary: (:),
+) = {
   set document(title: title, description: description)
   set text(lang: "en", region: "GB")
   set heading(numbering: section-number)
@@ -88,6 +100,7 @@
       html.header(class: "document-header")[
         #html.h1(section.body)
         #if description != none { html.p(class: "description", description) }
+        #if notice != none { html.aside(class: "note", role: "note", notice) }
       ]
     } else {
       html.elem("h" + str(calc.min(section.level, 6)), link(section.location(), {
@@ -165,11 +178,12 @@
         html.div(class: if has-sections { "reference-layout with-contents" } else { "reference-layout" })[
           #if has-sections {
             html.elem("aside", attrs: (class: "contents-wide", "aria-label": "Contents"))[
-              #html.p(class: "contents-title")[Contents]
+              #html.p(class: "contents-title", if home == none { [Contents] } else { link(home.href, home.label) })
               #outline(title: none)
             ]
             html.details(class: "contents-mobile")[
               #html.elem("summary")[Contents]
+              #if home != none { html.p(class: "contents-title", link(home.href, home.label)) }
               #outline(title: none)
             ]
           }
