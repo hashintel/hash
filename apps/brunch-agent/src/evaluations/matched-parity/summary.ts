@@ -77,7 +77,7 @@ export const deriveMechanicalSummary = (artifact: MatchedParityArtifact) => {
   const metricCount = sdcpnArray(artifact, "metrics").length;
   const titlePresent =
     artifact.document.title.trim().length > 0 &&
-    !/^untitled|new process$/iu.test(artifact.document.title.trim());
+    !/^(untitled|new process)$/iu.test(artifact.document.title.trim());
   const executableCodePresent = hasExecutableCode(artifact.document.sdcpn);
   const visualizationCount = visualizerCount(artifact.document.sdcpn);
   const layoutObserved = hasLayoutResult(artifact);
