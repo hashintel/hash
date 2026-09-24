@@ -106,7 +106,7 @@ import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
-import { useVoicePreference } from "./voice-preference";
+import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type {
@@ -455,6 +455,11 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
+  const {
+    enabled: realtimeEnabled,
+    ready: realtimePreferenceReady,
+    setEnabled: setRealtimeEnabled,
+  } = useRealtimePreference();
   const brunchSelected = remoteRouteSelected
     ? brunchPreviewConfig.isBrunchConfigured
     : assistantSelectionReady &&
@@ -470,6 +475,7 @@ export const LocalStorageDemoApp = ({
   const selectAssistant = (selection: AssistantSelection) => {
     setOpenAIVoiceConfig(selection === "brunch" ? undefined : null);
     setAssistantSelection(selection);
+    if (selection === "brunch") setVoiceEnabled(true);
   };
   /**
    * History is left to the library's default on purpose. That default already
@@ -803,8 +809,15 @@ export const LocalStorageDemoApp = ({
   const brunchVoiceMode = useMemo(
     () =>
       getBrunchVoiceMode(
-        brunchSelected && voicePreferenceReady && voiceEnabled
-          ? openAIVoiceConfig
+        brunchSelected &&
+          voicePreferenceReady &&
+          voiceEnabled &&
+          realtimePreferenceReady &&
+          openAIVoiceConfig
+          ? {
+              ...openAIVoiceConfig,
+              provider: realtimeEnabled ? "realtime" : "live",
+            }
           : null,
         conversationTracker,
         flueHistory.settlements,
@@ -816,6 +829,8 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       openAIVoiceConfig,
+      realtimeEnabled,
+      realtimePreferenceReady,
       voiceEnabled,
       voicePreferenceReady,
     ],
@@ -1134,9 +1149,12 @@ export const LocalStorageDemoApp = ({
                     brunchSelected={brunchSelected}
                     forceBrunch={remoteRouteSelected}
                     openAIVoiceConfig={openAIVoiceConfig}
+                    realtimeEnabled={realtimeEnabled}
+                    realtimePreferenceReady={realtimePreferenceReady}
                     selectAssistant={selectAssistant}
+                    setRealtimeEnabled={setRealtimeEnabled}
                     setVoiceEnabled={setVoiceEnabled}
-                    voiceEnabled={voiceEnabled}
+                    voiceEnabled={brunchSelected && voiceEnabled}
                     voicePreferenceReady={voicePreferenceReady}
                   />
                 ),
