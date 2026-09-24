@@ -58,22 +58,19 @@ const TABS: (HorizontalTabView & { id: TabId })[] = [
 ];
 
 /**
- * One Monaco model per tab, so each keeps its own scroll position and
- * collapsed regions while the other is shown. The scheme keeps them apart from the language
- * server's documents.
+ * The models' home; the scheme keeps them apart from the language server's
+ * documents. Each Python file gets a model of its own under it.
  */
-/** Where the Python files' models live; the IR keeps its own path. */
 const PYTHON_MODEL_ROOT = "petrinaut-reactive-modules://export/";
 
+/**
+ * One Monaco model per tab, so each keeps its own scroll position and
+ * collapsed regions while the other is shown. The Python entry is the main
+ * file's model, the one shown when no file is selected.
+ */
 const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
-  ir: {
-    language: "yaml",
-    path: "petrinaut-reactive-modules://export/net.pn.yaml",
-  },
-  python: {
-    language: "python",
-    path: "petrinaut-reactive-modules://export/net.py",
-  },
+  ir: { language: "yaml", path: `${PYTHON_MODEL_ROOT}net.pn.yaml` },
+  python: { language: "python", path: `${PYTHON_MODEL_ROOT}net.py` },
 };
 
 // Monaco consumes every wheel event over the editor, its default: an event
@@ -213,6 +210,17 @@ const titleStyle = cva({
       },
     },
   },
+});
+
+// The title and the status share the header's free space, so a status that
+// appears while the net recompiles shortens the title and leaves the tabs
+// where they were.
+const titleAreaStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "[1]",
+  minWidth: "[0]",
 });
 
 const statusStyle = css({
@@ -500,6 +508,7 @@ export const ReactiveModulesPanel = ({
   const placementLabel = isFloating
     ? `Dock ${PANEL_LABEL}`
     : `Float ${PANEL_LABEL}`;
+  const filesLabel = filesOpen ? "Hide files" : "Show files";
   // The docked width, read by the spacer and the window through CSS.
   const dockedStyle = { "--dock-width": `${width}px` } as CSSProperties;
   const spacerStyle = {
@@ -559,27 +568,29 @@ export const ReactiveModulesPanel = ({
         )}
         <div className={cardStyle({ placement })}>
           <div className={headerStyle}>
-            <Title
-              type={isFloating ? "button" : undefined}
-              className={titleStyle({ draggable: isFloating })}
-              aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
-              title={
-                isFloating ? "Drag to move, or use the arrow keys" : undefined
-              }
-              {...(isFloating ? handleProps : {})}
-            >
-              {PANEL_LABEL}
-            </Title>
+            <div className={titleAreaStyle}>
+              <Title
+                type={isFloating ? "button" : undefined}
+                className={titleStyle({ draggable: isFloating })}
+                aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
+                title={
+                  isFloating ? "Drag to move, or use the arrow keys" : undefined
+                }
+                {...(isFloating ? handleProps : {})}
+              >
+                {PANEL_LABEL}
+              </Title>
+              {status === null ? null : (
+                <span className={statusStyle} role="status">
+                  {status}
+                </span>
+              )}
+            </div>
             <HorizontalTabsHeader
               subViews={TABS}
               activeTabId={activeTab}
               onTabChange={(tabId) => setActiveTab(tabId as TabId)}
             />
-            {status === null ? null : (
-              <span className={statusStyle} role="status">
-                {status}
-              </span>
-            )}
             <Button
               size="xs"
               variant="ghost"
@@ -645,7 +656,25 @@ export const ReactiveModulesPanel = ({
                     target={target}
                     document={result.document}
                     onChange={(patch) => setFlags({ ...flags, ...patch })}
-                  />
+                  >
+                    {files === null ? undefined : (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className={headerButtonStyle}
+                        aria-label={filesLabel}
+                        onClick={() => setFilesOpen(!filesOpen)}
+                        prefix={
+                          <ExperimentalIcon
+                            name="sidebar"
+                            collapsed={!filesOpen}
+                            size={14}
+                          />
+                        }
+                        tooltip={filesLabel}
+                      />
+                    )}
+                  </TargetHeader>
                 ) : null}
                 <div className={splitStyle}>
                   <div className={editorBoxStyle}>
@@ -676,7 +705,6 @@ export const ReactiveModulesPanel = ({
                       selected={shownFile.path}
                       onSelect={setSelectedFile}
                       open={filesOpen}
-                      onOpenChange={setFilesOpen}
                     />
                   ) : null}
                 </div>

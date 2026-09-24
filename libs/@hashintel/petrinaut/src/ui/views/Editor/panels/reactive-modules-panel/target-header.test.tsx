@@ -51,7 +51,7 @@ describe("targetHeaderControls", () => {
     );
     expect(monolithic).toMatchObject({
       value: "single",
-      disabledReason: "The monolithic shape is one module",
+      disabledReason: "Layout applies to the modular shape",
     });
     const modular = targetHeaderControls(
       { ...defaults, shape: "modular", layout: "per-module" },
@@ -65,9 +65,8 @@ describe("targetHeaderControls", () => {
     ]);
   });
 
-  it("offers the marking and dt of a stochastic net, and no control without a controllable transition", () => {
+  it("offers the marking of a stochastic net, and no control without a controllable transition", () => {
     const model = targetHeaderControls(defaults, stochastic);
-    expect(model.dt).toBe(0.5);
     expect(
       model.controls.map((control) => [control.id, control.value]),
     ).toEqual([
@@ -85,7 +84,6 @@ describe("targetHeaderControls", () => {
       { ...defaults, marking: "int", control: "open" },
       plain,
     );
-    expect(model.dt).toBeNull();
     expect(model.controls[2]).toMatchObject({
       value: "int",
       disabledReason: "A plain net's marking is always Int",
@@ -97,7 +95,6 @@ describe("targetHeaderControls", () => {
   it("fixes a coloured net's marking to Real and offers its slots", () => {
     const model = targetHeaderControls(defaults, coloured);
     expect(model.slots).toBe(8);
-    expect(model.dt).toBeNull();
     expect(model.controls[2]).toMatchObject({
       value: "real",
       disabledReason: "A coloured net or one with dynamics holds Reals",
@@ -113,20 +110,19 @@ describe("targetHeaderControls", () => {
 });
 
 describe("TargetHeader", () => {
-  it("renders one labelled select per flag and the step length", () => {
+  it("renders one labelled select per flag and the trailing content", () => {
     render(
-      <TargetHeader
-        target={defaults}
-        document={stochastic}
-        onChange={vi.fn()}
-      />,
+      <TargetHeader target={defaults} document={stochastic} onChange={vi.fn()}>
+        <button type="button">Files</button>
+      </TargetHeader>,
     );
     const group = screen.getByRole("group", { name: "Compiler flags" });
     expect(group.textContent).toContain("Shape");
     expect(group.textContent).toContain("Layout");
     expect(group.textContent).toContain("Marking");
     expect(group.textContent).toContain("Control");
-    expect(group.textContent).toContain("dt 0.5");
+    expect(group.textContent).not.toContain("dt");
     expect(screen.getByLabelText("Shape flag")).toBeDefined();
+    expect(group.lastElementChild?.textContent).toBe("Files");
   });
 });

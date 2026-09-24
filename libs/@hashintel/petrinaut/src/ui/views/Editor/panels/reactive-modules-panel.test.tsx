@@ -15,18 +15,24 @@ import {
   type ReactiveModulesPanelPlacement,
 } from "./reactive-modules-panel";
 
+const hir = vi.hoisted(() => ({ status: "error" as "error" | "stale" }));
+
 vi.mock("./reactive-modules-panel/use-lambda-hir", () => ({
   useLambdaHir: () => ({
-    status: "error",
+    status: hir.status,
     lambdaHir: null,
-    error: "no language server",
+    netHir: null,
+    error: hir.status === "error" ? "no language server" : null,
   }),
 }));
 vi.mock("./reactive-modules-panel/monaco-languages", () => ({
   loadExportLanguages: () => Promise.resolve(),
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  hir.status = "error";
+});
 
 const renderPanel = (
   placement: ReactiveModulesPanelPlacement,
@@ -101,6 +107,21 @@ describe("ReactiveModulesPanel", () => {
       screen.getByRole("button", { name: "Dock Zeroth Reactive Modules" }),
     );
     expect(onPlacementChange).toHaveBeenCalledWith("docked");
+  });
+
+  test("shows a recompiling status beside the title, not beside the tabs", () => {
+    hir.status = "stale";
+    renderPanel("floating");
+    // The tabs header owns a live region of its own, so the text finds ours.
+    const status = screen.getByText("Recompiling…");
+    expect(status.getAttribute("role")).toBe("status");
+    const titleArea = status.parentElement!;
+    expect(
+      titleArea.contains(
+        screen.getByRole("button", { name: "Move Zeroth Reactive Modules" }),
+      ),
+    ).toBe(true);
+    expect(titleArea.nextElementSibling).toBe(screen.getByRole("tablist"));
   });
 
   test("narrows a wide window to the docked cap when it docks", () => {

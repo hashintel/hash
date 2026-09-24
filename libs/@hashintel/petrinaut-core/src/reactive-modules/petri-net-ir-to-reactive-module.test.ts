@@ -896,6 +896,15 @@ describe("compilePetriNetIr with the per-module layout", () => {
     expect(placeA?.text).not.toContain("Var(");
   });
 
+  it("gives petriNetIrToReactiveModule one whole program whatever the layout says", () => {
+    const python = petriNetIrToReactiveModule({
+      ...cycle,
+      zeroth: { shape: "modular", layout: "per-module" },
+    });
+    expect(python).toContain("class Transition_Go(Module):");
+    expect(python).not.toContain("from transition_go import");
+  });
+
   it("keeps one file under the monolithic shape whatever the layout says", () => {
     const outcome = compilePetriNetIr({
       ...cycle,

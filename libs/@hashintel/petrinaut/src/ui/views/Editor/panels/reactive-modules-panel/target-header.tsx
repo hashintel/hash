@@ -6,6 +6,7 @@ import type {
   ResolvedZerothTarget,
   ZerothTarget,
 } from "@hashintel/petrinaut-core/reactive-modules";
+import type { ReactNode } from "react";
 
 /**
  * The compiler flags as a row of controls over the Python tab. What each
@@ -26,8 +27,6 @@ export type TargetControl = {
 
 export type TargetHeaderModel = {
   controls: TargetControl[];
-  /** The step length rates are tested over and dynamics step by; `null` when neither applies. */
-  dt: number | null;
   /** The slots a coloured place without a capacity gets; `null` for an uncoloured net. */
   slots: number | null;
 };
@@ -75,7 +74,7 @@ export const targetHeaderControls = (
         items: LAYOUT_ITEMS,
         ...(target.shape === "modular"
           ? {}
-          : { disabledReason: "The monolithic shape is one module" }),
+          : { disabledReason: "Layout applies to the modular shape" }),
       },
       {
         id: "marking",
@@ -106,7 +105,6 @@ export const targetHeaderControls = (
             }),
       },
     ],
-    dt: stochastic || dynamic ? target.dt : null,
     slots: coloured ? target.slots : null,
   };
 };
@@ -145,20 +143,24 @@ const slotsStyle = css({
   width: "[56px]",
 });
 
-const dtStyle = css({
+// Whatever the tab puts at the row's end, such as the file list's toggle.
+const trailingStyle = css({
+  display: "flex",
+  alignItems: "center",
   marginLeft: "auto",
-  whiteSpace: "nowrap",
-  color: "neutral.s100",
 });
 
 export const TargetHeader = ({
   target,
   document,
   onChange,
+  children,
 }: {
   target: ResolvedZerothTarget;
   document: PetriNetIr | null;
   onChange: (patch: ZerothTarget) => void;
+  /** Rendered at the row's end. */
+  children?: ReactNode;
 }) => {
   const model = targetHeaderControls(target, document);
   return (
@@ -206,10 +208,8 @@ export const TargetHeader = ({
           />
         </div>
       )}
-      {model.dt === null ? null : (
-        <span className={dtStyle} title="From Simulation Settings">
-          dt {model.dt}
-        </span>
+      {children === undefined ? null : (
+        <div className={trailingStyle}>{children}</div>
       )}
     </div>
   );

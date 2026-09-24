@@ -97,6 +97,31 @@ describe("emitReactiveModuleFiles", () => {
     expect(moduleFileStem("Draw_ABTest")).toBe("draw_ab_test");
   });
 
+  it("numbers the stem of a module whose class name folds onto an earlier one", () => {
+    const twin = (className: string, instance: string) => ({
+      ...graph.modules[0]!,
+      className,
+      instance,
+    });
+    const files = emitReactiveModuleFiles({
+      ...graph,
+      modules: [
+        twin("Place_Ab", "a"),
+        twin("Place_AB", "b"),
+        twin("Place_ab", "c"),
+      ],
+      root: { kind: "compose", modules: ["a", "b", "c"] },
+    });
+    expect(files.map((file) => file.path)).toEqual([
+      "net.py",
+      "place_ab.py",
+      "place_ab_2.py",
+      "place_ab_3.py",
+    ]);
+    expect(files[0]?.text).toContain("from place_ab_2 import Place_AB");
+    expect(files[2]?.text).toContain("class Place_AB(Module):");
+  });
+
   it("writes net.py first and gives a module the imports and sorts its own body needs", () => {
     const files = emitReactiveModuleFiles(graph);
     expect(files.map((file) => file.path)).toEqual(["net.py", "ops.py"]);

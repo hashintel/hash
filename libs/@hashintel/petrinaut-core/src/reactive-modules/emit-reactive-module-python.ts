@@ -306,9 +306,32 @@ export const moduleFileStem = (className: string): string =>
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
     .toLowerCase();
 
+/**
+ * One stem per module. IR names differ by case alone at times, `Ab` and `AB`,
+ * and lowercasing joins them, so a later module that lands on a taken stem
+ * gets a numbered one: `place_ab`, `place_ab_2`.
+ */
+const moduleFileStems = (
+  modules: ReactiveModuleDecl[],
+): ReadonlyMap<string, string> => {
+  const taken = new Set<string>();
+  const stems = new Map<string, string>();
+  for (const module of modules) {
+    const base = moduleFileStem(module.className);
+    let stem = base;
+    for (let index = 2; taken.has(stem); index += 1) {
+      stem = `${base}_${index}`;
+    }
+    taken.add(stem);
+    stems.set(module.className, stem);
+  }
+  return stems;
+};
+
 const moduleFile = (
   graph: ReactiveModuleGraph,
   module: ReactiveModuleDecl,
+  stem: string,
 ): ReactiveModuleFile => {
   const exprs = moduleExprs(module);
   // A literal-only branch names the module's theory and a sort, which the
@@ -331,13 +354,13 @@ const moduleFile = (
     "",
     ...classBody(module),
   ];
-  return {
-    path: `${moduleFileStem(module.className)}.py`,
-    text: `${lines.join("\n")}\n`,
-  };
+  return { path: `${stem}.py`, text: `${lines.join("\n")}\n` };
 };
 
-const mainFile = (graph: ReactiveModuleGraph): ReactiveModuleFile => {
+const mainFile = (
+  graph: ReactiveModuleGraph,
+  stems: ReadonlyMap<string, string>,
+): ReactiveModuleFile => {
   const sorts = sortsOf(graph.variables);
   const lines = [
     `"""${graph.header}"""`,
@@ -349,7 +372,7 @@ const mainFile = (graph: ReactiveModuleGraph): ReactiveModuleFile => {
     "",
     ...graph.modules.map(
       (module) =>
-        `from ${moduleFileStem(module.className)} import ${module.className}`,
+        `from ${stems.get(module.className) ?? moduleFileStem(module.className)} import ${module.className}`,
     ),
     "",
     ...sorts.map(sortConstant),
@@ -370,16 +393,15 @@ const mainFile = (graph: ReactiveModuleGraph): ReactiveModuleFile => {
 export const emitReactiveModuleFiles = (
   graph: ReactiveModuleGraph,
 ): ReactiveModuleFile[] => {
-  const files = [
-    mainFile(graph),
-    ...graph.modules.map((module) => moduleFile(graph, module)),
+  const stems = moduleFileStems(graph.modules);
+  return [
+    mainFile(graph, stems),
+    ...graph.modules.map((module) =>
+      moduleFile(
+        graph,
+        module,
+        stems.get(module.className) ?? moduleFileStem(module.className),
+      ),
+    ),
   ];
-  const paths = new Set<string>();
-  for (const file of files) {
-    if (paths.has(file.path)) {
-      throw new Error(`two modules would be written to ${file.path}`);
-    }
-    paths.add(file.path);
-  }
-  return files;
 };

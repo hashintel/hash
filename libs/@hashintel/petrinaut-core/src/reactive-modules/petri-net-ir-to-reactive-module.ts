@@ -87,7 +87,10 @@ export const compilePetriNetIr = (
   return { ok: true, graph: lowered.graph, python: main.text, files };
 };
 
-/** The Python for an IR the lowering accepts; throws with the first refusal otherwise. */
+/**
+ * The Python for an IR the lowering accepts, as one program whatever the
+ * layout flag says; throws with the first refusal otherwise.
+ */
 export const petriNetIrToReactiveModule = (
   ir: PetriNetIr,
   options: PetriNetIrToReactiveModuleOptions = {},
@@ -101,5 +104,5 @@ export const petriNetIrToReactiveModule = (
         : `${first.item.kind} ${first.item.name}: ${first.message}`,
     );
   }
-  return outcome.python;
+  return emitReactiveModulePython(outcome.graph);
 };

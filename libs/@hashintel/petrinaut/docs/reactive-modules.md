@@ -38,7 +38,7 @@ A coloured place becomes a fixed number of slots, its capacity or the **slots** 
 
 Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
 
-The Python tab lists its files on the right, the main file first. Select a file to show it; each file keeps its own scroll position. The chevron above the list collapses it to a narrow strip and brings it back.
+The Python tab lists its files on the right: the main file, then the transitions, the places and the draws. Select a file to show it; each file keeps its own scroll position. The panel button at the end of the flags row hides the list and brings it back.
 
 ## Compiler flags
 
@@ -64,7 +64,7 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 - **Closed** (default) compiles such a transition like any other: it fires whenever it is enabled, as in Petrinaut.
 - **Open** adds an external Bool, `go_Name`, for each controllable transition, which then fires only when it is enabled and chosen. The system is open to a controller module that drives the choices, the starting point for controller synthesis.
 
-**dt**, shown for a stochastic net or a net with dynamics, is the time step from the Simulation Settings; a rate is tested over it and dynamics step by it.
+The time step a rate is tested over and dynamics step by is the `dt` of the Simulation Settings; the IR records it under `zeroth` when it is not 1.
 
 <!-- prose-check: off -->
 
