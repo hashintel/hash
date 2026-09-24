@@ -1628,6 +1628,26 @@ export const ChatTurn: Story = {
       messages={[supportDeskUser, conversationTurn]}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const activity = canvas.getByRole("button", { name: "Activity" });
+    await userEvent.click(activity);
+    // Disclosures are inline labels, not raised action buttons or full rows.
+    await expect(getComputedStyle(activity).boxShadow).toBe("none");
+    await expect(getComputedStyle(activity).borderTopWidth).toBe("0px");
+    for (const name of ["Thought for 7s", "Used 1 tool"]) {
+      const disclosure = canvas.getByRole("button", { name });
+      await expect(disclosure.getBoundingClientRect().width).toBeLessThan(180);
+      await userEvent.click(disclosure);
+      await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+    }
+    await waitFor(() =>
+      expect(canvas.getByText("Compare capacity")).toBeVisible(),
+    );
+    await userEvent.click(activity);
+    await userEvent.keyboard("{Enter}");
+    await expect(activity).toHaveAttribute("aria-expanded", "true");
+  },
 };
 
 export const VoiceMediatedTurn: Story = {

@@ -166,6 +166,19 @@ const toolItemStyle = cva({
         color: "neutral.s90",
       },
     },
+    group: {
+      true: {
+        display: "inline-flex",
+        width: "[fit-content]",
+        minHeight: "[0]",
+        padding: "[2px 6px 2px 2px]",
+        gap: "1",
+        color: "neutral.s80",
+        _hover: { color: "neutral.s90" },
+        _focusVisible: { outline: "[2px solid {colors.blue.s90}]" },
+        "& svg[data-chevron]": { marginLeft: "0" },
+      },
+    },
     link: {
       true: {
         cursor: "pointer",
@@ -762,19 +775,30 @@ export const AiAssistantToolList = ({
         open={disclosure.open}
         onOpenChange={({ open }) => setDisclosure({ running, open })}
       >
-        <Collapsible.Trigger className={toolItemStyle({ tone: "neutral" })}>
+        <Collapsible.Trigger
+          className={toolItemStyle({ tone: "neutral", group: true })}
+        >
           {running ? (
             <LoadingSpinner size="xs" aria-hidden="true" />
           ) : (
-            <Icon name="lightning" size="sm" />
+            <Icon name="lightning" size="xs" />
           )}
           {running
             ? "Running tools"
             : `${stopped ? "Stopped after" : "Used"} ${tools.length} ${tools.length === 1 ? "tool" : "tools"}`}
-          <Icon name="chevronUp" size="sm" data-chevron />
+          <Icon name="chevronUp" size="xs" data-chevron />
         </Collapsible.Trigger>
         <Collapsible.Content className={collapsibleContentStyle}>
-          <div className={toolListStyle}>
+          <div
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: "1",
+              margin: "[2px 0 4px 7px]",
+              paddingLeft: "2.5",
+              borderLeft: "[2px solid {colors.neutral.a30}]",
+            })}
+          >
             {tools
               .filter(
                 (tool) => !tool.interactive || tool.state !== "input-available",

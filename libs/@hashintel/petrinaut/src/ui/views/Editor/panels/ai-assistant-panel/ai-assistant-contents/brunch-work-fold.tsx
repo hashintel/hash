@@ -1,7 +1,7 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { type ReactNode, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
@@ -20,8 +20,11 @@ const triggerStyle = css({
   alignItems: "center",
   gap: "1",
   padding: "[2px 6px 2px 2px]",
+  border: "none",
   borderRadius: "md",
+  backgroundColor: "[transparent]",
   _hover: { backgroundColor: "neutral.a20" },
+  _focusVisible: { outline: "[2px solid {colors.blue.s90}]" },
   fontSize: "[13px]",
   fontWeight: "medium",
   color: "neutral.s100",
@@ -76,17 +79,13 @@ export const BrunchWorkFold = ({
       onOpenChange={({ open }) => setDisclosure({ status, open })}
       data-work-status={status}
     >
-      <Collapsible.Trigger asChild>
-        <Button
-          size="xs"
-          variant="ghost"
-          className={triggerStyle}
-          data-working={status === "streaming"}
-        >
-          <Icon name="sparkles" size="sm" />
-          <span data-label>{label}</span>
-          <Icon name="chevronUp" size="sm" data-chevron />
-        </Button>
+      <Collapsible.Trigger
+        className={triggerStyle}
+        data-working={status === "streaming"}
+      >
+        <Icon name="sparkles" size="sm" />
+        <span data-label>{label}</span>
+        <Icon name="chevronUp" size="xs" data-chevron />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div

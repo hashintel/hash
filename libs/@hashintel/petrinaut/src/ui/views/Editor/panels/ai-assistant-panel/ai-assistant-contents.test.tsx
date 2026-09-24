@@ -3318,12 +3318,20 @@ describe("AiAssistantContents", () => {
     await expandWork();
     expect(
       screen
-        .getByRole("button", { name: /Thought for 4s/u })
+        .getByRole("button", { name: "Thought for 4s" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
     expect(screen.getByText("Thought for 4s")).not.toBeNull();
     expect(screen.queryByTestId("reasoning-status")).toBeNull();
-    expect(screen.getByLabelText(/Reasoning time/u)).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Thought for 4s" }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Thought for 4s" })
+          .getAttribute("aria-expanded"),
+      ).toBe("true"),
+    );
+    expect(screen.getByText("Planning the net")).not.toBeNull();
   });
 
   test("calls the clear handler from the header", () => {
