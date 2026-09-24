@@ -309,6 +309,20 @@ This replaces automatic later-delegation recovery with explicit user recovery.
 `judgment.result` records the applied decision; `judgment.released` records a
 recovery request, not proof of admission. Both contain metadata only.
 
+For readable browser console lines, add `?voiceDebug=1` to the page URL (or
+`&voiceDebug=1` if it already has query parameters), reload, and filter DevTools
+Console by `[Petrinaut Voice debug]`. This local-development-only option works
+in log and enforce modes; it does not enable voice or change the gate mode.
+Match lines by `inputId`: **Submission attempted** is not confirmation;
+**Reached Brunch** means Flue admitted it and supplied a `submissionId`.
+Log-only judgments say **Judgment only; submissions unchanged**, even when the
+recommendation is to withhold. Enforcement distinguishes withholding, permission
+to submit, timeout fallback, and manual release. A response failure after
+admission remains **Reached Brunch; response unconfirmed**. These lines contain
+only selected metadata, never transcript or relayed prose. Remove the parameter
+or set `voiceDebug=0` to disable the extra lines; existing structured
+`[Petrinaut Live trace]` diagnostics remain unchanged.
+
 The threshold and deadline are trial settings, not validated production policy.
 Before shared enablement, run the support-desk script plus contextual short
 answers; measure false withholding, recovery use, Brunch-start delay, and avoided
