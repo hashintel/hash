@@ -1,42 +1,21 @@
-extern crate alloc;
-
-use alloc::{string::String, vec::Vec};
-
-use problematic::{NoExtensions, ProblemDetails};
+use problematic::ProblemDetails;
 use schemars::generate::SchemaSettings;
 use serde::Deserialize as _;
 use serde_json::json;
 
-#[derive(schemars::JsonSchema)]
-struct InvalidParameters {
-    #[expect(dead_code, reason = "The test only generates the extension's schema.")]
-    parameters: Vec<String>,
-}
-
-macro_rules! assert_schema_snapshot {
-    ($type:ty) => {{
-        let schema = schemars::schema_for!($type);
-        insta::assert_binary_snapshot!(
-            ".json",
-            serde_json::to_vec_pretty(&schema).expect("the schema should serialize")
-        );
-    }};
-}
-
 #[test]
 fn schema_base() {
-    assert_schema_snapshot!(ProblemDetails<'_, NoExtensions>);
-}
-
-#[test]
-fn schema_typed_extensions() {
-    assert_schema_snapshot!(ProblemDetails<'_, InvalidParameters>);
+    let schema = schemars::schema_for!(ProblemDetails<'_>);
+    insta::assert_binary_snapshot!(
+        ".json",
+        serde_json::to_vec_pretty(&schema).expect("the schema should serialize")
+    );
 }
 
 #[test]
 fn schema_occurrence_members() {
     let input = json!({"title": "Internal Server Error", "status": 500});
-    let details: ProblemDetails<'_, NoExtensions> = ProblemDetails::deserialize(input.clone())
+    let details = ProblemDetails::<'_, ()>::deserialize(input.clone())
         .expect("the minimal response should deserialize");
     let output = serde_json::to_value(details).expect("the details should serialize");
     for (settings, document) in [
@@ -45,7 +24,7 @@ fn schema_occurrence_members() {
     ] {
         let schema = settings
             .into_generator()
-            .into_root_schema_for::<ProblemDetails<'_, NoExtensions>>()
+            .into_root_schema_for::<ProblemDetails<'_>>()
             .to_value();
         let required = schema["required"]
             .as_array()

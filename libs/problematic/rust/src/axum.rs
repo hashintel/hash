@@ -133,3 +133,166 @@ fn internal() -> (StatusCode, HeaderMap, Vec<u8>) {
         .expect("the internal problem should serialize");
     (INTERNAL.status, HeaderMap::new(), body)
 }
+
+#[cfg(test)]
+mod tests {
+    use alloc::borrow::Cow;
+    use core::{assert_matches, error::Error};
+
+    use axum_core::response::IntoResponse as _;
+    use http::{
+        HeaderMap, HeaderValue,
+        header::{CONTENT_TYPE, RETRY_AFTER},
+    };
+    use schemars::JsonSchema;
+    use serde::Serialize;
+    use serde_json::{Value, json};
+
+    use super::Rejection;
+    use crate::{
+        Answer, Expose, Header, Problem, ProblemType, ProblemVariant, StatusCode, Variant,
+    };
+
+    #[derive(Serialize, JsonSchema, derive_more::Display)]
+    #[display("The web is busy.")]
+    struct Busy {
+        #[serde(skip)]
+        retry_after: u64,
+    }
+
+    impl ProblemVariant for Busy {
+        const HEADERS: &'static [Header] = &[Header::new::<u64>(
+            "Retry-After",
+            "Seconds before retrying the request.",
+        )];
+        const TYPE: ProblemType = ProblemType {
+            type_uri: Cow::Borrowed("/problems/web/busy"),
+            title: Cow::Borrowed("Web busy"),
+            status: StatusCode::SERVICE_UNAVAILABLE,
+        };
+
+        fn headers(&self, headers: &mut HeaderMap) {
+            headers.insert(RETRY_AFTER, HeaderValue::from(self.retry_after));
+        }
+    }
+
+    /// Its details fail to serialize, as its member is named like a standard member.
+    #[derive(Serialize, JsonSchema, derive_more::Display)]
+    #[display("The web is locked.")]
+    struct Locked {
+        status: &'static str,
+    }
+
+    impl ProblemVariant for Locked {
+        const TYPE: ProblemType = ProblemType {
+            type_uri: Cow::Borrowed("/problems/web/locked"),
+            title: Cow::Borrowed("Web locked"),
+            status: StatusCode::LOCKED,
+        };
+    }
+
+    struct WebProblem;
+
+    impl Problem for WebProblem {
+        const VARIANTS: &'static [Variant] = &[Variant::of::<Busy>(), Variant::of::<Locked>()];
+    }
+
+    #[derive(Debug, derive_more::Display)]
+    enum WebError {
+        #[display("the web is busy")]
+        Busy,
+        #[display("the web is locked")]
+        Locked,
+        #[display("the web store is unreachable")]
+        Unreachable,
+    }
+
+    impl Error for WebError {}
+
+    impl Expose<WebProblem> for WebError {
+        fn expose(&self) -> Option<Answer<'_, WebProblem>> {
+            match self {
+                Self::Busy => Some(Answer::new(Busy { retry_after: 30 })),
+                Self::Locked => Some(Answer::new(Locked { status: "locked" })),
+                Self::Unreachable => None,
+            }
+        }
+    }
+
+    fn body(rejection: &Rejection<WebProblem>) -> Value {
+        serde_json::from_slice(&rejection.rendered.body).expect("the body should be JSON")
+    }
+
+    fn internal_body() -> Value {
+        json!({"type": "about:blank", "title": "Internal Server Error", "status": 500})
+    }
+
+    #[test]
+    fn rejection_exposed() {
+        let rejection = Rejection::<WebProblem>::from(WebError::Busy);
+        assert_eq!(
+            body(&rejection),
+            json!({
+                "type": "/problems/web/busy",
+                "title": "Web busy",
+                "status": 503,
+                "detail": "The web is busy."
+            }),
+            "the body should be the details of the exposed variant"
+        );
+
+        let response = rejection.into_response();
+        assert_eq!(
+            response.status(),
+            StatusCode::SERVICE_UNAVAILABLE,
+            "the response should have the status of the variant"
+        );
+        assert_eq!(
+            response.headers()[RETRY_AFTER],
+            "30",
+            "the response should carry the headers of the variant"
+        );
+        assert_eq!(
+            response.headers()[CONTENT_TYPE],
+            "application/problem+json",
+            "the response should be a problem details document"
+        );
+    }
+
+    #[test]
+    fn rejection_internal() {
+        let rejection = Rejection::<WebProblem>::from(WebError::Unreachable);
+
+        assert_eq!(
+            rejection.status(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "an error exposing no variant should be answered as an internal error"
+        );
+        assert_eq!(
+            body(&rejection),
+            internal_body(),
+            "the body should reveal nothing of the error"
+        );
+        assert_matches!(
+            rejection.error().downcast_ref(),
+            Some(WebError::Unreachable),
+            "the rejection should keep the error it answers for"
+        );
+    }
+
+    #[test]
+    fn rejection_unserializable() {
+        let rejection = Rejection::<WebProblem>::from(WebError::Locked);
+
+        assert_eq!(
+            rejection.status(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "a variant failing to serialize should be answered as an internal error"
+        );
+        assert_eq!(
+            body(&rejection),
+            internal_body(),
+            "the body should be the internal problem instead of a partial document"
+        );
+    }
+}

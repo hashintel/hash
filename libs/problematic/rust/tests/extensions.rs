@@ -109,7 +109,6 @@ fn extensions_wrapped_objects() {
 #[test]
 fn extensions_non_objects() {
     for value in [
-        json!(null),
         json!(true),
         json!(42),
         json!(1.5),
@@ -118,9 +117,19 @@ fn extensions_non_objects() {
     ] {
         assert_serialization_error(value, "problem extensions must serialize as an object");
     }
-    assert_serialization_error(None::<u8>, "problem extensions must serialize as an object");
-    assert_serialization_error((), "problem extensions must serialize as an object");
     assert_serialization_error((1, 2), "problem extensions must serialize as an object");
+}
+
+#[test]
+fn extensions_without_members() {
+    #[derive(Serialize)]
+    struct Marker;
+
+    let bare = json!({"type": "about:blank", "title": "Bad Request", "status": 400});
+    assert_serialization(json!(null), &bare);
+    assert_serialization(None::<u8>, &bare);
+    assert_serialization((), &bare);
+    assert_serialization(Marker, &bare);
 }
 
 #[test]

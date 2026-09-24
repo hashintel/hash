@@ -139,8 +139,31 @@ impl Variant {
     ///
     /// # Panics
     ///
-    /// Panics if the status of `V` is not a client or server error status. In `VARIANTS`, the
-    /// panic fails the build.
+    /// Panics if the status of `V` is not a client or server error status. In a constant such as
+    /// `VARIANTS`, it fails at compile time:
+    ///
+    /// ```compile_fail,E0080
+    /// # use std::{borrow::Cow, fmt};
+    /// use problematic::{ProblemType, ProblemVariant, StatusCode, Variant};
+    ///
+    /// #[derive(serde::Serialize, schemars::JsonSchema)]
+    /// struct WebMoved;
+    /// # impl fmt::Display for WebMoved {
+    /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         formatter.write_str("The web moved.")
+    /// #     }
+    /// # }
+    ///
+    /// impl ProblemVariant for WebMoved {
+    ///     const TYPE: ProblemType = ProblemType {
+    ///         type_uri: Cow::Borrowed("/problems/web/moved"),
+    ///         title: Cow::Borrowed("Web moved"),
+    ///         status: StatusCode::PERMANENT_REDIRECT,
+    ///     };
+    /// }
+    ///
+    /// const VARIANTS: &[Variant] = &[Variant::of::<WebMoved>()];
+    /// ```
     #[must_use]
     pub const fn of<V: ProblemVariant>() -> Self {
         let variant = Self {
@@ -209,12 +232,12 @@ const fn no_example() -> Option<serde_json::Value> {
 /// Checks that no two variants of `P::VARIANTS` share a type URI and status.
 ///
 /// Called in a `const` block of a generic function, it runs when the function is instantiated for
-/// `P`, so it fails `cargo build` but not `cargo check`.
+/// `P`.
 ///
 /// # Panics
 ///
-/// Panics if two variants share a type URI and status. In a const context, the panic fails the
-/// build.
+/// Panics if two variants share a type URI and status. In a const context, it fails at compile
+/// time.
 #[cfg(feature = "aide")]
 #[track_caller]
 pub(crate) const fn assert_variants<P: Problem>() {
@@ -272,4 +295,116 @@ const fn same(left: &[u8], right: &[u8]) -> bool {
         index += 1;
     }
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::{borrow::Cow, string::String};
+    use std::panic;
+
+    use schemars::JsonSchema;
+    use serde::Serialize;
+
+    use super::contains;
+    #[cfg(feature = "aide")]
+    use super::unique;
+    use crate::{ProblemType, ProblemVariant, StatusCode, Variant};
+
+    const fn status(code: u16) -> StatusCode {
+        match StatusCode::from_u16(code) {
+            Ok(status) => status,
+            Err(_) => panic!("the test status should be a valid status code"),
+        }
+    }
+
+    #[derive(Serialize, JsonSchema, derive_more::Display)]
+    #[display("web")]
+    struct Web<const CODE: u16>;
+
+    impl<const CODE: u16> ProblemVariant for Web<CODE> {
+        const TYPE: ProblemType = ProblemType {
+            type_uri: Cow::Borrowed("/problems/web"),
+            title: Cow::Borrowed("Web"),
+            status: status(CODE),
+        };
+    }
+
+    /// Its type URI starts with the one of [`Web`].
+    #[derive(Serialize, JsonSchema, derive_more::Display)]
+    #[display("web missing")]
+    struct WebMissing<const CODE: u16>;
+
+    impl<const CODE: u16> ProblemVariant for WebMissing<CODE> {
+        const TYPE: ProblemType = ProblemType {
+            type_uri: Cow::Borrowed("/problems/web/missing"),
+            title: Cow::Borrowed("Web missing"),
+            status: status(CODE),
+        };
+    }
+
+    #[test]
+    fn contains_type_and_status() {
+        let variants = [Variant::of::<Web<404>>()];
+
+        assert!(
+            contains(&variants, &Web::<404>::TYPE),
+            "the listed problem type should be found"
+        );
+        assert!(
+            contains(
+                &variants,
+                &ProblemType {
+                    type_uri: Cow::Owned(String::from("/problems/web")),
+                    title: Cow::Borrowed("Another title"),
+                    status: StatusCode::NOT_FOUND,
+                }
+            ),
+            "an owned type URI of the same text should be found, whatever the title"
+        );
+        assert!(
+            !contains(&variants, &Web::<410>::TYPE),
+            "the listed type URI at another status should not be found"
+        );
+        assert!(
+            !contains(&variants, &WebMissing::<404>::TYPE),
+            "a longer type URI starting with the listed one should not be found"
+        );
+    }
+
+    #[cfg(feature = "aide")]
+    #[test]
+    fn unique_type_and_status() {
+        assert!(
+            unique(&[
+                Variant::of::<Web<404>>(),
+                Variant::of::<Web<410>>(),
+                Variant::of::<WebMissing<404>>(),
+            ]),
+            "variants should be unique when they differ in type URI or status"
+        );
+        assert!(
+            !unique(&[
+                Variant::of::<Web<404>>(),
+                Variant::of::<WebMissing<404>>(),
+                Variant::of::<Web<404>>(),
+            ]),
+            "a type URI and status listed twice should not be unique, even apart"
+        );
+    }
+
+    #[test]
+    fn variant_status_range() {
+        for (code, of, accepted) in [
+            (399, Variant::of::<Web<399>> as fn() -> Variant, false),
+            (400, Variant::of::<Web<400>>, true),
+            (599, Variant::of::<Web<599>>, true),
+            (600, Variant::of::<Web<600>>, false),
+        ] {
+            assert_eq!(
+                panic::catch_unwind(of).is_ok(),
+                accepted,
+                "a variant at status {code} should be accepted only for a client or server error"
+            );
+        }
+    }
 }

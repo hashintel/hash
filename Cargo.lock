@@ -10980,6 +10980,7 @@ version = "0.0.0"
 dependencies = [
  "aide",
  "axum-core",
+ "derive_more",
  "erased-serde",
  "http 1.4.2",
  "insta",

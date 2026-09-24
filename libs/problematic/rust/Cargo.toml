@@ -30,8 +30,9 @@ serde_json = { workspace = true, optional = true, features = ["alloc"] }
 tracing    = { workspace = true, optional = true }
 
 [dev-dependencies]
-insta      = { workspace = true, features = ["json"] }
-serde_json = { workspace = true, features = ["arbitrary_precision"] }
+derive_more = { workspace = true, features = ["display"] }
+insta       = { workspace = true, features = ["json"] }
+serde_json  = { workspace = true, features = ["arbitrary_precision"] }
 
 [[test]]
 name              = "aide"

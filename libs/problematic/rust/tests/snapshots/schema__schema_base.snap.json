@@ -6,44 +6,26 @@
   "properties": {
     "detail": {
       "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-      "type": "string",
-      "examples": [
-        "This operation requires a machine actor."
-      ]
+      "type": "string"
     },
     "instance": {
       "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
       "type": "string",
-      "format": "uri-reference",
-      "examples": [
-        "https://example.com/problem-occurrences/42"
-      ]
+      "format": "uri-reference"
     },
     "status": {
       "description": "The HTTP status code sent with this occurrence.",
-      "type": "integer",
-      "format": "uint16",
-      "examples": [
-        403
-      ],
-      "maximum": 599,
-      "minimum": 100
+      "type": "integer"
     },
     "title": {
       "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-      "type": "string",
-      "examples": [
-        "Wrong actor type"
-      ]
+      "type": "string"
     },
     "type": {
       "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
       "type": "string",
       "format": "uri-reference",
-      "default": "about:blank",
-      "examples": [
-        "https://example.com/problems/wrong-actor-type"
-      ]
+      "default": "about:blank"
     }
   },
   "required": [

@@ -59,6 +59,41 @@ impl<K: Problem> OperationOutput for crate::axum::Rejection<K> {
 
     /// Documents the variants of `K` and the internal problem on `operation` itself and infers
     /// nothing, so they join the responses other sources documented for the same status.
+    ///
+    /// Fails at compile time if `K` lists two variants with the same type URI and status, as
+    /// [`document_problem`] does, or lists the internal problem, `about:blank` at `500`:
+    ///
+    /// ```compile_fail,E0080
+    /// # use std::{borrow::Cow, fmt};
+    /// use aide::{OperationOutput as _, generate, openapi::Operation};
+    /// use problematic::{Problem, ProblemType, ProblemVariant, StatusCode, Variant, axum::Rejection};
+    ///
+    /// #[derive(serde::Serialize, schemars::JsonSchema)]
+    /// struct StoreFailed;
+    /// # impl fmt::Display for StoreFailed {
+    /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         formatter.write_str("The store failed.")
+    /// #     }
+    /// # }
+    ///
+    /// impl ProblemVariant for StoreFailed {
+    ///     const TYPE: ProblemType = ProblemType {
+    ///         type_uri: Cow::Borrowed("about:blank"),
+    ///         title: Cow::Borrowed("Internal Server Error"),
+    ///         status: StatusCode::INTERNAL_SERVER_ERROR,
+    ///     };
+    /// }
+    ///
+    /// struct CreateEntity;
+    ///
+    /// impl Problem for CreateEntity {
+    ///     const VARIANTS: &'static [Variant] = &[Variant::of::<StoreFailed>()];
+    /// }
+    ///
+    /// generate::in_context(|context| {
+    ///     Rejection::<CreateEntity>::inferred_responses(context, &mut Operation::default())
+    /// });
+    /// ```
     fn inferred_responses(
         ctx: &mut GenContext,
         operation: &mut Operation,
@@ -89,6 +124,43 @@ impl<K: Problem> OperationOutput for crate::axum::Rejection<K> {
 /// Panics if a variant's extension members are neither an object nor a unit, or name a standard
 /// member, or if a source of the operation already documented its problem type and status
 /// differently.
+///
+/// Fails at compile time if `P` lists two variants with the same type URI and status:
+///
+/// ```compile_fail,E0080
+/// # use std::{borrow::Cow, fmt};
+/// use aide::{generate, openapi::Operation};
+/// use problematic::{
+///     Problem, ProblemType, ProblemVariant, StatusCode, Variant, aide::document_problem,
+/// };
+///
+/// #[derive(serde::Serialize, schemars::JsonSchema)]
+/// struct WebNotFound;
+/// # impl fmt::Display for WebNotFound {
+/// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+/// #         formatter.write_str("The web does not exist.")
+/// #     }
+/// # }
+///
+/// impl ProblemVariant for WebNotFound {
+///     const TYPE: ProblemType = ProblemType {
+///         type_uri: Cow::Borrowed("/problems/web/not-found"),
+///         title: Cow::Borrowed("Web not found"),
+///         status: StatusCode::NOT_FOUND,
+///     };
+/// }
+///
+/// struct ArchiveWeb;
+///
+/// impl Problem for ArchiveWeb {
+///     const VARIANTS: &'static [Variant] =
+///         &[Variant::of::<WebNotFound>(), Variant::of::<WebNotFound>()];
+/// }
+///
+/// generate::in_context(|context| {
+///     document_problem::<ArchiveWeb>(context, &mut Operation::default());
+/// });
+/// ```
 pub fn document_problem<P: Problem>(context: &mut GenContext, operation: &mut Operation) {
     const { assert_variants::<P>() };
 
