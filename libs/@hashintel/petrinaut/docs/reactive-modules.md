@@ -38,6 +38,8 @@ A coloured place becomes a fixed number of slots, its capacity or the **slots** 
 
 Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
 
+Hover a line in either tab to read what it is, why the compiler wrote it, and the IR path and net item it comes from. While the pointer is on a place's or a transition's lines, the item lights up on the canvas; hold ⌘ or Ctrl and click to select it.
+
 When the layout writes more than one file, the Python tab lists them on the right: the main file, then the transitions, the places and the draws. Select a file to show it; the list is one Tab stop, the arrow keys walk the files, and each file keeps its own scroll position. The panel button at the end of the flags row hides the list and brings it back. The flags themselves stay on one line and scroll sideways when the window is narrow.
 
 ## Compiler flags

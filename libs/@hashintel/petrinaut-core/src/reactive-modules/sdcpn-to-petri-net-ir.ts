@@ -95,12 +95,21 @@ export type SdcpnToPetriNetIrInput = {
   reservedNames?: Iterable<string>;
 };
 
+/** The net item each IR name stands for, by kind. */
+export type PetriNetIrOrigins = {
+  /** Place ids by IR name. */
+  places: Record<string, string>;
+  /** Transition ids by IR name. */
+  transitions: Record<string, string>;
+};
+
 export type SdcpnToPetriNetIrOutcome =
   | {
       ok: true;
       ir: PetriNetIr;
       /** The tree each code string of the IR was printed from, keyed by the text. */
       code: ReadonlyMap<string, HirFunction>;
+      origins: PetriNetIrOrigins;
       warnings: PetriNetIrDiagnostic[];
     }
   | {
@@ -827,6 +836,7 @@ export const sdcpnToPetriNetIr = (
   }
 
   const transitions: Record<string, PetriNetIrTransition> = {};
+  const transitionOrigins: Record<string, string> = {};
   for (const transition of sdcpn.transitions) {
     const lowered = lowerTransition(
       transition,
@@ -849,6 +859,7 @@ export const sdcpnToPetriNetIr = (
     );
     if (lowered !== null) {
       transitions[lowered.name] = lowered.transition;
+      transitionOrigins[lowered.name] = transition.id;
     }
   }
 
@@ -860,6 +871,12 @@ export const sdcpnToPetriNetIr = (
   return {
     ok: true,
     code,
+    origins: {
+      places: Object.fromEntries(
+        [...placeNames].map(([id, name]) => [name, id] as const),
+      ),
+      transitions: transitionOrigins,
+    },
     ir: {
       name: toIrNetName(input.title),
       ...(description === undefined || description === ""

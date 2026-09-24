@@ -53,6 +53,15 @@ export {
   zerothTargetForNet,
 } from "./reactive-modules/petri-net-ir";
 export {
+  type Provenance,
+  provenanceAt,
+  type ProvenanceSource,
+  type Trace,
+  tracePetriNetIr,
+  type TraceRange,
+  traceReactiveModulePython,
+} from "./reactive-modules/provenance";
+export {
   type PetriNetIrToReactiveModuleOptions,
   petriNetIrToReactiveModule,
   reactiveModuleLayout,
@@ -74,3 +83,5 @@ export {
   type SdcpnToPetriNetIrOutcome,
   sdcpnToPetriNetIr,
 } from "./reactive-modules/sdcpn-to-petri-net-ir";
+export type { PetriNetIrOrigins } from "./reactive-modules/sdcpn-to-petri-net-ir";
+export type { ReactiveModuleExportFile } from "./reactive-modules/compile-reactive-module-export";

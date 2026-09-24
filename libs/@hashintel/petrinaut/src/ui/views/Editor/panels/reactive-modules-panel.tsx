@@ -1,6 +1,7 @@
 import {
   Suspense,
   use,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -17,6 +18,7 @@ import {
 
 import { LanguageClientContext } from "../../../../react/lsp/context";
 import { SimulationContext } from "../../../../react/simulation/context";
+import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { HorizontalTabsHeader } from "../../../components/sub-view/horizontal/horizontal-tabs-container";
@@ -28,6 +30,13 @@ import { useSideDockContainer } from "../shared/side-dock";
 import { useFloatingPanel } from "../shared/use-floating-panel";
 import { FilesPanel } from "./reactive-modules-panel/files-panel";
 import { loadExportLanguages } from "./reactive-modules-panel/monaco-languages";
+import {
+  attachProvenanceListeners,
+  bindTrace,
+  registerProvenanceHover,
+  unbindTrace,
+  type ProvenanceListeners,
+} from "./reactive-modules-panel/provenance-hover";
 import { TargetHeader } from "./reactive-modules-panel/target-header";
 import { useLambdaHir } from "./reactive-modules-panel/use-lambda-hir";
 
@@ -35,6 +44,8 @@ import type { HorizontalTabView } from "../../../components/sub-view/horizontal/
 import type { CodeEditorProps } from "../../../monaco/code-editor";
 import type {
   PetriNetIrDiagnostic,
+  PetriNetIrOrigins,
+  Trace,
   ZerothTarget,
 } from "@hashintel/petrinaut-core/reactive-modules";
 
@@ -302,20 +313,59 @@ const listStyle = css({
   color: "neutral.s115",
 });
 
-/** The shown text in Monaco, once its grammar is registered. */
+/** The model's path inside the scheme, the key the hover provider reads. */
+const modelPathOf = (path: string): string => {
+  const [, rest = ""] = path.split("://");
+  const slash = rest.indexOf("/");
+  return slash === -1 ? "/" : rest.slice(slash);
+};
+
+/**
+ * The shown text in Monaco, once its grammar is registered. The trace of the
+ * text is bound to its model, so a hover explains the line under the pointer
+ * and a place's or a transition's lines light the item on the canvas.
+ */
 const ExportViewer = ({
   languages,
   tab,
   path,
   value,
+  trace,
+  origins,
 }: {
   languages: Promise<void>;
   tab: TabId;
   /** The model's path; one model per file keeps each file's view state. */
   path: string;
   value: string;
+  trace: Trace | null;
+  origins: PetriNetIrOrigins | null;
 }) => {
   use(languages);
+  const { setHoveredItem, clearHoveredItem, selectItem } = use(EditorContext);
+  const listenersRef = useRef<ProvenanceListeners>({
+    onHoverItem: () => {},
+    onSelectItem: () => {},
+  });
+  const detachRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    listenersRef.current = {
+      onHoverItem: (item) => {
+        if (item === null) {
+          clearHoveredItem();
+        } else {
+          setHoveredItem(item);
+        }
+      },
+      onSelectItem: selectItem,
+    };
+  });
+  useEffect(() => {
+    const key = modelPathOf(path);
+    bindTrace(key, { trace: trace ?? [], origins });
+    return () => unbindTrace(key);
+  }, [path, trace, origins]);
+  useEffect(() => () => detachRef.current?.(), []);
   return (
     <CodeEditor
       viewer
@@ -324,6 +374,14 @@ const ExportViewer = ({
       value={value}
       height="100%"
       options={VIEWER_OPTIONS}
+      onMount={(instance, monaco) => {
+        registerProvenanceHover(monaco);
+        detachRef.current?.();
+        detachRef.current = attachProvenanceListeners(
+          instance,
+          () => listenersRef.current,
+        );
+      }}
     />
   );
 };
@@ -696,6 +754,12 @@ export const ReactiveModulesPanel = ({
                             : `${PYTHON_MODEL_ROOT}${shownFile.path}`
                         }
                         value={output}
+                        trace={
+                          activeTab === "ir"
+                            ? result.irTrace
+                            : (shownFile?.trace ?? null)
+                        }
+                        origins={result.origins}
                       />
                     </Suspense>
                   </div>
