@@ -6,9 +6,10 @@
  * machinery were removed on 2026-09-02. Consumerless suspended orchestration
  * is not part of the package surface.
  *
- * The substrate-neutral SDK remains on this main export. The `./flue` subpath
- * owns the production agent-runtime contribution; plugins may likewise expose
- * Flue-native resources while depending inward on this package. That direction
+ * Everything that plain Node can load lives on this main export, including the
+ * workpiece tools. The `./flue` subpath holds only what needs a Flue build: the
+ * agent hook and the skill it mounts. Plugins follow the same split while
+ * depending inward on this package. That direction
  * is enforced mechanically by
  * `apps/brunch-agent/test/architecture/import-direction.test.ts`.
  */
@@ -25,3 +26,4 @@ export {
   type ReplyPartKind,
   type ToolExecution,
 } from "./conversation/reply-protocol";
+export * from "./workpiece-tools";

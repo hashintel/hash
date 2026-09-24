@@ -6,12 +6,10 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 import {
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
-  sdcpnInitialDataSchema,
-} from "../src/flue";
-import {
-  CANONICAL_PETRINAUT_TOOL_NAMES,
-  canonicalPetrinautTools,
-} from "../src/tools/petrinaut-construction";
+} from "../src/construction-mode";
+import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../src/construction-tool-names";
+import { sdcpnInitialDataSchema } from "../src/initial-data";
+import { canonicalPetrinautTools } from "../src/tools/petrinaut-construction";
 
 const construction = {
   binding: {

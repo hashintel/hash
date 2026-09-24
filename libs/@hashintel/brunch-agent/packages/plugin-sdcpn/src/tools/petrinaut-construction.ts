@@ -4,6 +4,8 @@ import * as v from "valibot";
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../construction-tool-names";
+
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export interface WorkpieceAuthorityOptions {
@@ -12,10 +14,6 @@ export interface WorkpieceAuthorityOptions {
     revisionId: string,
   ) => Promise<WorkpieceRevision | undefined>;
 }
-
-export const CANONICAL_PETRINAUT_TOOL_NAMES = Object.keys(
-  petrinautAiTools,
-) as (keyof typeof petrinautAiTools)[];
 
 const canonicalPetrinautTool = (toolName: keyof typeof petrinautAiTools) => {
   const tool = petrinautAiTools[toolName];

@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { markdownImportPlugin } from "@flue/vite/internal";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 const packageManifest = JSON.parse(
@@ -24,13 +23,11 @@ const isExternal = (moduleId: string): boolean =>
       moduleId === packageName || moduleId.startsWith(`${packageName}/`),
   );
 
-export default defineConfig(({ mode }) => ({
-  // Tests load SKILL.md imports through the same Flue plugin the application uses.
-  plugins: mode === "test" ? [markdownImportPlugin()] : [],
+export default defineConfig({
   build: {
     lib: {
       entry: {
-        agent: fileURLToPath(new URL("src/agent.ts", import.meta.url)),
+        flue: fileURLToPath(new URL("src/flue.ts", import.meta.url)),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
@@ -42,8 +39,4 @@ export default defineConfig(({ mode }) => ({
     sourcemap: true,
   },
   root: packageRoot,
-  test: {
-    include: ["test/**/*.test.ts"],
-    passWithNoTests: true,
-  },
-}));
+});

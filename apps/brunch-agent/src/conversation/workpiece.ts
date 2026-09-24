@@ -4,12 +4,12 @@ import { createHash } from "node:crypto";
 
 import * as v from "valibot";
 
-import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   MUTATE_WORKPIECE_TOOL_NAME,
   updateWorkpieceInputSchema,
   updateWorkpieceOutputSchema,
-} from "@hashintel/brunch-agent/flue";
+} from "@hashintel/brunch-agent";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   selectRunbookWorkpiece,
   type SelectedRunbookWorkpiece,

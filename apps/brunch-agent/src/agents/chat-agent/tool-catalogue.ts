@@ -3,7 +3,7 @@ import {
   draftPetrinautExperimentToolName,
   STOCK_OVER_FLUE_MODE,
   type CanonicalPetrinautMode,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautAiTools,
   type PetrinautAiToolName,

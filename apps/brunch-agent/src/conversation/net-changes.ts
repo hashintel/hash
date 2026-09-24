@@ -1,5 +1,5 @@
+import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent";
 import { parseClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { retainedSettledRevision } from "./workpiece.ts";

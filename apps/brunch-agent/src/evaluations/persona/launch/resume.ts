@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { isAwaitingClient } from "../../../conversation/client-tools.ts";

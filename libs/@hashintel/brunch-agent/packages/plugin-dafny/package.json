@@ -11,10 +11,10 @@
       "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./agent": {
-      "types": "./src/agent.ts",
-      "@dev/source": "./src/agent.ts",
-      "import": "./dist/agent.js"
+    "./flue": {
+      "types": "./src/flue.ts",
+      "@dev/source": "./src/flue.ts",
+      "import": "./dist/flue.js"
     },
     "./skills/dafny-verification/SKILL.md": "./src/skills/dafny-verification/SKILL.md"
   },
@@ -22,19 +22,16 @@
     "build": "vite build",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
-    "test:unit": "vitest run"
+    "lint:tsc": "tsgo --noEmit"
   },
   "dependencies": {
     "@flue/runtime": "2.0.3"
   },
   "devDependencies": {
-    "@flue/vite": "2.0.3",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vite": "8.2.2"
   }
 }
