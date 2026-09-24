@@ -1211,13 +1211,6 @@ const ConversationAiAssistantPanel = ({
   };
 
   const inBandDocumentLaneRef = useRef<Promise<void>>(Promise.resolve());
-  const nonMutatingInBandToolNames: ReadonlySet<string> = new Set([
-    getLatestNetDefinitionToolName,
-    getNetCompilationErrorsToolName,
-    readPetrinautDocToolName,
-    createExperimentToolName,
-  ]);
-  const blockedInBandGenerationRef = useRef<number | null>(null);
   const executeIssuedBrowserCall = (
     toolCall: Parameters<
       ChatOnToolCallCallback<PetrinautAiMessage>
@@ -1226,7 +1219,6 @@ const ConversationAiAssistantPanel = ({
     const host = aiAssistant.inBandBrowserTools;
     if (!host?.has(toolCall.toolName)) return;
     const controller = new AbortController();
-    const generation = submissionGenerationRef.current;
     automaticToolAbortsRef.current.add(controller);
     // Claim each issued input now, before it waits behind another document call.
     // Its host-side experiment source is still captured only at the lane barrier.
@@ -1243,10 +1235,6 @@ const ConversationAiAssistantPanel = ({
       try {
         issued = await claim;
         if (controller.signal.aborted) return;
-        if (blockedInBandGenerationRef.current === generation) {
-          await issued.fail("unstarted");
-          return;
-        }
         issued.prepare();
         started = true;
         const execution = executeToolCall(
@@ -1275,8 +1263,6 @@ const ConversationAiAssistantPanel = ({
       } catch (error) {
         if (issued && !controller.signal.aborted)
           await issued.fail(started ? "failed" : "unstarted").catch(() => {});
-        if (!nonMutatingInBandToolNames.has(toolCall.toolName))
-          blockedInBandGenerationRef.current = generation;
         throw error;
       } finally {
         if (toolCall.toolName !== createExperimentToolName) issued?.release();

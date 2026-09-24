@@ -7,7 +7,6 @@ import {
   expectedNodeDefinition,
 } from "../src/mutation-record";
 import {
-  assertNodeIdentity,
   locateRootNode,
   parseConstructionWhyInput,
   queryWorkpieceInputSchema,
@@ -71,45 +70,57 @@ describe("query workpiece input", () => {
 });
 
 describe("native root node construction", () => {
-  test("refuses existing, cross-class, retired, unknown and ambiguous identities", () => {
-    const current = empty();
-    current.places.push(place);
-    expect(() =>
-      assertNodeIdentity(request("addPlace", place), current, []),
-    ).toThrow(/Duplicate/);
-    expect(() =>
-      assertNodeIdentity(
-        request("addTransition", { ...transition, id: place.id }),
-        current,
-        [],
-      ),
-    ).toThrow(/Duplicate/);
-    current.metrics = [{ id: "metric-id", name: "Metric", code: "return 1;" }];
-    expect(() =>
-      assertNodeIdentity(
-        request("addTransition", { ...transition, id: "metric-id" }),
-        current,
-        [],
-      ),
-    ).toThrow(/Duplicate/);
-    expect(() =>
-      assertNodeIdentity(request("addPlace", place), empty(), [current]),
-    ).toThrow(/retired/);
-    expect(() =>
-      assertNodeIdentity(
-        request("updatePlace", { placeId: place.id, update: { capacity: 2 } }),
-        empty(),
-        [],
-      ),
-    ).toThrow(/Unknown/);
-    current.places.push(place);
-    expect(() =>
-      assertNodeIdentity(
-        request("updatePlace", { placeId: place.id, update: { capacity: 2 } }),
-        current,
-        [],
-      ),
-    ).toThrow(/ambiguous/);
+  test("observes a transition with a component-port arc as applied", () => {
+    // A live run: Petrinaut applied this transition, but a pre-classification
+    // guard refused component ports, so it was recorded as unknown.
+    const pre = empty();
+    pre.places.push(place);
+    pre.subnets = [
+      {
+        id: "sensor",
+        name: "Sensor",
+        places: [
+          { ...place, id: "sensor-online", name: "Online", isPort: true },
+        ],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    ];
+    pre.componentInstances = [
+      {
+        id: "sensor-instance",
+        name: "SensorInstance",
+        subnetId: "sensor",
+        parameterValues: {},
+        x: 0,
+        y: -100,
+      },
+    ];
+    const input = {
+      ...transition,
+      inputArcs: [
+        {
+          endpoint: { kind: "place" as const, placeId: place.id },
+          weight: 1,
+          type: "standard" as const,
+        },
+        {
+          endpoint: {
+            kind: "componentPort" as const,
+            componentInstanceId: "sensor-instance",
+            portPlaceId: "sensor-online",
+          },
+          weight: 1,
+          type: "read" as const,
+        },
+      ],
+    };
+    const req = request("addTransition", input);
+    const post = expectedNodeDefinition(req, pre);
+    expect(post.transitions).toHaveLength(1);
+    expect(outcome(req, pre, post)).toBe("applied");
   });
   test("observes canonical creation and correction, not void success", () => {
     const pre = empty();

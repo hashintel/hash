@@ -556,6 +556,9 @@ export const createCanonicalPetrinautHostTools = (
         ...record,
         post,
         outcome: evidence.outcome,
+        ...(evidence.outcomeReason === undefined
+          ? {}
+          : { outcomeReason: evidence.outcomeReason }),
         effects: evidence.effects,
         settlement:
           post.revisionId === pre.revisionId

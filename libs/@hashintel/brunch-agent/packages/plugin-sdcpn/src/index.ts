@@ -129,14 +129,12 @@ export {
   observedNodeMutationNames,
   isObservedNodeMutation,
   locateRootNode,
-  assertNodeIdentity,
   type ObservedNodeMutationName,
 } from "./root-node";
 
 export {
   observedStateMutationNames,
   isObservedStateMutation,
-  assertStateIdentity,
   rootStateWhyInputSchema,
   locateRootState,
   type ObservedStateMutationName,

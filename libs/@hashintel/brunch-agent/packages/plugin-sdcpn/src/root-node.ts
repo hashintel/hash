@@ -1,12 +1,9 @@
 import { z } from "zod";
 
-import { getArcEndpointPlaceId, type SDCPN } from "@hashintel/petrinaut-core";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+import { type SDCPN } from "@hashintel/petrinaut-core";
 
 import { rootArcWhyInputSchema } from "./root-arc";
 import { rootStateWhyInputSchema } from "./root-state";
-
-import type { ConstructionMutationRequest } from "./mutation-record";
 
 export const rootNodeWhyInputSchema = z.strictObject({
   kind: z.enum(["place", "transition"]),
@@ -106,80 +103,6 @@ export const isBatchedNodeMutation = (
   name: string,
 ): name is BatchedNodeMutationName =>
   batchedNodeMutationNames.some((entry) => entry === name);
-/** Pre-execution identity check uses verified definitions, never the model's courtesy. */
-export const assertNodeIdentity = (
-  mutation: Pick<ConstructionMutationRequest, "toolName" | "input">,
-  current: SDCPN,
-  earlier: readonly SDCPN[],
-) => {
-  if (!isObservedNodeMutation(mutation.toolName)) return;
-  const parsed = petrinautAiTools[mutation.toolName].inputSchema.parse(
-    mutation.input,
-  );
-  if (parsed.targetSubnetId)
-    throw new Error("Nested construction is unavailable.");
-  const colorId =
-    "colorId" in parsed
-      ? parsed.colorId
-      : "update" in parsed && "colorId" in parsed.update
-        ? parsed.update.colorId
-        : undefined;
-  if (
-    colorId != null &&
-    current.types.filter((type) => type.id === colorId).length !== 1
-  )
-    throw new Error("A typed place requires one unique existing root type.");
-  if ("inputArcs" in parsed) {
-    for (const arcs of [parsed.inputArcs, parsed.outputArcs]) {
-      const places = arcs.map(getArcEndpointPlaceId);
-      if (
-        places.some(
-          (id) =>
-            id === null ||
-            current.places.filter((place) => place.id === id).length !== 1,
-        ) ||
-        new Set(places).size !== places.length
-      )
-        throw new Error(
-          "Embedded arcs require unique existing root places; component ports and ambiguous endpoints are unavailable.",
-        );
-    }
-  }
-  const collection = mutation.toolName.endsWith("Place")
-    ? "places"
-    : "transitions";
-  const id =
-    "id" in parsed
-      ? parsed.id
-      : "placeId" in parsed
-        ? parsed.placeId
-        : parsed.transitionId;
-  const identities = (definition: SDCPN) =>
-    [
-      ...definition.places,
-      ...definition.transitions,
-      ...definition.types,
-      ...definition.parameters,
-      ...definition.differentialEquations,
-      ...(definition.scenarios ?? []),
-      ...(definition.metrics ?? []),
-      ...(definition.subnets ?? []),
-      ...(definition.componentInstances ?? []),
-    ].map((entry) => entry.id);
-  if ("id" in parsed) {
-    if (identities(current).includes(id))
-      throw new Error("Duplicate root identity cannot be created.");
-    if (earlier.some((definition) => identities(definition).includes(id)))
-      throw new Error(
-        "Known-retired identity cannot be reused; choose a new identity.",
-      );
-  } else if (
-    current[collection].filter((entry) => entry.id === id).length !== 1
-  ) {
-    throw new Error("Unknown or ambiguous node identity cannot be corrected.");
-  }
-};
-
 /** Names are conveniences, never identities. The returned path is snapshot-relative. */
 export const locateRootNode = (
   definition: SDCPN,
