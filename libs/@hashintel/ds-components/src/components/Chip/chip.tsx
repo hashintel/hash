@@ -47,7 +47,13 @@ export type ChipProps = {
   prefix?: PrefixOrSuffix;
 } & ExclusifyUnion<
   | {
-      removeable?: false | { onRemove: () => void };
+      /** Show a remove ("X") button at the chip's end. `aria-label` names the
+       * button for assistive tech, defaulting to "Remove"; pass
+       * `tabIndex: -1` to keep it out of the tab order where the host
+       * provides another keyboard path to removal (see the multi Combobox). */
+      removeable?:
+        | false
+        | { onRemove: () => void; "aria-label"?: string; tabIndex?: number };
     }
   | { suffix?: PrefixOrSuffix }
 > &
@@ -184,7 +190,8 @@ export const Chip = ({
   const removeNode = showRemove && (
     <button
       type="button"
-      aria-label="Remove"
+      aria-label={removeable["aria-label"] ?? "Remove"}
+      tabIndex={removeable.tabIndex}
       data-chip-segment="remove"
       className={affixStyles({
         treatment: "straight",

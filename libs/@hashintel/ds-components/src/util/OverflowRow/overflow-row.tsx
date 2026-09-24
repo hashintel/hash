@@ -1,5 +1,6 @@
 import {
   useTagsInput,
+  type UseTagsInputProps,
   type UseTagsInputReturn,
 } from "@ark-ui/react/tags-input";
 import { Fragment, useCallback, useId, useMemo, useRef, useState } from "react";
@@ -66,10 +67,41 @@ export type OverflowRowProps = {
     placeholder?: string;
   };
   /** Lets the keyboard operate on the items. Left/Right move through the items
-   * and backspace calls onRemove for that item. */
+   * and backspace calls onRemove for that item. Pointer highlighting follows
+   * focus: the press that gives a blurred row focus only focuses the input
+   * (scrolled into view) — highlighting an item takes a press from within an
+   * already-focused row. */
   withKeyboardControl?: {
     onRemove: (value: string) => void;
   };
+  /** Overrides the id of the input rendered by `withInput` — the hook for a
+   * composite widget whose own machine finds its input element by id, so
+   * both machines share the one element (see the multiple Combobox). */
+  inputId?: string;
+  /**
+   * Extra props merged onto the `withInput` input — the hook for wiring it
+   * up as part of a composite ark-ui widget. Defined attributes override the
+   * row's own and event handlers run before the row's — except `onKeyDown`,
+   * which REPLACES the row's keydown handling: it receives the row's own
+   * handler as its second argument, and the host decides whether (and with
+   * what event) to run it — skip it for keys another machine consumed, or
+   * pass a modified event where the machines' key handling disagrees.
+   * `value`/`defaultValue` are ignored.
+   */
+  inputElementProps?: Omit<
+    React.ComponentPropsWithoutRef<"input">,
+    "onKeyDown"
+  > & {
+    onKeyDown?: (
+      event: React.KeyboardEvent<HTMLInputElement>,
+      machineOnKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void,
+    ) => void;
+  };
+  /** Forwarded to the row's machine as its `onInteractOutside`: a composite
+   * host `preventDefault`s for interactions with its own outside-rendered
+   * parts (e.g. a combobox's portaled dropdown), which would otherwise blur
+   * the machine and stall its keyboard control mid-session. */
+  onInputInteractOutside?: UseTagsInputProps["onInteractOutside"];
 } & ExclusifyUnion<
   | {
       overflow: "summary";
@@ -98,12 +130,15 @@ const OverflowRowBase = ({
   align,
   withInput,
   withKeyboardControl,
+  inputElementProps,
   tags,
+  focusWithin,
   onFocusWithinChange,
   maskInputDraft,
   scrollerId,
 }: OverflowRowProps & {
   tags?: UseTagsInputReturn;
+  focusWithin?: boolean;
   onFocusWithinChange?: (focusWithin: boolean) => void;
   maskInputDraft?: boolean;
   /** Lets the interactive wrapper reach the scroll container (nested inside
@@ -317,6 +352,22 @@ const OverflowRowBase = ({
             {...previewProps}
             data-force-focus-visible={highlighted ? "" : undefined}
             className={classes.itemPreview}
+            onPointerDown={(event) => {
+              // The press that gives the row focus only enters the field:
+              // it focuses the input (revealed at the row's end) rather
+              // than highlighting the pressed item. Highlighting takes a
+              // press from within an already-focused row.
+              if (!focusWithin) {
+                event.preventDefault();
+                tags.focus();
+                inputRef.current?.scrollIntoView({
+                  block: "nearest",
+                  inline: "nearest",
+                });
+                return;
+              }
+              previewProps.onPointerDown?.(event);
+            }}
           >
             {item.children}
           </span>
@@ -330,7 +381,49 @@ const OverflowRowBase = ({
   // control without `withInput` still renders one — as a zero-size focus
   // anchor.
   const machineInputProps = tags && withInput ? tags.getInputProps() : null;
-  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const {
+    value: _extraValue,
+    defaultValue: _extraDefaultValue,
+    onChange: extraOnChange,
+    onInput: extraOnInput,
+    onClick: extraOnClick,
+    onPointerDown: extraOnPointerDown,
+    onFocus: extraOnFocus,
+    onBlur: extraOnBlur,
+    onKeyDown: extraOnKeyDown,
+    ...extraInputAttrs
+  } = inputElementProps ?? {};
+  // Undefined entries must not override the machine's attributes when spread
+  const definedExtraInputAttrs = Object.fromEntries(
+    Object.entries(extraInputAttrs).filter(([, attr]) => attr !== undefined),
+  ) as typeof extraInputAttrs;
+  // A press on the input dismisses a lingering item highlight (typing or
+  // navigation would otherwise be needed): the machine exposes no clear
+  // method and its own pointerdown reset only runs from idle, so this
+  // replays its Escape exit path — navigation returns to the input, whose
+  // entry clears the highlight. The fabricated event's preventDefault is
+  // isolated so the real pointer event keeps its defaults, and it goes to
+  // the row's machine only, never a composite host's.
+  const clearItemHighlightOnPress = (input: HTMLInputElement) => {
+    const highlighted = rootRef.current?.querySelector(
+      "[data-part='item-preview'][data-highlighted]",
+    );
+    if (!highlighted) {
+      return;
+    }
+    machineInputProps?.onKeyDown?.({
+      key: "Escape",
+      currentTarget: input,
+      defaultPrevented: false,
+      preventDefault: () => {},
+      stopPropagation: () => {},
+    } as unknown as React.KeyboardEvent<HTMLInputElement>);
+  };
+
+  // The row's own keydown handling, handed to a host's `onKeyDown` as its
+  // continuation. The hold-Backspace guard stays inside it so a host cannot
+  // accidentally bypass it.
+  const machineKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Backspace") {
       if (!event.repeat) {
         backspaceHoldBeganWithTextRef.current =
@@ -343,6 +436,16 @@ const OverflowRowBase = ({
       }
     }
     machineInputProps?.onKeyDown?.(event);
+  };
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (extraOnKeyDown) {
+      // The host owns the keydown flow: running the row's handling — and
+      // with what event — is its call.
+      extraOnKeyDown(event, machineKeyDown);
+      return;
+    }
+    machineKeyDown(event);
   };
 
   // The machine treats the input as uncontrolled and writes its draft into
@@ -369,10 +472,36 @@ const OverflowRowBase = ({
     machineInputProps ? (
       <input
         {...machineInputProps}
+        {...definedExtraInputAttrs}
         key="input"
         ref={inputRef}
         className={classes.input}
         placeholder={withInput?.placeholder}
+        onInput={(event) => {
+          extraOnInput?.(event);
+          machineInputProps.onInput?.(event);
+        }}
+        onChange={(event) => {
+          extraOnChange?.(event);
+          machineInputProps.onChange?.(event);
+        }}
+        onClick={(event) => {
+          extraOnClick?.(event);
+          machineInputProps.onClick?.(event);
+        }}
+        onPointerDown={(event) => {
+          extraOnPointerDown?.(event);
+          machineInputProps.onPointerDown?.(event);
+          clearItemHighlightOnPress(event.currentTarget);
+        }}
+        onFocus={(event) => {
+          extraOnFocus?.(event);
+          machineInputProps.onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          extraOnBlur?.(event);
+          machineInputProps.onBlur?.(event);
+        }}
         onKeyDown={handleInputKeyDown}
       />
     ) : (
@@ -534,7 +663,14 @@ const OverflowRowBase = ({
  * machine's value is controlled by `items`, so its adds and removes never
  * apply directly — they surface as `onSubmit`/`onRemove` intents instead. */
 const InteractiveOverflowRow = (props: OverflowRowProps) => {
-  const { items, overflow, withInput, withKeyboardControl } = props;
+  const {
+    items,
+    overflow,
+    withInput,
+    withKeyboardControl,
+    inputId: inputIdProp,
+    onInputInteractOutside,
+  } = props;
   const names = items.map((item) => item.name);
 
   // Keyboard control needs its items rendered, so a `truncate` or `summary`
@@ -557,10 +693,11 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
   // Self-assigned element ids: the scroll housekeeping below needs the
   // scroller and input elements in contexts where the machine api isn't at
   // hand. The scroller (the scroll container nested inside the machine's
-  // root) gets its own, machine-independent id.
+  // root) gets its own, machine-independent id. A host-supplied `inputId`
+  // takes over the input's id so an outer machine can find the same element.
   const reactId = useId();
   const rootId = `overflow-row:${reactId}`;
-  const inputId = `overflow-row:${reactId}:input`;
+  const inputId = inputIdProp ?? `overflow-row:${reactId}:input`;
   const scrollerId = `overflow-row:${reactId}:scroller`;
 
   const tags = useTagsInput({
@@ -572,6 +709,7 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
     allowDuplicates: true,
     // Enter is the only submit key — a comma is just text.
     delimiter: "",
+    onInteractOutside: onInputInteractOutside,
     inputValue: withInput?.value,
     onInputValueChange: (details) => {
       withInput?.onChange?.(details.inputValue);
@@ -676,21 +814,27 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
       <OverflowRowBase
         {...props}
         tags={tags}
+        focusWithin={focusWithin}
         onFocusWithinChange={setFocusWithin}
         maskInputDraft={maskInputDraft}
         scrollerId={scrollerId}
       />
     );
   }
-  // The summary-only props are dropped along with the summary display; the
-  // parent's `overflow` still drives measurement once focus leaves.
+  // The summary-only props are dropped along with the summary display, and so
+  // is the separator: it belongs to the display presentation (prose like
+  // "A, B, C"), while the expanded row is an editing view whose gap-spaced
+  // items need no joining. The parent's `overflow` still drives measurement
+  // once focus leaves.
   return (
     <OverflowRowBase
       {...props}
       overflow="scroll"
+      separator={undefined}
       total={undefined}
       renderCountLabel={undefined}
       tags={tags}
+      focusWithin={focusWithin}
       onFocusWithinChange={setFocusWithin}
       maskInputDraft={maskInputDraft}
       scrollerId={scrollerId}

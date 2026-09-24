@@ -17,7 +17,11 @@ export const styles = sva({
     root: {
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      // The gap between cells (and before the input). A host sets
+      // `--overflow-row-gap` on an ancestor to rescale it (see the multi
+      // Combobox, which grows it with the chip size); the `gapless` variant
+      // zeroes it the same way. The measure layer's gap must always match.
+      gap: "[var(--overflow-row-gap, var(--spacing-1))]",
       position: "relative",
       minWidth: "0",
       maxWidth: "full",
@@ -40,7 +44,7 @@ export const styles = sva({
     scroller: {
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      gap: "[var(--overflow-row-gap, var(--spacing-1))]",
       overflowX: "auto",
       overflowY: "hidden",
       scrollbarWidth: "[none]",
@@ -109,7 +113,7 @@ export const styles = sva({
     measure: {
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      gap: "[var(--overflow-row-gap, var(--spacing-1))]",
       position: "absolute",
       top: "0",
       left: "0",
@@ -176,9 +180,10 @@ export const styles = sva({
     },
     gapless: {
       true: {
-        root: { gap: "0" },
-        scroller: { gap: "0" },
-        measure: { gap: "0" },
+        // Zeroed through the variable (it inherits into the scroller and
+        // measure layer) rather than by overriding `gap` — a same-property
+        // override would depend on emitted rule order.
+        root: { "--overflow-row-gap": "[0px]" },
         input: { marginLeft: "[6px]" },
       },
     },
