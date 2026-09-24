@@ -1088,15 +1088,225 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Read failed/u })
         .querySelector('[data-tool-status="error"]'),
     ).not.toBeNull();
-    const pending = screen.getByRole("button", { name: /check.*Running/u });
+    const pending = screen.getByRole("button", { name: /check.*Cancelled/u });
     expect(
-      pending.querySelector('[data-tool-status="pending"]'),
+      pending.querySelector('[data-tool-status="cancelled"]'),
     ).not.toBeNull();
+    expect(pending.getAttribute("aria-busy")).not.toBe("true");
+    expect(screen.getByText("Response stopped")).not.toBeNull();
     fireEvent.click(pending);
     await waitFor(() =>
       expect(pending.getAttribute("aria-expanded")).toBe("true"),
     );
     expect(screen.getByText(/"revision": 7/u)).not.toBeNull();
+  });
+
+  test("opens running tools, then settles work while the answer streams", async () => {
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const tool = {
+      type: "dynamic-tool" as const,
+      toolName: "read",
+      toolCallId: "read-1",
+      input: {},
+    };
+    const { rerender } = render(
+      <AiAssistantContents
+        {...props}
+        messages={[
+          {
+            id: "working",
+            role: "assistant",
+            parts: [{ ...tool, state: "input-available" }],
+          },
+        ]}
+      />,
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Running tools" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+    rerender(
+      <AiAssistantContents
+        {...props}
+        messages={[
+          {
+            id: "working",
+            role: "assistant",
+            parts: [
+              { ...tool, state: "output-available", output: { places: 3 } },
+              { type: "text", text: "The model has", state: "streaming" },
+            ],
+          },
+        ]}
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: /^Brunch worked/u })
+          .getAttribute("aria-expanded"),
+      ).toBe("false"),
+    );
+    expect(
+      screen.getByText("The model has").closest("[data-work-status]"),
+    ).toBeNull();
+    rerender(
+      <AiAssistantContents
+        {...props}
+        messages={[
+          {
+            id: "working",
+            role: "assistant",
+            parts: [
+              { type: "text", text: "First I will inspect it.", state: "done" },
+              { ...tool, state: "input-available" },
+            ],
+          },
+        ]}
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Brunch is working" })
+          .getAttribute("aria-expanded"),
+      ).toBe("true"),
+    );
+  });
+
+  test("keeps the prepared brief below, not inside, the user bubble", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        inputMode="voice"
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "brief-user",
+            role: "user",
+            parts: [
+              { type: "text", text: "Compare three agents" },
+              {
+                type: "data-brief",
+                data: { fields: { goal: "Staffing" }, state: "done" },
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    const bubble = screen
+      .getByText("Compare three agents")
+      .closest("[data-user-bubble]");
+    expect(bubble).not.toBeNull();
+    expect(bubble?.contains(screen.getByText("Sent to Brunch"))).toBe(false);
+  });
+
+  test("copies an answer and retries its own user prompt rather than the latest prompt", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const onRetryPrompt = vi.fn();
+    render(
+      <AiAssistantContents
+        input="Unsent draft"
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        onRetryPrompt={onRetryPrompt}
+        status="ready"
+        messages={[
+          {
+            id: "first-question",
+            role: "user",
+            parts: [{ type: "text", text: "Explain the queue" }],
+          },
+          {
+            id: "first-answer",
+            role: "assistant",
+            parts: [{ type: "text", text: "The **queue** holds requests." }],
+          },
+          {
+            id: "second-question",
+            role: "user",
+            parts: [{ type: "text", text: "Explain the agents" }],
+          },
+          {
+            id: "second-answer",
+            role: "assistant",
+            parts: [{ type: "text", text: "Agents serve requests." }],
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: "Copy answer" })[0]!);
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledExactlyOnceWith(
+        "The **queue** holds requests.",
+      ),
+    );
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Retry answer" })[0]!,
+    );
+    expect(onRetryPrompt).toHaveBeenCalledExactlyOnceWith("Explain the queue");
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe(
+      "Unsent draft",
+    );
+  });
+
+  test("withholds Retry while another answer is streaming", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        onRetryPrompt={vi.fn()}
+        status="streaming"
+        messages={[
+          {
+            id: "question",
+            role: "user",
+            parts: [{ type: "text", text: "Explain the queue" }],
+          },
+          {
+            id: "answer",
+            role: "assistant",
+            parts: [{ type: "text", text: "The queue holds requests." }],
+          },
+          {
+            id: "follow-up",
+            role: "user",
+            parts: [{ type: "text", text: "Explain the agents" }],
+          },
+          {
+            id: "streaming",
+            role: "assistant",
+            parts: [{ type: "text", text: "Agents", state: "streaming" }],
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Retry answer" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Copy answer" })).toHaveLength(
+      1,
+    );
   });
 
   test("switches to host content without unmounting chat or losing its draft and Stop control", () => {

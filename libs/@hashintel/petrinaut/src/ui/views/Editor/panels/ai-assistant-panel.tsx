@@ -2110,7 +2110,11 @@ const ConversationAiAssistantPanel = ({
   }, [reportOperationalFailure, stopStateRef]);
 
   const submitUserText = useCallback(
-    (text: string, target: "auto" | "message" = "auto") => {
+    (
+      text: string,
+      target: "auto" | "message" = "auto",
+      preserveDraft = false,
+    ) => {
       if (!text.trim() || voiceHandoffPendingRef.current) {
         return;
       }
@@ -2121,7 +2125,7 @@ const ConversationAiAssistantPanel = ({
       const submitAndRecover = async () => {
         pendingSubmissionRecoveryRef.current = restoreInputAfterFailure;
         try {
-          await submitText({ target, text });
+          await submitText({ target, text, preserveDraft });
         } catch (caught) {
           if (
             pendingSubmissionRecoveryRef.current === restoreInputAfterFailure
@@ -2453,6 +2457,9 @@ const ConversationAiAssistantPanel = ({
       }
       onSendPrompt={(prompt) => {
         submitUserText(prompt, "message");
+      }}
+      onRetryPrompt={(prompt) => {
+        submitUserText(prompt, "message", true);
       }}
       onStop={() => {
         // Flag the deliberate stop, then abort. The actual settling of the

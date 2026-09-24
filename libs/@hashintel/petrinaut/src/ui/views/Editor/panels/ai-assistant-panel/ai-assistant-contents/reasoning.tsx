@@ -16,9 +16,6 @@ const reasoningGroupStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bg.subtle",
-  padding: "1",
 });
 
 const reasoningHeaderStyle = css({
@@ -26,23 +23,26 @@ const reasoningHeaderStyle = css({
   alignItems: "center",
   gap: "2",
   width: "full",
-  height: "8",
+  minHeight: "6",
   paddingX: "1",
   border: "none",
   borderRadius: "lg",
   backgroundColor: "[transparent]",
   color: "neutral.s90",
   cursor: "pointer",
-  fontSize: "sm",
+  fontSize: "xs",
   fontWeight: "medium",
   textAlign: "left",
   _hover: {
-    backgroundColor: "white.a60",
+    backgroundColor: "neutral.a20",
   },
   "& svg[data-chevron]": {
     transition: "[transform 150ms ease-out]",
   },
   "&[data-state=closed] svg[data-chevron]": {
+    transform: "[rotate(90deg)]",
+  },
+  "&[data-state=open] svg[data-chevron]": {
     transform: "[rotate(180deg)]",
   },
 });
@@ -70,12 +70,9 @@ const reasoningBodyStyle = cva({
   base: {
     position: "relative",
     overflow: "hidden",
-    borderWidth: "thin",
-    borderStyle: "solid",
-    borderColor: "neutral.a30",
-    borderRadius: "md",
-    backgroundColor: "neutral.s10",
-    padding: "2",
+    borderLeft: "[2px solid {colors.neutral.a30}]",
+    marginLeft: "2",
+    paddingLeft: "3",
     color: "neutral.s90",
     fontSize: "sm",
     fontWeight: "medium",
@@ -243,7 +240,11 @@ export const AiAssistantReasoning = ({
           className={css({ color: "orange.s90" })}
         />
         <span className={reasoningTitleStyle}>
-          {elapsedTime === undefined ? "Thought" : `Thought for ${elapsedTime}`}
+          {isStreaming
+            ? "Thinking"
+            : elapsedTime === undefined
+              ? "Thought"
+              : `Thought for ${elapsedTime}`}
         </span>
         {elapsedTime !== undefined && (
           <span

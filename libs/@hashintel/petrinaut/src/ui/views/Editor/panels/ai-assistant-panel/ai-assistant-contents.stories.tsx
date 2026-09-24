@@ -5,7 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -366,6 +366,7 @@ const Frame = ({
   additionalTab,
   error,
   experimentStates,
+  onCancelExperiment,
   fixedNarrowWidth = false,
   initialPlacement = "docked",
   initialVoiceDockCollapsed = false,
@@ -387,6 +388,7 @@ const Frame = ({
   experimentStates?: ComponentProps<
     typeof AiAssistantContents
   >["experimentStates"];
+  onCancelExperiment?: (toolCallId: string) => void;
   fixedNarrowWidth?: boolean;
   initialPlacement?: "docked" | "floating";
   initialVoiceDockCollapsed?: boolean;
@@ -436,6 +438,7 @@ const Frame = ({
             additionalTab={additionalTab}
             error={error}
             experimentStates={experimentStates}
+            onCancelExperiment={onCancelExperiment}
             input={input}
             inputMode={inputMode}
             messages={messages}
@@ -443,6 +446,7 @@ const Frame = ({
             primaryLabel={primaryLabel}
             promptChips={promptChips}
             onSendPrompt={setInput}
+            onRetryPrompt={fn()}
             onClose={() => setOpen(false)}
             onInputChange={setInput}
             onInputModeChange={() => {}}
@@ -1718,10 +1722,12 @@ export const VoiceStopped: Story = {
   ),
 };
 
-export const RunningExperiment: Story = {
-  render: () => (
+const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
+  const [cancelled, setCancelled] = useState(false);
+  return (
     <Frame
       additionalTab={ledgerTab}
+      onCancelExperiment={() => setCancelled(true)}
       messages={[
         supportDeskUser,
         {
@@ -1755,7 +1761,22 @@ export const RunningExperiment: Story = {
       ]}
       experimentStates={{
         "running-experiment": {
-          active: true,
+          active: !cancelled && !finished,
+          result:
+            cancelled || finished
+              ? {
+                  name: "Compare staffing",
+                  experimentId: "staffing",
+                  status: cancelled ? "cancelled" : "complete",
+                  runsCompleted: cancelled ? 29 : 96,
+                  metrics: finished
+                    ? [
+                        { id: "wait", label: "Lowest wait (min)", value: 0.3 },
+                        { id: "agents", label: "Agents", value: 8 },
+                      ]
+                    : [],
+                }
+              : undefined,
           progress: {
             name: "Compare staffing",
             experimentId: "staffing",
@@ -1768,5 +1789,13 @@ export const RunningExperiment: Story = {
         },
       }}
     />
-  ),
+  );
+};
+
+export const RunningExperiment: Story = {
+  render: () => <ExperimentExample />,
+};
+
+export const FinishedExperiment: Story = {
+  render: () => <ExperimentExample finished />,
 };

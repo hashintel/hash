@@ -99,7 +99,6 @@ const liveRegionStyle = css({
 
 export type HorizontalTabView = Pick<SubView, "id" | "title" | "tooltip"> & {
   attention?: { count?: number; marker?: boolean };
-  mark?: React.ReactNode;
 };
 
 const contentStyle = cva({
@@ -146,33 +145,13 @@ const TabButton: React.FC<TabButtonProps> = ({
       role="tab"
     >
       <span className={tabButtonLabelStyle}>
-        {subView.mark && (
-          <span
-            aria-hidden="true"
-            className={css({
-              display: "inline-flex",
-              color: "neutral.s90",
-              "[aria-selected=true] &": { color: "neutral.s110" },
-            })}
-          >
-            {subView.mark}
-          </span>
-        )}
         {subView.title}
         {subView.attention?.count ? (
-          <span
-            className={attentionBadgeStyle}
-            aria-hidden="true"
-            data-attention
-          >
+          <span className={attentionBadgeStyle} aria-hidden="true">
             {subView.attention.count > 9 ? "9+" : subView.attention.count}
           </span>
         ) : subView.attention?.marker ? (
-          <span
-            className={attentionMarkerStyle}
-            aria-hidden="true"
-            data-attention
-          />
+          <span className={attentionMarkerStyle} aria-hidden="true" />
         ) : null}
         {subView.tooltip && <HelpTooltip content={subView.tooltip} />}
       </span>

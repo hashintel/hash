@@ -26,7 +26,6 @@ import {
   useVoiceSessionWarningMessage,
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import {
   ExperimentalIcon,
   useExperimentalIconMotionAllowed,
@@ -35,6 +34,7 @@ import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
+import { BrunchTabs } from "./ai-assistant-contents/brunch-tabs";
 import { BrunchWorkFold } from "./ai-assistant-contents/brunch-work-fold";
 import {
   ExperimentCard,
@@ -104,6 +104,7 @@ export type AiAssistantContentsProps = {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
+  onRetryPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
   onVoiceDockCollapsedChange?: (collapsed: boolean) => void;
@@ -369,8 +370,7 @@ const messageStyle = cva({
       user: {
         alignSelf: "flex-end",
         maxWidth: "[92%]",
-        backgroundColor: "neutral.bg.subtle",
-        borderRadius: "lg",
+        padding: "[0]",
       },
     },
   },
@@ -380,16 +380,28 @@ const messageStyle = cva({
 // `*`, `_`, `#`, etc. and collapse the single newlines they typed. Render it
 // verbatim with preserved whitespace instead.
 const userTextStyle = css({
+  alignSelf: "flex-end",
+  backgroundColor: "neutral.a20",
+  borderRadius: "lg",
+  padding: "[10px]",
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
 });
 
 const answerStyle = css({
+  alignSelf: "flex-start",
+  maxWidth: "[92%]",
   backgroundColor: "blue.a20",
   borderRadius: "lg",
-  padding: "3",
-  color: "neutral.s110",
+  padding: "[10px]",
+  color: "neutral.s100",
   overflowWrap: "anywhere",
+  "[data-work-status] &": {
+    alignSelf: "stretch",
+    maxWidth: "full",
+    backgroundColor: "neutral.s00",
+    border: "[1px solid {colors.neutral.a30}]",
+  },
 });
 
 const workingStatusStyle = css({
@@ -525,6 +537,7 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
 type MessageHandlersRef = RefObject<{
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
+  onRetryMessage: (messageId: string) => void;
 }>;
 
 /**
@@ -551,6 +564,7 @@ const AiAssistantMessage = memo(
     voice,
     active,
     stopped,
+    canRetry,
   }: {
     handlersRef: MessageHandlersRef;
     hiddenToolNames?: ReadonlySet<string>;
@@ -562,7 +576,9 @@ const AiAssistantMessage = memo(
     voice: boolean;
     active: boolean;
     stopped: boolean;
+    canRetry: boolean;
   }) => {
+    const { addNotification } = use(NotificationsContext);
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(
       message,
@@ -576,11 +592,20 @@ const AiAssistantMessage = memo(
     const awaitingApproval = work.tools.some(
       (tool) => tool.interactive && tool.state === "input-available",
     );
+    const working =
+      active &&
+      (answers.length === 0 ||
+        work.reasoning.some((item) => item.part.state === "streaming") ||
+        work.tools.some(
+          (tool) =>
+            tool.state === "input-streaming" ||
+            tool.state === "input-available",
+        ));
     const workStatus = wasStopped
       ? "stopped"
       : awaitingApproval
         ? "approval"
-        : active
+        : working
           ? "streaming"
           : "settled";
     const writtenAnswer =
@@ -607,12 +632,13 @@ const AiAssistantMessage = memo(
         data-role={role}
         data-voice-origin={message.metadata?.source === "voice" || undefined}
       >
-        {role === "user" &&
-          answers.map((item) => (
-            <div className={userTextStyle} key={item.key}>
-              <span>{item.part.text}</span>
-            </div>
-          ))}
+        {role === "user" && (
+          <div className={userTextStyle} data-user-bubble>
+            {answers.map((item) => (
+              <div key={item.key}>{item.part.text}</div>
+            ))}
+          </div>
+        )}
         {brief && <VoiceInputProvenance brief={brief} />}
         {voiceAgentReply && (
           <div
@@ -644,6 +670,31 @@ const AiAssistantMessage = memo(
               }
             />
             {voice && writtenAnswer}
+            {voice && working && !writtenAnswer && (
+              <div
+                className={answerStyle}
+                role="status"
+                aria-label="Brunch is thinking"
+              >
+                {["92%", "74%", "46%"].map((width) => (
+                  <span
+                    key={width}
+                    style={{ width }}
+                    className={css({
+                      display: "block",
+                      height: "[10px]",
+                      marginY: "2",
+                      borderRadius: "sm",
+                      backgroundColor: "neutral.a30",
+                      animation: "[pulse 1.6s ease-in-out infinite]",
+                      "@media (prefers-reduced-motion: reduce)": {
+                        animation: "none",
+                      },
+                    })}
+                  />
+                ))}
+              </div>
+            )}
           </BrunchWorkFold>
         )}
         {role === "assistant" && !voice && writtenAnswer}
@@ -678,6 +729,59 @@ const AiAssistantMessage = memo(
             {voiceAgentWrapUp.text}
           </div>
         )}
+        {wasStopped && (
+          <div
+            className={css({
+              alignSelf: "center",
+              marginTop: "1.5",
+              paddingY: "1",
+              fontSize: "xs",
+              color: "neutral.s80",
+            })}
+          >
+            Response stopped
+          </div>
+        )}
+        {role === "assistant" && !voice && writtenAnswer && !active && (
+          <div
+            className={css({ display: "flex", gap: "1", color: "neutral.s80" })}
+          >
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label="Copy answer"
+              tooltip="Copy"
+              prefix={<ExperimentalIcon name="copy" size={14} />}
+              onClick={() => {
+                void (async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      answers.map((answer) => answer.part.text).join("\n\n"),
+                    );
+                    addNotification({
+                      message: "Answer copied",
+                      tone: "success",
+                    });
+                  } catch {
+                    addNotification(
+                      errorNotification("Could not copy the answer"),
+                    );
+                  }
+                })();
+              }}
+            />
+            {canRetry && (
+              <Button
+                size="xs"
+                variant="ghost"
+                aria-label="Retry answer"
+                tooltip="Retry as a new turn"
+                prefix={<ExperimentalIcon name="rotate" size={14} />}
+                onClick={() => handlersRef.current.onRetryMessage(message.id)}
+              />
+            )}
+          </div>
+        )}
       </div>
     );
   },
@@ -710,6 +814,7 @@ export const AiAssistantContents = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
+  onRetryPrompt,
   onStop,
   onSubmit,
   onVoiceDockCollapsedChange,
@@ -934,12 +1039,31 @@ export const AiAssistantContents = ({
   // so memoised children never re-render due to handler changes — but we
   // refresh `.current` in an effect so any new closure capture is picked up
   // by the next event.
+  const firstUserIndex = messages.findIndex(
+    (message) => message.role === "user",
+  );
+  const onRetryMessage = (messageId: string) => {
+    if (isBusy || voiceHandoffPending) return;
+    const index = messages.findIndex((message) => message.id === messageId);
+    const userMessage = messages
+      .slice(0, index)
+      .findLast((message) => message.role === "user");
+    const prompt = userMessage?.parts
+      .flatMap((part) => (part.type === "text" ? [part.text] : []))
+      .join("\n\n");
+    if (prompt) onRetryPrompt?.(prompt);
+  };
   const handlersRef = useRef({
     onInteractiveToolSubmit,
     onSelectToolTarget,
+    onRetryMessage,
   });
   useEffect(() => {
-    handlersRef.current = { onInteractiveToolSubmit, onSelectToolTarget };
+    handlersRef.current = {
+      onInteractiveToolSubmit,
+      onSelectToolTarget,
+      onRetryMessage,
+    };
   });
 
   useEffect(() => {
@@ -1075,7 +1199,7 @@ export const AiAssistantContents = ({
             </HeaderLabel>
             <div className={headerTabsStyle}>
               {additionalTab && (
-                <HorizontalTabsHeader
+                <BrunchTabs
                   subViews={[
                     {
                       id: aiTabId,
@@ -1196,6 +1320,13 @@ export const AiAssistantContents = ({
                 onCancelExperiment={onCancelExperiment}
                 resolveToolPresentation={resolveToolPresentation}
                 voice={inputMode === "voice"}
+                canRetry={
+                  onRetryPrompt !== undefined &&
+                  !isBusy &&
+                  !voiceHandoffPending &&
+                  firstUserIndex >= 0 &&
+                  index > firstUserIndex
+                }
                 active={
                   isBusy &&
                   index === messages.length - 1 &&
