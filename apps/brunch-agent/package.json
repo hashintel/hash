@@ -18,7 +18,6 @@
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "probe:rds-iam": "node --experimental-strip-types src/rds-iam-probe.ts",
     "proof:manifest": "node --experimental-strip-types src/evaluations/persona/refresh-proof-manifest.ts",
-    "runbook:headless": "vite build && node --experimental-strip-types src/evaluations/runbook/construction-run.ts",
     "smoke:deployment": "node --experimental-strip-types src/deployment-smoke.ts",
     "start": "PORT=3002 node dist/server.mjs",
     "start:healthcheck": "wait-on --timeout 1200000 http-get://localhost:3002/health",

@@ -1,23 +1,7 @@
 # Brunch agent application
 
-This application belongs to the Brunch context rooted at
-`../../libs/@hashintel/brunch-agent/`. Read that context's `AGENTS.md` and current `MISSION.md`
-before changing this application. Read `MISSION.next.md` when work affects future sequence,
-cross-mission constraints, open product decisions, or re-entry gates; it is the canonical future
-spine, not execution authority. Consult `CONTEXT.md` or historical design documents only when a
-concrete vocabulary or rationale question requires them; ADRs and specs are hypotheses, not
-implementation obligations.
-HASH root guidance takes precedence.
+HASH root guidance applies. The Brunch package map and implemented invariants are documented in [`../../libs/@hashintel/brunch-agent/README.md`](../../libs/@hashintel/brunch-agent/README.md) and [`../../libs/@hashintel/brunch-agent/ARCHITECTURE.md`](../../libs/@hashintel/brunch-agent/ARCHITECTURE.md).
 
-The application composes the Flue runtime, HTTP routes, and the Brunch packages required by the
-current mission. It must remain independent of Petrinaut UI (`@hashintel/petrinaut`); it may import
-published catalogs from `@hashintel/petrinaut-core` (for example user-guide page ids the panel
-already executes). `apps/petrinaut-website` meets the editor through the AI SDK/HTTP transport.
+This application composes the Flue runtime, HTTP routes, and Brunch packages. It must remain independent of Petrinaut UI (`@hashintel/petrinaut`); it may import published catalogs from `@hashintel/petrinaut-core`. `apps/petrinaut-website` meets the editor through the AI SDK/HTTP transport.
 
-`@earendil-works/pi-ai@0.83.0` is patched at the repo root so Anthropic
-`input_schema` keeps the published tool JSON Schema. Pi's adapter still
-collapses parameters to `{ type, properties, required }` by design; Brunch
-construction tools need the full schema on the wire, independent of
-constrained sampling. `@flue/runtime` depends on `pi-ai@^0.83.0`, which is
-why the caret resolution exists. Re-evaluate the patch on any `pi-ai`
-upgrade. Do not treat it as a general Pi behavior change.
+The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0`, and `@earendil-works/pi-ai@0.83.0`. Brunch depends on their combined context-projection, argument-validation, and complete-tool-schema behavior. Re-evaluate the full patch boundary on a Flue or Pi upgrade.

@@ -21,7 +21,7 @@ const request = (overrides: RequestInit & { duplex?: "half" } = {}) =>
 
 describe("Live configuration and session creation", () => {
   test.each([
-    [undefined, "realtime", true],
+    [undefined, "live", true],
     ["realtime", "realtime", true],
     ["live", "live", true],
     ["live-brunch", null, false],
@@ -178,53 +178,49 @@ describe("Live configuration and session creation", () => {
   );
 
   test.each([
-    { PETRINAUT_VOICE_PROVIDER: undefined },
-    { PETRINAUT_VOICE_PROVIDER: undefined, VERCEL_ENV: "production" },
-    { PETRINAUT_VOICE_PROVIDER: "realtime" },
-    { PETRINAUT_VOICE_PROVIDER: "realtime", VERCEL_ENV: "preview" },
     { PETRINAUT_OPENAI_VOICE_ENABLED: "false" },
     { OPENAI_VOICE_API_KEY: " " },
-  ])(
-    "requires Live selection and existing enablement/credentials: %j",
-    async (override) => {
-      const fetch = vi.fn<typeof globalThis.fetch>();
-      expect(
-        (
-          await createOpenAILiveSessionHandler({
-            environment: { ...environment, ...override },
-            fetch,
-          })(request())
-        ).status,
-      ).toBe(404);
-      expect(fetch).not.toHaveBeenCalled();
+  ])("requires existing enablement/credentials: %j", async (override) => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    expect(
+      (
+        await createOpenAILiveSessionHandler({
+          environment: { ...environment, ...override },
+          fetch,
+        })(request())
+      ).status,
+    ).toBe(404);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test.each([undefined, "realtime", "live"])(
+    "allows a browser-selected Live session with server default %s",
+    async (provider) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(
+          {
+            session: { id: "preview/session:id" },
+            transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+          },
+          { status: 201 },
+        ),
+      );
+      const response = await createOpenAILiveSessionHandler({
+        environment: {
+          ...environment,
+          PETRINAUT_VOICE_PROVIDER: provider,
+          VERCEL_ENV: "production",
+        },
+        fetch,
+      })(request());
+
+      expect(response.status).toBe(201);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch.mock.calls[0]![0]).toBe(
+        "https://api.openai.com/v1/live/sessions",
+      );
     },
   );
-
-  test("a Vercel preview without a provider override creates a Live session", async () => {
-    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
-      Response.json(
-        {
-          session: { id: "preview/session:id" },
-          transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
-        },
-        { status: 201 },
-      ),
-    );
-    const response = await createOpenAILiveSessionHandler({
-      environment: {
-        ...environment,
-        PETRINAUT_VOICE_PROVIDER: undefined,
-        VERCEL_ENV: "preview",
-      },
-      fetch,
-    })(request());
-
-    expect(response.status).toBe(201);
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0]![0]).toBe(
-      "https://api.openai.com/v1/live/sessions",
-    );
-  });
 
   test("creates one client-delegated WebRTC session with Brunch-authoritative delivery instructions and no tools", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>

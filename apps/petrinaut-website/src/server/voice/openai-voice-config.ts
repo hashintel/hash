@@ -10,17 +10,14 @@ interface VoiceEnvironment {
 }
 
 /**
- * An explicit `PETRINAUT_VOICE_PROVIDER` is authoritative. Without one,
- * Vercel previews default to the Brunch-backed Live experiment and everything
- * else to Realtime. The enablement flag and API key still decide whether Voice
- * is offered at all.
+ * Live is the default. `PETRINAUT_VOICE_PROVIDER` remains a discovery default
+ * for clients without a picker; the website selects its provider in Labs.
+ * The enablement flag and API key still decide whether Voice is offered at all.
  */
 export const getVoiceProvider = (
   environment: VoiceEnvironment,
 ): VoiceProvider | null => {
-  const provider =
-    environment.PETRINAUT_VOICE_PROVIDER ??
-    (environment.VERCEL_ENV === "preview" ? "live" : "realtime");
+  const provider = environment.PETRINAUT_VOICE_PROVIDER ?? "live";
   return provider === "realtime" || provider === "live" ? provider : null;
 };
 

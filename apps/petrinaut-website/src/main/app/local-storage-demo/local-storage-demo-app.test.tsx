@@ -1939,6 +1939,27 @@ describe("assistant selection", () => {
     }
     return settingsLabs.props.openAIVoiceConfig;
   };
+  const currentVoiceProvider = () => {
+    const control = currentAssistant().renderVoiceMode?.({
+      canAcceptVoiceInput: true,
+      conversationId: "labs-test",
+      inputMode: "text",
+      isAiAssistantOpen: true,
+      messages: [],
+      registerVoiceModeControls: vi.fn(() => () => {}),
+      reportVoiceSessionState: vi.fn(),
+      setInputMode: vi.fn(),
+      setVoiceActive: vi.fn(),
+      status: "ready",
+      stop: vi.fn(async () => {}),
+      submitText: vi.fn(),
+      submitVoiceInput: vi.fn(),
+    });
+    if (!isValidElement<{ config: { provider?: string } }>(control)) {
+      throw new Error("Expected a configured Voice control.");
+    }
+    return control.props.config.provider;
+  };
 
   afterEach(() => {
     cleanup();
@@ -1969,16 +1990,20 @@ describe("assistant selection", () => {
     expect(observe).not.toHaveBeenCalled();
   });
 
-  test("persists and restores both rendered Labs choices", async () => {
+  test("selecting Brunch enables Voice and persists the opt-in Realtime choice", async () => {
     const incarnationId = "labs-persistence-incarnation";
     seedStoredNet(incarnationId);
-    localStorage.setItem(voicePreferenceStorageKey, "invalid");
+    localStorage.setItem(voicePreferenceStorageKey, "false");
     flueClientMock.current = flueHistoryClient(incarnationId);
     vi.stubGlobal("PointerEvent", MouseEvent);
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+        Response.json({
+          available: true,
+          connectionTimeoutMs: 10_000,
+          provider: "realtime",
+        }),
       ),
     );
 
@@ -1995,16 +2020,25 @@ describe("assistant selection", () => {
       expect(firstBrunchToggle).toHaveProperty("disabled", false),
     );
     expect(firstVoiceToggle).toHaveProperty("checked", false);
+    expect(
+      screen.queryByRole("checkbox", { name: "Realtime mode" }),
+    ).toBeNull();
 
     fireEvent.click(firstBrunchToggle);
     await waitFor(() => {
       expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
       expect(firstVoiceToggle).toHaveProperty("disabled", false);
+      expect(firstVoiceToggle).toHaveProperty("checked", true);
+      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true");
     });
-    fireEvent.click(firstVoiceToggle);
-    await waitFor(() =>
-      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true"),
-    );
+    const realtimeToggle = screen.getByRole("checkbox", {
+      name: "Realtime mode",
+    });
+    expect(realtimeToggle).toHaveProperty("checked", false);
+    expect(currentVoiceProvider()).toBe("live");
+    fireEvent.click(realtimeToggle);
+    expect(realtimeToggle).toHaveProperty("checked", true);
+    await waitFor(() => expect(currentVoiceProvider()).toBe("realtime"));
 
     firstView.unmount();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
@@ -2018,7 +2052,27 @@ describe("assistant selection", () => {
       expect(restoredBrunchToggle).toHaveProperty("checked", true);
       expect(restoredVoiceToggle).toHaveProperty("checked", true);
       expect(restoredVoiceToggle).toHaveProperty("disabled", false);
+      expect(
+        screen.getByRole("checkbox", { name: "Realtime mode" }),
+      ).toHaveProperty("checked", true);
+      expect(currentVoiceProvider()).toBe("realtime");
     });
+    fireEvent.click(restoredVoiceToggle);
+    await waitFor(() =>
+      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("false"),
+    );
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(
+      screen.queryByRole("checkbox", { name: "Realtime mode" }),
+    ).toBeNull();
+    fireEvent.click(restoredVoiceToggle);
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: "Realtime mode" }),
+    );
+    expect(
+      screen.getByRole("checkbox", { name: "Realtime mode" }),
+    ).toHaveProperty("checked", false);
+    await waitFor(() => expect(currentVoiceProvider()).toBe("live"));
   });
 
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
@@ -2063,7 +2117,7 @@ describe("assistant selection", () => {
     fireEvent.keyDown(window, { key: "Escape" });
   });
 
-  test("keeps Voice default-off and removes it on the first Stock render", async () => {
+  test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
     seedStoredNet("voice-gating-incarnation");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
@@ -2071,7 +2125,7 @@ describe("assistant selection", () => {
       Response.json({ available: true, connectionTimeoutMs: 10_000 }),
     );
     vi.stubGlobal("fetch", fetch);
-    const defaultOffView = render(
+    const defaultView = render(
       <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
     );
     await waitFor(() => {
@@ -2081,9 +2135,16 @@ describe("assistant selection", () => {
         connectionTimeoutMs: 10_000,
       });
     });
-    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(currentAssistant().renderVoiceMode).toBeDefined();
 
-    defaultOffView.unmount();
+    defaultView.unmount();
+    localStorage.setItem(voicePreferenceStorageKey, "false");
+    const disabledView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => expect(currentVoiceCapability()).toBeDefined());
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    disabledView.unmount();
     localStorage.setItem(voicePreferenceStorageKey, "true");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>

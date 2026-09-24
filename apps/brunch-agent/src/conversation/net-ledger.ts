@@ -11,7 +11,7 @@
  *
  * Freshness folds over these events. Whether why moves onto them too is
  * decided by a parity test against its own attribution walk, not assumed
- * here (see the shared-history-projection fog-line in MISSION.md).
+ * here; projections must remain recomputable from canonical history.
  */
 import {
   canonicalContent,

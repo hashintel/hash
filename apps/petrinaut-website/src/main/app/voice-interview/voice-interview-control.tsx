@@ -652,9 +652,16 @@ const PinnedVoiceInterviewControl = ({
   readonly subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
-  // Configuration changes only apply after a new conversation mount / page load.
-  // Never replace a running provider or resubmit its input.
-  const [sessionConfig] = useState(config);
+  // Labs changes apply between Voice sessions, never during an active turn.
+  // The host ends the current session before returning to text mode.
+  const [sessionConfig, setSessionConfig] = useState(config);
+  if (
+    context.inputMode === "text" &&
+    (sessionConfig.provider !== config.provider ||
+      sessionConfig.connectionTimeoutMs !== config.connectionTimeoutMs)
+  ) {
+    setSessionConfig(config);
+  }
   if (sessionConfig.provider === "live") {
     if (!context.registerVoiceModeSessionControls) return null;
     return (
