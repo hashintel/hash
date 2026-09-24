@@ -16,15 +16,8 @@ import {
   fauxProvider,
   fauxText,
   fauxToolCall,
-  type Context,
 } from "@earendil-works/pi-ai";
 import { Hono } from "hono";
-
-import {
-  mutatePetrinautNetToolName,
-  readPetrinautNetToolName,
-  type MutatePetrinetOperation,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
@@ -34,10 +27,6 @@ import {
   type WorkedModelFixture,
 } from "../src/worked-model-store.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
-import {
-  browserResultFrom,
-  modelVisibleObservationFrom,
-} from "./browser-result.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 import type { BuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
@@ -105,90 +94,20 @@ const tool = (name: string, args: Record<string, unknown>, id: string) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id })], {
     stopReason: "toolUse",
   });
-const textsFrom = (context: Context) =>
-  context.messages.flatMap((message) =>
-    typeof message.content === "string"
-      ? [message.content]
-      : message.content.flatMap((part) =>
-          part.type === "text" ? [part.text] : [],
-        ),
-  );
-const markdown = "# Net-projection tracer\n\nOne receiving place.";
-const operation: MutatePetrinetOperation = {
-  operationId: "add-receiving",
-  basisId: "receiving-basis",
-  type: "addPlace",
-  input: {
-    id: "receiving",
-    name: "Receiving",
-    colorId: null,
-    dynamicsEnabled: false,
-    differentialEquationId: null,
-    x: 0,
-    y: 0,
-  },
-};
-const locateBasis = (context: Context) => {
-  const result = context.messages.findLast(
-    (message) =>
-      message.role === "toolResult" && message.toolName === "read_workpiece",
-  );
-  assert(result?.role === "toolResult" && !result.isError);
-  const content =
-    typeof result.content === "string"
-      ? result.content
-      : result.content
-          .flatMap((part) => (part.type === "text" ? [part.text] : []))
-          .join("");
-  const located = JSON.parse(content) as {
-    currentWorkpiece: { revisionId: string; sha256: string };
-    locatorLookup: {
-      queries: { occurrences: { start: number; end: number }[] }[];
-    };
-  };
-  const locator = located.locatorLookup.queries[0]?.occurrences[0];
-  assert(locator);
-  return {
-    kind: "declared" as const,
-    revisionId: located.currentWorkpiece.revisionId,
-    sha256: located.currentWorkpiece.sha256,
-    locators: [locator],
-    rationale: "Synthetic net-projection tracer basis.",
-    scope: "operation" as const,
-  };
+// I executes canonical Petrinaut calls in-band; no prior read or Ledger basis is required.
+const receivingPlace = {
+  id: "receiving",
+  name: "Receiving",
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
 };
 
 try {
   faux.setResponses([
-    tool("mutate_workpiece", { markdown, baseRevisionId: null }, "revision-1"),
-    () =>
-      tool(
-        "read_workpiece",
-        { locateTexts: ["One receiving place."] },
-        "locate-1",
-      ),
-    () => tool(readPetrinautNetToolName, {}, "read-1"),
-    (context: Context) => {
-      const observation = modelVisibleObservationFrom(
-        browserResultFrom(
-          textsFrom(context),
-          readPetrinautNetToolName,
-          "Missing net-projection observation",
-        ),
-      );
-      return tool(
-        mutatePetrinautNetToolName,
-        {
-          observation: {
-            toolCallId: observation.toolCallId,
-            baseHash: observation.sha256,
-          },
-          bases: [{ basisId: "receiving-basis", basis: locateBasis(context) }],
-          operations: [operation],
-        },
-        "mutate-1",
-      );
-    },
+    tool("addPlace", receivingPlace, "place-1"),
     fauxAssistantMessage([
       fauxText("Worked-model net projection mutation completed."),
     ]),
