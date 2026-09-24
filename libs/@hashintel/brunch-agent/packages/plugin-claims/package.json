@@ -8,12 +8,12 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "@hashintel/source": "./src/index.ts",
+      "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./agent": {
       "types": "./src/agent.ts",
-      "@hashintel/source": "./src/agent.ts",
+      "@dev/source": "./src/agent.ts",
       "import": "./dist/agent.js"
     },
     "./skills/claims-formalization/SKILL.md": "./src/skills/claims-formalization/SKILL.md"

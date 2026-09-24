@@ -17,8 +17,10 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 const appRoot = fileURLToPath(new URL(".", import.meta.url));
 
-// The dev server loads Brunch workspace packages from source; builds keep their dist.
-const workspaceSourceCondition = "@hashintel/source";
+// Resolve Brunch workspace packages to their TypeScript source while serving;
+// builds keep dist. See "Loading workspace source in dev" in
+// libs/@hashintel/brunch-agent/ARCHITECTURE.md.
+const workspaceSourceCondition = "@dev/source";
 
 const loadServerEnv = (mode: string) => {
   const env = loadEnv(mode, appRoot, "");
