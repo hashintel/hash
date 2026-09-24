@@ -1,7 +1,7 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { type ReactNode, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
@@ -61,14 +61,14 @@ export const BrunchWorkFold = ({
     setDisclosure({ status, open: defaultOpen });
   const label =
     status === "streaming"
-      ? "Brunch is working"
+      ? "Working…"
       : status === "approval"
-        ? "Brunch needs your approval"
+        ? "Approval required"
         : status === "stopped"
-          ? "Brunch stopped"
+          ? "Stopped"
           : duration === undefined
-            ? "Brunch worked"
-            : `Brunch worked for ${Math.floor(duration / 1_000)}s`;
+            ? "Activity"
+            : `Activity · ${Math.floor(duration / 1_000)}s`;
   return (
     <Collapsible.Root
       className={foldStyle}
@@ -76,17 +76,17 @@ export const BrunchWorkFold = ({
       onOpenChange={({ open }) => setDisclosure({ status, open })}
       data-work-status={status}
     >
-      <Collapsible.Trigger
-        className={triggerStyle}
-        data-working={status === "streaming"}
-      >
-        <Icon
-          name="sparkles"
-          size="sm"
-          className={css({ color: "blue.s90" })}
-        />
-        <span data-label>{label}</span>
-        <Icon name="chevronUp" size="sm" data-chevron />
+      <Collapsible.Trigger asChild>
+        <Button
+          size="xs"
+          variant="ghost"
+          className={triggerStyle}
+          data-working={status === "streaming"}
+        >
+          <Icon name="sparkles" size="sm" />
+          <span data-label>{label}</span>
+          <Icon name="chevronUp" size="sm" data-chevron />
+        </Button>
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div

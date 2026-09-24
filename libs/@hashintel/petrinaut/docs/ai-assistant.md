@@ -39,7 +39,7 @@ The primary tab reads **Chat**, or **Voice** while Voice mode is selected. Your 
 
 Completed Chat answers offer **Copy** and **Retry**. Copy keeps the answer's Markdown. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 
-The work disclosure opens while **Brunch is working**, when **Brunch needs your approval**, or when **Brunch stopped**. Completed work collapses under **Brunch worked for Ns**, even while the answer is still streaming; history without timing says **Brunch worked**. Expand it to inspect **Thought for Ns** and **Used N tools**. Reasoning starts collapsed; **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the work disclosure; **Allow** or **Deny** lets the assistant continue.
+The activity disclosure opens while **Working…**, when **Approval required**, or when **Stopped**. Completed work collapses under **Activity · Ns**, even while the answer is still streaming; history without timing says **Activity**. Expand it to inspect **Thought for Ns** and **Used N tools**. Reasoning starts collapsed; **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the disclosure; **Allow** or **Deny** lets the assistant continue. Disclosure icons are neutral; status dots distinguish pending, completed, and failed tools.
 
 When the host supplies them, Voice also shows a collapsed **Sent to Brunch** brief under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Prepared from what you said** and lists its fields. These optional parts are absent in hosts that do not provide them. Messages have no per-message voice badge.
 
@@ -57,7 +57,7 @@ If the host offers voice input, only a finalized transcript captured while Voice
 
 If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
 
-Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Spoken user messages remain in the transcript without voice badges. Durably aborted assistant entries retain their **Brunch stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
+Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Spoken user messages remain in the transcript without voice badges. Durably aborted assistant entries retain their **Stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
 
 A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
 
@@ -290,8 +290,8 @@ For example: "Run 100 simulations of this scenario and show the completed
 orders metric." The assistant can also search numeric scenario parameter
 ranges to minimize or maximize a metric.
 
-The experiment appears in a white card with purple accents, its status, run count, and
-results. Optimization cards glow while running. Select **View
+The experiment appears in a neutral card with a blue progress bar, its status, run count, and
+results. Select **View
 experiment** to inspect metric distributions in the Experiments panel. The
 heatmap shows how values spread across runs; click a time step to see its
 histogram. Select **Cancel**

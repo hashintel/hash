@@ -234,11 +234,7 @@ export const AiAssistantReasoning = ({
       onOpenChange={(details) => setOpen(details.open)}
     >
       <Collapsible.Trigger className={reasoningHeaderStyle}>
-        <Icon
-          name="lightbulbOn"
-          size="sm"
-          className={css({ color: "orange.s90" })}
-        />
+        <Icon name="lightbulbOn" size="sm" />
         <span className={reasoningTitleStyle}>
           {isStreaming
             ? "Thinking"

@@ -1189,10 +1189,7 @@ export const AiAssistantContents = ({
               }
               {...(isFloating ? handleProps : {})}
             >
-              <AiAssistantIcon
-                size={16}
-                className={css({ color: "blue.s90" })}
-              />
+              <AiAssistantIcon size={16} />
               {!additionalTab && (
                 <span>{inputMode === "voice" ? "Voice" : "Chat"}</span>
               )}

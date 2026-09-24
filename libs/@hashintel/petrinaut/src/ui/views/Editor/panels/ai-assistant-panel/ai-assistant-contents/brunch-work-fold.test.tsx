@@ -13,10 +13,10 @@ import { BrunchWorkFold } from "./brunch-work-fold";
 afterEach(cleanup);
 
 test.each([
-  ["streaming", "Brunch is working", "true"],
-  ["settled", "Brunch worked for 7s", "false"],
-  ["approval", "Brunch needs your approval", "true"],
-  ["stopped", "Brunch stopped", "true"],
+  ["streaming", "Working…", "true"],
+  ["settled", "Activity · 7s", "false"],
+  ["approval", "Approval required", "true"],
+  ["stopped", "Stopped", "true"],
 ] as const)(
   "%s fold label and default disclosure",
   (status, label, expanded) => {
@@ -36,7 +36,7 @@ test("settles after approval and permits manual reopening", async () => {
     <BrunchWorkFold status="approval">Allow or deny</BrunchWorkFold>,
   );
   rerender(<BrunchWorkFold status="settled">Approved</BrunchWorkFold>);
-  const trigger = screen.getByRole("button", { name: "Brunch worked" });
+  const trigger = screen.getByRole("button", { name: "Activity" });
   await waitFor(() =>
     expect(trigger.getAttribute("aria-expanded")).toBe("false"),
   );

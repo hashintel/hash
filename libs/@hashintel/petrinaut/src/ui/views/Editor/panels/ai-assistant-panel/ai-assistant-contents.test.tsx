@@ -49,7 +49,7 @@ vi.mock("react-markdown", async (importOriginal) => {
 const noop = () => {};
 const expandWork = async () => {
   for (const fold of screen.queryAllByRole("button", {
-    name: /^Brunch worked/u,
+    name: /^Activity/u,
   })) {
     if (fold.getAttribute("aria-expanded") === "false") fireEvent.click(fold);
     await waitFor(() =>
@@ -992,7 +992,7 @@ describe("AiAssistantContents", () => {
       />,
     );
     expect(container.textContent).toMatch(
-      /Sent to Brunch[\s\S]*I’ll ask Brunch\.[\s\S]*Brunch worked[\s\S]*Written answer[\s\S]*Experiment draft[\s\S]*Your draft is ready\./u,
+      /Sent to Brunch[\s\S]*I’ll ask Brunch\.[\s\S]*Activity[\s\S]*Written answer[\s\S]*Experiment draft[\s\S]*Your draft is ready\./u,
     );
     expect(
       screen
@@ -1151,7 +1151,7 @@ describe("AiAssistantContents", () => {
     await waitFor(() =>
       expect(
         screen
-          .getByRole("button", { name: /^Brunch worked/u })
+          .getByRole("button", { name: /^Activity/u })
           .getAttribute("aria-expanded"),
       ).toBe("false"),
     );
@@ -1176,7 +1176,7 @@ describe("AiAssistantContents", () => {
     await waitFor(() =>
       expect(
         screen
-          .getByRole("button", { name: "Brunch is working" })
+          .getByRole("button", { name: "Working…" })
           .getAttribute("aria-expanded"),
       ).toBe("true"),
     );
@@ -1679,7 +1679,7 @@ describe("AiAssistantContents", () => {
     );
     expect(screen.getByText("Partial reply")).not.toBeNull();
     expect(screen.getByText("Later completed reply")).not.toBeNull();
-    expect(screen.getAllByText("Brunch stopped")).toHaveLength(1);
+    expect(screen.getAllByText("Stopped")).toHaveLength(1);
   });
 
   test("keeps non-Voice assistant errors in global notifications", () => {
@@ -3312,7 +3312,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Created")).not.toBeNull();
     expect(
       screen
-        .getByRole("button", { name: "Brunch worked" })
+        .getByRole("button", { name: "Activity" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
     await expandWork();

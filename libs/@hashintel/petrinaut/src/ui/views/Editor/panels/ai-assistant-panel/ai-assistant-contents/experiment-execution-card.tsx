@@ -29,36 +29,10 @@ const cardStyle = css({
   padding: "2.5",
   borderRadius: "xl",
   border: "[1px solid]",
-  borderColor: "purple.a30",
+  borderColor: "neutral.a30",
   backgroundColor: "neutral.s00",
   fontSize: "sm",
   color: "neutral.s90",
-  transition: "[border-color 200ms ease, box-shadow 200ms ease]",
-  "&[data-pending=true]": {
-    boxShadow:
-      "[0 0 0 1px var(--colors-purple-a15), 0 0 14px var(--colors-purple-a20)]",
-  },
-  "&[data-tone=optimization][data-pending=true]::after": {
-    content: '""',
-    position: "absolute",
-    inset: "[0]",
-    borderRadius: "[inherit]",
-    pointerEvents: "none",
-    boxShadow:
-      "[0 0 0 1px var(--colors-purple-a30), 0 0 14px var(--colors-purple-a20)]",
-    animationName: "[petrinautOptimizingGlow]",
-    animationDuration: "[2.8s]",
-    animationTimingFunction: "ease-in-out",
-    animationIterationCount: "[infinite]",
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
-    "&[data-tone=optimization][data-pending=true]::after": {
-      animationName: "[none]",
-      boxShadow:
-        "[0 0 0 1px var(--colors-purple-a15), 0 0 14px var(--colors-purple-a20)]",
-    },
-  },
 });
 
 const headerStyle = css({
@@ -74,15 +48,15 @@ const iconStyle = css({
   marginTop: "0.5",
   flexShrink: "0",
   borderRadius: "lg",
-  color: "purple.s100",
-  backgroundColor: "purple.a15",
+  color: "neutral.s90",
+  backgroundColor: "neutral.a10",
 });
 const kindStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   textTransform: "uppercase",
   letterSpacing: "wide",
-  color: "purple.s100",
+  color: "neutral.s90",
   lineHeight: "[16px]",
 });
 const titleStyle = css({
@@ -116,14 +90,8 @@ const statusStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   lineHeight: "[14px]",
-  color: "purple.s110",
-  backgroundColor: "purple.a10",
-  "&[data-status=pending]": {
-    "[data-tone=optimization] &": {
-      color: "purple.s110",
-      backgroundColor: "purple.a10",
-    },
-  },
+  color: "neutral.s90",
+  backgroundColor: "neutral.a10",
   "&[data-status=complete]": {
     color: "green.s110",
     backgroundColor: "green.a10",
@@ -155,12 +123,12 @@ const progressTrackStyle = css({
   height: "[3px]",
   borderRadius: "full",
   overflow: "hidden",
-  backgroundColor: "purple.a15",
+  backgroundColor: "neutral.a20",
 });
 const progressFillStyle = css({
   height: "[100%]",
   borderRadius: "full",
-  backgroundColor: "purple.s90",
+  backgroundColor: "blue.s90",
   transition: "[width 280ms ease-out]",
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
@@ -398,10 +366,6 @@ export const ExperimentExecutionCard = ({
                   size="xs"
                   variant="ghost"
                   tone="neutral"
-                  className={css({
-                    color: "purple.s100",
-                    _hover: { backgroundColor: "purple.a10" },
-                  })}
                   iconName="arrowUpRight"
                   iconPosition="right"
                   onClick={onViewExperiment}

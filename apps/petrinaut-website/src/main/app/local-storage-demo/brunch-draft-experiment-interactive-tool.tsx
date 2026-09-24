@@ -8,6 +8,7 @@ import {
   draftPetrinautExperimentOutputSchema,
   draftPetrinautExperimentToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
@@ -50,13 +51,13 @@ const containerStyle = css({
   padding: "3",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "purple.a30",
+  borderColor: "neutral.a30",
   borderRadius: "lg",
   backgroundColor: "neutral.s00",
 });
 
 const statusStyle = css({
-  color: "purple.s100",
+  color: "neutral.s90",
   fontSize: "xs",
   fontWeight: "medium",
   letterSpacing: "wide",
@@ -126,34 +127,6 @@ const actionsStyle = css({
   gap: "2",
   justifyContent: "flex-end",
   marginTop: "1",
-});
-
-const primaryButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderRadius: "md",
-  backgroundColor: "purple.a85",
-  color: "white",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  _hover: { backgroundColor: "purple.a100" },
-  _disabled: { cursor: "not-allowed", opacity: 0.45 },
-});
-
-const secondaryButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a30",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-  color: "neutral.s90",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  _hover: { backgroundColor: "neutral.a10" },
 });
 
 /** Forget every draft, as a reload would. For tests that share the module. */
@@ -626,28 +599,31 @@ export const BrunchDraftExperimentWidget = ({
       ) : null}
       {canAct ? (
         <div className={actionsStyle}>
-          <button
-            className={secondaryButtonStyle}
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() =>
               sessionDrafts.update(toolCallId, { dismissed: true })
             }
             type="button"
           >
             Dismiss
-          </button>
+          </Button>
           {canRun ? (
             reviewed && !reviewAccepted ? (
-              <button
-                className={primaryButtonStyle}
+              <Button
+                size="sm"
+                tone="brand"
                 disabled={blocksRun}
                 onClick={() => setReviewAccepted(true)}
                 type="button"
               >
                 Accept current model
-              </button>
+              </Button>
             ) : (
-              <button
-                className={primaryButtonStyle}
+              <Button
+                size="sm"
+                tone="brand"
                 disabled={blocksRun}
                 onClick={() => void onRun()}
                 type="button"
@@ -659,15 +635,16 @@ export const BrunchDraftExperimentWidget = ({
                   : reviewed
                     ? "Run against current model"
                     : "Run"}
-              </button>
+              </Button>
             )
           ) : null}
         </div>
       ) : null}
       {!draft && preparationFailure && state === "awaiting" ? (
         <div className={actionsStyle}>
-          <button
-            className={primaryButtonStyle}
+          <Button
+            size="sm"
+            tone="brand"
             onClick={() => {
               preparedOnceRef.current = false;
               setPreparationFailure(null);
@@ -677,7 +654,7 @@ export const BrunchDraftExperimentWidget = ({
             type="button"
           >
             Retry preparation
-          </button>
+          </Button>
         </div>
       ) : null}
     </section>
