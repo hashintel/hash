@@ -18,13 +18,18 @@ import type { PlannedTransition, StepPlan } from "../step-plan";
  * transition and the choice of a controllable one. Both shapes read them.
  */
 
+/** A coloured net or one with dynamics holds Reals, so it is lowered in LRA. */
+const needsReals = (plan: StepPlan): boolean => plan.coloured || plan.dynamic;
+
 /** Whether the draw tests live in modules of their own, with Int places. */
 export const drawsAreModules = (plan: StepPlan): boolean =>
-  plan.stochastic && plan.target.marking === "int";
+  plan.stochastic && plan.target.marking === "int" && !needsReals(plan);
 
 /** The theory the places and the transitions are typed in. */
 export const markingTheory = (plan: StepPlan): ReactiveTheory =>
-  plan.stochastic && plan.target.marking === "real" ? "LRA" : "LIA";
+  needsReals(plan) || (plan.stochastic && plan.target.marking === "real")
+    ? "LRA"
+    : "LIA";
 
 export const choiceApplies = (
   plan: StepPlan,
@@ -35,7 +40,7 @@ export const choiceApplies = (
 export const inputVariables = (plan: StepPlan): ReactiveVariable[] => {
   const variables: ReactiveVariable[] = [];
   for (const transition of plan.transitions) {
-    if (plan.stochastic) {
+    if (transition.threshold !== null) {
       variables.push({
         name: drawName(transition.name),
         sort: "real",
@@ -56,9 +61,13 @@ export const inputVariables = (plan: StepPlan): ReactiveVariable[] => {
 };
 
 /** The Bool each draw module drives, when the draws are modules. */
+/** The transitions that fire at a rate, in sweep order. */
+const stochasticTransitions = (plan: StepPlan): PlannedTransition[] =>
+  plan.transitions.filter((transition) => transition.threshold !== null);
+
 export const hitVariables = (plan: StepPlan): ReactiveVariable[] =>
   drawsAreModules(plan)
-    ? plan.transitions.map((transition) => ({
+    ? stochasticTransitions(plan).map((transition) => ({
         name: hitName(transition.name),
         sort: "bool",
         role: "flag",
@@ -69,7 +78,7 @@ export const hitVariables = (plan: StepPlan): ReactiveVariable[] =>
 /** One LRA module per transition: its draw against its threshold, as a Bool. */
 export const drawModules = (plan: StepPlan): ReactiveModuleDecl[] =>
   drawsAreModules(plan)
-    ? plan.transitions.map((transition) => ({
+    ? stochasticTransitions(plan).map((transition) => ({
         ...drawModuleNames(transition.name),
         docstring: `${transition.name} at rate ${transition.rate ?? 0} fires within a step of dt = ${plan.target.dt} when its draw is at least e^(-${transition.rate ?? 0} * ${plan.target.dt})`,
         theory: "LRA",
@@ -97,7 +106,7 @@ export const inputTerms = (
 ): { terms: ReactiveExpr[]; reads: string[] } => {
   const terms: ReactiveExpr[] = [];
   const reads: string[] = [];
-  if (plan.stochastic) {
+  if (transition.threshold !== null) {
     if (drawsAreModules(plan)) {
       terms.push(next(hitName(transition.name)));
       reads.push(hitName(transition.name));
@@ -106,7 +115,7 @@ export const inputTerms = (
         binary(
           ">=",
           next(drawName(transition.name)),
-          num(transition.threshold ?? 0),
+          num(transition.threshold),
         ),
       );
       reads.push(drawName(transition.name));

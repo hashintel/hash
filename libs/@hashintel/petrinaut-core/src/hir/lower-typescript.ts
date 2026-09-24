@@ -23,6 +23,7 @@
 import ts from "typescript";
 
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
+import { SYNTHETIC_MAP_ELEMENT_NAME } from "./synthetic-names";
 import {
   AMBIENT_INPUT_NAMES,
   detectUserCodeForm,
@@ -120,6 +121,11 @@ const DISTRIBUTION_FACTORIES: Record<string, HirDistributionKind> = {
 };
 
 const MATH_CONSTANTS = new Set(["PI", "E"]);
+
+/** The element parameter name of a `.map(...)` callback whose source omits
+ * or destructures it; reads of the destructured names lower to field
+ * accesses on this parameter. */
+export { SYNTHETIC_MAP_ELEMENT_NAME };
 
 const BINARY_OPS: Partial<Record<ts.SyntaxKind, HirBinaryOp>> = {
   [ts.SyntaxKind.PlusToken]: "+",
@@ -1516,7 +1522,7 @@ class Lowering {
 
     const firstParam = callback.parameters[0];
     if (!firstParam) {
-      param = { name: "__element", span: this.spanOf(callback) };
+      param = { name: SYNTHETIC_MAP_ELEMENT_NAME, span: this.spanOf(callback) };
     } else if (ts.isIdentifier(firstParam.name)) {
       param = {
         name: firstParam.name.text,
@@ -1524,7 +1530,10 @@ class Lowering {
       };
       shadowAsLocal(bodyScope, param.name);
     } else if (ts.isObjectBindingPattern(firstParam.name)) {
-      param = { name: "__element", span: this.spanOf(firstParam.name) };
+      param = {
+        name: SYNTHETIC_MAP_ELEMENT_NAME,
+        span: this.spanOf(firstParam.name),
+      };
       for (const element of firstParam.name.elements) {
         if (
           element.dotDotDotToken ||

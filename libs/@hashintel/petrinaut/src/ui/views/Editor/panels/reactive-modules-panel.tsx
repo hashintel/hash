@@ -440,14 +440,14 @@ export const ReactiveModulesPanel = ({
     requestHirArtifacts,
   );
   const result =
-    lambdaHir.lambdaHir === null
+    lambdaHir.netHir === null
       ? null
       : compileReactiveModuleExport({
           sdcpn: petriNetDefinition,
           title,
           initialMarking,
           parameterValues,
-          lambdaHir: lambdaHir.lambdaHir,
+          ...lambdaHir.netHir,
           extensions,
           zeroth: target,
         });
@@ -459,12 +459,10 @@ export const ReactiveModulesPanel = ({
         ? "Compiling…"
         : null;
 
+  // The IR stands on its own when only the lowering refuses the net, so the
+  // IR tab shows the document while the Python tab lists what stops it.
   const output =
-    result === null || result.errors.length > 0
-      ? null
-      : activeTab === "ir"
-        ? result.ir
-        : result.python;
+    result === null ? null : activeTab === "ir" ? result.ir : result.python;
 
   if (container === null) {
     return null;
@@ -595,12 +593,23 @@ export const ReactiveModulesPanel = ({
                 <p className={mutedStyle}>Compiling…</p>
               </div>
             ) : output === null ? (
-              <div className={notesStyle}>
-                <p className={messageStyle}>
-                  This net cannot be compiled to a reactive module yet.
-                </p>
-                <DiagnosticList diagnostics={result.errors} />
-              </div>
+              <>
+                {activeTab === "python" && result.document !== null ? (
+                  <TargetHeader
+                    target={target}
+                    document={result.document}
+                    onChange={(patch) => setFlags({ ...flags, ...patch })}
+                  />
+                ) : null}
+                <div className={notesStyle}>
+                  <p className={messageStyle}>
+                    {activeTab === "ir"
+                      ? "This net cannot be written as a Petri net IR yet."
+                      : "This net cannot be compiled to a reactive module yet."}
+                  </p>
+                  <DiagnosticList diagnostics={result.errors} />
+                </div>
+              </>
             ) : (
               <>
                 {activeTab === "python" ? (

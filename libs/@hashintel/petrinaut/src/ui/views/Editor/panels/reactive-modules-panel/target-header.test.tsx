@@ -16,6 +16,15 @@ const defaults: ResolvedZerothTarget = {
   marking: "real",
   control: "closed",
   dt: 0.5,
+  slots: 8,
+};
+
+const coloured: PetriNetIr = {
+  name: "drones",
+  kind: "plain",
+  colours: { Drone: { battery: "real" } },
+  places: { Hangar: { colour: "Drone" } },
+  transitions: {},
 };
 
 const plain: PetriNetIr = {
@@ -61,6 +70,16 @@ describe("targetHeaderControls", () => {
     });
     expect(model.controls[2]).toMatchObject({ value: "open" });
     expect(model.controls[2]?.disabledReason).toBeUndefined();
+  });
+
+  it("fixes a coloured net's marking to Real and offers its slots", () => {
+    const model = targetHeaderControls(defaults, coloured);
+    expect(model.slots).toBe(8);
+    expect(model.dt).toBeNull();
+    expect(model.controls[1]).toMatchObject({
+      value: "real",
+      disabledReason: "A coloured net or one with dynamics holds Reals",
+    });
   });
 
   it("disables everything but the shape while the net has not compiled", () => {

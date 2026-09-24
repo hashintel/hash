@@ -474,6 +474,120 @@ export function walkHir(expr: HirExpr, visit: (node: HirExpr) => void): void {
   }
 }
 
+/** Rebuilds a node with `map` applied to each direct child, keeping the
+ * node's own id and span — the building block for tree rewrites. */
+export function mapHirChildren(
+  expr: HirExpr,
+  map: (child: HirExpr) => HirExpr,
+): HirExpr {
+  switch (expr.kind) {
+    case "numberLit":
+    case "boolLit":
+    case "stringLit":
+    case "uuidGenerate":
+    case "constant":
+    case "localRef":
+    case "paramRef":
+    case "scenarioRef":
+      return expr;
+    case "rangeCall":
+      return { ...expr, args: expr.args.map(map) };
+    case "uuidFrom":
+      return { ...expr, operand: map(expr.operand) };
+    case "stringCall":
+      return {
+        ...expr,
+        target: map(expr.target),
+        argument: map(expr.argument),
+      };
+    case "fieldAccess":
+      return { ...expr, target: map(expr.target) };
+    case "indexAccess":
+      return { ...expr, target: map(expr.target), index: map(expr.index) };
+    case "length":
+      return { ...expr, target: map(expr.target) };
+    case "unary":
+      return { ...expr, operand: map(expr.operand) };
+    case "binary":
+      return { ...expr, left: map(expr.left), right: map(expr.right) };
+    case "cond":
+      return {
+        ...expr,
+        condition: map(expr.condition),
+        thenBranch: map(expr.thenBranch),
+        elseBranch: map(expr.elseBranch),
+      };
+    case "let":
+      return {
+        ...expr,
+        bindings: expr.bindings.map((binding) => ({
+          ...binding,
+          value: map(binding.value),
+        })),
+        body: map(expr.body),
+      };
+    case "mathCall":
+      return { ...expr, args: expr.args.map(map) };
+    case "recordLit":
+      return {
+        ...expr,
+        entries: expr.entries.map((entry) => ({
+          ...entry,
+          value: map(entry.value),
+        })),
+      };
+    case "arrayLit":
+      return { ...expr, elements: expr.elements.map(map) };
+    case "arrayMap":
+      return { ...expr, target: map(expr.target), body: map(expr.body) };
+    case "arrayReduce":
+      return {
+        ...expr,
+        target: map(expr.target),
+        body: map(expr.body),
+        initial: map(expr.initial),
+      };
+    case "arrayConcat":
+      return { ...expr, left: map(expr.left), right: map(expr.right) };
+    case "distribution":
+      return { ...expr, args: expr.args.map(map) };
+    case "distributionMap":
+      return { ...expr, base: map(expr.base), body: map(expr.body) };
+  }
+}
+
+/** The names an expression tree binds: `let` bindings and callback
+ * parameters, at any depth. */
+export function hirBoundNames(expr: HirExpr): Set<string> {
+  const names = new Set<string>();
+  walkHir(expr, (node) => {
+    switch (node.kind) {
+      case "let":
+        for (const binding of node.bindings) {
+          names.add(binding.name);
+        }
+        break;
+      case "arrayMap":
+      case "distributionMap":
+        names.add(node.param.name);
+        if (node.kind === "arrayMap" && node.indexParam) {
+          names.add(node.indexParam.name);
+        }
+        break;
+      case "arrayReduce":
+        names.add(node.accParam.name);
+        names.add(node.param.name);
+        if (node.indexParam) {
+          names.add(node.indexParam.name);
+        }
+        break;
+      default:
+        break;
+    }
+  });
+  return names;
+}
+
 /** Formats a type for use in diagnostics. */
 export function formatHirType(type: HirType): string {
   switch (type.kind) {

@@ -5,7 +5,9 @@
  * lowered `HirExpr`, produce minimal, consistently-formatted source text that
  * lowers back to a structurally identical tree (ignoring node ids and spans).
  * Used to re-format an expression cell after it validates — format-on-commit
- * without carrying a formatter dependency.
+ * without carrying a formatter dependency — and, through
+ * `hirBodyToTypeScript`, to print a whole function body as statements
+ * (`print-function.ts`).
  *
  * Canonical style:
  * - single spaces around binary operators, none after unary operators;
@@ -15,13 +17,29 @@
  * - double-quoted string literals with JSON escaping;
  * - numeric literals reproduce their preserved `raw` source text;
  * - `(param) => body` callbacks, with block bodies (`{ const ... return ...; }`)
- *   only where the HIR carries `let` bindings.
+ *   only where the HIR carries `let` bindings, and `({ a, b }) => body` where
+ *   the callback only reads fields off the lowering's synthetic element;
+ * - in the statement form, record and array literals that overflow the
+ *   column budget break one entry per line with trailing commas.
  *
  * A node that cannot be printed as (part of) a single expression — a `let`
  * outside a callback body, or a shape the lowering could never have produced —
  * throws instead of emitting text that would lower to something else.
  */
-import { lowerTypeScriptToHir } from "./lower-typescript";
+import { hirBoundNames, mapHirChildren, walkHir } from "./hir";
+import {
+  group,
+  hardline,
+  ifBreak,
+  indent,
+  join,
+  line,
+  renderDoc,
+  renderFlat,
+  softline,
+  type Doc,
+} from "./print/doc";
+import { SYNTHETIC_MAP_ELEMENT_NAME } from "./synthetic-names";
 
 import type {
   HirBinaryOp,
@@ -103,9 +121,42 @@ const IDENTIFIER_NAME = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
  * would splice arbitrary code into the output. */
 const NUMBER_RAW = /^[+\-\s]*[0-9.][0-9a-fA-F_.xXoObBeE+-]*$/;
 
+/** Names a callback's destructuring pattern must not bind: re-lowered, they
+ * resolve to an ambient object, a builtin or a constant rather than to a
+ * field of the element. */
+const RESERVED_DESTRUCTURING_NAMES = new Set([
+  "input",
+  "tokens",
+  "state",
+  "parameters",
+  "scenario",
+  "Math",
+  "Distribution",
+  "Uuid",
+  "Array",
+  "range",
+  "Infinity",
+  "NaN",
+  "undefined",
+  "length",
+  "__proto__",
+]);
+
+/** Column budget of the statement form. */
+const DEFAULT_PRINT_WIDTH = 80;
+
 /** Locals currently bound to distribution values, mirroring the lowering's
  * `.map(...)` disambiguation between arrays and distributions. */
 type DistributionEnv = ReadonlySet<string>;
+
+/** How a statement list prints: `flat` keeps a callback block on one line
+ * (`{ const y = x * 2; return y; }`); `block` puts one statement per line
+ * with indented `if` bodies, for a whole function body. */
+type StatementLayout = "flat" | "block";
+
+/** A callback's parameter list: the text between the parentheses and the
+ * names it brings into scope. */
+type CallbackParams = { text: string; bound: string[] };
 
 function unprintable(expr: HirExpr, reason: string): never {
   throw new Error(`Cannot print HIR \`${expr.kind}\` node: ${reason}`);
@@ -233,10 +284,91 @@ function printRecordKey(key: string): string {
     : JSON.stringify(key);
 }
 
+function isSyntheticElementRef(expr: HirExpr): boolean {
+  return expr.kind === "localRef" && expr.name === SYNTHETIC_MAP_ELEMENT_NAME;
+}
+
+/**
+ * The fields a `.map(...)` callback reads off the lowering's synthetic
+ * element parameter, in first-use order, when the callback can print as
+ * `({ a, b }) => ...` (an empty list: it reads none, so `() => ...`); null
+ * when the element is used whole or a field name would clash with another
+ * name in the body once bound.
+ */
+function destructurableFields(
+  body: HirExpr,
+  indexParamName: string | undefined,
+): string[] | null {
+  const fields: string[] = [];
+  const otherLocals = new Set<string>();
+  const fieldTargets = new Set<HirExpr>();
+  const wholeUses = new Set<HirExpr>();
+  walkHir(body, (node) => {
+    if (node.kind === "fieldAccess" && isSyntheticElementRef(node.target)) {
+      fieldTargets.add(node.target);
+      if (!fields.includes(node.field)) {
+        fields.push(node.field);
+      }
+    } else if (node.kind === "localRef") {
+      if (node.name !== SYNTHETIC_MAP_ELEMENT_NAME) {
+        otherLocals.add(node.name);
+      } else if (!fieldTargets.has(node)) {
+        wholeUses.add(node);
+      }
+    }
+  });
+  const bound = hirBoundNames(body);
+  if (wholeUses.size > 0 || bound.has(SYNTHETIC_MAP_ELEMENT_NAME)) {
+    return null;
+  }
+  const taken = new Set([
+    ...bound,
+    ...otherLocals,
+    ...RESERVED_DESTRUCTURING_NAMES,
+  ]);
+  if (indexParamName !== undefined) {
+    taken.add(indexParamName);
+  }
+  return fields.every((field) => isIdentifierName(field) && !taken.has(field))
+    ? fields
+    : null;
+}
+
+/** Replaces each read of a field off the synthetic element with a reference
+ * to the name the destructuring pattern binds for it. */
+function inlineElementFields(expr: HirExpr): HirExpr {
+  const mapped = mapHirChildren(expr, inlineElementFields);
+  return mapped.kind === "fieldAccess" && isSyntheticElementRef(mapped.target)
+    ? { kind: "localRef", name: mapped.field, id: mapped.id, span: mapped.span }
+    : mapped;
+}
+
+/** A `{ ... }` block: statements on one line in the flat layout, one per
+ * line and indented in the block layout. */
+function printBlock(statements: Doc[], layout: StatementLayout): Doc {
+  return layout === "flat"
+    ? ["{ ", join(" ", statements), " }"]
+    : ["{", indent([hardline, join(hardline, statements)]), hardline, "}"];
+}
+
+/** A plain-identifier parameter list, rejecting names the grammar would not
+ * accept as parameters. */
+function identifierParams(names: string[], owner: HirExpr): CallbackParams {
+  for (const name of names) {
+    if (!isIdentifierName(name)) {
+      unprintable(
+        owner,
+        `callback parameter \`${name}\` is not an identifier.`,
+      );
+    }
+  }
+  return { text: names.join(", "), bound: names };
+}
+
 /** Stateless recursive printer — a class only so the mutually recursive
  * printing methods can reference each other (mirroring `Lowering`). */
 class Printer {
-  printExpr(expr: HirExpr, env: DistributionEnv): string {
+  printExpr(expr: HirExpr, env: DistributionEnv): Doc {
     switch (expr.kind) {
       case "numberLit":
         if (!NUMBER_RAW.test(expr.raw)) {
@@ -277,15 +409,15 @@ class Printer {
         }
         return `scenario.${expr.name}`;
       case "rangeCall":
-        return `range(${this.printArgs(expr.args, env)})`;
+        return ["range(", this.printArgs(expr.args, env), ")"];
       case "fieldAccess": {
         const target = this.printMemberTarget(expr.target, env);
         // `.length` would lower to a `length` node, so that field (and any
         // non-identifier field) uses bracket access, which lowers to
         // `fieldAccess` either way.
         return expr.field !== "length" && isIdentifierName(expr.field)
-          ? `${target}.${expr.field}`
-          : `${target}[${JSON.stringify(expr.field)}]`;
+          ? [target, ".", expr.field]
+          : [target, "[", JSON.stringify(expr.field), "]"];
       }
       case "indexAccess":
         if (expr.index.kind === "stringLit") {
@@ -294,26 +426,31 @@ class Printer {
             "a string-literal index lowers to `fieldAccess`, not `indexAccess`.",
           );
         }
-        return `${this.printMemberTarget(expr.target, env)}[${this.printExpr(
-          expr.index,
-          env,
-        )}]`;
+        return [
+          this.printMemberTarget(expr.target, env),
+          "[",
+          this.printExpr(expr.index, env),
+          "]",
+        ];
       case "length":
-        return `${this.printMemberTarget(expr.target, env)}.length`;
+        return [this.printMemberTarget(expr.target, env), ".length"];
       case "unary":
         return this.printUnary(expr, env);
       case "binary":
         return this.printBinary(expr, env);
       case "cond": {
-        const conditionText = this.printExpr(expr.condition, env);
+        const conditionDoc = this.printExpr(expr.condition, env);
         const condition =
           precedenceOf(expr.condition) < PRECEDENCE_OR
-            ? `(${conditionText})`
-            : conditionText;
-        return `${condition} ? ${this.printExpr(expr.thenBranch, env)} : ${this.printExpr(
-          expr.elseBranch,
-          env,
-        )}`;
+            ? ["(", conditionDoc, ")"]
+            : conditionDoc;
+        return [
+          condition,
+          " ? ",
+          this.printExpr(expr.thenBranch, env),
+          " : ",
+          this.printExpr(expr.elseBranch, env),
+        ];
       }
       case "let":
         return unprintable(
@@ -321,64 +458,80 @@ class Printer {
           "`const` bindings only exist inside callback block bodies — a `let` in expression position has no single-expression form.",
         );
       case "mathCall":
-        return `Math.${expr.fn}(${this.printArgs(expr.args, env)})`;
+        return [`Math.${expr.fn}(`, this.printArgs(expr.args, env), ")"];
       case "recordLit": {
         if (expr.entries.length === 0) {
           return "{}";
         }
         const entries = expr.entries.map(
-          (entry) =>
-            `${printRecordKey(entry.key)}: ${this.printExpr(entry.value, env)}`,
+          (entry): Doc => [
+            printRecordKey(entry.key),
+            ": ",
+            this.printExpr(entry.value, env),
+          ],
         );
-        return `{ ${entries.join(", ")} }`;
+        return group([
+          "{",
+          indent([line, join([",", line], entries)]),
+          ifBreak(","),
+          line,
+          "}",
+        ]);
       }
-      case "arrayLit":
-        return `[${this.printArgs(expr.elements, env)}]`;
-      case "arrayMap": {
-        if (isDistributionValued(expr.target, env)) {
-          unprintable(
-            expr,
-            "`.map(...)` on a distribution-valued target would lower to `distributionMap`.",
-          );
+      case "arrayLit": {
+        if (expr.elements.length === 0) {
+          return "[]";
         }
-        const params = expr.indexParam
-          ? [expr.param.name, expr.indexParam.name]
-          : [expr.param.name];
-        return `${this.printMemberTarget(expr.target, env)}.map(${this.printCallback(
-          params,
-          expr.body,
-          env,
-        )})`;
+        const elements = expr.elements.map((element) =>
+          this.printExpr(element, env),
+        );
+        return group([
+          "[",
+          indent([softline, join([",", line], elements)]),
+          ifBreak(","),
+          softline,
+          "]",
+        ]);
       }
+      case "arrayMap":
+        return this.printArrayMap(expr, env);
       case "arrayReduce": {
-        const params = expr.indexParam
+        const names = expr.indexParam
           ? [expr.accParam.name, expr.param.name, expr.indexParam.name]
           : [expr.accParam.name, expr.param.name];
-        return `${this.printMemberTarget(expr.target, env)}.reduce(${this.printCallback(
-          params,
-          expr.body,
-          env,
-        )}, ${this.printExpr(expr.initial, env)})`;
+        return [
+          this.printMemberTarget(expr.target, env),
+          ".reduce(",
+          this.printCallback(identifierParams(names, expr), expr.body, env),
+          ", ",
+          this.printExpr(expr.initial, env),
+          ")",
+        ];
       }
       case "arrayConcat":
-        return `${this.printMemberTarget(expr.left, env)}.concat(${this.printExpr(
-          expr.right,
-          env,
-        )})`;
+        return [
+          this.printMemberTarget(expr.left, env),
+          ".concat(",
+          this.printExpr(expr.right, env),
+          ")",
+        ];
       case "stringCall":
-        return `${this.printMemberTarget(expr.target, env)}.${expr.fn}(${this.printExpr(
-          expr.argument,
-          env,
-        )})`;
+        return [
+          this.printMemberTarget(expr.target, env),
+          `.${expr.fn}(`,
+          this.printExpr(expr.argument, env),
+          ")",
+        ];
       case "uuidGenerate":
         return "Uuid.generate()";
       case "uuidFrom":
-        return `Uuid.from(${this.printExpr(expr.operand, env)})`;
+        return ["Uuid.from(", this.printExpr(expr.operand, env), ")"];
       case "distribution":
-        return `Distribution.${DISTRIBUTION_FACTORY_NAMES[expr.dist]}(${this.printArgs(
-          expr.args,
-          env,
-        )})`;
+        return [
+          `Distribution.${DISTRIBUTION_FACTORY_NAMES[expr.dist]}(`,
+          this.printArgs(expr.args, env),
+          ")",
+        ];
       case "distributionMap":
         if (!isDistributionValued(expr.base, env)) {
           unprintable(
@@ -386,89 +539,17 @@ class Printer {
             "`.map(...)` on a non-distribution base would lower to `arrayMap`.",
           );
         }
-        return `${this.printMemberTarget(expr.base, env)}.map(${this.printCallback(
-          [expr.param.name],
-          expr.body,
-          env,
-        )})`;
+        return [
+          this.printMemberTarget(expr.base, env),
+          ".map(",
+          this.printCallback(
+            identifierParams([expr.param.name], expr),
+            expr.body,
+            env,
+          ),
+          ")",
+        ];
     }
-  }
-
-  /** Prints the target of a member access or method call. The grammar
-   * requires a MemberExpression, so anything weaker is parenthesized —
-   * including plain numeric literals, where `1.x` would swallow the dot. */
-  private printMemberTarget(expr: HirExpr, env: DistributionEnv): string {
-    const text = this.printExpr(expr, env);
-    return expr.kind === "numberLit" || precedenceOf(expr) < PRECEDENCE_POSTFIX
-      ? `(${text})`
-      : text;
-  }
-
-  private printArgs(args: HirExpr[], env: DistributionEnv): string {
-    return args.map((arg) => this.printExpr(arg, env)).join(", ");
-  }
-
-  private printUnary(
-    expr: Extract<HirExpr, { kind: "unary" }>,
-    env: DistributionEnv,
-  ): string {
-    const operandText = this.printExpr(expr.operand, env);
-    const needsParens =
-      precedenceOf(expr.operand) < PRECEDENCE_UNARY ||
-      // `--a` / `++a` would parse as decrement/increment.
-      ((expr.op === "-" || expr.op === "+") && operandText.startsWith(expr.op));
-    return expr.op + (needsParens ? `(${operandText})` : operandText);
-  }
-
-  private printBinary(
-    expr: Extract<HirExpr, { kind: "binary" }>,
-    env: DistributionEnv,
-  ): string {
-    const precedence = BINARY_PRECEDENCE[expr.op];
-    // `**` is right-associative, and its left operand must additionally be an
-    // update/member/call expression (`-2 ** 2` is a SyntaxError). Everything
-    // else is left-associative, so an equal-precedence right child needs
-    // parentheses to preserve the tree (`a - (b - c)`).
-    const leftNeedsParens =
-      expr.op === "**"
-        ? precedenceOf(expr.left) < PRECEDENCE_POSTFIX
-        : precedenceOf(expr.left) < precedence;
-    const rightNeedsParens =
-      expr.op === "**"
-        ? precedenceOf(expr.right) < precedence
-        : precedenceOf(expr.right) <= precedence;
-    const left = this.printExpr(expr.left, env);
-    const right = this.printExpr(expr.right, env);
-    return `${leftNeedsParens ? `(${left})` : left} ${BINARY_OP_TEXT[expr.op]} ${
-      rightNeedsParens ? `(${right})` : right
-    }`;
-  }
-
-  /** Prints an inline `(params) => body` callback, using a block body exactly
-   * when the HIR carries `let` bindings. */
-  private printCallback(
-    paramNames: string[],
-    body: HirExpr,
-    outerEnv: DistributionEnv,
-  ): string {
-    for (const name of paramNames) {
-      if (!isIdentifierName(name)) {
-        unprintable(
-          body,
-          `callback parameter \`${name}\` is not an identifier.`,
-        );
-      }
-    }
-    const env = shadowParams(outerEnv, paramNames);
-    const header = `(${paramNames.join(", ")}) =>`;
-    if (hasRootLet(body)) {
-      return `${header} { ${this.printStatements(body, env).join(" ")} }`;
-    }
-    const bodyText = this.printExpr(body, env);
-    // An object-literal body would parse as a block.
-    return body.kind === "recordLit"
-      ? `${header} (${bodyText})`
-      : `${header} ${bodyText}`;
   }
 
   /**
@@ -477,8 +558,12 @@ class Printer {
    * and a final `return` — the exact statement shapes `lowerStatements`
    * folds back into this tree.
    */
-  private printStatements(body: HirExpr, env: DistributionEnv): string[] {
-    const statements: string[] = [];
+  printStatements(
+    body: HirExpr,
+    env: DistributionEnv,
+    layout: StatementLayout,
+  ): Doc[] {
+    const statements: Doc[] = [];
     let scope = new Set(env);
     let current = body;
     for (;;) {
@@ -490,9 +575,11 @@ class Printer {
               `binding name \`${binding.name}\` is not a valid identifier.`,
             );
           }
-          statements.push(
-            `const ${binding.name} = ${this.printExpr(binding.value, scope)};`,
-          );
+          statements.push([
+            `const ${binding.name} = `,
+            this.printExpr(binding.value, scope),
+            ";",
+          ]);
           scope = bindLocal(
             scope,
             binding.name,
@@ -510,27 +597,156 @@ class Printer {
           const thenBlock = this.printStatements(
             current.thenBranch,
             scope,
-          ).join(" ");
+            layout,
+          );
           const elseBlock = this.printStatements(
             current.elseBranch,
             scope,
-          ).join(" ");
-          statements.push(
-            `if (${condition}) { ${thenBlock} } else { ${elseBlock} }`,
+            layout,
           );
+          statements.push([
+            "if (",
+            condition,
+            ") ",
+            printBlock(thenBlock, layout),
+            " else ",
+            printBlock(elseBlock, layout),
+          ]);
           return statements;
         }
         // Guard clause: the else branch continues as the remaining
         // statements.
-        statements.push(
-          `if (${condition}) { return ${this.printExpr(current.thenBranch, scope)}; }`,
-        );
+        const guardReturn: Doc = [
+          "return ",
+          this.printExpr(current.thenBranch, scope),
+          ";",
+        ];
+        statements.push([
+          "if (",
+          condition,
+          ") ",
+          printBlock([guardReturn], layout),
+        ]);
         current = current.elseBranch;
       } else {
-        statements.push(`return ${this.printExpr(current, scope)};`);
+        statements.push(["return ", this.printExpr(current, scope), ";"]);
         return statements;
       }
     }
+  }
+
+  /** Prints the target of a member access or method call. The grammar
+   * requires a MemberExpression, so anything weaker is parenthesized —
+   * including plain numeric literals, where `1.x` would swallow the dot. */
+  private printMemberTarget(expr: HirExpr, env: DistributionEnv): Doc {
+    const doc = this.printExpr(expr, env);
+    return expr.kind === "numberLit" || precedenceOf(expr) < PRECEDENCE_POSTFIX
+      ? ["(", doc, ")"]
+      : doc;
+  }
+
+  private printArgs(args: HirExpr[], env: DistributionEnv): Doc {
+    return join(
+      ", ",
+      args.map((arg) => this.printExpr(arg, env)),
+    );
+  }
+
+  private printUnary(
+    expr: Extract<HirExpr, { kind: "unary" }>,
+    env: DistributionEnv,
+  ): Doc {
+    const { operand } = expr;
+    // `--a` / `++a` would parse as decrement/increment.
+    const signCollides =
+      (expr.op === "-" || expr.op === "+") &&
+      ((operand.kind === "unary" && operand.op === expr.op) ||
+        (operand.kind === "numberLit" && operand.raw.startsWith(expr.op)));
+    const needsParens =
+      precedenceOf(operand) < PRECEDENCE_UNARY || signCollides;
+    const operandDoc = this.printExpr(operand, env);
+    return [expr.op, needsParens ? ["(", operandDoc, ")"] : operandDoc];
+  }
+
+  private printBinary(
+    expr: Extract<HirExpr, { kind: "binary" }>,
+    env: DistributionEnv,
+  ): Doc {
+    const precedence = BINARY_PRECEDENCE[expr.op];
+    // `**` is right-associative, and its left operand must additionally be an
+    // update/member/call expression (`-2 ** 2` is a SyntaxError). Everything
+    // else is left-associative, so an equal-precedence right child needs
+    // parentheses to preserve the tree (`a - (b - c)`).
+    const leftNeedsParens =
+      expr.op === "**"
+        ? precedenceOf(expr.left) < PRECEDENCE_POSTFIX
+        : precedenceOf(expr.left) < precedence;
+    const rightNeedsParens =
+      expr.op === "**"
+        ? precedenceOf(expr.right) < precedence
+        : precedenceOf(expr.right) <= precedence;
+    const left = this.printExpr(expr.left, env);
+    const right = this.printExpr(expr.right, env);
+    return [
+      leftNeedsParens ? ["(", left, ")"] : left,
+      ` ${BINARY_OP_TEXT[expr.op]} `,
+      rightNeedsParens ? ["(", right, ")"] : right,
+    ];
+  }
+
+  /** Prints `target.map(callback)`, destructuring the element parameter when
+   * the callback only reads fields off the lowering's synthetic element. */
+  private printArrayMap(
+    expr: Extract<HirExpr, { kind: "arrayMap" }>,
+    env: DistributionEnv,
+  ): Doc {
+    if (isDistributionValued(expr.target, env)) {
+      unprintable(
+        expr,
+        "`.map(...)` on a distribution-valued target would lower to `distributionMap`.",
+      );
+    }
+    const indexNames = expr.indexParam ? [expr.indexParam.name] : [];
+    const fields =
+      expr.param.name === SYNTHETIC_MAP_ELEMENT_NAME
+        ? destructurableFields(expr.body, expr.indexParam?.name)
+        : null;
+    const target = this.printMemberTarget(expr.target, env);
+    if (fields === null || (fields.length === 0 && expr.indexParam)) {
+      const params = identifierParams([expr.param.name, ...indexNames], expr);
+      return [target, ".map(", this.printCallback(params, expr.body, env), ")"];
+    }
+    if (fields.length === 0) {
+      const params = identifierParams([], expr);
+      return [target, ".map(", this.printCallback(params, expr.body, env), ")"];
+    }
+    const pattern = `{ ${fields.join(", ")} }`;
+    const params: CallbackParams = {
+      text: [pattern, ...indexNames].join(", "),
+      bound: [...fields, ...indexNames],
+    };
+    const body = inlineElementFields(expr.body);
+    return [target, ".map(", this.printCallback(params, body, env), ")"];
+  }
+
+  /** Prints an inline `(params) => body` callback, using a block body exactly
+   * when the HIR carries `let` bindings. The block always stays on one line. */
+  private printCallback(
+    params: CallbackParams,
+    body: HirExpr,
+    outerEnv: DistributionEnv,
+  ): Doc {
+    const env = shadowParams(outerEnv, params.bound);
+    const header = `(${params.text}) =>`;
+    if (hasRootLet(body)) {
+      const block = printBlock(this.printStatements(body, env, "flat"), "flat");
+      return [header, " ", renderFlat(block)];
+    }
+    const bodyDoc = this.printExpr(body, env);
+    // An object-literal body would parse as a block.
+    return body.kind === "recordLit"
+      ? [header, " (", bodyDoc, ")"]
+      : [header, " ", bodyDoc];
   }
 }
 
@@ -549,23 +765,31 @@ class Printer {
  * flip on re-lowering, or names that are not printable identifiers.
  */
 export function hirExpressionToTypeScript(expression: HirExpr): string {
-  return new Printer().printExpr(expression, new Set());
+  return renderFlat(new Printer().printExpr(expression, new Set()));
 }
 
+export type HirBodyPrintOptions = {
+  /** Column budget: a record or array literal that would overflow it breaks
+   * one entry per line. Defaults to 80. */
+  width?: number;
+};
+
 /**
- * Formats a cell expression by lowering and printing it: canonical spacing,
- * minimal parentheses, preserved numeric literals. Returns null when the
- * code does not lower, or when the tree has no faithful single-expression
- * form — callers keep the user's text untouched in that case.
+ * Prints a lowered function body as a statement list: `const` lines for a
+ * root `let` chain, `if` blocks for conditionals whose branches carry
+ * bindings, and a final `return`. Statements sit one per line with 2-space
+ * indentation and no trailing newline; a `let` nested inside an expression
+ * keeps the one-line callback block of `hirExpressionToTypeScript`.
+ *
+ * Throws for the shapes `hirExpressionToTypeScript` rejects.
  */
-export function formatTypeScriptExpression(code: string): string | null {
-  const lowered = lowerTypeScriptToHir(code, "scenario-expression");
-  if (!lowered.ok) {
-    return null;
-  }
-  try {
-    return hirExpressionToTypeScript(lowered.fn.body);
-  } catch {
-    return null;
-  }
+export function hirBodyToTypeScript(
+  body: HirExpr,
+  options: HirBodyPrintOptions = {},
+): string {
+  const statements = new Printer().printStatements(body, new Set(), "block");
+  return renderDoc(
+    join(hardline, statements),
+    options.width ?? DEFAULT_PRINT_WIDTH,
+  );
 }

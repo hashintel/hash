@@ -17,9 +17,24 @@ Open the Command Palette and run **Show Zeroth Reactive Modules**. The window op
 
 ## The two tabs
 
-**Petri Net IR** is a YAML document that describes the net and nothing else, in three sections: `places`, each with its capacity when it has one; `marking`, the tokens each place starts with; and `transitions`, each with its weighted arcs and, for a stochastic net, its `rate`. Keys are UpperCamelCase names derived from your place and transition names, and a field at its default is left out, so an unbounded place is a bare `Name:` line and a place that starts empty is absent from `marking`. Transitions appear in the order a simulation step sweeps them.
+**Petri Net IR** is a YAML document that describes the net and nothing else. Its sections, in order:
+
+- `colours`: each token colour with its attributes and their types. A string attribute the net only ever writes from a fixed set of values is closed to that set as an `enum`, in first-seen order.
+- `dynamics`: each differential equation, with the colour it moves and its code.
+- `places`: each place, with its `capacity`, its `colour` and its `dynamics` when it has them. A place with none is a bare `Name:` line.
+- `marking`: the tokens each place starts with: a count for a plain place, one record per token for a coloured one. A place that starts empty is absent.
+- `transitions`: each transition's arcs and firing rule. Input arcs carry a `weight` and a `kind` when they are not standard arcs of one token; `read` needs the tokens and leaves them, `inhibitor` needs fewer than the weight. A stochastic transition has a `rate`; a predicate transition has a `guard` when its condition reads its tokens. A transition producing coloured tokens has a `kernel`.
+- `zeroth`: the compiler flags you changed from their defaults.
+
+Guards, rates, kernels and equations appear as code: the body of the function you wrote, with the net's parameters replaced by their values and the places named as the IR names them. A condition or rate that does not read its tokens is evaluated to a constant instead, so a plain net still reads as a plain net. Keys are UpperCamelCase names derived from your names, and transitions appear in the order a simulation step sweeps them.
 
 **Python Reactive Module** is a Python file that builds the module with `zrth.sugar`: the initial marking as `init` and one Petrinaut simulation step as `update`. A plain transition fires whenever it is enabled. A stochastic transition with rate λ is tested against an external uniform draw and fires when the draw is at least e^(−λ·dt), so given the same draw per transition and step, the module and a Petrinaut run take the same step. A Petrinaut run draws from one seeded stream, and only for the transitions whose tokens allow a firing, so a Petrinaut seed does not transfer to the module.
+
+<!-- prose-check: off -->
+
+A coloured place becomes a fixed number of slots, its capacity or the **slots** flag, each with a present flag and one variable per attribute; a string attribute holds the index of its value. A transition tries its tokens in the order the simulation does and fires on the first that passes; a rate that depends on the tokens is compared with an external exponential draw, `−ln(u) / dt`, which decides exactly as the uniform test does. Dynamics take one Euler step of `dt` on every present token before the transitions fire, as the simulation does. At the end of a step the surviving tokens close up in slot order and the produced tokens land after them; a token that finds no free slot sets the place's overflow flag.
+
+<!-- prose-check: on -->
 
 Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
 
@@ -42,16 +57,24 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 - **Closed** (default) compiles such a transition like any other: it fires whenever it is enabled, as in Petrinaut.
 - **Open** adds an external Bool, `go_Name`, for each controllable transition, which then fires only when it is enabled and chosen. The system is open to a controller module that drives the choices, the starting point for controller synthesis.
 
-**dt**, shown for a stochastic net, is the time step from the Simulation Settings; a rate is tested over it.
+**dt**, shown for a stochastic net or a net with dynamics, is the time step from the Simulation Settings; a rate is tested over it and dynamics step by it.
+
+<!-- prose-check: off -->
+
+**Slots** is the number of slots a coloured place without a capacity gets. Set a capacity on the place to fix it per place.
+
+<!-- prose-check: on -->
 
 Closing the window resets the flags to their defaults. They are not saved with the net.
 
 ## What it compiles from
 
-The initial state and the parameter values come from the **Simulation Settings** tab of the bottom panel: the selected scenario with its scenario parameter values, or the ad-hoc scenario when no scenario is selected. The time step from the same tab sets the `dt` a stochastic rate is tested over. Change any of them and the window recompiles.
+The initial state and the parameter values come from the **Simulation Settings** tab of the bottom panel: the selected scenario with its scenario parameter values, or the ad-hoc scenario when no scenario is selected. The time step from the same tab sets the `dt` a stochastic rate is tested over and dynamics step by. Change any of them and the window recompiles.
 
-Firing conditions are baked into the net as constants. `return true` keeps a plain transition, `return parameters.rate * 2` gives a stochastic transition its rate. A transition whose condition is `false`, or whose rate is 0, can never fire and is left out with a note under the output.
+Parameters are baked into the net as constants. `return true` keeps a plain transition, `return parameters.rate * 2` gives a stochastic transition its rate, and a condition that reads its tokens is carried as code. A transition whose condition is `false`, or whose rate is 0, can never fire and is left out with a note under the output.
 
 ## Nets that compile
 
-The IR describes uncoloured nets with standard arcs and no continuous dynamics, and a net is either plain (every transition has a predicate condition) or stochastic (every transition has a rate). Coloured tokens, inhibitor and read arcs, differential equations, component instances, and conditions that read their input tokens or draw random numbers are outside it. When the net uses one of these, the window lists the places and transitions that stop the export, with the reason for each.
+The IR holds every net that has no component instances: plain, stochastic and mixed transitions, coloured tokens with real, integer, boolean and string attributes, read and inhibitor arcs, kernels and differential equations. When something stops the IR, the window lists the places and transitions concerned, with the reason for each.
+
+The Python module holds what Zeroth's linear theories can express. Guards, rates, kernels and equations may add, subtract, scale by a constant, compare, combine with `&&`, `||` and `!`, branch with `?:`, use `Math.max`, `Math.min` and `Math.abs`, compare string attributes for equality, and draw `Distribution.Gaussian` or `Distribution.Uniform` with constant spreads. Refused, each with its reason under the output: a product or quotient of two token values, powers, `Math.exp`, `Math.log` and the other nonlinear functions, `Math.random`, `Distribution.Lognormal`, uuid attributes, string methods, and a coloured net under the modular shape. The IR tab still shows the whole document when the Python tab refuses.

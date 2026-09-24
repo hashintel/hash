@@ -9,7 +9,7 @@ import {
   zerothTargetForNet,
 } from "./petri-net-ir";
 import {
-  petriNetIrToReactiveModule,
+  compilePetriNetIr,
   RESERVED_MODULE_NAMES,
 } from "./petri-net-ir-to-reactive-module";
 import { sdcpnToPetriNetIr } from "./sdcpn-to-petri-net-ir";
@@ -35,7 +35,10 @@ export type ReactiveModuleExport = {
   document: PetriNetIr | null;
   /** The IR as YAML, or `null` with `document`. */
   ir: string | null;
-  /** The reactive module as Python over `zrth.sugar`, or `null` with `document`. */
+  /**
+   * The reactive module as Python over `zrth.sugar`, or `null` when the net
+   * has no IR or the IR holds a construct the lowering refuses.
+   */
   python: string | null;
   errors: PetriNetIrDiagnostic[];
   warnings: PetriNetIrDiagnostic[];
@@ -43,8 +46,8 @@ export type ReactiveModuleExport = {
 
 /**
  * The whole pipeline in one call: the net to the IR, the IR to a module.
- * Both texts are `null` when the net has an error, and the errors say which
- * item stops it.
+ * Both texts are `null` when the net has an error; the IR stands alone
+ * when only the lowering refuses. The errors say which item stops it.
  */
 export const compileReactiveModuleExport = ({
   zeroth,
@@ -69,11 +72,15 @@ export const compileReactiveModuleExport = ({
     ...outcome.ir,
     ...(target === undefined ? {} : { zeroth: target }),
   };
+  // The compiler reads the code back from the trees the IR was printed from.
+  const compiled = compilePetriNetIr(document, {
+    parseCode: (text) => outcome.code.get(text),
+  });
   return {
     document,
     ir: renderPetriNetIr(document),
-    python: petriNetIrToReactiveModule(document),
-    errors: [],
+    python: compiled.ok ? compiled.python : null,
+    errors: compiled.ok ? [] : compiled.errors,
     warnings: outcome.warnings,
   };
 };

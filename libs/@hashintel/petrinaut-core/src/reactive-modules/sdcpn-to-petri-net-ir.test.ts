@@ -94,6 +94,30 @@ const lambdaHirOf = (
     ).map(([id, artifact]) => [id, artifact.hir]),
   );
 
+/** The kernel and equation HIR the language worker hands the panel. */
+const codeHirOf = (
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): Pick<SdcpnToPetriNetIrInput, "kernelHir" | "dynamicsHir"> => {
+  const { artifacts } = compileHirArtifacts(sdcpn, extensions, {
+    includeHir: true,
+  });
+  return {
+    kernelHir: Object.fromEntries(
+      Object.entries(artifacts.kernels).map(([id, artifact]) => [
+        id,
+        artifact.hir,
+      ]),
+    ),
+    dynamicsHir: Object.fromEntries(
+      Object.entries(artifacts.dynamics).map(([id, artifact]) => [
+        id,
+        artifact.hir,
+      ]),
+    ),
+  };
+};
+
 const compile = (
   sdcpn: SDCPN,
   overrides: Partial<SdcpnToPetriNetIrInput> = {},
@@ -104,6 +128,7 @@ const compile = (
     initialMarking: {},
     parameterValues: {},
     lambdaHir: lambdaHirOf(sdcpn, overrides.extensions),
+    ...codeHirOf(sdcpn, overrides.extensions),
     ...overrides,
   });
 
@@ -122,7 +147,7 @@ const cycle = net(
 
 describe("sdcpnToPetriNetIr", () => {
   it("lowers a plain net with the given initial marking and UpperCamelCase names", () => {
-    expect(compile(cycle, { initialMarking: { a: 1 } })).toEqual({
+    expect(compile(cycle, { initialMarking: { a: 1 } })).toMatchObject({
       ok: true,
       warnings: [],
       ir: {
@@ -243,25 +268,8 @@ describe("sdcpnToPetriNetIr", () => {
 
   it("reports the codes of everything the IR cannot hold", () => {
     const sdcpn = net(
+      [place("c", "C")],
       [
-        place("a", "A", { colorId: "colour" }),
-        place("b", "B", { dynamicsEnabled: true }),
-        place("c", "C"),
-      ],
-      [
-        transition("inhibited", "Inhibited", {
-          inputs: [{ placeId: "c", weight: 1, type: "inhibitor" }],
-        }),
-        transition("reads", "Reads", {
-          inputs: ["a"],
-          lambdaType: "stochastic",
-          lambdaCode: "return input.A.length;",
-        }),
-        transition("random", "Random", {
-          inputs: ["c"],
-          lambdaType: "stochastic",
-          lambdaCode: "return Math.random();",
-        }),
         transition("silent", "Silent", {
           inputs: ["c"],
           lambdaType: "stochastic",
@@ -278,17 +286,6 @@ describe("sdcpnToPetriNetIr", () => {
           lambdaCode: "return c;",
         }),
       ],
-      {
-        types: [
-          {
-            id: "colour",
-            name: "Colour",
-            iconSlug: "circle",
-            displayColor: "#000",
-            elements: [{ elementId: "x", name: "x", type: "real" }],
-          },
-        ],
-      },
     );
     const outcome = compile(sdcpn, { initialMarking: { c: 1.5 } });
     expect(outcome.ok).toBe(false);
@@ -296,18 +293,134 @@ describe("sdcpnToPetriNetIr", () => {
       !outcome.ok &&
         outcome.errors.map((error) => `${error.code}@${error.item.name}`),
     ).toEqual([
-      "coloured-place@A",
-      "place-dynamics@B",
-      "mixed-transition-kinds@Test net",
       "initial-marking-invalid@C",
-      "arc-kind-unsupported@Inhibited",
-      "lambda-reads-input@Reads",
-      "lambda-not-static@Random",
       "missing-rate@Silent",
       "infinite-rate@Infinite",
       "unknown-place@Dangling",
       "lambda-not-compiled@Uncompiled",
     ]);
+  });
+
+  it("carries colours, dynamics, token markings, code and arc kinds", () => {
+    const drone = {
+      id: "drone",
+      name: "Drone",
+      iconSlug: "circle",
+      displayColor: "#000",
+      elements: [
+        { elementId: "battery", name: "battery", type: "real" as const },
+        { elementId: "state", name: "state", type: "string" as const },
+      ],
+    };
+    const sdcpn = net(
+      [
+        place("hangar", "Hangar", { colorId: "drone", capacity: 3 }),
+        place("air", "Airborne", {
+          colorId: "drone",
+          dynamicsEnabled: true,
+          differentialEquationId: "drain",
+        }),
+        place("sorties", "Sorties"),
+      ],
+      [
+        {
+          ...transition("launch", "Launch", {
+            inputs: ["hangar", { placeId: "sorties", weight: 1, type: "read" }],
+            outputs: ["air"],
+            lambdaType: "stochastic",
+            lambdaCode:
+              "return parameters.rate * (input.Hangar[0].battery / 100);",
+          }),
+          transitionKernelCode:
+            'const drone = input.Hangar[0];\nreturn { Airborne: [{ battery: drone.battery, state: "flying" }] };',
+        },
+        {
+          ...transition("land", "Land", {
+            inputs: [
+              "air",
+              { placeId: "sorties", weight: 5, type: "inhibitor" },
+            ],
+            outputs: ["hangar", "sorties"],
+            lambdaCode: "return input.Airborne[0].battery < 20;",
+          }),
+          transitionKernelCode:
+            'return { Hangar: [{ battery: 100, state: "idle" }] };',
+        },
+        transition("tick", "Tick", {
+          inputs: ["sorties"],
+          outputs: ["sorties"],
+        }),
+      ],
+      {
+        types: [drone],
+        differentialEquations: [
+          {
+            id: "drain",
+            name: "Battery drain",
+            colorId: "drone",
+            code: "return tokens.map((drone) => ({ battery: -parameters.rate * 4 }));",
+          },
+        ],
+        parameters: [rateParameter],
+      },
+    );
+    const outcome = compile(sdcpn, {
+      initialMarking: {
+        hangar: [
+          { battery: 100, state: "idle" },
+          { battery: 80, state: "idle" },
+        ],
+        sorties: 1,
+      },
+      parameterValues: { rate: "0.5" },
+    });
+    expect(outcome).toMatchObject({ ok: true, warnings: [] });
+    if (outcome.ok) {
+      expect(outcome.ir).toEqual({
+        name: "test_net",
+        kind: "mixed",
+        colours: {
+          Drone: { battery: "real", state: { enum: ["idle", "flying"] } },
+        },
+        dynamics: {
+          BatteryDrain: {
+            colour: "Drone",
+            code: "return tokens.map((drone) => ({ battery: -2 }));",
+          },
+        },
+        places: {
+          Hangar: { capacity: 3, colour: "Drone" },
+          Airborne: { colour: "Drone", dynamics: "BatteryDrain" },
+          Sorties: null,
+        },
+        marking: {
+          Hangar: [
+            { battery: 100, state: "idle" },
+            { battery: 80, state: "idle" },
+          ],
+          Sorties: 1,
+        },
+        transitions: {
+          Launch: {
+            inputs: { Hangar: null, Sorties: { kind: "read" } },
+            outputs: { Airborne: null },
+            rate: "return 0.5 * (input.Hangar[0].battery / 100);",
+            kernel:
+              'const drone = input.Hangar[0];\nreturn { Airborne: [{ battery: drone.battery, state: "flying" }] };',
+          },
+          Land: {
+            inputs: {
+              Airborne: null,
+              Sorties: { weight: 5, kind: "inhibitor" },
+            },
+            outputs: { Hangar: null, Sorties: null },
+            guard: "return input.Airborne[0].battery < 20;",
+            kernel: 'return { Hangar: [{ battery: 100, state: "idle" }] };',
+          },
+          Tick: { inputs: { Sorties: null }, outputs: { Sorties: null } },
+        },
+      });
+    }
   });
 
   it("marks a transition controllable when its metadata says so", () => {

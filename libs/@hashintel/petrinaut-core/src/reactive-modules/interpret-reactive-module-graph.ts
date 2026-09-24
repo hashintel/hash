@@ -157,12 +157,22 @@ const evaluate = (node: ReactiveExpr, scope: Scope): ReactiveValue => {
           return asNumber(left, "+") + asNumber(right, "+");
         case "-":
           return asNumber(left, "-") - asNumber(right, "-");
-        case ">=":
-          return asNumber(left, ">=") >= asNumber(right, ">=");
+        case "<":
+          return asNumber(left, "<") < asNumber(right, "<");
         case "<=":
           return asNumber(left, "<=") <= asNumber(right, "<=");
+        case ">":
+          return asNumber(left, ">") > asNumber(right, ">");
+        case ">=":
+          return asNumber(left, ">=") >= asNumber(right, ">=");
+        case "==":
+          return left === right;
+        case "!=":
+          return left !== right;
         case "&":
           return asBoolean(left, "&") && asBoolean(right, "&");
+        case "|":
+          return asBoolean(left, "|") || asBoolean(right, "|");
       }
       break;
     }
@@ -170,6 +180,12 @@ const evaluate = (node: ReactiveExpr, scope: Scope): ReactiveValue => {
       return asBoolean(evaluate(node.condition, scope), "ite")
         ? evaluate(node.thenBranch, scope)
         : evaluate(node.elseBranch, scope);
+    case "not":
+      return !asBoolean(evaluate(node.operand, scope), "~");
+    case "scale":
+      return node.factor * asNumber(evaluate(node.operand, scope), "*");
+    case "relu":
+      return Math.max(0, asNumber(evaluate(node.operand, scope), "relu"));
   }
 };
 

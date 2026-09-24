@@ -77,6 +77,8 @@ outside the supported HIR subset is a blocking diagnostic.
 | `emit-buffer-js.ts`   | Emits packed-buffer JavaScript programs.                                  |
 | `instantiate.ts`      | Instantiates artifacts without importing `typescript`.                    |
 | `compile.ts`          | Batch-compiles a root net and subnets to `HirArtifacts`.                  |
+| `print.ts`            | Prints an expression, or a body as statements, back to canonical source.  |
+| `print-function.ts`   | Prints a whole function as a bare body, with optional parameter inlining. |
 
 ## Runtime artifacts
 

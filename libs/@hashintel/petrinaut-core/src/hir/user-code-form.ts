@@ -20,27 +20,11 @@
  */
 import ts from "typescript";
 
-import type { HirSurfaceKind } from "./hir";
+import { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind } from "./ambient-names";
 
-/** Surfaces whose code may be either an `export default <Ctor>(...)` module
- * or a bare function body (metric and scenario surfaces are bare-body only). */
-export type DualFormSurfaceKind = Extract<
-  HirSurfaceKind,
-  "dynamics" | "lambda" | "kernel"
->;
+export { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind };
 
 export type UserCodeForm = "module" | "body";
-
-/**
- * Ambient input-object names for the bare-body form — the names the docs
- * teach and the LSP's body wrapper declares. `parameters` is ambient in
- * every bare body.
- */
-export const AMBIENT_INPUT_NAMES: Record<DualFormSurfaceKind, string> = {
-  dynamics: "tokens",
-  lambda: "input",
-  kernel: "input",
-};
 
 function isExportStatement(statement: ts.Statement): boolean {
   if (ts.isExportAssignment(statement) || ts.isExportDeclaration(statement)) {
