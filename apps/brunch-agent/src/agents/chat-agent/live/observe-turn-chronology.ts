@@ -26,6 +26,22 @@ export type ToolCallChronology = {
   readonly lastDeltaToTerminalMs: number;
 };
 
+type RequestShape = {
+  readonly messages: number;
+  readonly userMessages: number;
+  readonly toolResults: number;
+  readonly firstUserTextChars: number | null;
+};
+
+type ResponseShape = {
+  readonly finishReason: string | null;
+  readonly textParts: number;
+  readonly textChars: number;
+  readonly thinkingParts: number;
+  readonly thinkingChars: number;
+  readonly toolCallParts: number;
+};
+
 export type TurnChronology = {
   readonly turnId: string;
   readonly purpose: string;
@@ -38,6 +54,9 @@ export type TurnChronology = {
   readonly inputTokens: number | null;
   readonly cacheReadTokens: number | null;
   readonly outputTokens: number | null;
+  /** Model-visible context and normalized output, without their contents. */
+  readonly requestShape: RequestShape | null;
+  readonly responseShape: ResponseShape | null;
   readonly toolCalls: readonly ToolCallChronology[];
 };
 
@@ -67,6 +86,8 @@ type TurnState = {
   inputTokens: number | null;
   cacheReadTokens: number | null;
   outputTokens: number | null;
+  requestShape: RequestShape | null;
+  responseShape: ResponseShape | null;
   toolCalls: Map<string, ToolCallState>;
 };
 
@@ -95,6 +116,8 @@ const finishTurn = (turn: TurnState, terminalAt: number): TurnChronology => {
     inputTokens: turn.inputTokens,
     cacheReadTokens: turn.cacheReadTokens,
     outputTokens: turn.outputTokens,
+    requestShape: turn.requestShape,
+    responseShape: turn.responseShape,
     toolCalls: [...turn.toolCalls.values()].map((call) => ({
       toolCallId: call.toolCallId,
       toolName: call.toolName,
@@ -157,9 +180,36 @@ export const createTurnChronologyObserver = (
               inputTokens: null,
               cacheReadTokens: null,
               outputTokens: null,
+              requestShape: null,
+              responseShape: null,
               toolCalls: new Map(),
             });
           }
+          return;
+        }
+        case "turn_request": {
+          const turn = turnsOf(submissionId).get(event.turnId);
+          if (!turn) return;
+          const messages = event.request.input.messages;
+          const firstUser = messages.find((message) => message.role === "user");
+          turn.requestShape = {
+            messages: messages.length,
+            userMessages: messages.filter((message) => message.role === "user")
+              .length,
+            toolResults: messages.filter(
+              (message) => message.role === "toolResult",
+            ).length,
+            firstUserTextChars:
+              firstUser === undefined
+                ? null
+                : typeof firstUser.content === "string"
+                  ? firstUser.content.length
+                  : firstUser.content.reduce(
+                      (chars, part) =>
+                        chars + (part.type === "text" ? part.text.length : 0),
+                      0,
+                    ),
+          };
           return;
         }
         case "message_start":
@@ -195,6 +245,25 @@ export const createTurnChronologyObserver = (
           if (!turn) return;
           turn.endedAt = at;
           turn.isError = event.isError;
+          const content = event.response.output?.content ?? [];
+          turn.responseShape = {
+            finishReason: event.response.finishReason ?? null,
+            textParts: content.filter((part) => part.type === "text").length,
+            textChars: content.reduce(
+              (chars, part) =>
+                chars + (part.type === "text" ? part.text.length : 0),
+              0,
+            ),
+            thinkingParts: content.filter((part) => part.type === "thinking")
+              .length,
+            thinkingChars: content.reduce(
+              (chars, part) =>
+                chars + (part.type === "thinking" ? part.thinking.length : 0),
+              0,
+            ),
+            toolCallParts: content.filter((part) => part.type === "toolCall")
+              .length,
+          };
           const usage = event.response.usage;
           if (usage) {
             turn.inputTokens = usage.input;
