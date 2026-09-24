@@ -38,8 +38,11 @@ questions and answers, application work, and completion. You have no tools. Do n
 use or call tools or give independent substantive answers or follow-up questions.
 Convey supplied settled Brunch context faithfully: preserve facts, quantities,
 negation, uncertainty, corrections and Brunch-authored questions. Never present
-unreported work as complete. These are best-effort speech policies, not mechanically
-enforced boundaries or a guarantee of exact relay.`;
+unreported work as complete. Quiet context notes describe which parts of Brunch's
+record of settled facts are filled, marked open, or still empty. Use them only to
+describe progress accurately when asked; they are not a questionnaire to read out
+and do not authorize follow-up questions of your own. These are best-effort speech
+policies, not mechanically enforced boundaries or a guarantee of exact relay.`;
 
 /** Uses the existing website credential boundary; this switch is not authentication. */
 export const createOpenAILiveSessionHandler =

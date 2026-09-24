@@ -20,6 +20,9 @@ const setup = () => {
   const appendInstructions = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendInstructions"]
   >(() => true);
+  const appendThinking = vi.fn<
+    ConstructorParameters<typeof LiveBrunchBridge>[0]["appendThinking"]
+  >(() => true);
   const notice = vi.fn();
   const submit = vi.fn(async (input: { onAdmission: (id: string) => void }) => {
     input.onAdmission("root");
@@ -32,6 +35,7 @@ const setup = () => {
   const bridge = new LiveBrunchBridge({
     appendCommentary,
     appendInstructions,
+    appendThinking,
     notice,
     submit,
   });
@@ -50,11 +54,41 @@ const setup = () => {
     bridge,
     appendCommentary,
     appendInstructions,
+    appendThinking,
     notice,
     submit,
     update,
   };
 };
+
+const workpieceRevision = (
+  toolCallId: string,
+  markdown: string,
+  ordinal = 1,
+): FlueConversationState["messages"][number] => ({
+  id: `message-${toolCallId}`,
+  role: "assistant",
+  purpose: "assistant",
+  display: "visible",
+  parts: [
+    {
+      type: "dynamic-tool",
+      toolName: "mutate_workpiece",
+      toolCallId,
+      state: "output-available",
+      input: { markdown },
+      output: { revisionId: toolCallId, sha256: "hash", ordinal },
+    },
+  ],
+});
+
+const ledgerSnapshot = (
+  ...messages: FlueConversationState["messages"]
+): FlueConversationState => ({
+  conversationId: "conversation",
+  settlements: [],
+  messages,
+});
 
 const segment = (
   text = "There are 7 reviewers, not 4. Is approval optional?",
@@ -301,6 +335,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
   const bridge = new LiveBrunchBridge({
     appendCommentary: fixture.appendCommentary,
     appendInstructions: fixture.appendInstructions,
+    appendThinking: fixture.appendThinking,
     notice: fixture.notice,
     submit: async (input) => {
       signal = input.signal;
@@ -1130,4 +1165,93 @@ test("textless and dropped inputs without delegations do not inject session-wide
   await fixture.bridge.accept({ id: "two", text: "Dropped" });
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
+});
+
+test("offers one quiet coverage note per applied Ledger revision, before any spoken answer", async () => {
+  const fixture = setup();
+  expect(fixture.appendThinking).not.toHaveBeenCalled();
+
+  const first = workpieceRevision(
+    "rev-1",
+    "# Workpiece\n\n## Operational account\n\n### Time, quantities, arrivals, and stochastic behavior\n\n50 calls per hour.\n\n### Policies, exceptions, practiced rules, and contextual regimes\n",
+  );
+  fixture.update({ snapshot: ledgerSnapshot(first) });
+  expect(fixture.appendThinking).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Settled: Time, quantities, arrivals"),
+    null,
+  );
+  // The same revision re-rendered does not re-enter session context.
+  fixture.update({ snapshot: ledgerSnapshot(first), status: "streaming" });
+  fixture.update({ snapshot: ledgerSnapshot(first) });
+  expect(fixture.appendThinking).toHaveBeenCalledOnce();
+
+  // Quiet context lands before commentary from the same update.
+  const order: string[] = [];
+  fixture.appendThinking.mockImplementation(() => {
+    order.push("thinking");
+    return true;
+  });
+  fixture.appendCommentary.mockImplementation(() => {
+    order.push("commentary");
+    return true;
+  });
+  await fixture.bridge.accept({ id: "one", text: "Callers hang up" });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  const second = workpieceRevision(
+    "rev-2",
+    "# Workpiece\n\n## Operational account\n\n### Time, quantities, arrivals, and stochastic behavior\n\n50 calls per hour.\n\n### Policies, exceptions, practiced rules, and contextual regimes\n\nCallers abandon after about five minutes. **Assumed** until confirmed.\n",
+    2,
+  );
+  fixture.update({
+    segments: [segment()],
+    settlements: completed,
+    snapshot: { ...ledgerSnapshot(first, second), settlements: completed },
+  });
+  expect(order).toEqual(["thinking", "commentary"]);
+  expect(fixture.appendThinking).toHaveBeenLastCalledWith(
+    expect.stringContaining("marked open"),
+    null,
+  );
+});
+
+test("retries the coverage note only while the local send fails, and ignores refused or unbound revisions", () => {
+  const fixture = setup();
+  fixture.appendThinking.mockReturnValueOnce(false);
+  const applied = workpieceRevision("rev-1", "### Goals\n\nLower wait.\n");
+  fixture.update({ snapshot: ledgerSnapshot(applied) });
+  fixture.update({ snapshot: ledgerSnapshot(applied) });
+  expect(fixture.appendThinking).toHaveBeenCalledTimes(2);
+  fixture.update({ snapshot: ledgerSnapshot(applied) });
+  expect(fixture.appendThinking).toHaveBeenCalledTimes(2);
+
+  const refused: FlueConversationState["messages"][number] = {
+    ...workpieceRevision("rev-2", "### Goals\n\nSomething else.\n"),
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "mutate_workpiece",
+        toolCallId: "rev-2",
+        state: "output-available",
+        input: { markdown: "### Goals\n\nSomething else.\n" },
+        output: { disposition: "refused", applied: false },
+      },
+    ],
+  };
+  const unbound = workpieceRevision("rev-3", "### Goals\n\nUnbound.\n");
+  fixture.update({
+    snapshot: ledgerSnapshot(applied, refused, {
+      ...unbound,
+      parts: [
+        {
+          ...unbound.parts[0]!,
+          output: { revisionId: "rev-1", sha256: "hash", ordinal: 3 },
+        } as FlueConversationState["messages"][number]["parts"][number],
+      ],
+    }),
+  });
+  expect(fixture.appendThinking).toHaveBeenCalledTimes(2);
 });

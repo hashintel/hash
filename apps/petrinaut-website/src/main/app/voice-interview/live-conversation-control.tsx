@@ -180,9 +180,16 @@ export const LiveConversationControl = ({
     setSpeakerVolumeState(1);
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
+    let connected = false;
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
+        if (nextState.phase === "connected" && !connected) {
+          connected = true;
+          // The Live channel was closed when the bridge first saw the chat, so
+          // any quiet context it tried to offer then failed locally. Re-offer.
+          bridge.current?.update(latest.current.chat);
+        }
         if (
           nextState.phase !== "connected" ||
           nextState.activity?.outputActive
@@ -225,6 +232,9 @@ export const LiveConversationControl = ({
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
         if (result.status === "unknown" || result.status === "accepted") return;
+        // Quiet context is best effort: nothing the person heard depends on
+        // it, and the bridge offers it again on the next conversation update.
+        if (result.kind === "thinking") return;
         const label =
           result.kind === "commentary" ? "answer" : "continuation instruction";
         const outcome =
@@ -244,6 +254,7 @@ export const LiveConversationControl = ({
       submit: (input) => latest.current.submit(input),
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
+      appendThinking: next.appendThinking,
       notice: setWarningMessage,
     });
     bridge.current.update(latest.current.chat);

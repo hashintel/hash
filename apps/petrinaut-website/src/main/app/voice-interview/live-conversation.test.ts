@@ -1297,3 +1297,52 @@ test("telemetry shows activity but silence and late samples never settle or revi
   await vi.advanceTimersByTimeAsync(500);
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
 });
+
+test("thinking appends are quiet context: acknowledged by their own event and never closing a delegation", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(0, {
+    type: "session.delegation.created",
+    delegation: { id: "opaque", target: "client" },
+  });
+  expect(
+    fixture.conversation.appendThinking("Ledger settled arrivals.", null),
+  ).toBe(true);
+  const pending = fixture.onAppendResult.mock.lastCall![0];
+  expect(pending).toMatchObject({
+    kind: "thinking",
+    delegationId: null,
+    status: "unknown",
+  });
+  expect(JSON.parse(fixture.sent[0][0]!)).toEqual({
+    type: "session.thinking.append",
+    event_id: pending.eventId,
+    delegation_id: null,
+    content: "Ledger settled arrivals.",
+  });
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: pending.eventId,
+  });
+  expect(fixture.onAppendResult).toHaveBeenCalledOnce();
+  fixture.emit(0, {
+    type: "session.thinking.appended",
+    client_event_id: pending.eventId,
+  });
+  expect(fixture.onAppendResult.mock.lastCall![0]).toEqual({
+    ...pending,
+    status: "accepted",
+  });
+
+  // Progress about a delegation leaves it open for the eventual answer.
+  expect(fixture.conversation.appendThinking("Still working.", "opaque")).toBe(
+    true,
+  );
+  const progress = fixture.onAppendResult.mock.lastCall![0];
+  fixture.emit(0, {
+    type: "session.thinking.appended",
+    client_event_id: progress.eventId,
+  });
+  expect(fixture.onAppendResult.mock.lastCall![0].status).toBe("accepted");
+  expect(fixture.conversation.openDelegations.has("opaque")).toBe(true);
+});

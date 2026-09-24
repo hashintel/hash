@@ -1,4 +1,8 @@
 import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  describeLedgerCoverage,
+  selectAppliedWorkpieceRevision,
+} from "./live-brunch-bridge/ledger-coverage-note";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
@@ -40,6 +44,8 @@ interface Dependencies {
     delegationId: string | null,
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
+  /** Quiet session context; never spoken and never bound to a delegation here. */
+  readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
 }
 
@@ -62,6 +68,7 @@ export class LiveBrunchBridge {
     >
   >();
   #waitingForComposer: Turn | undefined;
+  #offeredCoverageRevision: string | undefined;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -271,7 +278,29 @@ export class LiveBrunchBridge {
       this.#interruptTurns();
       return;
     }
+    this.#offerCoverage();
     this.#settle();
+  }
+
+  /**
+   * Quiet context precedes any spoken answer from the same update. One note
+   * per applied Ledger revision: GPT-Live's session context accumulates every
+   * append, so a note is repeated only if the local send failed.
+   */
+  #offerCoverage(): void {
+    const revision = selectAppliedWorkpieceRevision(
+      this.#chat.snapshot?.messages ?? [],
+    );
+    if (!revision || revision.revisionId === this.#offeredCoverageRevision)
+      return;
+    const note = describeLedgerCoverage(revision);
+    const sent = this.#dependencies.appendThinking(note, null);
+    logLiveDiagnostic("brunch.coverage", {
+      revisionId: revision.revisionId,
+      characters: note.length,
+      sent,
+    });
+    if (sent) this.#offeredCoverageRevision = revision.revisionId;
   }
 
   #interruptTurns(): void {
