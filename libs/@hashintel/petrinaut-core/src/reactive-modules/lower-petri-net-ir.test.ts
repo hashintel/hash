@@ -6,7 +6,6 @@ import {
   type ReactiveValue,
 } from "./interpret-reactive-module-graph";
 import { lowerPetriNetIr } from "./lower-petri-net-ir";
-import { birthDeathIr } from "./lower-petri-net-ir/lower-clocks.fixtures";
 import {
   type PetriNetIr,
   type PetriNetIrArcs,
@@ -16,6 +15,7 @@ import {
   type ZerothTarget,
 } from "./petri-net-ir";
 import { moduleAwaits } from "./reactive-module-graph";
+import { birthDeathIr } from "./shared/birth-death.fixtures";
 
 const MODULUS = 2 ** 32;
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { type PetriNetIr, resolveZerothTarget } from "../petri-net-ir";
+import { birthDeathIr } from "../shared/birth-death.fixtures";
 import { checkLowerable } from "./check-lowerable";
-import { birthDeathIr } from "./lower-clocks.fixtures";
 
 const clocks = resolveZerothTarget({ rates: "clock" });
 

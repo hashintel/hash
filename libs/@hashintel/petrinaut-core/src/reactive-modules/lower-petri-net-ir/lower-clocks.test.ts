@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { foldHir } from "../../hir/analyze";
 import { lowerTypeScriptToHir } from "../../hir/lower-typescript";
 import { lowerPetriNetIr } from "../lower-petri-net-ir";
-import { birthDeathIr } from "./lower-clocks.fixtures";
+import { birthDeathIr } from "../shared/birth-death.fixtures";
 
 import type { PetriNetIr } from "../petri-net-ir";
 import type { SpnModuleGraph } from "../spn-module-graph";

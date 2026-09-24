@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { birthDeathIr } from "./lower-petri-net-ir/lower-clocks.fixtures";
 import { renderPetriNetIr } from "./petri-net-ir";
 import { compilePetriNetIr } from "./petri-net-ir-to-reactive-module";
 import {
@@ -8,6 +7,7 @@ import {
   tracePetriNetIr,
   traceReactiveModulePython,
 } from "./provenance";
+import { birthDeathIr } from "./shared/birth-death.fixtures";
 
 import type { PetriNetIr } from "./petri-net-ir";
 

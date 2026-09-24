@@ -4,13 +4,10 @@ import { foldHir } from "../hir/analyze";
 import { lowerTypeScriptToHir } from "../hir/lower-typescript";
 import { emitReactiveModulePython } from "./emit-reactive-module-python";
 import {
-  birthDeathIr,
-  birthDeathPython,
-} from "./lower-petri-net-ir/lower-clocks.fixtures";
-import {
   compilePetriNetIr,
   petriNetIrToReactiveModule,
 } from "./petri-net-ir-to-reactive-module";
+import { birthDeathIr, birthDeathPython } from "./shared/birth-death.fixtures";
 
 import type { HirFunction } from "../hir/hir";
 import type { CodeParser } from "./lower-petri-net-ir/step-plan";

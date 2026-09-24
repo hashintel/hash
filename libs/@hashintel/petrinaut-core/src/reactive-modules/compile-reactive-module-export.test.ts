@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { birthDeath } from "../examples/birth-death";
 import { compileHirArtifacts } from "../hir/compile";
 import { compileReactiveModuleExport } from "./compile-reactive-module-export";
-import { birthDeathPython } from "./lower-petri-net-ir/lower-clocks.fixtures";
+import { birthDeathPython } from "./shared/birth-death.fixtures";
 
 import type { SDCPN } from "../types/sdcpn";
 
