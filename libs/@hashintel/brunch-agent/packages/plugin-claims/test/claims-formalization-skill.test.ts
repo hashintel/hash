@@ -1,29 +1,20 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { expect, test } from "vitest";
-
-import { claimsFormalizationSkill } from "../src/skills/claims-formalization/skill";
 
 const skillDirectory = new URL(
   "../src/skills/claims-formalization/",
   import.meta.url,
 );
-const readSkillFile = (fileName: string): string =>
-  readFileSync(new URL(fileName, skillDirectory), "utf8");
 
-test("the skill is a valid Flue skill whose packaged paths equal the authored paths", () => {
-  expect(claimsFormalizationSkill.name).toBe("claims-formalization");
-  expect(Object.keys(claimsFormalizationSkill.files ?? {}).sort()).toEqual([
-    "references/cards-and-standing.md",
-    "references/claims-elicitation.md",
-    "templates/workpiece.md",
-  ]);
-  for (const path of Object.keys(claimsFormalizationSkill.files ?? {})) {
-    expect(claimsFormalizationSkill.files?.[path]).toBe(readSkillFile(path));
-  }
-  for (const referenced of claimsFormalizationSkill.instructions.matchAll(
+test("the skill names only resources in its directory", () => {
+  const skillMarkdown = readFileSync(
+    new URL("SKILL.md", skillDirectory),
+    "utf8",
+  );
+  for (const referenced of skillMarkdown.matchAll(
     /`((?:references|templates)\/[\w-]+\.md)`/gu,
   )) {
-    expect(claimsFormalizationSkill.files).toHaveProperty(referenced[1]!);
+    expect(existsSync(new URL(referenced[1]!, skillDirectory))).toBe(true);
   }
 });

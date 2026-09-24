@@ -1,14 +1,33 @@
 import { flue } from "@flue/vite";
-import { defineConfig } from "vite";
+import {
+  defaultClientConditions,
+  defaultServerConditions,
+  defineConfig,
+} from "vite";
 
 import { localChatListen } from "./src/http/local-origins.ts";
+
+// The dev server loads Brunch workspace packages from source; builds keep their dist.
+const workspaceSourceCondition = "@hashintel/source";
 
 // No @vitejs/plugin-react: the flue plugin's dev controller owns the whole
 // request space and hands every request to app.ts, with no fall-through to
 // vite's html middleware — so index.html is app-served and react-refresh's
 // preamble injection would never run (recorded Flue fact, spec §10). Vite's
 // core esbuild transform still compiles the .tsx modules.
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [flue()],
   server: localChatListen,
-});
+  ...(command === "serve"
+    ? {
+        resolve: {
+          conditions: [workspaceSourceCondition, ...defaultClientConditions],
+        },
+        ssr: {
+          resolve: {
+            conditions: [workspaceSourceCondition, ...defaultServerConditions],
+          },
+        },
+      }
+    : {}),
+}));

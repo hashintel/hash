@@ -8,12 +8,15 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "@hashintel/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./flue": {
-      "types": "./src/flue.ts",
-      "import": "./dist/flue.js"
-    }
+    "./agent": {
+      "types": "./src/agent.ts",
+      "@hashintel/source": "./src/agent.ts",
+      "import": "./dist/agent.js"
+    },
+    "./skills/dafny-verification/SKILL.md": "./src/skills/dafny-verification/SKILL.md"
   },
   "scripts": {
     "build": "vite build",
@@ -23,10 +26,10 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@flue/runtime": "2.0.3",
-    "@hashintel/brunch-agent": "workspace:*"
+    "@flue/runtime": "2.0.3"
   },
   "devDependencies": {
+    "@flue/vite": "2.0.3",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",

@@ -19,7 +19,7 @@ import {
   createFlueChatTransport,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
+const ELICITATION_SKILL_NAME = "elicitation";
 
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
 import {

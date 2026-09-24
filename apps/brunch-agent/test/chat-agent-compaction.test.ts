@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
+import { useBrunchAgent } from "@hashintel/brunch-agent/agent";
 
 const useInstruction = vi.hoisted(() => vi.fn<(instruction: string) => void>());
 const initialData = vi.hoisted(() => ({ value: undefined as unknown }));
@@ -27,9 +27,12 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
   createFlueClient: () => ({ history: async () => ({ messages: [] }) }),
 }));
 
-vi.mock("@hashintel/brunch-agent/flue", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@hashintel/brunch-agent/flue")>()),
+vi.mock("@hashintel/brunch-agent/agent", () => ({
   useBrunchAgent: vi.fn<typeof useBrunchAgent>(() => "core prompt"),
+}));
+vi.mock("@hashintel/brunch-agent-plugin-sdcpn/agent", () => ({
+  useSdcpnPlugin: () => undefined,
+  SDCPN_MODELLING_SKILL_NAME: "sdcpn-modelling",
 }));
 vi.mock(
   "@hashintel/brunch-agent-plugin-sdcpn/flue",
@@ -37,8 +40,6 @@ vi.mock(
     ...(await importOriginal<
       typeof import("@hashintel/brunch-agent-plugin-sdcpn/flue")
     >()),
-    useSdcpnPlugin: () => undefined,
-    SDCPN_MODELLING_SKILL_NAME: "sdcpn-modelling",
     sdcpnInitialDataSchema: undefined,
   }),
 );

@@ -14,7 +14,7 @@ Two older non-product composition boundaries remain route-admissible. Batched co
 
 `@hashintel/brunch-agent-transport-aisdk` projects a caller-provided Flue conversation into AI SDK streams and transcripts; it does not own server state. `apps/petrinaut-website` owns browser-local document state, document/conversation binding, and execution of browser tools.
 
-The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is imported with `?raw` and bundled as runtime model input. It is implementation source, not project documentation.
+The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input: implementation source, not project documentation. Prompts are imported with `?raw`. Each skill is an Agent Skills directory whose `SKILL.md` the package exports and imports natively; library builds leave that import in place and the consuming Flue application validates and packages the directory. Only code built by Flue can load a `SKILL.md` import, so the hooks that mount skills live in each package's `./agent` entry, and `./flue` stays loadable in plain Node.
 
 Gherkin is packaged but currently unmounted. Dafny and Claims are unmounted experimental packages.
 

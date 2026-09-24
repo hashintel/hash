@@ -8,10 +8,12 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "@hashintel/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./headers": {
       "types": "./src/headers.ts",
+      "@hashintel/source": "./src/headers.ts",
       "import": "./dist/headers.js"
     }
   },

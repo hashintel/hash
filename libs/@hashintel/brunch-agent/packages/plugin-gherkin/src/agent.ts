@@ -1,10 +1,8 @@
 import { useInstruction, useSkill } from "@flue/runtime";
 
+import gherkinSpecificationSkill from "@hashintel/brunch-agent-plugin-gherkin/skills/gherkin-specification/SKILL.md";
+
 import gherkinAppend from "./prompts/APPEND_SYSTEM.md?raw";
-import {
-  GHERKIN_SPECIFICATION_SKILL_NAME,
-  gherkinSpecificationSkill,
-} from "./skills/gherkin-specification/skill";
 
 /**
  * Mount the prompt material and skill owned by the Gherkin plugin.
@@ -19,4 +17,5 @@ export function useGherkinPlugin(): void {
   useSkill(gherkinSpecificationSkill);
 }
 
-export { GHERKIN_SPECIFICATION_SKILL_NAME, gherkinSpecificationSkill };
+export const GHERKIN_SPECIFICATION_SKILL_NAME = gherkinSpecificationSkill.name;
+export { gherkinSpecificationSkill };

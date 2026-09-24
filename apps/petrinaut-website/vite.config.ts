@@ -3,13 +3,22 @@ import { fileURLToPath } from "node:url";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { createServerAdapter } from "@whatwg-node/server";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import {
+  defaultClientConditions,
+  defaultServerConditions,
+  defineConfig,
+  loadEnv,
+  type Plugin,
+} from "vite";
 
 import { routerCodegenConfig } from "./router-codegen-config.ts";
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 const appRoot = fileURLToPath(new URL(".", import.meta.url));
+
+// The dev server loads Brunch workspace packages from source; builds keep their dist.
+const workspaceSourceCondition = "@hashintel/source";
 
 const loadServerEnv = (mode: string) => {
   const env = loadEnv(mode, appRoot, "");
@@ -64,7 +73,7 @@ const petrinautApiDevPlugin = (): Plugin => ({
 });
 
 /** Petrinaut website dev server and production build config. */
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   loadServerEnv(mode);
 
   const environment = process.env.VITE_VERCEL_ENV ?? "development";
@@ -89,6 +98,21 @@ export default defineConfig(({ mode }) => {
       /** the Claude Code preview may provide a PORT to run on */
       port: process.env.PORT ? Number(process.env.PORT) : 5173,
     },
+    ...(command === "serve"
+      ? {
+          resolve: {
+            conditions: [workspaceSourceCondition, ...defaultClientConditions],
+          },
+          ssr: {
+            resolve: {
+              conditions: [
+                workspaceSourceCondition,
+                ...defaultServerConditions,
+              ],
+            },
+          },
+        }
+      : {}),
 
     plugins: [
       petrinautApiDevPlugin(),

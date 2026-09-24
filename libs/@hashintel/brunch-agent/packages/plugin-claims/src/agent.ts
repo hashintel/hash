@@ -1,10 +1,8 @@
 import { useInstruction, useSkill } from "@flue/runtime";
 
+import claimsFormalizationSkill from "@hashintel/brunch-agent-plugin-claims/skills/claims-formalization/SKILL.md";
+
 import claimsAppend from "./prompts/APPEND_SYSTEM.md?raw";
-import {
-  CLAIMS_FORMALIZATION_SKILL_NAME,
-  claimsFormalizationSkill,
-} from "./skills/claims-formalization/skill";
 
 /**
  * Mount the prompt material and skill owned by the claims plugin.
@@ -17,4 +15,5 @@ export function useClaimsPlugin(): void {
   useSkill(claimsFormalizationSkill);
 }
 
-export { CLAIMS_FORMALIZATION_SKILL_NAME, claimsFormalizationSkill };
+export const CLAIMS_FORMALIZATION_SKILL_NAME = claimsFormalizationSkill.name;
+export { claimsFormalizationSkill };

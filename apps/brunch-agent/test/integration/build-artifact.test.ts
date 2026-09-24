@@ -204,21 +204,20 @@ describe("the emitted server bundle", () => {
     ).toBeNull();
   });
 
-  test("packages the authored skill without the retired filesystem loader", () => {
-    expect(bundle).toContain("defineSkill");
-    expect(bundle).toContain("sdcpn-modelling");
-    expect(bundle).toContain("The registers are addresses, not a procedure");
-    expect(bundle).toContain("Operational-Process and SDCPN Elicitation");
-    expect(bundle).toContain(
-      "Every operational claim has one authoritative home",
-    );
-    expect(bundle).toContain("Capability-aware lifecycle");
-    expect(bundle).toContain("Activate the `elicitation` skill");
-    expect(bundle).not.toContain("## The role (core)");
-    expect(bundle).not.toContain("Completion is computed by the harness");
-    expect(bundle).not.toContain("splitSkillMarkdown");
-    expect(bundle).not.toContain("skillFileUrl");
-    expect(bundle).not.toContain("./sdcpn-modelling/SKILL.md");
+  test("packages each mounted skill directory natively through Flue", () => {
+    expect(bundle).toContain("createSkillReference(");
+    expect(bundle).toMatch(/"id": "skill:elicitation:[0-9a-f]+"/u);
+    expect(bundle).toMatch(/"id": "skill:sdcpn-modelling:[0-9a-f]+"/u);
+    for (const resource of [
+      "references/checks.md",
+      "references/experiment-configuration.md",
+      "references/pn-construction.md",
+      "references/profile.md",
+      "templates/workpiece.md",
+    ])
+      expect(bundle).toContain(`"${resource}"`);
+    expect(bundle).not.toContain("skillFromMarkdown");
+    expect(bundle).not.toContain("SKILL.md?raw");
   });
 
   test("carries no model key", () => {

@@ -1,7 +1,7 @@
 import { useModel } from "@flue/runtime";
 import { beforeEach, expect, test, vi } from "vitest";
 
-import { useBrunchAgent } from "../src/flue";
+import { useBrunchAgent } from "../src/agent";
 
 import type { CompactionConfig } from "@flue/runtime";
 
