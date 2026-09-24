@@ -30,7 +30,9 @@
       ]
     },
     "test:unit": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
       "env": [
         "TEST_COVERAGE"
       ]
