@@ -2,13 +2,13 @@
 
 ## Run the Petrinaut panel locally
 
-From the repository root, make `ANTHROPIC_API_KEY` available in the environment and run:
+From the repository root, make `OPENAI_API_KEY` available for the development default and run (or override `BRUNCH_CHAT_MODEL` and supply that provider's credential):
 
 ```sh
 yarn dev:brunch
 ```
 
-The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. When Brunch is selected, the typed panel and Voice mode use integrated Brunch by default: Brunch composes its prompt, SDCPN skill, elicitation, Ledger, freshness, provenance, and explanation mechanics with Petrinaut-owned capability guidance and the complete canonical `petrinautAiTools` catalogue. Petrinaut retains canonical schemas, execution, and model-visible outputs.
+The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. Local development loads `apps/brunch-agent/.env.development`, selecting `openai/gpt-5.6-sol` with low reasoning by default, like the persona launcher. An explicit process environment or app-local `.env.local` can override these values; deployment model settings are separate and not established by this dev default. A configured credential does not authorize a paid run. When Brunch is selected, the typed panel and Voice mode use integrated Brunch by default: Brunch composes its prompt, SDCPN skill, elicitation, Ledger, freshness, provenance, and explanation mechanics with Petrinaut-owned capability guidance and the complete canonical `petrinautAiTools` catalogue. Petrinaut retains canonical schemas, execution, and model-visible outputs.
 
 Native Stock remains a separate assistant choice. Build-time evaluation mode `F` runs the exact Stock prompt and catalogue over Flue without Brunch or Ledger contributions. Mode `A` adds a semantic declaration before direct canonical construction calls; mode `B` adds a bounded ordered deep construction call while retaining every canonical tool. These evaluation modes have isolated conversation identities and no product selector. The older batched-construction and validated-construction boundaries remain available for compatibility and headless evaluator tests; they are not the product path.
 
