@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Adds a `layout` compiler flag that writes one Python file per reactive module.
+Adds `layout` and `syntax` compiler flags: one Python file per reactive module, and zrth's `next` step method.

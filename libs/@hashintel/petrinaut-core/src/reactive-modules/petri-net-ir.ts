@@ -171,6 +171,12 @@ export type ZerothTarget = {
    * composes them.
    */
   layout?: "single" | "per-module";
+  /**
+   * The names of the step methods in the generated Python. `update` is the
+   * name every zrth release accepts; `next` is the name the tangent work
+   * introduces beside `flow`, and needs a zrth that knows it.
+   */
+  syntax?: "update" | "next";
 };
 
 export type ResolvedZerothTarget = Required<ZerothTarget>;
@@ -182,6 +188,7 @@ export const ZEROTH_TARGET_DEFAULTS: ResolvedZerothTarget = {
   dt: 1,
   slots: 8,
   layout: "single",
+  syntax: "update",
 };
 
 /** Every flag, the document's value or the default. */
@@ -194,6 +201,7 @@ export const resolveZerothTarget = (
   dt: target?.dt ?? ZEROTH_TARGET_DEFAULTS.dt,
   slots: target?.slots ?? ZEROTH_TARGET_DEFAULTS.slots,
   layout: target?.layout ?? ZEROTH_TARGET_DEFAULTS.layout,
+  syntax: target?.syntax ?? ZEROTH_TARGET_DEFAULTS.syntax,
 });
 
 /**
@@ -201,8 +209,8 @@ export const resolveZerothTarget = (
  * only those that apply to the net. `marking` belongs to a stochastic net
  * without colours, `dt` to a net with rates or dynamics, `control` to a net
  * with a controllable transition, `slots` to a net with a coloured place,
- * `layout` to the modular shape. `undefined` when every flag is at its
- * default.
+ * `layout` to the modular shape; `syntax` applies to every net. `undefined`
+ * when every flag is at its default.
  */
 export const zerothTargetForNet = (
   target: ZerothTarget | undefined,
@@ -237,6 +245,9 @@ export const zerothTargetForNet = (
     ...(resolved.shape === "modular" &&
     resolved.layout !== ZEROTH_TARGET_DEFAULTS.layout
       ? { layout: resolved.layout }
+      : {}),
+    ...(resolved.syntax !== ZEROTH_TARGET_DEFAULTS.syntax
+      ? { syntax: resolved.syntax }
       : {}),
   };
   return Object.keys(section).length === 0 ? undefined : section;

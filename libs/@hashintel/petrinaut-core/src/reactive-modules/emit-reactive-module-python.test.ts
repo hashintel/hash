@@ -90,6 +90,20 @@ net = Ops(theory=LRA, ctrl=(Level, Full))
   });
 });
 
+describe("emitReactiveModulePython with the next syntax", () => {
+  it("names the step method next in every file", () => {
+    expect(emitReactiveModulePython(graph, { syntax: "next" })).toContain(
+      "    def next(self, Level, Full):",
+    );
+    expect(emitReactiveModulePython(graph)).toContain(
+      "    def update(self, Level, Full):",
+    );
+    const [, ops] = emitReactiveModuleFiles(graph, { syntax: "next" });
+    expect(ops?.text).toContain("    def next(self, Level, Full):");
+    expect(ops?.text).not.toContain("def update(");
+  });
+});
+
 describe("emitReactiveModuleFiles", () => {
   it("names a module's file after its class", () => {
     expect(moduleFileStem("Transition_Infection")).toBe("transition_infection");

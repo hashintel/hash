@@ -22,6 +22,7 @@ const defaults: ResolvedZerothTarget = {
   dt: 0.5,
   slots: 8,
   layout: "single",
+  syntax: "update",
 };
 
 const coloured: PetriNetIr = {
@@ -78,6 +79,7 @@ describe("targetHeaderControls", () => {
       ["layout", "single"],
       ["marking", "real"],
       ["control", "closed"],
+      ["syntax", "update"],
     ]);
     expect(model.controls[2]?.disabledReason).toBeUndefined();
     expect(model.controls[3]?.disabledReason).toMatch(/controllable/u);
@@ -105,11 +107,11 @@ describe("targetHeaderControls", () => {
     });
   });
 
-  it("disables everything but the shape while the net has not compiled", () => {
+  it("disables everything but the shape and the syntax while the net has not compiled", () => {
     const model = targetHeaderControls(defaults, null);
     expect(
       model.controls.map((control) => control.disabledReason !== undefined),
-    ).toEqual([false, true, true, true]);
+    ).toEqual([false, true, true, true, false]);
   });
 });
 
@@ -125,6 +127,7 @@ describe("TargetHeader", () => {
     expect(group.textContent).toContain("Layout");
     expect(group.textContent).toContain("Marking");
     expect(group.textContent).toContain("Control");
+    expect(group.textContent).toContain("Syntax");
     expect(group.textContent).not.toContain("dt");
     expect(screen.getByLabelText("Shape flag")).toBeDefined();
     // The controls scroll as one line; the trailing content stays outside.

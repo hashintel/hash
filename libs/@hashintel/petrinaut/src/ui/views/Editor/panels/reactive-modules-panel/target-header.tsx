@@ -15,7 +15,12 @@ import type {
  * `targetHeaderControls`, so the row itself only renders.
  */
 
-export type TargetControlId = "shape" | "layout" | "marking" | "control";
+export type TargetControlId =
+  | "shape"
+  | "layout"
+  | "marking"
+  | "control"
+  | "syntax";
 
 export type TargetControl = {
   id: TargetControlId;
@@ -50,6 +55,11 @@ const MARKING_ITEMS: SelectItem<string>[] = [
 const CONTROL_ITEMS: SelectItem<string>[] = [
   { value: "closed", text: "Closed" },
   { value: "open", text: "Open" },
+];
+
+const SYNTAX_ITEMS: SelectItem<string>[] = [
+  { value: "update", text: "init / update" },
+  { value: "next", text: "init / next" },
 ];
 
 export const targetHeaderControls = (
@@ -104,6 +114,12 @@ export const targetHeaderControls = (
               disabledReason:
                 "No transition is marked controllable in its metadata",
             }),
+      },
+      {
+        id: "syntax",
+        label: "Syntax",
+        value: target.syntax,
+        items: SYNTAX_ITEMS,
       },
     ],
     slots: coloured ? target.slots : null,

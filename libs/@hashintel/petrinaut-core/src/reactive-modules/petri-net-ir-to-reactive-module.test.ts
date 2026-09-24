@@ -905,6 +905,15 @@ describe("compilePetriNetIr with the per-module layout", () => {
     expect(python).not.toContain("from transition_go import");
   });
 
+  it("writes next instead of update under the next syntax", () => {
+    const python = petriNetIrToReactiveModule({
+      ...cycle,
+      zeroth: { syntax: "next" },
+    });
+    expect(python).toContain("    def next(self, A, B):");
+    expect(python).not.toContain("def update(");
+  });
+
   it("keeps one file under the monolithic shape whatever the layout says", () => {
     const outcome = compilePetriNetIr({
       ...cycle,

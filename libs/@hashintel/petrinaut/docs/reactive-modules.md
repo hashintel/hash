@@ -64,6 +64,11 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 - **Closed** (default) compiles such a transition like any other: it fires whenever it is enabled, as in Petrinaut.
 - **Open** adds an external Bool, `go_Name`, for each controllable transition, which then fires only when it is enabled and chosen. The system is open to a controller module that drives the choices, the starting point for controller synthesis.
 
+**Syntax** names the step method of every generated module.
+
+- **init / update** (default) is the name every zrth release accepts.
+- **init / next** is the name zrth's tangent work introduces beside `flow`, and needs a zrth that knows it.
+
 The time step a rate is tested over and dynamics step by is the `dt` of the Simulation Settings; the IR records it under `zeroth` when it is not 1.
 
 <!-- prose-check: off -->

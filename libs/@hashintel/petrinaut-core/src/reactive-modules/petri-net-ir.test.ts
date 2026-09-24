@@ -273,8 +273,12 @@ describe("zerothTargetForNet", () => {
       dt: 1,
       slots: 8,
       layout: "single",
+      syntax: "update",
     });
     expect(resolveZerothTarget({ shape: "modular" }).shape).toBe("modular");
+    expect(zerothTargetForNet({ syntax: "next" }, stochastic)).toEqual({
+      syntax: "next",
+    });
   });
 
   it("keeps the layout only under the modular shape", () => {

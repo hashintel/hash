@@ -76,10 +76,16 @@ export const compilePetriNetIr = (
     return lowered;
   }
   const layout = reactiveModuleLayout(ir);
+  const emit = { syntax: resolveZerothTarget(ir.zeroth).syntax };
   const files =
     layout === "single"
-      ? [{ path: "net.py", text: emitReactiveModulePython(lowered.graph) }]
-      : emitReactiveModuleFiles(lowered.graph);
+      ? [
+          {
+            path: "net.py",
+            text: emitReactiveModulePython(lowered.graph, emit),
+          },
+        ]
+      : emitReactiveModuleFiles(lowered.graph, emit);
   const [main] = files;
   if (main === undefined) {
     throw new Error("the emitter produced no file");
@@ -104,5 +110,7 @@ export const petriNetIrToReactiveModule = (
         : `${first.item.kind} ${first.item.name}: ${first.message}`,
     );
   }
-  return emitReactiveModulePython(outcome.graph);
+  return emitReactiveModulePython(outcome.graph, {
+    syntax: resolveZerothTarget(ir.zeroth).syntax,
+  });
 };

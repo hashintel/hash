@@ -19,6 +19,13 @@ import type {
 
 export type ReactiveModuleLayout = "single" | "per-module";
 
+/** The step method's name: `update`, or `next` as the tangent-era sugar calls it. */
+export type ReactiveModuleSyntax = "update" | "next";
+
+export type EmitReactiveModuleOptions = {
+  syntax?: ReactiveModuleSyntax;
+};
+
 export type ReactiveModuleFile = {
   /** Relative to the output directory, `net.py` for the main file. */
   path: string;
@@ -216,7 +223,10 @@ const declarations = (variables: ReactiveVariable[]): string[] => {
   );
 };
 
-const classBody = (module: ReactiveModuleDecl): string[] => {
+const classBody = (
+  module: ReactiveModuleDecl,
+  syntax: ReactiveModuleSyntax,
+): string[] => {
   const { theory } = module;
   const lines = [
     `class ${module.className}(Module):`,
@@ -225,7 +235,7 @@ const classBody = (module: ReactiveModuleDecl): string[] => {
     `${INDENT}def init(${["self", ...module.extl].join(", ")}):`,
     `${INDENT}${INDENT}return ${module.init.map((node) => expr(node, theory)).join(", ")}`,
     "",
-    `${INDENT}def update(${["self", ...module.ctrl, ...module.extl].join(", ")}):`,
+    `${INDENT}def ${syntax}(${["self", ...module.ctrl, ...module.extl].join(", ")}):`,
   ];
   for (const statement of module.update) {
     if (statement.kind === "comment") {
@@ -284,6 +294,7 @@ const system = (graph: ReactiveModuleGraph): string[] => {
 
 export const emitReactiveModulePython = (
   graph: ReactiveModuleGraph,
+  { syntax = "update" }: EmitReactiveModuleOptions = {},
 ): string => {
   const lines = [
     `"""${graph.header}"""`,
@@ -291,7 +302,11 @@ export const emitReactiveModulePython = (
     ...imports(graph),
     "",
     ...declarations(graph.variables),
-    ...graph.modules.flatMap((module) => ["", "", ...classBody(module)]),
+    ...graph.modules.flatMap((module) => [
+      "",
+      "",
+      ...classBody(module, syntax),
+    ]),
     "",
     "",
     ...system(graph),
@@ -332,6 +347,7 @@ const moduleFile = (
   graph: ReactiveModuleGraph,
   module: ReactiveModuleDecl,
   stem: string,
+  syntax: ReactiveModuleSyntax,
 ): ReactiveModuleFile => {
   const exprs = moduleExprs(module);
   // A literal-only branch names the module's theory and a sort, which the
@@ -352,7 +368,7 @@ const moduleFile = (
     ...(literalSorts.length > 0 ? ["", ...literalSorts.map(sortConstant)] : []),
     "",
     "",
-    ...classBody(module),
+    ...classBody(module, syntax),
   ];
   return { path: `${stem}.py`, text: `${lines.join("\n")}\n` };
 };
@@ -392,6 +408,7 @@ const mainFile = (
  */
 export const emitReactiveModuleFiles = (
   graph: ReactiveModuleGraph,
+  { syntax = "update" }: EmitReactiveModuleOptions = {},
 ): ReactiveModuleFile[] => {
   const stems = moduleFileStems(graph.modules);
   return [
@@ -401,6 +418,7 @@ export const emitReactiveModuleFiles = (
         graph,
         module,
         stems.get(module.className) ?? moduleFileStem(module.className),
+        syntax,
       ),
     ),
   ];
