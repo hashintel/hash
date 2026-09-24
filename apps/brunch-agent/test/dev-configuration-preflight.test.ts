@@ -4,7 +4,10 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { selectChatModelSpecifier } from "../src/chat-model.ts";
+import {
+  selectChatModelSpecifier,
+  selectChatThinking,
+} from "../src/chat-model.ts";
 import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
 
 const syntheticKey = "synthetic-config-fixture-not-a-real-credential";
@@ -199,4 +202,17 @@ it("selects the shared Petrinaut default unless the environment overrides it", (
   expect(
     selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "openai/gpt-5.6-sol" }),
   ).toBe("openai/gpt-5.6-sol");
+});
+
+it("applies the default thinking level only to the default model", () => {
+  expect(selectChatThinking({})).toBe("xhigh");
+  expect(
+    selectChatThinking({ BRUNCH_CHAT_MODEL: "claude-sonnet-4-6" }),
+  ).toBeUndefined();
+  expect(
+    selectChatThinking({
+      BRUNCH_CHAT_MODEL: "claude-sonnet-4-6",
+      BRUNCH_CHAT_THINKING: "low",
+    }),
+  ).toBe("low");
 });

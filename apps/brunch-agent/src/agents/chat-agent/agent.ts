@@ -62,7 +62,9 @@ export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 const testCompactionConfig = loadTestCompactionConfig();
 const chatModelOptions = {
-  thinkingLevel: chatThinkingLevel,
+  ...(chatThinkingLevel === undefined
+    ? {}
+    : { thinkingLevel: chatThinkingLevel }),
   ...(testCompactionConfig === undefined
     ? {}
     : { compaction: testCompactionConfig }),

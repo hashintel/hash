@@ -155,6 +155,7 @@ export const evaluationEnvironment = (
   const environment: NodeJS.ProcessEnv = {
     ...base,
     PETRINAUT_AI_MODEL: configuration.stock.model,
+    PETRINAUT_AI_REASONING_EFFORT: configuration.stock.reasoning,
     [brunchEnv.chatModel]: configuration.brunch.model,
     [brunchEnv.chatThinking]: configuration.brunch.reasoning,
     [brunchEnv.viteChatEndpoint]: "/agents/chat",
