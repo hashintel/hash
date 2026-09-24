@@ -48,7 +48,9 @@ export const useFloatingPanel = <
 
   const getBounds = () => {
     const panel = panelRef.current;
-    const parent = panel?.parentElement;
+    // The containing block the panel positions against, or the parent where
+    // layout is unavailable.
+    const parent = panel?.offsetParent ?? panel?.parentElement;
     if (!panel || !parent) return null;
     const bounds = panel.getBoundingClientRect();
     const parentBounds = parent.getBoundingClientRect();

@@ -1,15 +1,20 @@
-import { use, useState } from "react";
+import { use, useState, type ComponentProps } from "react";
 
 import { useCommand } from "../../../react/commands/command-registry";
 import { loadOnce } from "../../lib/load-once";
 import { definePetrinautPlugin } from "../plugin";
 import { PluginContributionBoundary } from "../plugin-boundary";
 
-import type { ReactiveModulesPanel } from "../../views/Editor/panels/reactive-modules-panel";
+import type {
+  ReactiveModulesPanel,
+  ReactiveModulesPanelPlacement,
+} from "../../views/Editor/panels/reactive-modules-panel";
 
 const pluginId = "petrinaut.reactive-modules";
 
 type PanelModule = { ReactiveModulesPanel: typeof ReactiveModulesPanel };
+
+type PanelProps = ComponentProps<typeof ReactiveModulesPanel>;
 
 /**
  * The window and the export behind it load only when the window is first
@@ -23,19 +28,18 @@ const loadReactiveModulesPanel = loadOnce(
 
 const LoadedReactiveModulesPanel = ({
   panel,
-  onClose,
-}: {
-  panel: Promise<PanelModule>;
-  onClose: () => void;
-}) => {
+  ...props
+}: { panel: Promise<PanelModule> } & PanelProps) => {
   const { ReactiveModulesPanel: Panel } = use(panel);
-  return <Panel onClose={onClose} />;
+  return <Panel {...props} />;
 };
 
 /**
- * Owns the window's open state and its palette command. The command sits
- * outside the window's boundary, so a failed load or render closes only the
- * window; running the command again clears the failure and retries.
+ * Owns the window's open state, its placement and its palette command. The
+ * command sits outside the window's boundary, so a failed load or render
+ * closes only the window; running the command again clears the failure and
+ * retries. The placement and the width outlive a closed window, so the next
+ * show reopens it where it was left.
  *
  * The panel's import is held here, in a component that has committed, so the
  * window reads one promise until it settles. Asking the loader in the
@@ -46,6 +50,9 @@ const LoadedReactiveModulesPanel = ({
 const ReactiveModulesWindow = () => {
   const [panel, setPanel] = useState<Promise<PanelModule> | null>(null);
   const [showRequests, setShowRequests] = useState(0);
+  const [placement, setPlacement] =
+    useState<ReactiveModulesPanelPlacement>("floating");
+  const [width, setWidth] = useState(560);
 
   useCommand({
     id: `${pluginId}.show`,
@@ -68,6 +75,10 @@ const ReactiveModulesWindow = () => {
       <LoadedReactiveModulesPanel
         panel={panel}
         onClose={() => setPanel(null)}
+        placement={placement}
+        onPlacementChange={setPlacement}
+        width={width}
+        onWidthChange={setWidth}
       />
     </PluginContributionBoundary>
   ) : null;
@@ -75,7 +86,7 @@ const ReactiveModulesWindow = () => {
 
 /**
  * The Zeroth Reactive Modules window: the current net compiled to the Petri
- * net IR, opened from the palette.
+ * net IR, opened from the palette and dockable beside the workspace.
  */
 export const reactiveModulesPlugin = definePetrinautPlugin({
   id: pluginId,

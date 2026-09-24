@@ -11,7 +11,9 @@ Open the Command Palette and run **Show Zeroth Reactive Modules**. A floating wi
 - Close it with the **×** button. Run the command again to reopen it.
 - If the window fails to load, run the command again to try once more.
 
-The window cannot dock into a side panel yet.
+## Docking the window
+
+**Dock Zeroth Reactive Modules** in the title bar turns the window into a column beside the canvas: to the right of the properties panel and to the left of the AI assistant, when either is open. Drag the column's left edge to resize it. **Float Zeroth Reactive Modules** turns it back into a window. The placement and the width are kept while the editor is open, so a window closed while docked reopens docked.
 
 ## The Petri Net IR tab
 

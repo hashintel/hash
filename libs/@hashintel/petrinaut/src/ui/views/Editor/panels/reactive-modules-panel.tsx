@@ -1,7 +1,8 @@
 import { Suspense, use, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { compileReactiveModuleExport } from "@hashintel/petrinaut-core/reactive-modules";
 
 import { LanguageClientContext } from "../../../../react/lsp/context";
@@ -10,7 +11,9 @@ import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { HorizontalTabsHeader } from "../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { ExperimentalIcon } from "../../../experimental-icons";
 import { CodeEditor } from "../../../monaco/code-editor";
+import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../shared/floating-resize-handles";
+import { useSideDockContainer } from "../shared/side-dock";
 import { useFloatingPanel } from "../shared/use-floating-panel";
 import { loadExportLanguages } from "./reactive-modules-panel/monaco-languages";
 import { useLambdaHir } from "./reactive-modules-panel/use-lambda-hir";
@@ -20,6 +23,12 @@ import type { CodeEditorProps } from "../../../monaco/code-editor";
 import type { PetriNetIrDiagnostic } from "@hashintel/petrinaut-core/reactive-modules";
 
 const PANEL_LABEL = "Zeroth Reactive Modules";
+
+/** A movable window over the workspace, or a column beside it. */
+export type ReactiveModulesPanelPlacement = "docked" | "floating";
+
+/** Width bounds in CSS pixels, the same in both placements. */
+const PANEL_LIMITS = { minWidth: 360, maxWidth: 1200 };
 
 type TabId = "ir";
 
@@ -39,31 +48,61 @@ const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
   },
 };
 
+// Monaco consumes every wheel event over the editor, its default: an event
+// let through at the end of the text would scroll the page behind the panel,
+// and a horizontal one reaching the page edge would navigate the browser
+// back or forward.
 const VIEWER_OPTIONS: CodeEditorProps["options"] = {
   readOnly: true,
   domReadOnly: true,
   lineNumbers: "on",
   renderLineHighlight: "none",
   showFoldingControls: "always",
-  scrollbar: { alwaysConsumeMouseWheel: false },
 };
 
-const shellStyle = css({
-  position: "absolute",
-  zIndex: "[calc(var(--z-index-sticky) + 2)]",
-  pointerEvents: "auto",
+const shellStyle = cva({
+  base: {
+    zIndex: "[calc(var(--z-index-sticky) + 2)]",
+    pointerEvents: "auto",
+  },
+  variants: {
+    placement: {
+      // Positions against the workspace row: the dock column it renders in
+      // is not positioned.
+      floating: { position: "absolute" },
+      docked: { position: "relative", flexShrink: 0, height: "full" },
+    },
+  },
 });
 
-const cardStyle = css({
-  position: "relative",
-  display: "flex",
-  flexDirection: "column",
-  height: "full",
-  overflow: "hidden",
-  backgroundColor: "neutral.s00",
-  borderRadius: "xl",
-  boxShadow:
-    "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
+const cardStyle = cva({
+  base: {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    height: "full",
+    overflow: "hidden",
+    backgroundColor: "neutral.s00",
+  },
+  variants: {
+    placement: {
+      floating: {
+        borderRadius: "xl",
+        boxShadow:
+          "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
+      },
+      docked: { borderLeft: "[1px solid {colors.neutral.s40}]" },
+    },
+  },
+});
+
+// The docked resize handle straddles the column's left border.
+const resizeAnchorStyle = css({
+  position: "absolute",
+  top: "[0]",
+  bottom: "[0]",
+  left: "[0]",
+  width: "[0]",
 });
 
 const headerStyle = css({
@@ -78,25 +117,33 @@ const headerStyle = css({
   userSelect: "none",
 });
 
-// The title doubles as the drag handle and stretches over the free header
-// space, so most of the header moves the window.
-const dragHandleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  flex: "[1]",
-  minWidth: "[0]",
-  height: "full",
-  border: "none",
-  padding: "[0]",
-  backgroundColor: "[transparent]",
-  color: "neutral.fg.heading",
-  fontSize: "sm",
-  fontWeight: "medium",
-  whiteSpace: "nowrap",
-  textAlign: "left",
-  cursor: "grab",
-  touchAction: "none",
-  _active: { cursor: "grabbing" },
+// The title stretches over the free header space. Floating, it doubles as
+// the drag handle, so most of the header moves the window.
+const titleStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    flex: "[1]",
+    minWidth: "[0]",
+    height: "full",
+    border: "none",
+    padding: "[0]",
+    backgroundColor: "[transparent]",
+    color: "neutral.fg.heading",
+    fontSize: "sm",
+    fontWeight: "medium",
+    whiteSpace: "nowrap",
+    textAlign: "left",
+  },
+  variants: {
+    draggable: {
+      true: {
+        cursor: "grab",
+        touchAction: "none",
+        _active: { cursor: "grabbing" },
+      },
+    },
+  },
 });
 
 const statusStyle = css({
@@ -132,6 +179,7 @@ const notesStyle = css({
   gap: "3",
   padding: "3",
   overflow: "auto",
+  overscrollBehavior: "contain",
 });
 
 const footerStyle = css({
@@ -143,6 +191,7 @@ const footerStyle = css({
   flexShrink: 0,
   maxHeight: "[40%]",
   overflow: "auto",
+  overscrollBehavior: "contain",
 });
 
 const mutedStyle = css({
@@ -211,27 +260,50 @@ const DiagnosticList = ({
 );
 
 /**
- * A floating, resizable window showing the current net compiled to the
- * Petri net IR. It recompiles as the net changes, starting from the initial
- * state and parameter values the Simulation Settings resolve.
+ * The current net compiled to the Petri net IR, as a movable window over the
+ * workspace or docked as a column beside it, between the properties panel and
+ * the AI assistant. It recompiles as the net changes, starting from the
+ * initial state and parameter values the Simulation Settings resolve.
+ *
+ * Both placements render into the side dock column, so switching between
+ * them keeps the editor mounted. The placement and the width are the
+ * caller's, so they outlive a closed window.
  */
-export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
+export const ReactiveModulesPanel = ({
+  onClose,
+  placement,
+  onPlacementChange,
+  width,
+  onWidthChange,
+}: {
+  onClose: () => void;
+  placement: ReactiveModulesPanelPlacement;
+  onPlacementChange: (placement: ReactiveModulesPanelPlacement) => void;
+  /** Width in CSS pixels, shared by both placements. */
+  width: number;
+  onWidthChange: (width: number) => void;
+}) => {
   const { petriNetDefinition, extensions, title } = use(SDCPNContext);
   const { initialMarking, parameterValues } = use(SimulationContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
+  const container = useSideDockContainer();
   const [activeTab, setActiveTab] = useState<TabId>("ir");
   // One grammar load per window: a failure fails this window once, and the
   // window mounted by the next show loads again.
   const [languages] = useState(loadExportLanguages);
-  const [width, setWidth] = useState(560);
-  const { panelRef, handleProps, getResizeHandleProps, style } =
-    useFloatingPanel<HTMLElement>({
-      width,
-      onWidthChange: setWidth,
-      initialHeight: 520,
-      initialPosition: "center",
-      limits: { minWidth: 360, maxWidth: 1200 },
-    });
+  const isFloating = placement === "floating";
+  const {
+    panelRef,
+    handleProps,
+    getResizeHandleProps,
+    style: floatingStyle,
+  } = useFloatingPanel<HTMLElement>({
+    width,
+    onWidthChange,
+    initialHeight: 520,
+    initialPosition: "center",
+    limits: PANEL_LIMITS,
+  });
 
   const lambdaHir = useLambdaHir(
     petriNetDefinition,
@@ -259,29 +331,55 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
 
   const output = result === null || result.errors.length > 0 ? null : result.ir;
 
-  return (
+  if (container === null) {
+    return null;
+  }
+
+  const Title = isFloating ? "button" : "div";
+  const placementLabel = isFloating
+    ? `Dock ${PANEL_LABEL}`
+    : `Float ${PANEL_LABEL}`;
+
+  const panel = (
     <aside
       ref={panelRef}
-      role="dialog"
+      role={isFloating ? "dialog" : undefined}
       aria-label={PANEL_LABEL}
-      className={shellStyle}
-      style={style}
+      data-placement={placement}
+      className={shellStyle({ placement })}
+      style={isFloating ? floatingStyle : { width: `min(${width}px, 100cqw)` }}
     >
-      <FloatingResizeHandles
-        label={PANEL_LABEL}
-        getHandleProps={getResizeHandleProps}
-      />
-      <div className={cardStyle}>
+      {isFloating ? (
+        <FloatingResizeHandles
+          label={PANEL_LABEL}
+          getHandleProps={getResizeHandleProps}
+        />
+      ) : (
+        <div className={resizeAnchorStyle}>
+          <ResizeHandle
+            edge="left"
+            appearance="hidden"
+            size={width}
+            onResize={onWidthChange}
+            minSize={PANEL_LIMITS.minWidth}
+            maxSize={PANEL_LIMITS.maxWidth}
+            label={`Resize ${PANEL_LABEL}`}
+          />
+        </div>
+      )}
+      <div className={cardStyle({ placement })}>
         <div className={headerStyle}>
-          <button
-            type="button"
-            className={dragHandleStyle}
-            aria-label={`Move ${PANEL_LABEL}`}
-            title="Drag to move, or use the arrow keys"
-            {...handleProps}
+          <Title
+            type={isFloating ? "button" : undefined}
+            className={titleStyle({ draggable: isFloating })}
+            aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
+            title={
+              isFloating ? "Drag to move, or use the arrow keys" : undefined
+            }
+            {...(isFloating ? handleProps : {})}
           >
             {PANEL_LABEL}
-          </button>
+          </Title>
           <HorizontalTabsHeader
             subViews={TABS}
             activeTabId={activeTab}
@@ -292,6 +390,22 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
               {status}
             </span>
           )}
+          <Button
+            size="xs"
+            variant="ghost"
+            className={headerButtonStyle}
+            aria-label={placementLabel}
+            onClick={() =>
+              onPlacementChange(isFloating ? "docked" : "floating")
+            }
+            prefix={
+              <ExperimentalIcon
+                name={isFloating ? "sidebar" : "externalLink"}
+                size={14}
+              />
+            }
+            tooltip={placementLabel}
+          />
           <Button
             size="xs"
             variant="ghost"
@@ -354,4 +468,6 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
       </div>
     </aside>
   );
+
+  return container === undefined ? panel : createPortal(panel, container);
 };
