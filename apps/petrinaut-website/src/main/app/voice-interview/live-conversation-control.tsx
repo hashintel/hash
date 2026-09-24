@@ -13,6 +13,7 @@ import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
+import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
@@ -41,6 +42,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     >[0]["submit"];
     readonly connectionTimeoutMs: number;
     readonly isDisclosureAcknowledged: () => boolean;
+    readonly utteranceJudgment?: "log";
   };
 
 export const LiveConversationControl = ({
@@ -53,6 +55,7 @@ export const LiveConversationControl = ({
   setVoiceActive,
   setInputMode,
   connectionTimeoutMs,
+  utteranceJudgment,
   submit,
   messages,
   status,
@@ -245,13 +248,23 @@ export const LiveConversationControl = ({
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
       notice: setWarningMessage,
+      judge:
+        utteranceJudgment === "log"
+          ? createUtteranceJudgmentRequester(globalThis.fetch.bind(globalThis))
+          : undefined,
     });
     bridge.current.update(latest.current.chat);
     session.current = next;
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
+  }, [
+    audioSettingsStore,
+    connectionTimeoutMs,
+    phase,
+    setVoiceActive,
+    utteranceJudgment,
+  ]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;

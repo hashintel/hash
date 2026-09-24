@@ -1,6 +1,10 @@
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
+import type {
+  UtteranceJudgment,
+  UtteranceJudgmentState,
+} from "../../../shared/live-utterance-judgment";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {
   RealtimeBrunchBridge,
@@ -41,6 +45,11 @@ interface Dependencies {
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
   readonly notice: (message: string | null) => void;
+  /** Optional log-only observation. Never controls submission or admission. */
+  readonly judge?: (
+    state: UtteranceJudgmentState,
+    signal: AbortSignal,
+  ) => Promise<UtteranceJudgment | null>;
 }
 
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
@@ -62,6 +71,7 @@ export class LiveBrunchBridge {
     >
   >();
   #waitingForComposer: Turn | undefined;
+  #lastOfferedText: string | null = null;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -166,6 +176,8 @@ export class LiveBrunchBridge {
     };
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
+    // No await: a slow judge must not change the composer's admission window.
+    if (this.#dependencies.judge) void this.#observeJudgment(turn, input.text);
     try {
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       const result = await this.#dependencies.submit({
@@ -214,6 +226,38 @@ export class LiveBrunchBridge {
       if (this.#waitingForComposer === turn)
         this.#waitingForComposer = undefined;
     }
+  }
+
+  async #observeJudgment(turn: Turn, transcript: string): Promise<void> {
+    const startedAt = performance.now();
+    let judgment: UtteranceJudgment | null = null;
+    try {
+      judgment = await this.#dependencies.judge!(
+        { transcript, relayedBrunchText: this.#lastOfferedText },
+        this.#abort.signal,
+      );
+    } catch {
+      // Provider errors can contain source text. Record only an absent judgment.
+    }
+    const decision =
+      turn.delegationId !== null ||
+      judgment === null ||
+      judgment.confidence < 0.8 ||
+      judgment.contribution === "interview_content"
+        ? "submit"
+        : "withhold";
+    logLiveDiagnostic("judgment.result", {
+      inputId: turn.inputId,
+      delegationId: turn.delegationId,
+      judgment: judgment !== null,
+      contribution: judgment?.contribution ?? null,
+      confidence: judgment?.confidence ?? null,
+      latencyMs: Math.round(performance.now() - startedAt),
+      decision,
+      applied: "submit",
+      mode: "log",
+      afterStop: this.#abort.signal.aborted,
+    });
   }
 
   public responseStarted(event: FlueChatResponseMessageStartedEvent): void {
@@ -544,7 +588,9 @@ export class LiveBrunchBridge {
         segmentCount: segments.length,
         characters: source.length,
       });
-      this.#dependencies.appendCommentary(source, turn.delegationId);
+      if (this.#dependencies.appendCommentary(source, turn.delegationId)) {
+        this.#lastOfferedText = source;
+      }
     }
   }
 }

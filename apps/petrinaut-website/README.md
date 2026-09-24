@@ -128,16 +128,18 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 ## Environment variables
 
-| Name                               | Required         | Used by          | Notes                                                                                                            |
-| ---------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                                               |
-| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
-| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
-| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                                           |
-| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
-| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
-| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
+| Name                                | Required         | Used by          | Notes                                                                                                            |
+| ----------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                    | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                                               |
+| `OPENAI_VOICE_API_KEY`              | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
+| `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
+| `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
+| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for the log-only Live experiment.                                                       |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission. Unset, unknown, and `enforce` values are off.       |
+| `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                                           |
+| `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
+| `VITE_PETRINAUT_DEFAULT_ASSISTANT`  | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
+| `SENTRY_DSN`                        | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
@@ -238,6 +240,42 @@ policy may not retain all of them. See [MISSION.md](MISSION.md) for the current
 acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
+
+#### Log-only utterance judgment (FE-1771)
+
+With `TYPESAFE_API_KEY` set, start the local experiment:
+
+```sh
+PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live PETRINAUT_LIVE_UTTERANCE_JUDGMENT=log yarn dev:brunch
+```
+
+After the existing duplicate, empty, oversize and admission checks, each eligible
+finalized transcript gets one System One request through the same-origin
+`/api/voice/utterance-judgment` endpoint. Judgment runs alongside Brunch submission:
+it neither delays admission, rewrites text nor drops another utterance while
+waiting. The last successfully offered Brunch prose is context, not proof of
+audio playback. Both text fields are sent to TypeSafe; neither is logged.
+
+Local `[Petrinaut Live trace]` records include one `judgment.result` per request
+with `contribution`, `confidence`, `latencyMs`, a provisional `decision` at the
+0.8 threshold, and `applied: "submit"`. Failures have null contribution/confidence.
+The log-only browser measurement window is 10 seconds, with a 12-second server
+safety bound. This longer window measures results missed by the initial
+one-second cutoff; it is not an enforcement deadline and never delays submission.
+Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
+and 2 seconds separately from failures/timeouts, which are not successful latency
+samples. Diagnostics are dev-only.
+This endpoint inherits the unauthenticated Voice boundary; origin checks are
+not authentication. Do not enable it on a public deployment.
+
+Acceptance requires a real log-only support-desk run: opening modelling request,
+"okay", a staffing range, Brunch's question repeated back, and "hang on". Retain
+the five metadata-only triples and latency p50, verify one unchanged submission
+per eligible utterance, and check `JSON.stringify(trace)` contains none of the
+spoken or relayed text. Synthetic fixtures and a working endpoint do not prove
+classification quality or real latency. Enforcement is not implemented in this
+milestone; threshold, timeout and any later delegation override remain subject
+to a separate owner decision after reviewing those traces.
 
 ### Brunch Voice mode
 

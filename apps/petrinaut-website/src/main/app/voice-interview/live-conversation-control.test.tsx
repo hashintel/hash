@@ -98,6 +98,63 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
 
+test.each(["log", undefined] as const)(
+  "wires judgment mode %s without waiting for it to submit",
+  async (utteranceJudgment) => {
+    const pending = Promise.withResolvers<Response>();
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockReturnValue(pending.promise);
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    window.localStorage.setItem(
+      LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const props = context();
+    vi.mocked(props.submitVoiceInput).mockResolvedValue({
+      kind: "message",
+      messageId: "one",
+    });
+    try {
+      render(
+        <VoiceInterviewControl
+          {...props}
+          config={{ ...config, utteranceJudgment }}
+          resolveInputSubmission={() => "root"}
+        />,
+      );
+      const onInput = vi.mocked(createLiveConversation).mock.calls[0]![2];
+      act(() => onInput({ id: "one", text: "PRIVATE OKAY" }));
+      expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+      expect(fetch).toHaveBeenCalledTimes(utteranceJudgment === "log" ? 1 : 0);
+      if (utteranceJudgment === "log") {
+        expect(fetch.mock.calls[0]?.[0]).toBe("/api/voice/utterance-judgment");
+        expect(fetch.mock.calls[0]?.[1]?.body).toBe(
+          JSON.stringify({
+            transcript: "PRIVATE OKAY",
+            relayedBrunchText: null,
+          }),
+        );
+      }
+      pending.resolve(
+        Response.json({
+          contribution: "social_or_backchannel",
+          confidence: 0.94,
+        }),
+      );
+      await act(async () => {
+        await pending.promise;
+      });
+      expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+      expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+    } finally {
+      pending.resolve(Response.json({}));
+      fetch.mockRestore();
+      debug.mockRestore();
+    }
+  },
+);
+
 test("starts Live directly after the voice disclosure is acknowledged", () => {
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
