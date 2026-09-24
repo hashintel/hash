@@ -332,6 +332,7 @@ const ExportViewer = ({
   value,
   trace,
   origins,
+  explain,
 }: {
   languages: Promise<void>;
   tab: TabId;
@@ -340,6 +341,8 @@ const ExportViewer = ({
   value: string;
   trace: Trace | null;
   origins: PetriNetIrOrigins | null;
+  /** Whether the hover reads the trace; off, the editor is plain text. */
+  explain: boolean;
 }) => {
   use(languages);
   const { setHoveredItem, clearHoveredItem, selectItem } = use(EditorContext);
@@ -362,9 +365,9 @@ const ExportViewer = ({
   });
   useEffect(() => {
     const key = modelPathOf(path);
-    bindTrace(key, { trace: trace ?? [], origins });
+    bindTrace(key, { trace: explain ? (trace ?? []) : [], origins });
     return () => unbindTrace(key);
-  }, [path, trace, origins]);
+  }, [path, trace, origins, explain]);
   useEffect(() => () => detachRef.current?.(), []);
   return (
     <CodeEditor
@@ -441,6 +444,8 @@ export const ReactiveModulesPanel = ({
   const [flags, setFlags] = useState<ZerothTarget>({});
   const [selectedFile, setSelectedFile] = useState("net.py");
   const [filesOpen, setFilesOpen] = useState(true);
+  // Off until asked: the explanations light the canvas as the pointer moves.
+  const [explainOnHover, setExplainOnHover] = useState(false);
   const target = resolveZerothTarget({ ...flags, dt });
   // One grammar load per window: a failure fails this window once, and the
   // window mounted by the next show loads again.
@@ -569,6 +574,9 @@ export const ReactiveModulesPanel = ({
   // One file needs no list; the toggle and the list appear with a second.
   const listedFiles = files !== null && files.length > 1 ? files : null;
   const filesLabel = filesOpen ? "Hide files" : "Show files";
+  const explainLabel = explainOnHover
+    ? "Stop explaining lines on hover"
+    : "Explain lines on hover";
   // The docked width, read by the spacer and the window through CSS.
   const dockedStyle = { "--dock-width": `${width}px` } as CSSProperties;
   const spacerStyle = {
@@ -650,6 +658,16 @@ export const ReactiveModulesPanel = ({
               subViews={TABS}
               activeTabId={activeTab}
               onTabChange={(tabId) => setActiveTab(tabId as TabId)}
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              className={headerButtonStyle}
+              aria-label={explainLabel}
+              pressed={explainOnHover}
+              onClick={() => setExplainOnHover(!explainOnHover)}
+              prefix={<ExperimentalIcon name="info" size={14} />}
+              tooltip={explainLabel}
             />
             <Button
               size="xs"
@@ -760,6 +778,7 @@ export const ReactiveModulesPanel = ({
                             : (shownFile?.trace ?? null)
                         }
                         origins={result.origins}
+                        explain={explainOnHover}
                       />
                     </Suspense>
                   </div>
