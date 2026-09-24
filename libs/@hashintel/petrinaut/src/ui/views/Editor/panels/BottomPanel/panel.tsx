@@ -5,10 +5,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import {
-  type BottomPanelTab,
-  EditorContext,
-} from "../../../../../react/state/editor-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -27,6 +24,9 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
+import { usePluginSubViews } from "../../../../plugins/plugin-sub-views";
+
+import type { SubView } from "../../../../components/sub-view/types";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -91,22 +91,27 @@ const headerRightStyle = css({
   flexShrink: "[10]",
 });
 
+/** The built-in tabs for the current execution mode, then the plugins' tabs. */
 const getBottomPanelSubViews = ({
   isActualMode,
   isSimulationActive,
   showCompilationOutput,
+  pluginSubViews,
 }: {
   isActualMode: boolean;
   isSimulationActive: boolean;
   showCompilationOutput: boolean;
-}) =>
-  isActualMode
+  pluginSubViews: readonly SubView[];
+}): SubView[] => [
+  ...(isActualMode
     ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
     : [
         ...BOTTOM_PANEL_SUBVIEWS,
         ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
         ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
-      ];
+      ]),
+  ...pluginSubViews,
+];
 
 /**
  * BottomPanel shows tabs for Diagnostics and Simulation Settings.
@@ -131,6 +136,7 @@ export const BottomPanel: React.FC = () => {
   } = use(EditorContext);
 
   const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
+  const pluginSubViews = usePluginSubViews("bottom-panel");
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
@@ -156,6 +162,7 @@ export const BottomPanel: React.FC = () => {
     isActualMode,
     isSimulationActive,
     showCompilationOutput,
+    pluginSubViews,
   });
 
   // Automatically open bottom panel and switch to the relevant timeline when a
@@ -206,12 +213,11 @@ export const BottomPanel: React.FC = () => {
       isActualMode,
       isSimulationActive,
       showCompilationOutput,
+      pluginSubViews,
     });
 
     if (!availableSubViews.some((subView) => subView.id === activeTab)) {
-      const fallbackTab = availableSubViews[0]?.id as
-        | BottomPanelTab
-        | undefined;
+      const fallbackTab = availableSubViews[0]?.id;
 
       if (fallbackTab) {
         setActiveTab(fallbackTab);
@@ -221,6 +227,7 @@ export const BottomPanel: React.FC = () => {
     activeTab,
     isActualMode,
     isSimulationActive,
+    pluginSubViews,
     setActiveTab,
     showCompilationOutput,
   ]);
@@ -231,7 +238,7 @@ export const BottomPanel: React.FC = () => {
     activeTab;
 
   const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId as BottomPanelTab);
+    setActiveTab(tabId);
   };
 
   // Calculate left position based on left sidebar visibility.
