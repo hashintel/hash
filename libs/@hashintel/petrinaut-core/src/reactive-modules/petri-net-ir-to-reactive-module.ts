@@ -72,8 +72,14 @@ export type CompilePetriNetIrOutcome =
       python: string;
       /** Every file, the main one first. One file under the single layout. */
       files: ReactiveModuleFile[];
+      /** What the lowering ignored, such as a flag that does not apply. */
+      warnings: PetriNetIrDiagnostic[];
     }
-  | { ok: false; errors: PetriNetIrDiagnostic[] };
+  | {
+      ok: false;
+      errors: PetriNetIrDiagnostic[];
+      warnings: PetriNetIrDiagnostic[];
+    };
 
 /** The layout the flags ask for: a module per file only splits a composed system. */
 export const reactiveModuleLayout = (
@@ -119,7 +125,13 @@ export const compilePetriNetIr = (
   if (main === undefined) {
     throw new Error("the emitter produced no file");
   }
-  return { ok: true, graph: lowered.graph, python: main.text, files };
+  return {
+    ok: true,
+    graph: lowered.graph,
+    python: main.text,
+    files,
+    warnings: lowered.warnings,
+  };
 };
 
 /**

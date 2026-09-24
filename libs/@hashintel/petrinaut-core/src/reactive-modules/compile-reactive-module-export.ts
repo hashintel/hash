@@ -55,6 +55,7 @@ export type ReactiveModuleExport = {
   /** Every Python file, the main one first, each with its trace; `null` with `python`. */
   files: ReactiveModuleExportFile[] | null;
   errors: PetriNetIrDiagnostic[];
+  /** The IR builder's warnings, then the lowering's. */
   warnings: PetriNetIrDiagnostic[];
 };
 
@@ -107,6 +108,6 @@ export const compileReactiveModuleExport = ({
         }))
       : null,
     errors: compiled.ok ? [] : compiled.errors,
-    warnings: outcome.warnings,
+    warnings: [...outcome.warnings, ...compiled.warnings],
   };
 };

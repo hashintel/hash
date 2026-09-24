@@ -905,6 +905,21 @@ describe("petriNetIrToReactiveModule under clock rates", () => {
     expect(place?.text).not.toContain("def flow(");
   });
 
+  it("returns the lowering's warning about an open control beside the module", () => {
+    const outcome = compilePetriNetIr({
+      ...birthDeathIr,
+      transitions: {
+        ...birthDeathIr.transitions,
+        Death: { ...birthDeathIr.transitions.Death, controllable: true },
+      },
+      zeroth: { rates: "clock", control: "open" },
+    });
+    expect(outcome).toMatchObject({
+      ok: true,
+      warnings: [{ code: "control-open-clocks" }],
+    });
+  });
+
   it("tests read and inhibitor arcs, applies one exclusive case per mover, and leaves an untouched place alone", () => {
     const python = petriNetIrToReactiveModule({
       name: "clocked",
