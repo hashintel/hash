@@ -8,18 +8,11 @@ import { promisify } from "node:util";
 import { FlueExecutionError } from "@flue/sdk";
 import { afterEach, expect, test, vi } from "vitest";
 
-import {
-  DEFAULT_CHAT_MODEL,
-  DEFAULT_CHAT_THINKING,
-  PERSONA_DEFAULT_PERSONA_MODEL,
-  PERSONA_DEFAULT_PERSONA_THINKING,
-} from "../../chat-model.ts";
+import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
 import { flueConversationIdFrom } from "../../conversation/identity.ts";
 import { createStepARequestAccounting } from "../../provider-accounting.ts";
 import {
   documentIdFromInitialData,
-  paneIdFrom,
-  personaArguments,
   personaEnvironment,
   personaSettingsRecord,
   readPersonaCase,
@@ -27,10 +20,12 @@ import {
   responds,
   settlePersonaLauncherStop,
 } from "./launch.ts";
+import { resolvePersonaAgentSettings } from "./launch/agent.ts";
 import {
   axisSettingsFromRun,
   resolvePersonaAxisSettings,
 } from "./launch/axis-settings.ts";
+import { appendAdmittedUtterance } from "./launch/bridge-log.ts";
 import { readPersonaResume } from "./launch/resume.ts";
 import {
   resolvePersonaRoleSettings,
@@ -139,82 +134,6 @@ test("both launcher children override inherited campaign accounting", () => {
   ).toBeUndefined();
 });
 
-test.each([
-  ["anthropic/claude-sonnet-4-6", "ANTHROPIC_API_KEY"],
-  ["openai/gpt-5.6-sol", "OPENAI_API_KEY"],
-])(
-  "Pi child receives only the selected credential for %s",
-  async (model, key) => {
-    const run = await mkdtemp(join(tmpdir(), "TEST-persona-child-"));
-    try {
-      await mkdir(join(run, "pi"));
-      await Promise.all([
-        writeFile(
-          join(run, "run.json"),
-          JSON.stringify({
-            ...resolvePersonaRoleSettings({ personaModel: model }),
-            socketPath: join(run, "bridge.sock"),
-          }),
-        ),
-        writeFile(
-          join(run, "pi/settings.json"),
-          JSON.stringify({
-            retry: { enabled: false, provider: { maxRetries: 0 } },
-          }),
-        ),
-      ]);
-      await mkdir(join(run, "bin"));
-      await writeFile(
-        join(run, "bin/pi"),
-        `#!${process.execPath}\nconsole.log(JSON.stringify({ keys: Object.keys(process.env), selected: process.env[${JSON.stringify(key)}] === "TEST-configuration-key", directory: process.env.PI_CODING_AGENT_DIR }));\n`,
-        { mode: 0o700 },
-      );
-      const { stdout } = await promisify(execFile)(
-        process.execPath,
-        [
-          "--experimental-strip-types",
-          fileURLToPath(new URL("./launch.ts", import.meta.url)),
-          "--run-persona",
-          run,
-        ],
-        {
-          env: {
-            ...process.env,
-            PATH: `${join(run, "bin")}:${process.env.PATH ?? ""}`,
-            ANTHROPIC_API_KEY: "TEST-configuration-key",
-            OPENAI_API_KEY: "TEST-configuration-key",
-            UNRELATED_SECRET: "TEST-unrelated-secret",
-            BRUNCH_STEP_A_ACCOUNTING: "TEST-inherited-accounting",
-            DEBUG: "",
-            HTTP_PROXY: "",
-            HTTPS_PROXY: "",
-            ALL_PROXY: "",
-            ANTHROPIC_AUTH_TOKEN: "",
-            ANTHROPIC_OAUTH_TOKEN: "",
-            ANTHROPIC_BASE_URL: "",
-          },
-        },
-      );
-      const result = JSON.parse(stdout) as {
-        keys: string[];
-        selected: boolean;
-        directory: string;
-      };
-      expect(result.selected).toBe(true);
-      expect(result.directory).toBe(join(run, "pi"));
-      expect(result.keys).toContain("PATH");
-      expect(result.keys).not.toContain(
-        key === "ANTHROPIC_API_KEY" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY",
-      );
-      expect(result.keys).not.toContain("UNRELATED_SECRET");
-      expect(result.keys).not.toContain("BRUNCH_STEP_A_ACCOUNTING");
-    } finally {
-      await rm(run, { recursive: true });
-    }
-  },
-  15_000,
-);
-
 test.each([false, true])(
   "resume reads original stores without consulting accounting (legacy: %s)",
   async (legacy) => {
@@ -244,10 +163,14 @@ test.each([false, true])(
           }),
     };
     try {
-      await Promise.all([
-        mkdir(config.browserProfile),
-        mkdir(join(run, "pi/sessions"), { recursive: true }),
-      ]);
+      await mkdir(config.browserProfile);
+      await appendAdmittedUtterance(run, "opening", "Hello.");
+      await appendAdmittedUtterance(
+        run,
+        "persona",
+        "Please continue.",
+        "sub_TEST",
+      );
       await Promise.all([
         writeFile(join(run, "run.json"), JSON.stringify(config)),
         writeFile(config.databasePath, "TEST store presence"),
@@ -273,30 +196,11 @@ test.each([false, true])(
             },
           }),
         ),
-        writeFile(
-          join(run, "pi/sessions/original.jsonl"),
-          JSON.stringify({
-            type: "message",
-            message: {
-              role: "assistant",
-              content: [
-                {
-                  type: "toolCall",
-                  name: "brunch_turn",
-                  arguments: { message: "Please continue." },
-                },
-              ],
-            },
-          }),
-        ),
       ]);
       const resumed = await readPersonaResume(run);
       expect(resumed.lastUtterance).toBe("Please continue.");
-      expect(resumed.piSession).toBe(join(run, "pi/sessions/original.jsonl"));
       expect(resumed.config.brunchModel).toBe("anthropic/claude-sonnet-4-6");
-      expect(resumed.config.personaModel).toBe("anthropic/claude-sonnet-4-6");
       expect(resumed.config.brunchThinking).toBe("medium");
-      expect(resumed.config.personaThinking).toBe("medium");
       expect(resumed.config.personaVerbosity).toBe(
         legacy ? "default" : "expansive",
       );
@@ -345,7 +249,13 @@ test("root launch command resolves a caller-relative case before checking intera
     await expect(
       promisify(execFile)(
         "yarn",
-        ["brunch:persona", "--case", relative(repo, directory)],
+        [
+          "brunch:persona",
+          "--case",
+          relative(repo, directory),
+          "--agent",
+          "claude",
+        ],
         {
           cwd: repo,
           env: { ...process.env, HERDR_ENV: "0" },
@@ -353,7 +263,7 @@ test("root launch command resolves a caller-relative case before checking intera
       ),
     ).rejects.toMatchObject({
       stderr: expect.stringContaining(
-        "Run brunch:persona from a Herdr terminal",
+        "Without Herdr the persona agent needs an interactive terminal",
       ) as unknown,
     });
   } finally {
@@ -361,45 +271,54 @@ test("root launch command resolves a caller-relative case before checking intera
   }
 }, 15_000);
 
-test("launches a fresh restricted persona using input files, not prior session or private content arguments", () => {
-  const args = personaArguments(
-    "/tmp/TEST-persona",
-    resolvePersonaRoleSettings(),
-    resolvePersonaAxisSettings(),
-    "/tmp/TEST-socket",
-  );
-  expect(args).toContain(PERSONA_DEFAULT_PERSONA_MODEL);
-  expect(args).toContain(PERSONA_DEFAULT_PERSONA_THINKING);
-  expect(args).toContain("brunch_turn");
-  expect(args).toContain("--no-context-files");
-  expect(args).toContain("--no-builtin-tools");
-  expect(args).toContain("--no-extensions");
-  expect(args).toContain("--no-skills");
-  expect(args).toContain("--no-prompt-templates");
-  expect(args).toContain("--approve");
-  expect(args).not.toContain("--no-approve");
-  expect(args).toContain("--brunch-browser-bridge");
-  expect(args).toContain("/tmp/TEST-socket");
-  expect(args.at(-1)).toBe("@/tmp/TEST-persona/persona-input.md");
-  expect(args).not.toContain("--session");
-  expect(args).not.toContain("--continue");
-  expect(args).not.toContain("--api-key");
-});
-
-test("resumes an exact Pi session without replaying the opening input", () => {
-  const args = personaArguments(
-    "/tmp/TEST-persona",
-    resolvePersonaRoleSettings(),
-    resolvePersonaAxisSettings(),
-    "/tmp/TEST-new-socket",
-    "/tmp/TEST-persona/pi/sessions/original.jsonl",
-  );
-  expect(
-    args.slice(args.indexOf("--session"), args.indexOf("--session") + 2),
-  ).toEqual(["--session", "/tmp/TEST-persona/pi/sessions/original.jsonl"]);
-  expect(args.at(-1)).toBe("@/tmp/TEST-persona/resume-input.md");
-  expect(args).not.toContain("@/tmp/TEST-persona/persona-input.md");
-  expect(args).not.toContain("--continue");
+test("resume requires the bridge log that Pi-era runs lack", async () => {
+  const run = await mkdtemp(join(tmpdir(), "TEST-persona-legacy-"));
+  const identity = {
+    principalKey: "TEST-principal",
+    conversationId: "TEST-conversation",
+  };
+  const panelOrigin = "http://127.0.0.1:4926";
+  try {
+    await mkdir(join(run, "chrome"));
+    await Promise.all([
+      writeFile(
+        join(run, "run.json"),
+        JSON.stringify({
+          caseDirectory: "/TEST/case",
+          brunchModel: "openai/gpt-5.6-sol",
+          brunchThinking: "low",
+          databasePath: join(run, "conversation.db"),
+          browserProfile: join(run, "chrome"),
+          panelOrigin,
+          route: "/",
+        }),
+      ),
+      writeFile(join(run, "conversation.db"), "TEST store presence"),
+      writeFile(
+        join(run, "session.json"),
+        JSON.stringify({
+          ...identity,
+          uid: "TEST-uid",
+          url: `${panelOrigin}/agents/chat/${flueConversationIdFrom(identity)}`,
+          initialData: {
+            mode: "integrated-brunch-canonical",
+            construction: {
+              binding: {
+                conversationId: identity.conversationId,
+                documentId: "TEST-document",
+                incarnationId: "TEST-incarnation",
+              },
+            },
+          },
+        }),
+      ),
+    ]);
+    await expect(readPersonaResume(run)).rejects.toThrow(
+      /bridge-log\.jsonl; runs from the Pi extension launcher cannot be resumed/,
+    );
+  } finally {
+    await rm(run, { recursive: true });
+  }
 });
 
 test("treats only Flue's loading runtime-unavailable response as not ready while polling an owned service", async () => {
@@ -461,51 +380,11 @@ test.each([
   ).rejects.toThrow(`returned ${status}`);
 });
 
-test("reads the pane id from herdr's split result", () => {
-  expect(
-    paneIdFrom(
-      '{"id":"cli:pane:split","result":{"pane":{"pane_id":"w0:p23"}},"type":"pane_split"}',
-    ),
-  ).toBe("w0:p23");
-});
-
-test("persona defaults are independently configured mixed providers", () => {
-  const roles = resolvePersonaRoleSettings();
-  expect(roles).toEqual({
+test("Brunch defaults to the Petrinaut assistant model", () => {
+  expect(resolvePersonaRoleSettings()).toEqual({
     brunchModel: DEFAULT_CHAT_MODEL,
     brunchThinking: DEFAULT_CHAT_THINKING,
-    personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
-    personaThinking: PERSONA_DEFAULT_PERSONA_THINKING,
   });
-  const args = personaArguments(
-    "/tmp/TEST-persona",
-    roles,
-    resolvePersonaAxisSettings(),
-    "/tmp/TEST-socket",
-  );
-  expect(
-    args.slice(args.indexOf("--model"), args.indexOf("--model") + 4),
-  ).toEqual([
-    "--model",
-    PERSONA_DEFAULT_PERSONA_MODEL,
-    "--thinking",
-    PERSONA_DEFAULT_PERSONA_THINKING,
-  ]);
-});
-
-test("persona thinking can be raised to medium without changing Brunch", () => {
-  const roles = resolvePersonaRoleSettings({ personaThinking: "medium" });
-  expect(roles.brunchModel).toBe(DEFAULT_CHAT_MODEL);
-  expect(roles.brunchThinking).toBe(DEFAULT_CHAT_THINKING);
-  expect(roles.personaThinking).toBe("medium");
-  expect(
-    personaArguments(
-      "/tmp/TEST-persona",
-      roles,
-      resolvePersonaAxisSettings(),
-      "/tmp/TEST-socket",
-    ),
-  ).toContain("medium");
 });
 
 test("rejects an unsupported Sol thinking level", () => {
@@ -514,7 +393,7 @@ test("rejects an unsupported Sol thinking level", () => {
   ).toThrow(/Unsupported thinking minimal/);
 });
 
-test("retains mixed role settings from run metadata", () => {
+test("retains Brunch role settings from run metadata and ignores Pi-era persona fields", () => {
   expect(
     roleSettingsFromRun({
       brunchModel: "openai/gpt-5.6-sol",
@@ -525,8 +404,6 @@ test("retains mixed role settings from run metadata", () => {
   ).toEqual({
     brunchModel: "openai/gpt-5.6-sol",
     brunchThinking: "low",
-    personaModel: "anthropic/claude-sonnet-4-6",
-    personaThinking: "medium",
   });
 });
 
@@ -575,83 +452,50 @@ test("legacy runs default missing axes while retained runs preserve effective ax
   );
 });
 
-test("fresh run metadata retains effective role and persona axis settings", () => {
+test("fresh run metadata retains effective role, axis and agent settings", () => {
   expect(
     personaSettingsRecord(
-      resolvePersonaRoleSettings({ personaThinking: "medium" }),
+      resolvePersonaRoleSettings(),
       resolvePersonaAxisSettings({
         personaVerbosity: "expansive",
         personaDisclosure: "forthcoming",
+      }),
+      resolvePersonaAgentSettings({
+        agent: "pi",
+        personaModel: "anthropic/claude-sonnet-4-6",
+        personaThinking: "medium",
       }),
     ),
   ).toEqual({
     brunchModel: DEFAULT_CHAT_MODEL,
     brunchThinking: DEFAULT_CHAT_THINKING,
-    personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
-    personaThinking: "medium",
     personaVerbosity: "expansive",
     personaDisclosure: "forthcoming",
+    personaAgent: {
+      agent: "pi",
+      personaModel: "anthropic/claude-sonnet-4-6",
+      personaThinking: "medium",
+    },
   });
 });
 
-test("non-default persona axes append their committed prompt paths in stable order", () => {
-  const args = personaArguments(
-    "/tmp/TEST-persona",
-    resolvePersonaRoleSettings(),
-    resolvePersonaAxisSettings({
-      personaVerbosity: "expansive",
-      personaDisclosure: "reticent",
+test("recording-ready summary reports retained effective persona axes and the agent", () => {
+  const summary = recordingReadySummary({
+    title: "TEST window",
+    url: "http://127.0.0.1:4915/",
+    browserProfile: "/tmp/TEST-profile",
+    roles: resolvePersonaRoleSettings(),
+    axes: resolvePersonaAxisSettings({
+      personaVerbosity: "terse",
+      personaDisclosure: "forthcoming",
     }),
-    "/tmp/TEST-socket",
+    agent: resolvePersonaAgentSettings({ agent: "claude" }),
+    resume: true,
+  });
+  expect(summary).toContain(
+    "Persona axes: verbosity terse; disclosure forthcoming",
   );
-  const prompts = args.flatMap((argument, index) =>
-    argument === "--append-system-prompt" ? [args[index + 1]] : [],
-  );
-  expect(prompts).toHaveLength(3);
-  expect(prompts[0]).toMatch(/brunch-persona-testing\/SYSTEM\.md$/);
-  expect(prompts[1]).toMatch(
-    /brunch-persona-testing\/axes\/verbosity-expansive\.md$/,
-  );
-  expect(prompts[2]).toMatch(
-    /brunch-persona-testing\/axes\/disclosure-reticent\.md$/,
-  );
-});
-
-test("default persona axes add no override prompts and preserve isolation flags", () => {
-  const args = personaArguments(
-    "/tmp/TEST-persona",
-    resolvePersonaRoleSettings(),
-    resolvePersonaAxisSettings(),
-    "/tmp/TEST-socket",
-  );
-  expect(
-    args.filter((argument) => argument === "--append-system-prompt"),
-  ).toHaveLength(1);
-  expect(args).toEqual(
-    expect.arrayContaining([
-      "--no-context-files",
-      "--no-builtin-tools",
-      "--no-extensions",
-      "--no-skills",
-      "--no-prompt-templates",
-    ]),
-  );
-});
-
-test("recording-ready summary reports retained effective persona axes", () => {
-  expect(
-    recordingReadySummary({
-      title: "TEST window",
-      url: "http://127.0.0.1:4915/",
-      browserProfile: "/tmp/TEST-profile",
-      roles: resolvePersonaRoleSettings(),
-      axes: resolvePersonaAxisSettings({
-        personaVerbosity: "terse",
-        personaDisclosure: "forthcoming",
-      }),
-      resume: true,
-    }),
-  ).toContain("Persona axes: verbosity terse; disclosure forthcoming");
+  expect(summary).toContain("Persona agent: claude");
 });
 
 test("help documents exact axis literals and retained resume behavior", async () => {
@@ -670,6 +514,8 @@ test("help documents exact axis literals and retained resume behavior", async ()
   expect(stdout).toContain(
     "--objective is fresh-run-only and is neither retained nor reapplied",
   );
+  expect(stdout).toContain("--agent claude|codex|cursor-agent|pi");
+  expect(stdout).toContain("{prompt}");
 });
 
 test("resume rejects a fresh axis before reading the retained run", async () => {
