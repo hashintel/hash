@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { NumberInput, Select, type SelectItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { zerothTargetComposes } from "@hashintel/petrinaut-core/reactive-modules";
 
 import type {
   PetriNetIr,
@@ -17,6 +18,7 @@ import type {
 
 export type TargetControlId =
   | "shape"
+  | "rates"
   | "layout"
   | "marking"
   | "control"
@@ -40,6 +42,11 @@ export type TargetHeaderModel = {
 const SHAPE_ITEMS: SelectItem<string>[] = [
   { value: "monolithic", text: "Monolithic" },
   { value: "modular", text: "Modular" },
+];
+
+const RATES_ITEMS: SelectItem<string>[] = [
+  { value: "coin", text: "Coin" },
+  { value: "clock", text: "Clock" },
 ];
 
 const LAYOUT_ITEMS: SelectItem<string>[] = [
@@ -75,15 +82,48 @@ export const targetHeaderControls = (
     Object.values(document.transitions).some(
       (transition) => transition.controllable === true,
     );
+  // Clocks compose a fixed shape in continuous time, so the step flags have
+  // nothing left to decide while they are on.
+  const clocksApply = stochastic && !coloured && !dynamic;
+  const clocks = clocksApply && target.rates === "clock";
+  const composes = zerothTargetComposes({
+    ...target,
+    rates: clocks ? "clock" : "coin",
+  });
   return {
     controls: [
-      { id: "shape", label: "Shape", value: target.shape, items: SHAPE_ITEMS },
+      {
+        id: "shape",
+        label: "Shape",
+        value: clocks ? "modular" : target.shape,
+        items: SHAPE_ITEMS,
+        ...(clocks
+          ? {
+              disabledReason:
+                "Clocks compose one module per transition and place",
+            }
+          : {}),
+      },
+      {
+        id: "rates",
+        label: "Rates",
+        value: clocksApply ? target.rates : "coin",
+        items: RATES_ITEMS,
+        ...(clocksApply
+          ? {}
+          : {
+              disabledReason:
+                coloured || dynamic
+                  ? "A coloured net or one with dynamics takes coins"
+                  : "A plain net has no rates",
+            }),
+      },
       {
         id: "layout",
         label: "Layout",
-        value: target.shape === "modular" ? target.layout : "single",
+        value: composes ? target.layout : "single",
         items: LAYOUT_ITEMS,
-        ...(target.shape === "modular"
+        ...(composes
           ? {}
           : { disabledReason: "Layout applies to the modular shape" }),
       },
@@ -91,35 +131,45 @@ export const targetHeaderControls = (
         id: "marking",
         label: "Marking",
         // A plain net counts in Int, a coloured one in Real, whatever the flag says.
-        value:
-          coloured || dynamic ? "real" : stochastic ? target.marking : "int",
+        value: clocks
+          ? "int"
+          : coloured || dynamic
+            ? "real"
+            : stochastic
+              ? target.marking
+              : "int",
         items: MARKING_ITEMS,
-        ...(stochastic && !coloured && !dynamic
-          ? {}
-          : {
-              disabledReason:
-                coloured || dynamic
-                  ? "A coloured net or one with dynamics holds Reals"
-                  : "A plain net's marking is always Int",
-            }),
+        ...(clocks
+          ? { disabledReason: "Clocks count whole tokens in Nat" }
+          : clocksApply
+            ? {}
+            : {
+                disabledReason:
+                  coloured || dynamic
+                    ? "A coloured net or one with dynamics holds Reals"
+                    : "A plain net's marking is always Int",
+              }),
       },
       {
         id: "control",
         label: "Control",
         value: target.control,
         items: CONTROL_ITEMS,
-        ...(controllable
-          ? {}
-          : {
+        ...(!controllable
+          ? {
               disabledReason:
                 "No transition is marked controllable in its metadata",
-            }),
+            }
+          : clocks
+            ? { disabledReason: "Clocks take no external choice" }
+            : {}),
       },
       {
         id: "syntax",
         label: "Syntax",
-        value: target.syntax,
+        value: clocks ? "next" : target.syntax,
         items: SYNTAX_ITEMS,
+        ...(clocks ? { disabledReason: "Clocks use next and flow" } : {}),
       },
     ],
     slots: coloured ? target.slots : null,

@@ -50,6 +50,11 @@ const stochastic: PetriNetIr = {
 
 afterEach(cleanup);
 
+const controlOf = (
+  model: ReturnType<typeof targetHeaderControls>,
+  id: string,
+) => model.controls.find((control) => control.id === id);
+
 describe("targetHeaderControls", () => {
   it("offers the layout only under the modular shape", () => {
     const monolithic = targetHeaderControls(defaults, stochastic).controls.find(
@@ -77,13 +82,76 @@ describe("targetHeaderControls", () => {
       model.controls.map((control) => [control.id, control.value]),
     ).toEqual([
       ["shape", "monolithic"],
+      ["rates", "coin"],
       ["layout", "single"],
       ["marking", "real"],
       ["control", "closed"],
       ["syntax", "update"],
     ]);
-    expect(model.controls[2]?.disabledReason).toBeUndefined();
-    expect(model.controls[3]?.disabledReason).toMatch(/controllable/u);
+    expect(controlOf(model, "rates")?.disabledReason).toBeUndefined();
+    expect(controlOf(model, "marking")?.disabledReason).toBeUndefined();
+    expect(controlOf(model, "control")?.disabledReason).toMatch(
+      /controllable/u,
+    );
+  });
+
+  it("fixes the shape, marking, control and syntax under clock rates and keeps the layout", () => {
+    const model = targetHeaderControls(
+      { ...defaults, rates: "clock", layout: "per-module", syntax: "update" },
+      {
+        ...stochastic,
+        transitions: {
+          Arrive: { outputs: { Waiting: null }, rate: 2, controllable: true },
+        },
+      },
+    );
+    expect(controlOf(model, "rates")).toMatchObject({ value: "clock" });
+    expect(controlOf(model, "rates")?.disabledReason).toBeUndefined();
+    expect(controlOf(model, "rates")?.items.map((item) => item.text)).toEqual([
+      "Coin",
+      "Clock",
+    ]);
+    expect(controlOf(model, "shape")).toMatchObject({
+      value: "modular",
+      disabledReason: "Clocks compose one module per transition and place",
+    });
+    expect(controlOf(model, "layout")).toMatchObject({ value: "per-module" });
+    expect(controlOf(model, "layout")?.disabledReason).toBeUndefined();
+    expect(controlOf(model, "marking")).toMatchObject({
+      value: "int",
+      disabledReason: "Clocks count whole tokens in Nat",
+    });
+    expect(controlOf(model, "control")).toMatchObject({
+      disabledReason: "Clocks take no external choice",
+    });
+    expect(controlOf(model, "syntax")).toMatchObject({
+      value: "next",
+      disabledReason: "Clocks use next and flow",
+    });
+  });
+
+  it("offers the rates of a stochastic net without colours or dynamics alone", () => {
+    expect(
+      controlOf(
+        targetHeaderControls({ ...defaults, rates: "clock" }, plain),
+        "rates",
+      ),
+    ).toMatchObject({
+      value: "coin",
+      disabledReason: "A plain net has no rates",
+    });
+    expect(
+      controlOf(
+        targetHeaderControls(
+          { ...defaults, rates: "clock" },
+          { ...coloured, kind: "stochastic" },
+        ),
+        "rates",
+      ),
+    ).toMatchObject({
+      value: "coin",
+      disabledReason: "A coloured net or one with dynamics takes coins",
+    });
   });
 
   it("fixes a plain net's marking to Int and offers control when a transition is controllable", () => {
@@ -91,18 +159,18 @@ describe("targetHeaderControls", () => {
       { ...defaults, marking: "int", control: "open" },
       plain,
     );
-    expect(model.controls[2]).toMatchObject({
+    expect(controlOf(model, "marking")).toMatchObject({
       value: "int",
       disabledReason: "A plain net's marking is always Int",
     });
-    expect(model.controls[3]).toMatchObject({ value: "open" });
-    expect(model.controls[3]?.disabledReason).toBeUndefined();
+    expect(controlOf(model, "control")).toMatchObject({ value: "open" });
+    expect(controlOf(model, "control")?.disabledReason).toBeUndefined();
   });
 
   it("fixes a coloured net's marking to Real and offers its slots", () => {
     const model = targetHeaderControls(defaults, coloured);
     expect(model.slots).toBe(8);
-    expect(model.controls[2]).toMatchObject({
+    expect(controlOf(model, "marking")).toMatchObject({
       value: "real",
       disabledReason: "A coloured net or one with dynamics holds Reals",
     });
@@ -112,7 +180,7 @@ describe("targetHeaderControls", () => {
     const model = targetHeaderControls(defaults, null);
     expect(
       model.controls.map((control) => control.disabledReason !== undefined),
-    ).toEqual([false, true, true, true, false]);
+    ).toEqual([false, true, true, true, true, false]);
   });
 });
 
@@ -125,6 +193,7 @@ describe("TargetHeader", () => {
     );
     const group = screen.getByRole("group", { name: "Compiler flags" });
     expect(group.textContent).toContain("Shape");
+    expect(group.textContent).toContain("Rates");
     expect(group.textContent).toContain("Layout");
     expect(group.textContent).toContain("Marking");
     expect(group.textContent).toContain("Control");
