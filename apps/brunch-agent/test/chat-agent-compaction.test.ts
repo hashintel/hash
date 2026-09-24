@@ -4,6 +4,28 @@ import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
 const useInstruction = vi.hoisted(() => vi.fn<(instruction: string) => void>());
 const initialData = vi.hoisted(() => ({ value: undefined as unknown }));
+type AgentStartHook = (context: {
+  append: (message: unknown) => void;
+}) => Promise<void>;
+const agentStart = vi.hoisted(() => ({
+  hook: undefined as AgentStartHook | undefined,
+}));
+const deriveNetFreshness = vi.hoisted(() =>
+  vi.fn<() => Promise<{ kind: "never-read" }>>(async () => ({
+    kind: "never-read",
+  })),
+);
+
+vi.mock("../src/conversation/net-freshness.ts", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../src/conversation/net-freshness.ts")
+  >()),
+  deriveNetFreshness,
+}));
+vi.mock("@flue/sdk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@flue/sdk")>()),
+  createFlueClient: () => ({ history: async () => ({ messages: [] }) }),
+}));
 
 vi.mock("@hashintel/brunch-agent/flue", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@hashintel/brunch-agent/flue")>()),
@@ -27,7 +49,9 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useContextProjection: () => undefined,
   useInitialData: () => initialData.value,
   useDelivery: () => ({ kind: "user", body: "test" }),
-  useAgentStart: () => undefined,
+  useAgentStart: (hook: AgentStartHook) => {
+    agentStart.hook = hook;
+  },
   useTool: () => undefined,
 }));
 
@@ -35,6 +59,7 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   initialData.value = undefined;
+  agentStart.hook = undefined;
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("BRUNCH_TEST_KEEP_RECENT_TOKENS", undefined);
   vi.stubEnv("NODE_ENV", "test");
@@ -123,6 +148,60 @@ test("canonical mode omits the old freshness and why instructions while batched 
   expect(batchedInstructions).toContain("read_petrinaut_net");
   expect(batchedInstructions).toContain("brunch.net-stale");
   expect(batchedInstructions).toContain("query_workpiece");
+});
+
+const constructionBinding = {
+  conversationId: "conversation",
+  documentId: "document",
+  incarnationId: "incarnation",
+};
+
+const renderForMode = async (mode: string) => {
+  initialData.value = { mode, construction: { binding: constructionBinding } };
+  const { ChatAgent: renderChatAgent } =
+    await import("../src/agents/chat-agent/agent.ts");
+  renderChatAgent({ id: `${mode}-instance` });
+  const appended: unknown[] = [];
+  await agentStart.hook?.({ append: (message) => appended.push(message) });
+  return {
+    appended,
+    instructions: useInstruction.mock.calls
+      .map(([instruction]) => instruction)
+      .join("\n"),
+  };
+};
+
+test("I suspends the terminal-protocol stale-net marker and its instructions", async () => {
+  const { appended, instructions } = await renderForMode(
+    "integrated-brunch-canonical",
+  );
+
+  expect(deriveNetFreshness).not.toHaveBeenCalled();
+  expect(appended).toEqual([]);
+  expect(instructions).not.toContain("brunch.net-stale");
+  expect(instructions).not.toContain("then ends");
+  expect(instructions).not.toContain("use later turns");
+  expect(instructions).toContain("continue the task after each result");
+  expect(instructions).toContain(
+    "call getLatestNetDefinition first, then call query_workpiece after its result returns",
+  );
+});
+
+test("A keeps the stale-net marker for its terminal browser-tool protocol", async () => {
+  const { appended, instructions } = await renderForMode(
+    "brunch-declared-projection",
+  );
+
+  expect(deriveNetFreshness).toHaveBeenCalledOnce();
+  expect(appended).toEqual([
+    expect.objectContaining({
+      kind: "signal",
+      type: "brunch.net-stale",
+      attributes: { kind: "never-read" },
+    }),
+  ]);
+  expect(instructions).toContain("brunch.net-stale");
+  expect(instructions).toContain("then ends");
 });
 
 test("the production ChatAgent forwards an independent OpenAI specifier and thinking level", async () => {
