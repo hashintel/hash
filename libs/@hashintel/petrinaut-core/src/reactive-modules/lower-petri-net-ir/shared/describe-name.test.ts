@@ -51,6 +51,11 @@ describe("describeName", () => {
       what: "Toggles when Death fires",
       source: { kind: "transition", name: "Death" },
     });
+    expect(describeName("pick_Go")).toEqual({
+      what: "The environment lets Go fire this step",
+      why: "An input nothing drives: any resolution of the conflict is a run, and a proof ranges over all of them.",
+      source: { kind: "transition", name: "Go" },
+    });
     expect(describeName("fires_Birth")).toEqual({
       what: "Birth's clock ran out and its arcs allow it",
       source: { kind: "transition", name: "Birth" },

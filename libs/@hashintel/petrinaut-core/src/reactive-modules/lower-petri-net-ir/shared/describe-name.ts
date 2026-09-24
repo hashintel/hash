@@ -76,6 +76,12 @@ export const describeName = (name: string): NameDescription | null => {
         why: "A controllable transition also waits for a controller to choose it.",
         source: transition(first),
       };
+    case "pick":
+      return {
+        what: `The environment lets ${first} fire this step`,
+        why: "An input nothing drives: any resolution of the conflict is a run, and a proof ranges over all of them.",
+        source: transition(first),
+      };
     case "clk":
       return {
         what: `Time left until ${first} fires`,

@@ -18,6 +18,7 @@ import type {
 const defaults: ResolvedZerothTarget = {
   shape: "monolithic",
   rates: "coin",
+  conflicts: "sweep",
   marking: "real",
   control: "closed",
   dt: 0.5,
@@ -46,6 +47,16 @@ const stochastic: PetriNetIr = {
   kind: "stochastic",
   places: { Waiting: null },
   transitions: { Arrive: { outputs: { Waiting: null }, rate: 2 } },
+};
+
+const fork: PetriNetIr = {
+  name: "fork",
+  kind: "stochastic",
+  places: { Pool: null, Left: null, Right: null },
+  transitions: {
+    TakeLeft: { inputs: { Pool: null }, outputs: { Left: null }, rate: 1 },
+    TakeRight: { inputs: { Pool: null }, outputs: { Right: null }, rate: 2 },
+  },
 };
 
 afterEach(cleanup);
@@ -89,6 +100,7 @@ describe("targetHeaderControls", () => {
     ).toEqual([
       ["shape", "monolithic"],
       ["rates", "coin"],
+      ["conflicts", "sweep"],
       ["layout", "single"],
       ["marking", "real"],
       ["control", "closed"],
@@ -160,6 +172,29 @@ describe("targetHeaderControls", () => {
     });
   });
 
+  it("offers the conflicts of a net where two transitions share an input place, under either rates", () => {
+    const open = controlOf(
+      targetHeaderControls({ ...defaults, conflicts: "nondet" }, fork),
+      "conflicts",
+    );
+    expect(open).toMatchObject({ value: "nondet" });
+    expect(open?.disabledReason).toBeUndefined();
+    expect(open?.items.map((item) => item.text)).toEqual(["Sweep", "Nondet"]);
+    expect(
+      controlOf(
+        targetHeaderControls({ ...defaults, rates: "clock" }, fork),
+        "conflicts",
+      )?.disabledReason,
+    ).toBeUndefined();
+    expect(
+      controlOf(targetHeaderControls(defaults, stochastic), "conflicts"),
+    ).toMatchObject({
+      value: "sweep",
+      disabledReason:
+        "Conflicts applies to a net where two transitions share an input place",
+    });
+  });
+
   it("fixes a plain net's marking to Int and offers control when a transition is controllable", () => {
     const model = targetHeaderControls(
       { ...defaults, marking: "int", control: "open" },
@@ -186,7 +221,7 @@ describe("targetHeaderControls", () => {
     const model = targetHeaderControls(defaults, null);
     expect(
       model.controls.map((control) => control.disabledReason !== undefined),
-    ).toEqual([false, true, true, true, true, false]);
+    ).toEqual([false, true, true, true, true, true, false]);
   });
 });
 
@@ -200,6 +235,7 @@ describe("TargetHeader", () => {
     const group = screen.getByRole("group", { name: "Compiler flags" });
     expect(group.textContent).toContain("Shape");
     expect(group.textContent).toContain("Rates");
+    expect(group.textContent).toContain("Conflicts");
     expect(group.textContent).toContain("Layout");
     expect(group.textContent).toContain("Marking");
     expect(group.textContent).toContain("Control");

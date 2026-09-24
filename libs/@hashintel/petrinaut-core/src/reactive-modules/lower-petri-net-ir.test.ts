@@ -10,6 +10,7 @@ import {
   type PetriNetIr,
   type PetriNetIrArcs,
   petriNetIrArcWeight,
+  petriNetIrConflictingTransitions,
   petriNetIrInitialTokens,
   resolveZerothTarget,
   type ZerothTarget,
@@ -264,6 +265,79 @@ describe("lowerPetriNetIr", () => {
       // Kahn's sort accepts it, as composition would.
       expect(orderReactiveModules(graph)).toHaveLength(graph.modules.length);
     }
+  });
+
+  it("gives a pick to the transitions in a conflict alone, and takes an undriven pick as the sweep", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const shape of ["monolithic", "modular"] as const) {
+        const ir: PetriNetIr = {
+          ...randomNet(seed, seed % 2 === 0),
+          zeroth: { shape },
+        };
+        const inputs = inputsFor(seed);
+        const sweep = interpretReactiveModuleGraph(lowerGraph(ir), {
+          steps: STEPS,
+          inputs,
+        });
+        const open = lowerGraph({
+          ...ir,
+          zeroth: { shape, conflicts: "nondet" },
+        });
+        expect(
+          open.variables
+            .filter((variable) => variable.name.startsWith("pick_"))
+            .map((variable) => [variable.name, variable.sort, variable.role]),
+          `seed ${seed} ${shape}`,
+        ).toEqual(
+          [...petriNetIrConflictingTransitions(ir.transitions)].map((name) => [
+            `pick_${name}`,
+            "bool",
+            "input",
+          ]),
+        );
+        const trace = interpretReactiveModuleGraph(open, {
+          steps: STEPS,
+          inputs: (step, name) =>
+            name.startsWith("pick_") ? undefined : inputs(step, name),
+        });
+        expect(
+          trace.map((values) => placesOnly(values, ir)),
+          `seed ${seed} ${shape}`,
+        ).toEqual(sweep.map((values) => placesOnly(values, ir)));
+      }
+    }
+  });
+
+  it("holds a transition whose pick is false and refuses another input left without a value", () => {
+    const fork: PetriNetIr = {
+      name: "fork",
+      kind: "plain",
+      places: { Pool: null, Left: null, Right: null },
+      marking: { Pool: 3 },
+      transitions: {
+        TakeLeft: { inputs: { Pool: null }, outputs: { Left: null } },
+        TakeRight: { inputs: { Pool: null }, outputs: { Right: null } },
+      },
+      zeroth: { conflicts: "nondet" },
+    };
+    const trace = interpretReactiveModuleGraph(lowerGraph(fork), {
+      steps: 3,
+      inputs: (_step, name) => name !== "pick_TakeLeft",
+    });
+    expect(trace.at(-1)).toEqual({ Pool: 0, Left: 0, Right: 3 });
+    expect(() =>
+      interpretReactiveModuleGraph(
+        lowerGraph({
+          ...fork,
+          kind: "stochastic",
+          transitions: {
+            TakeLeft: { ...fork.transitions.TakeLeft, rate: 1 },
+            TakeRight: { ...fork.transitions.TakeRight, rate: 1 },
+          },
+        }),
+        { steps: 1, inputs: () => undefined },
+      ),
+    ).toThrow(/u_TakeLeft has no value for round 1/u);
   });
 
   it("refuses to interpret the clocks strategy", () => {

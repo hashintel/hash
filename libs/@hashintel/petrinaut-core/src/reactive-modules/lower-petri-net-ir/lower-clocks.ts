@@ -26,10 +26,12 @@ import {
   eventName,
   firedName,
   firesName,
+  pickName,
   placeModuleNames,
   timeReference,
   transitionModuleNames,
 } from "./shared/names";
+import { pickApplies } from "./shared/step-terms";
 
 import type { PlannedPlace, PlannedTransition, StepPlan } from "./step-plan";
 
@@ -40,10 +42,13 @@ import type { PlannedPlace, PlannedTransition, StepPlan } from "./step-plan";
  *
  * A transition's clock is armed with an exponential delay at its rate, runs
  * down against the time reference while its input arcs allow a firing, and
- * is re-armed when it expires; the event toggles on the same step. A place
- * applies one exclusive case per transition that moves its tokens: the
- * theory moves one token at a time and time stops at the first expiry, so
- * two events never toggle in one step.
+ * is re-armed when it expires; the event toggles on the same step. A
+ * transition in a conflict the flags leave open also needs the
+ * environment's pick, an external Bool nothing drives, at the expiry: with
+ * the pick false its clock stays at zero. A place applies one exclusive
+ * case per transition that moves its tokens: the theory moves one token at
+ * a time and time stops at the first expiry, so two events never toggle in
+ * one step.
  */
 
 const timeRate = (factor: number): SpnExpr => rate(factor, timeReference);
@@ -54,7 +59,10 @@ const arcTerms = (transition: PlannedTransition): SpnExpr[] =>
     arc.kind === "inhibitor" ? isZero(ref(arc.place)) : nonZero(ref(arc.place)),
   );
 
-const transitionModule = (transition: PlannedTransition): SpnModuleDecl => {
+const transitionModule = (
+  plan: StepPlan,
+  transition: PlannedTransition,
+): SpnModuleDecl => {
   if (transition.rate === null) {
     throw new Error(
       `${transition.name} has no constant rate to arm a clock with`,
@@ -65,17 +73,27 @@ const transitionModule = (transition: PlannedTransition): SpnModuleDecl => {
   const fires = firesName(transition.name);
   const terms = arcTerms(transition);
   const enabled = conjunction(terms);
+  const picks = pickApplies(plan, transition)
+    ? [pickName(transition.name)]
+    : [];
   const armed = exp(transition.rate);
   return {
     ...transitionModuleNames(transition.name),
     docstring: `${transition.description}, at rate ${transition.rate}`,
     ctrl: [clock, event],
-    extl: [...transition.inputArcs.map((arc) => arc.place), timeReference],
+    extl: [
+      ...transition.inputArcs.map((arc) => arc.place),
+      ...picks,
+      timeReference,
+    ],
     init: [armed, bool(false)],
     next: [
       assign(
         fires,
-        terms.reduce((all, term) => and(all, term), isZero(ref(clock))),
+        [...terms, ...picks.map(ref)].reduce(
+          (all, term) => and(all, term),
+          isZero(ref(clock)),
+        ),
       ),
     ],
     returns: [
@@ -182,13 +200,25 @@ export const lowerClocks = (plan: StepPlan, header: string): SpnModuleGraph => {
         comment: `toggles when ${transition.name} fires`,
       }),
     ),
+    ...plan.transitions
+      .filter((transition) => pickApplies(plan, transition))
+      .map(
+        (transition): SpnVariable => ({
+          name: pickName(transition.name),
+          sort: "bool",
+          role: "pick",
+          comment: `the environment lets ${transition.name} fire this step`,
+        }),
+      ),
   ];
   return {
     language: "spn",
     header,
     variables,
     modules: [
-      ...plan.transitions.map(transitionModule),
+      ...plan.transitions.map((transition) =>
+        transitionModule(plan, transition),
+      ),
       ...plan.places.map((place) => placeModule(plan, place)),
     ],
     hidden: plan.transitions.map((transition) => clockName(transition.name)),

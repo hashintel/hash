@@ -8,6 +8,7 @@ import {
   traceReactiveModulePython,
 } from "./provenance";
 import { birthDeathIr } from "./shared/birth-death.fixtures";
+import { forkClockedIr, forkIr } from "./shared/fork.fixtures";
 
 import type { PetriNetIr } from "./petri-net-ir";
 
@@ -202,6 +203,60 @@ describe("traceReactiveModulePython", () => {
 
   it("returns null off every range", () => {
     expect(provenanceAt([], 3)).toBeNull();
+  });
+});
+
+describe("provenance under conflicts nondet", () => {
+  const pick = {
+    what: "The environment lets TakeLeft fire this step",
+    why: "An input nothing drives: any resolution of the conflict is a run, and a proof ranges over all of them.",
+    source: { kind: "transition", name: "TakeLeft" },
+  };
+
+  it("describes the flag in the IR and the pick in the coin module", () => {
+    const open: PetriNetIr = { ...forkIr, zeroth: { conflicts: "nondet" } };
+    const irText = renderPetriNetIr(open);
+    expect(
+      provenanceAt(
+        tracePetriNetIr(open, irText),
+        lineOf(irText, "  conflicts: nondet"),
+      ),
+    ).toEqual({
+      what: "The conflicts flag: transitions sharing an input place fire in sweep order, or each waits for a pick nothing drives",
+      ir: "zeroth.conflicts",
+    });
+    const outcome = compilePetriNetIr(open);
+    if (!outcome.ok) {
+      throw new Error("expected the fork to compile");
+    }
+    const text = outcome.python;
+    const trace = traceReactiveModulePython(outcome.graph, open, text);
+    expect(
+      provenanceAt(trace, lineOf(text, "pick_TakeLeft = Var(BOOL)")),
+    ).toEqual(pick);
+    expect(
+      provenanceAt(trace, lineOf(text, "        fire_TakeLeft = "))?.what,
+    ).toBe("Sets fire_TakeLeft: TakeLeft fires this step");
+  });
+
+  it("describes the pick's Bool declaration and instance under clock rates", () => {
+    const outcome = compilePetriNetIr(forkClockedIr);
+    if (!outcome.ok) {
+      throw new Error("expected the clocked fork to compile");
+    }
+    const text = outcome.python;
+    const trace = traceReactiveModulePython(outcome.graph, forkClockedIr, text);
+    expect(
+      provenanceAt(trace, lineOf(text, "pick_TakeLeft = Var(Bool([1, 1]))")),
+    ).toEqual(pick);
+    expect(
+      provenanceAt(
+        trace,
+        lineOf(text, "transition_TakeLeft = Transition_TakeLeft("),
+      )?.why,
+    ).toBe(
+      "Drives clk_TakeLeft, ev_TakeLeft and reads Pool, pick_TakeLeft, t.",
+    );
   });
 });
 

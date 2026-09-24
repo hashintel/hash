@@ -56,6 +56,11 @@ The header of the **Python Reactive Module** tab holds the compiler flags. Each 
 - **Coin** (default) tests each rate against a uniform draw each step of `dt`, as described above, in a linear theory.
 - **Clock** compiles the net in Zeroth's SPN theory, as Zeroth's own `birth_death.py` is written. Each transition owns a clock, `clk_Name`, armed with an exponential delay at its rate and run down against the external time reference `t` while its input arcs allow a firing, and an event, `ev_Name`, that it toggles when the clock expires. Each place is a Nat counter that reads the events with `fired` and moves one token at a time. The modules have `next` and `flow` methods and are composed with the clocks hidden, so Shape, Marking, Control, dt and Syntax do not apply; Layout does. A place applies one exclusive case per transition that moves its tokens, so two events in one step leave the count unchanged; Zeroth's executor advances time to the first expiry, so it never produces one.
 
+**Conflicts** applies to a net where two transitions share an input place, under either Rates, and decides who resolves the conflict.
+
+- **Sweep** (default) fires the transitions in the order the net lists them, a later one reading the marking the earlier ones left, as a Petrinaut step does. The output is the module described above, unchanged.
+- **Nondet** adds an external Bool, `pick_Name`, for each transition in a conflict, which then fires only when it is enabled and its pick is true; a transition outside every conflict gets none. Nothing drives a pick, so every way of resolving the conflict is a run of the module, all picks true is the sweep, zrth's executor can drive the picks, and Z3 quantifies over them because they are inputs: a property proved of the module holds for every resolution. Under Coin rates the picks join the module's inputs beside the draws. Under Clock rates each pick is a `Bool` the transition reads when its clock expires, and a transition whose pick is false keeps its clock at zero until the environment lets it fire.
+
 **Layout** applies to a composed system, the modular shape or Clock rates, and decides how many files the Python is written as.
 
 - **Single file** (default) holds the variables, every module class and the `compose` call in `net.py`.

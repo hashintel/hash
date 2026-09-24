@@ -93,3 +93,4 @@ export {
   type NameDescription,
   type NameSource,
 } from "./lower-petri-net-ir/shared/describe-name";
+export { isPickName } from "./lower-petri-net-ir/shared/names";

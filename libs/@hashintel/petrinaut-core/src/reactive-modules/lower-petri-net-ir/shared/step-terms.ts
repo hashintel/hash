@@ -8,14 +8,21 @@ import {
   type ReactiveTheory,
   type ReactiveVariable,
 } from "../../reactive-module-graph";
-import { choiceName, drawModuleNames, drawName, hitName } from "./names";
+import {
+  choiceName,
+  drawModuleNames,
+  drawName,
+  hitName,
+  pickName,
+} from "./names";
 
 import type { PlannedTransition, StepPlan } from "../step-plan";
 
 /**
  * The parts of a transition's guard that do not depend on the marking, and
  * the variables and modules they need: the draw test of a stochastic
- * transition and the choice of a controllable one. Both shapes read them.
+ * transition, the choice of a controllable one and the pick of one in a
+ * conflict the flags leave open. Both shapes read them.
  */
 
 /** A coloured net or one with dynamics holds Reals, so it is lowered in LRA. */
@@ -36,7 +43,17 @@ export const choiceApplies = (
   transition: PlannedTransition,
 ): boolean => transition.controllable && plan.target.control === "open";
 
-/** The draw and choice inputs, in transition order, each declared once. */
+/**
+ * Whether the transition waits for the environment's pick: it shares an
+ * input place with another and the flags leave the conflict open. The pick
+ * is an input nothing drives, so every resolution is a run of the module.
+ */
+export const pickApplies = (
+  plan: StepPlan,
+  transition: PlannedTransition,
+): boolean => transition.conflicting && plan.target.conflicts === "nondet";
+
+/** The draw, choice and pick inputs, in transition order, each declared once. */
 export const inputVariables = (plan: StepPlan): ReactiveVariable[] => {
   const variables: ReactiveVariable[] = [];
   for (const transition of plan.transitions) {
@@ -54,6 +71,14 @@ export const inputVariables = (plan: StepPlan): ReactiveVariable[] => {
         sort: "bool",
         role: "input",
         comment: `choice for ${transition.name}, each step: it fires only when chosen`,
+      });
+    }
+    if (pickApplies(plan, transition)) {
+      variables.push({
+        name: pickName(transition.name),
+        sort: "bool",
+        role: "input",
+        comment: `the environment lets ${transition.name} fire this step`,
       });
     }
   }
@@ -98,7 +123,7 @@ export const drawModules = (plan: StepPlan): ReactiveModuleDecl[] =>
 
 /**
  * The guard terms that do not read the marking, with the variables they
- * read: the draw test (or the draw module's flag) and the choice.
+ * read: the draw test (or the draw module's flag), the choice and the pick.
  */
 export const inputTerms = (
   plan: StepPlan,
@@ -124,6 +149,10 @@ export const inputTerms = (
   if (choiceApplies(plan, transition)) {
     terms.push(next(choiceName(transition.name)));
     reads.push(choiceName(transition.name));
+  }
+  if (pickApplies(plan, transition)) {
+    terms.push(next(pickName(transition.name)));
+    reads.push(pickName(transition.name));
   }
   return { terms, reads };
 };
