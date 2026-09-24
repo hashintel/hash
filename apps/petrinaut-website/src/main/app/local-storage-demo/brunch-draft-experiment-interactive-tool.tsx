@@ -406,6 +406,7 @@ export const BrunchDraftExperimentWidget = ({
     )
       return;
     preparedOnceRef.current = true;
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect starts the one live-model preparation and marks it pending
     setPreparationFailure(null);
     setSubmissionPending(true);
     // The server hashes the handle snapshot; the readable store may normalize

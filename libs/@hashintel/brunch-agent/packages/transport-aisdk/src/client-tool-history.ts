@@ -80,12 +80,10 @@ const resultsFrom = (
       .flatMap((part) => (part.type === "text" ? [part.text] : []))
       .join("");
     return parseClientToolResults(body).map(
-      ({ output, metadata, toolCallId, toolName }) => ({
-        output,
-        ...(metadata === undefined ? {} : { metadata }),
-        toolCallId,
-        toolName,
-      }),
+      ({ output, metadata, toolCallId, toolName }) =>
+        metadata === undefined
+          ? { output, toolCallId, toolName }
+          : { output, metadata, toolCallId, toolName },
     );
   });
 

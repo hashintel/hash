@@ -601,17 +601,21 @@ export const createFlueChatTransport = <
             messageId,
             options.clientToolNames,
           )
-            .map((result) => {
+            .map((result): ClientToolResult => {
               const metadata = options.clientToolResultMetadata?.(result);
-              const output =
-                options.clientToolResultOutput === undefined
-                  ? result.output
-                  : options.clientToolResultOutput(result, metadata);
-              return {
-                ...result,
-                output,
-                ...(metadata === undefined ? {} : { metadata }),
+              const delivered: {
+                -readonly [Key in keyof ClientToolResult]: ClientToolResult[Key];
+              } = {
+                toolCallId: result.toolCallId,
+                toolName: result.toolName,
+                output:
+                  options.clientToolResultOutput === undefined
+                    ? result.output
+                    : options.clientToolResultOutput(result, metadata),
               };
+              if (result.source !== undefined) delivered.source = result.source;
+              if (metadata !== undefined) delivered.metadata = metadata;
+              return delivered;
             })
             .toSorted((left, right) =>
               left.toolCallId < right.toolCallId

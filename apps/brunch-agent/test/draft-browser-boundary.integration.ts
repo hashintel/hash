@@ -203,7 +203,7 @@ try {
   assert.deepEqual(
     {
       toolName: draftResult?.toolName,
-      status: (draftResult?.output as { status?: string })?.status,
+      status: (draftResult?.output as { status?: string } | undefined)?.status,
     },
     { toolName: "draft_petrinaut_experiment", status: "drafted" },
   );
