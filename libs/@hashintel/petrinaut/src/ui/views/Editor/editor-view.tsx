@@ -72,6 +72,7 @@ import {
   SimulateView,
   SimulateViewTabs,
 } from "./panels/SimulateView/simulate-view";
+import { SideDockColumn, SideDockProvider } from "./shared/side-dock";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { useEditWorkspace } from "./use-edit-workspace";
@@ -606,109 +607,114 @@ const EditorViewContent = ({
       {/* Voice session state is shared between the assistant panel that owns
           the session and the toolbar segment that controls it. */}
       <VoiceSessionProvider>
-        <Stack direction="row" className={rowContainerStyle}>
-          {globalMode === "simulate" && <SimulateViewTabs />}
-          <SimulationWorkspace>
-            {globalMode === "simulate" ? (
-              <SimulateView />
-            ) : (
-              <div className={workspaceStyle}>
-                {globalMode === "edit" && pluginEditViews.length > 0 && (
-                  <EditViewSelector editViews={pluginEditViews} />
-                )}
-                <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
-                  <Box className={canvasContainerStyle}>
-                    {/* Left Sidebar - Tools and content panels */}
-                    <LeftSideBar />
+        <SideDockProvider>
+          <Stack direction="row" className={rowContainerStyle}>
+            {globalMode === "simulate" && <SimulateViewTabs />}
+            <SimulationWorkspace>
+              {globalMode === "simulate" ? (
+                <SimulateView />
+              ) : (
+                <div className={workspaceStyle}>
+                  {globalMode === "edit" && pluginEditViews.length > 0 && (
+                    <EditViewSelector editViews={pluginEditViews} />
+                  )}
+                  <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
+                    <Box className={canvasContainerStyle}>
+                      {/* Left Sidebar - Tools and content panels */}
+                      <LeftSideBar />
 
-                    {/* Properties Panel - Right Side */}
-                    <PropertiesPanel />
+                      {/* Properties Panel - Right Side */}
+                      <PropertiesPanel />
 
-                    {/* SDCPN Visualization */}
-                    <SDCPNView onControllerChange={registerController} />
+                      {/* SDCPN Visualization */}
+                      <SDCPNView onControllerChange={registerController} />
 
-                    {showEmptyAiHero && (
-                      <AiCtaModal
-                        bottomClearance={
-                          isBottomPanelOpen ? bottomPanelHeight : 0
+                      {showEmptyAiHero && (
+                        <AiCtaModal
+                          bottomClearance={
+                            isBottomPanelOpen ? bottomPanelHeight : 0
+                          }
+                          onDismiss={() => setIsAiCtaDismissed(true)}
+                          onStartVoiceMode={() => {
+                            setPendingAiInteractionMode("voice");
+                            setAiAssistantOpen(true);
+                          }}
+                          onSubmit={(message) => {
+                            setPendingAiAssistantMessage(message);
+                            setPendingAiInteractionMode("text");
+                            setAiAssistantOpen(true);
+                          }}
+                          voiceModeAvailable={
+                            aiAssistant.renderVoiceMode !== undefined
+                          }
+                        />
+                      )}
+
+                      {/* Bottom Panel */}
+                      <BottomPanel />
+                    </Box>
+                  </Activity>
+                  {installedEditViews.map(({ pluginId, view }) => {
+                    const EditView = view.component;
+                    return (
+                      <Activity
+                        key={view.id}
+                        mode={
+                          activeEditView?.id === view.id ? "visible" : "hidden"
                         }
-                        onDismiss={() => setIsAiCtaDismissed(true)}
-                        onStartVoiceMode={() => {
-                          setPendingAiInteractionMode("voice");
-                          setAiAssistantOpen(true);
-                        }}
-                        onSubmit={(message) => {
-                          setPendingAiAssistantMessage(message);
-                          setPendingAiInteractionMode("text");
-                          setAiAssistantOpen(true);
-                        }}
-                        voiceModeAvailable={
-                          aiAssistant.renderVoiceMode !== undefined
-                        }
-                      />
-                    )}
-
-                    {/* Bottom Panel */}
-                    <BottomPanel />
-                  </Box>
-                </Activity>
-                {installedEditViews.map(({ pluginId, view }) => {
-                  const EditView = view.component;
-                  return (
-                    <Activity
-                      key={view.id}
-                      mode={
-                        activeEditView?.id === view.id ? "visible" : "hidden"
-                      }
-                    >
-                      <PluginContributionBoundary
-                        pluginId={pluginId}
-                        contributionId={view.id}
-                        place="edit-view"
                       >
-                        <EditView />
-                      </PluginContributionBoundary>
-                    </Activity>
-                  );
-                })}
-              </div>
-            )}
-            <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
-              <BottomBar
-                mode={globalMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
+                        <PluginContributionBoundary
+                          pluginId={pluginId}
+                          contributionId={view.id}
+                          place="edit-view"
+                        >
+                          <EditView />
+                        </PluginContributionBoundary>
+                      </Activity>
+                    );
+                  })}
+                </div>
+              )}
+              <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
+                <BottomBar
+                  mode={globalMode}
+                  editionMode={editionMode}
+                  onEditionModeChange={setEditionMode}
+                  cursorMode={cursorMode}
+                  onCursorModeChange={setCursorMode}
+                  hasAiAssistant={aiAssistant !== undefined}
+                />
+              </Activity>
+              <SimulationCreationDrawer />
+            </SimulationWorkspace>
+            {/* Docked panels sit here, between the properties panel and the AI
+              assistant. */}
+            <SideDockColumn />
+            {aiAssistant && (
+              <AiAssistantPanel
+                /** Reset state (e.g. initial messages) when the active net changes */
+                key={`ai-assistant-${petriNetId ?? "no-net"}`}
+                aiAssistant={aiAssistant}
+                applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+                focusRequest={aiAssistantFocusRequest}
+                frameSceneAfterRender={frameSceneAfterRender}
+                initialMessage={pendingAiAssistantMessage}
+                initialInteractionMode={pendingAiInteractionMode}
+                offerStartPosture={offerStartPosture}
+                onInitialMessageConsumed={() =>
+                  setPendingAiAssistantMessage(null)
+                }
+                onInitialInteractionModeConsumed={() =>
+                  setPendingAiInteractionMode(null)
+                }
               />
-            </Activity>
-            <SimulationCreationDrawer />
-          </SimulationWorkspace>
-          {aiAssistant && (
-            <AiAssistantPanel
-              /** Reset state (e.g. initial messages) when the active net changes */
-              key={`ai-assistant-${petriNetId ?? "no-net"}`}
-              aiAssistant={aiAssistant}
-              applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
-              focusRequest={aiAssistantFocusRequest}
-              frameSceneAfterRender={frameSceneAfterRender}
-              initialMessage={pendingAiAssistantMessage}
-              initialInteractionMode={pendingAiInteractionMode}
-              offerStartPosture={offerStartPosture}
-              onInitialMessageConsumed={() =>
-                setPendingAiAssistantMessage(null)
-              }
-              onInitialInteractionModeConsumed={() =>
-                setPendingAiInteractionMode(null)
-              }
-            />
-          )}
-          {/* Plugin components mount here, inside the editor's providers and
+            )}
+            {/* Plugin components mount here, inside the editor's providers and
               the workspace row, so their overlays position against the row as
               the editor's own floating windows do. */}
-          <InstalledPlugins />
-        </Stack>
+            <InstalledPlugins />
+          </Stack>
+        </SideDockProvider>
       </VoiceSessionProvider>
     </ExperimentalIconProvider>
   );

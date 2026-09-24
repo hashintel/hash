@@ -254,6 +254,7 @@ export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 export {
   definitionsViewPlugin,
   petrinautBuiltInPlugins,
+  reactiveModulesPlugin,
 } from "./plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./plugins/plugin";
 export type {

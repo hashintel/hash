@@ -199,6 +199,54 @@ export const assistantSettingsPlugin = definePetrinautPlugin({
 });
 ```
 
+A floating window that loads on first use, which is how the built-in Zeroth
+Reactive Modules window is installed. The plugin module stays small because
+the editor imports every built-in eagerly; the window's command is declared
+outside the window's boundary, so a failed load closes the window and keeps
+the command, and running it again retries:
+
+```tsx
+const loadPanel = loadOnce(() => import("./reactive-modules-panel"));
+
+const LoadedPanel = ({ panel, onClose }: LoadedPanelProps) => {
+  const { ReactiveModulesPanel } = use(panel);
+  return <ReactiveModulesPanel onClose={onClose} />;
+};
+
+const ReactiveModulesWindow = () => {
+  const [panel, setPanel] = useState<Promise<PanelModule> | null>(null);
+  const [showRequests, setShowRequests] = useState(0);
+  useCommand({
+    id: "petrinaut.reactive-modules.show",
+    label: "Show Zeroth Reactive Modules",
+    run: () => {
+      setPanel(loadPanel());
+      setShowRequests((count) => count + 1);
+    },
+  });
+  return panel ? (
+    <PluginContributionBoundary /* … */ resetKey={showRequests}>
+      <LoadedPanel panel={panel} onClose={() => setPanel(null)} />
+    </PluginContributionBoundary>
+  ) : null;
+};
+
+export const reactiveModulesPlugin = definePetrinautPlugin({
+  id: "petrinaut.reactive-modules",
+  component: ReactiveModulesWindow,
+});
+```
+
+`loadOnce` shares one import and forgets a rejected one; `React.lazy` keeps a
+rejected import for good, so it cannot retry. The window takes the promise
+when the command runs and keeps it in state. Calling the loader in
+`LoadedPanel`'s render instead would start a new import on every retry render
+after a failure, because a component that suspends before it first commits
+keeps no state, and the error would never reach the boundary. Whether a new
+import fetches the chunk again depends on the host's bundler and browser.
+`loadOnce` and `PluginContributionBoundary` are internal: a host plugin that
+wants the same behaviour brings its own loader and error boundary.
+
 An edit view, which is how the built-in Definitions view is installed:
 
 ```tsx
@@ -220,7 +268,8 @@ const demoPlugins = [sentryFeedbackPlugin, commandPalettePlugin];
 </PetrinautPluginsProvider>;
 ```
 
-- The editor installs `petrinautBuiltInPlugins` first, then the host's list.
+- The editor installs `petrinautBuiltInPlugins`, which are
+  `definitionsViewPlugin` and `reactiveModulesPlugin`, then the host's list.
   `builtInPlugins` replaces that set: a subset drops a built-in, `[]` leaves
   only the host's plugins.
 - Plugin commands need a command registry. The provider creates one when the
@@ -257,8 +306,11 @@ Brunch-specific library code, so each of its next needs becomes a place here.
   the way `useCommand` registers commands.
 - No notices place. Hosts position their own banners under the top bar.
 - No `windows` place. A floating window is a plugin `component` that owns its
-  frame. The editor takes the frame over when a second window, owned by a
-  host, needs the same chrome.
+  frame, as the built-in Zeroth Reactive Modules window does. The editor
+  takes the frame over when a second window, owned by a host, needs the same
+  chrome.
+- A built-in's user-guide page stays registered with the assistants when a
+  host drops the built-in, because the documentation registry is static.
 - No exported settings rows. A settings group styles its own rows until the
   dialog's row and toggle components are public.
 - No public hook for the Voice session. Plugin components mount inside its

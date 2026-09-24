@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -12,6 +13,7 @@ import { petrinautBuiltInPlugins } from "../../plugins/built-in-plugins";
 import { InstalledPluginsProvider } from "../../plugins/installed-plugins";
 import { definePetrinautPlugin } from "../../plugins/plugin";
 import { EditorView } from "./editor-view";
+import { useSideDockContainer } from "./shared/side-dock";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { UIMessageChunk } from "ai";
@@ -258,5 +260,41 @@ describe("Plugin components", () => {
     expect(
       row?.contains(screen.getByRole("button", { name: "Canvas zoom 1" })),
     ).toBe(true);
+  });
+});
+
+describe("Side dock", () => {
+  test("holds docked plugin panels between the workspace and the AI assistant", () => {
+    const DockedPanel = () => {
+      const container = useSideDockContainer();
+      if (container === null || container === undefined) {
+        return null;
+      }
+      return createPortal(
+        <aside aria-label="Docked plugin panel" />,
+        container,
+      );
+    };
+    const dockedPlugin = definePetrinautPlugin({
+      id: "test.docked",
+      component: DockedPanel,
+    });
+    render(
+      <InstalledPluginsProvider plugins={[dockedPlugin]}>
+        <EditorView aiAssistant={aiAssistant} titleEditable />
+      </InstalledPluginsProvider>,
+    );
+    const column = screen.getByRole("complementary", {
+      name: "Docked plugin panel",
+    }).parentElement!;
+    expect(column.hasAttribute("data-side-dock")).toBe(true);
+    expect(
+      column.previousElementSibling?.contains(
+        screen.getByRole("button", { name: "Canvas zoom 1" }),
+      ),
+    ).toBe(true);
+    expect(column.nextElementSibling).toBe(
+      screen.getByRole("region", { name: "AI assistant" }),
+    );
   });
 });

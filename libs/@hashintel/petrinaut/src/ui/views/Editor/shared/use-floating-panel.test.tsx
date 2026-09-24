@@ -15,26 +15,32 @@ afterEach(() => {
 
 const ResizeHarness = ({
   direction,
+  wrapped = false,
 }: {
   direction: FloatingResizeDirection;
+  /** Renders the panel inside an unpositioned column, as a docked panel is. */
+  wrapped?: boolean;
 }) => {
   const [width, setWidth] = useState(600);
   const { panelRef, getResizeHandleProps, style } = useFloatingPanel({
     width,
     onWidthChange: setWidth,
   });
+  const panel = (
+    <aside
+      ref={panelRef}
+      data-height={style["--floating-panel-height"]}
+      aria-label="AI assistant"
+    >
+      <button type="button" {...getResizeHandleProps(direction)}>
+        Resize
+      </button>
+      <output>{width}</output>
+    </aside>
+  );
   return (
     <div data-testid="editor">
-      <aside
-        ref={panelRef}
-        data-height={style["--floating-panel-height"]}
-        aria-label="AI assistant"
-      >
-        <button type="button" {...getResizeHandleProps(direction)}>
-          Resize
-        </button>
-        <output>{width}</output>
-      </aside>
+      {wrapped ? <div data-testid="column">{panel}</div> : panel}
     </div>
   );
 };
@@ -43,12 +49,24 @@ const startResize = (
   direction: FloatingResizeDirection,
   panelBounds: DOMRect,
   editorBounds: DOMRect,
+  { wrapped = false } = {},
 ) => {
-  render(<ResizeHarness direction={direction} />);
+  render(<ResizeHarness direction={direction} wrapped={wrapped} />);
   const panel = screen.getByRole("complementary");
   const editor = screen.getByTestId("editor");
   vi.spyOn(panel, "getBoundingClientRect").mockReturnValue(panelBounds);
   vi.spyOn(editor, "getBoundingClientRect").mockReturnValue(editorBounds);
+  if (wrapped) {
+    // jsdom lays nothing out, so the containing block is declared: the
+    // editor, past the zero-width column the panel is a child of.
+    Object.defineProperty(panel, "offsetParent", { value: editor });
+    vi.spyOn(
+      screen.getByTestId("column"),
+      "getBoundingClientRect",
+    ).mockReturnValue(
+      new DOMRect(editorBounds.right, 0, 0, editorBounds.height),
+    );
+  }
   const handle = screen.getByRole("button", { name: "Resize" });
   Object.defineProperty(handle, "setPointerCapture", { value: vi.fn() });
   const move = (clientX: number, clientY: number) => {
@@ -109,4 +127,15 @@ test("restores the saved size when a corner drag returns to its starting point",
   move(0, 0);
   expect(screen.getByRole("status").textContent).toBe("600");
   expect(panel.getAttribute("data-height")).toBe(savedHeight);
+});
+
+test("measures a drag against the containing block, not an unpositioned parent", () => {
+  const { move } = startResize(
+    "left",
+    new DOMRect(100, 12, 600, 276),
+    new DOMRect(0, 0, 1000, 300),
+    { wrapped: true },
+  );
+  move(40, 0);
+  expect(screen.getByRole("status").textContent).toBe("560");
 });

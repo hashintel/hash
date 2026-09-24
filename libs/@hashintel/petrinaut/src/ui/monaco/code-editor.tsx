@@ -120,6 +120,14 @@ const singleLineContainerStyle = cva({
   },
 });
 
+// Generated text shown to read and copy: the frame, focus ring and disabled
+// look of an input field would all be wrong, so the editor fills its box bare.
+const viewerContainerStyle = css({
+  position: "relative",
+  height: "full",
+  minHeight: "[0]",
+});
+
 // The wait for Monaco, shown twice: as the Suspense fallback while the
 // module loads and as Monaco's own `loading` while the editor mounts.
 // Dimmed, so it reads as a wait and not as content; it fills its box
@@ -186,6 +194,12 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
    * hosts that draw the frame themselves (the ad-hoc form's editor slab).
    */
   frameless?: boolean;
+  /**
+   * Present generated text to read and copy rather than a field to edit: no
+   * frame, no focus ring, and none of the disabled look a read-only field
+   * gets. Pass `options.readOnly` as well.
+   */
+  viewer?: boolean;
   /**
    * Where the caret lands on mount: "end" puts it after the content (typing
    * continues), "all" selects the whole content (typing replaces). Omitted,
@@ -420,13 +434,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   singleLine = false,
   hasError = false,
   frameless = false,
+  viewer = false,
   ...props
 }) => {
   const isReadOnly = options?.readOnly === true;
 
-  const containerClass = singleLine
-    ? singleLineContainerStyle({ isReadOnly, hasError, frameless })
-    : multiLineContainerStyle({ isReadOnly, hasError });
+  const containerClass = viewer
+    ? viewerContainerStyle
+    : singleLine
+      ? singleLineContainerStyle({ isReadOnly, hasError, frameless })
+      : multiLineContainerStyle({ isReadOnly, hasError });
 
   const fallback = singleLine ? (
     <div className={singleLineLoadingStyle}>Loading...</div>

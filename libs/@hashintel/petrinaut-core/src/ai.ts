@@ -111,6 +111,7 @@ export const petrinautDocNames = [
   "visual-settings",
   "code-editor",
   "compilation-output",
+  "reactive-modules",
   "examples",
 ] as const;
 
@@ -145,6 +146,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "General, Viewport, and Labs preferences: animations, keep-panels-mounted, welcome guide, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, notebook, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
+  "reactive-modules":
+    "Zeroth Reactive Modules window: opened from the command palette, floating or docked beside the canvas and resizable in both, the Petri Net IR tab, recompiles on net change from the Simulation Settings' initial state and parameters, which nets compile and which are refused.",
   examples:
     "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Vaccination Campaign, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
 };
