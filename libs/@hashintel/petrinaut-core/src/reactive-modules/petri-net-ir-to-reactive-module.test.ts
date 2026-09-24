@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { foldHir } from "../hir/analyze";
 import { lowerTypeScriptToHir } from "../hir/lower-typescript";
+import { emitReactiveModulePython } from "./emit-reactive-module-python";
 import {
   compilePetriNetIr,
   petriNetIrToReactiveModule,
@@ -865,5 +866,63 @@ net = Conflict(theory=LIA, ctrl=(Pool, Left, Right), extl=(go_TakeLeft,))
     );
     expect(python).toContain("        Out = Out + 2\n");
     expect(python).toContain("net = Source(theory=LIA, ctrl=(Out,))");
+  });
+});
+
+describe("compilePetriNetIr with the per-module layout", () => {
+  it("writes net.py and one file per module of the modular shape", () => {
+    const outcome = compilePetriNetIr({
+      ...cycle,
+      zeroth: { shape: "modular", layout: "per-module" },
+    });
+    if (!outcome.ok) {
+      throw new Error("expected the cycle to compile");
+    }
+    expect(outcome.files.map((file) => file.path)).toEqual([
+      "net.py",
+      "transition_go.py",
+      "transition_back.py",
+      "place_a.py",
+      "place_b.py",
+    ]);
+    expect(outcome.python).toBe(outcome.files[0]?.text);
+    expect(outcome.python).toContain("from transition_go import Transition_Go");
+    expect(outcome.python).toContain("from place_b import Place_B");
+    expect(outcome.python).toContain("net = compose(");
+    expect(outcome.python).not.toContain("class ");
+    const placeA = outcome.files.find((file) => file.path === "place_a.py");
+    expect(placeA?.text).toContain("from zrth.sugar import Module, X");
+    expect(placeA?.text).toContain("class Place_A(Module):");
+    expect(placeA?.text).not.toContain("Var(");
+  });
+
+  it("gives petriNetIrToReactiveModule one whole program whatever the layout says", () => {
+    const python = petriNetIrToReactiveModule({
+      ...cycle,
+      zeroth: { shape: "modular", layout: "per-module" },
+    });
+    expect(python).toContain("class Transition_Go(Module):");
+    expect(python).not.toContain("from transition_go import");
+  });
+
+  it("writes next instead of update under the next syntax", () => {
+    const python = petriNetIrToReactiveModule({
+      ...cycle,
+      zeroth: { syntax: "next" },
+    });
+    expect(python).toContain("    def next(self, A, B):");
+    expect(python).not.toContain("def update(");
+  });
+
+  it("keeps one file under the monolithic shape whatever the layout says", () => {
+    const outcome = compilePetriNetIr({
+      ...cycle,
+      zeroth: { layout: "per-module" },
+    });
+    if (!outcome.ok) {
+      throw new Error("expected the cycle to compile");
+    }
+    expect(outcome.files.map((file) => file.path)).toEqual(["net.py"]);
+    expect(outcome.python).toBe(emitReactiveModulePython(outcome.graph));
   });
 });

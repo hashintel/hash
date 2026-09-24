@@ -12,8 +12,25 @@ import type {
 /**
  * Renders a reactive module graph as Python over the `zrth.sugar` DSL: one
  * `Var` per variable, one `Module` subclass per module with its `init` and
- * `update`, and `net` bound to the system.
+ * `update`, and `net` bound to the system. Either as one file, or as one
+ * file per module plus `net.py`, which declares the variables, imports the
+ * modules and composes them.
  */
+
+export type ReactiveModuleLayout = "single" | "per-module";
+
+/** The step method's name: `update`, or `next` as the tangent-era sugar calls it. */
+export type ReactiveModuleSyntax = "update" | "next";
+
+export type EmitReactiveModuleOptions = {
+  syntax?: ReactiveModuleSyntax;
+};
+
+export type ReactiveModuleFile = {
+  /** Relative to the output directory, `net.py` for the main file. */
+  path: string;
+  text: string;
+};
 
 const SORT_CONSTANTS: Record<ReactiveSort, { name: string; ctor: string }> = {
   int: { name: "INT", ctor: "Int" },
@@ -130,33 +147,66 @@ const moduleExprs = (module: ReactiveModuleDecl): ReactiveExpr[] => [
   ...module.returns,
 ];
 
-const imports = (graph: ReactiveModuleGraph): string[] => {
-  const theories = [
-    ...new Set(graph.modules.map((module) => module.theory)),
-  ].toSorted() as ReactiveTheory[];
-  const sorts = SORT_ORDER.filter((sort) =>
-    graph.variables.some((variable) => variable.sort === sort),
-  );
-  const sortNames = sorts.map((sort) => SORT_CONSTANTS[sort].ctor).toSorted();
-  const exprs = graph.modules.flatMap(moduleExprs);
-  const sugar = [
+const sugarImport = (exprs: ReactiveExpr[]): string =>
+  `from zrth.sugar import ${[
     "Module",
     ...(exprs.some(usesNext) ? ["X"] : []),
     ...(exprs.some(usesIte) ? ["ite"] : []),
-  ];
+  ].join(", ")}`;
+
+const sortConstant = (sort: ReactiveSort): string =>
+  `${SORT_CONSTANTS[sort].name} = ${SORT_CONSTANTS[sort].ctor}([1, 1])`;
+
+const theoriesOf = (modules: ReactiveModuleDecl[]): ReactiveTheory[] =>
+  [...new Set(modules.map((module) => module.theory))].toSorted();
+
+const sortsOf = (variables: ReactiveVariable[]): ReactiveSort[] =>
+  SORT_ORDER.filter((sort) =>
+    variables.some((variable) => variable.sort === sort),
+  );
+
+const constructorNames = (sorts: ReactiveSort[]): string[] =>
+  sorts.map((sort) => SORT_CONSTANTS[sort].ctor).toSorted();
+
+const imports = (graph: ReactiveModuleGraph): string[] => {
+  const sorts = sortsOf(graph.variables);
+  const exprs = graph.modules.flatMap(moduleExprs);
   return [
-    `from zrth import ${[...theories, ...sortNames, "Var", ...(exprs.some(usesLiteralIte) ? ["expr"] : [])].join(", ")}`,
+    `from zrth import ${[...theoriesOf(graph.modules), ...constructorNames(sorts), "Var", ...(exprs.some(usesLiteralIte) ? ["expr"] : [])].join(", ")}`,
     ...(graph.root.kind === "compose"
       ? ["from zrth import Module as compose"]
       : []),
     ...(exprs.some(usesRelu) ? ["from zrth.expr import relu"] : []),
-    `from zrth.sugar import ${sugar.join(", ")}`,
+    sugarImport(exprs),
     "",
-    ...sorts.map(
-      (sort) =>
-        `${SORT_CONSTANTS[sort].name} = ${SORT_CONSTANTS[sort].ctor}([1, 1])`,
-    ),
+    ...sorts.map(sortConstant),
   ];
+};
+
+/** The sort constants a module's literal-only branches name: `expr(1.0, theory=LRA, sort=REAL)`. */
+const literalIteSorts = (
+  exprs: ReactiveExpr[],
+  theory: ReactiveTheory,
+): ReactiveSort[] => {
+  const sorts = new Set<ReactiveSort>();
+  for (const node of exprs) {
+    walkReactiveExpr(node, (candidate) => {
+      if (
+        candidate.kind === "ite" &&
+        isLiteral(candidate.thenBranch) &&
+        isLiteral(candidate.elseBranch)
+      ) {
+        sorts.add(
+          candidate.thenBranch.kind === "bool"
+            ? "bool"
+            : theory === "LRA"
+              ? "real"
+              : "int",
+        );
+      }
+    });
+  }
+  return SORT_ORDER.filter((sort) => sorts.has(sort));
 };
 
 const declarations = (variables: ReactiveVariable[]): string[] => {
@@ -173,7 +223,10 @@ const declarations = (variables: ReactiveVariable[]): string[] => {
   );
 };
 
-const classBody = (module: ReactiveModuleDecl): string[] => {
+const classBody = (
+  module: ReactiveModuleDecl,
+  syntax: ReactiveModuleSyntax,
+): string[] => {
   const { theory } = module;
   const lines = [
     `class ${module.className}(Module):`,
@@ -182,7 +235,7 @@ const classBody = (module: ReactiveModuleDecl): string[] => {
     `${INDENT}def init(${["self", ...module.extl].join(", ")}):`,
     `${INDENT}${INDENT}return ${module.init.map((node) => expr(node, theory)).join(", ")}`,
     "",
-    `${INDENT}def update(${["self", ...module.ctrl, ...module.extl].join(", ")}):`,
+    `${INDENT}def ${syntax}(${["self", ...module.ctrl, ...module.extl].join(", ")}):`,
   ];
   for (const statement of module.update) {
     if (statement.kind === "comment") {
@@ -241,6 +294,7 @@ const system = (graph: ReactiveModuleGraph): string[] => {
 
 export const emitReactiveModulePython = (
   graph: ReactiveModuleGraph,
+  { syntax = "update" }: EmitReactiveModuleOptions = {},
 ): string => {
   const lines = [
     `"""${graph.header}"""`,
@@ -248,10 +302,124 @@ export const emitReactiveModulePython = (
     ...imports(graph),
     "",
     ...declarations(graph.variables),
-    ...graph.modules.flatMap((module) => ["", "", ...classBody(module)]),
+    ...graph.modules.flatMap((module) => [
+      "",
+      "",
+      ...classBody(module, syntax),
+    ]),
     "",
     "",
     ...system(graph),
   ];
   return `${lines.join("\n")}\n`;
+};
+
+/** `Transition_FooBar` → `transition_foo_bar`: the Python module a class file imports as. */
+export const moduleFileStem = (className: string): string =>
+  className
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+
+/**
+ * One stem per module. IR names differ by case alone at times, `Ab` and `AB`,
+ * and lowercasing joins them, so a later module that lands on a taken stem
+ * gets a numbered one: `place_ab`, `place_ab_2`.
+ */
+const moduleFileStems = (
+  modules: ReactiveModuleDecl[],
+): ReadonlyMap<string, string> => {
+  const taken = new Set<string>();
+  const stems = new Map<string, string>();
+  for (const module of modules) {
+    const base = moduleFileStem(module.className);
+    let stem = base;
+    for (let index = 2; taken.has(stem); index += 1) {
+      stem = `${base}_${index}`;
+    }
+    taken.add(stem);
+    stems.set(module.className, stem);
+  }
+  return stems;
+};
+
+const moduleFile = (
+  graph: ReactiveModuleGraph,
+  module: ReactiveModuleDecl,
+  stem: string,
+  syntax: ReactiveModuleSyntax,
+): ReactiveModuleFile => {
+  const exprs = moduleExprs(module);
+  // A literal-only branch names the module's theory and a sort, which the
+  // file declares for itself: zrth sorts compare by shape, not identity.
+  const literalSorts = literalIteSorts(exprs, module.theory);
+  const zrthNames =
+    literalSorts.length > 0
+      ? [module.theory, ...constructorNames(literalSorts), "expr"]
+      : [];
+  const lines = [
+    `"""${graph.header}"""`,
+    "",
+    ...(zrthNames.length > 0
+      ? [`from zrth import ${zrthNames.join(", ")}`]
+      : []),
+    ...(exprs.some(usesRelu) ? ["from zrth.expr import relu"] : []),
+    sugarImport(exprs),
+    ...(literalSorts.length > 0 ? ["", ...literalSorts.map(sortConstant)] : []),
+    "",
+    "",
+    ...classBody(module, syntax),
+  ];
+  return { path: `${stem}.py`, text: `${lines.join("\n")}\n` };
+};
+
+const mainFile = (
+  graph: ReactiveModuleGraph,
+  stems: ReadonlyMap<string, string>,
+): ReactiveModuleFile => {
+  const sorts = sortsOf(graph.variables);
+  const lines = [
+    `"""${graph.header}"""`,
+    "",
+    `from zrth import ${[...theoriesOf(graph.modules), ...constructorNames(sorts), "Var"].join(", ")}`,
+    ...(graph.root.kind === "compose"
+      ? ["from zrth import Module as compose"]
+      : []),
+    "",
+    ...graph.modules.map(
+      (module) =>
+        `from ${stems.get(module.className) ?? moduleFileStem(module.className)} import ${module.className}`,
+    ),
+    "",
+    ...sorts.map(sortConstant),
+    "",
+    ...declarations(graph.variables),
+    "",
+    "",
+    ...system(graph),
+  ];
+  return { path: "net.py", text: `${lines.join("\n")}\n` };
+};
+
+/**
+ * The graph as one file per module plus `net.py`, which comes first. Run from
+ * the directory the files are written to, `net.py` imports each module by
+ * its file name.
+ */
+export const emitReactiveModuleFiles = (
+  graph: ReactiveModuleGraph,
+  { syntax = "update" }: EmitReactiveModuleOptions = {},
+): ReactiveModuleFile[] => {
+  const stems = moduleFileStems(graph.modules);
+  return [
+    mainFile(graph, stems),
+    ...graph.modules.map((module) =>
+      moduleFile(
+        graph,
+        module,
+        stems.get(module.className) ?? moduleFileStem(module.className),
+        syntax,
+      ),
+    ),
+  ];
 };

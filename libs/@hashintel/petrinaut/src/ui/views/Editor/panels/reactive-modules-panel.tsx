@@ -26,6 +26,7 @@ import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../shared/floating-resize-handles";
 import { useSideDockContainer } from "../shared/side-dock";
 import { useFloatingPanel } from "../shared/use-floating-panel";
+import { FilesPanel } from "./reactive-modules-panel/files-panel";
 import { loadExportLanguages } from "./reactive-modules-panel/monaco-languages";
 import { TargetHeader } from "./reactive-modules-panel/target-header";
 import { useLambdaHir } from "./reactive-modules-panel/use-lambda-hir";
@@ -57,19 +58,19 @@ const TABS: (HorizontalTabView & { id: TabId })[] = [
 ];
 
 /**
+ * The models' home; the scheme keeps them apart from the language server's
+ * documents. Each Python file gets a model of its own under it.
+ */
+const PYTHON_MODEL_ROOT = "petrinaut-reactive-modules://export/";
+
+/**
  * One Monaco model per tab, so each keeps its own scroll position and
- * collapsed regions while the other is shown. The scheme keeps them apart from the language
- * server's documents.
+ * collapsed regions while the other is shown. The Python entry is the main
+ * file's model, the one shown when no file is selected.
  */
 const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
-  ir: {
-    language: "yaml",
-    path: "petrinaut-reactive-modules://export/net.pn.yaml",
-  },
-  python: {
-    language: "python",
-    path: "petrinaut-reactive-modules://export/net.py",
-  },
+  ir: { language: "yaml", path: `${PYTHON_MODEL_ROOT}net.pn.yaml` },
+  python: { language: "python", path: `${PYTHON_MODEL_ROOT}net.py` },
 };
 
 // Monaco consumes every wheel event over the editor, its default: an event
@@ -211,6 +212,17 @@ const titleStyle = cva({
   },
 });
 
+// The title and the status share the header's free space, so a status that
+// appears while the net recompiles shortens the title and leaves the tabs
+// where they were.
+const titleAreaStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "[1]",
+  minWidth: "[0]",
+});
+
 const statusStyle = css({
   fontSize: "[11px]",
   color: "neutral.s100",
@@ -230,10 +242,18 @@ const bodyStyle = css({
   minHeight: "[0]",
 });
 
-// The editor owns the whole tab area; the workspace's text-selection lock
-// stops at its boundary so the output can be copied.
+// The editor and, on the Python tab, the file list beside it.
+const splitStyle = css({
+  display: "flex",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+// The editor owns the tab area left of the file list; the workspace's
+// text-selection lock stops at its boundary so the output can be copied.
 const editorBoxStyle = css({
   flex: "[1]",
+  minWidth: "[0]",
   minHeight: "[0]",
   userSelect: "text",
 });
@@ -282,21 +302,24 @@ const listStyle = css({
   color: "neutral.s115",
 });
 
-/** The active tab's text in Monaco, once its grammar is registered. */
+/** The shown text in Monaco, once its grammar is registered. */
 const ExportViewer = ({
   languages,
   tab,
+  path,
   value,
 }: {
   languages: Promise<void>;
   tab: TabId;
+  /** The model's path; one model per file keeps each file's view state. */
+  path: string;
   value: string;
 }) => {
   use(languages);
   return (
     <CodeEditor
       viewer
-      path={TAB_MODELS[tab].path}
+      path={path}
       language={TAB_MODELS[tab].language}
       value={value}
       height="100%"
@@ -358,6 +381,8 @@ export const ReactiveModulesPanel = ({
   const { showAnimations } = use(UserSettingsContext);
   const [activeTab, setActiveTab] = useState<TabId>("ir");
   const [flags, setFlags] = useState<ZerothTarget>({});
+  const [selectedFile, setSelectedFile] = useState("net.py");
+  const [filesOpen, setFilesOpen] = useState(true);
   const target = resolveZerothTarget({ ...flags, dt });
   // One grammar load per window: a failure fails this window once, and the
   // window mounted by the next show loads again.
@@ -459,10 +484,21 @@ export const ReactiveModulesPanel = ({
         ? "Compiling…"
         : null;
 
+  // The Python tab shows one of the compiled files: the selected one, or the
+  // main file when the layout no longer writes the selected one.
+  const files = result?.files ?? null;
+  const shownFile =
+    files === null
+      ? null
+      : (files.find((file) => file.path === selectedFile) ?? files[0] ?? null);
   // The IR stands on its own when only the lowering refuses the net, so the
   // IR tab shows the document while the Python tab lists what stops it.
   const output =
-    result === null ? null : activeTab === "ir" ? result.ir : result.python;
+    result === null
+      ? null
+      : activeTab === "ir"
+        ? result.ir
+        : (shownFile?.text ?? null);
 
   if (container === null) {
     return null;
@@ -472,6 +508,9 @@ export const ReactiveModulesPanel = ({
   const placementLabel = isFloating
     ? `Dock ${PANEL_LABEL}`
     : `Float ${PANEL_LABEL}`;
+  // One file needs no list; the toggle and the list appear with a second.
+  const listedFiles = files !== null && files.length > 1 ? files : null;
+  const filesLabel = filesOpen ? "Hide files" : "Show files";
   // The docked width, read by the spacer and the window through CSS.
   const dockedStyle = { "--dock-width": `${width}px` } as CSSProperties;
   const spacerStyle = {
@@ -531,27 +570,29 @@ export const ReactiveModulesPanel = ({
         )}
         <div className={cardStyle({ placement })}>
           <div className={headerStyle}>
-            <Title
-              type={isFloating ? "button" : undefined}
-              className={titleStyle({ draggable: isFloating })}
-              aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
-              title={
-                isFloating ? "Drag to move, or use the arrow keys" : undefined
-              }
-              {...(isFloating ? handleProps : {})}
-            >
-              {PANEL_LABEL}
-            </Title>
+            <div className={titleAreaStyle}>
+              <Title
+                type={isFloating ? "button" : undefined}
+                className={titleStyle({ draggable: isFloating })}
+                aria-label={isFloating ? `Move ${PANEL_LABEL}` : undefined}
+                title={
+                  isFloating ? "Drag to move, or use the arrow keys" : undefined
+                }
+                {...(isFloating ? handleProps : {})}
+              >
+                {PANEL_LABEL}
+              </Title>
+              {status === null ? null : (
+                <span className={statusStyle} role="status">
+                  {status}
+                </span>
+              )}
+            </div>
             <HorizontalTabsHeader
               subViews={TABS}
               activeTabId={activeTab}
               onTabChange={(tabId) => setActiveTab(tabId as TabId)}
             />
-            {status === null ? null : (
-              <span className={statusStyle} role="status">
-                {status}
-              </span>
-            )}
             <Button
               size="xs"
               variant="ghost"
@@ -617,22 +658,57 @@ export const ReactiveModulesPanel = ({
                     target={target}
                     document={result.document}
                     onChange={(patch) => setFlags({ ...flags, ...patch })}
-                  />
-                ) : null}
-                <div className={editorBoxStyle}>
-                  <Suspense
-                    fallback={
-                      <div className={notesStyle}>
-                        <p className={mutedStyle}>Loading editor…</p>
-                      </div>
-                    }
                   >
-                    <ExportViewer
-                      languages={languages}
-                      tab={activeTab}
-                      value={output}
+                    {listedFiles === null ? null : (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className={headerButtonStyle}
+                        aria-label={filesLabel}
+                        onClick={() => setFilesOpen(!filesOpen)}
+                        prefix={
+                          <ExperimentalIcon
+                            name="sidebar"
+                            collapsed={!filesOpen}
+                            size={14}
+                          />
+                        }
+                        tooltip={filesLabel}
+                      />
+                    )}
+                  </TargetHeader>
+                ) : null}
+                <div className={splitStyle}>
+                  <div className={editorBoxStyle}>
+                    <Suspense
+                      fallback={
+                        <div className={notesStyle}>
+                          <p className={mutedStyle}>Loading editor…</p>
+                        </div>
+                      }
+                    >
+                      <ExportViewer
+                        languages={languages}
+                        tab={activeTab}
+                        path={
+                          activeTab === "ir" || shownFile === null
+                            ? TAB_MODELS[activeTab].path
+                            : `${PYTHON_MODEL_ROOT}${shownFile.path}`
+                        }
+                        value={output}
+                      />
+                    </Suspense>
+                  </div>
+                  {activeTab === "python" &&
+                  listedFiles !== null &&
+                  shownFile !== null ? (
+                    <FilesPanel
+                      files={listedFiles}
+                      selected={shownFile.path}
+                      onSelect={setSelectedFile}
+                      open={filesOpen}
                     />
-                  </Suspense>
+                  ) : null}
                 </div>
                 {result.warnings.length > 0 ? (
                   <div className={footerStyle}>

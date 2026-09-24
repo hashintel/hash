@@ -14,6 +14,7 @@ import {
 } from "./petri-net-ir-to-reactive-module";
 import { sdcpnToPetriNetIr } from "./sdcpn-to-petri-net-ir";
 
+import type { ReactiveModuleFile } from "./emit-reactive-module-python";
 import type {
   PetriNetIrDiagnostic,
   SdcpnToPetriNetIrInput,
@@ -37,9 +38,12 @@ export type ReactiveModuleExport = {
   ir: string | null;
   /**
    * The reactive module as Python over `zrth.sugar`, or `null` when the net
-   * has no IR or the IR holds a construct the lowering refuses.
+   * has no IR or the IR holds a construct the lowering refuses. The main
+   * file when the layout writes one file per module.
    */
   python: string | null;
+  /** Every Python file, the main one first; `null` with `python`. */
+  files: ReactiveModuleFile[] | null;
   errors: PetriNetIrDiagnostic[];
   warnings: PetriNetIrDiagnostic[];
 };
@@ -63,6 +67,7 @@ export const compileReactiveModuleExport = ({
       document: null,
       ir: null,
       python: null,
+      files: null,
       errors: outcome.errors,
       warnings: outcome.warnings,
     };
@@ -80,6 +85,7 @@ export const compileReactiveModuleExport = ({
     document,
     ir: renderPetriNetIr(document),
     python: compiled.ok ? compiled.python : null,
+    files: compiled.ok ? compiled.files : null,
     errors: compiled.ok ? [] : compiled.errors,
     warnings: outcome.warnings,
   };

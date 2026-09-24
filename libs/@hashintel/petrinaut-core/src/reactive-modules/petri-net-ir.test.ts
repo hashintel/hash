@@ -272,8 +272,28 @@ describe("zerothTargetForNet", () => {
       control: "closed",
       dt: 1,
       slots: 8,
+      layout: "single",
+      syntax: "update",
     });
     expect(resolveZerothTarget({ shape: "modular" }).shape).toBe("modular");
+    expect(zerothTargetForNet({ syntax: "next" }, stochastic)).toEqual({
+      syntax: "next",
+    });
+  });
+
+  it("keeps the layout only under the modular shape", () => {
+    expect(
+      zerothTargetForNet({ layout: "per-module" }, stochastic),
+    ).toBeUndefined();
+    expect(
+      zerothTargetForNet({ shape: "modular", layout: "single" }, stochastic),
+    ).toEqual({ shape: "modular" });
+    expect(
+      zerothTargetForNet(
+        { shape: "modular", layout: "per-module" },
+        stochastic,
+      ),
+    ).toEqual({ shape: "modular", layout: "per-module" });
   });
 });
 

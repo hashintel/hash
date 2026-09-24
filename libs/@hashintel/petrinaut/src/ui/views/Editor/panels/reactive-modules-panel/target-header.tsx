@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, type ReactNode } from "react";
+
 import { NumberInput, Select, type SelectItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -13,7 +15,12 @@ import type {
  * `targetHeaderControls`, so the row itself only renders.
  */
 
-export type TargetControlId = "shape" | "marking" | "control";
+export type TargetControlId =
+  | "shape"
+  | "layout"
+  | "marking"
+  | "control"
+  | "syntax";
 
 export type TargetControl = {
   id: TargetControlId;
@@ -26,8 +33,6 @@ export type TargetControl = {
 
 export type TargetHeaderModel = {
   controls: TargetControl[];
-  /** The step length rates are tested over and dynamics step by; `null` when neither applies. */
-  dt: number | null;
   /** The slots a coloured place without a capacity gets; `null` for an uncoloured net. */
   slots: number | null;
 };
@@ -35,6 +40,11 @@ export type TargetHeaderModel = {
 const SHAPE_ITEMS: SelectItem<string>[] = [
   { value: "monolithic", text: "Monolithic" },
   { value: "modular", text: "Modular" },
+];
+
+const LAYOUT_ITEMS: SelectItem<string>[] = [
+  { value: "single", text: "Single file" },
+  { value: "per-module", text: "File per module" },
 ];
 
 const MARKING_ITEMS: SelectItem<string>[] = [
@@ -45,6 +55,11 @@ const MARKING_ITEMS: SelectItem<string>[] = [
 const CONTROL_ITEMS: SelectItem<string>[] = [
   { value: "closed", text: "Closed" },
   { value: "open", text: "Open" },
+];
+
+const SYNTAX_ITEMS: SelectItem<string>[] = [
+  { value: "update", text: "init / update" },
+  { value: "next", text: "init / next" },
 ];
 
 export const targetHeaderControls = (
@@ -63,6 +78,15 @@ export const targetHeaderControls = (
   return {
     controls: [
       { id: "shape", label: "Shape", value: target.shape, items: SHAPE_ITEMS },
+      {
+        id: "layout",
+        label: "Layout",
+        value: target.shape === "modular" ? target.layout : "single",
+        items: LAYOUT_ITEMS,
+        ...(target.shape === "modular"
+          ? {}
+          : { disabledReason: "Layout applies to the modular shape" }),
+      },
       {
         id: "marking",
         label: "Marking",
@@ -91,8 +115,13 @@ export const targetHeaderControls = (
                 "No transition is marked controllable in its metadata",
             }),
       },
+      {
+        id: "syntax",
+        label: "Syntax",
+        value: target.syntax,
+        items: SYNTAX_ITEMS,
+      },
     ],
-    dt: stochastic || dynamic ? target.dt : null,
     slots: coloured ? target.slots : null,
   };
 };
@@ -100,19 +129,72 @@ export const targetHeaderControls = (
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
-  flexWrap: "wrap",
-  gap: "3",
-  paddingX: "3",
-  paddingY: "1",
   borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
   flexShrink: 0,
   fontSize: "[11px]",
   color: "neutral.s105",
 });
 
+// The flags on one line: what does not fit scrolls, and a fade on the edge
+// that hides more says so. The fades follow the scroll position through the
+// `data-fade-*` attributes the row keeps in step below.
+const scrollShellStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minWidth: "[0]",
+  _before: {
+    content: '""',
+    position: "absolute",
+    top: "[0]",
+    bottom: "[0]",
+    left: "[0]",
+    width: "[28px]",
+    pointerEvents: "none",
+    opacity: "[0]",
+    transition: "[opacity 120ms ease-out]",
+    background:
+      "[linear-gradient(to right, {colors.neutral.s00}, transparent)]",
+  },
+  _after: {
+    content: '""',
+    position: "absolute",
+    top: "[0]",
+    bottom: "[0]",
+    right: "[0]",
+    width: "[28px]",
+    pointerEvents: "none",
+    opacity: "[0]",
+    transition: "[opacity 120ms ease-out]",
+    background: "[linear-gradient(to left, {colors.neutral.s00}, transparent)]",
+  },
+  '&[data-fade-left="true"]': { _before: { opacity: "[1]" } },
+  '&[data-fade-right="true"]': { _after: { opacity: "[1]" } },
+});
+
+// Scrolls sideways without a scrollbar, and never hands the gesture on to the
+// page, where it would navigate.
+const scrollerStyle = css({
+  overflowX: "auto",
+  overflowY: "hidden",
+  overscrollBehaviorX: "contain",
+  scrollbarWidth: "[none]",
+  "&::-webkit-scrollbar": { display: "none" },
+});
+
+// Sized by its controls, so its box tells the row when the flags change.
+const controlsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[max-content]",
+  gap: "3",
+  paddingX: "3",
+  paddingY: "1",
+});
+
 const controlStyle = css({
   display: "flex",
   alignItems: "center",
+  flexShrink: 0,
   gap: "1",
 });
 
@@ -131,71 +213,124 @@ const slotsStyle = css({
   width: "[56px]",
 });
 
-const dtStyle = css({
-  marginLeft: "auto",
-  whiteSpace: "nowrap",
-  color: "neutral.s100",
+// Whatever the tab puts at the row's end, such as the file list's toggle:
+// outside the scroller, so it stays in view.
+const trailingStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
+  paddingLeft: "1",
+  paddingRight: "2",
+});
+
+/** Which edges of the scroller hide more of the controls. */
+export const scrollFades = (scroller: {
+  scrollLeft: number;
+  clientWidth: number;
+  scrollWidth: number;
+}): { left: boolean; right: boolean } => ({
+  left: scroller.scrollLeft > 0,
+  right: scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1,
 });
 
 export const TargetHeader = ({
   target,
   document,
   onChange,
+  children,
 }: {
   target: ResolvedZerothTarget;
   document: PetriNetIr | null;
   onChange: (patch: ZerothTarget) => void;
+  /** Rendered at the row's end. */
+  children?: ReactNode;
 }) => {
   const model = targetHeaderControls(target, document);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
+
+  // The fades are DOM state kept in step with the scroller: measured on
+  // mount, on every scroll, and whenever the scroller or its controls resize.
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    const scroller = scrollerRef.current;
+    const controls = controlsRef.current;
+    if (!shell || !scroller || !controls) {
+      return;
+    }
+    const measure = () => {
+      const fades = scrollFades(scroller);
+      shell.dataset.fadeLeft = String(fades.left);
+      shell.dataset.fadeRight = String(fades.right);
+    };
+    measure();
+    scroller.addEventListener("scroll", measure, { passive: true });
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(measure);
+    observer?.observe(scroller);
+    observer?.observe(controls);
+    return () => {
+      scroller.removeEventListener("scroll", measure);
+      observer?.disconnect();
+    };
+  }, []);
+
   return (
     <div role="group" aria-label="Compiler flags" className={rowStyle}>
-      {model.controls.map((control) => (
-        <label
-          key={control.id}
-          className={controlStyle}
-          title={control.disabledReason}
-        >
-          <span className={labelStyle}>{control.label}</span>
-          <Select
-            required
-            size="xs"
-            variant="subtle"
-            className={selectStyle}
-            aria-label={`${control.label} flag`}
-            disabled={control.disabledReason !== undefined}
-            value={control.value}
-            items={control.items}
-            onChange={(value: string) => {
-              onChange({ [control.id]: value } as ZerothTarget);
-            }}
-          />
-        </label>
-      ))}
-      {model.slots === null ? null : (
-        <div
-          className={controlStyle}
-          title="Slots of a coloured place without a capacity"
-        >
-          <span className={labelStyle}>Slots</span>
-          <NumberInput
-            size="xs"
-            hideStepper
-            min={1}
-            aria-label="Slots flag"
-            value={model.slots}
-            className={slotsStyle}
-            onChange={(value) => {
-              if (value !== null && value >= 1) {
-                onChange({ slots: Math.floor(value) });
-              }
-            }}
-          />
+      <div ref={shellRef} className={scrollShellStyle}>
+        <div ref={scrollerRef} data-flags-scroller className={scrollerStyle}>
+          <div ref={controlsRef} className={controlsStyle}>
+            {model.controls.map((control) => (
+              <label
+                key={control.id}
+                className={controlStyle}
+                title={control.disabledReason}
+              >
+                <span className={labelStyle}>{control.label}</span>
+                <Select
+                  required
+                  size="xs"
+                  variant="subtle"
+                  className={selectStyle}
+                  aria-label={`${control.label} flag`}
+                  disabled={control.disabledReason !== undefined}
+                  value={control.value}
+                  items={control.items}
+                  onChange={(value: string) => {
+                    onChange({ [control.id]: value } as ZerothTarget);
+                  }}
+                />
+              </label>
+            ))}
+            {model.slots === null ? null : (
+              <div
+                className={controlStyle}
+                title="Slots of a coloured place without a capacity"
+              >
+                <span className={labelStyle}>Slots</span>
+                <NumberInput
+                  size="xs"
+                  hideStepper
+                  min={1}
+                  aria-label="Slots flag"
+                  value={model.slots}
+                  className={slotsStyle}
+                  onChange={(value) => {
+                    if (value !== null && value >= 1) {
+                      onChange({ slots: Math.floor(value) });
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      {model.dt === null ? null : (
-        <span className={dtStyle} title="From Simulation Settings">
-          dt {model.dt}
-        </span>
+      </div>
+      {children === undefined || children === null ? null : (
+        <div className={trailingStyle}>{children}</div>
       )}
     </div>
   );
