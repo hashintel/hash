@@ -48,7 +48,9 @@ updates start from the latest persisted value so another tab's documents survive
 
 ## Choosing the assistant
 
-Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and **Enable Voice** controls whether Voice mode is offered. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled` and is off when the value is missing or invalid. Both preferences belong to the website host, not Petrinaut.
+Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and automatically enables **Voice**. You can turn **Enable Voice** off manually; that choice survives reload until you select Brunch again. Voice defaults on for an already selected Brunch assistant unless explicitly disabled. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled`. These preferences belong to the website host, not Petrinaut.
+
+When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by default. Leave it off to use Live; turn it on to use Realtime. This choice is saved under `petrinaut-website:realtime-enabled` and applies to the next Voice session. Changing it does not interrupt active audio: end Voice and start it again to switch providers.
 
 A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
 
@@ -143,18 +145,17 @@ Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite
 
 ### Voice provider defaults
 
-Without an explicit `PETRINAUT_VOICE_PROVIDER`, Vercel preview deployments
-(`VERCEL_ENV=preview`) default to `live` so testers exercise the Brunch-backed
-Live interview; production and local development default to `realtime`. An
-explicit value always wins, so set `PETRINAUT_VOICE_PROVIDER=realtime` in the
-Vercel preview environment to opt out. The default only selects the provider:
-Voice still requires `PETRINAUT_OPENAI_VOICE_ENABLED=true` and a dedicated
-`OPENAI_VOICE_API_KEY`, and Live sessions started from a voice-enabled preview
-are billed to that key.
+The website defaults to Live in every environment. **Realtime mode** in Labs
+selects Realtime for this browser. `PETRINAUT_VOICE_PROVIDER` remains the
+discovery default for clients without a provider picker; it does not override
+the website's Labs choice or restrict either provider's session endpoint.
+An invalid value still disables Voice discovery. Both providers require
+`PETRINAUT_OPENAI_VOICE_ENABLED=true` and a dedicated `OPENAI_VOICE_API_KEY`;
+sessions are billed to that key.
 
 ### Experimental Brunch-backed Live interview (FE-1664)
 
-`PETRINAUT_VOICE_PROVIDER=live` uses GPT-Live-1 for conversational audio while a
+With **Realtime mode** off, Live uses GPT-Live-1 for conversational audio while a
 separate `gpt-4o-transcribe` session supplies finalized user text to Brunch.
 Brunch remains the canonical conversation, domain and tool authority. Settled
 Brunch prose is offered to Live as delegation-correlated commentary; Live has no

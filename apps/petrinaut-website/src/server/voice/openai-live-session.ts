@@ -73,8 +73,7 @@ export const createOpenAILiveSessionHandler =
     )
       return respond("Expected SDP.", 415);
     const availability = getOpenAIVoiceAvailability(environment);
-    if (!availability.available || getVoiceProvider(environment) !== "live")
-      return respond("Live is unavailable.", 404);
+    if (!availability.available) return respond("Live is unavailable.", 404);
 
     const voice = request.headers.get(voicePreferenceHeader) ?? "marin";
     if (!isSupportedVoice("live", voice))
