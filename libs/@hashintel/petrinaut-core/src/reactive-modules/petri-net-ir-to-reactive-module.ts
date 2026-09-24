@@ -3,7 +3,7 @@ import {
   emitReactiveModulePython,
 } from "./emit-reactive-module-python";
 import { lowerPetriNetIr } from "./lower-petri-net-ir";
-import { resolveZerothTarget } from "./petri-net-ir";
+import { resolveZerothTarget, zerothTargetComposes } from "./petri-net-ir";
 
 import type { ReactiveModuleLayout } from "./emit-reactive-module-python";
 import type { LowerPetriNetIrOptions } from "./lower-petri-net-ir";
@@ -37,6 +37,15 @@ export const RESERVED_MODULE_NAMES: readonly string[] = [
   "INT",
   "REAL",
   "BOOL",
+  "SPN",
+  "Nat",
+  "Clock",
+  "Event",
+  "t",
+  "d",
+  "exp",
+  "fired",
+  "if_then",
   "self",
   "None",
   "True",
@@ -56,12 +65,12 @@ export type CompilePetriNetIrOutcome =
     }
   | { ok: false; errors: PetriNetIrDiagnostic[] };
 
-/** The layout the flags ask for: a module per file only splits the modular shape. */
+/** The layout the flags ask for: a module per file only splits a composed system. */
 export const reactiveModuleLayout = (
   ir: Pick<PetriNetIr, "zeroth">,
 ): ReactiveModuleLayout => {
   const target = resolveZerothTarget(ir.zeroth);
-  return target.shape === "modular" ? target.layout : "single";
+  return zerothTargetComposes(target) ? target.layout : "single";
 };
 
 /** Lowers the IR and renders the module as Python, or says what stops it. */

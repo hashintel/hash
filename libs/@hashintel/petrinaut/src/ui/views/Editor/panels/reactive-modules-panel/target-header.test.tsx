@@ -17,6 +17,7 @@ import type {
 
 const defaults: ResolvedZerothTarget = {
   shape: "monolithic",
+  rates: "coin",
   marking: "real",
   control: "closed",
   dt: 0.5,

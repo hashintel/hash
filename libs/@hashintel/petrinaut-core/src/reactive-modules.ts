@@ -52,6 +52,7 @@ export {
   resolveZerothTarget,
   ZEROTH_TARGET_DEFAULTS,
   type ZerothTarget,
+  zerothTargetComposes,
   zerothTargetForNet,
 } from "./reactive-modules/petri-net-ir";
 export {

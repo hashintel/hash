@@ -8,6 +8,7 @@ import {
   petriNetIrPlaceCapacity,
   renderPetriNetIr,
   resolveZerothTarget,
+  zerothTargetComposes,
   zerothTargetForNet,
 } from "./petri-net-ir";
 
@@ -103,6 +104,20 @@ describe("renderPetriNetIr with a zeroth section", () => {
         "  dt: 0.5",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("writes the rates flag between the shape and the marking", () => {
+    expect(
+      renderPetriNetIr({
+        name: "arrivals",
+        kind: "stochastic",
+        places: { Arrived: null },
+        transitions: { Arrive: { outputs: { Arrived: null }, rate: 2 } },
+        zeroth: { shape: "modular", rates: "clock", marking: "int" },
+      }),
+    ).toContain(
+      "\nzeroth:\n  shape: modular\n  rates: clock\n  marking: int\n",
     );
   });
 });
@@ -268,6 +283,7 @@ describe("zerothTargetForNet", () => {
   it("resolves every flag to a value", () => {
     expect(resolveZerothTarget(undefined)).toEqual({
       shape: "monolithic",
+      rates: "coin",
       marking: "real",
       control: "closed",
       dt: 1,
@@ -279,6 +295,53 @@ describe("zerothTargetForNet", () => {
     expect(zerothTargetForNet({ syntax: "next" }, stochastic)).toEqual({
       syntax: "next",
     });
+  });
+
+  it("keeps the rates flag for a stochastic net without colours or dynamics, and drops the step flags under clocks", () => {
+    const busy = {
+      rates: "clock" as const,
+      shape: "modular" as const,
+      marking: "int" as const,
+      control: "open" as const,
+      dt: 0.5,
+      syntax: "next" as const,
+      layout: "per-module" as const,
+    };
+    const rated: Pick<PetriNetIr, "kind" | "places" | "transitions"> = {
+      kind: "stochastic",
+      places: { Arrived: null },
+      transitions: { Arrive: { rate: 2, controllable: true } },
+    };
+    expect(zerothTargetForNet(busy, rated)).toEqual({
+      rates: "clock",
+      layout: "per-module",
+    });
+    expect(zerothTargetForNet(busy, cycleIr)).toEqual({
+      shape: "modular",
+      syntax: "next",
+      layout: "per-module",
+    });
+    expect(
+      zerothTargetForNet(
+        { rates: "clock" },
+        {
+          kind: "stochastic",
+          places: { Pool: { colour: "Ball" } },
+          transitions: { Take: { inputs: { Pool: null }, rate: 1 } },
+        },
+      ),
+    ).toBeUndefined();
+    expect(zerothTargetForNet({ rates: "coin" }, rated)).toBeUndefined();
+  });
+
+  it("says which flags compose the modules", () => {
+    expect(zerothTargetComposes(resolveZerothTarget(undefined))).toBe(false);
+    expect(
+      zerothTargetComposes(resolveZerothTarget({ shape: "modular" })),
+    ).toBe(true);
+    expect(zerothTargetComposes(resolveZerothTarget({ rates: "clock" }))).toBe(
+      true,
+    );
   });
 
   it("keeps the layout only under the modular shape", () => {
