@@ -20,6 +20,8 @@ export const MODEL_SCHEME = "petrinaut-reactive-modules";
 export type TraceBinding = {
   trace: Trace;
   origins: PetriNetIrOrigins | null;
+  /** The text the trace was built for; a model showing other text gets no hover. */
+  text: string;
 };
 
 /** The net item a provenance record points at, when the origins know it. */
@@ -70,14 +72,22 @@ export const bindTrace = (path: string, binding: TraceBinding): void => {
   bindings.set(path, binding);
 };
 
-export const unbindTrace = (path: string): void => {
-  bindings.delete(path);
+/** Removes the binding, unless another editor has since bound the path. */
+export const unbindTrace = (path: string, binding: TraceBinding): void => {
+  if (bindings.get(path) === binding) {
+    bindings.delete(path);
+  }
 };
 
-const bindingOf = (model: Monaco.editor.ITextModel): TraceBinding | null =>
-  model.uri.scheme === MODEL_SCHEME
-    ? (bindings.get(model.uri.path) ?? null)
-    : null;
+const bindingOf = (model: Monaco.editor.ITextModel): TraceBinding | null => {
+  if (model.uri.scheme !== MODEL_SCHEME) {
+    return null;
+  }
+  const binding = bindings.get(model.uri.path);
+  return binding === undefined || binding.text !== model.getValue()
+    ? null
+    : binding;
+};
 
 const registered = new WeakSet<typeof Monaco>();
 
@@ -173,6 +183,11 @@ export const attachProvenanceListeners = (
   return () => {
     for (const disposable of disposables) {
       disposable.dispose();
+    }
+    // A lit item outlives nothing: the viewer going away clears it.
+    if (hovered !== null) {
+      hovered = null;
+      listeners().onHoverItem(null);
     }
   };
 };

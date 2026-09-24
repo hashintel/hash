@@ -86,6 +86,41 @@ describe("tracePetriNetIr", () => {
   });
 });
 
+describe("tracePetriNetIr quoting", () => {
+  it("reads a key the dumper quotes", () => {
+    const toggle: PetriNetIr = {
+      name: "toggle",
+      kind: "stochastic",
+      places: { On: null, Off: null },
+      marking: { On: 1 },
+      transitions: {
+        Flip: { inputs: { On: null }, outputs: { Off: null }, rate: 1 },
+      },
+    };
+    const text = renderPetriNetIr(toggle);
+    expect(text).toContain("  'On':");
+    const trace = tracePetriNetIr(toggle, text);
+    expect(provenanceAt(trace, lineOf(text, "  'On':"))).toMatchObject({
+      what: "Place On",
+      ir: "places.On",
+      source: { kind: "place", name: "On" },
+    });
+  });
+
+  it("reads the lines of a block scalar as text, not as keys", () => {
+    const text = renderPetriNetIr(queue).replace(
+      "    rate: 1.5\n",
+      "    rate: 1.5\n    kernel: |\n      Air: 1\n      Waiting: 2\n",
+    );
+    const trace = tracePetriNetIr(queue, text);
+    const kernel = provenanceAt(trace, lineOf(text, "    kernel: |"));
+    expect(provenanceAt(trace, lineOf(text, "      Air: 1"))).toEqual(kernel);
+    expect(provenanceAt(trace, lineOf(text, "      Waiting: 2"))).toEqual(
+      kernel,
+    );
+  });
+});
+
 describe("traceReactiveModulePython", () => {
   const outcome = compilePetriNetIr(queue);
   if (!outcome.ok) {
@@ -136,6 +171,31 @@ describe("traceReactiveModulePython", () => {
     ).toMatchObject({
       what: "An instance of Place_Waiting in the LRA theory",
     });
+  });
+
+  it("drops a lone read's comma", () => {
+    expect(
+      provenanceAt(trace, lineOf(text, "place_Served = Place_Served("))?.why,
+    ).toBe("Drives Served and reads fire_Serve.");
+  });
+
+  it("reads the monolithic net as the system and keeps a name's case", () => {
+    const single = compilePetriNetIr({
+      ...queue,
+      zeroth: { shape: "monolithic", dt: 0.5 },
+    });
+    if (!single.ok) {
+      throw new Error("expected the monolithic queue to compile");
+    }
+    const python = emitReactiveModulePython(single.graph);
+    const singleTrace = traceReactiveModulePython(single.graph, queue, python);
+    expect(provenanceAt(singleTrace, lineOf(python, "net = "))).toMatchObject({
+      what: "The system",
+      why: "The one module, driving every place.",
+    });
+    expect(
+      provenanceAt(singleTrace, lineOf(python, "        fire_Serve = "))?.what,
+    ).toBe("Sets fire_Serve: Serve fires this step");
   });
 
   it("returns null off every range", () => {

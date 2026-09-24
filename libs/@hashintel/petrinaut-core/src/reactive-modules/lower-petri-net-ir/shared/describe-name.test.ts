@@ -29,6 +29,13 @@ describe("describeName", () => {
     expect(describeName("z_Launch_0")?.what).toBe(
       "Gaussian draw 0 of Launch's kernel",
     );
+    expect(describeName("out_Launch_Air_0_arrival_time")?.what).toBe(
+      "arrival_time of token 0 that Launch produces into Air",
+    );
+    expect(describeName("next_Hangar_2_present")).toMatchObject({
+      what: "Hangar_2_present once the survivors closed up",
+      source: { kind: "place", name: "Hangar" },
+    });
   });
 
   it("returns null for a name the lowerings do not coin", () => {

@@ -365,9 +365,14 @@ const ExportViewer = ({
   });
   useEffect(() => {
     const key = modelPathOf(path);
-    bindTrace(key, { trace: explain ? (trace ?? []) : [], origins });
-    return () => unbindTrace(key);
-  }, [path, trace, origins, explain]);
+    const binding = {
+      trace: explain ? (trace ?? []) : [],
+      origins,
+      text: value,
+    };
+    bindTrace(key, binding);
+    return () => unbindTrace(key, binding);
+  }, [path, trace, origins, explain, value]);
   useEffect(() => () => detachRef.current?.(), []);
   return (
     <CodeEditor

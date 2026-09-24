@@ -2,7 +2,8 @@
  * Reads the lowerings' identifiers back into words: what a variable holds
  * and which place or transition it belongs to. The prefixes are the ones
  * `names.ts` coins; an IR name carries no underscore, so a prefix and its
- * parts split without ambiguity.
+ * parts split without ambiguity. An attribute name is the user's own and may
+ * carry underscores, so it is always the last part and takes the rest.
  */
 
 export type NameSource = { kind: "place" | "transition"; name: string };
@@ -18,8 +19,6 @@ const transition = (name: string): NameSource => ({
   name,
 });
 const place = (name: string): NameSource => ({ kind: "place", name });
-
-const IR_NAME = /^[A-Z][A-Za-z0-9]*$/u;
 
 /** A description of a coined identifier, or `null` for a name the lowerings do not coin. */
 export const describeName = (name: string): NameDescription | null => {
@@ -38,7 +37,7 @@ export const describeName = (name: string): NameDescription | null => {
         };
   }
   const [prefix, ...parts] = name.split("_");
-  const [first, second, third, fourth] = parts;
+  const [first, second, third] = parts;
   if (parts.length === 0 || first === undefined) {
     return null;
   }
@@ -124,7 +123,7 @@ export const describeName = (name: string): NameDescription | null => {
       };
     case "out":
       return {
-        what: `${fourth ?? ""} of token ${third ?? ""} that ${first} produces into ${second ?? ""}`,
+        what: `${parts.slice(3).join("_")} of token ${third ?? ""} that ${first} produces into ${second ?? ""}`,
         source: transition(first),
       };
     case "rank":
@@ -143,10 +142,13 @@ export const describeName = (name: string): NameDescription | null => {
         what: `The slot the next token produced into ${first} lands in`,
         source: place(first),
       };
-    case "next":
+    case "next": {
+      const source = describeName(parts.join("_"))?.source;
       return {
         what: `${parts.join("_")} once the survivors closed up`,
+        ...(source === undefined ? {} : { source }),
       };
+    }
     case "overflow":
       return {
         what: `A token produced into ${first} found no free slot`,
@@ -154,6 +156,6 @@ export const describeName = (name: string): NameDescription | null => {
         source: place(first),
       };
     default:
-      return IR_NAME.test(name) && parts.length === 0 ? null : null;
+      return null;
   }
 };

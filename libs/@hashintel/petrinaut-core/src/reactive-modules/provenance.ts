@@ -324,18 +324,37 @@ export const tracePetriNetIr = (ir: PetriNetIr, text: string): Trace => {
       }
     }
   };
+  // The indent of a key whose value is a block scalar: the lines under it
+  // are text, however much they look like keys.
+  let blockIndent: number | null = null;
   lines.forEach((line, index) => {
     const number = index + 1;
-    const key = /^( *)(?:- )?([A-Za-z][\w-]*):(?: |$)/u.exec(line);
+    if (blockIndent !== null) {
+      const leading = /^ */u.exec(line)![0].length;
+      if (line.trim() === "" || leading > blockIndent) {
+        return;
+      }
+      blockIndent = null;
+    }
+    // A key is bare, or quoted where YAML would read the bare word as another
+    // value: the dumper quotes `On`, `Off`, `Yes`, `No`, `True`, `Null` and
+    // the like.
+    const key =
+      /^( *)(?:- )?(?:'([^']*)'|"([^"]*)"|([A-Za-z_$][\w-]*)):(?: (.*)|$)/u.exec(
+        line,
+      );
     if (key === null) {
       return;
     }
     const indent = key[1]!.length;
+    if (/^[|>][-+]?$/u.test(key[5] ?? "")) {
+      blockIndent = indent;
+    }
     close(indent, number);
     const parent = open[open.length - 1];
     open.push({
       indent,
-      path: [...(parent?.path ?? []), key[2]!],
+      path: [...(parent?.path ?? []), key[2] ?? key[3] ?? key[4]!],
       start: number,
     });
   });
@@ -348,6 +367,9 @@ export const tracePetriNetIr = (ir: PetriNetIr, text: string): Trace => {
 const moduleSource = (className: string, ir: PetriNetIr): ProvenanceSource => {
   const [prefix, ...rest] = className.split("_");
   const name = rest.join("_");
+  if (name === "") {
+    return { kind: "net", name: ir.name };
+  }
   if (prefix === "Transition" || prefix === "Draw") {
     return { kind: "transition", name };
   }
@@ -365,12 +387,18 @@ const describeVariableLine = (
 ): Provenance => {
   const described = describeName(name);
   if (described !== null) {
+    // The emitter's trailing comment repeats the what for some names; it
+    // joins the why only when it says something else.
+    const notes = [...new Set([described.why, comment])].filter(
+      (note): note is string =>
+        note !== undefined && note !== "" && note !== described.what,
+    );
     return {
       what:
         role === "statement"
-          ? `Sets ${name}: ${described.what.charAt(0).toLowerCase()}${described.what.slice(1)}`
+          ? `Sets ${name}: ${described.what}`
           : described.what,
-      why: comment ?? described.why,
+      ...(notes.length === 0 ? {} : { why: notes.join(" ") }),
       ...(described.source === undefined ? {} : { source: described.source }),
     };
   }
@@ -575,24 +603,7 @@ export const traceReactiveModulePython = (
       });
       return;
     }
-    const instance =
-      /^(\w+) = (\w+)\(theory=(\w+), ctrl=\(([^)]*)\)(?:, extl=\(([^)]*)\))?\)$/u.exec(
-        line,
-      );
-    if (instance !== null) {
-      const [, , className, theory, ctrl, extl] = instance;
-      const source = moduleSource(className!, ir);
-      trace.push({
-        startLine: number,
-        endLine: number,
-        provenance: {
-          what: `An instance of ${className} in the ${theory} theory`,
-          why: `Drives ${ctrl!.replace(/,$/u, "")}${extl === undefined || extl === "" ? "" : ` and reads ${extl}`}.`,
-          source,
-        },
-      });
-      return;
-    }
+    // Before the instance shape: the monolithic net is one instance itself.
     if (line.startsWith("net = ")) {
       trace.push({
         startLine: number,
@@ -604,6 +615,25 @@ export const traceReactiveModulePython = (
               ? "Every module composed: a variable one module drives is awaited by the others, in an order the awaits allow."
               : "The one module, driving every place.",
           source: { kind: "net", name: ir.name },
+        },
+      });
+      return;
+    }
+    const instance =
+      /^(\w+) = (\w+)\(theory=(\w+), ctrl=\(([^)]*)\)(?:, extl=\(([^)]*)\))?\)$/u.exec(
+        line,
+      );
+    if (instance !== null) {
+      const [, , className, theory, ctrl, extl] = instance;
+      const source = moduleSource(className!, ir);
+      const reads = extl?.replace(/,$/u, "") ?? "";
+      trace.push({
+        startLine: number,
+        endLine: number,
+        provenance: {
+          what: `An instance of ${className} in the ${theory} theory`,
+          why: `Drives ${ctrl!.replace(/,$/u, "")}${reads === "" ? "" : ` and reads ${reads}`}.`,
+          source,
         },
       });
       return;
