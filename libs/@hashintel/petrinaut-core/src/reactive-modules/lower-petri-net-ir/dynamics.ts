@@ -52,7 +52,7 @@ export const lowerDynamics = (
         );
       } catch (error) {
         if (error instanceof LinearHirRefusal) {
-          return refuse(error.code, error.message);
+          return refuse(error.code, `In the dynamics, ${error.message}`);
         }
         throw error;
       }
@@ -92,7 +92,7 @@ export const lowerDynamics = (
         locals.set(binding.name, translateValue(binding.value, env, locals));
       } catch (error) {
         if (error instanceof LinearHirRefusal) {
-          return refuse(error.code, error.message);
+          return refuse(error.code, `In the dynamics, ${error.message}`);
         }
         throw error;
       }
@@ -112,7 +112,7 @@ export const lowerDynamics = (
         derivative = translateValue(entry.value, env, locals);
       } catch (error) {
         if (error instanceof LinearHirRefusal) {
-          return refuse(error.code, error.message);
+          return refuse(error.code, `In the dynamics, ${error.message}`);
         }
         throw error;
       }

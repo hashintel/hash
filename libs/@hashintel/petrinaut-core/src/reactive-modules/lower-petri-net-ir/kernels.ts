@@ -39,12 +39,13 @@ const refuse = (code: string, message: string): never => {
   throw new BindingRefusal(code, message);
 };
 
+/** Runs a translation, saying the refusal comes from the kernel. */
 const withRefusal = <T>(compute: () => T): T => {
   try {
     return compute();
   } catch (error) {
     if (error instanceof LinearHirRefusal) {
-      throw new BindingRefusal(error.code, error.message);
+      throw new BindingRefusal(error.code, `In the kernel, ${error.message}`);
     }
     throw error;
   }

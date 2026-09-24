@@ -133,12 +133,16 @@ export class BindingRefusal extends Error {
   }
 }
 
-const withRefusal = <T>(compute: () => T): T => {
+/** Runs a translation, naming the surface a refusal comes from. */
+const withRefusal = <T>(surface: "guard" | "rate", compute: () => T): T => {
   try {
     return compute();
   } catch (error) {
     if (error instanceof LinearHirRefusal) {
-      throw new BindingRefusal(error.code, error.message);
+      throw new BindingRefusal(
+        error.code,
+        `In the ${surface}, ${error.message}`,
+      );
     }
     throw error;
   }
@@ -156,12 +160,12 @@ const lambdaTerm = (
   });
   if (transition.guard !== null) {
     const guard = transition.guard;
-    return withRefusal(() => translateGuard(guard, named(guard)));
+    return withRefusal("guard", () => translateGuard(guard, named(guard)));
   }
   if (transition.rateCode !== null) {
     const rate = transition.rateCode;
     // exp(-rate * dt) <= u  is  rate >= -ln(u) / dt, the exponential draw.
-    return withRefusal(() =>
+    return withRefusal("rate", () =>
       binary(
         ">=",
         translateRate(rate, named(rate)),

@@ -88,12 +88,20 @@ const boolean = (expr: ReactiveExpr): Translated => ({ expr, sort: "boolean" });
 const asNumber = (value: Translated, node: HirExpr): ReactiveExpr =>
   value.sort === "number"
     ? value.expr
-    : refuse("sort-mismatch", `a ${value.sort} is used as a number`, node);
+    : refuse(
+        "sort-mismatch",
+        `a ${value.sort} is used where a number is needed`,
+        node,
+      );
 
 const asBoolean = (value: Translated, node: HirExpr): ReactiveExpr =>
   value.sort === "boolean"
     ? value.expr
-    : refuse("sort-mismatch", `a ${value.sort} is used as a Bool`, node);
+    : refuse(
+        "sort-mismatch",
+        `a ${value.sort} is used where a boolean is needed`,
+        node,
+      );
 
 const constantOf = (expr: ReactiveExpr): number | undefined =>
   expr.kind === "num" ? expr.value : undefined;
@@ -164,7 +172,7 @@ const equality = (
     ) {
       return refuse(
         "string-codes-differ",
-        "the two string attributes take different values, so their codes cannot be compared",
+        "the two string attributes take different sets of values, so their codes cannot be compared; compare each with a literal instead",
         node,
       );
     }
@@ -213,7 +221,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
     case "stringLit":
       return refuse(
         "string-as-value",
-        "a string is only compared with a string attribute",
+        "a string literal can only be compared with a string attribute",
         node,
       );
     case "constant":
@@ -225,7 +233,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
         default:
           return refuse(
             "non-finite-constant",
-            `${node.name} has no place in a linear theory`,
+            `${node.name} is not a finite number, so it has no value in the linear theories`,
             node,
           );
       }
@@ -233,12 +241,16 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
       const local =
         scope.locals.get(node.name) ?? scope.env.tokenLocals?.get(node.name);
       if (local === undefined) {
-        return refuse("unbound-local", `${node.name} is not bound`, node);
+        return refuse(
+          "unbound-local",
+          `${node.name} is not defined in this code`,
+          node,
+        );
       }
       if (isToken(local)) {
         return refuse(
           "token-as-value",
-          `${node.name} is a token; read one of its attributes`,
+          `${node.name} is a whole token; read one of its attributes`,
           node,
         );
       }
@@ -247,14 +259,14 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
     case "paramRef":
       return refuse(
         "parameter-unresolved",
-        `parameters.${node.name} was not inlined`,
+        `parameters.${node.name} has no value; the scenario did not inline it`,
         node,
       );
     case "scenarioRef":
     case "rangeCall":
       return refuse(
         "surface-mismatch",
-        "scenario code has no place here",
+        "scenario-only code cannot run in a module",
         node,
       );
     case "fieldAccess": {
@@ -262,7 +274,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
       if (token === undefined) {
         return refuse(
           "unknown-field",
-          `${node.field} is read from something that is not a token`,
+          `${node.field} is read from a value that is not a token`,
           node,
         );
       }
@@ -270,7 +282,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
       if (value === undefined) {
         return refuse(
           "unknown-attribute",
-          `the token has no attribute ${node.field}`,
+          `the token has no attribute named ${node.field}`,
           node,
         );
       }
@@ -281,7 +293,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
     case "indexAccess":
       return refuse(
         "token-as-value",
-        "a token is used as a value; read one of its attributes",
+        "a whole token is used as a value; read one of its attributes",
         node,
       );
     case "length": {
@@ -296,7 +308,11 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
           return number(num(count));
         }
       }
-      return refuse("unknown-length", "only an input place has a length", node);
+      return refuse(
+        "unknown-length",
+        ".length is only known for an input place",
+        node,
+      );
     }
     case "unary": {
       const operand = translate(node.operand, scope);
@@ -326,7 +342,11 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
             other === undefined ||
             literal.kind !== "stringLit"
           ) {
-            return refuse("unsupported", "malformed comparison", node);
+            return refuse(
+              "unsupported",
+              "the comparison is not between two values",
+              node,
+            );
           }
           const attribute = translate(other, scope);
           if (attribute.sort !== "string") {
@@ -373,7 +393,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
           }
           return refuse(
             "nonlinear-product",
-            "the product of two values the tokens decide is not linear",
+            "two values the tokens decide are multiplied; the linear theories add, subtract, scale by a constant and compare",
             node,
           );
         }
@@ -382,7 +402,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
           if (divisor === undefined || divisor === 0) {
             return refuse(
               "nonlinear-division",
-              "only division by a non-zero constant is linear",
+              "a value is divided by one the tokens decide; the linear theories only divide by a non-zero constant",
               node,
             );
           }
@@ -392,7 +412,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
         case "**":
           return refuse(
             "nonlinear-power",
-            `${node.op} has no linear form`,
+            `a value is raised to a power (${node.op}); the linear theories add, subtract, scale by a constant and compare`,
             node,
           );
         case "<":
@@ -420,7 +440,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
       if (thenBranch.sort !== elseBranch.sort) {
         return refuse(
           "sort-mismatch",
-          "the two branches of a conditional differ in sort",
+          "the two branches of the conditional have different sorts",
           node,
         );
       }
@@ -459,19 +479,19 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
         case "random":
           return refuse(
             "math-random",
-            "Math.random has no place in a module; a draw is an input",
+            "Math.random cannot run in a module; use a Distribution, which becomes an input the harness draws",
             node,
           );
         default:
           return NONLINEAR_MATH.has(node.fn)
             ? refuse(
                 "nonlinear-math",
-                `Math.${node.fn} of a value the tokens decide is not linear`,
+                `Math.${node.fn} of a value the tokens decide has no linear form; the linear theories add, subtract, scale by a constant and compare`,
                 node,
               )
             : refuse(
                 "nonlinear-math",
-                `Math.${node.fn} is not supported`,
+                `Math.${node.fn} has no linear form`,
                 node,
               );
       }
@@ -482,7 +502,7 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
       return drawn === undefined
         ? refuse(
             "distribution-unsupported",
-            `a ${node.dist} draw cannot be an input here`,
+            `a ${node.dist} draw cannot be an input here; the harness draws Uniform and Gaussian with constant spreads`,
             node,
           )
         : number(drawn);
@@ -497,13 +517,13 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
     case "uuidFrom":
       return refuse(
         "uuid-unsupported",
-        "a 128-bit id has no sort in the theories",
+        "a uuid attribute has no sort in the theories",
         node,
       );
     case "stringCall":
       return refuse(
         "string-call-unsupported",
-        "string methods have no place in a module; strings are codes",
+        "string methods cannot run in a module; a string attribute is a code that is only compared for equality",
         node,
       );
     case "arrayMap":
@@ -513,11 +533,15 @@ const translate = (node: HirExpr, scope: Scope): Translated => {
     case "recordLit":
       return refuse(
         "array-in-expression",
-        "an array or record is not a value the theories hold",
+        "an array or record is not a value the theories hold; read one element or field",
         node,
       );
   }
-  return refuse("unsupported", `${node.kind} is not supported`, node);
+  return refuse(
+    "unsupported",
+    `${node.kind} is not supported in a module`,
+    node,
+  );
 };
 
 /** The function's body as a reactive expression, with its result sort. */
