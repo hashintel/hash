@@ -7,8 +7,10 @@ import {
 
 import { localChatListen } from "./src/http/local-origins.ts";
 
-// The dev server loads Brunch workspace packages from source; builds keep their dist.
-const workspaceSourceCondition = "@hashintel/source";
+// Resolve Brunch workspace packages to their TypeScript source while serving;
+// builds keep dist. See "Loading workspace source in dev" in
+// libs/@hashintel/brunch-agent/ARCHITECTURE.md.
+const workspaceSourceCondition = "@dev/source";
 
 // No @vitejs/plugin-react: the flue plugin's dev controller owns the whole
 // request space and hands every request to app.ts, with no fall-through to

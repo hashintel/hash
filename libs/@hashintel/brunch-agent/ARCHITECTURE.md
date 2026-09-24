@@ -16,6 +16,10 @@ Two older non-product composition boundaries remain route-admissible. Batched co
 
 The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input: implementation source, not project documentation. Prompts are imported with `?raw`. Each skill is an Agent Skills directory whose `SKILL.md` the package exports and imports natively; library builds leave that import in place and the consuming Flue application validates and packages the directory. Only code built by Flue can load a `SKILL.md` import, so the hooks that mount skills live in each package's `./agent` entry, and `./flue` stays loadable in plain Node.
 
+### Loading workspace source in dev
+
+Each Brunch package points TypeScript at `src` but runs from `dist`. So that a dev server does not run stale code, every export in these packages carries an `"@dev/source"` condition, placed after `types` and before `import`, that names the TypeScript source. The Brunch and website Vite configs prepend that condition to Vite's default client and server conditions only when they serve; builds, Vitest and plain Node never enable it and keep resolving `dist`. The name is a custom condition rather than `source` or `development`: Vite enables `development` by default in dev, and some published packages ship a `source` condition, so either would also switch third-party packages to unbuilt code. A new Brunch package export adds the condition beside its `types` entry. Petrinaut and petrinaut-core do not use it: they need their own build (Panda CSS and Vite-only imports), so their dev servers run from `dist`.
+
 Gherkin is packaged but currently unmounted. Dafny and Claims are unmounted experimental packages.
 
 ## Conversation and workpiece authority
