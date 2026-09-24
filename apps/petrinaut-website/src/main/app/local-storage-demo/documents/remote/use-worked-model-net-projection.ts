@@ -80,6 +80,7 @@ export const useWorkedModelNetProjection = (input: {
     netProjectionRef.current = null;
     writeQueueRef.current = Promise.resolve();
     if (!input.enabled || input.bundleKey === undefined) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- a new selection resets the remote projection this effect fetches
       setState(initialState);
       return;
     }
@@ -196,12 +197,10 @@ export const useWorkedModelNetProjection = (input: {
           `Worked-model revision ${revisionId} has no persistence operation.`,
         );
       }
-      try {
-        await write;
-      } finally {
+      await write.finally(() => {
         if (writesByRevisionRef.current.get(revisionId) === write)
           writesByRevisionRef.current.delete(revisionId);
-      }
+      });
     },
     [],
   );

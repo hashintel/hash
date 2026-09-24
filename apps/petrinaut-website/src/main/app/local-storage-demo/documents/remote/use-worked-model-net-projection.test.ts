@@ -249,6 +249,31 @@ test("settles the persistence operation for an exact document revision", async (
   await waitFor(() => expect(settled).toBe(true));
 });
 
+test("failed revision settlement clears its entry without masking the write failure", async () => {
+  const pendingUpdate = Promise.withResolvers<WorkedModelNetProjection>();
+  vi.mocked(updateNetProjectionDefinition).mockReturnValue(
+    pendingUpdate.promise,
+  );
+  const { result } = renderHook(() => useWorkedModelNetProjection(input));
+  await waitFor(() => expect(result.current.netProjection).not.toBeNull());
+
+  let write: Promise<void> | undefined;
+  act(() => {
+    write = result.current.persistDefinition(
+      persistChange(emptyDefinition, "revision-1", "revision-2"),
+    );
+  });
+  await waitFor(() => expect(updateNetProjectionDefinition).toHaveBeenCalled());
+  const settlement = result.current.settleDocumentRevision("revision-2");
+  const failure = new Error("The repository refused the write.");
+  pendingUpdate.reject(failure);
+  await expect(settlement).rejects.toBe(failure);
+  await expect(write).rejects.toBe(failure);
+  await expect(
+    result.current.settleDocumentRevision("revision-2"),
+  ).rejects.toThrow("has no persistence operation");
+});
+
 test("creates a clean net projection only after queued writes settle", async () => {
   vi.mocked(updateNetProjectionDefinition).mockResolvedValue(
     netProjection("b".repeat(64), emptyDefinition, "copy-1", "revision-2"),
