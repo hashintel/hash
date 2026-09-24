@@ -10,7 +10,10 @@ import { createPortal } from "react-dom";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { compileReactiveModuleExport } from "@hashintel/petrinaut-core/reactive-modules";
+import {
+  compileReactiveModuleExport,
+  resolveZerothTarget,
+} from "@hashintel/petrinaut-core/reactive-modules";
 
 import { LanguageClientContext } from "../../../../react/lsp/context";
 import { SimulationContext } from "../../../../react/simulation/context";
@@ -24,11 +27,15 @@ import { FloatingResizeHandles } from "../shared/floating-resize-handles";
 import { useSideDockContainer } from "../shared/side-dock";
 import { useFloatingPanel } from "../shared/use-floating-panel";
 import { loadExportLanguages } from "./reactive-modules-panel/monaco-languages";
+import { TargetHeader } from "./reactive-modules-panel/target-header";
 import { useLambdaHir } from "./reactive-modules-panel/use-lambda-hir";
 
 import type { HorizontalTabView } from "../../../components/sub-view/horizontal/horizontal-tabs-container";
 import type { CodeEditorProps } from "../../../monaco/code-editor";
-import type { PetriNetIrDiagnostic } from "@hashintel/petrinaut-core/reactive-modules";
+import type {
+  PetriNetIrDiagnostic,
+  ZerothTarget,
+} from "@hashintel/petrinaut-core/reactive-modules";
 
 const PANEL_LABEL = "Zeroth Reactive Modules";
 
@@ -322,7 +329,9 @@ const DiagnosticList = ({
  * module, as a movable window over the workspace or docked as a column
  * beside it, between the properties panel and the AI assistant. It
  * recompiles as the net changes, starting from the initial state and
- * parameter values the Simulation Settings resolve.
+ * parameter values the Simulation Settings resolve. The compiler flags live
+ * in the window and are written into the IR, so both tabs show the same
+ * compilation.
  *
  * Both placements render into the side dock column, so switching between
  * them keeps the editor mounted. The placement and the width are the
@@ -348,6 +357,8 @@ export const ReactiveModulesPanel = ({
   const container = useSideDockContainer();
   const { showAnimations } = use(UserSettingsContext);
   const [activeTab, setActiveTab] = useState<TabId>("ir");
+  const [flags, setFlags] = useState<ZerothTarget>({});
+  const target = resolveZerothTarget({ ...flags, dt });
   // One grammar load per window: a failure fails this window once, and the
   // window mounted by the next show loads again.
   const [languages] = useState(loadExportLanguages);
@@ -438,7 +449,7 @@ export const ReactiveModulesPanel = ({
           parameterValues,
           lambdaHir: lambdaHir.lambdaHir,
           extensions,
-          dt,
+          zeroth: target,
         });
 
   const status =
@@ -592,6 +603,13 @@ export const ReactiveModulesPanel = ({
               </div>
             ) : (
               <>
+                {activeTab === "python" ? (
+                  <TargetHeader
+                    target={target}
+                    document={result.document}
+                    onChange={(patch) => setFlags({ ...flags, ...patch })}
+                  />
+                ) : null}
                 <div className={editorBoxStyle}>
                   <Suspense
                     fallback={

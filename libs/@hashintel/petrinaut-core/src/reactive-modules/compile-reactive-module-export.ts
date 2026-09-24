@@ -2,7 +2,12 @@
  * @layerRoot core.reactive-modules
  * @role Compiles a plain or stochastic net to the Petri net IR and on to a Zeroth reactive module in Python
  */
-import { renderPetriNetIr } from "./petri-net-ir";
+import {
+  type PetriNetIr,
+  renderPetriNetIr,
+  type ZerothTarget,
+  zerothTargetForNet,
+} from "./petri-net-ir";
 import {
   petriNetIrToReactiveModule,
   RESERVED_MODULE_NAMES,
@@ -18,14 +23,19 @@ export type ReactiveModuleExportInput = Omit<
   SdcpnToPetriNetIrInput,
   "reservedNames"
 > & {
-  /** Step length a stochastic rate is tested over in the module. Defaults to 1. */
-  dt?: number;
+  /**
+   * The compiler flags, written into the IR's `zeroth` section where they
+   * apply to the net and differ from their defaults.
+   */
+  zeroth?: ZerothTarget;
 };
 
 export type ReactiveModuleExport = {
-  /** The IR as YAML, or `null` when the net cannot be expressed. */
+  /** The IR as plain data, or `null` when the net cannot be expressed. */
+  document: PetriNetIr | null;
+  /** The IR as YAML, or `null` with `document`. */
   ir: string | null;
-  /** The reactive module as Python over `zrth.sugar`, or `null` with `ir`. */
+  /** The reactive module as Python over `zrth.sugar`, or `null` with `document`. */
   python: string | null;
   errors: PetriNetIrDiagnostic[];
   warnings: PetriNetIrDiagnostic[];
@@ -37,7 +47,7 @@ export type ReactiveModuleExport = {
  * item stops it.
  */
 export const compileReactiveModuleExport = ({
-  dt,
+  zeroth,
   ...input
 }: ReactiveModuleExportInput): ReactiveModuleExport => {
   // The module's own identifiers stay out of the IR's names, so the IR compiles as written.
@@ -47,18 +57,22 @@ export const compileReactiveModuleExport = ({
   });
   if (!outcome.ok) {
     return {
+      document: null,
       ir: null,
       python: null,
       errors: outcome.errors,
       warnings: outcome.warnings,
     };
   }
+  const target = zerothTargetForNet(zeroth, outcome.ir);
+  const document: PetriNetIr = {
+    ...outcome.ir,
+    ...(target === undefined ? {} : { zeroth: target }),
+  };
   return {
-    ir: renderPetriNetIr(outcome.ir),
-    python: petriNetIrToReactiveModule(
-      outcome.ir,
-      dt === undefined ? {} : { dt },
-    ),
+    document,
+    ir: renderPetriNetIr(document),
+    python: petriNetIrToReactiveModule(document),
     errors: [],
     warnings: outcome.warnings,
   };

@@ -310,6 +310,45 @@ describe("sdcpnToPetriNetIr", () => {
     ]);
   });
 
+  it("marks a transition controllable when its metadata says so", () => {
+    const outcome = compile(
+      net(
+        [place("a", "A"), place("b", "B")],
+        [
+          {
+            ...transition("go", "Go", { inputs: ["a"], outputs: ["b"] }),
+            metadata: { control: "controllable", action: "dispatch" },
+          },
+          {
+            ...transition("back", "Back", { inputs: ["b"], outputs: ["a"] }),
+            metadata: { control: "uncontrollable" },
+          },
+        ],
+      ),
+    );
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.ir.transitions).toEqual({
+        Go: { inputs: { A: null }, outputs: { B: null }, controllable: true },
+        Back: { inputs: { B: null }, outputs: { A: null } },
+      });
+    }
+  });
+
+  it("refuses an initial marking over a place's capacity", () => {
+    const outcome = compile(cycle, { initialMarking: { c: 4 } });
+    expect(outcome).toMatchObject({
+      ok: false,
+      errors: [
+        {
+          code: "initial-marking-over-capacity",
+          message: "the initial marking is 4, over the capacity of 3",
+          item: { kind: "place", name: "3rd" },
+        },
+      ],
+    });
+  });
+
   it("refuses an empty net and component instances", () => {
     const empty = compile(net([], []));
     expect(!empty.ok && empty.errors.map((error) => error.code)).toEqual([

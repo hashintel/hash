@@ -1,6 +1,7 @@
 /**
  * Entry point for the Zeroth reactive-modules export: a net becomes a Petri
- * net IR, and the IR becomes a reactive module in Python over `zrth.sugar`.
+ * net IR, the IR is lowered to a reactive module graph in the shape its
+ * `zeroth` flags ask for, and the graph becomes Python over `zrth.sugar`.
  *
  * Separate from the main entry so a host loads it only when the export is
  * shown. Browser-safe: it interprets the conditions' lowered HIR and never
@@ -11,6 +12,18 @@ export {
   type ReactiveModuleExport,
   type ReactiveModuleExportInput,
 } from "./reactive-modules/compile-reactive-module-export";
+export { emitReactiveModulePython } from "./reactive-modules/emit-reactive-module-python";
+export {
+  interpretReactiveModuleGraph,
+  type InterpretReactiveModuleGraphOptions,
+  orderReactiveModules,
+  type ReactiveTrace,
+  type ReactiveValue,
+} from "./reactive-modules/interpret-reactive-module-graph";
+export {
+  type LowerPetriNetIrOptions,
+  lowerPetriNetIr,
+} from "./reactive-modules/lower-petri-net-ir";
 export {
   PETRI_NET_IR_IDENTIFIER_PATTERN,
   PETRI_NET_IR_NAME_PATTERN,
@@ -25,12 +38,26 @@ export {
   petriNetIrInitialTokens,
   petriNetIrPlaceCapacity,
   renderPetriNetIr,
+  type ResolvedZerothTarget,
+  resolveZerothTarget,
+  ZEROTH_TARGET_DEFAULTS,
+  type ZerothTarget,
+  zerothTargetForNet,
 } from "./reactive-modules/petri-net-ir";
 export {
   type PetriNetIrToReactiveModuleOptions,
   petriNetIrToReactiveModule,
   RESERVED_MODULE_NAMES,
 } from "./reactive-modules/petri-net-ir-to-reactive-module";
+export type {
+  ReactiveExpr,
+  ReactiveModuleDecl,
+  ReactiveModuleGraph,
+  ReactiveSort,
+  ReactiveStatement,
+  ReactiveTheory,
+  ReactiveVariable,
+} from "./reactive-modules/reactive-module-graph";
 export {
   type PetriNetIrDiagnostic,
   type PetriNetIrDiagnosticItem,
