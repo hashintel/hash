@@ -162,11 +162,25 @@ const subheadingStyle: React.CSSProperties = {
   color: "#666",
 };
 
-const Controlled = ({
-  value: initialValue,
-  ...props
-}: Omit<ComboboxProps, "value" | "onChange"> & { value?: string }) => {
-  const [value, setValue] = useState<string>(initialValue ?? "");
+// The single, no-new-values arm of the props union, which scopes `value` and
+// `onChange` to the items' values (or null/undefined while nothing is
+// committed).
+type SingleComboboxProps = Extract<
+  ComboboxProps,
+  { multiple?: false; allowNewValue?: false; required?: false }
+>;
+
+// `allowNewValue` truthy switches the union to the any-string arm.
+type AllowNewValue = NonNullable<
+  Exclude<ComboboxProps["allowNewValue"], boolean> | true
+>;
+
+type ControlledProps = Omit<SingleComboboxProps, "value" | "onChange"> & {
+  value?: string;
+};
+
+const Controlled = ({ value: initialValue, ...props }: ControlledProps) => {
+  const [value, setValue] = useState<string | null>(initialValue ?? null);
   return (
     <Combobox
       items={sampleItems}
@@ -174,6 +188,26 @@ const Controlled = ({
       {...props}
       value={value}
       onChange={setValue}
+    />
+  );
+};
+
+const ControlledNewValue = ({
+  value: initialValue,
+  allowNewValue = true,
+  ...props
+}: Omit<ControlledProps, "allowNewValue"> & {
+  allowNewValue?: AllowNewValue;
+}) => {
+  const [value, setValue] = useState<string>(initialValue ?? "");
+  return (
+    <Combobox
+      items={sampleItems}
+      renderItem={renderSampleItem}
+      {...props}
+      allowNewValue={allowNewValue}
+      value={value}
+      onChange={(next) => setValue(next)}
     />
   );
 };
@@ -236,18 +270,18 @@ export const Default: Story = () => (
       <div className={rowStyle}>
         <div className={cellStyle}>
           <span style={subheadingStyle}>Enabled</span>
-          <Controlled allowNewValue placeholder="Type anything…" />
+          <ControlledNewValue placeholder="Type anything…" />
         </div>
         <div className={cellStyle}>
           <span style={subheadingStyle}>Always show option</span>
-          <Controlled
+          <ControlledNewValue
             allowNewValue={{ alwaysShowOption: true }}
             placeholder="Type anything…"
           />
         </div>
         <div className={cellStyle}>
           <span style={subheadingStyle}>Custom render</span>
-          <Controlled
+          <ControlledNewValue
             allowNewValue={{
               renderOption: (input) => <em>Create tag “{input}”</em>,
             }}
@@ -293,18 +327,43 @@ export const Default: Story = () => (
   </div>
 );
 
+// The multiple counterpart of the kitchen sink for the Sizes story. Kept
+// unexported — every export of a stories file becomes a story of its own.
+const SizedMultiKitchenSink = ({ size }: { size: ComboboxProps["size"] }) => {
+  const [values, setValues] = useState<string[]>(["banana", "apple"]);
+  return (
+    <Combobox
+      multiple
+      items={sampleItems}
+      renderItem={renderSampleItem}
+      size={size}
+      {...kitchenSinkProps}
+      value={values}
+      onChange={setValues}
+    />
+  );
+};
+
 export const Sizes: Story = () => (
   <div className={sectionStyle}>
-    <div className={groupStyle}>
+    <div className={groupStyle} style={{ maxWidth: "none" }}>
       {formInputSizes.map((size) => (
         <div key={size}>
           <h3 style={headingStyle}>{size}</h3>
-          <Controlled
-            value="banana"
-            size={size}
-            allowNewValue
-            {...kitchenSinkProps}
-          />
+          <div className={rowStyle}>
+            <div className={cellStyle}>
+              <span style={subheadingStyle}>single</span>
+              <ControlledNewValue
+                value="banana"
+                size={size}
+                {...kitchenSinkProps}
+              />
+            </div>
+            <div className={cellStyle}>
+              <span style={subheadingStyle}>multiple</span>
+              <SizedMultiKitchenSink size={size} />
+            </div>
+          </div>
         </div>
       ))}
     </div>

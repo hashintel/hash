@@ -31,7 +31,11 @@ export { minimumNearestNeighbourWorld } from "./components/Chart/NetworkGraph/no
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Chip, type ChipColor } from "./components/Chip/chip";
-export { Combobox, type ComboboxItem } from "./components/Combobox/combobox";
+export {
+  Combobox,
+  type ComboboxItem,
+  type MultiComboboxItem,
+} from "./components/Combobox/combobox";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Filter, type FilterOperator } from "./components/Filter/filter";
