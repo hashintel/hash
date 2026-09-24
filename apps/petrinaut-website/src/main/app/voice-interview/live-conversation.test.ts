@@ -8,6 +8,16 @@ beforeEach(() => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
 });
 
+const traceRecords = (calls: readonly (readonly unknown[])[], event: string) =>
+  calls
+    .map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === event);
+
 const setup = ({
   audioSettings,
   audioMuted = false,
@@ -1296,4 +1306,226 @@ test("telemetry shows activity but silence and late samples never settle or revi
   release(new Map());
   await vi.advanceTimersByTimeAsync(500);
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
+});
+
+test("records the microphone processing the browser applied at start and after a switch", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const settings = new VoiceAudioSettings("live", undefined);
+  const attach = vi.spyOn(settings, "attach");
+  const fixture = setup({ audioSettings: settings });
+  Object.assign(fixture.input, {
+    getSettings: () => ({
+      autoGainControl: true,
+      deviceId: "PRIVATE-DEVICE",
+      echoCancellation: true,
+      noiseSuppression: true,
+    }),
+  });
+  await connect(fixture);
+  const replacement = {
+    enabled: true,
+    stop: vi.fn(),
+    getSettings: () => ({
+      echoCancellation: "remote-only",
+      noiseSuppression: false,
+    }),
+  };
+  const connection = attach.mock.calls[0]?.[0];
+  connection?.replaceMicrophone({
+    getAudioTracks: () => [replacement],
+    getTracks: () => [replacement],
+  } as unknown as MediaStream);
+
+  expect(traceRecords(debug.mock.calls, "capture.settings")).toEqual([
+    expect.objectContaining({
+      reason: "started",
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    }),
+    expect.objectContaining({
+      reason: "microphone-switched",
+      echoCancellation: "remote-only",
+      noiseSuppression: false,
+    }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("summarises echo evidence for each stretch of audible Live output without provider text", async () => {
+  vi.useFakeTimers();
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  const getStats = vi.fn(
+    async (): Promise<Map<string, unknown>> =>
+      new Map([
+        [
+          "input",
+          {
+            type: "media-source",
+            kind: "audio",
+            audioLevel: 0.05,
+            echoReturnLoss: 10,
+            echoReturnLossEnhancement: 30,
+          },
+        ],
+        ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+      ]),
+  );
+  Object.assign(fixture.peers[0]!, { getStats });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    delta: "PRIVATE ANSWER",
+    start_ms: 5_000,
+    end_ms: 5_400,
+  });
+  await vi.advanceTimersByTimeAsync(100);
+  // A late fragment of the person's request, then the answer heard back.
+  fixture.emit(0, {
+    type: "session.input_transcript.delta",
+    delta: "PRIVATE REQUEST",
+    start_ms: 4_600,
+    end_ms: 4_900,
+  });
+  fixture.emit(0, {
+    type: "session.input_transcript.delta",
+    delta: "PRIVATE ECHO",
+    start_ms: 5_200,
+    end_ms: 5_500,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "during-output",
+    audio_start_ms: 900,
+  });
+  getStats.mockResolvedValue(
+    new Map([
+      [
+        "input",
+        {
+          type: "media-source",
+          kind: "audio",
+          audioLevel: 0.12,
+          echoReturnLoss: 20,
+          echoReturnLossEnhancement: 10,
+        },
+      ],
+      ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+    ]),
+  );
+  await vi.advanceTimersByTimeAsync(100);
+  getStats.mockResolvedValue(
+    new Map([
+      ["input", { type: "media-source", kind: "audio", audioLevel: 0.01 }],
+    ]),
+  );
+  await vi.advanceTimersByTimeAsync(900);
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([]);
+  await vi.advanceTimersByTimeAsync(100);
+
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({
+      sessionEnded: false,
+      outputMs: 100,
+      microphoneMuted: false,
+      speakerMuted: false,
+      speakerVolume: 1,
+      selectedSpeaker: false,
+      peakMicrophoneLevel: 0.12,
+      echoSamples: 2,
+      echoReturnLossDb: 15,
+      echoReturnLossEnhancementDb: 20,
+      transcriptionSpeechStarts: 1,
+      liveOutputFragments: 1,
+      liveInputFragments: 1,
+    }),
+  ]);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "after-output",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "during-output",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "after-output",
+    previous_item_id: "during-output",
+  });
+  for (const itemId of ["during-output", "after-output"]) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "PRIVATE TRANSCRIPT",
+    });
+  }
+  expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([
+    expect.objectContaining({
+      itemId: "during-output",
+      startedDuringOutput: true,
+    }),
+    expect.objectContaining({
+      itemId: "after-output",
+      startedDuringOutput: false,
+    }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("flushes an unfinished output summary, with its mute state, when voice ends", async () => {
+  vi.useFakeTimers();
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  Object.assign(fixture.peers[0]!, {
+    getStats: vi.fn(
+      async (): Promise<Map<string, unknown>> =>
+        new Map([
+          ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+        ]),
+    ),
+  });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  fixture.conversation.setMicrophoneMuted(true);
+  fixture.conversation.setSpeakerMuted(true);
+  await vi.advanceTimersByTimeAsync(100);
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+
+  const summaries = traceRecords(debug.mock.calls, "echo.output");
+  expect(summaries).toEqual([
+    expect.objectContaining({
+      sessionEnded: true,
+      outputMs: 0,
+      microphoneMuted: true,
+      speakerMuted: true,
+      echoSamples: 0,
+    }),
+  ]);
+  expect(summaries[0]).not.toHaveProperty("echoReturnLossDb");
 });

@@ -239,6 +239,32 @@ acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 
+#### Speaker echo check — 10 minutes
+
+The transcription session requests English and far-field noise reduction.
+Neither removes Live's own voice from the microphone; only the browser's echo
+cancellation can. To see whether that voice gets through, open DevTools, enable
+the **Verbose** console level and filter by `[Petrinaut Live trace]`:
+
+- `capture.settings` shows the echo cancellation, noise suppression and
+  automatic gain control the browser applied, at start and after a microphone
+  switch.
+- `echo.output` follows each stretch of audible Live output plus a one-second
+  tail. It reports the peak microphone level, the browser's mean echo return
+  loss and enhancement in dB when reported (`echoSamples` counts them),
+  transcription speech starts, and GPT-Live input transcript fragments that
+  began after its output did. `liveOutputFragments` shows whether output
+  transcripts arrived; without them `liveInputFragments` stays at zero.
+- `input.finalized` marks speech that started during output with
+  `startedDuringOutput`.
+
+On laptop speakers, on a speaker chosen in the audio settings, and on
+headphones, answer three Brunch questions and stay silent while Live speaks
+each reply. Any speech start, input fragment or `startedDuringOutput: true`
+during a reply means echo reached the microphone path; also note whether Live
+stops itself mid-sentence. The traces are local development diagnostics and
+contain no audio or text.
+
 ### Brunch Voice mode
 
 The following describes Realtime, the default provider in production and local development. Voice mode is disabled by default. To enable it, configure a real
