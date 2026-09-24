@@ -110,6 +110,7 @@ describe("analyzeCompilation", () => {
       probabilisticSatellitesSDCPN: true,
       sirModel: true,
       cafeQueue: true,
+      birthDeath: true,
       dronePatrol: true,
       supplyChainWithDisruption: true,
       supplyChainProfit: true,
@@ -300,6 +301,7 @@ describe("analyzeCompilation", () => {
       }),
     );
     expect(statuses).toStrictEqual({
+      birthDeath: {},
       productionMachines: {
         metric__good_products: "cpu-only",
         metric__defective_products: "cpu-only",

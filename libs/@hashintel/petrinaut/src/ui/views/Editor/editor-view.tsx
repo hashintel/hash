@@ -14,6 +14,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  birthDeath,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -467,6 +468,14 @@ const EditorViewContent = ({
                 text: "Café Queue",
                 onClick: () => {
                   createNewNet(cafeQueue);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-birth-death",
+                text: "Birth–Death Process",
+                onClick: () => {
+                  createNewNet(birthDeath);
                   clearSelection();
                 },
               },
