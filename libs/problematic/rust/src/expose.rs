@@ -27,8 +27,8 @@ impl<'s, K: Problem> Answer<'s, K> {
     ///
     /// # Panics
     ///
-    /// Fails `cargo build`, not `cargo check`, if `K::VARIANTS` lists no variant with the type
-    /// URI and status of `V`.
+    /// Fails at compile time if `K::VARIANTS` lists no variant with the type URI and status of
+    /// `V`.
     #[must_use]
     pub fn new<V: ProblemVariant + 's>(variant: V) -> Self {
         const {
