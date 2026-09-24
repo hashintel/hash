@@ -7,11 +7,7 @@
     },
     "codegen": {
       "dependsOn": [],
-      "inputs": [
-        "../../../apps/petrinaut-opt/openapi/openapi.json",
-        "oxfmt.ignore",
-        "package.json"
-      ],
+      "inputs": ["../../../apps/petrinaut-opt/openapi/openapi.json"],
       "outputs": ["src/openapi.gen.ts"]
     },
     "test:unit": {
