@@ -109,6 +109,20 @@ describe("ReactiveModulesPanel", () => {
     expect(onPlacementChange).toHaveBeenCalledWith("docked");
   });
 
+  test("explains lines on hover only once the header option is on", () => {
+    renderPanel("floating");
+    const option = screen.getByRole("button", {
+      name: "Explain lines on hover",
+    });
+    expect(option.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(option);
+    const pressed = screen.getByRole("button", {
+      name: "Stop explaining lines on hover",
+    });
+    expect(pressed).toBe(option);
+    expect(pressed.getAttribute("aria-pressed")).toBe("true");
+  });
+
   test("shows a recompiling status beside the title, not beside the tabs", () => {
     hir.status = "stale";
     renderPanel("floating");

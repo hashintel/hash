@@ -12,11 +12,14 @@ import {
   compilePetriNetIr,
   RESERVED_MODULE_NAMES,
 } from "./petri-net-ir-to-reactive-module";
+import { tracePetriNetIr, traceReactiveModulePython } from "./provenance";
 import { sdcpnToPetriNetIr } from "./sdcpn-to-petri-net-ir";
 
 import type { ReactiveModuleFile } from "./emit-reactive-module-python";
+import type { Trace } from "./provenance";
 import type {
   PetriNetIrDiagnostic,
+  PetriNetIrOrigins,
   SdcpnToPetriNetIrInput,
 } from "./sdcpn-to-petri-net-ir";
 
@@ -31,19 +34,26 @@ export type ReactiveModuleExportInput = Omit<
   zeroth?: ZerothTarget;
 };
 
+/** A generated file with the trace over its lines. */
+export type ReactiveModuleExportFile = ReactiveModuleFile & { trace: Trace };
+
 export type ReactiveModuleExport = {
   /** The IR as plain data, or `null` when the net cannot be expressed. */
   document: PetriNetIr | null;
   /** The IR as YAML, or `null` with `document`. */
   ir: string | null;
+  /** What each line of the IR is and where it comes from; `null` with `ir`. */
+  irTrace: Trace | null;
+  /** The net items the IR names stand for; `null` with `document`. */
+  origins: PetriNetIrOrigins | null;
   /**
    * The reactive module as Python over `zrth.sugar`, or `null` when the net
    * has no IR or the IR holds a construct the lowering refuses. The main
    * file when the layout writes one file per module.
    */
   python: string | null;
-  /** Every Python file, the main one first; `null` with `python`. */
-  files: ReactiveModuleFile[] | null;
+  /** Every Python file, the main one first, each with its trace; `null` with `python`. */
+  files: ReactiveModuleExportFile[] | null;
   errors: PetriNetIrDiagnostic[];
   warnings: PetriNetIrDiagnostic[];
 };
@@ -66,6 +76,8 @@ export const compileReactiveModuleExport = ({
     return {
       document: null,
       ir: null,
+      irTrace: null,
+      origins: null,
       python: null,
       files: null,
       errors: outcome.errors,
@@ -81,11 +93,19 @@ export const compileReactiveModuleExport = ({
   const compiled = compilePetriNetIr(document, {
     parseCode: (text) => outcome.code.get(text),
   });
+  const ir = renderPetriNetIr(document);
   return {
     document,
-    ir: renderPetriNetIr(document),
+    ir,
+    irTrace: tracePetriNetIr(document, ir),
+    origins: outcome.origins,
     python: compiled.ok ? compiled.python : null,
-    files: compiled.ok ? compiled.files : null,
+    files: compiled.ok
+      ? compiled.files.map((file) => ({
+          ...file,
+          trace: traceReactiveModulePython(compiled.graph, document, file.text),
+        }))
+      : null,
     errors: compiled.ok ? [] : compiled.errors,
     warnings: outcome.warnings,
   };

@@ -63,3 +63,9 @@ export const lowerPetriNetIr = (
     ? { ok: false, errors, warnings }
     : { ok: true, graph: lowered, warnings };
 };
+
+export {
+  describeName,
+  type NameDescription,
+  type NameSource,
+} from "./lower-petri-net-ir/shared/describe-name";
