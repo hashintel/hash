@@ -8,6 +8,7 @@ export { deploymentPipelineSDCPN } from "./deployment-pipeline";
 export { probabilisticSatellitesSDCPN } from "./satellites-launcher";
 export { sirModel } from "./sir-model";
 export { cafeQueue } from "./cafe-queue";
+export { birthDeath } from "./birth-death";
 export { dronePatrol } from "./drone-patrol";
 export { supplyChainWithDisruption } from "./supply-chain-with-disruption";
 export { supplyChainProfit } from "./supply-chain-profit";

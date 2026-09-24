@@ -52,6 +52,18 @@ A small service system: customers arrive, wait, are served by a limited staff po
 
 **Suggested initial state:** pick **Morning Rush** and create an experiment measuring **Waiting** — flip the interval toggle on `arrival_rate` and `service_rate` (**Sweep** with the optimizer off, so the surface is yours to explore) and watch the queue-explosion boundary appear on the surface plot.
 
+## Birth–Death Process
+
+The smallest stochastic net with a live population: one place, a **Birth** transition that adds to it, a **Death** transition that takes from it. Births arrive at `birth_rate` whatever the population is; a death takes one member at `death_rate` and is enabled only while the population holds a token.
+
+**Demonstrates:**
+
+- A source transition and a sink transition on one place, the shape of a queue's arrivals and departures with no server.
+- Rate parameters (`birth_rate`, `death_rate`) exposed by the **Two births per death** scenario, so a sweep finds where the population stops growing: above one birth per death it grows, at equal rates it moves at random from zero.
+- The net behind the birth–death module in Zeroth's reactive-modules examples, so the module the **Zeroth Reactive Modules** window compiles from it can be read beside the hand-written one.
+
+**Suggested initial state:** pick **Two births per death** and create an experiment measuring **Population**: sweep `death_rate` from 1 to 3 and watch the growth flatten as it passes `birth_rate`.
+
 ## Drone Patrol
 
 A typed fleet of drones cycling between the hangar and the air: launch, drain battery while airborne, return, recharge. Built to exercise the **GPU backend's typed-token path out of the box** — kernels, continuous dynamics, and token-reading rates all compile to the shader.
