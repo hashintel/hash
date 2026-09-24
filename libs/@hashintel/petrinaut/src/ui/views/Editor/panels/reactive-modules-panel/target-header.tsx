@@ -125,7 +125,10 @@ export const targetHeaderControls = (
         items: LAYOUT_ITEMS,
         ...(composes
           ? {}
-          : { disabledReason: "Layout applies to the modular shape" }),
+          : {
+              disabledReason:
+                "Layout applies to the modular shape or Clock rates",
+            }),
       },
       {
         id: "marking",

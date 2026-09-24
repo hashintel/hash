@@ -176,10 +176,10 @@ export type ZerothTarget = {
    */
   slots?: number;
   /**
-   * Modular shape only. `single`: one Python file holds the variables, the
-   * modules and the system. `per-module`: each module class has a file of
-   * its own, and `net.py` declares the variables, imports the modules and
-   * composes them.
+   * A composed system: the modular shape, or clock rates. `single`: one
+   * Python file holds the variables, the modules and the system.
+   * `per-module`: each module class has a file of its own, and `net.py`
+   * declares the variables, imports the modules and composes them.
    */
   layout?: "single" | "per-module";
   /**

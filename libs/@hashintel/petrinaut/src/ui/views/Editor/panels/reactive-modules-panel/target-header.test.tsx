@@ -56,14 +56,20 @@ const controlOf = (
 ) => model.controls.find((control) => control.id === id);
 
 describe("targetHeaderControls", () => {
-  it("offers the layout only under the modular shape", () => {
+  it("offers the layout under the modular shape or clock rates", () => {
     const monolithic = targetHeaderControls(defaults, stochastic).controls.find(
       (control) => control.id === "layout",
     );
     expect(monolithic).toMatchObject({
       value: "single",
-      disabledReason: "Layout applies to the modular shape",
+      disabledReason: "Layout applies to the modular shape or Clock rates",
     });
+    const clocked = controlOf(
+      targetHeaderControls({ ...defaults, rates: "clock" }, stochastic),
+      "layout",
+    );
+    expect(clocked).toMatchObject({ value: "single" });
+    expect(clocked?.disabledReason).toBeUndefined();
     const modular = targetHeaderControls(
       { ...defaults, shape: "modular", layout: "per-module" },
       stochastic,
