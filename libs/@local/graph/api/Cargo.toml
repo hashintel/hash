@@ -51,7 +51,7 @@ hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
 hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
-problematic                    = { workspace = true, features = ["schemars"] }
+problematic                    = { workspace = true, features = ["aide"] }
 type-system                    = { workspace = true, features = ["schemars", "utoipa"] }
 
 # Private third-party dependencies

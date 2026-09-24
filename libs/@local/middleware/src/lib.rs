@@ -125,7 +125,7 @@
 //!
 //! # Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(impl_trait_in_assoc_type, generic_atomic, error_generic_member_access)]
+#![feature(impl_trait_in_assoc_type, generic_atomic)]
 #![cfg_attr(test, feature(variant_count))]
 
 extern crate alloc;

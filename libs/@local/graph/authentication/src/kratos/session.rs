@@ -415,6 +415,7 @@ mod tests {
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
     use hash_middleware::authentication::{
+        AuthenticationProblem,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
@@ -428,7 +429,7 @@ mod tests {
             SumDataPoint,
         },
     };
-    use problematic::error_stack::ReportExt as _;
+    use problematic::Expose;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -931,10 +932,9 @@ mod tests {
             AuthenticationErrorKind::InvalidSession,
             "a forbidden session should fail as an invalid session, not as provider unavailability"
         );
-        let problem = report
-            .problem_details()
-            .next()
+        let answer = Expose::<AuthenticationProblem>::expose(&*report)
             .expect("the invalid session should carry a public problem");
+        let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(
             problem.detail.as_deref(),
@@ -967,9 +967,9 @@ mod tests {
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
         assert_matches!(
             report.current_context().kind(),
-            AuthenticationErrorKind::ProviderRejection,
-            "a rate-limited provider should fail as a provider rejection, not as an invalid \
-             session"
+            AuthenticationErrorKind::ProviderUnreachable,
+            "a rate-limited provider should fail as unavailable, which a retry can clear, not as \
+             an invalid session"
         );
     }
 

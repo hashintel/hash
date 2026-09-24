@@ -3,11 +3,8 @@ extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
 use problematic::{NoExtensions, ProblemDetails};
-#[cfg(feature = "serde")]
 use schemars::generate::SchemaSettings;
-#[cfg(feature = "serde")]
 use serde::Deserialize as _;
-#[cfg(feature = "serde")]
 use serde_json::json;
 
 #[derive(schemars::JsonSchema)]
@@ -36,7 +33,6 @@ fn schema_typed_extensions() {
     assert_schema_snapshot!(ProblemDetails<'_, InvalidParameters>);
 }
 
-#[cfg(feature = "serde")]
 #[test]
 fn schema_occurrence_members() {
     let input = json!({"title": "Internal Server Error", "status": 500});

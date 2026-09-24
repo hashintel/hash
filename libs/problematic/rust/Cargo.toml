@@ -11,21 +11,23 @@ version           = "0.0.0"
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
-http = { workspace = true, public = true }
+erased-serde = { workspace = true, public = true, features = ["alloc"] }
+http         = { workspace = true, public = true }
+schemars     = { workspace = true, public = true }
+serde_core   = { workspace = true, public = true }
 
 # Public third-party dependencies (optional)
-aide       = { workspace = true, public = true, optional = true }
-schemars   = { workspace = true, public = true, optional = true }
-serde_core = { workspace = true, public = true, optional = true }
+aide      = { workspace = true, public = true, optional = true }
+axum-core = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-erased-serde = { workspace = true, optional = true, features = ["alloc"] }
-serde        = { workspace = true, optional = true, features = ["alloc", "derive"] }
+serde      = { workspace = true, features = ["alloc", "derive"] }
+serde_json = { workspace = true, optional = true, features = ["alloc"] }
+tracing    = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta      = { workspace = true, features = ["json"] }
@@ -35,31 +37,9 @@ serde_json = { workspace = true, features = ["arbitrary_precision"] }
 name              = "aide"
 required-features = ["aide"]
 
-[[test]]
-name              = "error_stack"
-required-features = ["error-stack"]
-
-[[test]]
-name              = "extensions"
-required-features = ["serde"]
-
-[[test]]
-name              = "problem"
-required-features = ["serde"]
-
-[[test]]
-name              = "problem_details"
-required-features = ["serde"]
-
-[[test]]
-name              = "schema"
-required-features = ["schemars"]
-
 [features]
-aide        = ["dep:aide", "schemars"]
-error-stack = ["dep:error-stack", "dep:erased-serde", "serde"]
-schemars    = ["dep:schemars"]
-serde       = ["dep:serde_core", "dep:serde"]
+aide = ["dep:aide", "dep:serde_json"]
+axum = ["dep:axum-core", "dep:serde_json", "dep:tracing"]
 
 [lints]
 workspace = true

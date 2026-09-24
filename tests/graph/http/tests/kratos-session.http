@@ -259,7 +259,7 @@ X-Session-Token: {{unprovisioned_session_token}}
   });
   client.test("detail carries no identifier", function() {
     client.assert(
-      response.body.detail === "identity has no Graph actor provisioned",
+      response.body.detail === "credentials are not accepted",
       "Response detail is not the client-safe text"
     );
   });
@@ -333,7 +333,7 @@ X-Session-Token: {{unknown_actor_session_token}}
   });
   client.test("detail carries no identifier", function() {
     client.assert(
-      response.body.detail === "actor does not exist",
+      response.body.detail === "credentials are not accepted",
       "Response detail is not the client-safe text"
     );
   });

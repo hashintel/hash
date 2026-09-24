@@ -2,7 +2,6 @@
 
 use alloc::sync::Arc;
 use core::{
-    error::Request,
     fmt,
     ops::ControlFlow,
     str::FromStr as _,
@@ -10,17 +9,13 @@ use core::{
 };
 
 use error_stack::Report;
-use http::{HeaderMap, StatusCode};
-use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::provide_problem};
+use http::HeaderMap;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::{
-    authentication::{
-        AuthenticationMetrics, Degradation,
-        provider::{AuthenticationProvider, Caller},
-    },
-    response::status_problem,
+use crate::authentication::{
+    AuthenticationMetrics, Degradation,
+    provider::{AuthenticationProvider, Caller},
 };
 
 /// Name of the header carrying an unverified actor ID.
@@ -73,7 +68,7 @@ pub enum AuthenticationErrorKind {
     /// The service credential is verified but carries no delegated actor.
     #[display("the service credential carries no delegated actor")]
     MissingDelegatedActor,
-    /// The credential provider could not be reached.
+    /// The credential provider could not be reached, throttled the request, or failed.
     #[display("failed to verify the credential against the provider")]
     ProviderUnreachable,
     /// The credential provider rejected the verification request.
@@ -137,28 +132,6 @@ impl AuthenticationErrorKind {
         }
     }
 
-    /// Returns the status code of the built-in problem for this error.
-    #[must_use]
-    pub const fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidActorIdHeader | Self::MalformedCredential => StatusCode::BAD_REQUEST,
-            Self::ProviderUnreachable | Self::ProviderRejection | Self::StoreError => {
-                StatusCode::SERVICE_UNAVAILABLE
-            }
-            Self::InvalidProviderResponse => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::MissingCredentials
-            | Self::MissingServiceSecret
-            | Self::InvalidServiceSecret
-            | Self::MissingDelegatedActor
-            | Self::InvalidSession
-            | Self::InvalidAccessToken
-            | Self::IdentityWithoutActor
-            | Self::NotProvisioned { .. }
-            | Self::ActorNotFound { .. }
-            | Self::NotAUser { .. } => StatusCode::UNAUTHORIZED,
-        }
-    }
-
     /// Whether the provider verified the credential and rejected it, as opposed to failing to
     /// verify it.
     #[must_use]
@@ -193,41 +166,11 @@ impl AuthenticationErrorKind {
             | Self::InvalidAccessToken => FaultDomain::Caller,
         }
     }
-
-    /// Returns the message reported to the client for this error.
-    ///
-    /// Never carries identifiers. Those remain in the [`Display`] representation used for
-    /// server-side logs.
-    ///
-    /// [`Display`]: core::fmt::Display
-    #[must_use]
-    pub const fn client_message(&self) -> &'static str {
-        match self {
-            Self::MissingCredentials => "no credentials provided",
-            Self::MalformedCredential => "credential is malformed",
-            Self::InvalidActorIdHeader => {
-                "`X-Authenticated-User-Actor-Id` header is not a valid UUID"
-            }
-            Self::MissingServiceSecret => "the request requires the service credential",
-            Self::InvalidServiceSecret => "service credential is invalid",
-            Self::MissingDelegatedActor => "the service credential carries no delegated actor",
-            Self::ProviderUnreachable => "failed to verify the credential against the provider",
-            Self::ProviderRejection => "the credential provider rejected the verification request",
-            Self::InvalidProviderResponse => "the credential provider returned an invalid response",
-            Self::InvalidSession => "session is invalid or expired",
-            Self::InvalidAccessToken => "access token is invalid or expired",
-            Self::IdentityWithoutActor => "the authenticated identity has no matching user actor",
-            Self::NotProvisioned { .. } => "identity has no Graph actor provisioned",
-            Self::ActorNotFound { .. } => "actor does not exist",
-            Self::NotAUser { .. } => "actor is not a user actor",
-            Self::StoreError => "failed to validate actor against the principal store",
-        }
-    }
 }
 
 /// An authentication failure, classified by its [`AuthenticationErrorKind`].
 ///
-/// The kind determines the fault domain and the built-in problem's status code and client message.
+/// The kind determines the fault domain and the public problem the failure is answered with.
 #[derive(Debug)]
 pub struct AuthenticationError {
     /// What failed.
@@ -249,10 +192,6 @@ impl AuthenticationError {
     #[must_use]
     pub const fn kind(&self) -> &AuthenticationErrorKind {
         &self.kind
-    }
-
-    pub const fn status_code(&self) -> StatusCode {
-        self.kind.status_code()
     }
 
     pub const fn fault_domain(&self) -> FaultDomain {
@@ -407,19 +346,7 @@ impl fmt::Display for AuthenticationError {
     }
 }
 
-impl core::error::Error for AuthenticationError {
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        provide_problem(self, request);
-    }
-}
-
-impl Problem for AuthenticationError {
-    type Extensions<'a> = NoExtensions;
-
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        status_problem(self.status_code()).detail(self.kind.client_message())
-    }
-}
+impl core::error::Error for AuthenticationError {}
 
 /// Resolves the caller from the request headers.
 ///
@@ -513,11 +440,7 @@ pub(crate) fn every_error(
         let repeated = errors[..index]
             .iter()
             .any(|earlier| core::mem::discriminant(earlier) == core::mem::discriminant(error));
-        assert!(
-            !repeated,
-            "`{}` should appear exactly once",
-            error.client_message()
-        );
+        assert!(!repeated, "`{error}` should appear exactly once");
     }
 
     errors.map(AuthenticationError::new)
@@ -557,6 +480,7 @@ mod tests {
 
     use error_stack::Report;
     use http::HeaderMap;
+    use problematic::Expose;
     use tracing::{Dispatch, dispatcher};
     use tracing_subscriber::layer::SubscriberExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -564,7 +488,7 @@ mod tests {
 
     use super::{AuthenticationError, FaultDomain, every_error, resolve_request_actor};
     use crate::authentication::{
-        AuthenticationMetrics,
+        AuthenticationMetrics, AuthenticationProblem,
         provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
         request::AuthenticationErrorKind,
     };
@@ -761,17 +685,20 @@ mod tests {
 
     /// A status the service reports as its own fault is the service's fault to report.
     ///
-    /// Cross-checks the domain against [`status_code`], which classifies the same errors
-    /// independently, so the two cannot drift apart unnoticed.
-    ///
-    /// [`status_code`]: AuthenticationError::status_code
+    /// Cross-checks the domain against the status of the public problem, which classifies the
+    /// same errors independently, so the two cannot drift apart unnoticed.
     #[test]
     fn server_errors_are_the_services_fault() {
         for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            let service_fault = error.fault_domain() == FaultDomain::Service;
+            let message = error.to_string();
+            let report = Report::new(error);
+            // An error without a public problem is answered as an internal error.
+            let server_error = Expose::<AuthenticationProblem>::expose(&report)
+                .is_none_or(|answer| answer.details().status.is_server_error());
             assert_eq!(
-                error.status_code().is_server_error(),
-                error.fault_domain() == FaultDomain::Service,
-                "`{error}` should report the same fault domain as its status code"
+                server_error, service_fault,
+                "`{message}` should report the same fault domain as its status code"
             );
         }
     }
@@ -855,7 +782,7 @@ mod tests {
                 recorded.as_slice(),
                 [expected],
                 "`{}` should be logged once, at its domain's level",
-                error().client_message()
+                error()
             );
         }
 
@@ -900,17 +827,6 @@ mod tests {
             format!("{report:?}").contains(PROVIDER_DETAIL),
             "the provider's attachment should survive the resolver"
         );
-    }
-
-    /// Every error the client can reach reports something.
-    #[test]
-    fn client_messages_are_never_empty() {
-        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
-            assert!(
-                !error.kind().client_message().is_empty(),
-                "`{error}` should report a client message"
-            );
-        }
     }
 
     /// The identifiers the client never sees must still reach the logs.

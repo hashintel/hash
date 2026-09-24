@@ -84,7 +84,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Actor {
                 "the caller's authentication was never resolved",
             )),
             Err(AuthenticationRejection::Authentication { ref report, .. }) => {
-                Err(report.current_context().into())
+                Err(Problem::from(&**report))
             }
         }
     }

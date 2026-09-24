@@ -55,6 +55,7 @@ fn shared_response_becomes_component_over_earlier_override() {
         .finish_api_with(&mut document, |document| {
             document
                 .with(middleware::document)
+                .with(problematic::aide::finish)
                 .with(reference_responses)
         });
 

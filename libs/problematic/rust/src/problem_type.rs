@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use crate::{NoExtensions, ProblemDetails, StatusCode};
+use crate::{ProblemDetails, StatusCode};
 
 /// Metadata shared by occurrences of a problem type.
 ///
@@ -94,10 +94,10 @@ const impl<'a> From<ProblemType> for ProblemDetails<'a> {
         Self {
             type_uri: definition.type_uri,
             title: definition.title,
-            status: definition.status.as_u16(),
+            status: definition.status,
             detail: None,
             instance: None,
-            extensions: NoExtensions {},
+            extensions: (),
         }
     }
 }
@@ -113,10 +113,10 @@ const impl<'a> From<&'a ProblemType> for ProblemDetails<'a> {
                 Cow::Borrowed(title) => title,
                 Cow::Owned(title) => title.as_str(),
             }),
-            status: definition.status.as_u16(),
+            status: definition.status,
             detail: None,
             instance: None,
-            extensions: NoExtensions {},
+            extensions: (),
         }
     }
 }
@@ -126,7 +126,7 @@ mod tests {
     use alloc::{borrow::Cow, string::String};
     use core::{assert_matches, ptr};
 
-    use crate::{Problem as _, ProblemDetails, ProblemType, StatusCode};
+    use crate::{ProblemDetails, ProblemType, StatusCode};
 
     #[test]
     fn details_owned_metadata() {
@@ -137,15 +137,16 @@ mod tests {
             title: Cow::Owned(String::from("Invalid parameters")),
             status: StatusCode::BAD_REQUEST,
         };
-        for details in [ProblemDetails::from(&definition), definition.details()] {
-            assert_matches!(
-                details.type_uri, Cow::Borrowed(uri) if ptr::eq(uri, definition.type_uri.as_ref()),
-                "the type URI should borrow the definition's allocation"
-            );
-            assert_matches!(
-                details.title, Cow::Borrowed(title) if ptr::eq(title, definition.title.as_ref()),
-                "the title should borrow the definition's allocation"
-            );
-        }
+
+        let details = ProblemDetails::from(&definition);
+
+        assert_matches!(
+            details.type_uri, Cow::Borrowed(uri) if ptr::eq(uri, definition.type_uri.as_ref()),
+            "the type URI should borrow the definition's allocation"
+        );
+        assert_matches!(
+            details.title, Cow::Borrowed(title) if ptr::eq(title, definition.title.as_ref()),
+            "the title should borrow the definition's allocation"
+        );
     }
 }

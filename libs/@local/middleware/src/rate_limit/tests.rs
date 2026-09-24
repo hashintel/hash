@@ -432,6 +432,7 @@ async fn anonymous_requests_draw_from_their_address_budget() {
             "type": "about:blank",
             "title": "Too Many Requests",
             "status": 429,
+            "detail": "The request exceeded its rate-limit budget.",
         })
     );
     assert_eq!(

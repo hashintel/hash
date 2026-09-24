@@ -56,6 +56,7 @@ pub(super) fn build<C: Credentials>(
             document
                 .with(transform)
                 .with(middleware::document)
+                .with(problematic::aide::finish)
                 .with(reference_responses)
         });
     assert_security_schemes_declared(&mut document);

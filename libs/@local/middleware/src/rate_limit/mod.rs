@@ -40,8 +40,8 @@ pub use self::aide::document;
 #[cfg(test)]
 mod tests;
 
-use alloc::sync::Arc;
-use core::{fmt, future, num::NonZero, task, time::Duration};
+use alloc::{borrow::Cow, sync::Arc};
+use core::{error::Error, fmt, future, num::NonZero, task, time::Duration};
 use std::sync::LazyLock;
 
 use axum::response::{IntoResponse, Response};
@@ -52,19 +52,21 @@ use governor::{
     middleware::NoOpMiddleware,
     state::keyed::DefaultKeyedStateStore,
 };
-use http::{HeaderValue, StatusCode, header::RETRY_AFTER};
+use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Histogram, Meter},
 };
-use problematic::{NoExtensions, Problem, ProblemDetails};
+use problematic::{
+    Answer, Expose, Header, Problem, ProblemType, ProblemVariant, Variant, axum::Rejection,
+};
 use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
 pub use self::config::{CallerRateLimitConfig, ClientIpSource, RateLimitConfig, RateLimitMode};
 use crate::{
     authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
-    response::{problem_response, problem_response_body, status_problem},
+    response::problem_response_body,
 };
 
 /// How often replenished keys are evicted.
@@ -297,47 +299,79 @@ impl RateLimitMetrics {
     }
 }
 
-/// The `429 Too Many Requests` answer for a request over its budget.
+/// The request exceeded its rate-limit budget.
+#[derive(Debug, Clone, Copy, derive_more::Display, serde::Serialize, schemars::JsonSchema)]
+#[display("The request exceeded its rate-limit budget.")]
 pub struct TooManyRequests {
     /// Whole seconds until the crossed budget admits the request again, at least one.
+    #[serde(skip)]
     pub retry_after: NonZero<u64>,
 }
 
-impl Problem for TooManyRequests {
-    type Extensions<'a> = NoExtensions;
+impl ProblemVariant for TooManyRequests {
+    const HEADERS: &'static [Header] = &[Header::new::<NonZero<u64>>(
+        "Retry-After",
+        "Whole seconds before retrying the request.",
+    )];
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Too Many Requests"),
+        status: StatusCode::TOO_MANY_REQUESTS,
+    };
 
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        status_problem(StatusCode::TOO_MANY_REQUESTS)
+    fn headers(&self, headers: &mut HeaderMap) {
+        headers.insert(RETRY_AFTER, HeaderValue::from(self.retry_after.get()));
+    }
+
+    fn example() -> Option<Self> {
+        Some(Self {
+            retry_after: NonZero::<u64>::MIN,
+        })
     }
 }
 
 impl IntoResponse for TooManyRequests {
     fn into_response(self) -> Response {
+        // A flood is answered with this rejection, so it must not allocate or serialize per
+        // request: `retry_after` travels in the header only, which leaves the body constant.
         static BODY: LazyLock<&'static [u8]> = LazyLock::new(|| {
-            serde_json::to_vec(&status_problem(StatusCode::TOO_MANY_REQUESTS))
-                .expect("the status problem's static fields should serialize")
+            let answer = Answer::<RateLimitProblem>::new(TooManyRequests {
+                retry_after: NonZero::<u64>::MIN,
+            });
+            serde_json::to_vec(&answer.details())
+                .expect("the rate-limit problem should serialize")
                 .leak()
         });
 
-        let mut response = problem_response_body(StatusCode::TOO_MANY_REQUESTS, *BODY);
-        response
-            .headers_mut()
-            .insert(RETRY_AFTER, HeaderValue::from(self.retry_after.get()));
+        let mut response = problem_response_body(Self::TYPE.status, *BODY);
+        ProblemVariant::headers(&self, response.headers_mut());
         response
     }
+}
+
+/// The public problems the rate-limit layers answer with.
+pub struct RateLimitProblem;
+
+impl Problem for RateLimitProblem {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<TooManyRequests>()];
 }
 
 /// The response a request the caller limiter cannot serve is answered with.
 ///
 /// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the caller limiter, building
 /// on the layers above it, can find a route miswired.
+#[derive(Debug, derive_more::Display)]
 pub enum RateLimitRejection {
     /// The request is over its budget.
+    #[display("the request exceeded its rate-limit budget")]
     TooManyRequests(TooManyRequests),
-    /// The route is wired without the middleware the caller limiter builds on, answered as
-    /// an internal error.
+    /// The route lacks the middleware the caller limiter builds on, or runs it in the wrong
+    /// order, answered as an internal error.
+    #[display("the caller limiter is wired incorrectly on this route")]
     Misconfigured,
 }
+
+impl Error for RateLimitRejection {}
 
 impl From<TooManyRequests> for RateLimitRejection {
     fn from(error: TooManyRequests) -> Self {
@@ -345,13 +379,11 @@ impl From<TooManyRequests> for RateLimitRejection {
     }
 }
 
-impl Problem for RateLimitRejection {
-    type Extensions<'a> = NoExtensions;
-
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+impl Expose<RateLimitProblem> for RateLimitRejection {
+    fn expose(&self) -> Option<Answer<'_, RateLimitProblem>> {
         match self {
-            Self::TooManyRequests(too_many_requests) => too_many_requests.details(),
-            Self::Misconfigured => status_problem(StatusCode::INTERNAL_SERVER_ERROR),
+            Self::TooManyRequests(too_many_requests) => Some(Answer::new(*too_many_requests)),
+            Self::Misconfigured => None,
         }
     }
 }
@@ -360,7 +392,7 @@ impl IntoResponse for RateLimitRejection {
     fn into_response(self) -> Response {
         match self {
             Self::TooManyRequests(too_many_requests) => too_many_requests.into_response(),
-            Self::Misconfigured => problem_response(&self.details()),
+            Self::Misconfigured => Rejection::<RateLimitProblem>::from(self).into_response(),
         }
     }
 }

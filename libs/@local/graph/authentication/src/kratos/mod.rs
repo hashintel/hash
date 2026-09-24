@@ -55,10 +55,10 @@ fn provider_response(status: reqwest::StatusCode, body: Result<String, reqwest::
 /// way on every path.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 enum ProviderFailure {
-    /// Kratos rejected the request with a client error.
+    /// Kratos rejected the request with a client error other than throttling it.
     #[display("the provider rejected the request")]
     Rejected,
-    /// Kratos redirected or answered with a server error.
+    /// Kratos throttled the request, redirected, or answered with a server error.
     ///
     /// A body that cannot be read counts as unavailable as well: the transport failed mid-body.
     #[display("the provider is unavailable")]
@@ -72,14 +72,14 @@ enum ProviderFailure {
 ///
 /// # Errors
 ///
-/// - [`Rejected`] if Kratos reported a client error
+/// - [`Rejected`] if Kratos reported a client error other than `429 Too Many Requests`
 /// - [`Unavailable`] for any other unsuccessful status, or if the body cannot be read
 ///
 /// [`Rejected`]: ProviderFailure::Rejected
 /// [`Unavailable`]: ProviderFailure::Unavailable
 async fn read_provider_body(response: Response) -> Result<String, Report<ProviderFailure>> {
     let status = response.status();
-    if status.is_client_error() {
+    if status.is_client_error() && status != reqwest::StatusCode::TOO_MANY_REQUESTS {
         return Err(Report::new(ProviderFailure::Rejected)
             .attach(provider_response(status, response.text().await)));
     }
@@ -120,7 +120,7 @@ async fn read_provider_body(response: Response) -> Result<String, Report<Provide
 ///
 /// # Errors
 ///
-/// - [`ProviderRejection`] if Kratos reported a client error
+/// - [`ProviderRejection`] if Kratos reported a client error other than `429 Too Many Requests`
 /// - [`ProviderUnreachable`] for any other unsuccessful status, or if the body cannot be read
 ///
 /// [`ProviderRejection`]: hash_middleware::authentication::request::AuthenticationErrorKind::ProviderRejection
@@ -180,7 +180,6 @@ pub(crate) mod tests {
     #[rstest]
     #[case::unauthorized(http::StatusCode::UNAUTHORIZED)]
     #[case::not_found(http::StatusCode::NOT_FOUND)]
-    #[case::rate_limited(http::StatusCode::TOO_MANY_REQUESTS)]
     #[tokio::test]
     async fn client_errors_report_provider_rejection(#[case] status: http::StatusCode) {
         let report = read_response_body(response_with(status, "{}"))
@@ -195,6 +194,7 @@ pub(crate) mod tests {
 
     /// Each case covers a status that reports the provider as unavailable rather than rejecting.
     #[rstest]
+    #[case::rate_limited(http::StatusCode::TOO_MANY_REQUESTS)]
     #[case::server_error(http::StatusCode::INTERNAL_SERVER_ERROR)]
     #[case::bad_gateway(http::StatusCode::BAD_GATEWAY)]
     #[case::redirect(http::StatusCode::FOUND)]

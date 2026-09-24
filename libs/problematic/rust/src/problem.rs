@@ -1,145 +1,275 @@
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, string::ToString as _};
+use core::fmt::Display;
 
-use crate::{NoExtensions, ProblemDetails, ProblemType};
+use http::HeaderMap;
+use schemars::JsonSchema;
+#[cfg(feature = "aide")]
+use schemars::{Schema, SchemaGenerator};
+use serde_core::Serialize;
 
-/// A failure that provides problem details for the client.
-///
-/// The details and extension members can borrow from the failure.
-///
-/// # Examples
-///
-/// ```
-/// use std::borrow::Cow;
-///
-/// use problematic::{Problem, ProblemDetails, ProblemType, StatusCode};
-///
-/// struct InvalidParameter {
-///     parameter: String,
-///     explanation: String,
-/// }
-///
-/// struct InvalidParameterExtensions<'a> {
-///     parameter: &'a str,
-/// }
-///
-/// const INVALID_PARAMETER: ProblemType = ProblemType {
-///     type_uri: Cow::Borrowed("https://example.com/problems/invalid-parameter"),
-///     title: Cow::Borrowed("Invalid parameter"),
-///     status: StatusCode::BAD_REQUEST,
-/// };
-///
-/// impl Problem for InvalidParameter {
-///     type Extensions<'a> = InvalidParameterExtensions<'a>;
-///
-///     fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-///         INVALID_PARAMETER
-///             .detail(&self.explanation)
-///             .extensions(InvalidParameterExtensions {
-///                 parameter: &self.parameter,
-///             })
-///     }
-/// }
-///
-/// let error = InvalidParameter {
-///     parameter: "limit".to_owned(),
-///     explanation: "The limit must be positive.".to_owned(),
-/// };
-/// let details = error.details();
-///
-/// assert_eq!(
-///     details.detail.as_deref(),
-///     Some("The limit must be positive.")
-/// );
-/// assert_eq!(details.extensions.parameter, "limit");
-/// ```
+use crate::{ProblemDetails, ProblemType};
+
+/// A set of public failures, each a [`ProblemVariant`].
 pub trait Problem {
-    /// The extension members, which may borrow from this failure for `'a`.
-    type Extensions<'a>
-    where
-        Self: 'a;
-
-    /// Returns the problem details exposed to the client.
-    #[must_use]
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>>;
+    const VARIANTS: &'static [Variant];
 }
 
-impl Problem for ProblemType {
-    type Extensions<'a> = NoExtensions;
+/// One public failure: its `Display` is the `detail`, its serialized fields are the extension
+/// members.
+///
+/// Every occurrence carries the type URI, title and status of [`TYPE`](Self::TYPE).
+pub trait ProblemVariant: Display + Serialize + JsonSchema + Sized {
+    const TYPE: ProblemType;
 
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        ProblemDetails::from(self)
+    /// The response headers documented for this variant.
+    ///
+    /// [`headers`](Self::headers) has to add exactly these, by name. Debug builds panic otherwise.
+    const HEADERS: &'static [Header] = &[];
+
+    /// Adds the response headers of this occurrence.
+    fn headers(&self, _headers: &mut HeaderMap) {}
+
+    /// The occurrence documented as the example of this variant.
+    ///
+    /// Without one, a variant without extension members is documented with its bare problem
+    /// type, and a variant with members has no example.
+    #[must_use]
+    fn example() -> Option<Self> {
+        None
     }
 }
 
-impl<E> Problem for ProblemDetails<'_, E> {
-    type Extensions<'a>
-        = &'a E
-    where
-        Self: 'a;
+/// One occurrence of a [`ProblemVariant`], with its type erased.
+pub(crate) trait Occurrence {
+    fn details(&self) -> ProblemDetails<'_, &dyn erased_serde::Serialize>;
 
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        ProblemDetails {
-            type_uri: Cow::Borrowed(&self.type_uri),
-            title: Cow::Borrowed(&self.title),
-            status: self.status,
-            detail: self.detail.as_deref().map(Cow::Borrowed),
-            instance: self.instance.as_deref().map(Cow::Borrowed),
-            extensions: &self.extensions,
+    fn headers(&self, headers: &mut HeaderMap);
+}
+
+impl<V: ProblemVariant> Occurrence for V {
+    fn details(&self) -> ProblemDetails<'_, &dyn erased_serde::Serialize> {
+        ProblemDetails::from(V::TYPE)
+            .detail(self.to_string())
+            .extensions(self)
+    }
+
+    fn headers(&self, headers: &mut HeaderMap) {
+        if cfg!(debug_assertions) {
+            let mut added = HeaderMap::new();
+            ProblemVariant::headers(self, &mut added);
+            debug_assert!(
+                added.keys().all(|name| V::HEADERS
+                    .iter()
+                    .any(|header| name.as_str().eq_ignore_ascii_case(header.name)))
+                    && V::HEADERS
+                        .iter()
+                        .all(|header| added.contains_key(header.name)),
+                "the headers of `{}` should be the ones its `HEADERS` documents",
+                V::TYPE.type_uri
+            );
+            headers.extend(added);
+        } else {
+            ProblemVariant::headers(self, headers);
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use alloc::{borrow::Cow, string::String};
-    use core::{assert_matches, ptr};
+/// A response header in the documentation of a variant.
+#[derive(Debug)]
+pub struct Header {
+    name: &'static str,
+    #[cfg(feature = "aide")]
+    description: &'static str,
+    #[cfg(feature = "aide")]
+    schema: fn(&mut SchemaGenerator) -> Schema,
+}
 
-    use crate::{Problem, ProblemDetails};
+impl Header {
+    #[must_use]
+    #[cfg_attr(
+        not(feature = "aide"),
+        expect(
+            clippy::extra_unused_type_parameters,
+            reason = "only the documentation reads the header's type, and the signature stays the \
+                      same across features"
+        )
+    )]
+    pub const fn new<T: JsonSchema>(name: &'static str, description: &'static str) -> Self {
+        #[cfg(not(feature = "aide"))]
+        let _: &str = description;
 
-    #[derive(Debug)]
-    struct Extensions<'a> {
-        parameter: &'a str,
+        Self {
+            name,
+            #[cfg(feature = "aide")]
+            description,
+            #[cfg(feature = "aide")]
+            schema: T::json_schema,
+        }
     }
 
-    fn details<P: Problem + ?Sized>(problem: &P) -> ProblemDetails<'_, P::Extensions<'_>> {
-        problem.details()
+    #[cfg(feature = "aide")]
+    pub(crate) const fn name(&self) -> &'static str {
+        self.name
     }
 
-    #[test]
-    fn details_borrowed() {
-        let parameter = String::from("limit");
-        let source = ProblemDetails {
-            type_uri: Cow::Owned(String::from(
-                "https://example.com/problems/invalid-parameter",
-            )),
-            title: Cow::Owned(String::from("Invalid parameter")),
-            status: 400,
-            detail: Some(Cow::Owned(String::from("The limit must be positive."))),
-            instance: Some(Cow::Owned(String::from("/problem-occurrences/42"))),
-            extensions: Extensions {
-                parameter: &parameter,
-            },
+    #[cfg(feature = "aide")]
+    pub(crate) const fn description(&self) -> &'static str {
+        self.description
+    }
+
+    #[cfg(feature = "aide")]
+    pub(crate) fn schema(&self, generator: &mut SchemaGenerator) -> Schema {
+        (self.schema)(generator)
+    }
+}
+
+#[derive(Debug)]
+pub struct Variant {
+    problem_type: ProblemType,
+    #[cfg(feature = "aide")]
+    extensions: fn(&mut SchemaGenerator) -> Schema,
+    #[cfg(feature = "aide")]
+    headers: &'static [Header],
+    #[cfg(feature = "aide")]
+    example: fn() -> Option<serde_json::Value>,
+}
+
+impl Variant {
+    /// The documentation of `V`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the status of `V` is not a client or server error status. In `VARIANTS`, the
+    /// panic fails the build.
+    #[must_use]
+    pub const fn of<V: ProblemVariant>() -> Self {
+        let variant = Self {
+            problem_type: V::TYPE,
+            #[cfg(feature = "aide")]
+            extensions: V::json_schema,
+            #[cfg(feature = "aide")]
+            headers: V::HEADERS,
+            #[cfg(feature = "aide")]
+            example: example_of::<V>,
         };
-        let borrowed = details(&source);
-
-        assert_matches!(
-            borrowed,
-            ProblemDetails {
-                type_uri: Cow::Borrowed(_),
-                title: Cow::Borrowed(_),
-                detail: Some(Cow::Borrowed(_)),
-                instance: Some(Cow::Borrowed(_)),
-                ..
-            },
-            "the details should borrow the source strings"
-        );
+        let status = variant.problem_type.status.as_u16();
         assert!(
-            ptr::eq(borrowed.extensions, &raw const source.extensions),
-            "the details should borrow the source extensions"
+            400 <= status && status <= 599,
+            "a problem variant should have a client or server error status"
         );
-        assert!(
-            ptr::eq(borrowed.extensions.parameter, parameter.as_str()),
-            "the extension member should retain its original borrow"
-        );
+        variant
     }
+
+    /// A variant of `problem_type` with the extension schema of `E`, and no headers or example.
+    #[cfg(all(feature = "aide", feature = "axum"))]
+    pub(crate) const fn bare<E: JsonSchema>(problem_type: ProblemType) -> Self {
+        Self {
+            problem_type,
+            extensions: E::json_schema,
+            headers: &[],
+            example: no_example,
+        }
+    }
+
+    /// The rendered example occurrence, if the variant has one.
+    #[cfg(feature = "aide")]
+    pub(crate) fn example(&self) -> Option<serde_json::Value> {
+        (self.example)()
+    }
+
+    #[must_use]
+    pub const fn problem_type(&self) -> &ProblemType {
+        &self.problem_type
+    }
+
+    #[cfg(feature = "aide")]
+    pub(crate) fn extensions(&self, generator: &mut SchemaGenerator) -> Schema {
+        (self.extensions)(generator)
+    }
+
+    #[cfg(feature = "aide")]
+    pub(crate) const fn headers(&self) -> &'static [Header] {
+        self.headers
+    }
+}
+
+#[cfg(feature = "aide")]
+fn example_of<V: ProblemVariant>() -> Option<serde_json::Value> {
+    V::example().map(|example| {
+        serde_json::to_value(Occurrence::details(&example))
+            .expect("the example of a variant should serialize")
+    })
+}
+
+#[cfg(all(feature = "aide", feature = "axum"))]
+const fn no_example() -> Option<serde_json::Value> {
+    None
+}
+
+/// Checks that no two variants of `P::VARIANTS` share a type URI and status.
+///
+/// Called in a `const` block of a generic function, it runs when the function is instantiated for
+/// `P`, so it fails `cargo build` but not `cargo check`.
+///
+/// # Panics
+///
+/// Panics if two variants share a type URI and status. In a const context, the panic fails the
+/// build.
+#[cfg(feature = "aide")]
+#[track_caller]
+pub(crate) const fn assert_variants<P: Problem>() {
+    assert!(
+        unique(P::VARIANTS),
+        "`VARIANTS` should list every problem type once per status"
+    );
+}
+
+/// Whether no two `variants` share a type URI and status.
+///
+/// Within one status, the documented variants are told apart by their type URI alone.
+#[cfg(feature = "aide")]
+const fn unique(variants: &[Variant]) -> bool {
+    let mut rest = variants;
+    while let [variant, tail @ ..] = rest {
+        if contains(tail, &variant.problem_type) {
+            return false;
+        }
+        rest = tail;
+    }
+    true
+}
+
+/// Whether one of `variants` has the type URI and status of `problem_type`.
+pub(crate) const fn contains(variants: &[Variant], problem_type: &ProblemType) -> bool {
+    let mut rest = variants;
+    while let [candidate, tail @ ..] = rest {
+        if candidate.problem_type.status.as_u16() == problem_type.status.as_u16()
+            && same(type_uri(&candidate.problem_type), type_uri(problem_type))
+        {
+            return true;
+        }
+        rest = tail;
+    }
+    false
+}
+
+const fn type_uri(problem_type: &ProblemType) -> &[u8] {
+    match &problem_type.type_uri {
+        Cow::Borrowed(type_uri) => type_uri.as_bytes(),
+        Cow::Owned(type_uri) => type_uri.as_bytes(),
+    }
+}
+
+const fn same(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut index = 0;
+    while index < left.len() {
+        if left[index] != right[index] {
+            return false;
+        }
+        index += 1;
+    }
+    true
 }
