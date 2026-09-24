@@ -847,6 +847,7 @@ describe("the net ledger is a projection over Flue history", () => {
       messages.push(call, delivery);
       const text = delivery.parts[0];
       if (text?.type !== "text") throw new Error("Missing delivery fixture.");
+      // eslint-disable-next-line no-await-in-loop -- Each delivery is verified against the history accumulated so far.
       await expect(
         verifyMutationResults({
           body: text.text,

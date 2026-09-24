@@ -582,14 +582,15 @@ test("keeps reordered cumulative tool results byte-identical for idempotent retr
     output: toolCallId,
   }));
   for (const ordered of [parts, [...parts].reverse()]) {
-    await readChunks(
-      await transport.sendMessages(
+    // eslint-disable-next-line no-await-in-loop -- Each ordering is a separate submission, sent in turn.
+    await transport
+      .sendMessages(
         sendOptions(
           [{ id: "assistant-original", role: "assistant", parts: ordered }],
           "assistant-original",
         ),
-      ),
-    );
+      )
+      .then(readChunks);
   }
   expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
 });

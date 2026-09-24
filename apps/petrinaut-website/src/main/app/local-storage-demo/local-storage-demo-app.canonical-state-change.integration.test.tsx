@@ -1,7 +1,6 @@
 import { once } from "node:events";
 import { createServer } from "node:http";
 /** @vitest-environment jsdom */
-// oxlint-disable-next-line typescript/triple-slash-reference -- The rendered editor imports CSS-only modules.
 /// <reference path="../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -332,23 +331,24 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   fixture.origin = `http://127.0.0.1:${(httpServer.address() as { port: number }).port}`;
   const documentId = "net-1";
   const initialRevisionId = "initial-revision";
-  const storageWrites: { revisionId: string; definition: SDCPN }[] = [];
-  const originalSetItem = Storage.prototype.setItem;
-  const storageSpy = vi
-    .spyOn(Storage.prototype, "setItem")
-    .mockImplementation(function (this: Storage, key, value) {
-      originalSetItem.call(this, key, value);
-      if (this !== localStorage || key !== "petrinaut-sdcpn") return;
-      const written = JSON.parse(value) as Record<
-        string,
-        { revisionId: string; sdcpn: SDCPN }
-      >;
-      const document = written[documentId];
-      if (document)
-        storageWrites.push({
-          revisionId: document.revisionId,
-          definition: document.sdcpn,
-        });
+  // Pass-through spy: every localStorage write of this document, in order.
+  const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+  const storageWrites = () =>
+    storageSpy.mock.calls.flatMap(([key, value], index) => {
+      if (
+        storageSpy.mock.contexts[index] !== localStorage ||
+        key !== "petrinaut-sdcpn"
+      )
+        return [];
+      const document = (
+        JSON.parse(value) as Record<
+          string,
+          { revisionId: string; sdcpn: SDCPN }
+        >
+      )[documentId];
+      return document
+        ? [{ revisionId: document.revisionId, definition: document.sdcpn }]
+        : [];
     });
   let unmount = () => {};
   try {
@@ -470,7 +470,7 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       expect(stored[documentId]?.sdcpn.metrics ?? []).toEqual([]);
     });
     for (const change of changes) {
-      const saved = storageWrites.find(
+      const saved = storageWrites().find(
         ({ revisionId }) => revisionId === change.revisionId,
       );
       expect(saved).toBeDefined();

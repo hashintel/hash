@@ -42,32 +42,36 @@ test("validates actual true-user sources before settling evidence", async () => 
     [{ ...source, purpose: "prepared" } as unknown as WorkpieceEvidenceSource],
     [{ ...source, id: "other-conversation" }],
   ];
-  for (const invalid of invalidSources) {
-    await expect(
-      settleWorkpieceEvidence(
-        { markdown, evidence: [relation] },
-        null,
-        async () => invalid,
-      ),
-    ).rejects.toThrow("authorized true-user");
-  }
+  await Promise.all(
+    invalidSources.map((invalid) =>
+      expect(
+        settleWorkpieceEvidence(
+          { markdown, evidence: [relation] },
+          null,
+          async () => invalid,
+        ),
+      ).rejects.toThrow("authorized true-user"),
+    ),
+  );
 });
 
 test("rejects invalid spans, relation kinds, and source-free elicited declarations", async () => {
-  for (const invalid of [
-    { ...relation, locator: { start: 2, end: 1 } },
-    { ...relation, locator: { start: 0, end: markdown.length + 1 } },
-    { ...relation, kind: "prepared" },
-    { ...relation, messageIds: [] },
-  ]) {
-    await expect(
-      settleWorkpieceEvidence(
-        { markdown, evidence: [invalid] },
-        null,
-        async () => [source],
-      ),
-    ).rejects.toThrow(/locator|type|authorized true-user/iu);
-  }
+  await Promise.all(
+    [
+      { ...relation, locator: { start: 2, end: 1 } },
+      { ...relation, locator: { start: 0, end: markdown.length + 1 } },
+      { ...relation, kind: "prepared" },
+      { ...relation, messageIds: [] },
+    ].map((invalid) =>
+      expect(
+        settleWorkpieceEvidence(
+          { markdown, evidence: [invalid] },
+          null,
+          async () => [source],
+        ),
+      ).rejects.toThrow(/locator|type|authorized true-user/iu),
+    ),
+  );
 });
 
 test("carries unchanged unambiguous revision-local relations and reauthorizes their sources", async () => {
@@ -152,23 +156,25 @@ test.each([
 );
 
 test("does not guess continuity for moves, renames, paraphrases, split, merge, deletion or reintroduction", async () => {
-  for (const changed of [
-    `Preface\n${markdown}`,
-    markdown.replace("# Account", "# Renamed account"),
-    markdown.replace("Reserve one crew.", "Hold one crew."),
-    markdown.replace("Reserve one crew.", "Reserve.\nOne crew."),
-    markdown.replace(
-      "Reserve one crew.\n\nTiming unknown.",
-      "Reserve one crew; timing unknown.",
+  await Promise.all(
+    [
+      `Preface\n${markdown}`,
+      markdown.replace("# Account", "# Renamed account"),
+      markdown.replace("Reserve one crew.", "Hold one crew."),
+      markdown.replace("Reserve one crew.", "Reserve.\nOne crew."),
+      markdown.replace(
+        "Reserve one crew.\n\nTiming unknown.",
+        "Reserve one crew; timing unknown.",
+      ),
+      "# Account\nTiming unknown.",
+    ].map((changed) =>
+      expect(
+        settleWorkpieceEvidence({ markdown: changed }, previous, async () => [
+          source,
+        ]),
+      ).resolves.toBeUndefined(),
     ),
-    "# Account\nTiming unknown.",
-  ]) {
-    await expect(
-      settleWorkpieceEvidence({ markdown: changed }, previous, async () => [
-        source,
-      ]),
-    ).resolves.toBeUndefined();
-  }
+  );
   await expect(
     settleWorkpieceEvidence(
       { markdown },
