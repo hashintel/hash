@@ -184,6 +184,30 @@ describe("compileReactiveModuleExport", () => {
     expect(result.python).toContain("X2 = Var(REAL)");
   });
 
+  it("keeps the SPN theory's names out of the IR under coin rates too", () => {
+    const result = compileReactiveModuleExport({
+      sdcpn: {
+        ...sdcpn,
+        places: [{ ...sdcpn.places[0]!, id: "event", name: "Event" }],
+        transitions: [
+          {
+            ...sdcpn.transitions[0]!,
+            outputArcs: [{ placeId: "event", weight: 1 }],
+          },
+        ],
+      },
+      title: "Reserved",
+      initialMarking: {},
+      parameterValues: {},
+      lambdaHir,
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.document?.zeroth).toBeUndefined();
+    expect(result.ir).toContain("places:\n  Event2:\n");
+    expect(result.python).toContain("Event2 = Var(REAL)");
+    expect(result.python).toContain("ctrl=(Event2,), extl=(u_Arrive,)");
+  });
+
   it("returns no text and the errors when the net cannot be expressed", () => {
     const result = compileReactiveModuleExport({
       sdcpn,
