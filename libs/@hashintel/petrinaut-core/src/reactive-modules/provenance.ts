@@ -387,11 +387,13 @@ const describeVariableLine = (
 ): Provenance => {
   const described = describeName(name);
   if (described !== null) {
-    // The emitter's trailing comment repeats the what for some names; it
-    // joins the why only when it says something else.
+    // The emitter's trailing comment repeats the what for some names, in
+    // its own case; it joins the why only when it says something else.
     const notes = [...new Set([described.why, comment])].filter(
       (note): note is string =>
-        note !== undefined && note !== "" && note !== described.what,
+        note !== undefined &&
+        note !== "" &&
+        note.toLowerCase() !== described.what.toLowerCase(),
     );
     return {
       what:

@@ -136,8 +136,10 @@ describe("traceReactiveModulePython", () => {
       what: "Serve fires this step",
       source: { kind: "transition", name: "Serve" },
     });
-    expect(provenanceAt(trace, lineOf(text, "u_Arrive = Var("))).toMatchObject({
+    expect(provenanceAt(trace, lineOf(text, "u_Arrive = Var("))).toEqual({
       what: "Uniform draw for Arrive, each step",
+      why: "An input the harness writes; the transition fires when the draw is at least e^(-rate·dt).",
+      source: { kind: "transition", name: "Arrive" },
     });
     expect(provenanceAt(trace, lineOf(text, "Waiting = Var("))).toMatchObject({
       what: "The tokens in Waiting",
