@@ -57,8 +57,8 @@ impl<K: Problem> OperationOutput for crate::Rejection<K> {
     /// [`Problem`] of the endpoint documents at the same status.
     ///
     /// A status that already has a response documenting no variants, such as one for
-    /// [`ProblemDetails`] itself, keeps it, and the variants of `K` for that status are not
-    /// documented.
+    /// [`ProblemDetails`] itself, keeps it. The variants of `K` for that status are not documented,
+    /// and a warning names them.
     ///
     /// # Panics
     ///
@@ -305,16 +305,27 @@ fn merge<'v>(
         by_status.entry(fragment.status).or_default().push(fragment);
     }
 
+    let operation_id = operation.operation_id.as_deref();
     let responses = operation.responses.get_or_insert_default();
-    for (status, fragments) in by_status {
-        let status = StatusCode::Code(status);
+    for (code, fragments) in by_status {
+        let status = StatusCode::Code(code);
         let mut documented = match responses.responses.get(&status) {
             None => Documented::default(),
-            Some(existing) => match existing.as_item().and_then(Documented::read) {
-                Some(documented) => documented,
-                // A response that documents no variants keeps its status.
-                None => continue,
-            },
+            Some(existing) => {
+                let Some(documented) = existing.as_item().and_then(Documented::read) else {
+                    tracing::warn!(
+                        operation = operation_id,
+                        status = code,
+                        variants = ?fragments
+                            .iter()
+                            .map(|fragment| fragment.type_uri.as_str())
+                            .collect::<Vec<_>>(),
+                        "problem variants yielded to a response that documents none"
+                    );
+                    continue;
+                };
+                documented
+            }
         };
         for fragment in fragments {
             documented.join(fragment);
