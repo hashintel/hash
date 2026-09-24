@@ -46,7 +46,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import {
-  selectChatModel,
   selectChatModelSpecifier,
   selectChatThinking,
 } from "../../chat-model.ts";
@@ -82,24 +81,18 @@ import { ping } from "./tools/ping.ts";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
-export const CHAT_MODEL_ID = selectChatModel();
 export const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
 
 export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 const testCompactionConfig = loadTestCompactionConfig();
-const chatModelOptions =
-  testCompactionConfig === undefined && chatThinkingLevel === undefined
-    ? undefined
-    : {
-        ...(testCompactionConfig === undefined
-          ? {}
-          : { compaction: testCompactionConfig }),
-        ...(chatThinkingLevel === undefined
-          ? {}
-          : { thinkingLevel: chatThinkingLevel }),
-      };
+const chatModelOptions = {
+  thinkingLevel: chatThinkingLevel,
+  ...(testCompactionConfig === undefined
+    ? {}
+    : { compaction: testCompactionConfig }),
+};
 
 const useStockOverFlueAgent = (): string => {
   useModel(CHAT_MODEL_SPECIFIER, chatModelOptions);

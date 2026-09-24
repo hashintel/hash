@@ -9,8 +9,8 @@ import { FlueExecutionError } from "@flue/sdk";
 import { afterEach, expect, test, vi } from "vitest";
 
 import {
-  PERSONA_DEFAULT_BRUNCH_MODEL,
-  PERSONA_DEFAULT_BRUNCH_THINKING,
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_CHAT_THINKING,
   PERSONA_DEFAULT_PERSONA_MODEL,
   PERSONA_DEFAULT_PERSONA_THINKING,
 } from "../../chat-model.ts";
@@ -132,10 +132,8 @@ test("both launcher children override inherited campaign accounting", () => {
   vi.stubEnv("BRUNCH_STEP_A_ACCOUNTING", "invalid inherited campaign");
   const environment = personaEnvironment();
   expect(environment.BRUNCH_STEP_A_ACCOUNTING).toBe("");
-  expect(environment.BRUNCH_CHAT_MODEL).toBe(PERSONA_DEFAULT_BRUNCH_MODEL);
-  expect(environment.BRUNCH_CHAT_THINKING).toBe(
-    PERSONA_DEFAULT_BRUNCH_THINKING,
-  );
+  expect(environment.BRUNCH_CHAT_MODEL).toBe(DEFAULT_CHAT_MODEL);
+  expect(environment.BRUNCH_CHAT_THINKING).toBe(DEFAULT_CHAT_THINKING);
   expect(
     createStepARequestAccounting(environment.BRUNCH_STEP_A_ACCOUNTING),
   ).toBeUndefined();
@@ -471,11 +469,11 @@ test("reads the pane id from herdr's split result", () => {
   ).toBe("w0:p23");
 });
 
-test("persona defaults are independently configured mixed providers at low effort", () => {
+test("persona defaults are independently configured mixed providers", () => {
   const roles = resolvePersonaRoleSettings();
   expect(roles).toEqual({
-    brunchModel: PERSONA_DEFAULT_BRUNCH_MODEL,
-    brunchThinking: PERSONA_DEFAULT_BRUNCH_THINKING,
+    brunchModel: DEFAULT_CHAT_MODEL,
+    brunchThinking: DEFAULT_CHAT_THINKING,
     personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
     personaThinking: PERSONA_DEFAULT_PERSONA_THINKING,
   });
@@ -497,8 +495,8 @@ test("persona defaults are independently configured mixed providers at low effor
 
 test("persona thinking can be raised to medium without changing Brunch", () => {
   const roles = resolvePersonaRoleSettings({ personaThinking: "medium" });
-  expect(roles.brunchModel).toBe(PERSONA_DEFAULT_BRUNCH_MODEL);
-  expect(roles.brunchThinking).toBe("low");
+  expect(roles.brunchModel).toBe(DEFAULT_CHAT_MODEL);
+  expect(roles.brunchThinking).toBe(DEFAULT_CHAT_THINKING);
   expect(roles.personaThinking).toBe("medium");
   expect(
     personaArguments(
@@ -587,8 +585,8 @@ test("fresh run metadata retains effective role and persona axis settings", () =
       }),
     ),
   ).toEqual({
-    brunchModel: PERSONA_DEFAULT_BRUNCH_MODEL,
-    brunchThinking: PERSONA_DEFAULT_BRUNCH_THINKING,
+    brunchModel: DEFAULT_CHAT_MODEL,
+    brunchThinking: DEFAULT_CHAT_THINKING,
     personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
     personaThinking: "medium",
     personaVerbosity: "expansive",

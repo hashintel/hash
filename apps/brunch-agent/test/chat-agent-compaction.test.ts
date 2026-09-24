@@ -74,7 +74,7 @@ test("the production ChatAgent passes the local configuration to its core hook",
   expect(renderChatAgent({ id: "test-instance" })).toBe("core prompt");
   expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
-    { compaction: { keepRecentTokens: 256 } },
+    { thinkingLevel: "xhigh", compaction: { keepRecentTokens: 256 } },
     expect.any(Function),
     undefined,
     false,
@@ -88,7 +88,7 @@ test("the production ChatAgent supplies no compaction override when unset", asyn
   renderChatAgent({ id: "test-instance" });
   expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
-    undefined,
+    { thinkingLevel: "xhigh" },
     expect.any(Function),
     undefined,
     false,
