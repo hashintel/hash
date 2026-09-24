@@ -1,5 +1,10 @@
 import { brunchTools } from "@hashintel/brunch-agent";
 import { parseClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  generateArcId,
+  getArcEndpointKey,
+  placeArcEndpoint,
+} from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { retainedSettledRevision } from "./workpiece.ts";
@@ -88,8 +93,18 @@ const hasId = (value: unknown, id: string): boolean => {
   );
 };
 
-/** Arcs have no standalone ID: the canonical action identifies their transition, direction and endpoint. */
+/** The ID Petrinaut generates for an arc, which `deleteItemsByIds` uses. */
+const generatedArcId = (arc: ArcElement): string => {
+  const place = getArcEndpointKey(placeArcEndpoint(arc.placeId));
+  return arc.arcDirection === "input"
+    ? generateArcId({ inputId: place, outputId: arc.transitionId })
+    : generateArcId({ inputId: arc.transitionId, outputId: place });
+};
+
+/** Arcs have no standalone ID: the arc actions identify their transition, direction and endpoint, and a batch deletion uses the generated arc ID. */
 const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
+  if (call.toolName === "deleteItemsByIds")
+    return hasId(call.input, generatedArcId(arc));
   if (
     ![
       "addArc",
