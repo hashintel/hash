@@ -28,7 +28,7 @@ export const VoiceInputProvenance = ({ brief }: { brief: VoiceBrief }) => (
         "& [data-chevron]": { transform: "[rotate(90deg)]" },
       })}
     >
-      <Icon name="sparkles" size="xs" className={css({ color: "blue.s100" })} />
+      <Icon name="sparkles" size="xs" />
       Sent to Brunch
       <Icon name="chevronUp" size="xs" data-chevron />
     </summary>

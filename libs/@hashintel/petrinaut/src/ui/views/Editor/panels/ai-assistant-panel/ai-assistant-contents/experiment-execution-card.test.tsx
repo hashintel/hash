@@ -91,7 +91,10 @@ it.each(["simulate", "optimize"] as const)(
     );
     expect(screen.getByRole("progressbar").className).toContain("h_[3px]");
     expect(card.className).toContain("bg-c_neutral.s00");
-    expect(card.className).toContain("bd-c_purple.a30");
+    expect(card.className).toContain("bd-c_neutral.a30");
+    expect(
+      screen.getByRole("progressbar").firstElementChild?.className,
+    ).toContain("bg-c_blue.s90");
     if (mode === "optimize") {
       expect(screen.getByText("Step 3 of 4")).toBeTruthy();
       view.rerender(

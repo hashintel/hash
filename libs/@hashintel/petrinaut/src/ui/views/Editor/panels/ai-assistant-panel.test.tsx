@@ -3431,7 +3431,7 @@ describe("AiAssistantPanel composer submissions", () => {
     );
 
     await waitFor(() => expect(aborted).toHaveBeenCalledOnce());
-    expect(await screen.findByText("Brunch stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
     await waitFor(() =>
       expect(
         screen
@@ -3483,7 +3483,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(requestStop.mock.invocationCallOrder[0]).toBeLessThan(
       localCancellation.mock.invocationCallOrder[0]!,
     );
-    expect(await screen.findByText("Brunch stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
   });
 
   test("keeps a response completed before the durable Stop race", async () => {
@@ -3537,7 +3537,7 @@ describe("AiAssistantPanel composer submissions", () => {
       ).toHaveProperty("disabled", true),
     );
     expect(localCancellation).not.toHaveBeenCalled();
-    expect(screen.queryByText("Brunch stopped")).toBeNull();
+    expect(screen.queryByText("Stopped")).toBeNull();
   });
 
   test("withholds the client-tool follow-up when a durable Stop lands after a tool-calls step", async () => {
@@ -3592,7 +3592,7 @@ describe("AiAssistantPanel composer submissions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
 
     await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
-    expect(await screen.findByText("Brunch stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
     // Let both deferred execution and any follow-up drain: withholding only
     // the send is insufficient if the mutation already ran after Stop.
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
@@ -3672,7 +3672,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
       expect(latest?.status).toBe("error");
       expect(latest?.stopped).toBe(false);
-      expect(screen.queryByText("Brunch stopped")).toBeNull();
+      expect(screen.queryByText("Stopped")).toBeNull();
       expect(
         screen.getAllByText(/Durable stop failed/u).length,
       ).toBeGreaterThan(0);
@@ -3805,7 +3805,7 @@ describe("AiAssistantPanel composer submissions", () => {
       "PlaceOne",
     );
     expect(sendMessages).not.toHaveBeenCalled();
-    expect(screen.getByText("Brunch stopped")).not.toBeNull();
+    expect(screen.getByText("Stopped")).not.toBeNull();
   });
 
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {
@@ -4021,7 +4021,7 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() =>
       expect(screen.getByTestId("host-status").textContent).toBe("ready"),
     );
-    expect(screen.queryByText("Brunch stopped")).toBeNull();
+    expect(screen.queryByText("Stopped")).toBeNull();
   });
 
   test("does not let a late durable Stop cancel a newer turn", async () => {
@@ -4135,7 +4135,7 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() =>
       expect(screen.getByTestId("host-status").textContent).toBe("ready"),
     );
-    expect(screen.queryByText("Brunch stopped")).toBeNull();
+    expect(screen.queryByText("Stopped")).toBeNull();
   });
 
   test("does not surface a late durable Stop failure on a newer turn", async () => {
