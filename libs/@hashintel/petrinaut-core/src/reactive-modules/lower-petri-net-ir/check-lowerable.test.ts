@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 
+import { foldHir } from "../../hir/analyze";
+import { lowerTypeScriptToHir } from "../../hir/lower-typescript";
+import { lowerPetriNetIr } from "../lower-petri-net-ir";
 import { type PetriNetIr, resolveZerothTarget } from "../petri-net-ir";
 import { birthDeathIr } from "../shared/birth-death.fixtures";
 import { checkLowerable } from "./check-lowerable";
 
+import type { CodeParser } from "./step-plan";
+
 const clocks = resolveZerothTarget({ rates: "clock" });
+
+const parseCode: CodeParser = (code, surface) => {
+  const lowered = lowerTypeScriptToHir(code, surface);
+  return lowered.ok
+    ? { ...lowered.fn, body: foldHir(lowered.fn.body) }
+    : undefined;
+};
 
 const refusals = (ir: PetriNetIr) =>
   checkLowerable(ir, clocks).map(({ code, item }) => ({
@@ -42,6 +54,31 @@ describe("checkLowerable under clock rates", () => {
         item: { kind: "transition", name: "Plague" },
       },
     ]);
+  });
+
+  it("refuses a guard and a kernel beside a rate, whether or not the code is parsed", () => {
+    const guarded: PetriNetIr = {
+      ...birthDeathIr,
+      transitions: {
+        ...birthDeathIr.transitions,
+        Death: {
+          ...birthDeathIr.transitions.Death,
+          guard: "return input.Population.length > 2;",
+          kernel: "return {};",
+        },
+      },
+    };
+    expect(refusals(guarded)).toEqual([
+      { code: "clocks-guard", item: { kind: "transition", name: "Death" } },
+      { code: "clocks-kernel", item: { kind: "transition", name: "Death" } },
+    ]);
+    // The refusal comes before the code is read, so no parser is asked for.
+    for (const options of [{}, { parseCode }]) {
+      expect(lowerPetriNetIr(guarded, options)).toMatchObject({
+        ok: false,
+        errors: [{ code: "clocks-guard" }, { code: "clocks-kernel" }],
+      });
+    }
   });
 
   it("refuses arcs that carry more than one token, naming each one", () => {

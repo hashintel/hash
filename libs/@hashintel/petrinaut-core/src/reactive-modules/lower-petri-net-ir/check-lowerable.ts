@@ -22,8 +22,9 @@ const heavyArcs = (
 
 /**
  * What the clocks strategy cannot express: it arms a clock with a constant
- * positive rate, counts tokens in Nat, tests a count against zero only and
- * moves one token per arc.
+ * positive rate, fires on the clock and the input arcs alone, counts plain
+ * tokens in Nat, tests a count against zero only and moves one token per
+ * arc.
  */
 const clockRefusals = (ir: PetriNetIr): PetriNetIrDiagnostic[] => {
   const errors: PetriNetIrDiagnostic[] = [];
@@ -82,6 +83,22 @@ const clockRefusals = (ir: PetriNetIr): PetriNetIrDiagnostic[] => {
       errors.push({
         code: "clocks-rate-not-positive",
         message: `the clocks strategy arms a clock with a positive rate; the rate is ${transition.rate}`,
+        item,
+      });
+    }
+    if (transition.guard !== undefined) {
+      errors.push({
+        code: "clocks-guard",
+        message:
+          "the clocks strategy fires on its clock and its arcs alone; this transition also has a guard",
+        item,
+      });
+    }
+    if (transition.kernel !== undefined) {
+      errors.push({
+        code: "clocks-kernel",
+        message:
+          "the clocks strategy moves plain tokens; this transition has a kernel",
         item,
       });
     }
