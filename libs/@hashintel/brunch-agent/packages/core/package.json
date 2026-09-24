@@ -11,6 +11,11 @@
       "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
+    "./constants": {
+      "types": "./src/constants.ts",
+      "@dev/source": "./src/constants.ts",
+      "import": "./dist/constants.js"
+    },
     "./client-tools": {
       "types": "./src/client-tools.ts",
       "@dev/source": "./src/client-tools.ts",

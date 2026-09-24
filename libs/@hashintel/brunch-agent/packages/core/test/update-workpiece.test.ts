@@ -4,17 +4,14 @@ import { usePersistentState, useTool, type StateSetter } from "@flue/runtime";
 import * as v from "valibot";
 import { beforeEach, expect, test, vi } from "vitest";
 
+import { brunchStateKeys, brunchTools } from "../src/constants";
 import { useBrunchAgent } from "../src/flue";
 import {
   deriveWorkpieceMutation,
   updateWorkpieceInputSchema,
 } from "../src/update-workpiece";
+import { type WorkpieceRevision } from "../src/workpiece";
 import {
-  workpieceRevisionStateKey,
-  type WorkpieceRevision,
-} from "../src/workpiece";
-import {
-  MUTATE_WORKPIECE_TOOL_NAME,
   updateWorkpieceOutputSchema,
   createMutateWorkpieceTool,
   createWorkpieceReadTool,
@@ -655,7 +652,7 @@ test("captures the persistent-state setter at render and writes from run", async
   ]);
   const prompt = useBrunchAgent("anthropic/faux");
   expect(usePersistentState).toHaveBeenCalledWith(
-    workpieceRevisionStateKey,
+    brunchStateKeys.workpieceRevision,
     null,
   );
   expect(current).toBeNull();
@@ -663,7 +660,7 @@ test("captures the persistent-state setter at render and writes from run", async
     .mocked(useTool)
     .mock.calls.map(([definition]) => definition);
   const revisionTool = mounted.find(
-    (definition) => definition.name === MUTATE_WORKPIECE_TOOL_NAME,
+    (definition) => definition.name === brunchTools.mutateWorkpiece,
   );
   expect(revisionTool).toBeDefined();
   vi.mocked(usePersistentState).mockImplementation(() => {

@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
-import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import { runNodeScript } from "./run-node-script";
 
@@ -55,7 +55,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.pingOutput).toEqual({ ok: true, note: "health" });
     expect(result.clientToolCall).toMatchObject({
       type: "tool-input-available",
-      toolName: READ_PETRINAUT_DOCS_TOOL_NAME,
+      toolName: brunchTools.readPetrinautDocs,
       input: { doc: "ai-assistant" },
     });
     expect(result.clientToolCall).not.toHaveProperty("providerExecuted");
@@ -92,7 +92,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.transcript).toContain("Checking the server, then the docs.");
     expect(result.transcript).toContain("tool ping");
     expect(result.transcript).toContain(
-      `tool ${READ_PETRINAUT_DOCS_TOOL_NAME}`,
+      `tool ${brunchTools.readPetrinautDocs}`,
     );
     expect(result.transcript).toContain("tool activate_skill");
     expect(result.transcript).toContain("tool read_skill_resource");
@@ -115,7 +115,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).toContain("read_skill_resource");
     expect(result.interviewerToolNames).toContain("ping");
     expect(result.interviewerToolNames).toContain(
-      READ_PETRINAUT_DOCS_TOOL_NAME,
+      brunchTools.readPetrinautDocs,
     );
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
@@ -153,7 +153,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     );
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain(
-      `tool ${READ_PETRINAUT_DOCS_TOOL_NAME}`,
+      `tool ${brunchTools.readPetrinautDocs}`,
     );
     expect(resumeResult.transcript).toContain("tool activate_skill");
     expect(resumeResult.transcript).toContain("tool read_skill_resource");

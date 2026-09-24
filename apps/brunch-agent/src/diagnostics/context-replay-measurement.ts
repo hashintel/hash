@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { brunchSignals, brunchTools } from "@hashintel/brunch-agent";
+
 import {
   createBrunchContextProjection,
   projectBrunchContext,
@@ -80,7 +82,7 @@ const parseToolResult = (
 ): Record<string, unknown> | undefined => {
   if (
     entry.message.role !== "toolResult" ||
-    entry.message.toolName !== "mutate_workpiece" ||
+    entry.message.toolName !== brunchTools.mutateWorkpiece ||
     entry.message.isError
   )
     return undefined;
@@ -120,7 +122,7 @@ const clientResultSignalMeasurements = (
   return entries.flatMap((entry, index) => {
     if (
       entry.message.role !== "signal" ||
-      entry.message.type !== "client-tool-result"
+      entry.message.type !== brunchSignals.clientToolResult
     ) {
       return [];
     }

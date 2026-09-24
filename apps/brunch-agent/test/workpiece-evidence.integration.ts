@@ -15,7 +15,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes } from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,
@@ -88,7 +88,7 @@ const speak = (body: string) => {
       ...(first
         ? {
             initialData: {
-              mode: INTEGRATED_BRUNCH_MODE,
+              mode: brunchModes.integrated,
               construction: { binding },
             },
           }
@@ -388,7 +388,7 @@ try {
   await otherClient.wait(
     await otherClient.send({
       initialData: {
-        mode: INTEGRATED_BRUNCH_MODE,
+        mode: brunchModes.integrated,
         construction: {
           binding: {
             ...binding,

@@ -1,3 +1,4 @@
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { isWorkpieceRefusedOutput } from "@hashintel/brunch-agent/workpiece";
 
 import type {
@@ -12,13 +13,13 @@ import type {
  */
 export const visibleOrdinaryBrunchToolNames = [
   "task",
-  "activate_skill",
-  "read_skill_resource",
-  "mutate_workpiece",
-  "read_petrinaut_docs",
-  "read_workpiece",
-  "query_workpiece",
-  "ping",
+  brunchTools.activateSkill,
+  brunchTools.readSkillResource,
+  brunchTools.mutateWorkpiece,
+  brunchTools.readPetrinautDocs,
+  brunchTools.readWorkpiece,
+  brunchTools.queryWorkpiece,
+  brunchTools.ping,
 ] as const;
 
 export type VisibleOrdinaryBrunchToolName =
@@ -34,37 +35,37 @@ const lifecycleTitles = {
     success: "Completed task",
     error: "Could not complete task",
   },
-  activate_skill: {
+  [brunchTools.activateSkill]: {
     pending: "Activating skill",
     success: "Activated skill",
     error: "Could not activate skill",
   },
-  read_skill_resource: {
+  [brunchTools.readSkillResource]: {
     pending: "Reviewing modelling guidance",
     success: "Reviewed modelling guidance",
     error: "Could not review modelling guidance",
   },
-  mutate_workpiece: {
+  [brunchTools.mutateWorkpiece]: {
     pending: "Updating ledger",
     success: "Updated ledger",
     error: "Could not update ledger",
   },
-  read_petrinaut_docs: {
+  [brunchTools.readPetrinautDocs]: {
     pending: "Reading Petrinaut guidance",
     success: "Read Petrinaut guidance",
     error: "Could not read Petrinaut guidance",
   },
-  read_workpiece: {
+  [brunchTools.readWorkpiece]: {
     pending: "Reading ledger",
     success: "Read ledger",
     error: "Could not read ledger",
   },
-  query_workpiece: {
+  [brunchTools.queryWorkpiece]: {
     pending: "Checking recorded basis",
     success: "Checked recorded basis",
     error: "Could not check recorded basis",
   },
-  ping: {
+  [brunchTools.ping]: {
     pending: "Checking Brunch connection",
     success: "Checked Brunch connection",
     error: "Could not reach Brunch",
@@ -163,7 +164,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
     let titles = lifecycleTitles[toolName];
     let detail: string | undefined;
 
-    if (toolName === "activate_skill") {
+    if (toolName === brunchTools.activateSkill) {
       const skillName = stringProperty(context.input, "name");
       return withPendingTone(
         { title: withSuffix(titles[context.state], skillName) },
@@ -171,7 +172,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
       );
     }
 
-    if (toolName === "read_skill_resource") {
+    if (toolName === brunchTools.readSkillResource) {
       const resource = resourceName(stringProperty(context.input, "path"));
       return withPendingTone(
         { title: withSuffix(titles[context.state], resource) },
@@ -180,7 +181,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
     }
 
     if (
-      toolName === "mutate_workpiece" &&
+      toolName === brunchTools.mutateWorkpiece &&
       isWorkpieceRefusedOutput(context.output)
     ) {
       return {
@@ -190,7 +191,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
       };
     }
 
-    if (toolName === "read_workpiece") {
+    if (toolName === brunchTools.readWorkpiece) {
       titles = readWorkpiecePurpose(context.input);
     }
 

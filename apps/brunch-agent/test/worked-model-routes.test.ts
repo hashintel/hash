@@ -3,7 +3,7 @@
 import { Hono } from "hono";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
 import { createWorkedModelNetProjectionRouter } from "../src/http/worked-models.ts";
 import {
@@ -46,7 +46,7 @@ const request = (
 ): Request => {
   const headers = new Headers(init.headers);
   if (principalKey !== undefined)
-    headers.set(BRUNCH_PRINCIPAL_HEADER, principalKey);
+    headers.set(brunchHeaders.principal, principalKey);
   return new Request(`http://brunch.test${path}`, {
     ...init,
     headers,

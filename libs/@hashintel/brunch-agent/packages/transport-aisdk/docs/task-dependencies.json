@@ -1,17 +1,23 @@
 {
   "package": "@hashintel/brunch-agent-transport-aisdk",
-  "dependencies": [],
+  "dependencies": [
+    "@hashintel/brunch-agent"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": []
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
     },
     "fix:eslint": {
       "dependsOn": [
+        "@hashintel/brunch-agent#build",
         "@local/eslint#build"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
+        "@hashintel/brunch-agent#build",
         "@local/eslint#build"
       ],
       "env": [
@@ -19,7 +25,9 @@
       ]
     },
     "lint:tsc": {
-      "dependsOn": []
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
     },
     "test:unit": {
       "dependsOn": [],

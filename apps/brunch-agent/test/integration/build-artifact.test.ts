@@ -16,10 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
 import { loadBuiltBrunchApplication } from "../load-built-application";
 
@@ -77,7 +74,7 @@ describe("the emitted server bundle", () => {
   test("includes the fail-closed production store", () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
-    expect(bundle).toContain("BRUNCH_POSTGRES_AUTH_MODE");
+    expect(bundle).toContain("brunchEnv.postgres.authMode");
     expect(bundle).toContain(`config.kind === "postgres"`);
     expect(bundle).toContain(
       `createPostgresRunner(config, shutdownBrunchTelemetry)`,
@@ -86,10 +83,10 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain(`database: postgres(runner)`);
     expect(bundle).toContain("Postgres database configuration requires");
     expect(bundle).toContain(
-      String.raw`BRUNCH_DB_KIND must be \"postgres\" in production.`,
+      'brunchEnv.dbKind} must be "postgres" in production.',
     );
     // SQLite remains available to local/test execution only.
-    expect(bundle).toContain("BRUNCH_DEV_DB_PATH");
+    expect(bundle).toContain("brunchEnv.devDbPath");
     expect(bundle).toContain(".data-wipe-me");
   });
 
@@ -123,8 +120,8 @@ describe("the emitted server bundle", () => {
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": [
               "content-type",
-              BRUNCH_PRINCIPAL_HEADER,
-              BRUNCH_CONVERSATION_HEADER,
+              brunchHeaders.principal,
+              brunchHeaders.conversation,
             ].join(","),
           },
         }),
@@ -137,7 +134,7 @@ describe("the emitted server bundle", () => {
             headers: {
               Origin: allowedCorsOrigin,
               "Access-Control-Request-Method": "PUT",
-              "Access-Control-Request-Headers": `content-type,${BRUNCH_PRINCIPAL_HEADER}`,
+              "Access-Control-Request-Headers": `content-type,${brunchHeaders.principal}`,
             },
           },
         ),
@@ -167,7 +164,7 @@ describe("the emitted server bundle", () => {
       "GET,POST,PUT,OPTIONS",
     );
     expect(preflight.headers.get("access-control-allow-headers")).toBe(
-      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
+      `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
     );
     expect(
       preflight.headers.get("access-control-allow-credentials"),
@@ -183,7 +180,7 @@ describe("the emitted server bundle", () => {
     expect(
       workedModelPutPreflight.headers.get("access-control-allow-headers"),
     ).toBe(
-      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
+      `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
     );
 
     expect(guardedResponse.status).toBe(401);

@@ -14,11 +14,13 @@
 
 import { fileURLToPath } from "node:url";
 
+import { brunchEnv } from "@hashintel/brunch-agent";
+
 export function conversationDbPath(): string {
   // Truthiness, not nullish, on purpose: a set-but-empty override would pass
   // '' through to sqlite(), which opens an anonymous temporary database
   // deleted on close — silently non-durable again.
-  const override = process.env.BRUNCH_DEV_DB_PATH;
+  const override = process.env[brunchEnv.devDbPath];
   return override
     ? override
     : fileURLToPath(

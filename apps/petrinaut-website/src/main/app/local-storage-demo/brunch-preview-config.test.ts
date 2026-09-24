@@ -1,9 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  INTEGRATED_BRUNCH_MODE,
-  STOCK_OVER_FLUE_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes } from "@hashintel/brunch-agent/constants";
 
 import {
   createBrunchPreviewConversationId,
@@ -17,7 +14,7 @@ describe("Brunch preview host configuration", () => {
       chatEndpoint: "/api/chat",
       isBrunchConfigured: false,
       evaluationMode: "I",
-      serverMode: INTEGRATED_BRUNCH_MODE,
+      serverMode: brunchModes.integrated,
     });
   });
 
@@ -28,13 +25,13 @@ describe("Brunch preview host configuration", () => {
       chatEndpoint: "https://brunch.test/api/petrinaut/chat",
       isBrunchConfigured: true,
       evaluationMode: "I",
-      serverMode: INTEGRATED_BRUNCH_MODE,
+      serverMode: brunchModes.integrated,
     });
   });
 
   test.each([
-    ["F", STOCK_OVER_FLUE_MODE],
-    ["I", INTEGRATED_BRUNCH_MODE],
+    ["F", brunchModes.stockOverFlue],
+    ["I", brunchModes.integrated],
   ] as const)(
     "maps evaluation override %s to its exact server mode",
     (mode, serverMode) => {

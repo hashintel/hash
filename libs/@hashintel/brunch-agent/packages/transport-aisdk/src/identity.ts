@@ -1,4 +1,4 @@
-import { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
+import { brunchHeaders } from "@hashintel/brunch-agent/constants";
 
 export interface ConversationIdentity {
   readonly conversationId: string;
@@ -59,6 +59,6 @@ export const flueConversationIdWeb = async (
 export const agentOwnershipHeaders = (
   identity: ConversationIdentity,
 ): Record<string, string> => ({
-  [BRUNCH_PRINCIPAL_HEADER]: identity.principalKey,
-  [BRUNCH_CONVERSATION_HEADER]: identity.conversationId,
+  [brunchHeaders.principal]: identity.principalKey,
+  [brunchHeaders.conversation]: identity.conversationId,
 });

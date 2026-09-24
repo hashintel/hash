@@ -14,7 +14,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes } from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,
@@ -205,7 +205,7 @@ try {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: INTEGRATED_BRUNCH_MODE,
+        mode: brunchModes.integrated,
         construction: {
           binding: {
             conversationId: identity.conversationId,

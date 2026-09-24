@@ -1,8 +1,9 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
+
 import {
-  CLIENT_TOOL_RESULT_SIGNAL,
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
   createFlueChatTransport,
@@ -499,7 +500,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
           role: "system",
           purpose: "dispatch",
           display: "hidden",
-          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          signal: { tagName: brunchSignals.clientToolResult },
           parts: [
             {
               type: "text",
@@ -529,7 +530,7 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
           role: "system",
           purpose: "dispatch",
           display: "hidden",
-          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          signal: { tagName: brunchSignals.clientToolResult },
           parts: [
             {
               type: "text",

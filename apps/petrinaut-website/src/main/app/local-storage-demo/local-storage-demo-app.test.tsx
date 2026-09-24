@@ -19,12 +19,8 @@ import {
   type MockInstance,
 } from "vitest";
 
-import {
-  draftPetrinautExperimentToolName,
-  INTEGRATED_BRUNCH_MODE,
-  STOCK_OVER_FLUE_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchModes, brunchTools } from "@hashintel/brunch-agent/constants";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
@@ -536,7 +532,7 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.executeMutation).toBeUndefined();
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([draftPetrinautExperimentToolName]);
+    ).toEqual([brunchTools.draftPetrinautExperiment]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1392,7 +1388,7 @@ describe("local storage demo Brunch controls", () => {
         error: undefined,
       }),
     ).toBeUndefined();
-    expect(transportOptions.initialData?.mode).toBe(INTEGRATED_BRUNCH_MODE);
+    expect(transportOptions.initialData?.mode).toBe(brunchModes.integrated);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId,
       documentId: "net-1",
@@ -1403,7 +1399,7 @@ describe("local storage demo Brunch controls", () => {
     );
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([draftPetrinautExperimentToolName]);
+    ).toEqual([brunchTools.draftPetrinautExperiment]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     expect(
       [...(transportOptions.asyncClientToolNames ?? [])].toSorted(),
@@ -1412,7 +1408,7 @@ describe("local storage demo Brunch controls", () => {
       true,
     );
     expect(
-      aiAssistant.inBandBrowserTools?.has(draftPetrinautExperimentToolName),
+      aiAssistant.inBandBrowserTools?.has(brunchTools.draftPetrinautExperiment),
     ).toBe(false);
     // I captures the experiment source at the browser lane barrier, not while projecting transport input.
     expect(
@@ -1420,7 +1416,7 @@ describe("local storage demo Brunch controls", () => {
     ).toEqual(
       [
         ...canonicalPetrinautClientToolNames,
-        draftPetrinautExperimentToolName,
+        brunchTools.draftPetrinautExperiment,
       ].toSorted(),
     );
   });
@@ -1969,7 +1965,7 @@ describe("assistant selection", () => {
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
     brunchPreviewConfig.evaluationMode = "I";
-    brunchPreviewConfig.serverMode = INTEGRATED_BRUNCH_MODE;
+    brunchPreviewConfig.serverMode = brunchModes.integrated;
     remoteDocumentState.current = {
       document: null,
       conversationId: null,
@@ -2339,7 +2335,7 @@ describe("assistant selection", () => {
 
   test("F is Stock-over-Flue with isolated identity, no adapter, and no Ledger", async () => {
     brunchPreviewConfig.evaluationMode = "F";
-    brunchPreviewConfig.serverMode = STOCK_OVER_FLUE_MODE;
+    brunchPreviewConfig.serverMode = brunchModes.stockOverFlue;
     const incarnationId = "stock-over-flue-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -2366,7 +2362,7 @@ describe("assistant selection", () => {
         }
       ).initialData,
     ).toEqual({
-      mode: STOCK_OVER_FLUE_MODE,
+      mode: brunchModes.stockOverFlue,
       construction: {
         binding: {
           conversationId: brunchEvaluationConversationIdFrom(
@@ -2388,7 +2384,7 @@ describe("assistant selection", () => {
 
   test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
     brunchPreviewConfig.evaluationMode = "I";
-    brunchPreviewConfig.serverMode = INTEGRATED_BRUNCH_MODE;
+    brunchPreviewConfig.serverMode = brunchModes.integrated;
     const incarnationId = "live-baseline-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");

@@ -8,10 +8,8 @@ import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
-import {
-  CANONICAL_PETRINAUT_TOOL_NAMES,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
+import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
@@ -29,11 +27,6 @@ import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
-import {
-  CHAT_AGENT_ROUTE,
-  HEALTH_ROUTE,
-  WORKED_MODELS_ROUTE,
-} from "./http/routes.ts";
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { logger } from "./logger.ts";
 import { openaiProviderWithGpt6 } from "./openai-provider.ts";
@@ -99,19 +92,19 @@ const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   return milliseconds;
 };
 const modelStreamIdleTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
+  brunchEnv.modelStreamIdleTimeoutMs,
   modelStreamIdleTimeoutDefaults.idleTimeoutMs,
 );
 const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
+  brunchEnv.modelStreamFirstEventTimeoutMs,
   modelStreamIdleTimeoutDefaults.firstEventTimeoutMs,
 );
 const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
+  brunchEnv.modelStreamReasoningStartTimeoutMs,
   modelStreamIdleTimeoutDefaults.reasoningStartTimeoutMs,
 );
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
+  brunchEnv.modelStreamCancellationTimeoutMs,
   modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
 instrument({
@@ -131,7 +124,7 @@ instrument({
   dispose() {},
 });
 const accounting = createStepARequestAccounting(
-  process.env.BRUNCH_STEP_A_ACCOUNTING,
+  process.env[brunchEnv.stepAAccounting],
 );
 if (accounting) {
   instrument({
@@ -146,15 +139,15 @@ if (accounting) {
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
   ...CANONICAL_PETRINAUT_TOOL_NAMES,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
+  brunchTools.readPetrinautDocs,
 ]);
 const integratedMixedToolNames = new Set([
   ...CANONICAL_PETRINAUT_TOOL_NAMES,
-  "ping",
-  "mutate_workpiece",
-  "read_workpiece",
-  "activate_skill",
-  "read_skill_resource",
+  brunchTools.ping,
+  brunchTools.mutateWorkpiece,
+  brunchTools.readWorkpiece,
+  brunchTools.activateSkill,
+  brunchTools.readSkillResource,
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(
@@ -182,11 +175,11 @@ registerAdmittedProvider(openaiProviderWithGpt6());
 const app = new Hono();
 
 const agentMount = "/agents";
-const chatAgentMount = `${agentMount}/${CHAT_AGENT_ROUTE}`;
+const chatAgentMount = `${agentMount}/${brunchRoutes.chatAgent}`;
 app.use(
   `${agentMount}/*`,
   createAgentCors(
-    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+    parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
   ),
 );
 app.use(
@@ -297,17 +290,17 @@ app.post(
 );
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.use(
-  `${WORKED_MODELS_ROUTE}/*`,
+  `${brunchRoutes.workedModels}/*`,
   createAgentCors(
-    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+    parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
   ),
 );
 app.route(
-  WORKED_MODELS_ROUTE,
+  brunchRoutes.workedModels,
   createWorkedModelNetProjectionRouter(workedModelStore),
 );
 
-app.get(HEALTH_ROUTE, healthHandler);
+app.get(brunchRoutes.health, healthHandler);
 
 const uiRoot = new URL(
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- import.meta.env is absent when Node executes this module directly.

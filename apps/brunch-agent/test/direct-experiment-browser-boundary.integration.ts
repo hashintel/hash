@@ -12,7 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes } from "@hashintel/brunch-agent";
 import { type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
@@ -131,7 +131,7 @@ try {
       };
     };
   };
-  assert.equal(first.initialData?.mode, INTEGRATED_BRUNCH_MODE);
+  assert.equal(first.initialData?.mode, brunchModes.integrated);
   const binding = first.initialData.construction?.binding;
   assert(binding);
   const principalKey = await page.evaluate(() => {

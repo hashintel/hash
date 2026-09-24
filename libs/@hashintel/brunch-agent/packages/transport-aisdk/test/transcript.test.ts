@@ -1,10 +1,8 @@
 import { expect, test } from "vitest";
 
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  snapshotToUiMessages,
-  type ClientToolResult,
-} from "../src";
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
+
+import { snapshotToUiMessages, type ClientToolResult } from "../src";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -62,7 +60,7 @@ test("retains Voice origins from folded continuation messages", () => {
         role: "system",
         purpose: "dispatch",
         display: "hidden",
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",
@@ -228,7 +226,7 @@ test("uses a recorded browser result even when it is null", () => {
         role: "system",
         purpose: "dispatch",
         display: "hidden",
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",
@@ -274,7 +272,7 @@ test("reconstructs durable voice provenance for each browser result", () => {
         role: "system",
         purpose: "dispatch",
         display: "hidden",
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",
@@ -395,7 +393,7 @@ test("folds a client-tool continuation into the assistant message it resumed", (
         role: "system",
         purpose: "dispatch",
         display: "hidden",
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",
@@ -473,7 +471,7 @@ test("treats reordered object keys as the same browser result and refuses a chan
         role: "system",
         purpose: "dispatch",
         display: "hidden",
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",
@@ -493,7 +491,7 @@ test("treats reordered object keys as the same browser result and refuses a chan
         role: "system",
         purpose: "dispatch",
         display: "hidden",
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [{ type: "text", state: "done", text }],
       },
     ],

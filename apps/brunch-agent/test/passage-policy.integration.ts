@@ -18,8 +18,10 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { workpieceReadOutputSchema } from "@hashintel/brunch-agent";
-import { INTEGRATED_BRUNCH_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  brunchModes,
+  workpieceReadOutputSchema,
+} from "@hashintel/brunch-agent";
 import { workpieceRevisionPointerSchema } from "@hashintel/brunch-agent/workpiece";
 
 import {
@@ -241,7 +243,7 @@ const session = (label: string) => {
       ...(!initialized
         ? {
             initialData: {
-              mode: INTEGRATED_BRUNCH_MODE,
+              mode: brunchModes.integrated,
               construction: {
                 binding: {
                   conversationId: identity.conversationId,

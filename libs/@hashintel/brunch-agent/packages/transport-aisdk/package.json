@@ -10,11 +10,6 @@
       "types": "./src/index.ts",
       "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
-    },
-    "./headers": {
-      "types": "./src/headers.ts",
-      "@dev/source": "./src/headers.ts",
-      "import": "./dist/headers.js"
     }
   },
   "scripts": {
@@ -26,6 +21,7 @@
   },
   "dependencies": {
     "@flue/sdk": "2.0.3",
+    "@hashintel/brunch-agent": "workspace:*",
     "ai": "6.0.182"
   },
   "devDependencies": {

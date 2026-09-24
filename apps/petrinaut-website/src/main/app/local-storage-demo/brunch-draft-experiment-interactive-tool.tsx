@@ -6,10 +6,10 @@ import {
   draftPetrinautExperimentInputSchema,
   type DraftPetrinautExperimentOutput,
   draftPetrinautExperimentOutputSchema,
-  draftPetrinautExperimentToolName,
   parseClientToolResultMetadata,
   type BrowserBinding,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
@@ -177,7 +177,7 @@ export const resolveDraftAuthorityFromHistory = async (
       ? message.parts.flatMap((part, partIndex) =>
           part.type === "dynamic-tool" &&
           part.toolCallId === draftCallId &&
-          part.toolName === draftPetrinautExperimentToolName
+          part.toolName === brunchTools.draftPetrinautExperiment
             ? [{ messageIndex, partIndex }]
             : [],
         )
@@ -775,7 +775,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     DraftPetrinautExperimentInput,
     DraftPetrinautExperimentOutput
   >({
-    toolName: draftPetrinautExperimentToolName,
+    toolName: brunchTools.draftPetrinautExperiment,
     inputSchema: draftPetrinautExperimentInputSchema,
     outputSchema: draftPetrinautExperimentOutputSchema,
     component: (props) => (

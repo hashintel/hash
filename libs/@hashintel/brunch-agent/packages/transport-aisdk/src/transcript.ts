@@ -1,6 +1,7 @@
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
+
 import { canonicalJsonEquals } from "./canonical-json";
 import {
-  CLIENT_TOOL_RESULT_SIGNAL,
   parseClientToolResults,
   type ClientToolResult,
 } from "./client-tool-result";
@@ -220,7 +221,7 @@ export const snapshotToUiMessages = (
 ): UiHistoryMessage[] => {
   const clientResults = clientToolResultsFrom(
     snapshot,
-    CLIENT_TOOL_RESULT_SIGNAL,
+    brunchSignals.clientToolResult,
   );
   const messages: UiHistoryMessage[] = [];
   const abortedSubmissions = new Set(
@@ -241,7 +242,7 @@ export const snapshotToUiMessages = (
   for (const message of snapshot.messages) {
     if (
       message.purpose === "dispatch" &&
-      message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL
+      message.signal?.tagName === brunchSignals.clientToolResult
     ) {
       awaitingClientResult = false;
       continuationPending = resumableAssistant !== undefined;

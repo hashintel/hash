@@ -8,6 +8,8 @@ import { parseArgs, promisify } from "node:util";
 
 import { chromium } from "@playwright/test";
 
+import { brunchEnv } from "@hashintel/brunch-agent";
+
 import {
   defaultChatOrigin,
   localPanelListen,
@@ -218,7 +220,7 @@ const buildForArm = async (
   const expectedMode = configuration.arms[arm].websiteMode;
   if (
     expectedMode !== null &&
-    environment.VITE_BRUNCH_EVALUATION_MODE !== expectedMode
+    environment[brunchEnv.viteEvaluationMode] !== expectedMode
   )
     throw new Error(
       `Website build for ${arm} did not receive its exact mode override.`,
@@ -249,7 +251,7 @@ const executePaidEvaluation = async (
     );
   if ((await responds(defaultChatOrigin)) || (await responds(panelOrigin)))
     throw new Error(
-      "Matched parity evaluation requires its own Brunch and panel ports; stop existing services or choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
+      `Matched parity evaluation requires its own Brunch and panel ports; stop existing services or choose unused ${brunchEnv.chatPort} and ${brunchEnv.panelPort} values.`,
     );
 
   const serverEnvironment = evaluationEnvironment(configuration, "I");

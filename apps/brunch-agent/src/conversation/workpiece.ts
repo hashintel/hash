@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import * as v from "valibot";
 
 import {
-  MUTATE_WORKPIECE_TOOL_NAME,
+  brunchTools,
   updateWorkpieceInputSchema,
   updateWorkpieceOutputSchema,
 } from "@hashintel/brunch-agent";
@@ -24,7 +24,7 @@ const settledRevisionFromPart = (
 ): WorkpieceRevision | undefined => {
   if (
     part.type !== "dynamic-tool" ||
-    part.toolName !== MUTATE_WORKPIECE_TOOL_NAME ||
+    part.toolName !== brunchTools.mutateWorkpiece ||
     part.state !== "output-available"
   )
     return undefined;

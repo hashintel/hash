@@ -12,12 +12,9 @@ import {
 } from "@flue/runtime";
 
 import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md";
+import { brunchModes } from "@hashintel/brunch-agent/constants";
 import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
 
-import {
-  INTEGRATED_BRUNCH_MODE,
-  STOCK_OVER_FLUE_MODE,
-} from "./construction-mode";
 import { type SdcpnInitialData } from "./initial-data";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { createDraftExperimentTool } from "./tools/draft-experiment";
@@ -42,9 +39,9 @@ export const useSdcpnPlugin = (
   },
 ): void => {
   const initialData = useInitialData<SdcpnInitialData>();
-  if (initialData?.mode === STOCK_OVER_FLUE_MODE) {
+  if (initialData?.mode === brunchModes.stockOverFlue) {
     for (const tool of canonicalPetrinautTools) useTool(tool);
-  } else if (initialData?.mode === INTEGRATED_BRUNCH_MODE) {
+  } else if (initialData?.mode === brunchModes.integrated) {
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
     useSkill(sdcpnModellingSkill);

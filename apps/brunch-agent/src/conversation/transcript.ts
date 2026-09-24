@@ -6,7 +6,9 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
+import { brunchSignals } from "@hashintel/brunch-agent";
+
+import { isAwaitingClient } from "./client-tools.ts";
 
 const unhandledConversationPart = (part: never): never => {
   throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
@@ -26,7 +28,7 @@ const clientToolResultsFrom = (
   const outputsByCallId = new Map<string, unknown>();
   for (const message of snapshot.messages) {
     if (message.purpose !== "dispatch") continue;
-    if (message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL) continue;
+    if (message.signal?.tagName !== brunchSignals.clientToolResult) continue;
     const parsed: unknown = (() => {
       try {
         return JSON.parse(
@@ -106,10 +108,10 @@ export const formatFlueTranscript = (
   const sections: string[] = [];
   for (const message of snapshot.messages) {
     if (message.purpose === "dispatch") {
-      if (message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL) continue;
+      if (message.signal?.tagName !== brunchSignals.clientToolResult) continue;
       const body = textOf(message);
       if (body.length === 0) continue;
-      sections.push(`Signal ${CLIENT_TOOL_RESULT_SIGNAL}: ${body}`);
+      sections.push(`Signal ${brunchSignals.clientToolResult}: ${body}`);
       continue;
     }
     if (message.display !== "visible") continue;

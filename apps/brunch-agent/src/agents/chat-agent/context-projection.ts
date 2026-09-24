@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { brunchTools } from "@hashintel/brunch-agent";
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import type {
@@ -54,7 +55,7 @@ const settlementAuthorities = (
     return entry.message.content.flatMap((part) => {
       if (
         part.type !== "toolCall" ||
-        part.name !== "mutate_workpiece" ||
+        part.name !== brunchTools.mutateWorkpiece ||
         !isRecord(part.arguments) ||
         typeof part.arguments.markdown !== "string"
       )
@@ -74,7 +75,7 @@ const settlementAuthorities = (
     const { message } = entry;
     if (
       message.role !== "toolResult" ||
-      message.toolName !== "mutate_workpiece" ||
+      message.toolName !== brunchTools.mutateWorkpiece ||
       message.isError
     )
       return [];
@@ -109,7 +110,10 @@ const readAuthority = (
   entryIndex: number,
 ): ReadAuthority | undefined => {
   const { message } = entry;
-  if (message.role !== "toolResult" || message.toolName !== "read_workpiece")
+  if (
+    message.role !== "toolResult" ||
+    message.toolName !== brunchTools.readWorkpiece
+  )
     return undefined;
   const output = parseTextJson(message);
   const candidate =
@@ -263,7 +267,7 @@ const compactToolCallArguments = (
   const content = entry.message.content.map((part) => {
     if (
       part.type !== "toolCall" ||
-      part.name !== "mutate_workpiece" ||
+      part.name !== brunchTools.mutateWorkpiece ||
       !isRecord(part.arguments) ||
       typeof part.arguments.markdown !== "string"
     )

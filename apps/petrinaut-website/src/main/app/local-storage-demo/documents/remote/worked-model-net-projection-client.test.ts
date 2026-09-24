@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders } from "@hashintel/brunch-agent/constants";
 
 import {
   createCleanNetProjection,
@@ -71,7 +71,7 @@ describe("worked-model net-projection client", () => {
       expect.objectContaining({
         method: "GET",
         headers: {
-          [BRUNCH_PRINCIPAL_HEADER]: "principal-a",
+          [brunchHeaders.principal]: "principal-a",
         },
       }),
     );

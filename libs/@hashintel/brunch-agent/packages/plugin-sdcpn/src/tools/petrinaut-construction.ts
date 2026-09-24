@@ -1,7 +1,7 @@
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
-import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
+import { awaitingClient } from "@hashintel/brunch-agent/constants";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../construction-tool-names";
@@ -21,9 +21,9 @@ const canonicalPetrinautTool = (toolName: keyof typeof petrinautAiTools) => {
     name: toolName,
     description: tool.description,
     input: tool.inputSchema,
-    output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+    output: v.object({ awaiting: v.literal(awaitingClient) }),
     run() {
-      return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+      return { output: { awaiting: awaitingClient }, terminate: true };
     },
   });
 };

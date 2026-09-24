@@ -14,25 +14,25 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   createFlueChatTransport,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 const ELICITATION_SKILL_NAME = "elicitation";
 
-import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
 import {
-  clientToolNames,
-  CLIENT_TOOL_RESULT_SIGNAL,
-} from "../../src/conversation/client-tools.ts";
+  brunchRoutes,
+  brunchSignals,
+  brunchTools,
+} from "@hashintel/brunch-agent";
+
+import { clientToolNames } from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
 import { formatFlueTranscript } from "../../src/conversation/transcript.ts";
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
-import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 import type {
@@ -41,10 +41,8 @@ import type {
 } from "./petrinaut-chat-result";
 import type { UIMessage, UIMessageChunk } from "ai";
 
-const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
 const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
-const READ_SKILL_RESOURCE_TOOL_NAME = "read_skill_resource";
 const question = "Which documentation page should we inspect next?";
 
 const principalKey = "principal-mission-1";
@@ -101,7 +99,7 @@ try {
   const appTransport: typeof fetch = async (input, init) =>
     app.fetch(input instanceof Request ? input : new Request(input, init));
   const historyClient = createFlueClient({
-    url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+    url: `http://brunch.local/agents/${brunchRoutes.chatAgent}/${instanceId}`,
     fetch: appTransport,
     headers: agentOwnershipHeaders(identity),
   });
@@ -149,7 +147,7 @@ try {
         [
           fauxThinking("Load the modelling runbook skill."),
           fauxToolCall(
-            ACTIVATE_SKILL_TOOL_NAME,
+            brunchTools.activateSkill,
             { name: RUNBOOK_SKILL_NAME },
             { id: "tool-skill-1" },
           ),
@@ -160,7 +158,7 @@ try {
         [
           fauxThinking("The job skill routes universal judgment to core."),
           fauxToolCall(
-            ACTIVATE_SKILL_TOOL_NAME,
+            brunchTools.activateSkill,
             { name: ELICITATION_SKILL_NAME },
             { id: "tool-skill-2" },
           ),
@@ -172,7 +170,7 @@ try {
           [
             fauxThinking("Read the SDCPN-specific elicitation profile."),
             fauxToolCall(
-              READ_SKILL_RESOURCE_TOOL_NAME,
+              brunchTools.readSkillResource,
               {
                 path: packagedSkillResourcePathFrom(
                   context,
@@ -189,7 +187,7 @@ try {
           fauxThinking("Confirm the server path, then read the guide."),
           fauxText("Checking the server, then the docs."),
           fauxToolCall(
-            PING_TOOL_NAME,
+            brunchTools.ping,
             { note: "health" },
             { id: "tool-ping-1" },
           ),
@@ -200,7 +198,7 @@ try {
         [
           fauxThinking("The ping returned. Read the user guide next."),
           fauxToolCall(
-            READ_PETRINAUT_DOCS_TOOL_NAME,
+            brunchTools.readPetrinautDocs,
             { doc: "ai-assistant" },
             { id: "tool-doc-1" },
           ),
@@ -242,7 +240,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === PING_TOOL_NAME,
+          chunk.toolName === brunchTools.ping,
       ) ?? null;
     const activateSkillCall =
       initialChunks.find(
@@ -250,7 +248,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === ACTIVATE_SKILL_TOOL_NAME,
+          chunk.toolName === brunchTools.activateSkill,
       ) ?? null;
     const readSkillResourceCall =
       initialChunks.find(
@@ -258,7 +256,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === READ_SKILL_RESOURCE_TOOL_NAME,
+          chunk.toolName === brunchTools.readSkillResource,
       ) ?? null;
     const pingOutputChunk = initialChunks.find(
       (chunk) =>
@@ -271,7 +269,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === READ_PETRINAUT_DOCS_TOOL_NAME,
+          chunk.toolName === brunchTools.readPetrinautDocs,
       ) ?? null;
 
     const pendingHistory = projectHistory(await historyClient.history());
@@ -293,7 +291,7 @@ try {
         role: "assistant" as const,
         parts: [
           {
-            type: `tool-${READ_PETRINAUT_DOCS_TOOL_NAME}`,
+            type: `tool-${brunchTools.readPetrinautDocs}`,
             toolCallId: clientToolCall.toolCallId,
             state: "output-available",
             input: { doc: "ai-assistant" },
@@ -322,7 +320,7 @@ try {
     const clientToolResultCount = snapshot.messages.filter(
       (message) =>
         message.purpose === "dispatch" &&
-        message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
+        message.signal?.tagName === brunchSignals.clientToolResult,
     ).length;
     const interviewerToolNames = [
       ...new Set(
@@ -336,7 +334,7 @@ try {
     let unauthenticatedHistoryStatus = 0;
     try {
       await createFlueClient({
-        url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+        url: `http://brunch.local/agents/${brunchRoutes.chatAgent}/${instanceId}`,
         fetch: appTransport,
       }).history();
     } catch (error) {
@@ -346,7 +344,7 @@ try {
     let foreignAgentHistoryStatus = 0;
     try {
       await createFlueClient({
-        url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+        url: `http://brunch.local/agents/${brunchRoutes.chatAgent}/${instanceId}`,
         fetch: appTransport,
         headers: agentOwnershipHeaders({
           principalKey: "principal-other",

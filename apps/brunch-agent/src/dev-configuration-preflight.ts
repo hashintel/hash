@@ -4,6 +4,8 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 
+import { brunchEnv } from "@hashintel/brunch-agent";
+
 import { selectChatModelSpecifier } from "./chat-model.ts";
 
 const envFiles = [
@@ -21,7 +23,7 @@ const openaiAuthVariables = ["OPENAI_API_KEY"];
 const checkedVariables = [
   ...anthropicAuthVariables,
   ...openaiAuthVariables,
-  "BRUNCH_CHAT_MODEL",
+  brunchEnv.chatModel,
 ];
 const defaultRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -82,7 +84,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
       : (declarations.get(variable) ?? "absent");
   const apiKeySource = source("ANTHROPIC_API_KEY");
   const openaiApiKeySource = source("OPENAI_API_KEY");
-  const modelSource = source("BRUNCH_CHAT_MODEL");
+  const modelSource = source(brunchEnv.chatModel);
   // Flue applyDevEnv uses loadEnv('development', server.config.envDir, '') and shell-wins injection.
   // Restrict returned variables here; parsing and interpolation still use Vite's actual loader.
   const environment = loadEnv("development", appDirectory, checkedVariables);
@@ -185,9 +187,9 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
     providerSelection,
     higherPrioritySources,
     model: {
-      source: environment.BRUNCH_CHAT_MODEL
+      source: environment[brunchEnv.chatModel]
         ? modelSource
-        : "ChatAgent default (BRUNCH_CHAT_MODEL absent or empty)",
+        : `ChatAgent default (${brunchEnv.chatModel} absent or empty)`,
       actual: model,
       expected: knownModel
         ? `${knownModel.provider}/${knownModel.id}`

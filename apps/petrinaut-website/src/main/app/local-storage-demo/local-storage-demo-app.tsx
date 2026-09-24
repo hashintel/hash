@@ -19,13 +19,10 @@ import {
 } from "react";
 
 import {
-  draftPetrinautExperimentToolName,
-  INTEGRATED_BRUNCH_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchModes, brunchTools } from "@hashintel/brunch-agent/constants";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -733,8 +730,8 @@ export const LocalStorageDemoApp = ({
       "addTransition",
       "addArc",
     ]);
-    names.add(draftPetrinautExperimentToolName);
-    if (brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE)
+    names.add(brunchTools.draftPetrinautExperiment);
+    if (brunchPreviewConfig.serverMode === brunchModes.integrated)
       for (const toolName of canonicalPetrinautClientToolNames)
         names.add(toolName);
     return names;
@@ -750,7 +747,7 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
     undefined,
-    brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE
+    brunchPreviewConfig.serverMode === brunchModes.integrated
       ? canonicalPetrinautClientToolNames
       : undefined,
   );
@@ -851,7 +848,7 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
-                ...(brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE
+                ...(brunchPreviewConfig.serverMode === brunchModes.integrated
                   ? { asyncClientToolNames: canonicalPetrinautClientToolNames }
                   : {}),
                 dynamicClientToolNames,
@@ -860,7 +857,7 @@ export const LocalStorageDemoApp = ({
                   : {
                       mapClientToolInput: (call) =>
                         brunchPreviewConfig.serverMode ===
-                        INTEGRATED_BRUNCH_MODE
+                        brunchModes.integrated
                           ? call.input
                           : (canonicalHostTools.mapClientToolInput(call) ??
                             call.input),
@@ -892,7 +889,7 @@ export const LocalStorageDemoApp = ({
 
   const inBandBrowserTools = useMemo(
     () =>
-      brunchPreviewConfig.serverMode === INTEGRATED_BRUNCH_MODE &&
+      brunchPreviewConfig.serverMode === brunchModes.integrated &&
       integratedConstructionBrowser &&
       flueClientPromise
         ? createInBandBrowserCalls({

@@ -7668,6 +7668,7 @@ __metadata:
   resolution: "@hashintel/brunch-agent-transport-aisdk@workspace:libs/@hashintel/brunch-agent/packages/transport-aisdk"
   dependencies:
     "@flue/sdk": "npm:2.0.3"
+    "@hashintel/brunch-agent": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     ai: "npm:6.0.182"

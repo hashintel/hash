@@ -1,7 +1,7 @@
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
-import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import {
   callsForElement,
@@ -106,7 +106,7 @@ const revisionTurnRange = (
       message.parts.some(
         (part) =>
           part.type === "dynamic-tool" &&
-          part.toolName === MUTATE_WORKPIECE_TOOL_NAME &&
+          part.toolName === brunchTools.mutateWorkpiece &&
           part.state === "output-available" &&
           part.toolCallId === revisionId,
       )
@@ -116,7 +116,7 @@ const revisionTurnRange = (
       message.parts.some(
         (part) =>
           part.type === "dynamic-tool" &&
-          part.toolName === MUTATE_WORKPIECE_TOOL_NAME &&
+          part.toolName === brunchTools.mutateWorkpiece &&
           part.state === "output-available",
       )
     ) {
@@ -185,7 +185,7 @@ export const createQueryWorkpieceTool = (options: {
   history: () => Promise<FlueConversationSnapshot>;
 }) =>
   defineTool({
-    name: "query_workpiece",
+    name: brunchTools.queryWorkpiece,
     description:
       "Find an element in the latest getLatestNetDefinition result by kind and unique name or ID; for an arc use its transitionId, arcDirection (input/output) and placeId. List canonical calls associated with that element, including their settled document revision and the workpiece revision's turn range and user message IDs. Associations are temporal context, not semantic justification.",
     input: elementSchema,

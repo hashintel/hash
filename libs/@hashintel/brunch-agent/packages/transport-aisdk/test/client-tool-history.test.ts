@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 
+import { brunchSignals } from "@hashintel/brunch-agent/constants";
+
 import {
-  CLIENT_TOOL_RESULT_SIGNAL,
   clientToolHistoryFrom,
   isClientToolResultDelivery,
   type ClientToolHistoryMessage,
@@ -13,8 +14,8 @@ describe("client-tool-result delivery identity", () => {
       label: "canonical signal",
       delivery: {
         kind: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        type: brunchSignals.clientToolResult,
+        tagName: brunchSignals.clientToolResult,
         body: "[]",
       },
       expected: true,
@@ -23,7 +24,7 @@ describe("client-tool-result delivery identity", () => {
       label: "matching type with a different render tag",
       delivery: {
         kind: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
+        type: brunchSignals.clientToolResult,
         tagName: "other",
         body: "[]",
       },
@@ -34,14 +35,14 @@ describe("client-tool-result delivery identity", () => {
       delivery: {
         kind: "signal",
         type: "other",
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        tagName: brunchSignals.clientToolResult,
         body: "[]",
       },
       expected: false,
     },
     {
       label: "user message",
-      delivery: { kind: "user", body: CLIENT_TOOL_RESULT_SIGNAL },
+      delivery: { kind: "user", body: brunchSignals.clientToolResult },
       expected: false,
     },
   ] as const)("recognizes $label", ({ delivery, expected }) => {
@@ -102,7 +103,7 @@ describe("clientToolHistoryFrom", () => {
         ],
       },
       {
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",
@@ -150,11 +151,11 @@ describe("clientToolHistoryFrom", () => {
         ],
       },
       {
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [{ type: "text", state: "done", text: "not-json" }],
       },
       {
-        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        signal: { tagName: brunchSignals.clientToolResult },
         parts: [
           {
             type: "text",

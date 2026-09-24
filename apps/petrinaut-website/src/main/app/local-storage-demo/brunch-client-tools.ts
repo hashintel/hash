@@ -1,4 +1,4 @@
-import { draftPetrinautExperimentToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
 /** Literal stock catalogue handled by Petrinaut's existing static panel tools. */
@@ -9,5 +9,5 @@ export const canonicalPetrinautClientToolNames: ReadonlySet<string> = new Set(
 /** Integrated Brunch adds a distinct reviewed draft without replacing stock tools. */
 export const integratedPetrinautClientToolNames: ReadonlySet<string> = new Set([
   ...canonicalPetrinautClientToolNames,
-  draftPetrinautExperimentToolName,
+  brunchTools.draftPetrinautExperiment,
 ]);

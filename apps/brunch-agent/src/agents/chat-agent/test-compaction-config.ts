@@ -1,10 +1,12 @@
+import { brunchEnv } from "@hashintel/brunch-agent";
+
 import type { CompactionConfig } from "@flue/runtime";
 
 /** Local probe configuration; never alter deployed compaction through this seam. */
 export const loadTestCompactionConfig = (
   environment: NodeJS.ProcessEnv = process.env,
 ): CompactionConfig | undefined => {
-  const source = environment.BRUNCH_TEST_KEEP_RECENT_TOKENS;
+  const source = environment[brunchEnv.testKeepRecentTokens];
   if (source === undefined) return undefined;
 
   if (
@@ -13,7 +15,7 @@ export const loadTestCompactionConfig = (
     environment.NODE_ENV !== "test"
   ) {
     throw new Error(
-      "BRUNCH_TEST_KEEP_RECENT_TOKENS is only allowed in local development or tests, never production.",
+      `${brunchEnv.testKeepRecentTokens} is only allowed in local development or tests, never production.`,
     );
   }
 
@@ -21,7 +23,7 @@ export const loadTestCompactionConfig = (
   const keepRecentTokens = Number(value);
   if (!/^\d+$/u.test(value) || !Number.isSafeInteger(keepRecentTokens)) {
     throw new Error(
-      "BRUNCH_TEST_KEEP_RECENT_TOKENS must be a non-negative safe integer in decimal notation.",
+      `${brunchEnv.testKeepRecentTokens} must be a non-negative safe integer in decimal notation.`,
     );
   }
   return { keepRecentTokens };

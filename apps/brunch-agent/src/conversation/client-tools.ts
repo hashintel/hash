@@ -1,20 +1,11 @@
-/** Flue-side client-tool signal contract: awaiting sentinel, result signal, tool names. */
+/** Flue-side client-tool signal contract: awaiting sentinel, result delivery, client tool names. */
 
-import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  isClientToolResultDelivery,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
+import { awaitingClient, brunchTools } from "@hashintel/brunch-agent";
+import { isClientToolResultDelivery } from "@hashintel/brunch-agent-transport-aisdk";
 
 import type { FlueConversationPart } from "@flue/sdk";
 
-export { AWAITING_CLIENT };
-export { CLIENT_TOOL_RESULT_SIGNAL, isClientToolResultDelivery };
-
-// Flue's built-in skill tools; Flue exports no constants for their names.
-export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
-export const READ_SKILL_RESOURCE_TOOL_NAME = "read_skill_resource";
+export { isClientToolResultDelivery };
 
 /** A tool call as Flue records it in history; the app's client-tool call shapes project from it. */
 export type DynamicToolPart = Extract<
@@ -28,14 +19,14 @@ export type ClientToolCall = Pick<
 >;
 
 export const clientToolNames: ReadonlySet<string> = new Set([
-  READ_PETRINAUT_DOCS_TOOL_NAME,
+  brunchTools.readPetrinautDocs,
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 export const isAwaitingClient = (output: unknown): boolean =>
-  isRecord(output) && output.awaiting === AWAITING_CLIENT;
+  isRecord(output) && output.awaiting === awaitingClient;
 
 export const providerExecutedFor = (clientTool: boolean): true | undefined =>
   clientTool ? undefined : true;

@@ -5,11 +5,10 @@
 
 import * as v from "valibot";
 
+import { runbookIrFence } from "./constants";
 import { JsonValueSchema } from "./json-value";
 
 import type { ReadonlyDeep } from "./readonly-deep";
-
-export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
 
 /** Locators have meaning only within their immutable revision's Markdown. */
 export const evidenceRelationSchema = v.strictObject({
@@ -174,8 +173,6 @@ export const workpieceRevisionSchema = v.object({
 export type WorkpieceRevision = ReadonlyDeep<
   v.InferOutput<typeof workpieceRevisionSchema>
 >;
-
-export const runbookIrFence = "runbook-ir";
 
 type WorkpieceTextPart = {
   readonly text: string;
