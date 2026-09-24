@@ -90,11 +90,7 @@ const railStyle = css({
   gap: "1.5",
   flex: "[1]",
   minWidth: "[0]",
-  overflowX: "auto",
-  scrollbarWidth: "[none]",
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
+  flexWrap: "wrap",
 });
 
 const chipStyle = css({

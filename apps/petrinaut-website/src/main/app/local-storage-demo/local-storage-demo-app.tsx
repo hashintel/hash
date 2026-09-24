@@ -39,6 +39,7 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
+  type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
   type PetrinautAiStopResult,
   type PetrinautAiVoiceMode,
@@ -79,6 +80,7 @@ import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
 } from "./brunch-draft-experiment-interactive-tool";
+import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -885,6 +887,9 @@ export const LocalStorageDemoApp = ({
             primaryLabel: "Chat",
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
+            renderComposerControl: (
+              context: PetrinautAiComposerControlContext,
+            ) => <BrunchExperimentFollowUp context={context} />,
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),

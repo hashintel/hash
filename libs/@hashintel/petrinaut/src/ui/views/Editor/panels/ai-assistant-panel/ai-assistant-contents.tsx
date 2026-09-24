@@ -35,6 +35,7 @@ import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
+import { BrunchWorkFold } from "./ai-assistant-contents/brunch-work-fold";
 import {
   ExperimentCard,
   type AiExperimentState,
@@ -383,6 +384,14 @@ const userTextStyle = css({
   wordBreak: "break-word",
 });
 
+const answerStyle = css({
+  backgroundColor: "blue.a20",
+  borderRadius: "lg",
+  padding: "3",
+  color: "neutral.s110",
+  overflowWrap: "anywhere",
+});
+
 const workingStatusStyle = css({
   display: "flex",
   alignItems: "center",
@@ -391,14 +400,6 @@ const workingStatusStyle = css({
   paddingX: "2",
   color: "neutral.s80",
   fontSize: "sm",
-  fontWeight: "medium",
-});
-
-const stoppedNoteStyle = css({
-  alignSelf: "center",
-  paddingY: "1",
-  color: "neutral.s80",
-  fontSize: "xs",
   fontWeight: "medium",
 });
 
@@ -547,6 +548,9 @@ const AiAssistantMessage = memo(
     experimentStates,
     onCancelExperiment,
     resolveToolPresentation,
+    voice,
+    active,
+    stopped,
   }: {
     handlersRef: MessageHandlersRef;
     hiddenToolNames?: ReadonlySet<string>;
@@ -555,6 +559,9 @@ const AiAssistantMessage = memo(
     experimentStates?: Record<string, AiExperimentState>;
     onCancelExperiment?: (toolCallId: string) => void;
     resolveToolPresentation?: PetrinautAiToolPresentationResolver;
+    voice: boolean;
+    active: boolean;
+    stopped: boolean;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(
@@ -563,75 +570,113 @@ const AiAssistantMessage = memo(
       resolveToolPresentation,
       hiddenToolNames,
     );
-    const hasVoiceOrigin =
-      role === "user" && message.metadata?.source === "voice";
-    // The mark belongs in front of the words that were spoken. Only a message
-    // with no text of its own — a bare tool answer — falls back to trailing it.
-    const firstTextKey =
-      renderItems.find((item) => item.type === "text")?.key ?? null;
+    const { work, answers, cards, brief, voiceAgentReply, voiceAgentWrapUp } =
+      renderItems;
+    const wasStopped = stopped || message.metadata?.stopped === true;
+    const awaitingApproval = work.tools.some(
+      (tool) => tool.interactive && tool.state === "input-available",
+    );
+    const workStatus = wasStopped
+      ? "stopped"
+      : awaitingApproval
+        ? "approval"
+        : active
+          ? "streaming"
+          : "settled";
+    const writtenAnswer =
+      answers.length > 0 ? (
+        <div className={answerStyle} data-answer="brunch">
+          {answers.map((item) => (
+            <div className={markdownStyle} key={item.key}>
+              <ReactMarkdown>{item.part.text}</ReactMarkdown>
+            </div>
+          ))}
+        </div>
+      ) : null;
+    const showWork =
+      role === "assistant" &&
+      (active ||
+        wasStopped ||
+        work.reasoning.length > 0 ||
+        work.tools.length > 0 ||
+        answers.length > 0);
 
     return (
       <div
         className={messageStyle({ role })}
         data-role={role}
-        data-voice-origin={hasVoiceOrigin || undefined}
+        data-voice-origin={message.metadata?.source === "voice" || undefined}
       >
-        {renderItems.map((item) => {
-          switch (item.type) {
-            case "text":
-              return role === "user" ? (
-                <div className={userTextStyle} key={item.key}>
-                  {hasVoiceOrigin && item.key === firstTextKey && (
-                    <VoiceInputProvenance />
-                  )}
-                  <span>{item.part.text}</span>
-                </div>
-              ) : (
-                <div className={markdownStyle} key={item.key}>
-                  <ReactMarkdown>{item.part.text}</ReactMarkdown>
-                </div>
-              );
-            case "reasoning":
-              return (
-                <AiAssistantReasoning
-                  key={item.key}
-                  isStreaming={item.part.state === "streaming"}
-                  part={item.part}
-                />
-              );
-            case "experiment":
-              return (
-                <ExperimentCard
-                  key={item.key}
-                  part={item.part}
-                  state={experimentStates?.[item.part.toolCallId]}
-                  onCancel={onCancelExperiment}
-                />
-              );
-            case "tools":
-              return (
-                <AiAssistantToolList
-                  key={item.key}
-                  tools={item.tools}
-                  onInteractiveToolSubmit={(params) =>
-                    handlersRef.current.onInteractiveToolSubmit?.(params)
-                  }
-                  onSelectToolTarget={(target) =>
-                    handlersRef.current.onSelectToolTarget?.(target)
-                  }
-                />
-              );
-            default: {
-              const exhaustiveCheck: never = item;
-              throw new Error(
-                `Unknown message part: ${JSON.stringify(exhaustiveCheck)}`,
-              );
-            }
-          }
-        })}
-        {hasVoiceOrigin && firstTextKey === null && <VoiceInputProvenance />}
-        {role === "assistant" && message.metadata?.stopped && (
-          <div className={stoppedNoteStyle}>Response stopped</div>
+        {role === "user" &&
+          answers.map((item) => (
+            <div className={userTextStyle} key={item.key}>
+              <span>{item.part.text}</span>
+            </div>
+          ))}
+        {brief && <VoiceInputProvenance brief={brief} />}
+        {voiceAgentReply && (
+          <div
+            className={answerStyle}
+            data-answer="voice-reply"
+            aria-busy={voiceAgentReply.state === "streaming"}
+          >
+            {voiceAgentReply.text}
+          </div>
+        )}
+        {showWork && (
+          <BrunchWorkFold status={workStatus}>
+            {work.reasoning.map((item) => (
+              <AiAssistantReasoning
+                key={item.key}
+                isStreaming={active && item.part.state === "streaming"}
+                part={item.part}
+              />
+            ))}
+            <AiAssistantToolList
+              tools={work.tools}
+              active={active}
+              stopped={wasStopped}
+              onInteractiveToolSubmit={(params) =>
+                handlersRef.current.onInteractiveToolSubmit?.(params)
+              }
+              onSelectToolTarget={(target) =>
+                handlersRef.current.onSelectToolTarget?.(target)
+              }
+            />
+            {voice && writtenAnswer}
+          </BrunchWorkFold>
+        )}
+        {role === "assistant" && !voice && writtenAnswer}
+        {cards.map((item) =>
+          item.type === "experiment" ? (
+            <ExperimentCard
+              key={item.key}
+              part={item.part}
+              state={experimentStates?.[item.part.toolCallId]}
+              onCancel={onCancelExperiment}
+            />
+          ) : (
+            <AiAssistantToolList
+              key={item.key}
+              tools={[item.tool]}
+              producedCard
+              onInteractiveToolSubmit={(params) =>
+                handlersRef.current.onInteractiveToolSubmit?.(params)
+              }
+              onSelectToolTarget={(target) =>
+                handlersRef.current.onSelectToolTarget?.(target)
+              }
+            />
+          ),
+        )}
+        {voiceAgentWrapUp && (
+          <div
+            className={answerStyle}
+            data-answer="voice-wrap-up"
+            aria-busy={voiceAgentWrapUp.state === "streaming"}
+          >
+            {voiceAgentWrapUp.text}
+          </div>
         )}
       </div>
     );
@@ -670,7 +715,6 @@ export const AiAssistantContents = ({
   onVoiceDockCollapsedChange,
   promptChips,
   primaryAttention = false,
-  primaryLabel = "AI",
   status,
   stopped = false,
   voiceHandoffPending = false,
@@ -1021,8 +1065,13 @@ export const AiAssistantContents = ({
               }
               {...(isFloating ? handleProps : {})}
             >
-              <AiAssistantIcon size={16} />
-              {!additionalTab && <span>{primaryLabel}</span>}
+              <AiAssistantIcon
+                size={16}
+                className={css({ color: "blue.s90" })}
+              />
+              {!additionalTab && (
+                <span>{inputMode === "voice" ? "Voice" : "Chat"}</span>
+              )}
             </HeaderLabel>
             <div className={headerTabsStyle}>
               {additionalTab && (
@@ -1030,12 +1079,32 @@ export const AiAssistantContents = ({
                   subViews={[
                     {
                       id: aiTabId,
-                      title: primaryLabel,
+                      title: inputMode === "voice" ? "Voice" : "Chat",
+                      mark:
+                        inputMode === "voice" ? (
+                          <AiVoiceModeIcon size={12} />
+                        ) : (
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 2.5h10v8H7l-4 3v-11Z"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        ),
                       attention: { marker: primaryAttention },
                     },
                     {
                       id: hostTabId,
                       title: additionalTab.label,
+                      mark: <Icon name="bars" size="xs" />,
                       attention: { count: hostAttentionCount },
                     },
                   ]}
@@ -1116,7 +1185,7 @@ export const AiAssistantContents = ({
                 </div>
               </div>
             )}
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <AiAssistantMessage
                 hiddenToolNames={hiddenToolNames}
                 interactiveTools={interactiveTools}
@@ -1126,10 +1195,19 @@ export const AiAssistantContents = ({
                 experimentStates={experimentStates}
                 onCancelExperiment={onCancelExperiment}
                 resolveToolPresentation={resolveToolPresentation}
+                voice={inputMode === "voice"}
+                active={
+                  isBusy &&
+                  index === messages.length - 1 &&
+                  message.role === "assistant"
+                }
+                stopped={stopped && index === messages.length - 1}
               />
             ))}
-            {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
-              <div className={stoppedNoteStyle}>Response stopped</div>
+            {isBusy && messages.at(-1)?.role !== "assistant" && (
+              <BrunchWorkFold status="streaming">
+                Waiting for Brunch…
+              </BrunchWorkFold>
             )}
           </div>
 
@@ -1150,7 +1228,7 @@ export const AiAssistantContents = ({
           {isBusy && workingLabel && (
             <div
               className={`${workingStatusStyle} ${panelContentStyle({
-                visible: !isVoiceDockCollapsed,
+                visible: !isVoiceDockCollapsed && showingHostTab,
               })}`}
               role="status"
               aria-live="polite"
@@ -1267,11 +1345,7 @@ export const AiAssistantContents = ({
                           }
                         }
                       }}
-                      placeholder={
-                        messages.length === 0
-                          ? "Describe the process you want to create"
-                          : "Continue iterating..."
-                      }
+                      placeholder="Continue iterating..."
                       aria-label="Message AI assistant"
                       disabled={voiceHandoffPending}
                     />

@@ -1,0 +1,104 @@
+import { Collapsible } from "@ark-ui/react/collapsible";
+import { type ReactNode, useState } from "react";
+
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { collapsibleContentStyle } from "./shared/collapsible-content-style";
+import { useElapsedTime } from "./shared/use-elapsed-time";
+
+export type BrunchWorkStatus = "streaming" | "settled" | "approval" | "stopped";
+
+const foldStyle = css({
+  backgroundColor: "neutral.a20",
+  borderRadius: "lg",
+  padding: "1",
+  minWidth: "[0]",
+});
+const triggerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  width: "full",
+  padding: "2",
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s100",
+  textAlign: "left",
+  cursor: "pointer",
+  "& [data-chevron]": {
+    marginLeft: "auto",
+    transition: "[transform 150ms ease]",
+  },
+  "&[data-state=closed] [data-chevron]": { transform: "[rotate(180deg)]" },
+  "&[data-working=true] [data-label]": {
+    backgroundImage:
+      "[linear-gradient(110deg, {colors.neutral.s100} 35%, {colors.neutral.s60} 50%, {colors.neutral.s100} 65%)]",
+    backgroundSize: "[200% 100%]",
+    backgroundClip: "text",
+    color: "[transparent]",
+    animation: "[shimmer 2.4s linear infinite]",
+    "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+  },
+});
+
+export const BrunchWorkFold = ({
+  status,
+  elapsedMs,
+  children,
+}: {
+  status: BrunchWorkStatus;
+  elapsedMs?: number;
+  children: ReactNode;
+}) => {
+  const observedElapsed = useElapsedTime(status === "streaming");
+  const duration = observedElapsed ?? elapsedMs;
+  const defaultOpen = status !== "settled";
+  const [disclosure, setDisclosure] = useState({ status, open: defaultOpen });
+  // Reset only on a lifecycle transition, not on each streamed delta.
+  if (disclosure.status !== status)
+    setDisclosure({ status, open: defaultOpen });
+  const label =
+    status === "streaming"
+      ? "Brunch is working"
+      : status === "approval"
+        ? "Brunch needs your approval"
+        : status === "stopped"
+          ? "Brunch stopped"
+          : duration === undefined
+            ? "Brunch worked"
+            : `Brunch worked for ${Math.floor(duration / 1_000)}s`;
+  return (
+    <Collapsible.Root
+      className={foldStyle}
+      open={disclosure.open}
+      onOpenChange={({ open }) => setDisclosure({ status, open })}
+      data-work-status={status}
+    >
+      <Collapsible.Trigger
+        className={triggerStyle}
+        data-working={status === "streaming"}
+      >
+        <Icon
+          name="sparkles"
+          size="sm"
+          className={css({ color: "blue.s90" })}
+        />
+        <span data-label>{label}</span>
+        <Icon name="chevronUp" size="sm" data-chevron />
+      </Collapsible.Trigger>
+      <Collapsible.Content className={collapsibleContentStyle}>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "2",
+            padding: "1",
+          })}
+        >
+          {children}
+        </div>
+      </Collapsible.Content>
+    </Collapsible.Root>
+  );
+};

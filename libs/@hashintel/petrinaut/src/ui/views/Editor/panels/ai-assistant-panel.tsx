@@ -1806,11 +1806,13 @@ const ConversationAiAssistantPanel = ({
       id,
       source,
       target = "auto",
+      preserveDraft = false,
       text,
     }: {
       id?: string;
       source?: "voice";
       target?: "auto" | "message";
+      preserveDraft?: boolean;
       text: string;
     }): Promise<PetrinautAiComposerSubmitTextResult> => {
       const submissionText = source === "voice" ? text : text.trim();
@@ -1951,7 +1953,7 @@ const ConversationAiAssistantPanel = ({
       }
 
       const messageId = id ?? generateId();
-      if (source !== "voice") {
+      if (source !== "voice" && !preserveDraft) {
         setInput("");
       }
       setStreamError(null);

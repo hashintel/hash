@@ -28,7 +28,7 @@ describe("ApplyAutoLayoutWidget", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Yes, auto-layout/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Allow" }));
 
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit.mock.calls[0]![0]).toEqual({
@@ -49,9 +49,7 @@ describe("ApplyAutoLayoutWidget", () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /No, keep current layout/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
 
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit.mock.calls[0]![0]).toEqual({
@@ -72,9 +70,7 @@ describe("ApplyAutoLayoutWidget", () => {
     );
 
     expect(screen.getByText("Auto-laid out 3 nodes")).toBeDefined();
-    expect(
-      screen.queryByRole("button", { name: /Yes, auto-layout/i }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
   });
 });
 
