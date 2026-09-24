@@ -16,11 +16,13 @@ export {
   type EmitReactiveModuleOptions,
   emitReactiveModuleFiles,
   emitReactiveModulePython,
-  moduleFileStem,
-  type ReactiveModuleFile,
   type ReactiveModuleLayout,
   type ReactiveModuleSyntax,
 } from "./reactive-modules/emit-reactive-module-python";
+export {
+  emitSpnModuleFiles,
+  emitSpnModulePython,
+} from "./reactive-modules/emit-spn-module-python";
 export {
   interpretReactiveModuleGraph,
   type InterpretReactiveModuleGraphOptions,
@@ -76,6 +78,17 @@ export type {
   ReactiveTheory,
   ReactiveVariable,
 } from "./reactive-modules/reactive-module-graph";
+export {
+  moduleFileStem,
+  type ReactiveModuleFile,
+} from "./reactive-modules/shared/python-layout";
+export type {
+  SpnExpr,
+  SpnModuleDecl,
+  SpnModuleGraph,
+  SpnStatement,
+  SpnVariable,
+} from "./reactive-modules/spn-module-graph";
 export {
   type PetriNetIrDiagnostic,
   type PetriNetIrDiagnosticItem,

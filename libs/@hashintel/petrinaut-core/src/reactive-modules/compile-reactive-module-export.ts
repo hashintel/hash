@@ -15,13 +15,13 @@ import {
 import { tracePetriNetIr, traceReactiveModulePython } from "./provenance";
 import { sdcpnToPetriNetIr } from "./sdcpn-to-petri-net-ir";
 
-import type { ReactiveModuleFile } from "./emit-reactive-module-python";
 import type { Trace } from "./provenance";
 import type {
   PetriNetIrDiagnostic,
   PetriNetIrOrigins,
   SdcpnToPetriNetIrInput,
 } from "./sdcpn-to-petri-net-ir";
+import type { ReactiveModuleFile } from "./shared/python-layout";
 
 export type ReactiveModuleExportInput = Omit<
   SdcpnToPetriNetIrInput,

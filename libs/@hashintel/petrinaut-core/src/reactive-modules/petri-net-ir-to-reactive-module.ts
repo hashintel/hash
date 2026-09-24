@@ -5,14 +5,12 @@ import {
 import { lowerPetriNetIr } from "./lower-petri-net-ir";
 import { resolveZerothTarget } from "./petri-net-ir";
 
-import type {
-  ReactiveModuleFile,
-  ReactiveModuleLayout,
-} from "./emit-reactive-module-python";
+import type { ReactiveModuleLayout } from "./emit-reactive-module-python";
 import type { LowerPetriNetIrOptions } from "./lower-petri-net-ir";
 import type { PetriNetIr } from "./petri-net-ir";
 import type { ReactiveModuleGraph } from "./reactive-module-graph";
 import type { PetriNetIrDiagnostic } from "./sdcpn-to-petri-net-ir";
+import type { ReactiveModuleFile } from "./shared/python-layout";
 
 /**
  * The compiler from the Petri net IR to a Zeroth reactive module in Python:

@@ -454,6 +454,7 @@ export const lowerMonolithic = (
     returns,
   };
   return {
+    language: "linear",
     header,
     variables: [
       ...placeVariables,
