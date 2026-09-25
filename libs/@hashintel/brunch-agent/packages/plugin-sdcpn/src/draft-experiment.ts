@@ -59,7 +59,7 @@ export const draftPetrinautExperimentInputSchema = z
     unsupported: z
       .array(unsupportedConditionSchema)
       .describe(
-        "Every restriction, threshold or condition the request cannot carry, each with a one-line reason. Empty means the workpiece stated none, not that any is enforced.",
+        "Every restriction, threshold or condition the request cannot carry, each with a one-line reason. Empty means the person stated none, not that any is enforced.",
       ),
   })
   .superRefine((draft, context) => {
