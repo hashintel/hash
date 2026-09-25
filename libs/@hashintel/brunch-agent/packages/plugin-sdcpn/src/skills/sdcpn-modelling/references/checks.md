@@ -10,11 +10,11 @@ Report the highest level actually reached. Passing one level does not imply the 
 
 ### 1. Tool-schema acceptance
 
-The mounted construction tools accepted the submitted payloads, and the latest inspected definition contains the accepted changes. This establishes conformance to those tool input schemas and the shape returned by inspection. It does not establish correspondence with the workpiece, reachability, resource conservation, exclusivity over executions, loadability in another consumer, or simulated behavior.
+The mounted construction tools accepted the submitted payloads, and the latest inspected definition contains the accepted changes. This establishes conformance to those tool input schemas and the shape returned by inspection. It does not establish correspondence with the person's account, reachability, resource conservation, exclusivity over executions, loadability in another consumer, or simulated behavior.
 
 ### 2. Agent-reviewed structural correspondence
 
-The agent compared the inspected definition with the workpiece and found visible structures corresponding to the recorded process. This can establish that named elements, connections, candidate paths, guards, resource-return structures, and parameters are present and apparently aligned. It remains a review judgment over static structure, not behavioral proof.
+The agent compared the inspected definition with the person's account and found visible structures corresponding to the recorded process. This can establish that named elements, connections, candidate paths, guards, resource-return structures, and parameters are present and apparently aligned. It remains a review judgment over static structure, not behavioral proof.
 
 ### 3. Behavioral execution or stronger analysis
 
@@ -27,16 +27,15 @@ If no behavioral execution or stronger analysis occurred, say so. Do not convert
 Apply these checks to the fragment being added or changed. Unresolved material elsewhere remains a workpiece gap, not a prerequisite for this fragment.
 
 - The intended question, comparison, or decision is stated in the person's terms.
-- The fragment's boundary and a meaningful concrete case are cold-readable from the workpiece.
+- The fragment's boundary and a meaningful concrete case are established.
 - An activity and an adjacent state or relationship are supported, with the flow, ordering and enabling conditions needed for the proposed change. A complete end-to-end process spine is not required for an intermediate fragment.
 - Inputs that matter are distinguished as consumed, reserved/released, or read.
 - Required resource availability and release are recorded or visibly unknown.
 - Consequential quantities retain their context and supported precision.
 - Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.
-- Construction can proceed without recovering a load-bearing fact from transcript memory.
 - Assumptions, unresolved matters, omissions, and anticipated losses are visible.
 
-If missing material admits materially different structures for the proposed fragment, formulate the smallest resolving question before constructing that portion. Ask it only during interactive elicitation; in construct-only execution, return it as a blocking re-entry question for that portion. If the person has stopped, deliver the partial workpiece and already-checked net instead of opening a new topic.
+If missing material admits materially different structures for the proposed fragment, formulate the smallest resolving question before constructing that portion. If the person has stopped, deliver the partial workpiece and already-checked net instead of opening a new topic.
 
 ## Tool-schema acceptance checks
 
@@ -50,20 +49,20 @@ Re-inspect after dependent stages and once at the end. Record rejected calls and
 
 ## Agent-reviewed structural correspondence
 
-Compare the latest inspected definition with the authoritative workpiece claims. During incremental construction, review the represented fragment and name its open boundaries; at final delivery, review coverage against the full intended scope. A partial fragment is not an end-to-end result.
+Compare the latest inspected definition with the person's account. During incremental construction, review the represented fragment and name its open boundaries; at final delivery, review coverage against the full intended scope. A partial fragment is not an end-to-end result.
 
 - The definition contains at least one meaningful place and transition corresponding to the process account.
 - The fragment's supported states and activities are connected as recorded. For an end-to-end result, the definition contains a candidate structural path from a represented initial or admitted condition toward an outcome. This does not establish that the path can fire.
-- Visible branches, joins, loops, and recovery structures correspond to the workpiece's stated ordering and conditions.
+- Visible branches, joins, loops, and recovery structures correspond to the stated ordering and conditions.
 - For each enumerated resource-holding path, the intended acquisition and return structures are present. This does not establish conservation over every execution.
 - Consumed inputs lack an unintended return structure; reserved inputs have an intended return structure; read-only information remains visibly available by the chosen representation.
 - Mutually exclusive outcomes or modes have apparently exclusive guards or structure. This does not establish that they can never overlap at runtime.
-- Direction-dependent mode changes retain distinct structural losses where the workpiece requires them.
-- Continuous dynamics have a recorded quantity, consequential threshold or effect, and workpiece support.
+- Direction-dependent mode changes retain distinct structural losses where the account requires them.
+- Continuous dynamics have a recorded quantity, consequential threshold or effect, and support in the account.
 - Required parameters and initial populations are represented or explicitly named as external inputs.
 - Waiting is explained by recorded surrounding conditions rather than an unsupported queue object.
 
-Record discrepancies and the agent judgment used to resolve or preserve them. Describe a passing result as **structurally reviewed against the workpiece**.
+Record discrepancies and the agent judgment used to resolve or preserve them. Describe a passing result as **structurally reviewed against the account**.
 
 ## Behavioral evidence
 
@@ -73,14 +72,14 @@ Only report observations produced by an actual execution or named stronger analy
 - State which process path or property was exercised.
 - For a simulation, report only observed progress, resource balances, mode states, outputs, and failures from the runs performed.
 - For state-space or invariant analysis, report the explored scope, assumptions, and any unexamined behaviors.
-- Relate each observation back to the workpiece objective it bears on.
+- Relate each observation back to the stated objective it bears on.
 - Preserve failures and counterexamples; do not summarize them as a pass because another run succeeded.
 
 No behavioral tool or result means no behavioral claim.
 
 ## Fidelity and uncertainty
 
-- Every load-bearing net choice traces to an authoritative workpiece claim or a named construction inference, approximation, or default.
+- Every load-bearing net choice rests on the person's account or a named construction inference, approximation, or default.
 - No hedge has been hardened solely to satisfy a schema.
 - No conflict has been averaged and no contextual value has been made universal without an accepted simplification.
 - Assumptions state why they were introduced, what they affect, and how they could be checked.
@@ -91,9 +90,9 @@ No behavioral tool or result means no behavioral claim.
 
 When revising an existing workpiece or analyzing a requested net change:
 
-- the changed or disputed workpiece material is explicit;
+- the changed or disputed material is explicit;
 - the prior and current account are distinguishable as correction, conflict, or contextual coexistence;
-- the desired net delta follows from changed workpiece meaning;
+- the desired net delta follows from changed operational meaning;
 - unsupported update or removal operations are reported rather than imitated with competing additive structure;
 - any applied additive net changes preserve the intended existing structure at the level actually inspected;
 - assumptions and losses displaced or introduced by the revision are reported;
