@@ -1,4 +1,4 @@
-import { defineBrunchLibraryConfig } from "../../library-vite-config.ts";
+import { defineBrunchLibraryConfig } from "./library-vite-config.ts";
 
 export default defineBrunchLibraryConfig(import.meta.url, {
   "client-tools": "src/client-tools.ts",

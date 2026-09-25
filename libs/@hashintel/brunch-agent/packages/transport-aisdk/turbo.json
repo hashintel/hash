@@ -6,14 +6,14 @@
       "outputs": ["dist/**"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/library-vite-config.ts"
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/packages/core/library-vite-config.ts"
       ]
     },
     "test:unit": {
       "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/library-vite-config.ts"
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/packages/core/library-vite-config.ts"
       ]
     }
   }

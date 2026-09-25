@@ -1,4 +1,4 @@
-import { defineBrunchLibraryConfig } from "../../library-vite-config.ts";
+import { defineBrunchLibraryConfig } from "../core/library-vite-config.ts";
 
 export default defineBrunchLibraryConfig(import.meta.url, {
   flue: "src/flue.ts",

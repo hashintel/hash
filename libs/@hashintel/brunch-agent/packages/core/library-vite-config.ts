@@ -6,8 +6,10 @@ import { defineConfig } from "vitest/config";
 /**
  * The library build and unit-test config shared by the Brunch packages.
  *
- * Each package's `turbo.json` lists this file as a `build` and `test:unit`
- * input: it sits outside the packages, so Turborepo would not otherwise hash it.
+ * It lives in the core package, which the other Brunch packages depend on, so
+ * `turbo prune` keeps it for each of them. Those packages list it as a `build`
+ * and `test:unit` input in their `turbo.json`, because Turborepo would not
+ * otherwise hash a file outside the package.
  *
  * @param packageUrl the calling config's `import.meta.url`
  * @param entries output entry name to package-relative source path
