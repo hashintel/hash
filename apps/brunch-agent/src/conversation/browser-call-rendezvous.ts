@@ -6,25 +6,68 @@ import type { ClientToolResult } from "@hashintel/brunch-agent-transport-aisdk";
 const leaseMs = 25_000;
 export const BROWSER_CALL_UNSTARTED_ERROR =
   "Browser call was not started; no document operation was invoked.";
-const calls = new Map<
-  string,
-  {
-    readonly binding: string;
-    readonly input: string;
-    readonly toolName: string;
-    readonly capability: string;
-    readonly result: PromiseWithResolvers<ClientToolResult>;
-    readonly signal?: AbortSignal;
-    deadline: number;
-    claimed: boolean;
-    settling: boolean;
-    finished: boolean;
-    releaseAbort?: () => void;
-    timer: ReturnType<typeof setTimeout>;
-  }
->();
+interface IssuedCall {
+  readonly binding: string;
+  readonly input: string;
+  readonly toolName: string;
+  readonly capability: string;
+  readonly result: PromiseWithResolvers<ClientToolResult>;
+  readonly signal?: AbortSignal;
+  deadline: number;
+  claimed: boolean;
+  settling: boolean;
+  finished: boolean;
+  releaseAbort?: () => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+const calls = new Map<string, IssuedCall>();
 const keyFor = (instanceId: string, toolCallId: string) =>
   JSON.stringify([instanceId, toolCallId]);
+
+const retire = (key: string) => {
+  const entry = calls.get(key);
+  if (!entry) return;
+  entry.finished = true;
+  clearTimeout(entry.timer);
+  entry.releaseAbort?.();
+  calls.delete(key);
+};
+
+interface LeaseProof {
+  readonly instanceId: string;
+  readonly toolCallId: string;
+  readonly capability: string;
+  readonly binding: string;
+}
+
+/** The claimed, unexpired call this capability and binding hold. */
+const leasedCall = (proof: LeaseProof): IssuedCall | undefined => {
+  const entry = calls.get(keyFor(proof.instanceId, proof.toolCallId));
+  return entry?.claimed &&
+    !entry.finished &&
+    entry.capability === proof.capability &&
+    entry.binding === proof.binding &&
+    Date.now() < entry.deadline
+    ? entry
+    : undefined;
+};
+
+/** A leased call that can still finish, for exactly the tool input it was issued with. */
+const deliverableCall = (
+  proof: LeaseProof & {
+    readonly toolName: string;
+    readonly canonicalInput: unknown;
+  },
+): IssuedCall | undefined => {
+  const entry = leasedCall(proof);
+  return entry &&
+    !entry.settling &&
+    !entry.signal?.aborted &&
+    entry.toolName === proof.toolName &&
+    entry.input === JSON.stringify(proof.canonicalInput)
+    ? entry
+    : undefined;
+};
 
 export const issueBrowserCall = (input: {
   readonly instanceId: string;
@@ -38,7 +81,7 @@ export const issueBrowserCall = (input: {
   if (calls.has(key)) throw new Error("Duplicate issued browser call.");
   if (input.signal?.aborted) throw new Error(BROWSER_CALL_UNSTARTED_ERROR);
   const result = Promise.withResolvers<ClientToolResult>();
-  const entry = {
+  const entry: IssuedCall = {
     binding: input.binding,
     input: JSON.stringify(input.canonicalInput),
     toolName: input.toolName,
@@ -49,7 +92,7 @@ export const issueBrowserCall = (input: {
     claimed: false,
     settling: false,
     finished: false,
-    releaseAbort: undefined as (() => void) | undefined,
+    releaseAbort: undefined,
     timer: undefined as unknown as ReturnType<typeof setTimeout>,
   };
   const expire = () => {
@@ -68,10 +111,7 @@ export const issueBrowserCall = (input: {
   };
   const finish = (error: Error) => {
     if (entry.finished) return;
-    entry.finished = true;
-    clearTimeout(entry.timer);
-    entry.releaseAbort?.();
-    calls.delete(key);
+    retire(key);
     entry.result.reject(error);
   };
   entry.timer = setTimeout(expire, leaseMs);
@@ -116,21 +156,9 @@ export const claimBrowserCall = (
   };
 };
 
-export const renewBrowserCall = (input: {
-  readonly instanceId: string;
-  readonly toolCallId: string;
-  readonly capability: string;
-  readonly binding: string;
-}): boolean => {
-  const entry = calls.get(keyFor(input.instanceId, input.toolCallId));
-  if (
-    !entry?.claimed ||
-    entry.finished ||
-    entry.capability !== input.capability ||
-    entry.binding !== input.binding ||
-    Date.now() >= entry.deadline
-  )
-    return false;
+export const renewBrowserCall = (input: LeaseProof): boolean => {
+  const entry = leasedCall(input);
+  if (!entry) return false;
   entry.deadline = Date.now() + leaseMs;
   return true;
 };
@@ -145,23 +173,9 @@ export const failBrowserCall = (input: {
   readonly disposition: "unstarted" | "failed";
 }): boolean => {
   const key = keyFor(input.instanceId, input.toolCallId);
-  const entry = calls.get(key);
-  if (
-    !entry?.claimed ||
-    entry.finished ||
-    entry.settling ||
-    entry.signal?.aborted ||
-    entry.capability !== input.capability ||
-    entry.binding !== input.binding ||
-    Date.now() >= entry.deadline ||
-    entry.toolName !== input.toolName ||
-    entry.input !== JSON.stringify(input.canonicalInput)
-  )
-    return false;
-  entry.finished = true;
-  clearTimeout(entry.timer);
-  entry.releaseAbort?.();
-  calls.delete(key);
+  const entry = deliverableCall(input);
+  if (!entry) return false;
+  retire(key);
   const readOnly = [
     "getLatestNetDefinition",
     "getNetCompilationErrors",
@@ -191,19 +205,8 @@ export const settleBrowserCall = async (input: {
   readonly metadata?: unknown;
 }): Promise<"settled" | "invalid" | "not-issued"> => {
   const key = keyFor(input.instanceId, input.toolCallId);
-  const entry = calls.get(key);
-  if (
-    !entry?.claimed ||
-    entry.finished ||
-    entry.settling ||
-    entry.signal?.aborted ||
-    entry.capability !== input.capability ||
-    entry.binding !== input.binding ||
-    Date.now() >= entry.deadline ||
-    entry.toolName !== input.toolName ||
-    entry.input !== JSON.stringify(input.canonicalInput)
-  )
-    return "not-issued";
+  const entry = deliverableCall(input);
+  if (!entry) return "not-issued";
   entry.settling = true;
   try {
     const result: ClientToolResult = {
@@ -212,21 +215,15 @@ export const settleBrowserCall = async (input: {
       output: input.output,
       ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
     };
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- The timer or Stop can settle this entry while verification is awaited.
+    // The timer or Stop can settle this entry while verification is awaited.
     if (entry.finished || entry.signal?.aborted || Date.now() >= entry.deadline)
       return "not-issued";
-    entry.finished = true;
-    clearTimeout(entry.timer);
-    entry.releaseAbort?.();
-    calls.delete(key);
+    retire(key);
     entry.result.resolve(result);
     return "settled";
   } catch (error) {
     if (!entry.finished) {
-      entry.finished = true;
-      clearTimeout(entry.timer);
-      entry.releaseAbort?.();
-      calls.delete(key);
+      retire(key);
       entry.result.reject(
         error instanceof Error ? error : new Error("Invalid browser result."),
       );

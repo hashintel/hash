@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const pageStyle: CSSProperties = {
   alignItems: "center",
@@ -40,23 +40,28 @@ const linkStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-export const BrunchStatusPage = ({
+/** A full-page notice with a way back to the Petrinaut home page. */
+export const StatusPage = ({
   body,
-  endpoint,
+  detail,
+  homeLink = (style) => (
+    <a href="/" style={style}>
+      Back to Petrinaut
+    </a>
+  ),
   title,
 }: {
   body: string;
-  endpoint?: string;
+  detail?: string;
+  homeLink?: (style: CSSProperties) => ReactNode;
   title: string;
 }) => (
-  <div style={pageStyle}>
+  <main style={pageStyle}>
     <div style={panelStyle}>
       <h1 style={headingStyle}>{title}</h1>
       <p style={bodyStyle}>{body}</p>
-      {endpoint ? <p style={bodyStyle}>{endpoint}</p> : null}
-      <a href="/" style={linkStyle}>
-        Back to Petrinaut
-      </a>
+      {detail ? <p style={bodyStyle}>{detail}</p> : null}
+      {homeLink(linkStyle)}
     </div>
-  </div>
+  </main>
 );

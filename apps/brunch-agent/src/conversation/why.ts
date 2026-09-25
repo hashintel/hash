@@ -60,32 +60,30 @@ const elements = (
       })),
     );
   // An arc is identified by its transition and endpoint, not a standalone ID.
-  return definition.transitions.flatMap((transition) => [
-    ...transition.inputArcs.map((arc) => ({
-      arc: {
-        transitionId: transition.id,
-        arcDirection: "input" as const,
-        placeId:
+  return definition.transitions.flatMap((transition) => {
+    const arcElements = (
+      arcDirection: "input" | "output",
+      arcs: readonly Pick<
+        (typeof transition.inputArcs)[number],
+        "endpoint" | "placeId"
+      >[],
+    ) =>
+      arcs.map((arc) => {
+        const placeId =
           arc.endpoint?.kind === "place"
             ? arc.endpoint.placeId
-            : (arc.placeId ?? ""),
-      },
-      id: `${transition.id}:input:${arc.endpoint?.kind === "place" ? arc.endpoint.placeId : (arc.placeId ?? "")}`,
-      name: `${transition.name} input`,
-    })),
-    ...transition.outputArcs.map((arc) => ({
-      arc: {
-        transitionId: transition.id,
-        arcDirection: "output" as const,
-        placeId:
-          arc.endpoint?.kind === "place"
-            ? arc.endpoint.placeId
-            : (arc.placeId ?? ""),
-      },
-      id: `${transition.id}:output:${arc.endpoint?.kind === "place" ? arc.endpoint.placeId : (arc.placeId ?? "")}`,
-      name: `${transition.name} output`,
-    })),
-  ]);
+            : (arc.placeId ?? "");
+        return {
+          arc: { transitionId: transition.id, arcDirection, placeId },
+          id: `${transition.id}:${arcDirection}:${placeId}`,
+          name: `${transition.name} ${arcDirection}`,
+        };
+      });
+    return [
+      ...arcElements("input", transition.inputArcs),
+      ...arcElements("output", transition.outputArcs),
+    ];
+  });
 };
 
 const revisionTurnRange = (
