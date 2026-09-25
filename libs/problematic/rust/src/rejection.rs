@@ -33,9 +33,7 @@ pub struct Rejection<K> {
 
 /// The rendered answer, boxed so a `Result` carrying a rejection stays small.
 struct Rendered {
-    status: StatusCode,
-    headers: HeaderMap,
-    body: Vec<u8>,
+    response: Response<Vec<u8>>,
     // TODO(BE-892): hand the error to a logging layer through the response extensions, so it is
     // logged together with its request.
     error: Box<dyn Error + Send + Sync>,
@@ -45,7 +43,7 @@ impl<K> Rejection<K> {
     /// The status of the response.
     #[must_use]
     pub fn status(&self) -> StatusCode {
-        self.rendered.status
+        self.rendered.response.status()
     }
 
     /// The error the rejection was created from.
@@ -60,7 +58,7 @@ impl<K> Rejection<K> {
 impl<K> fmt::Debug for Rejection<K> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Rejection")
-            .field("status", &self.rendered.status)
+            .field("status", &self.rendered.response.status())
             .field("error", &self.rendered.error)
             .finish_non_exhaustive()
     }
@@ -74,13 +72,11 @@ where
     S: Expose<K> + Into<Box<dyn Error + Send + Sync>>,
 {
     fn from(source: S) -> Self {
-        let (status, headers, body) = render(&source.expose());
+        let response = render(&source.expose());
 
         Self {
             rendered: Box::new(Rendered {
-                status,
-                headers,
-                body,
+                response,
                 error: source.into(),
             }),
             problem: PhantomData,
@@ -90,27 +86,13 @@ where
 
 impl<K> From<Rejection<K>> for Response<Vec<u8>> {
     fn from(rejection: Rejection<K>) -> Self {
-        let Rendered {
-            status,
-            headers,
-            body,
-            error: _,
-        } = *rejection.rendered;
-
-        let mut response = Self::new(body);
-        *response.status_mut() = status;
-        let response_headers = response.headers_mut();
-        response_headers.extend(headers);
-        // After the variant's headers, which must not replace the media type.
-        response_headers.insert(
-            CONTENT_TYPE,
-            HeaderValue::from_static("application/problem+json"),
-        );
+        let Rendered { response, error: _ } = *rejection.rendered;
         response
     }
 }
 
-fn render<K>(answer: &Answer<'_, K>) -> (StatusCode, HeaderMap, Vec<u8>) {
+/// The response answering with `answer`.
+fn render<K>(answer: &Answer<'_, K>) -> Response<Vec<u8>> {
     let details = answer.details();
     let body = match serde_json::to_vec(&details) {
         Ok(body) => body,
@@ -129,13 +111,28 @@ fn render<K>(answer: &Answer<'_, K>) -> (StatusCode, HeaderMap, Vec<u8>) {
 
     let mut headers = HeaderMap::new();
     answer.headers(&mut headers);
-    (details.status, headers, body)
+    problem_response(details.status, headers, body)
 }
 
-fn internal() -> (StatusCode, HeaderMap, Vec<u8>) {
+/// The bare `500 Internal Server Error` a client receives when the details of its variant fail to
+/// serialize.
+fn internal() -> Response<Vec<u8>> {
     let body = serde_json::to_vec(&ProblemDetails::from(UNSERIALIZABLE))
         .expect("a bare problem type should serialize");
-    (UNSERIALIZABLE.status, HeaderMap::new(), body)
+    problem_response(UNSERIALIZABLE.status, HeaderMap::new(), body)
+}
+
+/// A problem details response with `status`, `headers` and `body`.
+fn problem_response(status: StatusCode, headers: HeaderMap, body: Vec<u8>) -> Response<Vec<u8>> {
+    let mut response = Response::new(body);
+    *response.status_mut() = status;
+    *response.headers_mut() = headers;
+    // After the variant's headers, which must not replace the media type.
+    response.headers_mut().insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("application/problem+json"),
+    );
+    response
 }
 
 #[cfg(test)]
@@ -326,6 +323,11 @@ mod tests {
             body(&response),
             internal_body(),
             "the body should be the internal problem instead of a partial document"
+        );
+        assert_eq!(
+            response.headers()[CONTENT_TYPE],
+            "application/problem+json",
+            "the internal problem should be a problem details document"
         );
     }
 }
