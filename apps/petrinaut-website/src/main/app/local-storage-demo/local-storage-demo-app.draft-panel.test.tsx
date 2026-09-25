@@ -101,8 +101,6 @@ vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
-    evaluationMode: "I",
-    serverMode: "integrated-brunch-canonical",
   }),
 }));
 vi.mock("./brunch-principal", () => ({
@@ -189,7 +187,7 @@ test.each(["Dismiss", "Run"] as const)(
     } satisfies Storage);
     const baseId = ordinaryConstructionConversationIdFrom("incarnation");
     const binding = {
-      conversationId: brunchEvaluationConversationIdFrom(baseId, "I"),
+      conversationId: brunchEvaluationConversationIdFrom(baseId),
       documentId: "document",
       incarnationId: "incarnation",
     };

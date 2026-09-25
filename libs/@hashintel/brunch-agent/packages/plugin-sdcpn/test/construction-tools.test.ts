@@ -6,7 +6,7 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../src/construction-tool-names";
 import { sdcpnInitialDataSchema } from "../src/initial-data";
-import { canonicalPetrinautTools } from "../src/tools/petrinaut-construction";
+import { asyncCanonicalPetrinautTools } from "../src/tools/petrinaut-construction";
 
 const construction = {
   binding: {
@@ -17,24 +17,30 @@ const construction = {
 };
 
 describe("Petrinaut catalogue", () => {
-  test("retains the optional no-mode conversation and binds F/I to a document", () => {
+  test("retains the optional no-mode conversation and binds integrated mode to a document", () => {
     expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
-    for (const mode of [brunchModes.stockOverFlue, brunchModes.integrated])
-      expect(v.parse(sdcpnInitialDataSchema, { mode, construction })).toEqual({
-        mode,
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: brunchModes.integrated,
         construction,
-      });
+      }),
+    ).toEqual({
+      mode: brunchModes.integrated,
+      construction,
+    });
     expect(
       v.safeParse(sdcpnInitialDataSchema, { mode: brunchModes.integrated })
         .success,
     ).toBe(false);
   });
-  test("mounts the complete canonical catalogue in F", () => {
+  test("mounts the complete async canonical catalogue in integrated mode", () => {
     expect(CANONICAL_PETRINAUT_TOOL_NAMES).toEqual(
       Object.keys(petrinautAiTools),
     );
-    expect(canonicalPetrinautTools.map((tool) => tool.name)).toEqual(
-      Object.keys(petrinautAiTools),
-    );
+    expect(
+      asyncCanonicalPetrinautTools(async () => ({ output: null })).map(
+        (tool) => tool.name,
+      ),
+    ).toEqual(Object.keys(petrinautAiTools));
   });
 });

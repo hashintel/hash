@@ -1,7 +1,5 @@
 import { defineTool } from "@flue/runtime";
-import * as v from "valibot";
 
-import { awaitingClient } from "@hashintel/brunch-agent/constants";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../construction-tool-names";
@@ -14,24 +12,6 @@ export interface WorkpieceAuthorityOptions {
     revisionId: string,
   ) => Promise<WorkpieceRevision | undefined>;
 }
-
-const canonicalPetrinautTool = (toolName: keyof typeof petrinautAiTools) => {
-  const tool = petrinautAiTools[toolName];
-  return defineTool({
-    name: toolName,
-    description: tool.description,
-    input: tool.inputSchema,
-    output: v.object({ awaiting: v.literal(awaitingClient) }),
-    run() {
-      return { output: { awaiting: awaitingClient }, terminate: true };
-    },
-  });
-};
-
-/** F presents exactly Petrinaut's prompt and catalogue over Flue. */
-export const canonicalPetrinautTools = CANONICAL_PETRINAUT_TOOL_NAMES.map(
-  canonicalPetrinautTool,
-);
 
 type CanonicalJson =
   | string

@@ -1,5 +1,4 @@
 import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
-import { type CanonicalPetrinautMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautAiTools,
   type PetrinautAiToolName,
@@ -166,12 +165,11 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
 ];
 
 /**
- * Expected provider-visible names and ownership for each canonical evaluation
- * mode. Schemas stay with Petrinaut; this map deliberately classifies names only.
+ * Expected provider-visible names and ownership for integrated Brunch.
+ * Schemas stay with Petrinaut; this map deliberately classifies names only.
  */
 export const toolCatalogueByMode: Readonly<
-  Record<CanonicalPetrinautMode, readonly BrunchToolCatalogueEntry[]>
+  Record<typeof brunchModes.integrated, readonly BrunchToolCatalogueEntry[]>
 > = {
-  [brunchModes.stockOverFlue]: canonicalPetrinautToolCatalogue,
   [brunchModes.integrated]: integratedBrunchTools,
 };

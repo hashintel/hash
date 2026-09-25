@@ -4,7 +4,6 @@ export {
   type BrowserBinding,
   type ClientToolResultMetadata,
 } from "./browser-metadata";
-export { type CanonicalPetrinautMode } from "./construction-mode";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./construction-tool-names";
 export {
   sdcpnInitialDataSchema,

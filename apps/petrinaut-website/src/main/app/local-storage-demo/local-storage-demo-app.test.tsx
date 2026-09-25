@@ -84,8 +84,6 @@ vi.mock("@flue/sdk", () => ({
 const brunchPreviewConfig = vi.hoisted(() => ({
   chatEndpoint: "/agents/chat",
   isBrunchConfigured: true,
-  evaluationMode: "I" as "F" | "I",
-  serverMode: "integrated-brunch-canonical",
 }));
 vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
@@ -1221,7 +1219,6 @@ describe("local storage demo Brunch controls", () => {
 
     const conversationId = brunchEvaluationConversationIdFrom(
       ordinaryConstructionConversationIdFrom(incarnationId),
-      "I",
     );
     expect(aiAssistant.conversationId).toBe(conversationId);
     expect(aiAssistant.executeMutation).toBeUndefined();
@@ -1397,8 +1394,6 @@ describe("assistant selection", () => {
     editorProps.current = null;
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
-    brunchPreviewConfig.evaluationMode = "I";
-    brunchPreviewConfig.serverMode = brunchModes.integrated;
     vi.unstubAllGlobals();
   });
 
@@ -1726,58 +1721,7 @@ describe("assistant selection", () => {
     expect(currentAssistant().messages).toEqual([stockMessage]);
   });
 
-  test("F is Stock-over-Flue with isolated identity, no adapter, and no Ledger", async () => {
-    brunchPreviewConfig.evaluationMode = "F";
-    brunchPreviewConfig.serverMode = brunchModes.stockOverFlue;
-    const incarnationId = "stock-over-flue-incarnation";
-    seedStoredNet(incarnationId);
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(incarnationId);
-
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-
-    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
-    expect(currentAssistant().conversationId).toBe(
-      brunchEvaluationConversationIdFrom(
-        ordinaryConstructionConversationIdFrom(incarnationId),
-        "F",
-      ),
-    );
-    expect(currentAssistant().automaticTools).toEqual([]);
-    expect(currentAssistant().interactiveTools).toEqual([]);
-    expect(currentAssistant().additionalTab).toBeUndefined();
-    expect(
-      (
-        brunchPanelTransportOptions.current as {
-          initialData?: { construction?: unknown; mode?: string };
-          mapClientToolInput?: unknown;
-          clientToolResultMetadata?: unknown;
-        }
-      ).initialData,
-    ).toEqual({
-      mode: brunchModes.stockOverFlue,
-      construction: {
-        binding: {
-          conversationId: brunchEvaluationConversationIdFrom(
-            ordinaryConstructionConversationIdFrom(incarnationId),
-            "F",
-          ),
-          documentId: "net-1",
-          incarnationId,
-        },
-      },
-    });
-    const options = brunchPanelTransportOptions.current as {
-      mapClientToolInput?: unknown;
-      clientToolResultMetadata?: unknown;
-    };
-    expect(options.mapClientToolInput).toBeUndefined();
-    expect(options.clientToolResultMetadata).toBeUndefined();
-  });
-
   test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
-    brunchPreviewConfig.evaluationMode = "I";
-    brunchPreviewConfig.serverMode = brunchModes.integrated;
     const incarnationId = "live-baseline-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");

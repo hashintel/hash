@@ -22,8 +22,7 @@
     "start:healthcheck": "wait-on --timeout 1200000 http-get://localhost:3002/health",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:manual:integrated-browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch VITE_BRUNCH_EVALUATION_MODE=I turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/integrated.ts",
-    "test:manual:stock-over-flue-browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch VITE_BRUNCH_EVALUATION_MODE=F turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/stock-over-flue.ts",
+    "test:manual:integrated-browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/integrated.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },
