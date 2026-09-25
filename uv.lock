@@ -341,7 +341,6 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
-    { name = "pytest" },
     { name = "ruff" },
     { name = "tach" },
     { name = "ty" },
@@ -789,6 +788,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
+    { name = "pytest" },
 ]
 
 [[package]]
@@ -797,6 +797,11 @@ version = "0.1.0"
 source = { editable = "libs/@local/petrinaut-optimizer-core/python" }
 dependencies = [
     { name = "optuna" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
 ]
 
 [[package]]
@@ -815,6 +820,7 @@ sympy = [
 [package.dev-dependencies]
 dev = [
     { name = "datamodel-code-generator" },
+    { name = "pytest" },
     { name = "sympy" },
 ]
 

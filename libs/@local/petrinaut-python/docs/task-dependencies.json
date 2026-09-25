@@ -1,5 +1,17 @@
 {
   "package": "petrinaut-python",
   "dependencies": [],
-  "tasks": {}
+  "tasks": {
+    "codegen": {
+      "dependsOn": [
+        "@hashintel/petrinaut-cli#codegen"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core",
+        "petrinaut-optimizer-core"
+      ]
+    }
+  }
 }

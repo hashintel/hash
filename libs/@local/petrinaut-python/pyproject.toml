@@ -16,6 +16,7 @@ sympy = [
 [dependency-groups]
 dev = [
     "datamodel-code-generator>=0.74.0",
+    "pytest>=9.1.1,<10",
     "sympy>=1.13",
 ]
 

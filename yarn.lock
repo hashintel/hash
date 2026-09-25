@@ -904,15 +904,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/petrinaut-opt@workspace:*, @apps/petrinaut-opt@workspace:apps/petrinaut-opt":
-  version: 0.0.0-use.local
-  resolution: "@apps/petrinaut-opt@workspace:apps/petrinaut-opt"
-  dependencies:
-    "@local/petrinaut-optimizer-core": "workspace:*"
-    "@local/petrinaut-python": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
 "@apps/petrinaut-website@workspace:*, @apps/petrinaut-website@workspace:apps/petrinaut-website":
   version: 0.0.0-use.local
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
@@ -9791,13 +9782,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/petrinaut-arch-docs@workspace:libs/@local/petrinaut-arch-docs"
   dependencies:
-    "@apps/petrinaut-opt": "workspace:*"
     "@apps/petrinaut-website": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-cli": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
-    "@local/petrinaut-optimizer-core": "workspace:*"
-    "@local/petrinaut-python": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@types/js-yaml": "npm:^4"
     "@types/node": "npm:22.18.13"
@@ -9815,7 +9803,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/petrinaut-optimizer-client@workspace:libs/@local/petrinaut-optimizer-client"
   dependencies:
-    "@apps/petrinaut-opt": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
     eventsource-parser: "npm:3.0.8"
@@ -9828,17 +9815,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/petrinaut-optimizer-core@workspace:*, @local/petrinaut-optimizer-core@workspace:libs/@local/petrinaut-optimizer-core":
+"@local/petrinaut-optimizer-core@workspace:*, @local/petrinaut-optimizer-core@workspace:libs/@local/petrinaut-optimizer-core/typescript":
   version: 0.0.0-use.local
-  resolution: "@local/petrinaut-optimizer-core@workspace:libs/@local/petrinaut-optimizer-core"
-  languageName: unknown
-  linkType: soft
-
-"@local/petrinaut-python@workspace:*, @local/petrinaut-python@workspace:libs/@local/petrinaut-python":
-  version: 0.0.0-use.local
-  resolution: "@local/petrinaut-python@workspace:libs/@local/petrinaut-python"
-  dependencies:
-    "@hashintel/petrinaut-cli": "workspace:*"
+  resolution: "@local/petrinaut-optimizer-core@workspace:libs/@local/petrinaut-optimizer-core/typescript"
   languageName: unknown
   linkType: soft
 

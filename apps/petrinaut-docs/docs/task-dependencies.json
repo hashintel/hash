@@ -10,7 +10,9 @@
       ],
       "cache": false,
       "affectedBy": [
-        "petrinaut-optimizer-core"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "dev": {
@@ -23,7 +25,9 @@
         "PORT"
       ],
       "affectedBy": [
-        "petrinaut-optimizer-core"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:tsc": {
@@ -32,7 +36,9 @@
       ],
       "cache": false,
       "affectedBy": [
-        "petrinaut-optimizer-core"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "sync:bundle": {
@@ -41,7 +47,9 @@
       ],
       "cache": false,
       "affectedBy": [
-        "petrinaut-optimizer-core"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }

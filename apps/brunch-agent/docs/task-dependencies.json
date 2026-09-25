@@ -365,6 +365,7 @@
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
         "@hashintel/petrinaut",
+        "@hashintel/petrinaut-cli",
         "@hashintel/refractive",
         "@local/petrinaut-optimizer-client",
         "error-stack",
@@ -379,7 +380,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
         "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     }

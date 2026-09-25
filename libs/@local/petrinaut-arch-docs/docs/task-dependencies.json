@@ -24,7 +24,9 @@
         "VERCEL_GIT_REPO_SLUG"
       ],
       "affectedBy": [
-        "petrinaut-optimizer-core"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "fix:eslint": {
@@ -37,12 +39,18 @@
       ],
       "affectedBy": [
         "petrinaut-optimization",
-        "petrinaut-optimizer-core"
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:arch-docs": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
+      ]
     },
     "lint:eslint": {
       "dependsOn": [
@@ -57,7 +65,8 @@
       ],
       "affectedBy": [
         "petrinaut-optimization",
-        "petrinaut-optimizer-core"
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:tsc": {
@@ -69,7 +78,8 @@
       ],
       "affectedBy": [
         "petrinaut-optimization",
-        "petrinaut-optimizer-core"
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "test:unit": {
@@ -78,7 +88,9 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "petrinaut-optimizer-core"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }

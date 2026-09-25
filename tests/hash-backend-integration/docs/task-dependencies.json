@@ -61,6 +61,7 @@
         "codegen"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -75,6 +76,7 @@
         "hash-temporal-client",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -104,6 +106,7 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -118,6 +121,7 @@
         "hash-temporal-client",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -144,6 +148,7 @@
         "codegen"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -158,6 +163,7 @@
         "hash-temporal-client",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -191,6 +197,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -206,6 +213,7 @@
         "hash-temporal-client",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     }

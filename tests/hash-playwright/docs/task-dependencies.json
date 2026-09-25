@@ -122,6 +122,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "darwin-kperf",
         "darwin-kperf-codegen",
         "darwin-kperf-criterion",
@@ -162,7 +163,9 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimization",
         "petrinaut-optimizer-core",
+        "petrinaut-python",
         "problematic",
         "type-system"
       ]

@@ -70,6 +70,9 @@
     // A test reads its dependencies' sources through the toolchain, so their inputs belong
     // in its hash whether or not a build runs first. Packages that import from `dist` add
     // `^build` themselves.
+    "test": {
+      "dependsOn": ["^manifest"]
+    },
     "test:unit": {
       "dependsOn": ["^manifest"],
       "env": ["TEST_COVERAGE"]
