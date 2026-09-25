@@ -1581,7 +1581,11 @@ export const BoardSetup = ({
           }}
         >
           {liveBoard === null && (
-            <div className={runBannerStyle} role="status">
+            <div
+              className={runBannerStyle}
+              role="status"
+              style={{ marginRight: panelOpen ? panelWidth : 0 }}
+            >
               <span>
                 <b>No run yet.</b> This board is set up from the model. Run the
                 simulation (▶ in the toolbar below) to see {noun}s move through
