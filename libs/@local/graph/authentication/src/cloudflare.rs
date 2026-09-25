@@ -132,12 +132,13 @@ mod tests {
     use axum::{Json, Router, routing::get};
     use error_stack::Report;
     use hash_middleware::authentication::{
+        AuthenticationProblem,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{AuthenticationError, AuthenticationErrorKind},
     };
     use http::{HeaderMap, HeaderValue, StatusCode};
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
-    use problematic::error_stack::ReportExt as _;
+    use problematic::Expose;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -585,14 +586,12 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             AuthenticationErrorKind::ProviderUnreachable,
             "a failing JWKS endpoint should fail as provider unavailability, not as a bad token"
         );
-        let problem = report
-            .problem_details()
-            .next()
-            .expect("the provider failure should carry a public problem");
+        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let problem = answer.details();
         assert_eq!(problem.status, 503);
         assert_eq!(
             problem.detail.as_deref(),
-            Some("failed to verify the credential against the provider")
+            Some("authentication is temporarily unavailable")
         );
     }
 }

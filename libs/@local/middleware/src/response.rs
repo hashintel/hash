@@ -1,4 +1,4 @@
-//! The problem documents the middlewares answer rejections with.
+//! Renders problem documents as `application/problem+json` responses.
 
 use alloc::borrow::Cow;
 
@@ -41,35 +41,31 @@ fn status_response(status: StatusCode) -> Response {
 
 /// Renders a problem document as an `application/problem+json` response with its status.
 ///
-/// A document whose status is not a valid HTTP status is answered as a bare
+/// A document whose status is not between 100 and 599 is answered as a bare
 /// `500 Internal Server Error`; one whose extensions do not serialize is answered as the bare
 /// problem of its status. Both are logged with the document's status and type.
 pub fn problem_response(details: &ProblemDetails<'_, impl Serialize>) -> Response {
-    let status = match StatusCode::from_u16(details.status) {
-        Ok(status) => status,
-        Err(error) => {
-            tracing::error!(
-                status = details.status,
-                type = %details.type_uri,
-                %error,
-                "invalid problem status code"
-            );
-            return status_response(StatusCode::INTERNAL_SERVER_ERROR);
-        }
-    };
+    if !(100..=599).contains(&details.status.as_u16()) {
+        tracing::error!(
+            status = details.status.as_u16(),
+            type = %details.type_uri,
+            "problem status code is outside 100..=599"
+        );
+        return status_response(StatusCode::INTERNAL_SERVER_ERROR);
+    }
     let body = match serde_json::to_vec(details) {
         Ok(body) => body,
         Err(error) => {
             tracing::error!(
-                status = details.status,
+                status = details.status.as_u16(),
                 type = %details.type_uri,
                 %error,
                 "failed to serialize problem details"
             );
-            return status_response(status);
+            return status_response(details.status);
         }
     };
-    problem_response_body(status, body)
+    problem_response_body(details.status, body)
 }
 
 #[cfg(test)]
@@ -78,7 +74,7 @@ mod tests {
 
     use axum::{body::to_bytes, response::Response};
     use http::{StatusCode, header::CONTENT_TYPE};
-    use problematic::ProblemType;
+    use problematic::{ProblemDetails, ProblemType};
     use serde::{Serialize, Serializer, ser::Error as _};
     use serde_json::{Value, json};
 
@@ -114,10 +110,10 @@ mod tests {
     #[tokio::test]
     async fn response_extensions() {
         let parameter = String::from("limit");
-        let details = INVALID_PARAMETER
-            .detail("The limit must be positive.")
-            .instance("/problem-occurrences/42")
-            .extensions(Extensions {
+        let details = ProblemDetails::from(&INVALID_PARAMETER)
+            .with_detail("The limit must be positive.")
+            .with_instance("/problem-occurrences/42")
+            .with_extensions(Extensions {
                 parameter: &parameter,
             });
 
@@ -152,23 +148,11 @@ mod tests {
         );
     }
 
-    async fn assert_internal_error(response: Response) {
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        assert_eq!(
-            response_json(response).await,
-            json!({
-                "type": "about:blank",
-                "title": "Internal Server Error",
-                "status": 500,
-            })
-        );
-    }
-
     #[tokio::test]
     async fn response_serialization_failure() {
-        let details = INVALID_PARAMETER
-            .detail("private diagnostic")
-            .extensions(FailingExtensions);
+        let details = ProblemDetails::from(&INVALID_PARAMETER)
+            .with_detail("private diagnostic")
+            .with_extensions(FailingExtensions);
 
         let response = problem_response(&details);
 
@@ -190,9 +174,21 @@ mod tests {
 
     #[tokio::test]
     async fn response_invalid_status() {
-        let mut details = INVALID_PARAMETER.detail("private diagnostic");
-        details.status = 1000;
+        let mut details =
+            ProblemDetails::from(&INVALID_PARAMETER).with_detail("private diagnostic");
+        details.status = StatusCode::from_u16(600).expect("should accept 600 as a status code");
 
-        assert_internal_error(problem_response(&details)).await;
+        let response = problem_response(&details);
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response_json(response).await,
+            json!({
+                "type": "about:blank",
+                "title": "Internal Server Error",
+                "status": 500,
+            }),
+            "a status outside 100..=599 should be answered as a bare internal error"
+        );
     }
 }

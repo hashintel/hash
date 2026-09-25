@@ -25,7 +25,8 @@ use super::{Api, credentials::Credentials, middleware};
 ///
 /// Panics if `prefix` is not a valid nesting path, if Aide reports a documentation defect such as
 /// two handlers documenting the same operation, if an operation requires a security scheme the
-/// document does not declare, or if a middleware rejection does not document its problem schema.
+/// document does not declare, or if the problem variants of an operation cannot be documented, such
+/// as when the status of a variant already has a response that documents none.
 pub(super) fn build<C: Credentials>(
     prefix: &'static str,
     info: Info,

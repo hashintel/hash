@@ -20,7 +20,8 @@ pub enum KratosAdminError {
     /// identity it holds, so a lookup would resolve an arbitrary one.
     #[display("the identifier to look up is empty")]
     EmptyIdentifier,
-    /// The admin API could not be reached, redirected, or answered with a server error.
+    /// The admin API could not be reached, answered with a client error that a retry can resolve,
+    /// redirected, or answered with a server error.
     #[display("failed to reach the Kratos admin API")]
     Unreachable,
     /// The admin API rejected the request.

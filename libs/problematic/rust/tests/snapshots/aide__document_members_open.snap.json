@@ -1,0 +1,104 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "document_members_open",
+    "version": ""
+  },
+  "paths": {
+    "/document_members_open": {
+      "get": {
+        "responses": {
+          "401": {
+            "description": "An externally tagged enum, whose variants schemars closes to other members.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "title": "Token rejected",
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 401
+                        },
+                        "title": {
+                          "const": "Token rejected"
+                        },
+                        "type": {
+                          "const": "/problems/token/rejected"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "Expired": {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "integer",
+                              "format": "uint64",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "at"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "Expired"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProblemDetails": {
+        "title": "Problem Details",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.",
+            "type": "string"
+          },
+          "instance": {
+            "description": "A URI reference identifying this occurrence.",
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "status": {
+            "description": "The HTTP status code sent with this occurrence.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference identifying the problem type.",
+            "type": "string",
+            "format": "uri-reference",
+            "default": "about:blank"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 [package]
 authors.workspace = true
-description       = "HTTP Problem Details with typed extensions and JSON Schema support"
+description       = "Problem details (RFC 9457) for the errors of an HTTP API, with the public and the internal errors of every endpoint kept apart by the compiler"
 documentation     = "https://docs.rs/problematic"
 edition.workspace = true
 exclude           = ["turbo.json", "docs/task-dependencies.json"]
@@ -11,55 +11,38 @@ version           = "0.0.0"
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
-http = { workspace = true, public = true }
+http       = { workspace = true, public = true }
+schemars   = { workspace = true, public = true }
+serde_core = { workspace = true, public = true }
 
 # Public third-party dependencies (optional)
-aide       = { workspace = true, public = true, optional = true }
-schemars   = { workspace = true, public = true, optional = true }
-serde_core = { workspace = true, public = true, optional = true }
+aide      = { workspace = true, public = true, optional = true }
+axum-core = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-erased-serde = { workspace = true, optional = true, features = ["alloc"] }
-serde        = { workspace = true, optional = true, features = ["alloc", "derive"] }
+erased-serde = { workspace = true, features = ["alloc"] }
+serde        = { workspace = true, features = ["alloc", "derive"] }
+serde_json   = { workspace = true, features = ["alloc"] }
+tracing      = { workspace = true }
 
 [dev-dependencies]
-insta      = { workspace = true, features = ["json"] }
-serde_json = { workspace = true, features = ["arbitrary_precision"] }
+aide        = { workspace = true, features = ["axum"] }
+axum        = { workspace = true }
+derive_more = { workspace = true, features = ["display"] }
+insta       = { workspace = true, features = ["json"] }
+serde_json  = { workspace = true, features = ["arbitrary_precision"] }
 
 [[test]]
 name              = "aide"
 required-features = ["aide"]
 
-[[test]]
-name              = "error_stack"
-required-features = ["error-stack"]
-
-[[test]]
-name              = "extensions"
-required-features = ["serde"]
-
-[[test]]
-name              = "problem"
-required-features = ["serde"]
-
-[[test]]
-name              = "problem_details"
-required-features = ["serde"]
-
-[[test]]
-name              = "schema"
-required-features = ["schemars"]
-
 [features]
-aide        = ["dep:aide", "schemars"]
-error-stack = ["dep:error-stack", "dep:erased-serde", "serde"]
-schemars    = ["dep:schemars"]
-serde       = ["dep:serde_core", "dep:serde"]
+aide = ["dep:aide"]
+axum = ["dep:axum-core"]
 
 [lints]
 workspace = true

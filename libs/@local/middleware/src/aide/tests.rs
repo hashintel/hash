@@ -2,14 +2,14 @@ use core::num::NonZero;
 
 use aide::{
     OperationOutput as _, generate,
-    openapi::{Operation, ParameterSchemaOrContent, ReferenceOr, Responses, StatusCode},
-    transform::TransformOperation,
+    openapi::{Operation, ParameterSchemaOrContent, ReferenceOr, StatusCode},
 };
 use axum::{body::to_bytes, response::IntoResponse as _};
 use http::header::{CONTENT_TYPE, RETRY_AFTER};
+use schemars::Schema;
 use serde_json::{Value, json};
 
-use crate::{authentication, rate_limit, rate_limit::TooManyRequests};
+use crate::rate_limit::{RateLimitRejection, TooManyRequests};
 
 #[tokio::test]
 async fn rate_limit_rejection_documents_runtime_response() {
@@ -33,15 +33,14 @@ async fn rate_limit_rejection_documents_runtime_response() {
         generate::reset_context();
         generate::extract_schemas(extract);
         generate::in_context(|context| {
-            let responses = TooManyRequests::inferred_responses(context, &mut Operation::default());
-            let [(inferred_status, documented)] = responses.as_slice() else {
-                panic!("should infer one rate-limit response");
-            };
-            assert_eq!(
-                *inferred_status,
-                Some(StatusCode::Code(status.as_u16())),
-                "should document the runtime HTTP status"
-            );
+            let mut operation = Operation::default();
+            let _: Vec<_> = RateLimitRejection::inferred_responses(context, &mut operation);
+            let documented = operation
+                .responses
+                .as_ref()
+                .and_then(|responses| responses.responses.get(&StatusCode::Code(status.as_u16())))
+                .and_then(ReferenceOr::as_item)
+                .expect("should document the runtime HTTP status");
             let content_type = headers
                 .get(CONTENT_TYPE)
                 .expect("should send a content type")
@@ -56,22 +55,24 @@ async fn rate_limit_rejection_documents_runtime_response() {
                 Some(&body),
                 "should document the runtime body as the example"
             );
-            let schema = &content
+            let all_of = content
                 .schema
                 .as_ref()
                 .expect("should document the runtime body schema")
-                .json_schema;
+                .json_schema
+                .as_value()["allOf"]
+                .as_array()
+                .expect("should compose the documented body schema")
+                .clone();
+            let [base, problem_type, ..] = all_of.as_slice() else {
+                panic!("should compose the shared problem with the problem type");
+            };
             assert_eq!(
-                schema.as_value()["properties"]["status"]["const"],
-                body["status"],
-                "should constrain the documented body to the runtime status"
+                problem_type["properties"]["type"]["const"], body["type"],
+                "should constrain the documented body to the runtime problem type"
             );
-            let resolved = context.resolve_schema(schema).as_value();
-            let base = resolved
-                .get("allOf")
-                .and_then(Value::as_array)
-                .and_then(|schemas| schemas.first())
-                .unwrap_or(resolved);
+            let base = Schema::try_from(base.clone()).expect("should document a schema object");
+            let base = context.resolve_schema(&base).as_value();
             for member in ["type", "title"] {
                 assert_eq!(
                     base["properties"][member]["type"], "string",
@@ -113,48 +114,4 @@ async fn rate_limit_rejection_documents_runtime_response() {
             );
         });
     }
-}
-
-#[test]
-fn document_rejection_preserves_handler_responses() {
-    generate::reset_context();
-    let handler_response = ReferenceOr::ref_("#/components/responses/HandlerUnauthorized");
-    let mut operation = Operation {
-        responses: Some(Responses {
-            responses: [(StatusCode::Code(401), handler_response.clone())].into(),
-            ..Responses::default()
-        }),
-        ..Operation::default()
-    };
-    let _: TransformOperation<'_> =
-        authentication::document(TransformOperation::new(&mut operation));
-    let authentication_error = operation
-        .responses
-        .as_ref()
-        .expect("should add authentication responses")
-        .responses
-        .get(&StatusCode::Code(500))
-        .expect("should document an internal authentication error")
-        .clone();
-
-    let _: TransformOperation<'_> = rate_limit::document(TransformOperation::new(&mut operation));
-    let responses = &operation
-        .responses
-        .as_ref()
-        .expect("should document middleware responses")
-        .responses;
-    assert_eq!(
-        responses.get(&StatusCode::Code(401)),
-        Some(&handler_response),
-        "should preserve an explicit handler response"
-    );
-    assert_eq!(
-        responses.get(&StatusCode::Code(500)),
-        Some(&authentication_error),
-        "should preserve the first response for the status shared by both layers"
-    );
-    assert!(
-        responses.contains_key(&StatusCode::Code(429)),
-        "should add the rate-limit rejection beside authentication responses"
-    );
 }

@@ -3,7 +3,8 @@ extern crate alloc;
 use alloc::{borrow::Cow, format};
 use core::{cell::Cell, fmt};
 
-use problematic::{ProblemType, StatusCode};
+use http::StatusCode;
+use problematic::{ProblemDetails, ProblemType};
 use serde::{
     Serialize, Serializer,
     ser::{Error as _, SerializeMap as _},
@@ -17,7 +18,7 @@ const BAD_REQUEST: ProblemType = ProblemType {
 };
 
 fn assert_serialization_error<E: Serialize>(extensions: E, expected: &str) {
-    let details = BAD_REQUEST.extensions(extensions);
+    let details = ProblemDetails::from(&BAD_REQUEST).with_extensions(extensions);
     let string_error = serde_json::to_string(&details)
         .expect_err("the invalid extensions should fail to serialize to a string");
     let value_error = serde_json::to_value(&details)
@@ -35,7 +36,7 @@ fn assert_serialization_error<E: Serialize>(extensions: E, expected: &str) {
 }
 
 fn assert_serialization<E: Serialize>(extensions: E, expected: &Value) {
-    let details = BAD_REQUEST.extensions(extensions);
+    let details = ProblemDetails::from(&BAD_REQUEST).with_extensions(extensions);
     let encoded =
         serde_json::to_string(&details).expect("the extensions should serialize to a string");
     assert_eq!(
@@ -109,7 +110,6 @@ fn extensions_wrapped_objects() {
 #[test]
 fn extensions_non_objects() {
     for value in [
-        json!(null),
         json!(true),
         json!(42),
         json!(1.5),
@@ -118,9 +118,18 @@ fn extensions_non_objects() {
     ] {
         assert_serialization_error(value, "problem extensions must serialize as an object");
     }
-    assert_serialization_error(None::<u8>, "problem extensions must serialize as an object");
-    assert_serialization_error((), "problem extensions must serialize as an object");
     assert_serialization_error((1, 2), "problem extensions must serialize as an object");
+}
+
+#[test]
+fn extensions_without_members() {
+    #[derive(Serialize)]
+    struct Marker;
+
+    let bare = json!({"type": "about:blank", "title": "Bad Request", "status": 400});
+    assert_serialization(None::<u8>, &bare);
+    assert_serialization((), &bare);
+    assert_serialization(Marker, &bare);
 }
 
 #[test]
@@ -267,7 +276,7 @@ impl Serialize for CountedKey<'_> {
 fn extensions_map_key_once() {
     for split in [false, true] {
         let calls = Cell::new(0);
-        let details = BAD_REQUEST.extensions(Entry {
+        let details = ProblemDetails::from(&BAD_REQUEST).with_extensions(Entry {
             key: CountedKey(&calls),
             split,
         });

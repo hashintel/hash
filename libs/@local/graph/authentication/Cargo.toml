@@ -41,7 +41,7 @@ axum              = { workspace = true }
 hash-middleware   = { workspace = true, features = ["test-utils"] }
 jsonwebtoken      = { workspace = true, features = ["use_pem"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
-problematic       = { workspace = true, features = ["error-stack"] }
+problematic       = { workspace = true }
 rstest            = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
 uuid              = { workspace = true, features = ["v4"] }
