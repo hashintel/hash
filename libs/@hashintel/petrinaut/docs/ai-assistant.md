@@ -37,11 +37,13 @@ Type in **Continue iterating...** and press **Enter** or choose the **Send messa
 
 The primary tab reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each assistant turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead.
 
-Completed Chat answers offer **Copy** and **Retry**. Copy keeps the answer's Markdown. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
+Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 
 The activity disclosure opens while **Working…**, when **Approval required**, or when **Stopped**. Completed work collapses under **Activity · Ns**, even while the answer is still streaming; history without timing says **Activity**. Expand it to inspect **Thought for Ns** and **Used N tools**. Reasoning starts collapsed; **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the disclosure; **Allow** or **Deny** lets the assistant continue. Disclosure icons are neutral; status dots distinguish pending, completed, and failed tools.
 
-When the host supplies them, Voice also shows a collapsed **Sent to Brunch** brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. Expand the brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
+When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
+
+Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts.
 
 Work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. Keyboard focus uses Petrinaut's blue outline.
 
@@ -163,8 +165,11 @@ microphone setting. The microphone action remains visible but disabled while
 Voice is connecting, paused, or interrupted by an error.
 The latest microphone-mute choice is reapplied when a handoff settles.
 
-**Stop AI response** appears next to the separate **End voice mode** action
-only while Brunch has submitted or streaming work. Stop cancels that current
+The right-hand controls appear in this order: **Stop AI response**, **Audio
+options**, **Mute microphone**, and **End voice mode** (the hang-up handset).
+The **Devices** row in Audio options shows the selected microphone and speaker
+even when collapsed. **Stop AI response** appears only while Brunch has
+submitted or streaming work. Stop cancels that current
 canonical Brunch response; it does not reverse changes that already completed.
 During a Live session, Stop leaves both media sessions and the microphone
 available for the next turn. **End voice mode** tears down Voice but does not
