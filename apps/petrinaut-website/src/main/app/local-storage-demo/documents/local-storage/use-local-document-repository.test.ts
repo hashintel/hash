@@ -39,49 +39,6 @@ afterEach(() => {
 });
 
 describe("useLocalDocumentRepository", () => {
-  test("does not initialize local persistence while inactive", () => {
-    const storage = stubStorage();
-
-    renderHook(() =>
-      useLocalDocumentRepository({ enabled: false, onOpen: vi.fn() }),
-    );
-
-    expect(storage.setItem).not.toHaveBeenCalled();
-  });
-
-  test("preserves stored local documents when creating from an inactive repository", () => {
-    const storage = stubStorage({
-      "document-1": {
-        id: "document-1",
-        incarnationId: "incarnation-1",
-        revisionId: "revision-1",
-        title: "Existing",
-        sdcpn: emptyDefinition,
-        lastUpdated: new Date(0).toISOString(),
-      },
-    });
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: false, onOpen: vi.fn() }),
-    );
-
-    let createdId: string | undefined;
-    act(() => {
-      createdId = result.current.repository.actions.create?.({
-        definition: emptyDefinition,
-        title: "Created",
-      }).documentId;
-    });
-
-    const stored = JSON.parse(
-      storage.getItem("petrinaut-sdcpn") ?? "{}",
-    ) as Record<string, unknown>;
-    expect(stored["document-1"]).toBeDefined();
-    expect(createdId).toBeDefined();
-    if (createdId === undefined)
-      throw new Error("Expected a created document.");
-    expect(stored[createdId]).toBeDefined();
-  });
-
   test("persists an identity-explicit revision and rename", async () => {
     stubStorage({
       "document-1": {
@@ -94,7 +51,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     await act(async () => {
@@ -107,7 +64,7 @@ describe("useLocalDocumentRepository", () => {
       });
     });
     act(() => {
-      result.current.repository.actions.rename?.({
+      result.current.repository.actions.rename({
         documentId: "document-1",
         title: "After",
       });
@@ -134,7 +91,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     await expect(
@@ -160,17 +117,15 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const onOpen = vi.fn();
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen }),
-    );
+    const { result } = renderHook(() => useLocalDocumentRepository({ onOpen }));
 
     let createdId: string | undefined;
     act(() => {
-      const created = result.current.repository.actions.create?.({
+      const created = result.current.repository.actions.create({
         definition: emptyDefinition,
         title: "Created",
       });
-      createdId = created?.documentId;
+      createdId = created.documentId;
     });
 
     expect(createdId).toBeDefined();
@@ -211,7 +166,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     act(() => result.current.repository.open("retained"));
@@ -236,7 +191,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     await expect(
@@ -263,7 +218,7 @@ describe("useLocalDocumentRepository", () => {
     });
     const storage = stubStorage(stored("revision-1", "Mine"));
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
     await waitFor(() =>
       expect(result.current.repository.current?.revisionId).toBe("revision-1"),
@@ -303,7 +258,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     await expect(
@@ -326,7 +281,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     await expect(
@@ -349,7 +304,7 @@ describe("useLocalDocumentRepository", () => {
       },
     });
     const { result } = renderHook(() =>
-      useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+      useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
     await act(async () => {
@@ -405,7 +360,7 @@ test("selects the newest stored document and retains an explicit selection", () 
     newer: savedDocument("newer", "2026-01-02T00:00:00.000Z"),
   });
   const { result, rerender } = renderHook(() =>
-    useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+    useLocalDocumentRepository({ onOpen: vi.fn() }),
   );
   expect(result.current.repository.current?.documentId).toBe("newer");
   act(() => result.current.repository.open("older"));
@@ -419,7 +374,7 @@ test("opens the empty document created by the new route", () => {
   });
   const created = startEmptyNetInStorage(storage);
   const { result } = renderHook(() =>
-    useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+    useLocalDocumentRepository({ onOpen: vi.fn() }),
   );
   expect(result.current.repository.current?.documentId).toBe(created.id);
 });
@@ -429,7 +384,7 @@ test("preserves another tab's document when renaming before its storage event ar
     older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
   });
   const { result } = renderHook(() =>
-    useLocalDocumentRepository({ enabled: true, onOpen: vi.fn() }),
+    useLocalDocumentRepository({ onOpen: vi.fn() }),
   );
   storage.setItem(
     "petrinaut-sdcpn",
@@ -439,7 +394,7 @@ test("preserves another tab's document when renaming before its storage event ar
     }),
   );
   act(() =>
-    result.current.repository.actions.rename?.({
+    result.current.repository.actions.rename({
       documentId: "older",
       title: "Renamed",
     }),

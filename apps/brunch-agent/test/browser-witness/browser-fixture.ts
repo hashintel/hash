@@ -103,10 +103,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
         `http://${incoming.headers.host}`,
       );
       let response: Response;
-      if (
-        url.pathname.startsWith("/agents/") ||
-        url.pathname.startsWith("/api/worked-models/")
-      ) {
+      if (url.pathname.startsWith("/agents/")) {
         const chunks: Buffer[] = [];
         for await (const chunk of incoming) {
           const bytes: unknown = chunk;
@@ -295,10 +292,8 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     deliveries,
     errors,
     blocked,
-    openPage,
     openAssistant,
     ask,
-    principalOf,
     conversationOf,
     storedDocument,
     close,

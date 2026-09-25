@@ -10,13 +10,16 @@
  * moved or a config path changed.
  */
 
-import { execFile } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { execFile, spawn } from "node:child_process";
+import { once } from "node:events";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { createServer } from "node:net";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
@@ -33,6 +36,22 @@ const previousAllowedCorsOrigins = process.env.BRUNCH_CORS_ALLOWED_ORIGINS;
 
 /** Everything the server build emitted, concatenated. */
 let bundle = "";
+
+/** The test process's environment without any Brunch configuration. */
+const unconfiguredEnvironment = () =>
+  Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("BRUNCH_")),
+  );
+
+const unusedPort = async () => {
+  const probe = createServer().listen(0, "127.0.0.1");
+  await once(probe, "listening");
+  const address = probe.address();
+  probe.close();
+  if (address === null || typeof address === "string")
+    throw new Error("The port probe has no TCP address.");
+  return address.port;
+};
 
 beforeAll(() => {
   process.env.BRUNCH_CORS_ALLOWED_ORIGINS = allowedCorsOrigin;
@@ -73,20 +92,42 @@ describe("the emitted server bundle", () => {
     expect(bound.has("brunch-chat-agent")).toBe(true);
   });
 
+  test("starts as a server and reports liveness on /health", async () => {
+    const port = await unusedPort();
+    const server = spawn(process.execPath, [join(DIST, "server.mjs")], {
+      env: {
+        ...unconfiguredEnvironment(),
+        BRUNCH_DEV_DB_PATH: join(
+          mkdtempSync(join(tmpdir(), "brunch-server-")),
+          "conversation.db",
+        ),
+        NODE_ENV: "test",
+        OTEL_SDK_DISABLED: "true",
+        PORT: String(port),
+      },
+      stdio: "ignore",
+    });
+    try {
+      const response = await vi.waitFor(
+        () => fetch(`http://localhost:${port}/health`),
+        { timeout: 30_000, interval: 250 },
+      );
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ status: "pass" });
+    } finally {
+      server.kill();
+    }
+  });
+
   test("refuses to start in production without Postgres settings", async () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
-    const environment = Object.fromEntries(
-      Object.entries(process.env).filter(
-        ([name]) => !name.startsWith("BRUNCH_"),
-      ),
-    );
     const refusal = await promisify(execFile)(
       process.execPath,
       [join(DIST, "server.mjs")],
       {
         env: {
-          ...environment,
+          ...unconfiguredEnvironment(),
           // Production telemetry is required before the database is opened.
           HASH_OTLP_ENDPOINT: "http://127.0.0.1:9",
           NODE_ENV: "production",
@@ -121,65 +162,43 @@ describe("the emitted server bundle", () => {
 
   test("applies route-scoped CORS before ownership", async () => {
     const application = await loadBuiltBrunchApplication();
-    const [
-      preflight,
-      workedModelPutPreflight,
-      guardedResponse,
-      bareOptions,
-      healthResponse,
-    ] = await Promise.all([
-      application.fetch(
-        new Request("http://brunch.test/agents/chat/conversation", {
-          method: "OPTIONS",
-          headers: {
-            Origin: allowedCorsOrigin,
-            "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": [
-              "content-type",
-              brunchHeaders.principal,
-              brunchHeaders.conversation,
-            ].join(","),
-          },
-        }),
-      ),
-      application.fetch(
-        new Request(
-          "http://brunch.test/api/worked-models/copies/copy-1/definition",
-          {
+    const [preflight, guardedResponse, bareOptions, healthResponse] =
+      await Promise.all([
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
             method: "OPTIONS",
             headers: {
               Origin: allowedCorsOrigin,
-              "Access-Control-Request-Method": "PUT",
-              "Access-Control-Request-Headers": `content-type,${brunchHeaders.principal}`,
+              "Access-Control-Request-Method": "POST",
+              "Access-Control-Request-Headers": [
+                "content-type",
+                brunchHeaders.principal,
+                brunchHeaders.conversation,
+              ].join(","),
             },
-          },
+          }),
         ),
-      ),
-      application.fetch(
-        new Request("http://brunch.test/agents/chat/conversation", {
-          headers: { Origin: allowedCorsOrigin },
-        }),
-      ),
-      application.fetch(
-        new Request("http://brunch.test/agents/chat/conversation", {
-          method: "OPTIONS",
-        }),
-      ),
-      application.fetch(
-        new Request("http://brunch.test/health", {
-          headers: { Origin: allowedCorsOrigin },
-        }),
-      ),
-    ]);
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            headers: { Origin: allowedCorsOrigin },
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            method: "OPTIONS",
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/health", {
+            headers: { Origin: allowedCorsOrigin },
+          }),
+        ),
+      ]);
 
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("access-control-allow-origin")).toBe(
       allowedCorsOrigin,
     );
-    expect(workedModelPutPreflight.status).toBe(204);
-    expect(
-      workedModelPutPreflight.headers.get("access-control-allow-origin"),
-    ).toBe(allowedCorsOrigin);
 
     expect(guardedResponse.status).toBe(401);
     expect(guardedResponse.headers.get("access-control-allow-origin")).toBe(

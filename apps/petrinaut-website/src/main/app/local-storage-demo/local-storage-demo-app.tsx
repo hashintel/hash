@@ -102,18 +102,17 @@ import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
-import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
+import type { SharedExampleSearch } from "../../../examples/example-search";
 import type {
   DocumentRecord,
   DocumentRepository,
 } from "./documents/document-repository";
-import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
 
 const useCurrentSettlementAction = (
   settleRevision: DocumentRepository["settleRevision"],
@@ -375,15 +374,11 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
  */
 const DemoCommands = ({
   createNewNet,
-  createCleanNetProjection,
   brunchSelected,
-  canSelectAssistant,
   selectAssistant,
 }: {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
-  createCleanNetProjection?: () => Promise<void>;
   brunchSelected: boolean;
-  canSelectAssistant: boolean;
   selectAssistant: (selection: "brunch" | "stock") => void;
 }) => {
   useCommand({
@@ -396,18 +391,6 @@ const DemoCommands = ({
   });
   useCommand(
     {
-      id: "demo.worked-model.fresh-net-projection",
-      label: "Create a fresh net projection from this template",
-      category: "Demo",
-      keywords: ["fresh", "net", "projection", "template"],
-      run: () => {
-        void createCleanNetProjection?.();
-      },
-    },
-    { when: createCleanNetProjection !== undefined },
-  );
-  useCommand(
-    {
       id: "demo.assistant.switch",
       label: brunchSelected
         ? "Use the stock Petrinaut assistant"
@@ -416,7 +399,7 @@ const DemoCommands = ({
       keywords: ["assistant", "brunch", "stock", "ai"],
       run: () => selectAssistant(brunchSelected ? "stock" : "brunch"),
     },
-    { when: brunchPreviewConfig.isBrunchConfigured && canSelectAssistant },
+    { when: brunchPreviewConfig.isBrunchConfigured },
   );
   return null;
 };
@@ -434,22 +417,19 @@ export const LocalStorageDemoApp = ({
   search,
 }: {
   onSearchChange: (
-    search: LocalStorageDemoSearch,
+    search: SharedExampleSearch,
     history: "push" | "replace",
   ) => void;
-  search: LocalStorageDemoSearch;
+  search: SharedExampleSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
-  const routeIdentity = localStorageDemoRouteIdentity(search);
-  const remoteRouteSelected =
-    routeIdentity === "worked-model-bundle" && search.bundle !== undefined;
   // Stock-vs-Brunch remains the native product choice. F/I/A/B only select
   // the internal composition of Brunch and are never exposed in product UI.
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
     setSelection: setAssistantSelection,
-  } = useAssistantSelection({ enabled: !remoteRouteSelected });
+  } = useAssistantSelection();
   const {
     enabled: voiceEnabled,
     ready: voicePreferenceReady,
@@ -460,13 +440,12 @@ export const LocalStorageDemoApp = ({
     ready: realtimePreferenceReady,
     setEnabled: setRealtimeEnabled,
   } = useRealtimePreference();
-  const brunchSelected = remoteRouteSelected
-    ? brunchPreviewConfig.isBrunchConfigured
-    : assistantSelectionReady &&
-      isBrunchSelected(
-        brunchPreviewConfig.isBrunchConfigured,
-        assistantSelection,
-      );
+  const brunchSelected =
+    assistantSelectionReady &&
+    isBrunchSelected(
+      brunchPreviewConfig.isBrunchConfigured,
+      assistantSelection,
+    );
   const integratedBrunchSelected =
     brunchSelected && brunchPreviewConfig.evaluationMode !== "F";
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
@@ -503,32 +482,14 @@ export const LocalStorageDemoApp = ({
       intent: { cause: "normalization", action: "selection" },
     });
   }, [navigation]);
-  const { aiMessagesByNetId, setAiMessagesByNetId } = useLocalStorageAiMessages(
-    { enabled: !remoteRouteSelected },
-  );
+  const { aiMessagesByNetId, setAiMessagesByNetId } =
+    useLocalStorageAiMessages();
   const productConstructionSelected = integratedBrunchSelected;
-  const selectLocalRoute = useCallback(
-    () =>
-      onSearchChange(
-        {
-          bundle: undefined,
-        },
-        "push",
-      ),
-    [onSearchChange],
-  );
   const { controller } = useDocumentController({
-    bundleKey: search.bundle,
-    chatEndpoint: brunchPreviewConfig.chatEndpoint,
-    currentOrigin: window.location.origin,
-    isBrunchConfigured: brunchPreviewConfig.isBrunchConfigured,
-    principalKey: brunchPrincipal,
-    remoteRouteSelected,
     onOpenDocument: clearSharedLocation,
-    onSelectLocalRoute: selectLocalRoute,
   });
-  const { source } = controller;
-  const currentDocument = source.repository.current;
+  const { repository } = controller;
+  const currentDocument = repository.current;
   const currentNetId = currentDocument?.documentId ?? null;
 
   useEffect(() => {
@@ -594,7 +555,6 @@ export const LocalStorageDemoApp = ({
     }
 
     const { document, emittedRevisionIds, handle } = activeHandle;
-    const repository = source.repository;
     return handle.subscribe((event) => {
       emittedRevisionIds.add(event.revisionId);
       repository
@@ -622,7 +582,7 @@ export const LocalStorageDemoApp = ({
             }),
         );
     });
-  }, [activeHandle, source.repository]);
+  }, [activeHandle, repository]);
   const unsavedChangeMessage =
     persistFailure !== null &&
     persistFailure.documentId === currentDocument?.documentId &&
@@ -630,7 +590,7 @@ export const LocalStorageDemoApp = ({
       ? persistFailure.error.message
       : null;
 
-  const existingNets: MinimalNetMetadata[] = source.repository.records
+  const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
       netId: document.documentId,
       title: document.title,
@@ -643,18 +603,18 @@ export const LocalStorageDemoApp = ({
     );
 
   const createNewNet = (params: { petriNetDefinition: SDCPN; title: string }) =>
-    controller.createLocalAndOpen({
+    controller.createAndOpen({
       definition: params.petriNetDefinition,
       title: params.title,
     });
 
   const loadPetriNet = (petriNetId: string) => {
-    source.repository.open(petriNetId);
+    repository.open(petriNetId);
   };
 
-  const renameCurrentDocument = source.repository.actions.rename;
+  const renameCurrentDocument = repository.actions.rename;
   const setTitle =
-    currentDocument === null || renameCurrentDocument === undefined
+    currentDocument === null
       ? undefined
       : (title: string) =>
           renameCurrentDocument({
@@ -676,7 +636,6 @@ export const LocalStorageDemoApp = ({
   );
   const baseProcessAgentBinding = useProcessAgentBinding({
     document: currentDocument,
-    seed: source.processAgentSeed,
     fixture: fixtureProcessAgentConfiguration,
   });
   const processAgentBinding = useMemo(
@@ -783,7 +742,7 @@ export const LocalStorageDemoApp = ({
   // alive, but dispatch settlement through the latest committed action.
   const settleConstructionRevision = useCurrentSettlementAction(
     // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
-    source.repository.settleRevision,
+    repository.settleRevision,
   );
   const canonicalHostTools = useMemo(() => {
     if (!integratedConstructionBrowser || !activeHandle) return undefined;
@@ -1046,17 +1005,8 @@ export const LocalStorageDemoApp = ({
     setAiMessagesByNetId,
   ]);
 
-  if (source.repository.status.state === "unavailable") {
-    return (
-      <main role="main">
-        <h1>Worked-model document unavailable</h1>
-        <p>{source.repository.status.error.message}</p>
-      </main>
-    );
-  }
-
   if (
-    source.repository.status.state === "loading" ||
+    repository.status.state === "loading" ||
     currentDocument === null ||
     !activeHandle ||
     activeHandle.document.documentId !== currentDocument.documentId
@@ -1072,7 +1022,7 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {remoteRouteSelected || unsavedChangeMessage !== null ? (
+      {unsavedChangeMessage !== null ? (
         // Host notices are centred below Petrinaut's 64px top bar and stacked
         // above its side panels (z-index 1097) and bar (1100), so neither can
         // hide them.
@@ -1093,38 +1043,21 @@ export const LocalStorageDemoApp = ({
             zIndex: 1200,
           }}
         >
-          {remoteRouteSelected ? (
-            <p
-              style={{
-                background: "#edf6ff",
-                border: "1px solid #91caff",
-                borderRadius: 8,
-                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-                color: "#0958d9",
-                margin: 0,
-                padding: "10px 12px",
-              }}
-            >
-              This document uses the Brunch process assistant
-            </p>
-          ) : null}
-          {unsavedChangeMessage !== null ? (
-            <p
-              role="alert"
-              style={{
-                background: "#fff1f0",
-                border: "1px solid #ffa39e",
-                borderRadius: 8,
-                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-                color: "#a8071a",
-                margin: 0,
-                padding: "10px 12px",
-              }}
-            >
-              Changes not saved: {unsavedChangeMessage} The editor shows the
-              last saved version.
-            </p>
-          ) : null}
+          <p
+            role="alert"
+            style={{
+              background: "#fff1f0",
+              border: "1px solid #ffa39e",
+              borderRadius: 8,
+              boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+              color: "#a8071a",
+              margin: 0,
+              padding: "10px 12px",
+            }}
+          >
+            Changes not saved: {unsavedChangeMessage} The editor shows the last
+            saved version.
+          </p>
         </div>
       ) : null}
       {/* The settings are mounted here, above the editor, so the demo's own
@@ -1147,7 +1080,6 @@ export const LocalStorageDemoApp = ({
                     assistantReady={assistantSelectionReady}
                     brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                     brunchSelected={brunchSelected}
-                    forceBrunch={remoteRouteSelected}
                     openAIVoiceConfig={openAIVoiceConfig}
                     realtimeEnabled={realtimeEnabled}
                     realtimePreferenceReady={realtimePreferenceReady}
@@ -1165,11 +1097,7 @@ export const LocalStorageDemoApp = ({
           </WalkthroughProvider>
           <DemoCommands
             createNewNet={createNewNet}
-            createCleanNetProjection={
-              source.repository.actions.createCleanNetProjection
-            }
             brunchSelected={brunchSelected}
-            canSelectAssistant={!remoteRouteSelected}
             selectAssistant={selectAssistant}
           />
           <CommandPalette />

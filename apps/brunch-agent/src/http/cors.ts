@@ -4,7 +4,7 @@ import { brunchEnv, brunchHeaders } from "@hashintel/brunch-agent";
 
 import type { MiddlewareHandler } from "hono";
 
-const AGENT_CORS_METHODS = ["GET", "POST", "PUT", "OPTIONS"];
+const AGENT_CORS_METHODS = ["GET", "POST", "OPTIONS"];
 const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
   brunchHeaders.principal,

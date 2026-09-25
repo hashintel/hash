@@ -38,13 +38,9 @@
     "start": {
       "dependsOn": ["build"]
     },
-    "start:test": {
-      "dependsOn": ["build"]
-    },
     "test:integration": {
       "dependsOn": ["build", "codegen", "^build"],
-      "env": ["TEST_COVERAGE"],
-      "passThroughEnv": ["POSTGRES_PASSWORD", "POSTGRES_PORT", "POSTGRES_USER"]
+      "env": ["TEST_COVERAGE"]
     },
     "test:unit": {
       "dependsOn": ["codegen", "^build", "@hashintel/petrinaut#manifest"],

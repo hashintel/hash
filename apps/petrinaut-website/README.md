@@ -58,48 +58,6 @@ A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSIS
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
-## Worked-model documents
-
-The required worked-model copy is an independently writable copy of the
-fixture's complete connected bundle: retained conversation/session, workpiece
-history and current revision, Petrinaut document and revision history, net,
-mutation provenance and the links among them.
-
-`/?bundle=<key>` currently opens an explicitly incomplete net projection from
-the configured Brunch service. Resolution is principal-scoped: GET resumes or
-creates the principal's active net projection, **Create a fresh net projection
-from this template** issues POST and selects a fresh projection of the fixture
-net, and identity-explicit net revisions persist with PUT. The fresh projection
-mints an empty conversation and does not inherit the fixture's retained session,
-workpiece or provenance links, so this GET/POST/PUT path does not yet create a
-worked-model copy. Workpiece and history created inside the projection prove
-post-open behavior only; they do not prove that the fixture bundle was copied.
-
-The route shows **Loading document…** while resolving. Missing configuration,
-an unknown bundle, ownership failure and other resolution errors show
-**Worked-model document unavailable**. The route fails closed: it never opens
-or reads a local document as fallback.
-
-Worked-model routes always use the Brunch process assistant, regardless of the
-stored preference for ordinary documents. They state **This document uses the
-Brunch process assistant**, hide the assistant switch and preserve the
-preference unchanged for the next ordinary route. The template supplies a
-read-only title: users and the assistant may edit the net, but neither the title
-input nor `setNetTitle` permits a title change.
-
-New, Import and example creation are source transitions. When invoked from a
-worked-model route, they create a local document and navigate to the ordinary
-route; they do not write the imported or example content into the remote copy.
-
-The host implements this boundary through a `DocumentController` over
-storage-neutral repositories: the ordinary local repository and the remote
-net-projection repository. The controller alone crosses sources. A typed
-process-agent seed carries the remote document and conversation identity into
-the Brunch binding; remote adapter-private storage identities do not cross that
-host boundary. This
-repository/controller/binding split remains the document-lifecycle authority,
-but it does not instantiate or preserve the required complete connected bundle.
-
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at

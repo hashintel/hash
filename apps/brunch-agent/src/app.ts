@@ -16,13 +16,11 @@ import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-br
 import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
-import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createBrowserCallRouter } from "./http/browser-calls.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
-import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { logger } from "./logger.ts";
 import { openaiProviderWithGpt6 } from "./openai-provider.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
@@ -184,16 +182,6 @@ app.use(
 app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
 app.route(chatAgentMount, createBrowserCallRouter());
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
-app.use(
-  `${brunchRoutes.workedModels}/*`,
-  createAgentCors(
-    parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
-  ),
-);
-app.route(
-  brunchRoutes.workedModels,
-  createWorkedModelNetProjectionRouter(workedModelStore),
-);
 
 app.get(brunchRoutes.health, healthHandler);
 

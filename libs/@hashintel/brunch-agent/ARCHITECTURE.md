@@ -30,6 +30,6 @@ The model-context projection reduces superseded workpiece and net-read bodies be
 
 ## Runtime and persistence
 
-Local development and tests use Flue's SQLite store; production requires Postgres. The separate worked-model store remains in-memory locally and Postgres in production. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`.
+Local development and tests use Flue's SQLite store; production requires Postgres. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`.
 
 The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0` and `@earendil-works/pi-ai@0.83.0` for context projection, native tool input and complete provider schemas. Re-evaluate this patch boundary together when upgrading Flue or Pi.

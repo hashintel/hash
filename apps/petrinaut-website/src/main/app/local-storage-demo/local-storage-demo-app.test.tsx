@@ -9,15 +9,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { isValidElement, useState, type ReactNode } from "react";
-import {
-  afterEach,
-  describe,
-  expect,
-  test,
-  vi,
-  type MockInstance,
-} from "vitest";
+import { isValidElement, type ReactNode } from "react";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { brunchModes, brunchTools } from "@hashintel/brunch-agent/constants";
@@ -46,18 +39,8 @@ import {
   LocalStorageDemoApp,
   requestFlueStop,
 } from "./local-storage-demo-app";
-import {
-  localStorageDemoRouteIdentity,
-  withLocalStorageDemoIdentity,
-  type LocalStorageDemoSearch,
-} from "./local-storage-demo-search";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
-import type {
-  DocumentRecord,
-  DocumentRepository,
-  DocumentRepositoryStatus,
-} from "./documents/document-repository";
 import type {
   AgentConversationObservationSnapshot,
   FlueClient,
@@ -71,12 +54,6 @@ import type {
   PetrinautAiAssistant,
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
-
-interface RemoteDocumentState {
-  readonly document: DocumentRecord | null;
-  readonly conversationId: string | null;
-  readonly status: DocumentRepositoryStatus;
-}
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -97,26 +74,6 @@ const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
 const renderedAssistants = vi.hoisted(() => [] as PetrinautAiAssistant[]);
-const remoteDocumentState = vi.hoisted(() => ({
-  current: {
-    document: null,
-    conversationId: null,
-    status: { state: "loading" },
-  } as RemoteDocumentState,
-}));
-const remoteRepositoryOperations = vi.hoisted(() => ({
-  createCleanNetProjection: vi.fn<
-    NonNullable<DocumentRepository["actions"]["createCleanNetProjection"]>
-  >(async (): Promise<void> => undefined),
-  open: vi.fn<DocumentRepository["open"]>(),
-  persistRevision: vi.fn<DocumentRepository["persistRevision"]>(
-    async (): Promise<void> => undefined,
-  ),
-  settleRevision: vi.fn<DocumentRepository["settleRevision"]>(
-    async (): Promise<void> => undefined,
-  ),
-}));
-
 vi.mock("@flue/sdk", () => ({
   createFlueClient: (options: unknown) => {
     flueClientOptions.current = options;
@@ -153,51 +110,6 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("./brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
-vi.mock("./documents/remote/use-remote-document-repository", () => ({
-  useRemoteDocumentRepository: (input: {
-    readonly isBrunchConfigured: boolean;
-  }) => {
-    const {
-      conversationId,
-      document,
-      status: configuredStatus,
-    } = remoteDocumentState.current;
-    const status: DocumentRepositoryStatus = input.isBrunchConfigured
-      ? configuredStatus
-      : {
-          state: "unavailable",
-          error: new Error(
-            "This worked-model document requires a configured Brunch endpoint.",
-          ),
-        };
-    return {
-      repository: {
-        records: document === null ? [] : [document],
-        current: document,
-        status,
-        open: remoteRepositoryOperations.open,
-        actions:
-          status.state === "ready"
-            ? {
-                createCleanNetProjection:
-                  remoteRepositoryOperations.createCleanNetProjection,
-              }
-            : {},
-        persistRevision: remoteRepositoryOperations.persistRevision,
-        settleRevision: remoteRepositoryOperations.settleRevision,
-      },
-      ...(document === null || conversationId === null
-        ? {}
-        : {
-            processAgentSeed: {
-              documentId: document.documentId,
-              conversationId,
-            },
-          }),
-    };
-  },
-}));
-
 vi.mock("./brunch-panel-transport", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("./brunch-panel-transport")>();
@@ -305,45 +217,6 @@ const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
       }),
     }),
   );
-};
-
-const remoteDocument: DocumentRecord = {
-  documentId: "bundle-document",
-  incarnationId: "bundle-incarnation",
-  revisionId: "bundle-revision",
-  title: "Inventory purchasing",
-  definition: {
-    places: [],
-    transitions: [],
-    types: [],
-    parameters: [],
-    differentialEquations: [],
-  },
-  origin: {
-    kind: "template",
-    bundleKey: "inventory-purchasing",
-    fixtureVersion: "inventory-purchasing-v1",
-  },
-};
-
-const selectRemoteDocument = () => {
-  remoteDocumentState.current = {
-    document: remoteDocument,
-    conversationId: "bundle-conversation",
-    status: { state: "ready" },
-  };
-};
-
-const expectNoFallbackStorageReads = (
-  getItem: MockInstance<Storage["getItem"]>,
-) => {
-  for (const key of [
-    "petrinaut-sdcpn",
-    assistantSelectionStorageKey,
-    "petrinaut-ai-messages",
-  ]) {
-    expect(getItem.mock.calls.some(([readKey]) => readKey === key)).toBe(false);
-  }
 };
 
 describe("local storage demo Brunch voice integration", () => {
@@ -891,10 +764,6 @@ describe("local document revision persistence", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
-    remoteRepositoryOperations.persistRevision.mockReset();
-    remoteRepositoryOperations.persistRevision.mockImplementation(
-      async (): Promise<void> => undefined,
-    );
   });
 
   test("retains direct document changes across handle reopen", async () => {
@@ -1067,30 +936,8 @@ describe("local document revision persistence", () => {
   });
 
   test("reports a refused change and reopens the editor from the repository's record so the next change is accepted", async () => {
-    stubStorage();
-    vi.clearAllMocks();
-    selectRemoteDocument();
-    // Like the worked-model repository: the first write is refused, and any
-    // later write is refused unless it follows the revision the record holds.
-    // A handle kept after the refusal would name its refused revision as the
-    // predecessor and be refused again.
-    remoteRepositoryOperations.persistRevision
-      .mockRejectedValueOnce(new Error("Worked-model write refused."))
-      .mockImplementation(async (change) => {
-        if (change.previousRevisionId !== remoteDocument.revisionId)
-          throw new Error(
-            `Worked-model write refused: ${change.previousRevisionId} is not the stored revision.`,
-          );
-      });
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-    await waitFor(() =>
-      expect(editorProps.current?.title).toBe("Inventory purchasing"),
-    );
+    seedStoredNet("local-incarnation", "local-revision-1");
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const refusedHandle = editorProps.current?.handle as PetrinautDocHandle;
     const addPlace = (handle: PetrinautDocHandle, id: string) =>
       act(() => {
@@ -1107,29 +954,54 @@ describe("local document revision persistence", () => {
         });
       });
 
+    // Another tab moves net-1 on; its storage event has not reached this tab,
+    // so the open handle's next change names a predecessor the store no
+    // longer holds. A handle kept after the refusal would name its refused
+    // revision as the predecessor and be refused again.
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, Record<string, unknown>>;
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        ...stored,
+        "net-1": { ...stored["net-1"], revisionId: "other-tab-revision" },
+      }),
+    );
+
     addPlace(refusedHandle, "refused-place");
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("not saved");
-    expect(alert.textContent).toContain("Worked-model write refused.");
+    expect(alert.textContent).toContain(
+      "revision does not follow its predecessor",
+    );
     // The refused change is dropped: the editor reopens from the record.
     await waitFor(() =>
       expect(editorProps.current?.handle).not.toBe(refusedHandle),
     );
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(reopenedHandle.revisionId.get()).toBe(remoteDocument.revisionId);
+    expect(reopenedHandle.revisionId.get()).toBe("other-tab-revision");
     expect(reopenedHandle.doc()?.places).toEqual([]);
     // The notice outlives the handle it was raised for.
     expect(screen.getByRole("alert").textContent).toContain(
-      "Worked-model write refused.",
+      "revision does not follow its predecessor",
     );
 
     addPlace(reopenedHandle, "accepted-place");
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(editorProps.current?.handle).toBe(reopenedHandle);
-    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledTimes(2);
-    expect(
-      remoteRepositoryOperations.persistRevision.mock.calls[1]?.[0],
-    ).toMatchObject({ previousRevisionId: remoteDocument.revisionId });
+    const persisted = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<
+      string,
+      { revisionId?: string; sdcpn: { places: { id: string }[] } }
+    >;
+    expect(persisted["net-1"]?.revisionId).toBe(
+      reopenedHandle.revisionId.get(),
+    );
+    expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
+      "accepted-place",
+    ]);
   });
 
   test("forgets a refused change once another document is opened", async () => {
@@ -1208,7 +1080,18 @@ describe("local document revision persistence", () => {
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
-    stubStorage();
+    seedStoredNet("first-incarnation", "first-revision");
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, unknown>;
+    stored["net-2"] = storedNet({
+      id: "net-2",
+      incarnationId: "second-incarnation",
+      lastUpdated: "2019-01-01T00:00:00.000Z",
+      title: "Second net",
+    });
+    localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     brunchPanelTransportSessions.current = [];
     flueClientMock.current = {
       observe: () => ({
@@ -1218,24 +1101,7 @@ describe("local document revision persistence", () => {
         subscribe: () => () => undefined,
       }),
     };
-    const firstDocument = {
-      ...remoteDocument,
-      documentId: "first-document",
-      incarnationId: "first-incarnation",
-      revisionId: "first-revision",
-      title: "First document",
-    };
-    remoteDocumentState.current = {
-      document: firstDocument,
-      conversationId: "shared-conversation",
-      status: { state: "ready" },
-    };
-    const view = render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(brunchPanelTransportSessions.current.length).toBeGreaterThan(0),
     );
@@ -1250,41 +1116,32 @@ describe("local document revision persistence", () => {
     const [firstSession] = uniqueSessions();
     expect(firstSession).toBeDefined();
 
-    remoteDocumentState.current = {
-      document: {
-        ...firstDocument,
-        revisionId: "second-revision",
-        definition: structuredClone(firstDocument.definition),
-      },
-      conversationId: "shared-conversation",
-      status: { state: "ready" },
-    };
-    view.rerender(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-    await act(async () => Promise.resolve());
+    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "first-place",
+          name: "First place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    await waitFor(() => {
+      const persisted = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<string, { revisionId?: string }>;
+      expect(persisted["net-1"]?.revisionId).toBe(handle.revisionId.get());
+    });
     expect(uniqueSessions()).toEqual([firstSession]);
 
-    remoteDocumentState.current = {
-      document: {
-        ...firstDocument,
-        documentId: "second-document",
-        incarnationId: "second-incarnation",
-        revisionId: "third-revision",
-        title: "Second document",
-      },
-      conversationId: "shared-conversation",
-      status: { state: "ready" },
-    };
-    view.rerender(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
+    const loadPetriNet = editorProps.current?.loadPetriNet as (
+      petriNetId: string,
+    ) => void;
+    act(() => loadPetriNet("net-2"));
 
     await waitFor(() => {
       expect(uniqueSessions()).toHaveLength(2);
@@ -1422,452 +1279,6 @@ describe("local storage demo Brunch controls", () => {
   });
 });
 
-describe("worked-model net-projection selection", () => {
-  afterEach(() => {
-    cleanup();
-    editorProps.current = null;
-    remoteDocumentState.current = {
-      document: null,
-      conversationId: null,
-      status: { state: "loading" },
-    };
-    brunchPreviewConfig.isBrunchConfigured = true;
-    remoteRepositoryOperations.persistRevision.mockReset();
-    remoteRepositoryOperations.persistRevision.mockImplementation(
-      async (): Promise<void> => undefined,
-    );
-  });
-
-  test("opens the server-owned document and conversation selected by bundle", async () => {
-    stubStorage();
-    vi.clearAllMocks();
-    selectRemoteDocument();
-    flueClientMock.current = {
-      history: async () => ({
-        conversation: {
-          conversationId: "bundle-conversation",
-          settlements: [],
-          messages: [],
-        },
-        offset: "offset-0",
-      }),
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-
-    await waitFor(() =>
-      expect(editorProps.current?.title).toBe("Inventory purchasing"),
-    );
-    const assistant = editorProps.current?.aiAssistant as
-      | PetrinautAiAssistant
-      | undefined;
-    expect(assistant?.conversationId).toBe(
-      brunchEvaluationConversationIdFrom("bundle-conversation", "I"),
-    );
-    expect(assistant?.executeMutation).toBeUndefined();
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(handle.revisionId.get()).toBe("bundle-revision");
-    expect(editorProps.current?.existingNets).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          netId: "bundle-document",
-          title: "Inventory purchasing",
-        }),
-      ]),
-    );
-    act(() => {
-      handle.change((draft) => {
-        draft.places.push({
-          id: "bundle-place",
-          name: "Bundle place",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        });
-      });
-    });
-    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledOnce();
-    const persistedChange =
-      remoteRepositoryOperations.persistRevision.mock.calls[0]?.[0];
-    expect(persistedChange?.definition.places).toEqual([
-      expect.objectContaining({ id: "bundle-place" }),
-    ]);
-    expect(persistedChange?.previousRevisionId).toBe("bundle-revision");
-    expect(persistedChange?.revisionId).toBe(handle.revisionId.get());
-
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Create a fresh net projection from this template/u,
-      }),
-    );
-    expect(
-      remoteRepositoryOperations.createCleanNetProjection,
-    ).toHaveBeenCalledOnce();
-  });
-
-  test("selects the remote document despite a stored stock preference", async () => {
-    seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "stock");
-    selectRemoteDocument();
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-
-    expect(
-      await screen.findByText(
-        "This document uses the Brunch process assistant",
-      ),
-    ).toBeDefined();
-    expect(editorProps.current?.title).toBe("Inventory purchasing");
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
-    const brunchToggle = screen.getByRole("checkbox", { name: "Use Brunch" });
-    expect(brunchToggle).toHaveProperty("checked", true);
-    expect(brunchToggle).toHaveProperty("disabled", true);
-    fireEvent.click(brunchToggle);
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    expect(
-      screen.queryByRole("button", {
-        name: /stock Petrinaut assistant|Use Brunch/,
-      }),
-    ).toBeNull();
-  });
-
-  test("keeps a newer live handle when an earlier remote acknowledgement arrives", async () => {
-    stubStorage();
-    selectRemoteDocument();
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    const firstAcknowledgement = Promise.withResolvers<void>();
-    remoteRepositoryOperations.persistRevision.mockReset();
-    remoteRepositoryOperations.persistRevision.mockImplementation(
-      async (change) => {
-        if (change.previousRevisionId === remoteDocument.revisionId)
-          await firstAcknowledgement.promise;
-        const current = remoteDocumentState.current.document;
-        if (current === null || current.documentId !== change.documentId)
-          return;
-        remoteDocumentState.current = {
-          ...remoteDocumentState.current,
-          document: {
-            ...current,
-            revisionId: change.revisionId,
-            definition: structuredClone(change.definition),
-          },
-        };
-      },
-    );
-
-    const view = render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-    await waitFor(() =>
-      expect(editorProps.current?.title).toBe("Inventory purchasing"),
-    );
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
-
-    act(() => {
-      handle.change((draft) => {
-        draft.places.push({
-          id: "first-place",
-          name: "First place",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        });
-      });
-    });
-    const secondRevisionId = handle.revisionId.get();
-    act(() => {
-      handle.change((draft) => {
-        draft.places.push({
-          id: "second-place",
-          name: "Second place",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 10,
-          y: 10,
-        });
-      });
-    });
-    const thirdRevisionId = handle.revisionId.get();
-
-    expect(remoteRepositoryOperations.persistRevision).toHaveBeenCalledTimes(2);
-    expect(
-      remoteRepositoryOperations.persistRevision.mock.calls[0]?.[0],
-    ).toMatchObject({
-      previousRevisionId: "bundle-revision",
-      revisionId: secondRevisionId,
-    });
-    expect(
-      remoteRepositoryOperations.persistRevision.mock.calls[1]?.[0],
-    ).toMatchObject({
-      previousRevisionId: secondRevisionId,
-      revisionId: thirdRevisionId,
-    });
-
-    await act(async () => {
-      firstAcknowledgement.resolve();
-      await firstAcknowledgement.promise;
-    });
-    view.rerender(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-    await act(async () => Promise.resolve());
-
-    expect(editorProps.current?.handle).toBe(handle);
-    expect(handle.revisionId.get()).toBe(thirdRevisionId);
-    expect(handle.doc()?.places.map((place) => place.id)).toEqual([
-      "first-place",
-      "second-place",
-    ]);
-  });
-
-  test("fails closed without an endpoint and does not read local documents", () => {
-    seedStoredNet();
-    const getItem = vi.spyOn(localStorage, "getItem");
-    getItem.mockClear();
-    brunchPreviewConfig.isBrunchConfigured = false;
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-
-    expect(
-      screen.getByRole("heading", {
-        name: "Worked-model document unavailable",
-      }),
-    ).toBeDefined();
-    expectNoFallbackStorageReads(getItem);
-    expect(editorProps.current).toBeNull();
-  });
-
-  test("shows route loading without reading fallback storage", () => {
-    seedStoredNet();
-    const getItem = vi.spyOn(localStorage, "getItem");
-    getItem.mockClear();
-    remoteDocumentState.current = {
-      document: null,
-      conversationId: null,
-      status: { state: "loading" },
-    };
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-
-    expect(screen.getByText("Loading document…")).toBeDefined();
-    expectNoFallbackStorageReads(getItem);
-    expect(editorProps.current).toBeNull();
-  });
-
-  test.each([
-    {
-      name: "generic resolve failure",
-      message: "Worked-model resolution failed.",
-    },
-    {
-      name: "ownership failure",
-      message: "Worked-model request failed (403): copy-not-owned",
-    },
-  ])(
-    "shows unavailable for $name without reading fallback storage",
-    ({ message }) => {
-      seedStoredNet();
-      const getItem = vi.spyOn(localStorage, "getItem");
-      getItem.mockClear();
-      remoteDocumentState.current = {
-        document: null,
-        conversationId: null,
-        status: { state: "unavailable", error: new Error(message) },
-      };
-
-      render(
-        <LocalStorageDemoApp
-          onSearchChange={() => {}}
-          search={{ bundle: "inventory-purchasing" }}
-        />,
-      );
-
-      expect(
-        screen.getByRole("heading", {
-          name: "Worked-model document unavailable",
-        }),
-      ).toBeDefined();
-      expect(screen.getByText(message)).toBeDefined();
-      expectNoFallbackStorageReads(getItem);
-      expect(editorProps.current).toBeNull();
-    },
-  );
-
-  test("restores the stored assistant when returning to an ordinary route", async () => {
-    seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "stock");
-    selectRemoteDocument();
-    const view = render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-    await screen.findByText("This document uses the Brunch process assistant");
-
-    remoteDocumentState.current = {
-      document: null,
-      conversationId: null,
-      status: { state: "loading" },
-    };
-    view.rerender(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
-    );
-
-    await waitFor(() =>
-      expect(
-        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
-          ?.automaticTools,
-      ).toEqual([]),
-    );
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
-  });
-
-  test("does not send late remote events or new local events to the remote repository after leaving the bundle route", async () => {
-    stubStorage();
-    remoteRepositoryOperations.persistRevision.mockClear();
-    selectRemoteDocument();
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    const RoutedApp = () => {
-      const [search, setSearch] = useState<LocalStorageDemoSearch>({
-        bundle: "inventory-purchasing",
-      });
-      return (
-        <LocalStorageDemoApp
-          key={localStorageDemoRouteIdentity(search)}
-          onSearchChange={(nextSearch) =>
-            setSearch((previous) =>
-              withLocalStorageDemoIdentity(previous, nextSearch),
-            )
-          }
-          search={search}
-        />
-      );
-    };
-    render(<RoutedApp />);
-    await waitFor(() =>
-      expect(editorProps.current?.title).toBe("Inventory purchasing"),
-    );
-    const remoteHandle = editorProps.current?.handle as PetrinautDocHandle;
-
-    act(() => {
-      editorProps.current?.createNewNet?.({
-        petriNetDefinition: {
-          places: [],
-          transitions: [],
-          types: [],
-          parameters: [],
-          differentialEquations: [],
-        },
-        title: "Created locally",
-      });
-    });
-    await waitFor(() =>
-      expect(editorProps.current?.title).toBe("Created locally"),
-    );
-    const localHandle = editorProps.current?.handle as PetrinautDocHandle;
-    remoteRepositoryOperations.persistRevision.mockClear();
-
-    act(() => {
-      remoteHandle.change((draft) => {
-        draft.places.push({
-          id: "late-remote-place",
-          name: "Late remote place",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        });
-      });
-      localHandle.change((draft) => {
-        draft.places.push({
-          id: "local-place",
-          name: "Local place",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        });
-      });
-    });
-
-    expect(remoteRepositoryOperations.persistRevision).not.toHaveBeenCalled();
-    await waitFor(() => {
-      const stored = JSON.parse(
-        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-      ) as Record<string, { sdcpn?: { places?: { id: string }[] } }>;
-      expect(
-        Object.values(stored).some((document) =>
-          document.sdcpn?.places?.some(({ id }) => id === "local-place"),
-        ),
-      ).toBe(true);
-    });
-  });
-});
-
 describe("assistant selection", () => {
   test("uses Stock by default, accepts a Brunch launch default, and preserves explicit choices", () => {
     expect(resolveDefaultAssistantSelection(undefined)).toBe("stock");
@@ -1988,11 +1399,6 @@ describe("assistant selection", () => {
     brunchPreviewConfig.isBrunchConfigured = true;
     brunchPreviewConfig.evaluationMode = "I";
     brunchPreviewConfig.serverMode = brunchModes.integrated;
-    remoteDocumentState.current = {
-      document: null,
-      conversationId: null,
-      status: { state: "loading" },
-    };
     vi.unstubAllGlobals();
   });
 
@@ -2271,69 +1677,6 @@ describe("assistant selection", () => {
     await waitFor(() =>
       expect(currentAssistant().renderVoiceMode).toBeDefined(),
     );
-  });
-
-  test("does not reuse a remote Brunch Voice check during persisted local Brunch hydration", async () => {
-    const incarnationId = "route-voice-incarnation";
-    seedStoredNet(incarnationId);
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    localStorage.setItem(voicePreferenceStorageKey, "true");
-    selectRemoteDocument();
-    flueClientMock.current = flueHistoryClient(incarnationId);
-    const localCapability = Promise.withResolvers<Response>();
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(
-        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
-      )
-      .mockReturnValueOnce(localCapability.promise);
-    vi.stubGlobal("fetch", fetch);
-    const view = render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-    await waitFor(() =>
-      expect(currentAssistant().renderVoiceMode).toBeDefined(),
-    );
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
-    renderedAssistants.length = 0;
-
-    view.rerender(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
-    );
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledTimes(2);
-      expect(currentAssistant().conversationId).toBe(
-        brunchEvaluationConversationIdFrom(
-          ordinaryConstructionConversationIdFrom(incarnationId),
-          "I",
-        ),
-      );
-    });
-    expect(renderedAssistants.length).toBeGreaterThan(0);
-    expect(
-      renderedAssistants.every(
-        (assistant) => assistant.renderVoiceMode === undefined,
-      ),
-    ).toBe(true);
-    expect(currentVoiceCapability()).toBeUndefined();
-    expect(
-      screen.getByText("Checking whether Voice is available…"),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("checkbox", { name: "Enable Voice" }),
-    ).toHaveProperty("disabled", true);
-    expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true");
-
-    localCapability.resolve(
-      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
-    );
-    await waitFor(() =>
-      expect(currentAssistant().renderVoiceMode).toBeDefined(),
-    );
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
   });
 
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {
@@ -2664,7 +2007,6 @@ describe("assistant selection", () => {
     ).toThrow("Conversation history is not ready");
     const handle = editorProps.current?.handle as PetrinautDocHandle;
     expect(handle.doc()?.places).toEqual([]);
-    expect(remoteRepositoryOperations.settleRevision).not.toHaveBeenCalled();
   });
 
   test("a pending I mutation in history is not executed again after reload", async () => {
@@ -2724,7 +2066,6 @@ describe("assistant selection", () => {
     );
     const handle = editorProps.current?.handle as PetrinautDocHandle;
     expect(handle.doc()?.places).toEqual([]);
-    expect(remoteRepositoryOperations.settleRevision).not.toHaveBeenCalled();
   });
 
   test("without a configured Brunch endpoint there is no choice to make", () => {

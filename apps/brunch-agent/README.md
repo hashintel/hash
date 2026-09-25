@@ -37,11 +37,11 @@ yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversa
 
 ## Tests
 
-`test:unit` needs nothing running. `test:integration` loads the built app with scripted OpenAI responses on the default model, and runs the worked-model store contract against the compose stack's Postgres (`POSTGRES_PORT`, `POSTGRES_USER` and `POSTGRES_PASSWORD` move it), so start that first.
+Neither `test:unit` nor `test:integration` needs anything running. `test:integration` checks the built app, starting it as a server and loading it in process with scripted OpenAI responses on the default model.
 
-The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:integrated-browser` and `test:manual:stock-over-flue-browser` build the website in their mode and drive it in the local macOS Chrome against the built app. `test:manual:workpiece-evidence` writes model-facing evidence controls to a temporary directory.
+The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:integrated-browser` and `test:manual:stock-over-flue-browser` build the website in their mode and drive it in the local macOS Chrome against the built app.
 
-## Local Postgres for fixture-producing development
+## Local Postgres
 
 Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
 

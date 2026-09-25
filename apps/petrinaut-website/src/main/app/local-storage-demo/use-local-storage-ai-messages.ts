@@ -63,12 +63,8 @@ const writeMessages = (messages: AiMessagesByNetId): void =>
     JSON.stringify(messages),
   );
 
-export const useLocalStorageAiMessages = (input?: {
-  readonly enabled: boolean;
-}) => {
-  const enabled = input?.enabled ?? true;
+export const useLocalStorageAiMessages = () => {
   const [aiMessagesByNetId, setAiMessagesByNetId] = usePersistedState({
-    enabled,
     fallback: noAiMessages,
     read: readMessages,
     storageKey: rootLocalStorageKey,
