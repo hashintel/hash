@@ -1,0 +1,630 @@
+{
+  "components": {
+    "responses": {
+      "BadRequest": {
+        "content": {
+          "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "Bad Request: A path parameter does not parse as the type the operation reads.",
+                "value": {
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Bad Request: The query string does not parse as the parameters the operation reads.",
+                "value": {
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (3)": {
+                "summary": "Bad Request: The request body is not valid JSON.",
+                "value": {
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (4)": {
+                "summary": "Bad Request: The request body could not be read to its end.",
+                "value": {
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (5)": {
+                "summary": "Bad Request: The credentials are malformed.",
+                "value": {
+                  "detail": "credentials are malformed",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: A path parameter does not parse as the type the operation reads."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The query string does not parse as the parameters the operation reads."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The request body is not valid JSON."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The request body could not be read to its end."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The credentials are malformed."
+                }
+              ]
+            }
+          }
+        },
+        "description": "- Bad Request: A path parameter does not parse as the type the operation reads.\n- Bad Request: The query string does not parse as the parameters the operation reads.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.\n- Bad Request: The credentials are malformed."
+      },
+      "InternalServerError": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "An internal error prevented the request from completing.",
+              "status": 500,
+              "title": "Internal Server Error",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 500
+                    },
+                    "title": {
+                      "const": "Internal Server Error"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Internal Server Error"
+            }
+          }
+        },
+        "description": "An internal error prevented the request from completing."
+      },
+      "PayloadTooLarge": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "status": 413,
+              "title": "Content Too Large",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 413
+                    },
+                    "title": {
+                      "const": "Content Too Large"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Content Too Large"
+            }
+          }
+        },
+        "description": "The request body is larger than the operation accepts."
+      },
+      "ServiceUnavailable": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "authentication is temporarily unavailable",
+              "status": 503,
+              "title": "Service Unavailable",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 503
+                    },
+                    "title": {
+                      "const": "Service Unavailable"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Service Unavailable"
+            }
+          }
+        },
+        "description": "Authentication is temporarily unavailable."
+      },
+      "TooManyRequests": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "The request exceeded its rate-limit budget.",
+              "status": 429,
+              "title": "Too Many Requests",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 429
+                    },
+                    "title": {
+                      "const": "Too Many Requests"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Too Many Requests"
+            }
+          }
+        },
+        "description": "The request exceeded its rate-limit budget.",
+        "headers": {
+          "Retry-After": {
+            "description": "Whole seconds before retrying the request.",
+            "required": true,
+            "schema": {
+              "format": "uint64",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "Unauthorized": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "no credentials provided",
+              "status": 401,
+              "title": "Unauthorized",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 401
+                    },
+                    "title": {
+                      "const": "Unauthorized"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unauthorized"
+            }
+          }
+        },
+        "description": "The request carries no credentials, or they do not identify a permitted caller."
+      },
+      "UnprocessableEntity": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "status": 422,
+              "title": "Unprocessable Content",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 422
+                    },
+                    "title": {
+                      "const": "Unprocessable Content"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unprocessable Content"
+            }
+          }
+        },
+        "description": "The request body is well-formed JSON of a shape the operation does not accept."
+      },
+      "UnsupportedMediaType": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "status": 415,
+              "title": "Unsupported Media Type",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 415
+                    },
+                    "title": {
+                      "const": "Unsupported Media Type"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unsupported Media Type"
+            }
+          }
+        },
+        "description": "The request does not declare its body as `application/json`."
+      }
+    },
+    "schemas": {
+      "EchoPath": {
+        "description": "The label the response repeats.",
+        "properties": {
+          "label": {
+            "description": "Repeated back as `label`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "type": "object"
+      },
+      "EchoQuery": {
+        "description": "How often the response repeats the value.",
+        "properties": {
+          "repeat": {
+            "description": "How many copies of `value` the response carries. Defaults to one.",
+            "format": "uint8",
+            "maximum": 255,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "EchoRequest": {
+        "description": "The value the response repeats.",
+        "properties": {
+          "value": {
+            "description": "Repeated back in `values`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "EchoResponse": {
+        "description": "What the request carried.",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "values"
+        ],
+        "type": "object"
+      },
+      "ProblemDetails": {
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.",
+            "type": "string"
+          },
+          "instance": {
+            "description": "A URI reference identifying this occurrence.",
+            "format": "uri-reference",
+            "type": "string"
+          },
+          "status": {
+            "description": "The HTTP status code sent with this occurrence.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.",
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference identifying the problem type.",
+            "format": "uri-reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ],
+        "title": "Problem Details",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Extractor example",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/example/echo/{label}": {
+      "post": {
+        "description": "Repeats what the request carried in its path, query string and body.",
+        "operationId": "echo",
+        "parameters": [
+          {
+            "description": "Repeated back as `label`.",
+            "in": "path",
+            "name": "label",
+            "required": true,
+            "schema": {
+              "description": "Repeated back as `label`.",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "How many copies of `value` the response carries. Defaults to one.",
+            "in": "query",
+            "name": "repeat",
+            "schema": {
+              "description": "How many copies of `value` the response carries. Defaults to one.",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "style": "form"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EchoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EchoResponse"
+                }
+              }
+            },
+            "description": "What the request carried."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "summary": "Echo a request"
+      }
+    }
+  }
+}

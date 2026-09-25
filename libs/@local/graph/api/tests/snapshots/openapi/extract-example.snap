@@ -1,0 +1,6 @@
+---
+source: libs/@local/graph/api/src/rest/extract/tests.rs
+expression: "serde_json::to_vec_pretty(&document).expect(\"the document should serialize\")"
+extension: json
+snapshot_kind: binary
+---

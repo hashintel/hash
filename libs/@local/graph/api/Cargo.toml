@@ -51,10 +51,11 @@ hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
 hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
+problematic                    = { workspace = true, features = ["aide", "axum"] }
 type-system                    = { workspace = true, features = ["schemars", "utoipa"] }
 
 # Private third-party dependencies
-aide                 = { workspace = true, features = ["axum", "axum-json"] }
+aide                 = { workspace = true, features = ["axum", "axum-json", "axum-query"] }
 base16ct             = { workspace = true }
 bytes                = { workspace = true }
 clap                 = { workspace = true, optional = true, features = ["derive", "env"] }
@@ -87,7 +88,6 @@ uuid                 = { workspace = true }
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
 hash-middleware           = { workspace = true, features = ["test-utils"] }
 insta                     = { workspace = true }
-problematic               = { workspace = true, features = ["aide"] }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }

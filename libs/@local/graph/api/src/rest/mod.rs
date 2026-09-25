@@ -2,6 +2,15 @@ pub mod authentication;
 mod caller;
 mod credentials;
 mod documentation;
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        unused_imports,
+        reason = "the entity and type operations will read their requests through these extractors"
+    )
+)]
+mod extract;
 mod internal;
 pub mod legacy;
 mod middleware;
