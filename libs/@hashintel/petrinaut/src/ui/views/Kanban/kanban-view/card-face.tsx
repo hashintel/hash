@@ -48,8 +48,20 @@ const fieldsStyle = css({
   fontSize: "[11px]",
   color: "neutral.s110",
 });
-const fieldStyle = css({ whiteSpace: "nowrap" });
+const fieldStyle = css({
+  display: "inline-flex",
+  gap: "1",
+  maxWidth: "full",
+  minWidth: "[0]",
+  whiteSpace: "nowrap",
+});
+const fieldLabelStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  minWidth: "[0]",
+});
 const fieldValueStyle = css({
+  flexShrink: 0,
   fontWeight: "medium",
   color: "neutral.s120",
   fontVariantNumeric: "tabular-nums",
@@ -114,8 +126,12 @@ export const CardFace = ({
       {fields && fields.length > 0 && (
         <span className={fieldsStyle}>
           {fields.map((field) => (
-            <span key={field.label} className={fieldStyle}>
-              {field.label}{" "}
+            <span
+              key={field.label}
+              className={fieldStyle}
+              title={`${field.label} ${field.value}`}
+            >
+              <span className={fieldLabelStyle}>{field.label}</span>
               <span className={fieldValueStyle}>{field.value}</span>
             </span>
           ))}

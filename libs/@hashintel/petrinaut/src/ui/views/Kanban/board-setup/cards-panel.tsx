@@ -119,6 +119,15 @@ const linkStyle = css({
   cursor: "pointer",
 });
 
+const GLYPH_NAMES: Record<(typeof HIGHLIGHT_ICONS)[number], string> = {
+  warning: "Warning",
+  diamondExclamation: "Alert",
+  clock: "Time",
+  lightning: "Fast",
+  starFilled: "Star",
+  bell: "Notice",
+};
+
 /** Cards stay scannable: the key plus at most this many fields. */
 const MAX_CARD_FIELDS = 3;
 
@@ -260,6 +269,7 @@ export const CardsPanel = ({
                   key={icon}
                   type="button"
                   aria-label={`Glyph ${icon}`}
+                  title={GLYPH_NAMES[icon]}
                   aria-pressed={rule.icon === icon}
                   className={cx(glyphStyle, rule.icon === icon && glyphOnStyle)}
                   onClick={() => onChangeRule(rule.id, { icon })}
