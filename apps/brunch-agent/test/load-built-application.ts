@@ -1,3 +1,6 @@
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 import type { LoadedFlueNodeApplication } from "@flue/vite";
 
 /** Shared built-artifact loader for integration tests; this does not run a model. */
@@ -10,7 +13,10 @@ type BuiltApplicationModule = {
 };
 export const loadBuiltBrunchApplication =
   async (): Promise<BuiltBrunchApplication> => {
-    const applicationUrl = new URL("../dist/app.mjs", import.meta.url).href;
+    // Not `import.meta.url`, which a jsdom test environment reports as http:.
+    const applicationUrl = pathToFileURL(
+      join(import.meta.dirname, "../dist/app.mjs"),
+    ).href;
     const builtModule = (await import(
       applicationUrl
     )) as BuiltApplicationModule;

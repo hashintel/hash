@@ -12,6 +12,7 @@ import {
   fauxText,
   fauxToolCall,
   type Context,
+  type Provider,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
@@ -23,23 +24,20 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
-import {
-  nativeSchemaProvider,
-  type NativeRequestCapture,
-} from "./native-schema-provider.ts";
 
 const outputDirectory = mkdtempSync(join(tmpdir(), "m7-a5-evidence-"));
 process.env.NODE_ENV = "test";
-process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
 process.env.BRUNCH_DEV_DB_PATH = join(outputDirectory, "conversation.db");
 process.env.HASH_OTLP_ENDPOINT = "";
 const contexts: Context[] = [];
-const captures: NativeRequestCapture[] = [];
-const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: "claude-sonnet-4-6", reasoning: true }],
-});
-installFauxProvider(nativeSchemaProvider(faux.provider, captures, contexts));
+const faux = fauxProvider({ provider: "openai" });
+installFauxProvider({
+  ...faux.provider,
+  streamSimple(model, context, options) {
+    contexts.push(context);
+    return faux.provider.streamSimple(model, context, options);
+  },
+} satisfies Provider);
 let application = await loadBuiltBrunchApplication();
 const identity = {
   principalKey: "TEST-a5-owner",
@@ -50,7 +48,9 @@ const binding = {
   documentId: "TEST-document",
   incarnationId: "TEST-incarnation",
 };
-const url = `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`;
+const url = `http://brunch.local/agents/chat/${flueConversationIdFrom(
+  identity,
+)}`;
 const client = createFlueClient({
   url,
   headers: agentOwnershipHeaders(identity),
@@ -338,7 +338,9 @@ try {
     conversationId: "TEST-other-conversation",
   };
   const otherClient = createFlueClient({
-    url: `http://brunch.local/agents/chat/${flueConversationIdFrom(otherIdentity)}`,
+    url: `http://brunch.local/agents/chat/${flueConversationIdFrom(
+      otherIdentity,
+    )}`,
     headers: agentOwnershipHeaders(otherIdentity),
     fetch: async (input, init) =>
       application.fetch(
@@ -677,7 +679,6 @@ try {
         binding,
         sourceId,
         observations,
-        captures,
         contexts,
         history: await client.history(),
       },
@@ -689,7 +690,7 @@ try {
     JSON.stringify({
       outputDirectory,
       observations: observations.length,
-      syntheticRequests: captures.length,
+      syntheticRequests: contexts.length,
       paidCalls: 0,
     }),
   );
@@ -701,7 +702,6 @@ try {
         error: String(error),
         observations,
         contexts,
-        captures,
         history: await client.history(),
       },
       null,

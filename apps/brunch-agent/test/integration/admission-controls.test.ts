@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
 
-import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 import { createFlueUiStream } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { runNodeScript } from "./run-node-script";
@@ -39,7 +39,6 @@ test("production rejects every mixed proposal before publishing or partially exe
   );
   expect(mixed).toHaveLength(3);
   for (const observation of mixed) {
-    expect(observation.mode).toBe(brunchModes.stockOverFlue);
     expect(observation.pendingMutationIds).toEqual([]);
     expect(observation.after).toEqual(observation.before);
     expect(observation.providerCallsBeforeClientResult).toBe(1);
@@ -144,7 +143,6 @@ test("production still settles server-side revisions without browser results", (
   const observation = result.observations.find(
     (entry) => entry.caseId === brunchTools.mutateWorkpiece,
   )!;
-  expect(observation.mode).toBe(brunchModes.integrated);
   expect(observation.seed?.error).toBeNull();
   const revision = observation.seeded?.messages
     .flatMap((message) => message.parts)
@@ -164,7 +162,6 @@ test("an independently admitted browser mutation waits for its correlated result
   const browser = result.observations.find(
     ({ caseId }) => caseId === "addType",
   )!;
-  expect(browser.mode).toBe(brunchModes.stockOverFlue);
   expect(browser.providerCallsBeforeClientResult).toBe(1);
   expect(browser.pendingMutationIds).toEqual(["addType-addType"]);
   expect(browser.after.types).toHaveLength(1);

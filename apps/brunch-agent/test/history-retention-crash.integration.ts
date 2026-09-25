@@ -72,16 +72,12 @@ if (phase === "recover") save("store-before-boot", inspect());
 process.env.NODE_ENV = "test";
 process.env.OTEL_SDK_DISABLED = "true";
 delete process.env.HASH_OTLP_ENDPOINT;
-process.env.BRUNCH_CHAT_MODEL = "a4-crash-faux";
 process.env.BRUNCH_DEV_DB_PATH = dbPath;
 const nativeFetch = globalThis.fetch;
 globalThis.fetch = () => {
   throw new Error("Network disabled in crash diagnostic");
 };
-const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: "a4-crash-faux" }],
-});
+const faux = fauxProvider({ provider: "openai" });
 const contexts: unknown[] = [];
 installFauxProvider({
   ...faux.provider,
@@ -221,7 +217,11 @@ try {
     });
     writeFileSync(
       join(directory, "receipt.json"),
-      `${JSON.stringify({ receipt, pid: process.pid, identity, markdown }, null, 2)}\n`,
+      `${JSON.stringify(
+        { receipt, pid: process.pid, identity, markdown },
+        null,
+        2,
+      )}\n`,
     );
     await client.read(receipt, { signal: AbortSignal.timeout(60000) });
     const history = await client.history();

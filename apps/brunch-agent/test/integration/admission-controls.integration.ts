@@ -51,7 +51,6 @@ const directory =
 if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
   mkdirSync(directory, { recursive: true });
 }
-process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
 process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
 const save = (name: string, value: unknown) =>
   writeFileSync(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
@@ -83,10 +82,7 @@ const project = (mode: Mode, history: FlueConversationSnapshot) =>
       ? { asyncClientToolNames: canonicalNames }
       : {}),
   });
-const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: "claude-sonnet-4-6", reasoning: true }],
-});
+const faux = fauxProvider({ provider: "openai" });
 const createStall = () => ({
   upstream: createAssistantMessageEventStream(),
   started: Promise.withResolvers<void>(),
@@ -177,7 +173,9 @@ const run = async () => {
       },
     };
     const client = createFlueClient({
-      url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
+      url: `http://brunch.local/agents/chat/${flueConversationIdFrom(
+        identity,
+      )}`,
       headers: agentOwnershipHeaders(identity),
       fetch: async (input, init) =>
         application.fetch(

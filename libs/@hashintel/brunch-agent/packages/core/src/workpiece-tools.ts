@@ -216,7 +216,7 @@ const workpieceLocatorLookupSubjectSchema = v.variant("kind", [
   v.object({ kind: v.literal("unavailable") }),
 ]);
 
-export const workpieceReadOutputSchema = v.object({
+const workpieceReadOutputSchema = v.object({
   currentWorkpiece: v.nullable(workpieceRevisionSchema),
   currentWorkpiecePointer: v.nullable(workpieceRevisionPointerSchema),
   locatorLookup: v.optional(
