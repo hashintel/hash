@@ -30,6 +30,39 @@ export const personaCliUsage = `Usage: persona <command> [arguments] [--json]
   --json              Print raw JSONL records instead of plain text.
   --socket <path>     Bridge socket (default: $${personaSocketVariable}).`;
 
+const personaFlags = new Set(["--json", "--help", "-h"]);
+
+/**
+ * Separates the CLI's own options from the command and its text. After the
+ * command word, only this CLI's flags are options: a message may itself begin
+ * with a dash. `--` ends option parsing outright.
+ */
+export const splitPersonaArguments = (
+  args: readonly string[],
+): { readonly options: string[]; readonly positionals: string[] } => {
+  const options: string[] = [];
+  const positionals: string[] = [];
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === undefined) break;
+    if (arg === "--") {
+      positionals.push(...args.slice(index + 1));
+      break;
+    }
+    if (arg === "--socket") {
+      options.push(arg, ...args.slice(index + 1, index + 2));
+      index++;
+    } else if (
+      personaFlags.has(arg) ||
+      arg.startsWith("--socket=") ||
+      (arg.startsWith("-") && positionals.length === 0)
+    )
+      options.push(arg);
+    else positionals.push(arg);
+  }
+  return { options, positionals };
+};
+
 const readStdin = async () => {
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin)
@@ -114,8 +147,11 @@ if (
   process.argv[1] &&
   pathToFileURL(resolve(process.argv[1])).href === import.meta.url
 ) {
-  const { values, positionals } = parseArgs({
-    allowPositionals: true,
+  const { options: optionArguments, positionals } = splitPersonaArguments(
+    process.argv.slice(2),
+  );
+  const { values } = parseArgs({
+    args: optionArguments,
     options: {
       json: { type: "boolean" },
       socket: { type: "string" },
