@@ -371,6 +371,13 @@ const messageStyle = cva({
         '&[data-input-mode="text"]': {
           paddingY: "1",
           '& > [data-answer="brunch"]:not(:first-child)': { marginTop: "1" },
+          "@media (hover: hover) and (pointer: fine)": {
+            "&:not([data-latest-answer]):not(:hover):not(:focus-within) > [data-answer-actions]":
+              {
+                opacity: "0",
+                pointerEvents: "none",
+              },
+          },
         },
       },
       user: {
@@ -581,6 +588,7 @@ const AiAssistantMessage = memo(
     active,
     stopped,
     canRetry,
+    latestAnswer,
   }: {
     handlersRef: MessageHandlersRef;
     hiddenToolNames?: ReadonlySet<string>;
@@ -593,6 +601,7 @@ const AiAssistantMessage = memo(
     active: boolean;
     stopped: boolean;
     canRetry: boolean;
+    latestAnswer: boolean;
   }) => {
     const { addNotification } = use(NotificationsContext);
     const role = message.role === "user" ? "user" : "assistant";
@@ -647,6 +656,7 @@ const AiAssistantMessage = memo(
         className={messageStyle({ role })}
         data-role={role}
         data-input-mode={voice ? "voice" : "text"}
+        data-latest-answer={latestAnswer || undefined}
         data-voice-origin={message.metadata?.source === "voice" || undefined}
       >
         {role === "user" && (
@@ -779,6 +789,7 @@ const AiAssistantMessage = memo(
         {role === "assistant" && !voice && writtenAnswer && !active && (
           <div
             className={css({ display: "flex", gap: "1", color: "neutral.s80" })}
+            data-answer-actions
           >
             <Button
               size="xs"
@@ -1076,6 +1087,13 @@ export const AiAssistantContents = ({
   const firstUserIndex = messages.findIndex(
     (message) => message.role === "user",
   );
+  const latestAnswerId = messages.findLast(
+    (message) =>
+      message.role === "assistant" &&
+      message.parts.some(
+        (part) => part.type === "text" && part.text.trim().length > 0,
+      ),
+  )?.id;
   const onRetryMessage = (messageId: string) => {
     if (isBusy || voiceHandoffPending) return;
     const index = messages.findIndex((message) => message.id === messageId);
@@ -1351,6 +1369,7 @@ export const AiAssistantContents = ({
                 onCancelExperiment={onCancelExperiment}
                 resolveToolPresentation={resolveToolPresentation}
                 voice={inputMode === "voice"}
+                latestAnswer={message.id === latestAnswerId}
                 canRetry={
                   onRetryPrompt !== undefined &&
                   !isBusy &&
