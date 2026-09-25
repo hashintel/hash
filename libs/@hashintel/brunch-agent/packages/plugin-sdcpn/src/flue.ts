@@ -21,17 +21,14 @@ import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
   asyncCanonicalPetrinautTools,
   type BrowserToolExecutor,
-  type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
 
-export const useSdcpnPlugin = (
-  options?: WorkpieceAuthorityOptions & {
-    readonly executeBrowserTool?: BrowserToolExecutor;
-    readonly authorizeDraft?: Parameters<
-      typeof createDraftExperimentTool
-    >[0]["authorizeDraft"];
-  },
-): void => {
+export const useSdcpnPlugin = (options?: {
+  readonly executeBrowserTool?: BrowserToolExecutor;
+  readonly authorizeDraft?: Parameters<
+    typeof createDraftExperimentTool
+  >[0]["authorizeDraft"];
+}): void => {
   const initialData = useInitialData<SdcpnInitialData>();
   if (initialData?.mode === brunchModes.integrated) {
     useInstruction(sdcpnAppend.trim());
@@ -45,13 +42,12 @@ export const useSdcpnPlugin = (
       throw new Error("Integrated Brunch requires browser tool execution.");
     useTool(
       createDraftExperimentTool({
-        ...options,
         authorizeDraft: options.authorizeDraft,
         executeBrowserTool: options.executeBrowserTool,
       }),
     );
     useInstruction(
-      "For Ledger-derived experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
+      "For experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution; it carries no restrictions, so first name each restriction or threshold the person stated that the run will not enforce. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
     );
     for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
       useTool(tool);

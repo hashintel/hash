@@ -1,6 +1,4 @@
 /** @vitest-environment jsdom */
-import { createHash } from "node:crypto";
-
 import { expect, test, vi } from "vitest";
 
 import {
@@ -33,7 +31,6 @@ const binding = {
   incarnationId: "incarnation",
   conversationId: "conversation",
 };
-const markdown = "Decision: minimize waiting time under peak load.";
 const input = {
   experiment: {
     name: "Baseline",
@@ -48,19 +45,6 @@ const input = {
   },
   declarations: [{ subject: "result", statement: "No guarantee." }],
   unsupported: [],
-};
-const settlement = {
-  type: "dynamic-tool",
-  toolCallId: "ledger-1",
-  toolName: "mutate_workpiece",
-  state: "output-available",
-  input: { markdown },
-  output: {
-    revisionId: "ledger-1",
-    sha256: createHash("sha256").update(markdown).digest("hex"),
-    ordinal: 1,
-    disposition: "applied",
-  },
 };
 const draft = {
   type: "dynamic-tool",
@@ -118,7 +102,7 @@ const history = async () => {
     output: { brunchBrowserResult: true, output, metadata },
   };
   const messages = [
-    { role: "assistant", purpose: "assistant", parts: [settlement, readCall] },
+    { role: "assistant", purpose: "assistant", parts: [readCall] },
     { role: "assistant", purpose: "assistant", parts: [draft] },
   ];
   return {
@@ -127,13 +111,13 @@ const history = async () => {
   };
 };
 
-test("authorizes a draft from the latest settled Ledger and read revision", async () => {
+test("authorizes a draft from the latest read revision without a Ledger", async () => {
   const { snapshot, revision } = await history();
   await expect(
-    resolveDraftAuthorityFromHistory(snapshot, binding, "draft-1"),
+    resolveDraftAuthorityFromHistory(snapshot, "draft-1"),
   ).resolves.toBe(revision);
   await expect(
-    resolveDraftAuthorityFromHistory(snapshot, binding, "missing"),
+    resolveDraftAuthorityFromHistory(snapshot, "missing"),
   ).rejects.toThrow(/absent/u);
 });
 
@@ -161,7 +145,6 @@ test("a changed net after the read requires another canonical read before a draf
   await expect(
     resolveDraftAuthorityFromHistory(
       { ...snapshot, messages } as FlueConversationState,
-      binding,
       "draft-1",
     ),
   ).rejects.toThrow(/latest settled canonical net read/u);
