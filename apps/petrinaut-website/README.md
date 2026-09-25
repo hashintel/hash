@@ -295,9 +295,12 @@ classification wait, not composer/admission wait; eligible submissions queue
 in transcript order while the composer is busy.
 
 Stopping a response cancels pending gated work; a fresh voice turn can still
-submit. Already withheld speech remains available for explicit recovery.
+submit. Already withheld speech remains in the session for diagnostic recovery.
 
-Expand **Not sent to Brunch** to recover an utterance using **Send to Brunch**.
+In a development build with `?voiceDebug=1`, expand **Not sent to Brunch** to
+recover an utterance using **Send to Brunch**. Without diagnostics, withholding
+is silent: the list and recovery button are hidden. **A wrongly held answer
+cannot be recovered through the UI while diagnostics are off.**
 Recovery queues its original ID and text after already queued inputs, bypasses
 judgment, and cannot submit twice. Withheld text exists only in this voice session;
 ending voice clears it and cancels pending work. No automatic retry or replay
@@ -320,8 +323,20 @@ recommendation is to withhold. Enforcement distinguishes withholding, permission
 to submit, timeout fallback, and manual release. A response failure after
 admission remains **Reached Brunch; response unconfirmed**. These lines contain
 only selected metadata, never transcript or relayed prose. Remove the parameter
-or set `voiceDebug=0` to disable the extra lines; existing structured
-`[Petrinaut Live trace]` diagnostics remain unchanged.
+or set `voiceDebug=0` and reload to disable the extra lines and recovery view;
+existing structured `[Petrinaut Live trace]` diagnostics remain metadata-only
+and unchanged. Held text is never moved into console logs.
+
+To check the diagnostic recovery view locally:
+
+1. Start the local enforcement configuration above with diagnostics off. Speak
+   the support-desk script; confirm withheld inputs have metadata traces but no
+   recovery list or Brunch admission.
+2. Add `voiceDebug=1`, reload, and start a new voice session. Repeat a held input;
+   expand the list and select **Send to Brunch**. Confirm its original text reaches
+   canonical history exactly once, including after a repeated click.
+3. End voice and start again. Confirm the old held items do not reappear. Reloading
+   also ends the old session; it cannot recover its discarded items.
 
 The threshold and deadline are trial settings, not validated production policy.
 Before shared enablement, run the support-desk script plus contextual short

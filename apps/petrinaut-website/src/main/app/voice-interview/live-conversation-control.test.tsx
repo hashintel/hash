@@ -44,6 +44,8 @@ vi.mock("./live-conversation", () => ({
   })),
 }));
 beforeEach(() => {
+  vi.stubEnv("DEV", true);
+  window.history.replaceState(null, "", "/");
   const values = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -62,6 +64,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  window.history.replaceState(null, "", "/");
   window.localStorage.clear();
 });
 
@@ -155,7 +159,64 @@ test.each(["log", undefined] as const)(
   },
 );
 
-test("connected enforcement offers exact recovery, context, and clears it on session end", async () => {
+test.each([
+  { development: true, search: "" },
+  { development: true, search: "?voiceDebug=0" },
+  { development: false, search: "?voiceDebug=1" },
+])(
+  "silently withholds without diagnostics: $development $search",
+  async ({ development, search }) => {
+    vi.stubEnv("DEV", development);
+    window.history.replaceState(null, "", `/${search}`);
+    window.localStorage.setItem(
+      LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        Response.json({ contribution: "control", confidence: 0.99 }),
+      );
+    const trace = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const readable = vi.spyOn(console, "log").mockImplementation(() => {});
+    const props = context();
+    try {
+      render(
+        <VoiceInterviewControl
+          {...props}
+          config={{ ...config, utteranceJudgment: "enforce" }}
+        />,
+      );
+      const [onState, , onInput] = vi.mocked(createLiveConversation).mock
+        .calls[0]!;
+      act(() => onState({ phase: "connected", message: null }));
+      await act(async () => onInput({ id: "held", text: "PRIVATE hang on" }));
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(props.submitVoiceInput).not.toHaveBeenCalled();
+      expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
+      expect(screen.queryByText("PRIVATE hang on")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Send to Brunch" }),
+      ).toBeNull();
+      if (development) {
+        expect(trace).toHaveBeenCalledWith(
+          expect.stringContaining('"applied":"withhold"'),
+        );
+      } else {
+        expect(trace).not.toHaveBeenCalled();
+      }
+      expect(readable).not.toHaveBeenCalled();
+      expect(JSON.stringify(trace.mock.calls)).not.toContain("PRIVATE");
+    } finally {
+      fetch.mockRestore();
+      trace.mockRestore();
+      readable.mockRestore();
+    }
+  },
+);
+
+test("connected enforcement with diagnostics offers exact recovery, context, and clears it on session end", async () => {
+  window.history.replaceState(null, "", "/?voiceDebug=1");
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
     "acknowledged",

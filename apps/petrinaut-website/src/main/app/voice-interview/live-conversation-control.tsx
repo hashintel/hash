@@ -17,6 +17,7 @@ import {
   type LiveConversationState,
 } from "./live-conversation";
 import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
+import { isVoiceDebugEnabled } from "./shared/live-diagnostic";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
@@ -420,7 +421,12 @@ export const LiveConversationControl = ({
     };
   }, [reportVoiceSessionState, setVoiceActive]);
 
-  if (inputMode === "voice" && phase === "connected" && withheld.length > 0) {
+  if (
+    isVoiceDebugEnabled() &&
+    inputMode === "voice" &&
+    phase === "connected" &&
+    withheld.length > 0
+  ) {
     return (
       <details
         className={css({
