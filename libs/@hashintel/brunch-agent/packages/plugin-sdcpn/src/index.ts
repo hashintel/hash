@@ -17,6 +17,3 @@ export {
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./draft-experiment";
-
-export const SDCPN_DOMAIN_TYPOLOGY = "operational processes";
-export const SDCPN_TARGET_FORMALISM = "sdcpn";

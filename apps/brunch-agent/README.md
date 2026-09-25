@@ -14,8 +14,6 @@ Native Stock remains a separate assistant choice. Build-time evaluation mode `F`
 
 `VITE_BRUNCH_EVALUATION_MODE` is an evaluation-only build variable. Leave it unset for integrated Brunch (`I`); accepted explicit values are `F` and `I`, and any other non-empty value fails configuration. `VITE_PETRINAUT_DEFAULT_ASSISTANT` continues to select native Stock or Brunch independently.
 
-The matched evaluator under `src/evaluations/matched-parity/` runs separately named S/F/I arms, defaults to a dry run, isolates artifacts and browser contexts by arm, and refuses to relabel legacy two-arm artifacts. Paid matched sets use the standing USD 50 allowance configured by `MATCHED_PARITY_BUDGET_USD`; the harness reports warnings when remaining cost cannot be established. See its README before execution.
-
 For browser-visible persona testing, use the [persona launcher and operator guide](.pi/extensions/brunch-persona-testing/README.md):
 
 ```sh
