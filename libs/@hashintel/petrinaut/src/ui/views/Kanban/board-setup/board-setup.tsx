@@ -372,17 +372,6 @@ const groupTitleStyle = css({
   color: "neutral.s110",
 });
 const warnTitleStyle = css({ color: "orange.s110" });
-const moveHereStyle = css({
-  borderWidth: "[1px]",
-  borderStyle: "dashed",
-  borderColor: "blue.s90",
-  color: "blue.s100",
-  borderRadius: "md",
-  padding: "1",
-  fontSize: "[11px]",
-  fontWeight: "medium",
-  cursor: "pointer",
-});
 const selectStyle = css({
   height: "[28px]",
   borderWidth: "[1px]",
@@ -1505,6 +1494,24 @@ export const BoardSetup = ({
     },
   });
 
+  /** With a place picked, a click anywhere on a column moves it there. */
+  const pickTarget = (onPick: (placeId: string) => void) =>
+    picked
+      ? {
+          role: "presentation",
+          style: { cursor: "pointer" },
+          onClick: (event: React.MouseEvent) => {
+            if (
+              event.target instanceof Element &&
+              event.target.closest("button, select, input")
+            ) {
+              return;
+            }
+            onPick(picked);
+          },
+        }
+      : {};
+
   const identityTypes = petriNetDefinition.types.map((type) => ({
     type,
     tracked: type.elements.some(
@@ -1772,6 +1779,7 @@ export const BoardSetup = ({
                   dragOver === "tray" && columnDropStyle,
                 )}
                 {...dropZone("tray", unassign)}
+                {...pickTarget(unassign)}
               >
                 <span className={labelStyle}>Not on the board</span>
                 {untrackedPlaces.length > 0 && (
@@ -1866,15 +1874,6 @@ export const BoardSetup = ({
                     ))}
                   </>
                 )}
-                {picked && (
-                  <button
-                    type="button"
-                    className={moveHereStyle}
-                    onClick={() => unassign(picked)}
-                  >
-                    Move here
-                  </button>
-                )}
               </div>
 
               {ordered.map((label) => {
@@ -1899,6 +1898,9 @@ export const BoardSetup = ({
                     {...dropZone(label.id, (placeId) =>
                       movePlace(placeId, label.id),
                     )}
+                    {...(label.isExit
+                      ? {}
+                      : pickTarget((placeId) => movePlace(placeId, label.id)))}
                   >
                     <button
                       type="button"
@@ -1963,15 +1965,6 @@ export const BoardSetup = ({
                             </div>
                           );
                         })}
-                        {picked && !label.places.includes(picked) && (
-                          <button
-                            type="button"
-                            className={moveHereStyle}
-                            onClick={() => movePlace(picked, label.id)}
-                          >
-                            Move here
-                          </button>
-                        )}
                         {label.places.length === 0 && !picked && (
                           <span className={faintStyle}>
                             No places. Drag one here.
