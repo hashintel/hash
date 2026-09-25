@@ -47,26 +47,13 @@ export const AccountEntitiesList: FunctionComponent<
 > = ({ webId }) => {
   const preferences = useUserPreferences();
 
-  const [expanded, setExpanded] = useState<boolean>(
-    preferences.sidebarSections.entities.expanded,
-  );
+  const expanded = preferences.sidebarSections.entities.expanded;
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
   const toggleEntitiesExpanded = () => {
-    setExpanded(!expanded);
-
     void updateUser({
-      preferences: {
-        ...preferences,
-        sidebarSections: {
-          ...preferences.sidebarSections,
-          entities: {
-            ...preferences.sidebarSections.entities,
-            expanded: !expanded,
-          },
-        },
-      },
+      preferences: { sidebarSections: { entities: { expanded: !expanded } } },
     });
   };
 
