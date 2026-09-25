@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { LiveBrunchBridge } from "./live-brunch-bridge";
+import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { FlueConversationState } from "@flue/sdk";
 
@@ -13,7 +14,9 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const setup = () => {
+const setup = (
+  mediation?: ConstructorParameters<typeof LiveBrunchBridge>[0]["mediation"],
+) => {
   const appendCommentary = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendCommentary"]
   >(() => true);
@@ -24,20 +27,27 @@ const setup = () => {
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendThinking"]
   >(() => true);
   const notice = vi.fn();
-  const submit = vi.fn(async (input: { onAdmission: (id: string) => void }) => {
-    input.onAdmission("root");
-    return {
-      kind: "message" as const,
-      messageId: "user",
-      submissionId: "root",
-    };
-  });
+  const submit = vi.fn(
+    async (
+      input: Parameters<
+        ConstructorParameters<typeof LiveBrunchBridge>[0]["submit"]
+      >[0],
+    ) => {
+      input.onAdmission("root");
+      return {
+        kind: "message" as const,
+        messageId: "user",
+        submissionId: "root",
+      };
+    },
+  );
   const bridge = new LiveBrunchBridge({
     appendCommentary,
     appendInstructions,
     appendThinking,
     notice,
     submit,
+    mediation,
   });
   const update = (
     overrides: Partial<Parameters<typeof bridge.update>[0]> = {},
@@ -107,6 +117,112 @@ const started = {
   submissionId: "root",
   position: { batch: 1, index: 0 },
 };
+
+test("a delayed superseded transcript may be admitted but never offered back as fresh speech", async () => {
+  const fixture = setup();
+  await fixture.bridge.accept({
+    id: "old",
+    text: "Old request",
+    superseded: true,
+  });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+});
+
+test("prepares a brief before admission and summarizes only a settled rendered answer", async () => {
+  const history = new VoiceMediationHistory("test");
+  const prepare = vi.fn(async () => ({
+    decide: "two to eight",
+    runs: "Still open",
+  }));
+  const summarize = vi.fn(
+    async () => "The comparison is drafted. Run it from the card.",
+  );
+  const offered = vi.fn();
+  const fixture = setup({ history, prepare, summarize, offered });
+  await fixture.bridge.accept({ id: "one", text: "Um, compare two to eight" });
+  expect(prepare).toHaveBeenCalledWith(
+    "Um, compare two to eight",
+    expect.any(AbortSignal),
+  );
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    '"runs":"Still open"',
+  );
+  expect(fixture.submit.mock.calls[0]?.[0]).not.toHaveProperty(
+    "text",
+    "Um, compare two to eight",
+  );
+  expect(history.project([])[0]?.parts[0]).toEqual({
+    type: "text",
+    text: "Um, compare two to eight",
+  });
+  fixture.bridge.responseStarted(started);
+  fixture.update({ status: "streaming", segments: [segment()] });
+  expect(summarize).not.toHaveBeenCalled();
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "The comparison is drafted. Run it from the card.",
+      null,
+    ),
+  );
+  expect(summarize).toHaveBeenCalledWith(
+    segment().text,
+    expect.any(AbortSignal),
+  );
+  expect(offered).toHaveBeenCalledWith("one");
+});
+
+test("speech cancels preparation and stale asynchronous wrap-ups without cancelling admitted Brunch work", async () => {
+  let resolveBrief!: (fields: Record<string, string>) => void;
+  let resolveSummary!: (text: string) => void;
+  const history = new VoiceMediationHistory("test");
+  const prepare = vi.fn(
+    () =>
+      new Promise<Record<string, string>>((resolve) => {
+        resolveBrief = resolve;
+      }),
+  );
+  const summarize = vi.fn(
+    () =>
+      new Promise<string>((resolve) => {
+        resolveSummary = resolve;
+      }),
+  );
+  const fixture = setup({ history, prepare, summarize, offered: vi.fn() });
+  const first = fixture.bridge.accept({ id: "one", text: "First request" });
+  fixture.bridge.speechStarted();
+  resolveBrief({ goal: "First request" });
+  await first;
+  expect(fixture.submit).not.toHaveBeenCalled();
+  prepare.mockResolvedValue({ goal: "Correction" });
+  await fixture.bridge.accept({ id: "two", text: "Correction" });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  expect(summarize).toHaveBeenCalledOnce();
+  fixture.bridge.speechStarted();
+  resolveSummary("Stale result.");
+  await Promise.resolve();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.submit.mock.calls[0]?.[0]).toHaveProperty(
+    "signal.aborted",
+    false,
+  );
+});
 
 test("trace distinguishes ungated admission, later delegation matching, settlement and dropped speech", async () => {
   vi.stubEnv("DEV", true);

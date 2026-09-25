@@ -1,6 +1,7 @@
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
+import type { LiveTranscriptFragment } from "./live-speech-captions";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
 
 export interface LiveConversationState {
@@ -23,6 +24,7 @@ export interface LiveConversationState {
 interface FinalizedInput {
   readonly id: string;
   readonly text: string;
+  readonly superseded?: boolean;
 }
 
 type ConnectionKind = "live" | "transcription";
@@ -33,6 +35,8 @@ export interface LiveAppendResult {
   readonly delegationId: string | null;
   /** Unknown means sent locally, but provider acceptance is not yet confirmed. */
   readonly status: "local-failure" | "unknown" | "accepted" | "rejected";
+  /** Provider context-injection time, never playback completion. */
+  readonly startMs?: number;
 }
 
 /** One disposable Live plus transcription session sharing one consented capture. */
@@ -43,6 +47,12 @@ export const createLiveConversation = (
   onDelegation: (delegationId: string) => void,
   onAppendResult: (result: LiveAppendResult) => void,
   audioSettings?: VoiceAudioSettings,
+  speech?: {
+    readonly started: () => void;
+    readonly input: (fragment: LiveTranscriptFragment) => void;
+    readonly output: (fragment: LiveTranscriptFragment) => void;
+    readonly closed: () => void;
+  },
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
@@ -67,6 +77,7 @@ export const createLiveConversation = (
   const committedPrevious = new Map<string, string | null>();
   const completed = new Map<string, FinalizedInput>();
   const emitted = new Set<string>();
+  let latestSpeechItem: string | undefined;
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
   let microphoneMuted = false;
@@ -109,6 +120,7 @@ export const createLiveConversation = (
   };
 
   const stopMedia = () => {
+    speech?.closed();
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
@@ -317,7 +329,11 @@ export const createLiveConversation = (
           inputId: input.id,
           characters: input.text.length,
         });
-        onFinalizedInput(input);
+        onFinalizedInput(
+          latestSpeechItem && latestSpeechItem !== itemId
+            ? { ...input, superseded: true }
+            : input,
+        );
       }
       itemId = committedAfter(itemId);
     }
@@ -349,6 +365,11 @@ export const createLiveConversation = (
   };
 
   const handleTranscriptionEvent = (data: Record<string, unknown>) => {
+    if (data.type === "input_audio_buffer.speech_started") {
+      if (typeof data.item_id === "string") latestSpeechItem = data.item_id;
+      speech?.started();
+      return;
+    }
     if (data.type === "session.created" || data.type === "session.updated") {
       if (!ready.has("transcription")) markReady("transcription");
       return;
@@ -508,6 +529,33 @@ export const createLiveConversation = (
       handleTranscriptionEvent(data as Record<string, unknown>);
       return;
     }
+    if (
+      data.type === "session.input_transcript.delta" ||
+      data.type === "session.output_transcript.delta"
+    ) {
+      const fields = data as Record<string, unknown>;
+      if (
+        typeof fields.event_id !== "string" ||
+        typeof fields.delta !== "string" ||
+        typeof fields.start_ms !== "number" ||
+        !Number.isFinite(fields.start_ms) ||
+        fields.start_ms < 0 ||
+        typeof fields.end_ms !== "number" ||
+        !Number.isFinite(fields.end_ms) ||
+        fields.end_ms < fields.start_ms
+      )
+        return;
+      const fragment = {
+        id: fields.event_id,
+        text: fields.delta,
+        startMs: fields.start_ms,
+        endMs: fields.end_ms,
+      };
+      if (data.type === "session.input_transcript.delta")
+        speech?.input(fragment);
+      else speech?.output(fragment);
+      return;
+    }
     if (data.type === "session.closed") {
       finish(true);
     } else if (
@@ -553,7 +601,16 @@ export const createLiveConversation = (
       // Quiet context does not answer a delegation; only speech or a redirect does.
       if (pending.delegationId !== null && pending.kind !== "thinking")
         openDelegations.delete(pending.delegationId);
-      reportAppendResult({ ...pending, status: "accepted" });
+      reportAppendResult({
+        ...pending,
+        status: "accepted",
+        ...("start_ms" in data &&
+        typeof data.start_ms === "number" &&
+        Number.isFinite(data.start_ms) &&
+        data.start_ms >= 0
+          ? { startMs: data.start_ms }
+          : {}),
+      });
     } else if (
       !stopping &&
       (data.type === "error" || data.type === "session.error")

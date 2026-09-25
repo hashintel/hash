@@ -100,8 +100,30 @@ browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 Some hosts offer a Brunch-backed GPT-Live voice interview. It uses one Live
 session for conversational audio and a separate transcription session for
 finalized user messages. Brunch remains responsible for domain answers, chat
-history, and changes to the net; settled Brunch prose is supplied to Live for
-best-effort spoken delivery. Before the first Live session, the permission
+history, and changes to the net. In the website's Live mode, a prepared brief
+goes to Brunch while your original words remain in the visible conversation.
+Expand **Sent to Brunch** to inspect the brief. Missing details remain **Still
+open**; the brief is not editable before sending in this version.
+
+Live is asked to acknowledge each request briefly, then summarize Brunch's
+settled answer after its work and cards appear. Spoken replies are intended to
+feel like one natural conversation, without internal handoff names or unsolicited
+waiting updates. It does not read the full written answer.
+Acknowledgement timing and wording are best effort and can
+overlap Brunch's work. Blue voice cards show Live's output transcript, not a
+copy of Brunch's written answer or confirmation that you heard the audio.
+Captions update during the session; their grouping closes on the next turn
+or when the session ends. Speaking again suppresses pending older summaries
+but does not cancel work already admitted by Brunch.
+
+The prepared brief and Brunch's answer are saved in the conversation. Original
+words and spoken captions are retained separately in this browser for the most
+recent 100 voice turns; they are not synchronized to another device. Clearing
+browser storage removes those local annotations without deleting Brunch's
+history. Reopening never replays speech. Realtime-based Voice retains its
+existing transcript-and-readback behaviour.
+
+Before the first Live session, the permission
 panel explains both OpenAI audio streams and text retention, with a permission
 checkbox, **Start voice**, and **Cancel**. Petrinaut remembers this
 Live-specific versioned acknowledgement in browser storage, so later Live

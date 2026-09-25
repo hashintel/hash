@@ -11,6 +11,7 @@ import type {
 import type { PetrinautExperimentResult } from "@hashintel/petrinaut-core";
 
 interface Dependencies {
+  readonly resultReady?: (toolCallId: string, source: string) => void;
   readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly appendCommentary: (
     text: string,
@@ -132,6 +133,8 @@ const noteFor = (
 export class ExperimentVoiceRelay {
   readonly #dependencies: Dependencies;
   readonly #offered = new Set<string>();
+  readonly #interruptedRuns = new Set<string>();
+  #running = new Set<string>();
   #primed = false;
   #currentToolCallId: string | null = null;
   #stopped = false;
@@ -144,8 +147,17 @@ export class ExperimentVoiceRelay {
     this.#stopped = true;
   }
 
+  public interrupt(): void {
+    for (const id of this.#running) this.#interruptedRuns.add(id);
+  }
+
   public update(state: SessionDraftsState): void {
     if (this.#stopped) return;
+    this.#running = new Set(
+      [...state.drafts.values()]
+        .filter((draft) => draft.run.phase === "running")
+        .map((draft) => draft.toolCallId),
+    );
     if (!this.#primed) {
       // History from before this voice session is context, never news: a
       // result that finished an hour ago must not be read out on connect.
@@ -162,7 +174,7 @@ export class ExperimentVoiceRelay {
           : state.drafts.get(state.currentToolCallId);
       if (current) {
         const note = noteFor(current, { current: true, replaces: false });
-        if (note) this.#send({ ...note, kind: "thinking" });
+        if (note) this.#send({ ...note, kind: "thinking" }, current.toolCallId);
       }
       return;
     }
@@ -174,12 +186,23 @@ export class ExperimentVoiceRelay {
     for (const draft of state.drafts.values()) {
       const current = draft.toolCallId === state.currentToolCallId;
       const note = noteFor(draft, { current, replaces: current && replaces });
-      if (note) this.#send(note);
+      if (note)
+        this.#send(
+          this.#interruptedRuns.has(draft.toolCallId)
+            ? { ...note, kind: "thinking" }
+            : note,
+          draft.toolCallId,
+        );
     }
   }
 
-  #send(note: Note): void {
+  #send(note: Note, toolCallId: string): void {
     if (this.#offered.has(note.key)) return;
+    if (note.kind === "commentary" && this.#dependencies.resultReady) {
+      this.#offered.add(note.key);
+      this.#dependencies.resultReady(toolCallId, note.text);
+      return;
+    }
     const sent =
       note.kind === "commentary"
         ? this.#dependencies.appendCommentary(note.text, null)

@@ -385,6 +385,49 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("host display projection never changes canonical composer history", async () => {
+    const canonical: PetrinautAiMessage = {
+      id: "voice-brief",
+      role: "user",
+      parts: [{ type: "text", text: "Prepared brief: compare staffing" }],
+    };
+    let context: PetrinautAiComposerControlContext | undefined;
+    const onMessages = vi.fn();
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    renderTestPanel({
+      aiAssistant: {
+        messages: [canonical],
+        transport: { reconnectToStream: async () => null, sendMessages },
+        onMessages,
+        mapMessagesForDisplay: (messages) =>
+          messages.map((message) => ({
+            ...message,
+            parts: [
+              { type: "text", text: "Could we compare two to eight agents?" },
+            ],
+          })),
+        renderComposerControl: (next) => {
+          context = next;
+          return null;
+        },
+      },
+    });
+    expect(
+      await screen.findByText("Could we compare two to eight agents?"),
+    ).toBeTruthy();
+    expect(context?.messages).toEqual([canonical]);
+    expect(onMessages).not.toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parts: [
+            { type: "text", text: "Could we compare two to eight agents?" },
+          ],
+        }),
+      ]),
+    );
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
   test("declines setNetTitle when the host omits title editing", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

@@ -119,6 +119,14 @@ export type PetrinautAiAssistant = {
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
   /**
+   * Pure presentation projection, for example host-owned voice captions.
+   * Never changes transport input, tool execution, persisted history, or the
+   * messages supplied to composer and Voice controls. Do not mutate the input.
+   */
+  mapMessagesForDisplay?: (
+    messages: PetrinautAiMessage[],
+  ) => PetrinautAiMessage[];
+  /**
    * Opt into following host history while locally idle. The predicate must
    * describe the exact snapshot supplied in `messages`, including settlement
    * of every local admission; message IDs alone cannot prove catch-up.

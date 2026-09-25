@@ -30,6 +30,7 @@ import {
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
 } from "./voice-interview-control";
+import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -79,6 +80,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   window.localStorage.clear();
   resetSessionDrafts();
 });
@@ -795,8 +797,30 @@ test.each(["live", "realtime", "live-experience"])(
   },
 );
 
-test("final transcription enters the real admission helper and only its settled canonical prose reaches Live", async () => {
+const mockMediation = () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async (_url, options) => {
+    if (typeof options?.body !== "string")
+      throw new Error("Expected JSON body");
+    const input = JSON.parse(options.body) as { kind: string };
+    return Response.json(
+      input.kind === "brief"
+        ? {
+            fields: {
+              goal: "Seven reviewers, not four.",
+              arrivals: "Still open",
+            },
+          }
+        : { text: "Brunch has a question for you." },
+    );
+  });
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+};
+
+test("the prepared brief enters the real admission helper and only its settled canonical prose is summarized for Live", async () => {
+  const fetch = mockMediation();
   const tracker = new BrunchPanelConversationTracker();
+  const history = new VoiceMediationHistory("test");
   const props = context();
   props.submitVoiceInput = vi.fn<
     PetrinautAiVoiceModeContext["submitVoiceInput"]
@@ -815,6 +839,7 @@ test("final transcription enters the real admission helper and only its settled 
     return { kind: "message", messageId: id };
   });
   const wiring = {
+    mediationHistory: history,
     resolveInputSubmission: tracker.submissionForInput.bind(tracker),
     resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
     subscribeToAdmission: (
@@ -840,13 +865,28 @@ test("final transcription enters the real admission helper and only its settled 
   const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
     .value as ReturnType<typeof createLiveConversation>;
   act(() => call[0]({ phase: "connected", message: null }));
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "in",
+      text: "Seven reviewers, not four.",
+      startMs: 100,
+      endMs: 200,
+    });
+    call[6]?.output({
+      id: "ack",
+      text: "I'll pass that along.",
+      startMs: 300,
+      endMs: 400,
+    });
+  });
   act(() => call[3]("delegation-1"));
   await act(async () =>
     call[2]({ id: "utterance-1", text: "Seven reviewers, not four." }),
   );
-  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
-  expect(props.submitVoiceInput).toHaveBeenCalledWith(
-    expect.objectContaining({ text: "Seven reviewers, not four." }),
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+  expect(vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0].text).toContain(
+    '"arrivals":"Still open"',
   );
   const response = {
     messageId: "answer",
@@ -892,20 +932,70 @@ test("final transcription enters the real admission helper and only its settled 
       config={config}
     />,
   );
-  expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    "Are all seven reviewers required?",
-    "delegation-1",
+  await waitFor(() =>
+    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Brunch has a question for you.",
+      "delegation-1",
+    ),
   );
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/voice/mediation",
+    expect.objectContaining({
+      body: JSON.stringify({
+        kind: "wrap-up",
+        text: "Are all seven reviewers required?",
+      }),
+    }),
+  );
+  act(() => {
+    const append = {
+      eventId: "summary",
+      kind: "commentary" as const,
+      delegationId: "delegation-1",
+    };
+    call[4]({ ...append, status: "unknown" });
+    call[4]({ ...append, status: "accepted", startMs: 500 });
+    call[6]?.output({
+      id: "spoken",
+      text: "Do all seven need to review?",
+      startMs: 600,
+      endMs: 900,
+    });
+  });
+  const projected = history.project([
+    {
+      id: "utterance-1",
+      role: "user",
+      parts: [{ type: "text", text: "Canonical brief" }],
+    },
+    ...messages,
+  ]);
+  expect(projected.map((entry) => entry.id)).toEqual([
+    "utterance-1",
+    "voice-reply:utterance-1",
+    "answer",
+    "voice-wrap-up:utterance-1",
+  ]);
+  expect(projected[0]?.parts[0]).toEqual({
+    type: "text",
+    text: "Seven reviewers, not four.",
+  });
+  expect(projected.at(-1)?.parts[0]).toEqual({
+    type: "data-voiceAgentWrapUp",
+    data: { text: "Do all seven need to review?", state: "streaming" },
+  });
   act(() => tracker.recordStopRequested());
   expect(session.stop).not.toHaveBeenCalled();
   await act(async () => call[2]({ id: "late", text: "Late transcription" }));
-  expect(props.submitVoiceInput).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
 });
 
 test.each(["answer", "folded-answer"])(
   "the real transport's unobserved answered-by response reaches Live with rendered ID %s",
   async (renderedId) => {
+    const fetch = mockMediation();
     const tracker = new BrunchPanelConversationTracker();
+    const history = new VoiceMediationHistory("test");
     const props = context();
     const text = "Seven reviewers, not four. Is approval optional?";
     const snapshot: FlueConversationState = {
@@ -990,6 +1080,7 @@ test.each(["answer", "folded-answer"])(
       return { kind: "message", messageId: id };
     };
     const wiring = {
+      mediationHistory: history,
       resolveInputSubmission: tracker.submissionForInput.bind(tracker),
       resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
       subscribeToResponseMessageStarted:
@@ -1043,10 +1134,33 @@ test.each(["answer", "folded-answer"])(
         config={config}
       />,
     );
-    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-      text,
-      null,
+    await waitFor(() =>
+      expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+        "Brunch has a question for you.",
+        null,
+      ),
     );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/voice/mediation",
+      expect.objectContaining({
+        body: JSON.stringify({ kind: "wrap-up", text }),
+      }),
+    );
+    history.caption("utterance", "wrapUp", {
+      text: "Spoken result",
+      state: "done",
+    });
+    expect(
+      history
+        .project([
+          {
+            id: renderedId,
+            role: "assistant",
+            parts: [{ type: "text", text }],
+          },
+        ])
+        .some((entry) => entry.id === "voice-wrap-up:utterance"),
+    ).toBe(true);
   },
 );
 

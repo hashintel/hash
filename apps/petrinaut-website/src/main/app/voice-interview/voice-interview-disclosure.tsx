@@ -147,7 +147,7 @@ export const VoiceInterviewDisclosure = ({
         </div>
         <p className={disclosureCopyStyle}>
           {experimental
-            ? "OpenAI processes microphone audio for voice and transcription. Petrinaut saves text, not audio."
+            ? "OpenAI processes microphone audio for voice and transcription, and text to prepare briefs and summaries. Brunch saves the brief and its answer. Original words and spoken captions stay in this browser; Petrinaut does not save audio."
             : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
         </p>
         <Checkbox
