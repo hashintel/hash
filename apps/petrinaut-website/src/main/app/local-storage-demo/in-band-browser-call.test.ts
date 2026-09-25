@@ -1,5 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
+import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
 import type { FlueClient } from "@flue/sdk";
@@ -34,7 +36,7 @@ test("an unknown mutation record is submitted without failing the call", async (
       }
       return Response.json({
         capability: "capability",
-        binding: JSON.stringify(binding),
+        binding: canonicalContent(binding),
         toolName: "addPlace",
         input,
       });
@@ -67,5 +69,47 @@ test("an unknown mutation record is submitted without failing the call", async (
   expect(posted).toEqual([
     expect.objectContaining({ output: { applied: true } }),
   ]);
+  issued.release();
+});
+
+test("the binding matches the issued call whatever its key order", async () => {
+  const claimUrls: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url) => {
+      if (typeof url === "string") claimUrls.push(url);
+      return Response.json({
+        capability: "capability",
+        binding: canonicalContent(binding),
+        toolName: "addPlace",
+        input,
+      });
+    }),
+  );
+  const reordered = {
+    incarnationId: binding.incarnationId,
+    documentId: binding.documentId,
+    conversationId: binding.conversationId,
+  };
+  const calls = createInBandBrowserCalls({
+    client: Promise.resolve({
+      url: "http://brunch.local/agents/chat/instance",
+    } as FlueClient),
+    principalKey: "principal",
+    binding: reordered,
+    metadataFor: async () => undefined,
+    prepareInput: () => {},
+  });
+
+  const issued = await calls.claim({
+    toolCallId: "call",
+    toolName: "addPlace",
+    input,
+    signal: new AbortController().signal,
+  });
+
+  expect(new URL(claimUrls[0] ?? "").searchParams.get("binding")).toBe(
+    canonicalContent(binding),
+  );
   issued.release();
 });

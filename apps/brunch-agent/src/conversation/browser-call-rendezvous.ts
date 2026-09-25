@@ -15,7 +15,6 @@ interface IssuedCall {
   readonly signal?: AbortSignal;
   deadline: number;
   claimed: boolean;
-  settling: boolean;
   finished: boolean;
   releaseAbort?: () => void;
   timer: ReturnType<typeof setTimeout>;
@@ -61,7 +60,6 @@ const deliverableCall = (
 ): IssuedCall | undefined => {
   const entry = leasedCall(proof);
   return entry &&
-    !entry.settling &&
     !entry.signal?.aborted &&
     entry.toolName === proof.toolName &&
     entry.input === JSON.stringify(proof.canonicalInput)
@@ -90,7 +88,6 @@ export const issueBrowserCall = (input: {
     signal: input.signal,
     deadline: Date.now() + leaseMs,
     claimed: false,
-    settling: false,
     finished: false,
     releaseAbort: undefined,
     timer: undefined as unknown as ReturnType<typeof setTimeout>,
@@ -194,7 +191,7 @@ export const failBrowserCall = (input: {
   return true;
 };
 
-export const settleBrowserCall = async (input: {
+export const settleBrowserCall = (input: {
   readonly instanceId: string;
   readonly toolCallId: string;
   readonly capability: string;
@@ -203,31 +200,16 @@ export const settleBrowserCall = async (input: {
   readonly canonicalInput: unknown;
   readonly output: unknown;
   readonly metadata?: unknown;
-}): Promise<"settled" | "invalid" | "not-issued"> => {
+}): "settled" | "not-issued" => {
   const key = keyFor(input.instanceId, input.toolCallId);
   const entry = deliverableCall(input);
   if (!entry) return "not-issued";
-  entry.settling = true;
-  try {
-    const result: ClientToolResult = {
-      toolCallId: input.toolCallId,
-      toolName: input.toolName,
-      output: input.output,
-      ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
-    };
-    // The timer or Stop can settle this entry while verification is awaited.
-    if (entry.finished || entry.signal?.aborted || Date.now() >= entry.deadline)
-      return "not-issued";
-    retire(key);
-    entry.result.resolve(result);
-    return "settled";
-  } catch (error) {
-    if (!entry.finished) {
-      retire(key);
-      entry.result.reject(
-        error instanceof Error ? error : new Error("Invalid browser result."),
-      );
-    }
-    return "invalid";
-  }
+  retire(key);
+  entry.result.resolve({
+    toolCallId: input.toolCallId,
+    toolName: input.toolName,
+    output: input.output,
+    ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
+  });
+  return "settled";
 };

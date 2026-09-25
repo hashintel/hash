@@ -12,6 +12,7 @@ import { expect, test, vi } from "vitest";
 import {
   admissionBufferLimits,
   claimModelStreamIdleRetry,
+  modelAdmissionScope,
   modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
 } from "../src/provider-admission";
@@ -769,6 +770,41 @@ test("cancellation after approval but before replay still releases no events", a
     })(),
   ).rejects.toThrow("cancelled");
   expect(events).toEqual([]);
+});
+
+test("async browser mode admits allowlisted mixes but refuses a call beside the result it reads", async () => {
+  const faux = fauxProvider({
+    provider: "anthropic",
+    models: [{ id: "synthetic", reasoning: true }],
+  });
+  const provider = withBufferedToolAdmission(
+    faux.provider,
+    () => true,
+    new Set(["read", "write"]),
+    {
+      ...modelStreamIdleTimeoutDefaults,
+      claimRetry: () => false,
+      mixedToolNames: new Set(["read", "write", "query"]),
+      dependentToolNames: new Map([["query", "read"]]),
+    },
+  );
+  const model = provider.getModels()[0]!;
+  const proposal = (...names: string[]) =>
+    fauxAssistantMessage(
+      names.map((name) => fauxToolCall(name, {}, { id: name })),
+      { stopReason: "toolUse" },
+    );
+  faux.setResponses([proposal("write", "query"), proposal("read", "query")]);
+  const inScope = () =>
+    modelAdmissionScope.run(
+      { idleRetryAvailable: false, asyncBrowserTools: true },
+      () => collect(provider.streamSimple(model, { messages: [] })),
+    );
+
+  expect((await inScope()).result.stopReason).toBe("toolUse");
+  await expect(inScope()).rejects.toThrow(
+    "Dependent proposal refused before admission: query reads the result of read.",
+  );
 });
 
 test("checks the tool inputs Flue publishes as well as the final response calls", async () => {

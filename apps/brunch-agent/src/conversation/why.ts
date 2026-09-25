@@ -2,10 +2,13 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import {
   callsForElement,
+  isAppliedChange,
   latestNetDefinition,
+  netCalls,
   workpieceRevisionAtCall,
   type ArcElement,
 } from "./net-changes.ts";
@@ -132,6 +135,26 @@ export const queryWorkpiece = (input: {
   query: Selector;
 }) => {
   const latest = latestNetDefinition(input.snapshot);
+  const read = latest?.call;
+  if (
+    read &&
+    netCalls(input.snapshot).some(
+      (call) =>
+        isAppliedChange(call) &&
+        (call.messageIndex > read.messageIndex ||
+          (call.messageIndex === read.messageIndex &&
+            call.partIndex > read.partIndex)),
+    )
+  )
+    return {
+      binding: input.browser.binding,
+      currentWorkpiece: input.current,
+      disposition: "stale-read" as const,
+      reason: `The net changed after the latest ${getLatestNetDefinitionToolName} read; read it again, then query.`,
+      target: undefined,
+      readToolCallId: read.toolCallId,
+      changes: [],
+    };
   const candidates = latest
     ? elements(latest.definition, input.query.kind).filter(
         (element) =>
@@ -185,7 +208,7 @@ export const createQueryWorkpieceTool = (options: {
   defineTool({
     name: brunchTools.queryWorkpiece,
     description:
-      "Find an element in the latest getLatestNetDefinition result by kind and unique name or ID; for an arc use its transitionId, arcDirection (input/output) and placeId. List canonical calls associated with that element, including their settled document revision and the workpiece revision's turn range and user message IDs. Associations are temporal context, not semantic justification.",
+      "Find an element in the latest getLatestNetDefinition result by kind and unique name or ID; for an arc use its transitionId, arcDirection (input/output) and placeId. List canonical calls associated with that element, including their settled document revision and the workpiece revision's turn range and user message IDs. Associations are temporal context, not semantic justification. A stale-read disposition means the net changed after that read: read it again, then query.",
     input: elementSchema,
     output: v.custom<ReturnType<typeof queryWorkpiece>>(() => true),
     async run({ data }) {
