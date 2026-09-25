@@ -1,10 +1,27 @@
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  canonicalContent,
+  draftPetrinautExperimentInputSchema,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { agentOwnershipHeaders } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { ProcessAgentBinding } from "./assistants/brunch/use-process-agent-binding";
 import type { FlueClient } from "@flue/sdk";
 import type { ClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
+
+/** Every tool the server may issue to this browser, by the schema that parses its input. */
+const issuedInputSchemas: Readonly<
+  Record<string, { readonly parse: (input: unknown) => unknown }>
+> = {
+  ...Object.fromEntries(
+    Object.entries(petrinautAiTools).map(([name, tool]) => [
+      name,
+      tool.inputSchema,
+    ]),
+  ),
+  [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
+};
 
 /** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
 export const createInBandBrowserCalls = (input: {
@@ -71,18 +88,17 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
+    const inputSchema = issuedInputSchemas[call.toolName];
     if (
       !issued ||
       issued.toolName !== call.toolName ||
       issued.binding !== canonicalContent(input.binding) ||
-      !(call.toolName in petrinautAiTools)
+      !inputSchema
     )
       throw new Error(
         "Browser call was not issued for this document incarnation.",
       );
-    const canonicalInput = petrinautAiTools[
-      call.toolName as keyof typeof petrinautAiTools
-    ].inputSchema.parse(call.input);
+    const canonicalInput = inputSchema.parse(call.input);
     if (canonicalContent(canonicalInput) !== canonicalContent(issued.input))
       throw new Error("Issued browser input does not match the admitted call.");
     const claimed = issued;

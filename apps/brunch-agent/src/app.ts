@@ -9,7 +9,6 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
-import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
@@ -17,6 +16,7 @@ import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-br
 import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
+import { inBandBrowserToolNames } from "./agents/chat-agent/tool-catalogue.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createBrowserCallRouter } from "./http/browser-calls.ts";
@@ -132,11 +132,12 @@ if (accounting) {
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
-  ...CANONICAL_PETRINAUT_TOOL_NAMES,
+  ...inBandBrowserToolNames,
+  // A conversation without a mode keeps this as its one browser tool.
   brunchTools.readPetrinautDocs,
 ]);
 const integratedMixedToolNames = new Set([
-  ...CANONICAL_PETRINAUT_TOOL_NAMES,
+  ...inBandBrowserToolNames,
   brunchTools.ping,
   brunchTools.mutateWorkpiece,
   brunchTools.readWorkpiece,
@@ -146,7 +147,11 @@ const integratedMixedToolNames = new Set([
 ]);
 // Running these beside their dependency would answer from the previous result.
 const integratedDependentToolNames = new Map([
-  [brunchTools.queryWorkpiece, getLatestNetDefinitionToolName],
+  [brunchTools.queryWorkpiece, [getLatestNetDefinitionToolName]],
+  [
+    brunchTools.draftPetrinautExperiment,
+    [getLatestNetDefinitionToolName, brunchTools.mutateWorkpiece],
+  ],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(

@@ -20,15 +20,14 @@ import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
   asyncCanonicalPetrinautTools,
+  type BrowserToolExecutor,
   type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
 import { readPetrinautDocs } from "./tools/read-petrinaut-doc";
 
 export const useSdcpnPlugin = (
   options?: WorkpieceAuthorityOptions & {
-    readonly executeCanonicalBrowserTool?: Parameters<
-      typeof asyncCanonicalPetrinautTools
-    >[0];
+    readonly executeBrowserTool?: BrowserToolExecutor;
     readonly authorizeDraft?: Parameters<
       typeof createDraftExperimentTool
     >[0]["authorizeDraft"];
@@ -43,22 +42,19 @@ export const useSdcpnPlugin = (
       throw new Error(
         "Integrated Brunch requires draft history authorization.",
       );
+    if (!options.executeBrowserTool)
+      throw new Error("Integrated Brunch requires browser tool execution.");
     useTool(
       createDraftExperimentTool({
         ...options,
         authorizeDraft: options.authorizeDraft,
+        executeBrowserTool: options.executeBrowserTool,
       }),
     );
     useInstruction(
       "For Ledger-derived experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
     );
-    if (!options.executeCanonicalBrowserTool)
-      throw new Error(
-        "Integrated Brunch requires canonical browser execution.",
-      );
-    for (const tool of asyncCanonicalPetrinautTools(
-      options.executeCanonicalBrowserTool,
-    ))
+    for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
       useTool(tool);
   } else {
     // A conversation with no initial mode historically offers the skill and docs,

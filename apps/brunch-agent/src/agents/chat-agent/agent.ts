@@ -114,7 +114,7 @@ export function ChatAgent({ id }: AgentProps) {
           : {}),
         ...(initialData?.mode === brunchModes.integrated && browserContext
           ? {
-              executeCanonicalBrowserTool: async ({
+              executeBrowserTool: async ({
                 toolName,
                 input,
                 toolCallId,

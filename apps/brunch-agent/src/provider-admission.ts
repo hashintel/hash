@@ -104,8 +104,8 @@ export const claimModelStreamIdleRetry = (
 type StreamIdleRecovery = {
   /** Only these independent I-mode calls may share a browser/server proposal. */
   readonly mixedToolNames?: ReadonlySet<string>;
-  /** Tool name to the tool whose result it reads; the two may not share a proposal. */
-  readonly dependentToolNames?: ReadonlyMap<string, string>;
+  /** Tool name to the tools whose results it reads; none may share its proposal. */
+  readonly dependentToolNames?: ReadonlyMap<string, readonly string[]>;
   readonly cancellationTimeoutMs: number;
   readonly claimRetry: () => boolean;
   readonly firstEventTimeoutMs: number;
@@ -332,9 +332,12 @@ class AdmittedStream extends EventStream<
           "Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
         );
       }
-      for (const [dependent, dependency] of idleRecovery?.dependentToolNames ??
-        []) {
-        if (names.includes(dependent) && names.includes(dependency))
+      for (const [
+        dependent,
+        dependencies,
+      ] of idleRecovery?.dependentToolNames ?? []) {
+        const dependency = dependencies.find((name) => names.includes(name));
+        if (names.includes(dependent) && dependency !== undefined)
           throw new Error(
             `Dependent proposal refused before admission: ${dependent} reads the result of ${dependency}. Call ${dependency} first, then ${dependent} after its result returns.`,
           );

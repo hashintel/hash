@@ -1255,9 +1255,10 @@ describe("local storage demo Brunch controls", () => {
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual([brunchTools.draftPetrinautExperiment]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
+    // Every Brunch browser tool, the draft included, settles in band.
     expect(
       [...(transportOptions.asyncClientToolNames ?? [])].toSorted(),
-    ).toEqual([...canonicalPetrinautClientToolNames].toSorted());
+    ).toEqual([...integratedPetrinautClientToolNames].toSorted());
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(
       true,
     );
