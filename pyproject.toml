@@ -23,7 +23,7 @@ package       = false
 [tool.uv.workspace]
 members = [
     "apps/petrinaut-opt",
-    "libs/@local/petrinaut-optimizer-core",
+    "libs/@local/petrinaut-optimizer-core/python",
     "libs/@local/petrinaut-python",
 ]
 
@@ -31,13 +31,13 @@ members = [
 addopts = "-q --import-mode=importlib"
 testpaths = [
     "apps/petrinaut-opt/tests",
-    "libs/@local/petrinaut-optimizer-core/tests",
+    "libs/@local/petrinaut-optimizer-core/python/tests",
     "libs/@local/petrinaut-python/tests",
 ]
 pythonpath = [
     "apps/petrinaut-opt",
     "libs/@local/petrinaut-python",
-    "libs/@local/petrinaut-optimizer-core",
+    "libs/@local/petrinaut-optimizer-core/python",
 ]
 
 [tool.turbo]

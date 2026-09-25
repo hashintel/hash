@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "petrinaut-optimizer-core#manifest"]
+    },
     "doc:architecture": {
       // The annotations this reads are source comments in the packages it depends
       // on; `^manifest` carries their sources into the hash.

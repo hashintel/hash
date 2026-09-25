@@ -64,8 +64,8 @@ export const config: ArchitectureConfig = {
       language: "python",
     },
     {
-      name: "@local/petrinaut-optimizer-core",
-      path: "libs/@local/petrinaut-optimizer-core",
+      name: "petrinaut-optimizer-core",
+      path: "libs/@local/petrinaut-optimizer-core/python",
       description:
         "Optuna study construction, suggestion and ask/tell loop shared by the optimizer service and the browser worker. Pure Python; runs under CPython and Pyodide.",
       language: "python",

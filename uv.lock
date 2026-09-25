@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 4
 requires-python = "==3.14.*"
 
 [options]
@@ -345,16 +345,6 @@ dev = [
     { name = "ruff" },
     { name = "tach" },
     { name = "ty" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.1.1,<10" },
-    { name = "ruff", specifier = ">=0.16.8,<0.17" },
-    { name = "tach", specifier = ">=0.35,<0.36" },
-    { name = "ty", specifier = ">=0.0.82,<0.1" },
 ]
 
 [[package]]
@@ -801,34 +791,13 @@ dev = [
     { name = "httpx" },
 ]
 
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.128.8" },
-    { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.44.0" },
-    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.44.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
-    { name = "optuna", specifier = ">=4.9,<5" },
-    { name = "petrinaut-optimizer-core", editable = "libs/@local/petrinaut-optimizer-core" },
-    { name = "petrinaut-python", editable = "libs/@local/petrinaut-python" },
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.39.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "httpx", specifier = ">=0.28" }]
-
 [[package]]
 name = "petrinaut-optimizer-core"
 version = "0.1.0"
-source = { editable = "libs/@local/petrinaut-optimizer-core" }
+source = { editable = "libs/@local/petrinaut-optimizer-core/python" }
 dependencies = [
     { name = "optuna" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "optuna", specifier = ">=4.9,<5" }]
 
 [[package]]
 name = "petrinaut-python"
@@ -847,19 +816,6 @@ sympy = [
 dev = [
     { name = "datamodel-code-generator" },
     { name = "sympy" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.13" },
-]
-provides-extras = ["sympy"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "datamodel-code-generator", specifier = ">=0.74.0" },
-    { name = "sympy", specifier = ">=1.13" },
 ]
 
 [[package]]

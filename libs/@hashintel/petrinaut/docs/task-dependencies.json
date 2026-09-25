@@ -16,7 +16,8 @@
         "@local/petrinaut-optimizer-client#build"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "dev": {
@@ -29,7 +30,8 @@
       "cache": false,
       "persistent": true,
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
@@ -41,7 +43,8 @@
         "@local/petrinaut-optimizer-client#build"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -56,7 +59,8 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
@@ -67,7 +71,8 @@
         "@local/petrinaut-optimizer-client#build"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -81,7 +86,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     }
   }

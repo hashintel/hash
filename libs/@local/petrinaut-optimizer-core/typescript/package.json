@@ -1,0 +1,19 @@
+{
+  "name": "@local/petrinaut-optimizer-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Python optimizer sources and runtime configuration for the Petrinaut browser bundle",
+  "license": "(MIT OR Apache-2.0)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    "./python/*": "./dist/python/*",
+    "./runtime-lock.json": "./dist/runtime-lock.json",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  }
+}

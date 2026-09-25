@@ -11,7 +11,8 @@
         "codegen"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "codegen": {
@@ -26,7 +27,8 @@
         "codegen"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -38,7 +40,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     }
   }
