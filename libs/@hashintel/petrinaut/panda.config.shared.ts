@@ -22,15 +22,6 @@ export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
   return (specifier: string) => require.resolve(specifier);
 };
 
-export const resolveDsComponentsBuildInfoPath = (
-  resolve: (specifier: string) => string,
-  platform: NodeJS.Platform = process.platform,
-) => {
-  const path = resolve(DS_COMPONENTS_BUILD_INFO_SUBPATH);
-
-  return platform === "win32" ? path.replaceAll("\\", "/") : path;
-};
-
 export const createPetrinautPandaConfig = (
   dsComponentsBuildInfoPath: string,
 ) => {
