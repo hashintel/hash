@@ -108,12 +108,12 @@
                   ]
                 }
               ],
-              "description": "Authentication is temporarily unavailable. Retry later.",
+              "description": "Authentication is temporarily unavailable.",
               "title": "Service Unavailable"
             }
           }
         },
-        "description": "Authentication is temporarily unavailable. Retry later."
+        "description": "Authentication is temporarily unavailable."
       },
       "TooManyRequests": {
         "content": {
@@ -308,11 +308,11 @@
         "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
         "properties": {
           "detail": {
-            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\n\nUse extension members for structured information.",
             "type": "string"
           },
           "instance": {
-            "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+            "description": "A URI reference identifying this occurrence.\n\nIt may identify the occurrence without resolving to further information.",
             "format": "uri-reference",
             "type": "string"
           },
@@ -321,12 +321,12 @@
             "type": "integer"
           },
           "title": {
-            "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+            "description": "A short, human-readable summary of the problem type.\n\nKeep it the same across occurrences, except for localization.",
             "type": "string"
           },
           "type": {
             "default": "about:blank",
-            "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+            "description": "A URI reference identifying the problem type.\n\nUse `about:blank` when the HTTP status code fully describes the problem type. If `type` is\nomitted during deserialization, it defaults to `about:blank`.",
             "format": "uri-reference",
             "type": "string"
           }

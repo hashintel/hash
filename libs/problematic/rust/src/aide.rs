@@ -43,8 +43,10 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
     }
 }
 
-/// Documents every variant of `K` at its own status, wherever `aide` meets the rejection: in the
-/// return type of a handler, through [`inferred_responses`](Self::inferred_responses), or in a
+/// Documents every variant of `K` at its own status.
+///
+/// The variants are documented wherever `aide` meets the rejection: in the return type of a
+/// handler, through [`inferred_responses`](Self::inferred_responses), or in a
 /// [`TransformOperation`](aide::transform::TransformOperation) method given `Rejection<K>`, such
 /// as `response::<N, Rejection<K>>()`. Such a method documents nothing at `N`, and the `_with`
 /// methods do not apply their transform. `aide` documents no rejection of a handler while response
@@ -92,8 +94,10 @@ struct Fragment {
     description: Option<String>,
     schema: Schema,
     example: Option<serde_json::Value>,
-    /// The headers the variant lists. A variant read back from a response lists none, as the
-    /// response keeps its headers apart from its variants.
+    /// The headers the variant lists.
+    ///
+    /// A variant read back from a response lists none, as the response keeps its headers apart
+    /// from its variants.
     headers: Vec<HeaderFragment>,
 }
 

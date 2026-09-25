@@ -123,7 +123,7 @@ impl ProblemVariant for Unauthorized<'_> {
     }
 }
 
-/// Authentication is temporarily unavailable. Retry later.
+/// Authentication is temporarily unavailable.
 #[derive(derive_more::Display, serde::Serialize, schemars::JsonSchema)]
 #[display("{}", detail(kind))]
 struct ServiceUnavailable<'r> {

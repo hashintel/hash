@@ -24,15 +24,17 @@ fn status_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[schemars(title = "Problem Details")]
 pub struct ProblemDetails<'a, E = ()> {
-    /// A URI reference identifying the problem type. Use `about:blank` when the HTTP status code
-    /// fully describes the problem type. If `type` is omitted during deserialization, it defaults
-    /// to `about:blank`.
+    /// A URI reference identifying the problem type.
+    ///
+    /// Use `about:blank` when the HTTP status code fully describes the problem type. If `type` is
+    /// omitted during deserialization, it defaults to `about:blank`.
     #[serde(rename = "type", borrow, default = "default_type_uri")]
     #[schemars(extend("format" = "uri-reference"))]
     pub type_uri: Cow<'a, str>,
 
-    /// A short, human-readable summary of the problem type. Keep it the same across occurrences,
-    /// except for localization.
+    /// A short, human-readable summary of the problem type.
+    ///
+    /// Keep it the same across occurrences, except for localization.
     #[serde(borrow)]
     pub title: Cow<'a, str>,
 
@@ -45,6 +47,7 @@ pub struct ProblemDetails<'a, E = ()> {
     pub status: StatusCode,
 
     /// A human-readable explanation of this occurrence that helps the client correct the problem.
+    ///
     /// Use extension members for structured information.
     #[serde(
         borrow,
@@ -55,8 +58,9 @@ pub struct ProblemDetails<'a, E = ()> {
     #[schemars(required)]
     pub detail: Option<Cow<'a, str>>,
 
-    /// A URI reference identifying this occurrence. It may identify the occurrence without
-    /// resolving to further information.
+    /// A URI reference identifying this occurrence.
+    ///
+    /// It may identify the occurrence without resolving to further information.
     #[serde(
         borrow,
         default,
