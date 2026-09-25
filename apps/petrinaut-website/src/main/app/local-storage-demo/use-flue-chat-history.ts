@@ -27,17 +27,13 @@ export type FlueHistorySnapshot = FlueConversationState & {
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
   clientToolNames: ReadonlySet<string>,
-  asyncClientToolNames?: ReadonlySet<string>,
   dynamicClientToolNames?: ReadonlySet<string>,
-  validatedClientToolNames?: ReadonlySet<string>,
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
     clientToolNames,
-    asyncClientToolNames,
     dynamicClientToolNames,
-    validatedClientToolNames,
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
@@ -45,8 +41,6 @@ export const useFlueChatHistory = (
   conversationId: string,
   clientToolNames: ReadonlySet<string> = canonicalPetrinautClientToolNames,
   dynamicClientToolNames?: ReadonlySet<string>,
-  validatedClientToolNames?: ReadonlySet<string>,
-  asyncClientToolNames?: ReadonlySet<string>,
 ): {
   readonly error: Error | undefined;
   readonly latestSettlement: FlueConversationSettlement | undefined;
@@ -142,9 +136,7 @@ export const useFlueChatHistory = (
         : projectPetrinautMessages(
             conversation,
             clientToolNames,
-            asyncClientToolNames,
             dynamicClientToolNames,
-            validatedClientToolNames,
           ),
     phase: observation?.phase,
     ready,

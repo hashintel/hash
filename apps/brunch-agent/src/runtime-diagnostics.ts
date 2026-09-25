@@ -23,7 +23,6 @@ type DiagnosticStage =
   | "flue.submission"
   | "flue.recovery"
   | "flue.log"
-  | "client-tool-result.parse"
   | "why.explain"
   | "http.admission-body"
   | "provider.accounting"

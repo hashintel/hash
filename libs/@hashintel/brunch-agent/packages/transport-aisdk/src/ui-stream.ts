@@ -7,12 +7,8 @@ import type { UIMessageChunk } from "ai";
 /** How client-executed tools project into the AI SDK UI, live or from history. */
 export interface ClientToolProjectionOptions {
   readonly clientToolNames: ReadonlySet<string>;
-  /** Calls executed during the same Flue turn; their outcome is provider-executed for AI SDK. */
-  readonly asyncClientToolNames?: ReadonlySet<string>;
   /** Host-defined tools that are not part of the AI SDK's static tool registry. */
   readonly dynamicClientToolNames?: ReadonlySet<string>;
-  /** These client calls are not executable until their server tool has succeeded. */
-  readonly validatedClientToolNames?: ReadonlySet<string>;
   readonly mapClientToolInput?: (
     call: Pick<
       Extract<ConversationStreamChunk, { type: "tool-input" }>,
@@ -80,11 +76,6 @@ export const createFlueUiStream = (
   let partOrdinal = 0;
   let streamingPart: StreamingPart | undefined;
   const toolNamesByCallId = new Map<string, string>();
-  const pendingClientToolCallIds = new Set<string>();
-  const awaitingValidation = new Map<
-    string,
-    Extract<ConversationStreamChunk, { type: "tool-input" }>
-  >();
   const admittedToolCallIds = new Set<string>();
   const terminalLiveTurns = new Set<string>();
   const speculativeToolCalls = new Map<
@@ -92,27 +83,6 @@ export const createFlueUiStream = (
     { readonly toolName: string; readonly turnId: string }
   >();
   const bufferedLiveEvents = new Map<string, LiveToolStreamEvent[]>();
-  const publishClientInput = (
-    chunk: Extract<ConversationStreamChunk, { type: "tool-input" }>,
-  ) => {
-    options.write({
-      type: "tool-input-available",
-      toolCallId: chunk.toolCallId,
-      toolName: chunk.toolName,
-      input:
-        options.mapClientToolInput === undefined
-          ? chunk.input
-          : options.mapClientToolInput({
-              input: chunk.input,
-              toolName: chunk.toolName,
-              toolCallId: chunk.toolCallId,
-            }),
-      ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
-        ? { dynamic: true }
-        : {}),
-    });
-  };
-
   const finishPart = (): void => {
     if (!streamingPart) return;
     options.write({
@@ -320,14 +290,6 @@ export const createFlueUiStream = (
           ) {
             canonicalMessageId = chunk.messageId;
             return;
-          } else if (
-            canonicalMessageId !== undefined &&
-            chunk.messageId !== canonicalMessageId &&
-            pendingClientToolCallIds.size > 0
-          ) {
-            // Flue may append a waiting reply after yielding to the browser.
-            // An empty trailing AI SDK step would strand the client tool.
-            return;
           }
           canonicalMessageId = chunk.messageId;
           finishTurn();
@@ -352,8 +314,7 @@ export const createFlueUiStream = (
             case "completed":
               options.write({
                 type: "finish",
-                finishReason:
-                  pendingClientToolCallIds.size > 0 ? "tool-calls" : "stop",
+                finishReason: "stop",
               });
               break;
             case "failed":
@@ -400,28 +361,6 @@ export const createFlueUiStream = (
           toolNamesByCallId.set(chunk.toolCallId, chunk.toolName);
           admittedToolCallIds.add(chunk.toolCallId);
           const isClientTool = options.clientToolNames.has(chunk.toolName);
-          if (
-            isClientTool &&
-            !options.asyncClientToolNames?.has(chunk.toolName)
-          )
-            pendingClientToolCallIds.add(chunk.toolCallId);
-          if (
-            isClientTool &&
-            options.validatedClientToolNames?.has(chunk.toolName)
-          ) {
-            awaitingValidation.set(chunk.toolCallId, chunk);
-            if (!speculativeToolCalls.delete(chunk.toolCallId)) {
-              options.write({
-                type: "tool-input-start",
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
-                  ? { dynamic: true }
-                  : {}),
-              });
-            }
-            return;
-          }
           speculativeToolCalls.delete(chunk.toolCallId);
           options.write({
             type: "tool-input-available",
@@ -444,13 +383,6 @@ export const createFlueUiStream = (
         }
         case "tool-output": {
           if (!accepting || messageId === undefined) return;
-          const validated = awaitingValidation.get(chunk.toolCallId);
-          if (validated) {
-            awaitingValidation.delete(chunk.toolCallId);
-            publishClientInput(validated);
-            return;
-          }
-          if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           const result = chunk.output;
           options.write({
             type: "tool-output-available",
@@ -475,9 +407,6 @@ export const createFlueUiStream = (
             toolName: toolNamesByCallId.get(chunk.toolCallId),
             errorText: chunk.errorText,
           });
-          if (awaitingValidation.delete(chunk.toolCallId)) {
-            pendingClientToolCallIds.delete(chunk.toolCallId);
-          } else if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-error",
             toolCallId: chunk.toolCallId,

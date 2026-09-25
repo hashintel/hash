@@ -353,24 +353,4 @@ describe("runtime diagnostics observer", () => {
       message: expect.stringContaining(SENTINEL) as string,
     });
   });
-
-  test("notes classify dropped external data without carrying it", () => {
-    const sink = createSink();
-    const diagnostics = createRuntimeDiagnostics(sink, "production");
-    diagnostics.note("client-tool-result.parse", {
-      kind: "dropped-members",
-      dropped: 1,
-      total: 3,
-      instanceId: undefined,
-    });
-    expect(sink.warn).toHaveBeenCalledWith(
-      "[brunch] client-tool-result.parse",
-      {
-        stage: "client-tool-result.parse",
-        kind: "dropped-members",
-        dropped: 1,
-        total: 3,
-      },
-    );
-  });
 });

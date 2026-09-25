@@ -1,6 +1,8 @@
-import { type BrowserBinding } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
-  createExperimentToolName,
+  type BrowserBinding,
+  browserToolMutatesDocument,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas,
@@ -249,10 +251,7 @@ export const createCanonicalPetrinautHostTools = (
       const changed =
         revisionBefore !== undefined &&
         revisionBefore !== revisionAfter &&
-        toolName !== createExperimentToolName &&
-        toolName !== getLatestNetDefinitionToolName &&
-        toolName !== getNetCompilationErrorsToolName &&
-        toolName !== "readPetrinautDoc";
+        (toolName === undefined || browserToolMutatesDocument(toolName));
       if (changed)
         await input.settleRevision({
           documentId: input.binding.documentId,

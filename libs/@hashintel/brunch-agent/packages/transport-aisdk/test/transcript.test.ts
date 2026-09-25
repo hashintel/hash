@@ -1,8 +1,6 @@
 import { expect, test } from "vitest";
 
-import { brunchSignals } from "@hashintel/brunch-agent/constants";
-
-import { snapshotToUiMessages, type ClientToolResult } from "../src";
+import { snapshotToUiMessages } from "../src";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -23,7 +21,7 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
           toolName: "readPetrinautDoc",
           state: "output-available",
           input: { doc: "ai-assistant" },
-          output: { awaiting: "client" },
+          output: { brunchBrowserResult: true, output: "Page text" },
         },
       ],
     },
@@ -34,57 +32,6 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
 const projectionOptions = {
   clientToolNames: new Set(["readPetrinautDoc"]),
 };
-
-test("retains Voice origins from folded continuation messages", () => {
-  const messages: FlueConversationSnapshot["messages"] = [];
-  for (const ordinal of [1, 2]) {
-    messages.push(
-      {
-        id: `assistant-${ordinal}`,
-        role: "assistant",
-        purpose: "assistant",
-        display: "visible",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolCallId: `tool-${ordinal}`,
-            toolName: "readPetrinautDoc",
-            state: "output-available",
-            input: { doc: "ai-assistant" },
-            output: { awaiting: "client" },
-          },
-        ],
-      },
-      {
-        id: `signal-${ordinal}`,
-        role: "system",
-        purpose: "dispatch",
-        display: "hidden",
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            state: "done",
-            text: JSON.stringify([
-              {
-                toolCallId: `tool-${ordinal}`,
-                toolName: "readPetrinautDoc",
-                output: "A spoken answer",
-                source: "voice",
-              } satisfies ClientToolResult,
-            ]),
-          },
-        ],
-      },
-    );
-  }
-  expect(snapshotToUiMessages({ messages }, projectionOptions)).toMatchObject([
-    {
-      id: "assistant-1",
-      metadata: { source: "voice", voiceToolCallIds: ["tool-1", "tool-2"] },
-    },
-  ]);
-});
 
 test("marks only the durably aborted assistant response stopped after reopen", () => {
   const snapshot: FlueConversationSnapshot = {
@@ -131,25 +78,6 @@ test("marks only the durably aborted assistant response stopped after reopen", (
   ).toBeUndefined();
 });
 
-test("leaves an unfinished client tool available to run", () => {
-  expect(
-    snapshotToUiMessages(snapshotWithPendingClientTool, projectionOptions),
-  ).toEqual([
-    {
-      id: "assistant-1",
-      role: "assistant",
-      parts: [
-        {
-          type: "tool-readPetrinautDoc",
-          toolCallId: "tool-doc-1",
-          state: "input-available",
-          input: { doc: "ai-assistant" },
-        },
-      ],
-    },
-  ]);
-});
-
 test("rehydrates host-defined client tools as dynamic", () => {
   expect(
     snapshotToUiMessages(snapshotWithPendingClientTool, {
@@ -165,146 +93,13 @@ test("rehydrates host-defined client tools as dynamic", () => {
           type: "dynamic-tool",
           toolName: "readPetrinautDoc",
           toolCallId: "tool-doc-1",
-          state: "input-available",
+          state: "output-available",
           input: { doc: "ai-assistant" },
+          output: "Page text",
+          providerExecuted: true,
         },
       ],
     },
-  ]);
-});
-
-test("keeps a pending client tool on the final assistant message", () => {
-  const snapshot: FlueConversationSnapshot = {
-    ...snapshotWithPendingClientTool,
-    messages: [
-      ...snapshotWithPendingClientTool.messages,
-      {
-        id: "assistant-waiting",
-        role: "assistant",
-        purpose: "assistant",
-        display: "visible",
-        parts: [
-          {
-            type: "text",
-            text: "Waiting for the browser.",
-            state: "done",
-          },
-        ],
-      },
-    ],
-  };
-
-  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
-    {
-      id: "assistant-1",
-      role: "assistant",
-      parts: [
-        {
-          type: "tool-readPetrinautDoc",
-          toolCallId: "tool-doc-1",
-          state: "input-available",
-          input: { doc: "ai-assistant" },
-        },
-        { type: "step-start" },
-        {
-          type: "text",
-          text: "Waiting for the browser.",
-          state: "done",
-        },
-      ],
-    },
-  ]);
-});
-
-test("uses a recorded browser result even when it is null", () => {
-  const snapshot: FlueConversationSnapshot = {
-    ...snapshotWithPendingClientTool,
-    messages: [
-      ...snapshotWithPendingClientTool.messages,
-      {
-        id: "signal-1",
-        role: "system",
-        purpose: "dispatch",
-        display: "hidden",
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            text: '[{"toolCallId":"tool-doc-1","toolName":"readPetrinautDoc","output":null}]',
-            state: "done",
-          },
-        ],
-      },
-    ],
-  };
-
-  expect(snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts).toEqual([
-    {
-      type: "tool-readPetrinautDoc",
-      toolCallId: "tool-doc-1",
-      state: "output-available",
-      input: { doc: "ai-assistant" },
-      output: null,
-    },
-  ]);
-});
-
-test("reconstructs durable voice provenance for each browser result", () => {
-  const snapshot: FlueConversationSnapshot = {
-    ...snapshotWithPendingClientTool,
-    messages: [
-      {
-        ...snapshotWithPendingClientTool.messages[0]!,
-        parts: [
-          ...snapshotWithPendingClientTool.messages[0]!.parts,
-          {
-            type: "dynamic-tool",
-            toolCallId: "tool-doc-2",
-            toolName: "readPetrinautDoc",
-            state: "output-available",
-            input: { doc: "ai-assistant" },
-            output: { awaiting: "client" },
-          },
-        ],
-      },
-      {
-        id: "signal-voice-results",
-        role: "system",
-        purpose: "dispatch",
-        display: "hidden",
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            text: JSON.stringify([
-              {
-                toolCallId: "tool-doc-1",
-                toolName: "readPetrinautDoc",
-                output: "First guide",
-                source: "voice",
-              },
-              {
-                toolCallId: "tool-doc-2",
-                toolName: "readPetrinautDoc",
-                output: "Second guide",
-                source: "voice",
-              },
-            ]),
-            state: "done",
-          },
-        ],
-      },
-    ],
-  };
-
-  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
-    expect.objectContaining({
-      id: "assistant-1",
-      metadata: {
-        source: "voice",
-        voiceToolCallIds: ["tool-doc-1", "tool-doc-2"],
-      },
-    }),
   ]);
 });
 
@@ -374,150 +169,4 @@ test("keeps a rehydrated server tool provider-executed while it still runs", () 
       providerExecuted: true,
     },
   ]);
-});
-
-test("folds a client-tool continuation into the assistant message it resumed", () => {
-  const snapshot: FlueConversationSnapshot = {
-    ...snapshotWithPendingClientTool,
-    messages: [
-      {
-        id: "user-1",
-        role: "user",
-        purpose: "user",
-        display: "visible",
-        parts: [{ type: "text", text: "Read the guide.", state: "done" }],
-      },
-      ...snapshotWithPendingClientTool.messages,
-      {
-        id: "signal-1",
-        role: "system",
-        purpose: "dispatch",
-        display: "hidden",
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            text: '[{"toolCallId":"tool-doc-1","toolName":"readPetrinautDoc","output":"The guide."}]',
-            state: "done",
-          },
-        ],
-      },
-      {
-        id: "assistant-2",
-        role: "assistant",
-        purpose: "assistant",
-        display: "visible",
-        parts: [{ type: "text", text: "The guide says hello.", state: "done" }],
-      },
-      {
-        id: "user-2",
-        role: "user",
-        purpose: "user",
-        display: "visible",
-        parts: [{ type: "text", text: "Thanks.", state: "done" }],
-      },
-      {
-        id: "assistant-3",
-        role: "assistant",
-        purpose: "assistant",
-        display: "visible",
-        parts: [{ type: "text", text: "You are welcome.", state: "done" }],
-      },
-    ],
-  };
-
-  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
-    {
-      id: "user-1",
-      role: "user",
-      parts: [{ type: "text", text: "Read the guide.", state: "done" }],
-    },
-    {
-      id: "assistant-1",
-      role: "assistant",
-      parts: [
-        {
-          type: "tool-readPetrinautDoc",
-          toolCallId: "tool-doc-1",
-          state: "output-available",
-          input: { doc: "ai-assistant" },
-          output: "The guide.",
-        },
-        { type: "step-start" },
-        { type: "text", text: "The guide says hello.", state: "done" },
-      ],
-    },
-    {
-      id: "user-2",
-      role: "user",
-      parts: [{ type: "text", text: "Thanks.", state: "done" }],
-    },
-    {
-      id: "assistant-3",
-      role: "assistant",
-      parts: [{ type: "text", text: "You are welcome.", state: "done" }],
-    },
-  ]);
-});
-
-test("treats reordered object keys as the same browser result and refuses a changed payload", () => {
-  const pending = snapshotWithPendingClientTool.messages[0]!;
-  const delivery = (text: string): FlueConversationSnapshot => ({
-    ...snapshotWithPendingClientTool,
-    messages: [
-      pending,
-      {
-        id: "signal-first",
-        role: "system",
-        purpose: "dispatch",
-        display: "hidden",
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            state: "done",
-            text: JSON.stringify([
-              {
-                toolCallId: "tool-doc-1",
-                toolName: "readPetrinautDoc",
-                output: { markdown: "Saved", ordinal: 1 },
-              },
-            ]),
-          },
-        ],
-      },
-      {
-        id: "signal-second",
-        role: "system",
-        purpose: "dispatch",
-        display: "hidden",
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [{ type: "text", state: "done", text }],
-      },
-    ],
-  });
-  const partOf = (snapshot: FlueConversationSnapshot) =>
-    snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts[0];
-  expect(
-    partOf(
-      delivery(
-        '[{"output":{"ordinal":1,"markdown":"Saved"},"toolName":"readPetrinautDoc","toolCallId":"tool-doc-1"}]',
-      ),
-    ),
-  ).toMatchObject({
-    toolCallId: "tool-doc-1",
-    state: "output-available",
-    output: { markdown: "Saved", ordinal: 1 },
-  });
-  expect(
-    partOf(
-      delivery(
-        '[{"toolCallId":"tool-doc-1","toolName":"readPetrinautDoc","output":{"markdown":"Changed","ordinal":1}}]',
-      ),
-    ),
-  ).toMatchObject({
-    state: "output-error",
-    errorText:
-      "Conflicting browser result deliveries; the outcome is unknown. Do not reapply.",
-  });
 });

@@ -284,26 +284,6 @@ test.each(["Dismiss", "Run"] as const)(
             },
           ],
         },
-        {
-          id: "dispatch-read",
-          display: "hidden",
-          role: "system",
-          purpose: "dispatch",
-          signal: { tagName: "client-tool-result" },
-          parts: [
-            {
-              type: "text",
-              text: JSON.stringify([
-                {
-                  toolCallId: "read-1",
-                  toolName: "getLatestNetDefinition",
-                  output: readOutput,
-                  metadata: readMetadata,
-                },
-              ]),
-            },
-          ],
-        },
       ],
     } as FlueConversationState;
     const agentUrl = "http://local.test/agents/chat/instance";

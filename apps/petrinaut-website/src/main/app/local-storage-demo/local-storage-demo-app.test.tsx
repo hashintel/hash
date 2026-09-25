@@ -1204,16 +1204,11 @@ describe("local storage demo Brunch controls", () => {
         readonly construction?: { readonly binding?: unknown };
       };
       readonly clientToolNames?: ReadonlySet<string>;
-      readonly asyncClientToolNames?: ReadonlySet<string>;
       readonly dynamicClientToolNames?: ReadonlySet<string>;
       readonly mapClientToolInput?: (call: {
         input: unknown;
         toolCallId: string;
         toolName: string;
-      }) => unknown;
-      readonly clientToolResultMetadata?: (result: {
-        toolCallId: string;
-        output: unknown;
       }) => unknown;
     };
 
@@ -1255,10 +1250,7 @@ describe("local storage demo Brunch controls", () => {
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual([brunchTools.draftPetrinautExperiment]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
-    // Every Brunch browser tool, the draft included, settles in band.
-    expect(
-      [...(transportOptions.asyncClientToolNames ?? [])].toSorted(),
-    ).toEqual([...integratedPetrinautClientToolNames].toSorted());
+    // Every configured Brunch browser tool, the draft included, settles in band.
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(
       true,
     );

@@ -1,14 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { brunchSignals } from "@hashintel/brunch-agent/constants";
-
 import {
   clientToolHistoryFrom,
   type ClientToolHistoryMessage,
 } from "../src/client-tool-history";
 
 describe("clientToolHistoryFrom", () => {
-  test("projects an in-band Flue browser outcome without synthesizing a client-result signal", () => {
+  test("projects an in-band Flue browser outcome with its host metadata", () => {
     const messages: readonly ClientToolHistoryMessage[] = [
       {
         parts: [
@@ -46,7 +44,7 @@ describe("clientToolHistoryFrom", () => {
     });
   });
 
-  test("projects generic calls and correlated client result envelopes", () => {
+  test("ignores non-object call inputs and non-browser outputs", () => {
     const messages: readonly ClientToolHistoryMessage[] = [
       {
         parts: [
@@ -54,77 +52,13 @@ describe("clientToolHistoryFrom", () => {
             type: "dynamic-tool",
             toolName: "addArc",
             toolCallId: "call-1",
-            state: "input-available",
-            input: { placeId: "place-1" },
-          },
-        ],
-      },
-      {
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            state: "done",
-            text: JSON.stringify([
-              {
-                toolName: "addArc",
-                toolCallId: "call-1",
-                output: { applied: true },
-              },
-            ]),
-          },
-        ],
-      },
-    ];
-    expect(clientToolHistoryFrom(messages)).toEqual({
-      calls: [
-        {
-          input: { placeId: "place-1" },
-          toolCallId: "call-1",
-          toolName: "addArc",
-        },
-      ],
-      results: [
-        {
-          output: { applied: true },
-          toolCallId: "call-1",
-          toolName: "addArc",
-        },
-      ],
-    });
-  });
-
-  test("ignores non-object call inputs and malformed result bodies", () => {
-    const messages: readonly ClientToolHistoryMessage[] = [
-      {
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "addArc",
-            toolCallId: "call-1",
-            state: "input-available",
+            state: "output-available",
             input: "not-an-object",
-          },
-        ],
-      },
-      {
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [{ type: "text", state: "done", text: "not-json" }],
-      },
-      {
-        signal: { tagName: brunchSignals.clientToolResult },
-        parts: [
-          {
-            type: "text",
-            state: "done",
-            text: JSON.stringify([{ toolCallId: "call-1" }]),
+            output: { applied: true },
           },
         ],
       },
     ];
-    expect(clientToolHistoryFrom(messages)).toEqual({
-      calls: [],
-      results: [],
-    });
+    expect(clientToolHistoryFrom(messages)).toEqual({ calls: [], results: [] });
   });
 });

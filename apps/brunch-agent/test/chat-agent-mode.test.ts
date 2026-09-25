@@ -88,6 +88,20 @@ test("I mounts the complete canonical catalogue plus Brunch workpiece and draft"
   expect(mounted.instructions).toContain(petrinautAiCapabilityGuidance);
 });
 
+test("a no-mode conversation mounts the SDCPN skill without browser tools", async () => {
+  const { ChatAgent: renderChatAgent } =
+    await import("../src/agents/chat-agent/agent.ts");
+  renderChatAgent({ id: "no-mode" });
+  expect(mounted.skills).toContain("sdcpn-modelling");
+  expect(mounted.tools).not.toContain(brunchTools.draftPetrinautExperiment);
+  expect(mounted.tools).not.toContain("readPetrinautDoc");
+  expect(mounted.instructions).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining("This conversation has no browser tools"),
+    ]),
+  );
+});
+
 test("only integrated mode is admitted with immutable document bindings", () => {
   expect(
     v.parse(sdcpnInitialDataSchema, {

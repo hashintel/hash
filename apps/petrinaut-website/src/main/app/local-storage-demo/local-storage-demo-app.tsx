@@ -22,7 +22,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { brunchModes, brunchTools } from "@hashintel/brunch-agent/constants";
+import { brunchModes } from "@hashintel/brunch-agent/constants";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -71,10 +71,7 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
-import {
-  canonicalPetrinautClientToolNames,
-  integratedPetrinautClientToolNames,
-} from "./brunch-client-tools";
+import { integratedPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -678,20 +675,10 @@ export const LocalStorageDemoApp = ({
   const integratedConstructionBrowser = productConstructionSelected
     ? constructionBrowser
     : undefined;
-  const dynamicClientToolNames = useMemo(() => {
-    if (integratedConstructionBrowser === undefined) return undefined;
-    const names = new Set([
-      "getLatestNetDefinition",
-      "getNetCompilationErrors",
-      "addPlace",
-      "addTransition",
-      "addArc",
-    ]);
-    names.add(brunchTools.draftPetrinautExperiment);
-    for (const toolName of canonicalPetrinautClientToolNames)
-      names.add(toolName);
-    return names;
-  }, [integratedConstructionBrowser]);
+  const dynamicClientToolNames =
+    integratedConstructionBrowser === undefined
+      ? undefined
+      : integratedPetrinautClientToolNames;
   const constructionClientTools = brunchSelected
     ? integratedPetrinautClientToolNames
     : undefined;
@@ -700,8 +687,6 @@ export const LocalStorageDemoApp = ({
     conversationId ?? "",
     constructionClientTools,
     dynamicClientToolNames,
-    undefined,
-    integratedPetrinautClientToolNames,
   );
   const replayBindingKey = integratedConstructionBrowser
     ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
@@ -809,7 +794,6 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
-                asyncClientToolNames: integratedPetrinautClientToolNames,
                 dynamicClientToolNames,
                 ...(canonicalHostTools === undefined
                   ? {}

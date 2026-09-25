@@ -68,7 +68,7 @@ const draft = {
   toolName: "draft_petrinaut_experiment",
   state: "output-available",
   input,
-  output: { awaiting: "client" },
+  output: { brunchBrowserResult: true, output: { prepared: true } },
 };
 const history = async () => {
   const instance = createPetrinaut({

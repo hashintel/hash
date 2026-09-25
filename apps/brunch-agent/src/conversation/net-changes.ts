@@ -1,5 +1,9 @@
 import { brunchTools } from "@hashintel/brunch-agent";
-import { parseClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  parseClientToolResultMetadata,
+  petrinautToolTargets,
+  type NetElementKind,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   generateArcId,
   getArcEndpointKey,
@@ -19,7 +23,7 @@ export interface ArcElement {
 }
 
 export interface NetElement {
-  readonly kind: string;
+  readonly kind: NetElementKind;
   readonly id: string;
   readonly arc?: ArcElement;
 }
@@ -105,16 +109,7 @@ const generatedArcId = (arc: ArcElement): string => {
 const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
   if (call.toolName === "deleteItemsByIds")
     return hasId(call.input, generatedArcId(arc));
-  if (
-    ![
-      "addArc",
-      "removeArc",
-      "updateArcWeight",
-      "updateArcType",
-      "updateArcPlace",
-    ].includes(call.toolName)
-  )
-    return false;
+  if (!petrinautToolTargets(call.toolName).includes("arc")) return false;
   const input = call.input;
   if (typeof input !== "object" || input === null) return false;
   if (!("transitionId" in input) || input.transitionId !== arc.transitionId)
@@ -132,11 +127,6 @@ const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
   );
 };
 
-const targetsKind = (toolName: string, kind: string): boolean => {
-  const token = kind.slice(0, 1).toUpperCase() + kind.slice(1);
-  return toolName.includes(token) || toolName === "deleteItemsByIds";
-};
-
 export const callsForElement = (
   snapshot: FlueConversationSnapshot,
   element: NetElement,
@@ -146,7 +136,7 @@ export const callsForElement = (
       isAppliedChange(call) &&
       (element.arc
         ? matchesArc(call, element.arc)
-        : targetsKind(call.toolName, element.kind) &&
+        : petrinautToolTargets(call.toolName).includes(element.kind) &&
           (hasId(call.input, element.id) || hasId(call.output, element.id))),
   );
 

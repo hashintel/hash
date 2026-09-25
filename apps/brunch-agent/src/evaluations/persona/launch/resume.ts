@@ -7,9 +7,7 @@ import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
 import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { isAwaitingClient } from "../../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -198,20 +196,6 @@ export const reconcilePersonaResume = async (
     (entry) => entry.submissionId === lastUser.submissionId,
   );
   assert(settlement, "Interrupted submission has not settled; do not start Pi");
-  const results = clientToolHistoryFrom(snapshot.messages).results;
-  for (const message of snapshot.messages)
-    for (const part of message.parts) {
-      if (
-        part.type === "dynamic-tool" &&
-        part.state === "output-available" &&
-        isAwaitingClient(part.output)
-      ) {
-        assert(
-          results.some((result) => result.toolCallId === part.toolCallId),
-          `Unanswered browser call ${part.toolCallId}; automatic resume is not safe`,
-        );
-      }
-    }
   const reply = snapshot.messages
     .slice(
       snapshot.messages.findIndex((message) => message.id === lastUser.id) + 1,

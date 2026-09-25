@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { brunchSignals, brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import {
   createBrunchContextProjection,
@@ -115,46 +115,6 @@ const latestSettledRevision = (
     })
     .at(-1);
 
-const clientResultSignalMeasurements = (
-  entries: readonly ContextProjectionEntry[],
-) => {
-  const projected = projectBrunchContext(entries);
-  return entries.flatMap((entry, index) => {
-    if (
-      entry.message.role !== "signal" ||
-      entry.message.type !== brunchSignals.clientToolResult
-    ) {
-      return [];
-    }
-    const projectedEntry = projected[index];
-    if (projectedEntry?.message.role !== "signal") return [];
-    let toolNames: string[] = [];
-    try {
-      const parsed: unknown = JSON.parse(entry.message.content);
-      if (Array.isArray(parsed)) {
-        toolNames = parsed.flatMap((member: unknown) =>
-          typeof member === "object" &&
-          member !== null &&
-          "toolName" in member &&
-          typeof member.toolName === "string"
-            ? [member.toolName]
-            : [],
-        );
-      }
-    } catch {
-      // Malformed signals stay unprojected and are still measured as such.
-    }
-    return [
-      {
-        entryId: entry.id,
-        toolNames,
-        beforeCharacters: entry.message.content.length,
-        defaultProjectionCharacters: projectedEntry.message.content.length,
-      },
-    ];
-  });
-};
-
 const argumentProjection = createBrunchContextProjection({
   projectSupersededWorkpieceArguments: true,
 });
@@ -167,7 +127,6 @@ const steps: {
   argumentProjectionCharacters: number;
 }[] = [];
 const revisions: (typeof steps)[number][] = [];
-let clientResultSignals: ReturnType<typeof clientResultSignalMeasurements> = [];
 let state = emptyState();
 let previousContext = "";
 let previousRevisionId: string | undefined;
@@ -200,7 +159,6 @@ for (const row of rows) {
   const withArgumentProjection = runtime.rt(conversation, {
     contextProjection: argumentProjection,
   });
-  clientResultSignals = clientResultSignalMeasurements(entries);
   const latestRevisionId = latestSettledRevision(entries);
   const measurement = {
     step: steps.length + 1,
@@ -228,21 +186,6 @@ process.stdout.write(
       canonicalBatches: rows.length,
       retainedContextSteps: steps.length,
       revisions,
-      clientResultSignals,
-      clientResultSignalTotals: clientResultSignals.reduce(
-        (totals, signal) => ({
-          signals: totals.signals + 1,
-          beforeCharacters: totals.beforeCharacters + signal.beforeCharacters,
-          defaultProjectionCharacters:
-            totals.defaultProjectionCharacters +
-            signal.defaultProjectionCharacters,
-        }),
-        {
-          signals: 0,
-          beforeCharacters: 0,
-          defaultProjectionCharacters: 0,
-        },
-      ),
       steps,
       claimBoundary:
         "Characters in canonically reduced and built model contexts. Historical defaults and canonical records are unchanged; argument projection is a default-off counterfactual pending WP-A.9.",

@@ -131,11 +131,7 @@ if (accounting) {
 // Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
-const browserToolNames = new Set([
-  ...inBandBrowserToolNames,
-  // A conversation without a mode keeps this as its one browser tool.
-  brunchTools.readPetrinautDocs,
-]);
+const browserToolNames = inBandBrowserToolNames;
 const integratedMixedToolNames = new Set([
   ...inBandBrowserToolNames,
   brunchTools.ping,

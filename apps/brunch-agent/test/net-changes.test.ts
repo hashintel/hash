@@ -127,7 +127,7 @@ const snapshot = {
           toolCallId: "draft",
           state: "output-available",
           input: {},
-          output: { awaiting: "client" },
+          output: { brunchBrowserResult: true, output: { prepared: true } },
         },
       ],
     },

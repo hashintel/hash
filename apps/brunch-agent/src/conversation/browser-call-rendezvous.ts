@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import { browserToolMutatesDocument } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import type { ClientToolResult } from "@hashintel/brunch-agent-transport-aisdk";
 
@@ -175,13 +175,7 @@ export const failBrowserCall = (input: {
   const entry = deliverableCall(input);
   if (!entry) return false;
   retire(key);
-  const readOnly = [
-    "getLatestNetDefinition",
-    "getNetCompilationErrors",
-    "readPetrinautDoc",
-    "createExperiment",
-    brunchTools.draftPetrinautExperiment,
-  ].includes(entry.toolName);
+  const readOnly = !browserToolMutatesDocument(entry.toolName);
   entry.result.reject(
     new Error(
       input.disposition === "unstarted"
