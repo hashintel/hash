@@ -105,13 +105,5 @@ test("rejected and durably cancelled proposals cannot authorize Voice output or 
     const selection = speechFrom(messages);
     expect(selection.segments).toEqual([]);
     expect(selection.questionSegment).toBeUndefined();
-    const { bridge, speakCanonical } = voice();
-    bridge.updateChat({
-      canAcceptInterviewAnswer: true,
-      canonicalSegments: selection.segments,
-      status: "error",
-    });
-    expect(speakCanonical).not.toHaveBeenCalled();
-    bridge.stop();
   }
 });

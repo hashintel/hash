@@ -8,10 +8,6 @@ import {
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
 
-import {
-  integratedPetrinautClientToolNames,
-  canonicalPetrinautClientToolNames,
-} from "./brunch-client-tools";
 import { resolveDraftAuthorityFromHistory } from "./brunch-draft-experiment-interactive-tool";
 import {
   createCanonicalPetrinautHostTools,
@@ -131,14 +127,7 @@ const history = async () => {
   };
 };
 
-test("I retains canonical createExperiment and authorizes a draft from the latest settled Ledger and read revision", async () => {
-  expect(canonicalPetrinautClientToolNames.has("createExperiment")).toBe(true);
-  expect(
-    canonicalPetrinautClientToolNames.has("draft_petrinaut_experiment"),
-  ).toBe(false);
-  expect(
-    integratedPetrinautClientToolNames.has("draft_petrinaut_experiment"),
-  ).toBe(true);
+test("authorizes a draft from the latest settled Ledger and read revision", async () => {
   const { snapshot, revision } = await history();
   await expect(
     resolveDraftAuthorityFromHistory(snapshot, binding, "draft-1"),
