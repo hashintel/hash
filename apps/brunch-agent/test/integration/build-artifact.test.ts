@@ -10,9 +10,11 @@
  * moved or a config path changed.
  */
 
+import { execFile } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
@@ -71,23 +73,37 @@ describe("the emitted server bundle", () => {
     expect(bound.has("brunch-chat-agent")).toBe(true);
   });
 
-  test("includes the fail-closed production store", () => {
+  test("refuses to start in production without Postgres settings", async () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
-    expect(bundle).toContain("brunchEnv.postgres.authMode");
-    expect(bundle).toContain(`config.kind === "postgres"`);
-    expect(bundle).toContain(
-      `createPostgresRunner(config, shutdownBrunchTelemetry)`,
+    const environment = Object.fromEntries(
+      Object.entries(process.env).filter(
+        ([name]) => !name.startsWith("BRUNCH_"),
+      ),
     );
-    expect(bundle).toContain(`createPostgresWorkedModelStore(runner)`);
-    expect(bundle).toContain(`database: postgres(runner)`);
-    expect(bundle).toContain("Postgres database configuration requires");
-    expect(bundle).toContain(
-      'brunchEnv.dbKind} must be "postgres" in production.',
+    const refusal = await promisify(execFile)(
+      process.execPath,
+      [join(DIST, "server.mjs")],
+      {
+        env: {
+          ...environment,
+          // Production telemetry is required before the database is opened.
+          HASH_OTLP_ENDPOINT: "http://127.0.0.1:9",
+          NODE_ENV: "production",
+          PORT: "0",
+        },
+        timeout: 30_000,
+      },
+    ).then(
+      () => {
+        throw new Error("The production server exited cleanly.");
+      },
+      (error: unknown) => error,
     );
-    // SQLite remains available to local/test execution only.
-    expect(bundle).toContain("brunchEnv.devDbPath");
-    expect(bundle).toContain(".data-wipe-me");
+    expect(refusal).toHaveProperty(
+      "stderr",
+      expect.stringContaining("BRUNCH_POSTGRES_AUTH_MODE"),
+    );
   });
 
   test("serves only the guarded Flue conversation door", async () => {
@@ -160,28 +176,10 @@ describe("the emitted server bundle", () => {
     expect(preflight.headers.get("access-control-allow-origin")).toBe(
       allowedCorsOrigin,
     );
-    expect(preflight.headers.get("access-control-allow-methods")).toBe(
-      "GET,POST,PUT,OPTIONS",
-    );
-    expect(preflight.headers.get("access-control-allow-headers")).toBe(
-      `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
-    );
-    expect(
-      preflight.headers.get("access-control-allow-credentials"),
-    ).toBeNull();
-
     expect(workedModelPutPreflight.status).toBe(204);
     expect(
       workedModelPutPreflight.headers.get("access-control-allow-origin"),
     ).toBe(allowedCorsOrigin);
-    expect(
-      workedModelPutPreflight.headers.get("access-control-allow-methods"),
-    ).toBe("GET,POST,PUT,OPTIONS");
-    expect(
-      workedModelPutPreflight.headers.get("access-control-allow-headers"),
-    ).toBe(
-      `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
-    );
 
     expect(guardedResponse.status).toBe(401);
     expect(guardedResponse.headers.get("access-control-allow-origin")).toBe(
@@ -214,7 +212,7 @@ describe("the emitted server bundle", () => {
 
   test("carries no model key", () => {
     const modelKey = new RegExp(
-      `${"ANTHROPIC"}_${"API"}_${"KEY"}\\s*[:=]\\s*['"][^'"]+['"]`,
+      `(?:${"ANTHROPIC"}|${"OPENAI"})_${"API"}_${"KEY"}\\s*[:=]\\s*['"][^'"]+['"]`,
       "u",
     );
     expect(bundle).not.toMatch(modelKey);

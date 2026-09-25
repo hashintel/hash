@@ -1,6 +1,6 @@
-import { createProvider, type Model } from "@earendil-works/pi-ai";
-import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
+
+import type { Model, Provider } from "@earendil-works/pi-ai";
 
 /**
  * pi-ai's OpenAI catalogue plus GPT-6 Luna, copied from the pi-ai 0.87.1 catalogue.
@@ -50,14 +50,11 @@ const gpt6Luna: Model<"openai-responses"> = {
   },
 };
 
-export const openaiProviderWithGpt6 = () => {
+/** Streams stay the catalogue provider's own, so a faux catalogue under test keeps its responses. */
+export const openaiProviderWithGpt6 = (): Provider => {
   const catalogue = openaiProvider();
-  return createProvider({
-    id: catalogue.id,
-    name: catalogue.name,
-    baseUrl: catalogue.baseUrl,
-    auth: catalogue.auth,
-    models: [...catalogue.getModels(), gpt6Luna],
-    api: openAIResponsesApi(),
-  });
+  return {
+    ...catalogue,
+    getModels: () => [...catalogue.getModels(), gpt6Luna],
+  };
 };

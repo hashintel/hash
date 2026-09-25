@@ -23,7 +23,7 @@ yarn brunch:persona --case inventory-purchasing
 
 The launcher opens a dedicated Chrome window, pauses for recording readiness, then drives the real panel with a private Pi persona. Petrinaut's stock tool calls update the visible net. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. There is no automatic budget cutoff; native usage is retained. The guide owns prerequisites, stop/resume and evidence instructions; consult it before paid execution.
 
-By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` to point at its own sqlite file. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
+By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
 The mounted Flue URL `/agents/chat/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
@@ -34,6 +34,12 @@ Print a human-readable transcript of one conversation from that same Flue histor
 ```sh
 yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
 ```
+
+## Tests
+
+`test:unit` needs nothing running. `test:integration` loads the built app with scripted OpenAI responses on the default model, and runs the worked-model store contract against the compose stack's Postgres (`POSTGRES_PORT`, `POSTGRES_USER` and `POSTGRES_PASSWORD` move it), so start that first.
+
+The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:integrated-browser` and `test:manual:stock-over-flue-browser` build the website in their mode and drive it in the local macOS Chrome against the built app. `test:manual:workpiece-evidence` writes model-facing evidence controls to a temporary directory.
 
 ## Local Postgres for fixture-producing development
 

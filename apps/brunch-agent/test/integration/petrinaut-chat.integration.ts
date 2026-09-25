@@ -12,7 +12,7 @@ import {
   fauxToolCall,
   type Provider,
 } from "@earendil-works/pi-ai";
-import { createFlueClient, FlueApiError } from "@flue/sdk";
+import { createFlueClient } from "@flue/sdk";
 
 import {
   createFlueChatTransport,
@@ -30,17 +30,12 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
-import { formatFlueTranscript } from "../../src/conversation/transcript.ts";
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
-import type {
-  PetrinautChatResult,
-  PetrinautResumeResult,
-} from "./petrinaut-chat-result";
+import type { PetrinautChatResult } from "./petrinaut-chat-result";
 import type { UIMessage, UIMessageChunk } from "ai";
 
-const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
 const clientToolNames: ReadonlySet<string> = new Set([
   brunchTools.readPetrinautDocs,
@@ -51,15 +46,10 @@ const principalKey = "principal-mission-1";
 const conversationId = "conversation-mission-1";
 const identity = { principalKey, conversationId };
 const instanceId = flueConversationIdFrom(identity);
-const dbPath =
-  process.env.BRUNCH_CHAT_DB_PATH ??
-  (await mkdtemp(join(tmpdir(), "brunch-chat-")));
-const dbFile = dbPath.endsWith(".db")
-  ? dbPath
-  : join(dbPath, "conversations.db");
-
-process.env.BRUNCH_CHAT_MODEL = CHAT_MODEL_ID;
-process.env.BRUNCH_DEV_DB_PATH = dbFile;
+process.env.BRUNCH_DEV_DB_PATH = join(
+  await mkdtemp(join(tmpdir(), "brunch-chat-")),
+  "conversations.db",
+);
 const chunksFrom = async (
   stream: ReadableStream<UIMessageChunk>,
 ): Promise<UIMessageChunk[]> => {
@@ -82,10 +72,7 @@ const userTextFromHistory = (
     .map((part) => part.text)
     .join("");
 
-const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: CHAT_MODEL_ID, reasoning: true }],
-});
+const faux = fauxProvider({ provider: "openai" });
 let providerCallCount = 0;
 installFauxProvider({
   ...faux.provider,
@@ -116,310 +103,246 @@ try {
       clientToolNames,
     });
 
-  if (process.env.BRUNCH_RESUME_PHASE === "1") {
-    const snapshot = await historyClient.history();
-    const historyMessages = projectHistory(snapshot);
-    const result: PetrinautResumeResult = {
-      historyGetStatus: 200,
-      historyUserText: userTextFromHistory(historyMessages),
-      transcript: formatFlueTranscript(snapshot),
-    };
-    process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
-  } else {
-    const packagedSkillResourcePathFrom = (
-      context: unknown,
-      fileName: string,
-    ): string => {
-      const serialized = JSON.stringify(context);
-      const match = serialized.match(
-        new RegExp(
-          `/\\.flue/packaged-skills/[^"\\s\\\\]+/${fileName.replace(".", "\\.")}`,
-        ),
-      );
-      if (match === null) {
-        throw new Error(
-          `activate_skill briefing did not advertise ${fileName}`,
-        );
-      }
-      return match[0];
-    };
-
-    faux.setResponses([
-      fauxAssistantMessage(
-        [
-          fauxThinking("Load the modelling runbook skill."),
-          fauxToolCall(
-            brunchTools.activateSkill,
-            { name: RUNBOOK_SKILL_NAME },
-            { id: "tool-skill-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
+  const packagedSkillResourcePathFrom = (
+    context: unknown,
+    fileName: string,
+  ): string => {
+    const serialized = JSON.stringify(context);
+    const match = serialized.match(
+      new RegExp(
+        `/\\.flue/packaged-skills/[^"\\s\\\\]+/${fileName.replace(".", "\\.")}`,
       ),
-      fauxAssistantMessage(
-        [
-          fauxThinking("The job skill routes universal judgment to core."),
-          fauxToolCall(
-            brunchTools.activateSkill,
-            { name: ELICITATION_SKILL_NAME },
-            { id: "tool-skill-2" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
-      (context) =>
-        fauxAssistantMessage(
-          [
-            fauxThinking("Read the SDCPN-specific elicitation profile."),
-            fauxToolCall(
-              brunchTools.readSkillResource,
-              {
-                path: packagedSkillResourcePathFrom(
-                  context,
-                  "references/profile.md",
-                ),
-              },
-              { id: "tool-resource-1" },
-            ),
-          ],
-          { stopReason: "toolUse" },
-        ),
-      fauxAssistantMessage(
-        [
-          fauxThinking("Confirm the server path, then read the guide."),
-          fauxText("Checking the server, then the docs."),
-          fauxToolCall(
-            brunchTools.ping,
-            { note: "health" },
-            { id: "tool-ping-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
-      fauxAssistantMessage(
-        [
-          fauxThinking("The ping returned. Read the user guide next."),
-          fauxToolCall(
-            brunchTools.readPetrinautDocs,
-            { doc: "ai-assistant" },
-            { id: "tool-doc-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
-      fauxAssistantMessage([
-        fauxText(
-          `The guide says the assistant can read its own documentation pages. ${question}`,
-        ),
-      ]),
-      fauxAssistantMessage([
-        fauxText("A duplicate client-tool result ran another turn."),
-      ]),
-      fauxAssistantMessage([
-        fauxText("A duplicate delivery ran another turn."),
-      ]),
-    ]);
-
-    const userMessage = {
-      id: "user-mission-1",
-      role: "user",
-      parts: [{ type: "text", text: "Run the FE-1435 transport probe." }],
-    } satisfies UIMessage;
-
-    const initialChunks = await chunksFrom(
-      await panelTransport.sendMessages({
-        trigger: "submit-message",
-        chatId: conversationId,
-        messageId: undefined,
-        messages: [userMessage],
-        abortSignal: undefined,
-      }),
     );
-    const startChunk = initialChunks.find((chunk) => chunk.type === "start");
-    const pingCall =
-      initialChunks.find(
-        (
-          chunk,
-        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === brunchTools.ping,
-      ) ?? null;
-    const activateSkillCall =
-      initialChunks.find(
-        (
-          chunk,
-        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === brunchTools.activateSkill,
-      ) ?? null;
-    const readSkillResourceCall =
-      initialChunks.find(
-        (
-          chunk,
-        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === brunchTools.readSkillResource,
-      ) ?? null;
-    const pingOutputChunk = initialChunks.find(
+    if (match === null) {
+      throw new Error(`activate_skill briefing did not advertise ${fileName}`);
+    }
+    return match[0];
+  };
+
+  faux.setResponses([
+    fauxAssistantMessage(
+      [
+        fauxThinking("Load the modelling runbook skill."),
+        fauxToolCall(
+          brunchTools.activateSkill,
+          { name: RUNBOOK_SKILL_NAME },
+          { id: "tool-skill-1" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage(
+      [
+        fauxThinking("The job skill routes universal judgment to core."),
+        fauxToolCall(
+          brunchTools.activateSkill,
+          { name: ELICITATION_SKILL_NAME },
+          { id: "tool-skill-2" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    (context) =>
+      fauxAssistantMessage(
+        [
+          fauxThinking("Read the SDCPN-specific elicitation profile."),
+          fauxToolCall(
+            brunchTools.readSkillResource,
+            {
+              path: packagedSkillResourcePathFrom(
+                context,
+                "references/profile.md",
+              ),
+            },
+            { id: "tool-resource-1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    fauxAssistantMessage(
+      [
+        fauxThinking("Confirm the server path, then read the guide."),
+        fauxText("Checking the server, then the docs."),
+        fauxToolCall(
+          brunchTools.ping,
+          { note: "health" },
+          { id: "tool-ping-1" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage(
+      [
+        fauxThinking("The ping returned. Read the user guide next."),
+        fauxToolCall(
+          brunchTools.readPetrinautDocs,
+          { doc: "ai-assistant" },
+          { id: "tool-doc-1" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage([
+      fauxText(
+        `The guide says the assistant can read its own documentation pages. ${question}`,
+      ),
+    ]),
+    fauxAssistantMessage([
+      fauxText("A duplicate client-tool result ran another turn."),
+    ]),
+    fauxAssistantMessage([fauxText("A duplicate delivery ran another turn.")]),
+  ]);
+
+  const userMessage = {
+    id: "user-mission-1",
+    role: "user",
+    parts: [{ type: "text", text: "Run the FE-1435 transport probe." }],
+  } satisfies UIMessage;
+
+  const initialChunks = await chunksFrom(
+    await panelTransport.sendMessages({
+      trigger: "submit-message",
+      chatId: conversationId,
+      messageId: undefined,
+      messages: [userMessage],
+      abortSignal: undefined,
+    }),
+  );
+  const startChunk = initialChunks.find((chunk) => chunk.type === "start");
+  const pingCall =
+    initialChunks.find(
+      (
+        chunk,
+      ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+        chunk.type === "tool-input-available" &&
+        chunk.toolName === brunchTools.ping,
+    ) ?? null;
+  const activateSkillCall =
+    initialChunks.find(
+      (
+        chunk,
+      ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+        chunk.type === "tool-input-available" &&
+        chunk.toolName === brunchTools.activateSkill,
+    ) ?? null;
+  const readSkillResourceCall =
+    initialChunks.find(
+      (
+        chunk,
+      ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+        chunk.type === "tool-input-available" &&
+        chunk.toolName === brunchTools.readSkillResource,
+    ) ?? null;
+  const pingOutputChunk = initialChunks.find(
+    (chunk) =>
+      chunk.type === "tool-output-available" &&
+      chunk.toolCallId === pingCall?.toolCallId,
+  );
+  const clientToolCall =
+    initialChunks.find(
+      (
+        chunk,
+      ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+        chunk.type === "tool-input-available" &&
+        chunk.toolName === brunchTools.readPetrinautDocs,
+    ) ?? null;
+
+  const pendingHistory = projectHistory(await historyClient.history());
+  const pendingHistoryClientToolState = pendingHistory
+    .flatMap((message) => message.parts)
+    .find(
+      (part) =>
+        "toolCallId" in part && part.toolCallId === clientToolCall?.toolCallId,
+    );
+
+  if (startChunk?.type !== "start" || clientToolCall === null) {
+    throw new Error("initial stream did not reach the client-tool pause");
+  }
+  const resumeMessages = [
+    userMessage,
+    {
+      id: startChunk.messageId,
+      role: "assistant" as const,
+      parts: [
+        {
+          type: `tool-${brunchTools.readPetrinautDocs}`,
+          toolCallId: clientToolCall.toolCallId,
+          state: "output-available",
+          input: { doc: "ai-assistant" },
+          output:
+            "# AI Assistant\nThe assistant can read its own documentation pages.",
+        },
+      ],
+    },
+  ] as UIMessage[];
+  const questionResponseCallStart = providerCallCount;
+  const resumedChunks = await chunksFrom(
+    await panelTransport.sendMessages({
+      trigger: "submit-message",
+      chatId: conversationId,
+      messageId: startChunk.messageId,
+      messages: resumeMessages,
+      abortSignal: undefined,
+    }),
+  );
+  const snapshot = await historyClient.history();
+  const userEntryIds = snapshot.messages
+    .filter((message) => message.role === "user" && message.purpose === "user")
+    .map((message) => message.id);
+  const clientToolResultCount = snapshot.messages.filter(
+    (message) =>
+      message.purpose === "dispatch" &&
+      message.signal?.tagName === brunchSignals.clientToolResult,
+  ).length;
+  const historyMessages = projectHistory(snapshot);
+
+  const result: PetrinautChatResult = {
+    messageId: startChunk.messageId,
+    partIds: initialChunks
+      .filter(
+        (chunk) =>
+          chunk.type === "reasoning-start" || chunk.type === "text-start",
+      )
+      .map((chunk) => chunk.id),
+    reasoning: initialChunks
+      .filter((chunk) => chunk.type === "reasoning-delta")
+      .map((chunk) => chunk.delta)
+      .join(""),
+    text: initialChunks
+      .filter((chunk) => chunk.type === "text-delta")
+      .map((chunk) => chunk.delta)
+      .join(""),
+    pingCall,
+    pingOutput:
+      pingOutputChunk && pingOutputChunk.type === "tool-output-available"
+        ? pingOutputChunk.output
+        : null,
+    clientToolCall,
+    clientToolOutputsOnInitial: initialChunks.filter(
       (chunk) =>
         chunk.type === "tool-output-available" &&
-        chunk.toolCallId === pingCall?.toolCallId,
-    );
-    const clientToolCall =
-      initialChunks.find(
-        (
-          chunk,
-        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === brunchTools.readPetrinautDocs,
-      ) ?? null;
-
-    const pendingHistory = projectHistory(await historyClient.history());
-    const pendingHistoryClientToolState = pendingHistory
-      .flatMap((message) => message.parts)
-      .find(
-        (part) =>
-          "toolCallId" in part &&
-          part.toolCallId === clientToolCall?.toolCallId,
-      );
-
-    if (startChunk?.type !== "start" || clientToolCall === null) {
-      throw new Error("initial stream did not reach the client-tool pause");
-    }
-    const resumeMessages = [
-      userMessage,
-      {
-        id: startChunk.messageId,
-        role: "assistant" as const,
-        parts: [
-          {
-            type: `tool-${brunchTools.readPetrinautDocs}`,
-            toolCallId: clientToolCall.toolCallId,
-            state: "output-available",
-            input: { doc: "ai-assistant" },
-            output:
-              "# AI Assistant\nThe assistant can read its own documentation pages.",
-          },
-        ],
-      },
-    ] as UIMessage[];
-    const questionResponseCallStart = providerCallCount;
-    const resumedChunks = await chunksFrom(
-      await panelTransport.sendMessages({
-        trigger: "submit-message",
-        chatId: conversationId,
-        messageId: startChunk.messageId,
-        messages: resumeMessages,
-        abortSignal: undefined,
-      }),
-    );
-    const snapshot = await historyClient.history();
-    const userEntryIds = snapshot.messages
-      .filter(
-        (message) => message.role === "user" && message.purpose === "user",
-      )
-      .map((message) => message.id);
-    const clientToolResultCount = snapshot.messages.filter(
-      (message) =>
-        message.purpose === "dispatch" &&
-        message.signal?.tagName === brunchSignals.clientToolResult,
-    ).length;
-    const interviewerToolNames = [
-      ...new Set(
-        snapshot.messages.flatMap((message) =>
-          message.parts
-            .filter((part) => part.type === "dynamic-tool")
-            .map((part) => part.toolName),
-        ),
-      ),
-    ];
-    let unauthenticatedHistoryStatus = 0;
-    try {
-      await createFlueClient({
-        url: `http://brunch.local/agents/${brunchRoutes.chatAgent}/${instanceId}`,
-        fetch: appTransport,
-      }).history();
-    } catch (error) {
-      unauthenticatedHistoryStatus =
-        error instanceof FlueApiError ? error.status : -1;
-    }
-    let foreignAgentHistoryStatus = 0;
-    try {
-      await createFlueClient({
-        url: `http://brunch.local/agents/${brunchRoutes.chatAgent}/${instanceId}`,
-        fetch: appTransport,
-        headers: agentOwnershipHeaders({
-          principalKey: "principal-other",
-          conversationId,
-        }),
-      }).history();
-    } catch (error) {
-      foreignAgentHistoryStatus =
-        error instanceof FlueApiError ? error.status : -1;
-    }
-    const historyMessages = projectHistory(snapshot);
-    const legacyRoute = await app.fetch(
-      new Request("http://brunch.test/api/chat"),
-    );
-
-    const result: PetrinautChatResult = {
-      status: 200,
-      messageId: startChunk.messageId,
-      partIds: initialChunks
-        .filter(
-          (chunk) =>
-            chunk.type === "reasoning-start" || chunk.type === "text-start",
-        )
-        .map((chunk) => chunk.id),
-      reasoning: initialChunks
-        .filter((chunk) => chunk.type === "reasoning-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-      text: initialChunks
-        .filter((chunk) => chunk.type === "text-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-      pingCall,
-      pingOutput:
-        pingOutputChunk && pingOutputChunk.type === "tool-output-available"
-          ? pingOutputChunk.output
-          : null,
-      clientToolCall,
-      clientToolOutputsOnInitial: initialChunks.filter(
-        (chunk) =>
-          chunk.type === "tool-output-available" &&
-          chunk.toolCallId === clientToolCall.toolCallId,
-      ),
-      initialFinish: initialChunks.at(-1),
-      pendingHistoryClientToolState:
-        pendingHistoryClientToolState === undefined ||
-        !("state" in pendingHistoryClientToolState)
-          ? undefined
-          : pendingHistoryClientToolState.state,
-      resumedStatus: 200,
-      resumedText: resumedChunks
-        .filter((chunk) => chunk.type === "text-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-      resumedFinish: resumedChunks.at(-1),
-      questionResponseProviderCalls:
-        providerCallCount - questionResponseCallStart,
-      historyUserEntryCount: userEntryIds.length,
-      historyClientToolResultCount: clientToolResultCount,
-      historyGetStatus: 200,
-      historyUserText: userTextFromHistory(historyMessages),
-      legacyRouteStatus: legacyRoute.status,
-      unauthenticatedHistoryStatus,
-      foreignAgentHistoryStatus,
-      transcript: formatFlueTranscript(snapshot),
-      instanceId,
-      dbPath: dbFile,
-      activateSkillCall,
-      readSkillResourceCall,
-      interviewerToolNames,
-    };
-    process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
-  }
+        chunk.toolCallId === clientToolCall.toolCallId,
+    ),
+    initialFinish: initialChunks.at(-1),
+    pendingHistoryClientToolState:
+      pendingHistoryClientToolState === undefined ||
+      !("state" in pendingHistoryClientToolState)
+        ? undefined
+        : pendingHistoryClientToolState.state,
+    resumedText: resumedChunks
+      .filter((chunk) => chunk.type === "text-delta")
+      .map((chunk) => chunk.delta)
+      .join(""),
+    resumedFinish: resumedChunks.at(-1),
+    questionResponseProviderCalls:
+      providerCallCount - questionResponseCallStart,
+    historyUserEntryCount: userEntryIds.length,
+    historyClientToolResultCount: clientToolResultCount,
+    historyUserText: userTextFromHistory(historyMessages),
+    activateSkillCall,
+    readSkillResourceCall,
+  };
+  process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
 } finally {
   await application.stop();
 }

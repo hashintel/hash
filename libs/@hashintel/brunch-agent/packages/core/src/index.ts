@@ -20,5 +20,4 @@ export { updateWorkpieceInputSchema } from "./update-workpiece";
 export {
   createWorkpieceReadTool,
   updateWorkpieceOutputSchema,
-  workpieceReadOutputSchema,
 } from "./workpiece-tools";
