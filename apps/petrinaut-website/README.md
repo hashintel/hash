@@ -295,22 +295,15 @@ classification wait, not composer/admission wait; eligible submissions queue
 in transcript order while the composer is busy.
 
 Stopping a response cancels pending gated work; a fresh voice turn can still
-submit. Already withheld speech remains in the session for diagnostic recovery.
-
-In a development build with `?voiceDebug=1`, expand **Not sent to Brunch** to
-recover an utterance using **Send to Brunch**. Without diagnostics, withholding
-is silent: the list and recovery button are hidden. **A wrongly held answer
-cannot be recovered through the UI while diagnostics are off.**
-Recovery queues its original ID and text after already queued inputs, bypasses
-judgment, and cannot submit twice. Withheld text exists only in this voice session;
-ending voice clears it and cancels pending work. No automatic retry or replay
-occurs after reconnect. Check canonical history if admission is unconfirmed.
+submit. Withholding is silent: there is no **Not sent to Brunch** list or
+**Send to Brunch** button, even with diagnostics enabled. **A wrongly held answer
+cannot be recovered through the UI.** Ending voice clears session-local state
+and cancels pending work. No automatic retry or replay occurs after reconnect.
+Check canonical history if admission is unconfirmed.
 
 GPT-Live delegation neither chooses nor releases a transcript. Gated results
 are relayed as general session commentary, without arrival-order matching.
-This replaces automatic later-delegation recovery with explicit user recovery.
-`judgment.result` records the applied decision; `judgment.released` records a
-recovery request, not proof of admission. Both contain metadata only.
+`judgment.result` records the applied decision using metadata only.
 
 For readable browser console lines, add `?voiceDebug=1` to the page URL (or
 `&voiceDebug=1` if it already has query parameters), reload, and filter DevTools
@@ -320,27 +313,27 @@ Match lines by `inputId`: **Submission attempted** is not confirmation;
 **Reached Brunch** means Flue admitted it and supplied a `submissionId`.
 Log-only judgments say **Judgment only; submissions unchanged**, even when the
 recommendation is to withhold. Enforcement distinguishes withholding, permission
-to submit, timeout fallback, and manual release. A response failure after
+to submit, and timeout fallback. A response failure after
 admission remains **Reached Brunch; response unconfirmed**. These lines contain
 only selected metadata, never transcript or relayed prose. Remove the parameter
-or set `voiceDebug=0` and reload to disable the extra lines and recovery view;
+or set `voiceDebug=0` and reload to disable the extra lines;
 existing structured `[Petrinaut Live trace]` diagnostics remain metadata-only
 and unchanged. Held text is never moved into console logs.
 
-To check the diagnostic recovery view locally:
+To check local enforcement:
 
 1. Start the local enforcement configuration above with diagnostics off. Speak
    the support-desk script; confirm withheld inputs have metadata traces but no
    recovery list or Brunch admission.
 2. Add `voiceDebug=1`, reload, and start a new voice session. Repeat a held input;
-   expand the list and select **Send to Brunch**. Confirm its original text reaches
-   canonical history exactly once, including after a repeated click.
-3. End voice and start again. Confirm the old held items do not reappear. Reloading
-   also ends the old session; it cannot recover its discarded items.
+   confirm **Withheld by gate** appears in the console without its text, and no
+   recovery UI appears. Check meaningful short answers and corrections still
+   reach Brunch.
+3. End voice and start again. Confirm old held inputs are not replayed.
 
 The threshold and deadline are trial settings, not validated production policy.
 Before shared enablement, run the support-desk script plus contextual short
-answers; measure false withholding, recovery use, Brunch-start delay, and avoided
+answers; measure false withholding, Brunch-start delay, and avoided
 submissions. Synthetic tests do not establish classification quality, real Live
 responsiveness, or latency reliability. Shared enforcement needs separate sign-off.
 

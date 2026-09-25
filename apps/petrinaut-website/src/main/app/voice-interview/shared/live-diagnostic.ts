@@ -1,9 +1,3 @@
-/** Shared opt-in for readable console diagnostics and the held-utterance view. */
-export const isVoiceDebugEnabled = (): boolean =>
-  import.meta.env.DEV &&
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("voiceDebug") === "1";
-
 /** Local development trace only. Pass explicit metadata, never payloads or text. */
 export const logLiveDiagnostic = (
   event: string,
@@ -18,7 +12,11 @@ export const logLiveDiagnostic = (
     `[Petrinaut Live trace] ${JSON.stringify({ at: new Date().toISOString(), event, ...metadata })}`,
   );
 
-  if (!isVoiceDebugEnabled()) return;
+  if (
+    typeof window === "undefined" ||
+    new URLSearchParams(window.location.search).get("voiceDebug") !== "1"
+  )
+    return;
 
   let status: string;
   switch (event) {

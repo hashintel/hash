@@ -162,9 +162,10 @@ test.each(["log", undefined] as const)(
 test.each([
   { development: true, search: "" },
   { development: true, search: "?voiceDebug=0" },
+  { development: true, search: "?voiceDebug=1" },
   { development: false, search: "?voiceDebug=1" },
 ])(
-  "silently withholds without diagnostics: $development $search",
+  "withholds without recovery UI: $development $search",
   async ({ development, search }) => {
     vi.stubEnv("DEV", development);
     window.history.replaceState(null, "", `/${search}`);
@@ -205,7 +206,14 @@ test.each([
       } else {
         expect(trace).not.toHaveBeenCalled();
       }
-      expect(readable).not.toHaveBeenCalled();
+      if (development && search === "?voiceDebug=1") {
+        expect(readable).toHaveBeenCalledWith(
+          expect.stringContaining("Withheld by gate"),
+        );
+      } else {
+        expect(readable).not.toHaveBeenCalled();
+      }
+      expect(JSON.stringify(readable.mock.calls)).not.toContain("PRIVATE");
       expect(JSON.stringify(trace.mock.calls)).not.toContain("PRIVATE");
     } finally {
       fetch.mockRestore();
@@ -215,7 +223,7 @@ test.each([
   },
 );
 
-test("connected enforcement with diagnostics offers exact recovery, context, and clears it on session end", async () => {
+test("connected enforcement uses context without letting delegation release held speech", async () => {
   window.history.replaceState(null, "", "/?voiceDebug=1");
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
@@ -259,26 +267,14 @@ test("connected enforcement with diagnostics offers exact recovery, context, and
     expect(JSON.parse(body)).toMatchObject({
       currentInterviewQuestion: "Do five staff cover weekends?",
     });
-    expect(screen.getByText("Not sent to Brunch (1)")).toBeTruthy();
-    expect(screen.getByText("<script>PRIVATE okay</script>")).toBeTruthy();
+    expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
+    expect(screen.queryByText("<script>PRIVATE okay</script>")).toBeNull();
     expect(document.querySelector("script")).toBeNull();
     act(() => onDelegation("unmatched"));
     expect(props.submitVoiceInput).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByText("Not sent to Brunch (1)"));
-    const send = screen.getByRole("button", { name: "Send to Brunch" });
-    fireEvent.click(send);
-    fireEvent.click(send);
-    await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
-    expect(props.submitVoiceInput).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "one",
-        text: "<script>PRIVATE okay</script>",
-      }),
-    );
-    await act(async () => onInput({ id: "two", text: "hang on" }));
-    expect(screen.getByText("Not sent to Brunch (1)")).toBeTruthy();
     act(() => onState({ phase: "ended", message: null }));
-    expect(screen.queryByText("Not sent to Brunch (1)")).toBeNull();
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
   } finally {
     fetch.mockRestore();
   }
