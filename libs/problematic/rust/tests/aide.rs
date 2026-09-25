@@ -418,20 +418,30 @@ fn document_header_schemas() {
     document::<DrainStore>(&mut operation);
     let retry_after = &response(&operation, 503)["headers"]["Retry-After"];
 
-    let types = retry_after["schema"]["anyOf"]
+    let schemas = retry_after["schema"]["anyOf"]
         .as_array()
         .expect("a header the variants give different schemas should document an `anyOf` of them")
         .iter()
-        .map(|schema| schema["type"].clone())
+        .map(|schema| (schema["type"].clone(), schema["description"].clone()))
         .collect::<Vec<_>>();
     assert_eq!(
-        types,
-        ["integer", "string"],
-        "every schema of the header should be documented once"
+        schemas,
+        [
+            (
+                json!("integer"),
+                json!("Seconds before retrying the request.")
+            ),
+            (
+                json!("string"),
+                json!("The date after which to retry the request.")
+            ),
+        ],
+        "every schema of the header should be documented once, described like the first variant \
+         that gives it"
     );
-    assert_eq!(
-        retry_after["description"], "Seconds before retrying the request.",
-        "the header should be described like the first variant that lists it"
+    assert!(
+        retry_after.get("description").is_none(),
+        "the header should leave its description to its schemas"
     );
     insta::assert_binary_snapshot!(
         ".json",

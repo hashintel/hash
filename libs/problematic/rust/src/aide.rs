@@ -58,7 +58,7 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
 /// status gets an `anyOf` instead of a `oneOf`. Their branches and examples are labelled with the
 /// first paragraph of their description. A header is documented if a variant at its status lists
 /// it, and required if every one of them does. Variants that give a header different schemas
-/// document it with an `anyOf` of them, described like the first variant that lists it.
+/// document it with an `anyOf` of them, each described like the first variant that gives it.
 ///
 /// # Panics
 ///
@@ -115,37 +115,72 @@ struct HeaderFragment {
 #[derive(Debug, Clone)]
 struct DocumentedHeader {
     name: String,
-    /// The description of the first variant that lists the header.
-    description: String,
     /// Every distinct schema a variant gives the header.
-    schemas: Vec<Schema>,
+    schemas: Vec<HeaderSchema>,
     /// Whether every variant lists the header.
     required: bool,
 }
 
+/// One schema of a header, with the description of the first variant that gives it.
+#[derive(Debug, Clone)]
+struct HeaderSchema {
+    schema: Schema,
+    description: String,
+}
+
 impl DocumentedHeader {
-    /// Adds the schemas of `schema` that are not documented yet.
-    fn join(&mut self, schema: &Schema) {
-        for member in members(schema) {
-            if !self.schemas.contains(&member) {
-                self.schemas.push(member);
+    /// Adds the schemas of `schema` that are not documented yet, described with `description`.
+    fn join(&mut self, schema: &Schema, description: &str) {
+        for (member, _) in members(schema) {
+            if !self
+                .schemas
+                .iter()
+                .any(|documented| documented.schema == member)
+            {
+                self.schemas.push(HeaderSchema {
+                    schema: member,
+                    description: description.to_owned(),
+                });
             }
         }
     }
 
-    /// The schema of the header: its one schema, or an `anyOf` of every schema.
-    fn schema(&self) -> Schema {
-        if let [schema] = self.schemas.as_slice() {
-            return schema.clone();
+    /// The description and the schema of the header.
+    ///
+    /// A header with one schema is described like it. A header with several gets an `anyOf` of
+    /// them instead, each described on its own, and no description of its own.
+    fn render(&self) -> (Option<String>, Schema) {
+        if let [
+            HeaderSchema {
+                schema,
+                description,
+            },
+        ] = self.schemas.as_slice()
+        {
+            return (Some(description.clone()), schema.clone());
         }
-        json_schema!({ "anyOf": self.schemas })
+        let branches = self
+            .schemas
+            .iter()
+            .map(
+                |HeaderSchema {
+                     schema,
+                     description,
+                 }| {
+                    let mut schema = schema.clone();
+                    schema.insert("description".to_owned(), description.as_str().into());
+                    schema.to_value()
+                },
+            )
+            .collect::<Vec<_>>();
+        (None, json_schema!({ "anyOf": branches }))
     }
 }
 
-/// The schemas of a header that `schema` describes: the branches of an `anyOf` that stands alone,
-/// or `schema` itself.
-fn members(schema: &Schema) -> Vec<Schema> {
-    schema
+/// The schemas of a header that `schema` describes, each without its description, which is
+/// returned beside it: the branches of an `anyOf` that stands alone, or `schema` itself.
+fn members(schema: &Schema) -> Vec<(Schema, Option<String>)> {
+    let branches = schema
         .as_object()
         .filter(|keywords| keywords.len() == 1)
         .and_then(|keywords| keywords.get("anyOf"))
@@ -157,7 +192,16 @@ fn members(schema: &Schema) -> Vec<Schema> {
                 .map(|branch| Schema::try_from(branch.clone()).ok())
                 .collect::<Option<Vec<_>>>()
         })
-        .unwrap_or_else(|| vec![schema.clone()])
+        .unwrap_or_else(|| vec![schema.clone()]);
+    branches
+        .into_iter()
+        .map(|mut branch| {
+            let description = branch
+                .remove("description")
+                .and_then(|description| description.as_str().map(ToOwned::to_owned));
+            (branch, description)
+        })
+        .collect()
 }
 
 impl Fragment {
@@ -292,8 +336,15 @@ impl Documented {
                 };
                 Some(DocumentedHeader {
                     name: name.clone(),
-                    description: header.description.clone().unwrap_or_default(),
-                    schemas: members(&schema.json_schema),
+                    schemas: members(&schema.json_schema)
+                        .into_iter()
+                        .map(|(schema, description)| HeaderSchema {
+                            schema,
+                            description: description
+                                .or_else(|| header.description.clone())
+                                .unwrap_or_default(),
+                        })
+                        .collect(),
                     required: header.required,
                 })
             })
@@ -317,18 +368,20 @@ impl Documented {
                 .any(|listed| listed.name.eq_ignore_ascii_case(&header.name));
         }
         for listed in &fragment.headers {
-            match self
+            if let Some(header) = self
                 .headers
                 .iter_mut()
                 .find(|header| header.name.eq_ignore_ascii_case(&listed.name))
             {
-                Some(header) => header.join(&listed.schema),
-                None => self.headers.push(DocumentedHeader {
+                header.join(&listed.schema, &listed.description);
+            } else {
+                let mut header = DocumentedHeader {
                     name: listed.name.clone(),
-                    description: listed.description.clone(),
-                    schemas: members(&listed.schema),
+                    schemas: Vec::new(),
                     required: first,
-                }),
+                };
+                header.join(&listed.schema, &listed.description);
+                self.headers.push(header);
             }
         }
 
@@ -351,11 +404,11 @@ impl Documented {
 
         let mut response = problem_response(describe(&self.fragments), media);
         for header in self.headers {
-            let json_schema = header.schema();
+            let (description, json_schema) = header.render();
             response.headers.insert(
                 header.name,
                 ReferenceOr::Item(Header {
-                    description: Some(header.description),
+                    description,
                     style: HeaderStyle::Simple,
                     required: header.required,
                     deprecated: None,

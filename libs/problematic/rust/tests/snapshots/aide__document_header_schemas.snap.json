@@ -105,17 +105,18 @@
             "description": "- Store busy: The store cannot take the request right now.\n- Store closed: The store is closed until a given date.\n- Store draining: The store no longer takes requests.",
             "headers": {
               "Retry-After": {
-                "description": "Seconds before retrying the request.",
                 "style": "simple",
                 "required": true,
                 "schema": {
                   "anyOf": [
                     {
+                      "description": "Seconds before retrying the request.",
                       "type": "integer",
                       "format": "uint64",
                       "minimum": 0
                     },
                     {
+                      "description": "The date after which to retry the request.",
                       "type": "string"
                     }
                   ]
