@@ -41,16 +41,6 @@ pub struct ProblemType {
     pub status: StatusCode,
 }
 
-const impl PartialEq for ProblemType {
-    fn eq(&self, other: &Self) -> bool {
-        self.status.as_u16() == other.status.as_u16()
-            && same(text(&self.type_uri), text(&other.type_uri))
-            && same(text(&self.title), text(&other.title))
-    }
-}
-
-impl Eq for ProblemType {}
-
 #[expect(
     clippy::ptr_arg,
     reason = "a `Cow` derefs to `str` only outside of const, so the match does it here"
@@ -62,19 +52,15 @@ const fn text<'a>(value: &'a Cow<'static, str>) -> &'a [u8] {
     }
 }
 
-const fn same(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
+const impl PartialEq for ProblemType {
+    fn eq(&self, other: &Self) -> bool {
+        self.status.as_u16() == other.status.as_u16()
+            && text(&self.type_uri) == text(&other.type_uri)
+            && text(&self.title) == text(&other.title)
     }
-    let mut index = 0;
-    while index < left.len() {
-        if left[index] != right[index] {
-            return false;
-        }
-        index += 1;
-    }
-    true
 }
+
+const impl Eq for ProblemType {}
 
 const impl<'a> From<ProblemType> for ProblemDetails<'a> {
     fn from(definition: ProblemType) -> Self {
