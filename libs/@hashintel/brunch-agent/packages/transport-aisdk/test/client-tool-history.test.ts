@@ -5,7 +5,7 @@ import { brunchSignals } from "@hashintel/brunch-agent/constants";
 import {
   clientToolHistoryFrom,
   type ClientToolHistoryMessage,
-} from "../src/index";
+} from "../src/client-tool-history";
 
 describe("clientToolHistoryFrom", () => {
   test("projects an in-band Flue browser outcome without synthesizing a client-result signal", () => {

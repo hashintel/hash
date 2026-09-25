@@ -3,14 +3,13 @@ import { expect, test, vi } from "vitest";
 
 import { brunchSignals } from "@hashintel/brunch-agent/constants";
 
+import { createFlueChatTransport, snapshotToUiMessages } from "../src";
 import {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
-  createFlueChatTransport,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
-  snapshotToUiMessages,
-} from "../src";
+} from "../src/contextual-user-message";
 
 import type { FlueChatTransportOptions } from "../src";
 import type {

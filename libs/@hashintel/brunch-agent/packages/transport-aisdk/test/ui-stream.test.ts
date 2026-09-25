@@ -1,8 +1,8 @@
 import { expect, test, vi } from "vitest";
 
-import { createFlueUiStream } from "../src";
+import { createFlueUiStream } from "../src/ui-stream";
 
-import type { LiveToolStreamEvent } from "../src";
+import type { LiveToolStreamEvent } from "../src/live-tool-stream";
 import type { ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 

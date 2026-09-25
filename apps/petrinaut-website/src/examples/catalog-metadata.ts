@@ -30,14 +30,14 @@ export type ExampleSlug = (typeof exampleSlugs)[number];
  * module as JSON; core examples are the models Petrinaut itself ships, named
  * by their export from `@hashintel/petrinaut-core/examples`.
  */
-export type ExampleSource =
+type ExampleSource =
   | { kind: "model-file" }
   | {
       kind: "core-example";
       exportName: keyof typeof import("@hashintel/petrinaut-core/examples");
     };
 
-export type ExampleSimulationParameterBounds = Readonly<{
+type ExampleSimulationParameterBounds = Readonly<{
   min: number;
   max: number;
   step: number;
