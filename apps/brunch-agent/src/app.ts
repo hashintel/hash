@@ -16,15 +16,10 @@ import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-br
 import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
-import {
-  claimBrowserCall,
-  failBrowserCall,
-  renewBrowserCall,
-  settleBrowserCall,
-} from "./conversation/browser-call-rendezvous.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
+import { createBrowserCallRouter } from "./http/browser-calls.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
@@ -187,107 +182,7 @@ app.use(
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
 app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
-app.get(`${chatAgentMount}/:id/browser-calls/:callId`, (context) => {
-  context.header("Cache-Control", "no-store");
-  const binding = context.req.query("binding");
-  if (binding === undefined)
-    return context.json({ error: "invalid-binding" }, 400);
-  const issued = claimBrowserCall(
-    context.req.param("id"),
-    context.req.param("callId"),
-    binding,
-  );
-  return issued
-    ? context.json(issued)
-    : context.json({ error: "not-issued" }, 404);
-});
-app.post(
-  `${chatAgentMount}/:id/browser-calls/:callId/lease`,
-  async (context) => {
-    const body: unknown = await context.req.json().catch(() => undefined);
-    if (
-      typeof body !== "object" ||
-      body === null ||
-      !("capability" in body) ||
-      !("binding" in body) ||
-      typeof body.capability !== "string" ||
-      typeof body.binding !== "string"
-    )
-      return context.json({ error: "invalid-result" }, 400);
-    const renewed = renewBrowserCall({
-      instanceId: context.req.param("id"),
-      toolCallId: context.req.param("callId"),
-      capability: body.capability,
-      binding: body.binding,
-    });
-    return renewed
-      ? context.json({ renewed: true })
-      : context.json({ error: "not-issued" }, 409);
-  },
-);
-app.post(`${chatAgentMount}/:id/browser-calls/:callId`, async (context) => {
-  const body: unknown = await context.req.json().catch(() => undefined);
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    !("capability" in body) ||
-    !("binding" in body) ||
-    !("toolName" in body) ||
-    !("canonicalInput" in body) ||
-    !("output" in body) ||
-    typeof body.capability !== "string" ||
-    typeof body.binding !== "string" ||
-    typeof body.toolName !== "string"
-  )
-    return context.json({ error: "invalid-result" }, 400);
-  const settled = await settleBrowserCall({
-    instanceId: context.req.param("id"),
-    toolCallId: context.req.param("callId"),
-    capability: body.capability,
-    binding: body.binding,
-    toolName: body.toolName,
-    canonicalInput: body.canonicalInput,
-    output: body.output,
-    ...("metadata" in body ? { metadata: body.metadata } : {}),
-  });
-  return settled === "settled"
-    ? context.json({ settled: true })
-    : settled === "invalid"
-      ? context.json({ error: "invalid-result" }, 422)
-      : context.json({ error: "not-issued" }, 409);
-});
-app.post(
-  `${chatAgentMount}/:id/browser-calls/:callId/fail`,
-  async (context) => {
-    const body: unknown = await context.req.json().catch(() => undefined);
-    if (
-      typeof body !== "object" ||
-      body === null ||
-      !("capability" in body) ||
-      !("binding" in body) ||
-      !("toolName" in body) ||
-      !("canonicalInput" in body) ||
-      !("disposition" in body) ||
-      typeof body.capability !== "string" ||
-      typeof body.binding !== "string" ||
-      typeof body.toolName !== "string" ||
-      (body.disposition !== "unstarted" && body.disposition !== "failed")
-    )
-      return context.json({ error: "invalid-result" }, 400);
-    const failed = failBrowserCall({
-      instanceId: context.req.param("id"),
-      toolCallId: context.req.param("callId"),
-      capability: body.capability,
-      binding: body.binding,
-      toolName: body.toolName,
-      canonicalInput: body.canonicalInput,
-      disposition: body.disposition,
-    });
-    return failed
-      ? context.json({ failed: true })
-      : context.json({ error: "not-issued" }, 409);
-  },
-);
+app.route(chatAgentMount, createBrowserCallRouter());
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.use(
   `${brunchRoutes.workedModels}/*`,

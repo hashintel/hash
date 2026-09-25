@@ -150,11 +150,12 @@ export const callsForElement = (
           (hasId(call.input, element.id) || hasId(call.output, element.id))),
   );
 
-export const latestSettledWorkpieceBefore = (
+/** Where an assistant tool call sits in the conversation, by message and part index. */
+const toolCallPosition = (
   snapshot: FlueConversationSnapshot,
   toolCallId: string,
-) => {
-  const position = snapshot.messages
+) =>
+  snapshot.messages
     .flatMap((message, messageIndex) =>
       message.role === "assistant" && message.purpose === "assistant"
         ? message.parts.flatMap((part, partIndex) =>
@@ -165,6 +166,12 @@ export const latestSettledWorkpieceBefore = (
         : [],
     )
     .at(0);
+
+export const latestSettledWorkpieceBefore = (
+  snapshot: FlueConversationSnapshot,
+  toolCallId: string,
+) => {
+  const position = toolCallPosition(snapshot, toolCallId);
   const message = position && snapshot.messages[position.messageIndex];
   if (!position || !message) return undefined;
   const prefix = {
@@ -202,17 +209,7 @@ export const latestNetReadBefore = (
   toolCallId: string,
 ): NetCall | undefined => {
   const calls = netCalls(snapshot);
-  const position = snapshot.messages
-    .flatMap((message, messageIndex) =>
-      message.role === "assistant" && message.purpose === "assistant"
-        ? message.parts.flatMap((part, partIndex) =>
-            part.type === "dynamic-tool" && part.toolCallId === toolCallId
-              ? [{ messageIndex, partIndex }]
-              : [],
-          )
-        : [],
-    )
-    .at(0);
+  const position = toolCallPosition(snapshot, toolCallId);
   if (!position) return undefined;
   return calls.findLast(
     (call) =>
