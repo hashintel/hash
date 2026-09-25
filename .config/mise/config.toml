@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.9.1"
+min_version = "2026.9.5"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
