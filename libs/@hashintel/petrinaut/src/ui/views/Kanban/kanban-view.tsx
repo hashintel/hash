@@ -4,7 +4,7 @@
  */
 import { use, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { Select } from "@hashintel/ds-components";
+import { Button, Select } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getStatusViewEvaluationScope,
@@ -20,6 +20,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { StatusConditionArtifactsContext } from "../../../react/status-condition-artifacts";
 import { useCanvasInsets } from "../../hooks/use-canvas-insets";
 import { formatDwellMs } from "../shared/format-dwell";
+import { BoardSetup } from "./board-setup/board-setup";
 import {
   createBoardReplay,
   type BoardSnapshot,
@@ -379,6 +380,9 @@ export const KanbanView = ({
   const [selectedStatusViewId, setSelectedStatusViewId] = useState<
     string | null
   >(null);
+  const { currentFrameReader } = use(ExecutionFrameSourceContext);
+  // Before any run there is nothing to watch, so the view opens on setup.
+  const [settingUp, setSettingUp] = useState(() => !currentFrameReader);
 
   const statusView =
     statusViews.find((view) => view.id === selectedStatusViewId) ??
@@ -432,8 +436,27 @@ export const KanbanView = ({
             }))}
           />
         </div>
+        {!settingUp && (
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="xs"
+            onClick={() => setSettingUp(true)}
+          >
+            Set up board
+          </Button>
+        )}
       </div>
-      <KanbanBoard key={statusView.id} statusView={statusView} />
+      {settingUp ? (
+        <BoardSetup
+          key={statusView.id}
+          statusView={statusView}
+          canClose={currentFrameReader !== null}
+          onClose={() => setSettingUp(false)}
+        />
+      ) : (
+        <KanbanBoard key={statusView.id} statusView={statusView} />
+      )}
     </div>
   );
 };
