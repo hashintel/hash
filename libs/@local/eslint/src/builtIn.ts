@@ -90,7 +90,7 @@ export const builtIn =
         rules: {
           // Reason: Nesting ternary expressions can make code more difficult to understand.
           // While true they are a staple of JS and too integrated into our codebase to remove.
-          // furthermore, `prettier` removes this concern by formatting them in a way that is easy to read.
+          // furthermore, `oxfmt` removes this concern by formatting them in a way that is easy to read.
           "no-nested-ternary": "off",
           // We always prefer arrow functions over function declarations.
           // Generators cannot be written as arrow functions, therefore are

@@ -58,7 +58,7 @@ const script = async () => {
   (packageJson.scripts as JsonObject)["lint:eslint"] =
     "eslint --report-unused-disable-directives .";
   (packageJson.scripts as JsonObject).format =
-    "prettier --write --ignore-unknown src/types/generated/*.ts";
+    "oxfmt --write src/types/generated/*.ts";
 
   (packageJson.devDependencies as JsonObject)["@local/eslint"] =
     "0.0.0-private";
