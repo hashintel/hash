@@ -257,11 +257,7 @@ export const RuleEditor = ({
         )}
         <input
           className={nameInputStyle}
-          style={{
-            color: rule.color,
-            borderColor: rule.color,
-            backgroundColor: `color-mix(in srgb, ${rule.color} 9%, var(--colors-neutral-s00))`,
-          }}
+          style={{ color: rule.color }}
           aria-label="Badge text"
           value={rule.name}
           onChange={(event) => onChange({ name: event.target.value })}

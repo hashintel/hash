@@ -84,8 +84,9 @@ const glyphStyle = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "[26px]",
+  minWidth: "[26px]",
   height: "[26px]",
+  paddingX: "1.5",
   borderRadius: "md",
   borderWidth: "[1px]",
   borderColor: "neutral.bd.subtle",
@@ -94,9 +95,21 @@ const glyphStyle = css({
   cursor: "pointer",
 });
 const glyphOnStyle = css({
-  borderColor: "blue.s90",
-  backgroundColor: "blue.s10",
+  borderColor: "[transparent]",
+  backgroundColor: "blue.s20",
   color: "neutral.s125",
+  boxShadow:
+    "[0 0 0 2px var(--colors-neutral-s00), 0 0 0 4px var(--colors-blue-s90)]",
+});
+const fadeStyle = css({
+  position: "sticky",
+  bottom: "[-16px]",
+  height: "[24px]",
+  marginTop: "[-24px]",
+  flexShrink: 0,
+  pointerEvents: "none",
+  backgroundImage:
+    "[linear-gradient(to bottom, transparent, var(--colors-neutral-s00))]",
 });
 const linkStyle = css({
   alignSelf: "flex-start",
@@ -105,6 +118,9 @@ const linkStyle = css({
   color: "blue.s100",
   cursor: "pointer",
 });
+
+/** Cards stay scannable: the key plus at most this many fields. */
+const MAX_CARD_FIELDS = 3;
 
 export const CardsPanel = ({
   identityName,
@@ -167,12 +183,18 @@ export const CardsPanel = ({
       </div>
 
       <div className={sectionStyle}>
-        <span className={labelStyle}>Fields on every card</span>
+        <span className={labelStyle}>
+          Fields on every card · up to {MAX_CARD_FIELDS}
+        </span>
         {fieldOptions.map((option) => (
           <label key={option.name} className={checkRowStyle}>
             <input
               type="checkbox"
               checked={cardFields.includes(option.name)}
+              disabled={
+                !cardFields.includes(option.name) &&
+                cardFields.length >= MAX_CARD_FIELDS
+              }
               onChange={() => onToggleField(option.name)}
             />
             {humanizeField(option.name, identityName)}
@@ -261,6 +283,7 @@ export const CardsPanel = ({
           </span>
         )}
       </div>
+      <div className={fadeStyle} aria-hidden="true" />
     </>
   );
 };

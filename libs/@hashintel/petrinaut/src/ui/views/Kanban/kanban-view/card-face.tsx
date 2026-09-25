@@ -48,6 +48,7 @@ const fieldsStyle = css({
   fontSize: "[11px]",
   color: "neutral.s110",
 });
+const fieldStyle = css({ whiteSpace: "nowrap" });
 const fieldValueStyle = css({
   fontWeight: "medium",
   color: "neutral.s120",
@@ -113,7 +114,7 @@ export const CardFace = ({
       {fields && fields.length > 0 && (
         <span className={fieldsStyle}>
           {fields.map((field) => (
-            <span key={field.label}>
+            <span key={field.label} className={fieldStyle}>
               {field.label}{" "}
               <span className={fieldValueStyle}>{field.value}</span>
             </span>
