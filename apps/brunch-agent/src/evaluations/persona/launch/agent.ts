@@ -40,7 +40,9 @@ export const resolvePersonaAgentSettings = (
   const { agent, agentCommand, personaModel, personaThinking } = input;
   if (agent !== undefined && !isPersonaAgentPreset(agent))
     throw new Error(
-      `Unsupported --agent ${agent}; expected ${personaAgentPresets.join("|")}, or use --agent-command`,
+      `Unsupported --agent ${agent}; expected ${personaAgentPresets.join(
+        "|",
+      )}, or use --agent-command`,
     );
   if (agent !== undefined && agentCommand !== undefined)
     throw new Error("Use either --agent or --agent-command, not both");
@@ -217,16 +219,26 @@ export const startPersonaAgent = async (input: {
       "--no-focus",
     ]);
     const pane = paneIdFrom(split.stdout);
-    await execute("herdr", [
-      "pane",
-      "run",
-      pane,
-      [
-        `export ${personaSocketVariable}=${shellQuote(input.socketPath)}`,
-        `export PATH=${shellQuote(join(input.run, "bin"))}:"$PATH"`,
-        input.command,
-      ].join(" && "),
-    ]);
+    try {
+      await execute("herdr", [
+        "pane",
+        "run",
+        pane,
+        [
+          `export ${personaSocketVariable}=${shellQuote(input.socketPath)}`,
+          `export PATH=${shellQuote(join(input.run, "bin"))}:"$PATH"`,
+          input.command,
+        ].join(" && "),
+      ]);
+    } catch (error) {
+      // The caller only learns the pane on success, so close it here.
+      await execute("herdr", ["pane", "close", pane]).catch(() => {
+        process.stderr.write(
+          `Could not close persona pane ${pane}; inspect it in Herdr.\n`,
+        );
+      });
+      throw error;
+    }
     return { kind: "herdr", pane };
   }
   if (!process.stdin.isTTY)

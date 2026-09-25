@@ -104,6 +104,29 @@ test("a failure before admission is a failed response; after admission it settle
     submissionIds: [],
     error: "Brunch turn failed",
   });
+
+  const stopped = await openBridge({
+    prompt: async (_message, turn) => {
+      turn.admitted();
+      // Shape of `PersonaBrowserTurnError` wrapping a Brunch Stop.
+      const wrapped = new Error("Persona browser turn was stopped.", {
+        cause: new DOMException(
+          "Persona browser turn was stopped.",
+          "AbortError",
+        ),
+      });
+      wrapped.name = "PersonaBrowserTurnError";
+      throw wrapped;
+    },
+  });
+  const stoppedRecords = await sendPersonaCommand(stopped.socketPath, {
+    type: "prompt",
+    message: "Hello.",
+  });
+  expect(stoppedRecords.at(-1)).toMatchObject({
+    type: "turn_settled",
+    outcome: "aborted",
+  });
 });
 
 test("turns are sequential, and disconnecting the sender aborts its turn", async () => {

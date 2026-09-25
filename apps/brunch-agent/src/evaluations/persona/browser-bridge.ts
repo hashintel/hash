@@ -36,8 +36,10 @@ export type PersonaBridgeHandlers = {
   end(reason: string | undefined): void;
 };
 
-const isAbort = (error: unknown) =>
-  error instanceof Error && error.name === "AbortError";
+/** Browser-turn errors wrap the stop that caused them; read through `cause`. */
+const isAbort = (error: unknown): boolean =>
+  error instanceof Error &&
+  (error.name === "AbortError" || isAbort(error.cause));
 
 export const openPersonaBrowserBridge = async (
   handlers: PersonaBridgeHandlers,
@@ -45,6 +47,7 @@ export const openPersonaBrowserBridge = async (
   // macOS socket paths are short; never put this under the deep workspace path.
   const directory = await mkdtemp(join(tmpdir(), "bp-"));
   const socketPath = join(directory, "s");
+  const removeDirectory = () => rm(directory, { recursive: true });
   const sockets = new Set<Socket>();
   const tasks = new Set<Promise<void>>();
   let active: AbortController | undefined;
@@ -109,7 +112,8 @@ export const openPersonaBrowserBridge = async (
       else
         broadcast({
           type: "turn_settled",
-          outcome: isAbort(error) ? "aborted" : "failed",
+          outcome:
+            controller.signal.aborted || isAbort(error) ? "aborted" : "failed",
           submissionIds: [],
           error: error instanceof Error ? error.message : String(error),
         });
@@ -173,8 +177,13 @@ export const openPersonaBrowserBridge = async (
     socket.on("end", () => reader.end());
     socket.on("error", () => socket.destroy());
   });
-  server.listen(socketPath);
-  await once(server, "listening");
+  try {
+    server.listen(socketPath);
+    await once(server, "listening");
+  } catch (error) {
+    await removeDirectory();
+    throw error;
+  }
   return {
     socketPath,
     async close() {
@@ -182,7 +191,7 @@ export const openPersonaBrowserBridge = async (
       for (const socket of sockets) socket.destroy();
       await new Promise<void>((done) => server.close(() => done()));
       await Promise.allSettled(tasks);
-      await rm(directory, { recursive: true });
+      await removeDirectory();
     },
   };
 };
