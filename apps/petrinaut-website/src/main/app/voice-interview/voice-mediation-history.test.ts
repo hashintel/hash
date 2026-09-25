@@ -4,6 +4,65 @@ import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
+test("partial input is display-only and only admitted final briefs survive reload", () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      data.set(key, value);
+    },
+  };
+  const history = new VoiceMediationHistory("conversation", storage);
+  history.input("preview", "Compare two");
+  history.input("preview", "Compare two to eight");
+  expect(history.project([])).toEqual([
+    {
+      id: "preview",
+      role: "user",
+      metadata: { source: "voice" },
+      parts: [
+        { type: "text", text: "Compare two to eight", state: "streaming" },
+      ],
+    },
+  ]);
+  expect(
+    new VoiceMediationHistory("conversation", storage).project([]),
+  ).toEqual([]);
+  history.begin({ id: "final", text: "Compare two to eight agents" });
+  history.failed("preview");
+  expect(history.project([]).map((message) => message.id)).toEqual(["final"]);
+  expect(history.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare two to eight agents" },
+    { type: "data-brief", data: { fields: {}, state: "streaming" } },
+  ]);
+  history.prepared("final", {
+    decide: "two to eight agents",
+    runs: "Still open",
+  });
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: {
+      fields: { decide: "two to eight agents", runs: "Still open" },
+      state: "streaming",
+    },
+  });
+  history.admitted("final", "submission");
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: {
+      fields: { decide: "two to eight agents", runs: "Still open" },
+      state: "done",
+    },
+  });
+  const canonical: PetrinautAiMessage[] = [
+    { id: "final", role: "user", parts: [{ type: "text", text: "BRIEF" }] },
+  ];
+  expect(
+    new VoiceMediationHistory("conversation", storage).project(canonical),
+  ).toEqual(history.project(canonical));
+  expect(canonical[0]?.parts[0]).toEqual({ type: "text", text: "BRIEF" });
+});
+
 test("anchors an experiment summary after the card without fabricating a user turn", () => {
   const history = new VoiceMediationHistory("conversation");
   history.result("result", ["card"]);

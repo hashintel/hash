@@ -207,7 +207,10 @@ export const LiveConversationControl = ({
     setSpeakerVolumeState(1);
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
-    const captions = new LiveSpeechCaptions(history.caption);
+    const captions = new LiveSpeechCaptions(history.caption, {
+      update: (id, text) => history.input(id, text),
+      discard: (id) => history.failed(id),
+    });
     let offeredInput: string | undefined;
     const appendInputs = new Map<string, string>();
     const next = createLiveConversation(
@@ -245,7 +248,10 @@ export const LiveConversationControl = ({
       (input) => {
         if (session.current !== next) return;
         void bridge.current?.accept(input);
-        if (!input.superseded) captions.begin(input.id);
+        if (!input.superseded) {
+          const previewId = captions.begin(input.id);
+          if (previewId) history.failed(previewId);
+        }
       },
       (delegationId) => {
         if (session.current === next)
@@ -284,13 +290,18 @@ export const LiveConversationControl = ({
       audioSettingsStore,
       {
         started: () => {
+          if (session.current !== next) return;
           captions.speechStarted();
           bridge.current?.speechStarted();
           offeredInput = undefined;
           appendInputs.clear();
         },
-        input: (fragment) => captions.input(fragment),
-        output: (fragment) => captions.output(fragment),
+        input: (fragment) => {
+          if (session.current === next) captions.input(fragment);
+        },
+        output: (fragment) => {
+          if (session.current === next) captions.output(fragment);
+        },
         closed: () => captions.close(),
       },
     );
