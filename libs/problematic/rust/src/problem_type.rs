@@ -32,6 +32,8 @@ use crate::ProblemDetails;
 #[derive(Debug)]
 pub struct ProblemType {
     /// The stable URI identifying this problem type.
+    ///
+    /// Use `about:blank` when the HTTP status code fully describes the problem type.
     pub type_uri: Cow<'static, str>,
     /// The title shared by occurrences of this problem type.
     pub title: Cow<'static, str>,

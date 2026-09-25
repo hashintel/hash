@@ -161,11 +161,11 @@
         "type": "object",
         "properties": {
           "detail": {
-            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\n\nUse extension members for structured information.",
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.",
             "type": "string"
           },
           "instance": {
-            "description": "A URI reference identifying this occurrence.\n\nIt may identify the occurrence without resolving to further information.",
+            "description": "A URI reference identifying this occurrence.",
             "type": "string",
             "format": "uri-reference"
           },
@@ -174,11 +174,11 @@
             "type": "integer"
           },
           "title": {
-            "description": "A short, human-readable summary of the problem type.\n\nKeep it the same across occurrences, except for localization.",
+            "description": "A short, human-readable summary of the problem type.",
             "type": "string"
           },
           "type": {
-            "description": "A URI reference identifying the problem type.\n\nUse `about:blank` when the HTTP status code fully describes the problem type. If `type` is\nomitted during deserialization, it defaults to `about:blank`.",
+            "description": "A URI reference identifying the problem type.",
             "type": "string",
             "format": "uri-reference",
             "default": "about:blank"

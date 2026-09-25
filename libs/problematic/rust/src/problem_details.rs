@@ -28,21 +28,16 @@ fn without_description(schema: &mut schemars::Schema) {
 /// An RFC 9457 problem details object with problem-specific extension members.
 ///
 /// Serialization includes `type`, `title`, and `status`, plus `detail` and `instance` when
-/// supplied.
+/// supplied. Deserialization reads a missing `type` as `about:blank`.
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[schemars(title = "Problem Details", transform = without_description)]
 pub struct ProblemDetails<'a, E = ()> {
     /// A URI reference identifying the problem type.
-    ///
-    /// Use `about:blank` when the HTTP status code fully describes the problem type. If `type` is
-    /// omitted during deserialization, it defaults to `about:blank`.
     #[serde(rename = "type", borrow, default = "default_type_uri")]
     #[schemars(extend("format" = "uri-reference"))]
     pub type_uri: Cow<'a, str>,
 
     /// A short, human-readable summary of the problem type.
-    ///
-    /// Keep it the same across occurrences, except for localization.
     #[serde(borrow)]
     pub title: Cow<'a, str>,
 
@@ -55,8 +50,6 @@ pub struct ProblemDetails<'a, E = ()> {
     pub status: StatusCode,
 
     /// A human-readable explanation of this occurrence that helps the client correct the problem.
-    ///
-    /// Use extension members for structured information.
     #[serde(
         borrow,
         default,
@@ -67,8 +60,6 @@ pub struct ProblemDetails<'a, E = ()> {
     pub detail: Option<Cow<'a, str>>,
 
     /// A URI reference identifying this occurrence.
-    ///
-    /// It may identify the occurrence without resolving to further information.
     #[serde(
         borrow,
         default,
@@ -125,6 +116,8 @@ impl<'a, E> ProblemDetails<'a, E> {
     }
 
     /// Returns the details with `instance` as the URI reference identifying this occurrence.
+    ///
+    /// The URI may identify the occurrence without resolving to further information.
     ///
     /// # Examples
     ///
