@@ -8,12 +8,6 @@ dependencies = [
     "optuna>=4.9,<5",
 ]
 
-[dependency-groups]
-dev = [
-    "basedpyright>=1.39.10",
-    "pytest>=8.3",
-    "ruff>=0.16.4",
-]
 
 [build-system]
 requires      = ["hatchling"]
@@ -39,15 +33,3 @@ ignore = [
     # `@role` annotation, which the architecture-docs extractor reads as one line.
     "E501",
 ]
-
-[tool.basedpyright]
-# Production code only. The suites lean on duck-typed doubles, which a checker
-# cannot see; typing those is tracked separately.
-include          = ["src"]
-typeCheckingMode = "strict"
-pythonVersion    = "3.10"
-venvPath         = "."
-venv             = ".venv"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

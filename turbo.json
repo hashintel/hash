@@ -161,6 +161,7 @@
   "futureFlags": {
     "affectedUsingTaskInputs": true,
     "experimentalCargoWorkspaces": true,
+    "experimentalPythonWorkspaces": true,
     "experimentalTaskCommand": true
   }
 }

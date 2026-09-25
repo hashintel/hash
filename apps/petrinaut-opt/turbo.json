@@ -1,13 +1,27 @@
 {
   "extends": ["//"],
   "tasks": {
+    "build:docker": {
+      "command": [
+        "docker",
+        "buildx",
+        "build",
+        "--tag",
+        "petrinaut-opt",
+        "--file",
+        "docker/Dockerfile",
+        "../../",
+        "--load"
+      ]
+    },
     "codegen": {
+      "command": ["uv", "run", "python", "-m", "scripts.generate_openapi"],
       // The schema is generated from the app, which imports the models that
       // `petrinaut-python` generates.
-      "dependsOn": ["@local/petrinaut-python#codegen"],
+      "dependsOn": ["petrinaut-python#codegen"],
       "inputs": [
         "pyproject.toml",
-        "uv.lock",
+        "$TURBO_ROOT$/uv.lock",
         "scripts/generate_openapi.py",
         "src/**/*.py",
         "../../libs/@local/petrinaut-optimizer-core/src/**/*.py",
@@ -17,14 +31,30 @@
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
     "start": {
-      "dependsOn": ["@local/petrinaut-python#codegen"]
+      "command": ["uv", "run", "uvicorn", "src.optimization_api:app"],
+      "dependsOn": ["petrinaut-python#codegen"]
     },
-    // Type checking resolves the generated models of `petrinaut-python`, not the
-    // schema this package generates from itself.
-    "lint:types": {
-      "dependsOn": ["@local/petrinaut-python#codegen"]
+    "start:dev": {
+      "command": [
+        "uv",
+        "run",
+        "uvicorn",
+        "src.optimization_api:app",
+        "--reload"
+      ],
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["petrinaut-python#codegen"]
     },
     "test:unit": {
+      // `command` runs without a shell, so the chain needs one. `codegen` has
+      // already run as a dependency; the diff fails if the committed schema is
+      // stale.
+      "command": [
+        "sh",
+        "-c",
+        "uv run pytest && git diff --exit-code -- openapi/openapi.json"
+      ],
       "dependsOn": ["codegen", "^manifest"]
     }
   }
