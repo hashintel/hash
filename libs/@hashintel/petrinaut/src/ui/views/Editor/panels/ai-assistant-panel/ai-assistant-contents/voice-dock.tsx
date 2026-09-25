@@ -343,6 +343,12 @@ export const VoiceDock = ({
             {assistantBusy && (
               <Button
                 aria-label={voiceSessionActionLabels.stop}
+                className={css({
+                  width: "[28px]",
+                  height: "[28px]",
+                  minWidth: "[28px]",
+                  borderRadius: "md",
+                })}
                 onClick={onStop}
                 prefix={<StopIcon />}
                 size="sm"

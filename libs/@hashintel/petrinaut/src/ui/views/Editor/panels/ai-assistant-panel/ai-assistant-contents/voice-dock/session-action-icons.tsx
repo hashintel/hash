@@ -7,17 +7,17 @@ const sharedIconProps = {
   xmlns: "http://www.w3.org/2000/svg",
 } as const;
 
-/** Uses the same line weight and canvas as the microphone and speaker icons. */
+/** Compact outlined stop mark from the Voice dock design. */
 export const StopIcon = () => (
-  <svg {...sharedIconProps}>
+  <svg {...sharedIconProps} viewBox="0 0 24 24">
     <rect
-      height="10"
-      rx="1.5"
+      height="11"
+      rx="2"
       stroke="currentColor"
-      strokeWidth="1.6"
-      width="10"
-      x="5"
-      y="5"
+      strokeWidth="1.5"
+      width="11"
+      x="6.5"
+      y="6.5"
     />
   </svg>
 );

@@ -330,6 +330,7 @@ const messagesStyle = css({
   minHeight: "[0]",
   overflowY: "auto",
   padding: "3",
+  paddingBottom: "4",
   overscrollBehavior: "contain",
 });
 
@@ -365,11 +366,17 @@ const messageStyle = cva({
     role: {
       assistant: {
         alignSelf: "stretch",
-        paddingX: "[0]",
+        gap: "1",
+        padding: "[6px 0]",
+        '&[data-input-mode="text"]': {
+          paddingY: "1",
+          '& > [data-answer="brunch"]:not(:first-child)': { marginTop: "1" },
+        },
       },
       user: {
         alignSelf: "flex-end",
         maxWidth: "[92%]",
+        gap: "0.5",
         padding: "[0]",
       },
     },
@@ -380,6 +387,9 @@ const messageStyle = cva({
 // `*`, `_`, `#`, etc. and collapse the single newlines they typed. Render it
 // verbatim with preserved whitespace instead.
 const userTextStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "1.5",
   alignSelf: "flex-end",
   backgroundColor: "neutral.a20",
   borderRadius: "lg",
@@ -450,6 +460,12 @@ const composerActionButtonStyle = css({
   height: "[30px]",
   minWidth: "[30px]",
   borderRadius: "[calc({radii.lg} - {spacing.1})]",
+  "&[data-stop=true]": {
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
+    borderRadius: "full",
+  },
 });
 
 const composerStyle = css({
@@ -630,13 +646,31 @@ const AiAssistantMessage = memo(
       <div
         className={messageStyle({ role })}
         data-role={role}
+        data-input-mode={voice ? "voice" : "text"}
         data-voice-origin={message.metadata?.source === "voice" || undefined}
       >
         {role === "user" && (
           <div className={userTextStyle} data-user-bubble>
-            {answers.map((item) => (
-              <div key={item.key}>{item.part.text}</div>
-            ))}
+            {!voice && message.metadata?.source === "voice" && (
+              <span
+                role="img"
+                aria-label="Sent using voice"
+                title="Sent using voice"
+                className={css({
+                  display: "inline-flex",
+                  flexShrink: 0,
+                  marginTop: "[4px]",
+                  color: "neutral.s80",
+                })}
+              >
+                <AiVoiceModeIcon size={12} />
+              </span>
+            )}
+            <div className={css({ minWidth: "[0]" })}>
+              {answers.map((item) => (
+                <div key={item.key}>{item.part.text}</div>
+              ))}
+            </div>
           </div>
         )}
         {brief && <VoiceInputProvenance brief={brief} />}
@@ -860,9 +894,9 @@ export const AiAssistantContents = ({
         isSubmit: false,
         label: "Stop AI response",
         onClick: onStop,
-        tone: "neutral",
+        tone: "brand",
         type: "button",
-        variant: "subtle",
+        variant: "solid",
       }
     : canSubmit
       ? {
@@ -1481,6 +1515,7 @@ export const AiAssistantContents = ({
                     <Button
                       aria-label={composerAction.label}
                       className={composerActionButtonStyle}
+                      data-stop={isBusy || undefined}
                       data-ai-assistant-submit={
                         composerAction.isSubmit || undefined
                       }
@@ -1494,7 +1529,10 @@ export const AiAssistantContents = ({
                           {composerAction.glyph === "voice" ? (
                             <AiVoiceModeIcon size={16} />
                           ) : (
-                            <Icon name={composerAction.glyph} size="sm" />
+                            <Icon
+                              name={composerAction.glyph}
+                              size={isBusy ? "xs" : "sm"}
+                            />
                           )}
                         </span>
                       }

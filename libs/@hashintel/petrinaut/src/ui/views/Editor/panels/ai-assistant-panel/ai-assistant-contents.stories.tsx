@@ -1119,10 +1119,23 @@ export const VoiceSessionThinking: Story = {
     <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
+      status="streaming"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const stop = within(canvasElement).getByRole("button", {
+      name: "Stop AI response",
+    });
+    await expect(stop.getBoundingClientRect().width).toBe(28);
+    await expect(stop.getBoundingClientRect().height).toBe(28);
+    await expect(stop.querySelector("svg")).toHaveAttribute(
+      "viewBox",
+      "0 0 24 24",
+    );
+    await expect(stop.querySelector("rect")).toHaveAttribute("width", "11");
+  },
 };
 
 export const VoiceSessionMuted: Story = {
@@ -1192,6 +1205,16 @@ export const StreamingReasoning: Story = {
       status="streaming"
     />
   ),
+  play: async ({ canvasElement }) => {
+    const stop = within(canvasElement).getByRole("button", {
+      name: "Stop AI response",
+    });
+    await expect(stop.getBoundingClientRect().width).toBe(28);
+    await expect(stop.getBoundingClientRect().height).toBe(28);
+    await expect(
+      parseFloat(getComputedStyle(stop).borderRadius),
+    ).toBeGreaterThanOrEqual(14);
+  },
 };
 
 export const SingleCompletedToolCall: Story = {
@@ -1631,6 +1654,12 @@ export const ChatTurn: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const activity = canvas.getByRole("button", { name: "Activity" });
+    const assistantTurn = activity.closest("[data-role=assistant]")!;
+    await expect(getComputedStyle(assistantTurn).paddingTop).toBe("4px");
+    await expect(
+      getComputedStyle(assistantTurn.querySelector("[data-answer=brunch]")!)
+        .marginTop,
+    ).toBe("4px");
     await userEvent.click(activity);
     // Disclosures are inline labels, not raised action buttons or full rows.
     await expect(getComputedStyle(activity).boxShadow).toBe("none");
@@ -1658,10 +1687,11 @@ export const VoiceMediatedTurn: Story = {
       voiceModeAvailable
       voiceSession={liveSession({ phase: "speaking" })}
       messages={[
-        { ...supportDeskUser, metadata: { source: "voice" } },
         {
-          ...conversationTurn,
+          ...supportDeskUser,
+          metadata: { source: "voice" },
           parts: [
+            ...supportDeskUser.parts,
             {
               type: "data-brief",
               data: {
@@ -1673,6 +1703,11 @@ export const VoiceMediatedTurn: Story = {
                 },
               },
             },
+          ],
+        },
+        {
+          ...conversationTurn,
+          parts: [
             {
               type: "data-voiceAgentReply",
               data: {
@@ -1693,6 +1728,54 @@ export const VoiceMediatedTurn: Story = {
       ]}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const summary = canvas.getByText("Sent to Brunch").closest("summary")!;
+    const userTurn = summary.closest("[data-role=user]")!;
+    const assistantTurn = canvasElement.querySelector("[data-role=assistant]")!;
+    await expect(getComputedStyle(userTurn).gap).toBe("2px");
+    await expect(getComputedStyle(assistantTurn).gap).toBe("4px");
+    await expect(getComputedStyle(assistantTurn).paddingTop).toBe("6px");
+    await expect(getComputedStyle(summary).padding).toBe("2px 6px 2px 2px");
+    await userEvent.click(summary);
+    await expect(summary.closest("details")).toHaveAttribute("open");
+    await expect(
+      getComputedStyle(canvas.getByText("Prepared from what you said"))
+        .fontSize,
+    ).toBe("11px");
+    await expect(
+      getComputedStyle(canvas.getByText("Arrival rate")).fontSize,
+    ).toBe("13px");
+    await userEvent.click(summary);
+  },
+};
+
+export const ChatVoiceOrigin: Story = {
+  render: () => (
+    <Frame
+      additionalTab={ledgerTab}
+      messages={[
+        { ...supportDeskUser, metadata: { source: "voice" } },
+        conversationTurn,
+        {
+          id: "typed-follow-up",
+          role: "user",
+          parts: [{ type: "text", text: "Keep the comparison as a draft." }],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getAllByRole("img", { name: "Sent using voice" }),
+    ).toHaveLength(1);
+    await expect(
+      canvas
+        .getByRole("img", { name: "Sent using voice" })
+        .querySelector("svg"),
+    ).toHaveAttribute("width", "12");
+  },
 };
 
 export const VoicePreparing: Story = {
