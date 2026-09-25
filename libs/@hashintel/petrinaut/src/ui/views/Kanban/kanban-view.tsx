@@ -20,11 +20,25 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { StatusConditionArtifactsContext } from "../../../react/status-condition-artifacts";
 import { useCanvasInsets } from "../../hooks/use-canvas-insets";
 import { formatDwellMs } from "../shared/format-dwell";
-import { BoardSetup } from "./board-setup/board-setup";
+import { BoardSetup, getTrackedPlaceIds } from "./board-setup/board-setup";
+import {
+  formatFieldValue,
+  getCardFieldOptions,
+  getDefaultCardFields,
+  HIGHLIGHT_VIEW_ID,
+  highlightsAsView,
+  humanizeField,
+} from "./board-setup/draft-rules";
+import {
+  useDraftConditionArtifacts,
+  useDraftReplays,
+} from "./board-setup/use-draft-board";
 import {
   createBoardReplay,
   type BoardSnapshot,
 } from "./kanban-view/board-replay";
+import { CardFace, type CardHighlight } from "./kanban-view/card-face";
+import { useCardValues } from "./kanban-view/card-values";
 
 /**
  * Fills the canvas container like the net canvas does. The left, right, and
@@ -143,28 +157,6 @@ const columnCountStyle = css({
   fontWeight: "medium",
 });
 
-const cardStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  padding: "2",
-  borderRadius: "sm",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  backgroundColor: "neutral.s00",
-  shadow: "[0px 1px 3px rgba(0, 0, 0, 0.06)]",
-});
-
-const cardKeyStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s125",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
 const cardMetaStyle = css({
   fontSize: "[11px]",
   color: "neutral.s90",
@@ -180,10 +172,16 @@ const KanbanCard = ({
   instance,
   labelId,
   nowMs,
+  title,
+  highlight,
+  fields,
 }: {
   instance: InstanceStatus;
   labelId: string;
   nowMs: number;
+  title: string;
+  highlight: CardHighlight | null;
+  fields: { label: string; value: string }[];
 }) => {
   const { totalMs, entryCount } = summarizeStatusIntervals(
     instance.intervals,
@@ -192,15 +190,19 @@ const KanbanCard = ({
   );
   const currentStayMs = nowMs - instance.enteredCurrentAtMs;
   return (
-    <div className={cardStyle} data-kanban-interactive="">
-      <div className={cardKeyStyle}>{instance.keyValues.join(", ")}</div>
-      <div className={cardMetaStyle}>
-        {formatDwellMs(currentStayMs)} in this status
-        {entryCount > 1
-          ? ` · ${formatDwellMs(totalMs)} over ${entryCount} stays`
-          : ""}
-      </div>
-    </div>
+    <CardFace
+      title={title}
+      highlight={highlight}
+      fields={fields}
+      meta={
+        <span className={cardMetaStyle}>
+          {formatDwellMs(currentStayMs)} in this status
+          {entryCount > 1
+            ? ` · ${formatDwellMs(totalMs)} over ${entryCount} stays`
+            : ""}
+        </span>
+      }
+    />
   );
 };
 
@@ -225,6 +227,65 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
     pending: conditionsPending,
     error: conditionsError,
   } = use(StatusConditionArtifactsContext);
+
+  const highlights = statusView.highlights ?? [];
+  const highlightViews =
+    highlights.length > 0
+      ? [highlightsAsView(highlights, statusView.identityRef)]
+      : [];
+  const highlightArtifacts = useDraftConditionArtifacts(highlightViews);
+  const highlightReplays = useDraftReplays(
+    highlightViews,
+    highlightArtifacts.statusConditions,
+  );
+  const highlightByKey = new Map(
+    (highlightReplays?.[HIGHLIGHT_VIEW_ID] ?? []).flatMap((instance) =>
+      instance.currentLabelId
+        ? [[instance.key, instance.currentLabelId] as const]
+        : [],
+    ),
+  );
+  const cardValues = useCardValues(statusView.identityRef);
+  const identityName = (petriNetDefinition.identities ?? []).find(
+    (identity) => identity.id === statusView.identityRef,
+  )?.name;
+  const cardFields =
+    statusView.cardFields ??
+    getDefaultCardFields(
+      getCardFieldOptions(
+        petriNetDefinition,
+        getTrackedPlaceIds(petriNetDefinition, statusView.identityRef),
+        statusView.identityRef,
+      ),
+    );
+  const cardProps = (instance: InstanceStatus) => {
+    const highlight = highlights.find(
+      (candidate) => candidate.id === highlightByKey.get(instance.key),
+    );
+    const token = cardValues.get(instance.key);
+    return {
+      title: identityName
+        ? `${identityName} ${instance.keyValues.join(", ")}`
+        : instance.keyValues.join(", "),
+      highlight: highlight
+        ? {
+            name: highlight.name,
+            color: highlight.displayColor,
+            icon: highlight.icon,
+          }
+        : null,
+      fields: cardFields.flatMap((name) =>
+        token && name in token
+          ? [
+              {
+                label: humanizeField(name, identityName),
+                value: formatFieldValue(token[name]),
+              },
+            ]
+          : [],
+      ),
+    };
+  };
 
   const [board, setBoard] = useState<BoardSnapshot>({
     instances: [],
@@ -351,6 +412,7 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
                   instance={instance}
                   labelId={label.id}
                   nowMs={board.nowMs}
+                  {...cardProps(instance)}
                 />
               ))}
             </div>

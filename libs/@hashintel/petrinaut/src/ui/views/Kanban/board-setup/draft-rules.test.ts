@@ -13,6 +13,14 @@ import {
   buildDraftDefinition,
   buildHighlightView,
   describeCondition,
+  formatFieldValue,
+  getCardFieldOptions,
+  getDefaultCardFields,
+  highlightsAsView,
+  highlightsFromRules,
+  humanizeField,
+  moveRuleBefore,
+  ruleFromHighlight,
   getRulePlaceIds,
   getSharedAttributes,
   HIGHLIGHT_VIEW_ID,
@@ -31,6 +39,8 @@ const rule = (patch: Partial<DraftRule> = {}): DraftRule => ({
   expression: null,
   checks: "status",
   alsoPlaceIds: [],
+  color: "#ea580c",
+  icon: "warning",
   ...patch,
 });
 
@@ -241,5 +251,79 @@ describe("draft compile", () => {
         (attribute) => attribute.name,
       ),
     ).toEqual(["machine_id", "machine_damage_ratio"]);
+  });
+});
+
+describe("saved highlights", () => {
+  const view = { identityRef: "identity" };
+
+  it("round-trips a rule through a saved highlight", () => {
+    const original = rule({ checks: "also", alsoPlaceIds: ["b"] });
+    const [highlight] = highlightsFromRules([original], labels, tracked);
+    expect(highlight).toMatchObject({
+      id: "rule-1",
+      statusLabelRef: "producing",
+      places: ["p", "b"],
+      tokenCondition: "token.machine_damage_ratio >= 0.8",
+      icon: "warning",
+    });
+    expect(ruleFromHighlight(highlight!, labels, tracked)).toEqual(original);
+  });
+
+  it("reads anywhere and raw expressions back", () => {
+    const back = ruleFromHighlight(
+      {
+        id: "h",
+        name: "Odd",
+        displayColor: "#000",
+        statusLabelRef: "producing",
+        places: ["a", "p", "b", "r"],
+        tokenCondition: "token.a > 1 && token.b < 2",
+      },
+      labels,
+      tracked,
+    );
+    expect(back.checks).toBe("anywhere");
+    expect(back.expression).toBe("token.a > 1 && token.b < 2");
+    expect(back.icon).toBeNull();
+    expect(highlightsAsView([], view.identityRef).labels).toEqual([]);
+  });
+
+  it("moves a rule before another so it wins", () => {
+    const rules = [rule({ id: "x" }), rule({ id: "y" }), rule({ id: "z" })];
+    expect(moveRuleBefore(rules, "z", "x").map((r) => r.id)).toEqual([
+      "z",
+      "x",
+      "y",
+    ]);
+  });
+});
+
+describe("card fields", () => {
+  it("picks the first number every tracked type carries", () => {
+    const sdcpn = productionMachines.petriNetDefinition;
+    const statusView = sdcpn.statusViews![0]!;
+    const machineTracked = new Set(
+      statusView.labels.flatMap((label) => label.places),
+    );
+    const options = getCardFieldOptions(
+      sdcpn,
+      machineTracked,
+      statusView.identityRef,
+    );
+    expect(options.map((option) => option.name)).toEqual([
+      "machine_damage_ratio",
+      "transformation_progress",
+    ]);
+    expect(getDefaultCardFields(options)).toEqual(["machine_damage_ratio"]);
+  });
+
+  it("formats field names and values for a card", () => {
+    expect(humanizeField("machine_damage_ratio", "Machine")).toBe(
+      "damage ratio",
+    );
+    expect(formatFieldValue(0.8612)).toBe("0.86");
+    expect(formatFieldValue(3)).toBe("3");
+    expect(formatFieldValue(undefined)).toBe("—");
   });
 });

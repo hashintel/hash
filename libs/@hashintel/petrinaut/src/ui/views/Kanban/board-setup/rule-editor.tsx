@@ -60,9 +60,17 @@ const valueInputStyle = css({ flex: "[0 1 80px]", width: "[80px]" });
 const nameInputStyle = css(controlBase, {
   width: "[96px]",
   fontWeight: "semibold",
-  color: "orange.s110",
-  backgroundColor: "orange.s20",
-  borderColor: "orange.s90",
+});
+const conflictStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "1.5",
+  padding: "2",
+  borderRadius: "md",
+  backgroundColor: "neutral.s25",
+  fontSize: "xs",
+  color: "neutral.s120",
 });
 const expressionInputStyle = css({
   width: "full",
@@ -123,6 +131,8 @@ export const RuleEditor = ({
   onChange,
   onRemove,
   onPromote,
+  onOpenStyle,
+  conflict,
   setPreviewRuleId,
 }: {
   rule: DraftRule;
@@ -138,6 +148,10 @@ export const RuleEditor = ({
   onChange: (patch: Partial<DraftRule>) => void;
   onRemove: () => void;
   onPromote: () => void;
+  /** Opens "What cards show", where colour and glyph are set. */
+  onOpenStyle: () => void;
+  /** Cards this rule catches that an earlier rule shows instead. */
+  conflict: { text: string; onResolve: () => void } | null;
   /** Set to this rule's id while the Checks control has hover or focus. */
   setPreviewRuleId: Dispatch<SetStateAction<string | null>>;
 }) => {
@@ -236,14 +250,27 @@ export const RuleEditor = ({
 
       <div className={rowStyle}>
         <span>Show</span>
+        {rule.icon && (
+          <span style={{ color: rule.color, display: "inline-flex" }}>
+            <Icon name={rule.icon} size="xs" />
+          </span>
+        )}
         <input
           className={nameInputStyle}
+          style={{
+            color: rule.color,
+            borderColor: rule.color,
+            backgroundColor: `color-mix(in srgb, ${rule.color} 9%, var(--colors-neutral-s00))`,
+          }}
           aria-label="Badge text"
           value={rule.name}
           onChange={(event) => onChange({ name: event.target.value })}
         />
         <span>on the card. It stays in {parentName}.</span>
       </div>
+      <button type="button" className={linkStyle} onClick={onOpenStyle}>
+        Colour and glyph
+      </button>
 
       <fieldset
         className={checksStyle}
@@ -317,6 +344,20 @@ export const RuleEditor = ({
         </span>
       ) : (
         <span className={faintStyle}>Run the simulation to see matches.</span>
+      )}
+
+      {conflict && (
+        <div className={conflictStyle} role="status">
+          <span>{conflict.text}</span>
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="xs"
+            onClick={conflict.onResolve}
+          >
+            Show {rule.name || "this"} first
+          </Button>
+        </div>
       )}
 
       <div>
