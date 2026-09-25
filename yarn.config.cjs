@@ -18,7 +18,6 @@ try {
 }
 
 const enforcedDevDependencies = {
-  oxfmt: { commands: ["oxfmt"], ident: "oxfmt" },
   waitOn: { commands: ["wait-on"], ident: "wait-on" },
   rimraf: { commands: ["rimraf"], ident: "rimraf" },
   eslint: { commands: ["eslint"], ident: "eslint" },
@@ -235,7 +234,7 @@ function enforceProtocols({ Yarn }) {
 /**
  * Enforces proper declaration of dev dependencies.
  *
- * This rule checks if certain tools (like oxfmt) are used in any workspace
+ * This rule checks if certain tools (like ESLint) are used in any workspace
  * and ensures they're declared as dev dependencies in those workspaces.
  *
  * @param {Context} context - The Yarn constraint context.
@@ -257,7 +256,6 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
     }
 
     const dependsOn = {
-      oxfmt: false,
       waitOn: false,
       rimraf: false,
       eslint: false,
