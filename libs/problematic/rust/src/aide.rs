@@ -818,7 +818,7 @@ fn variant_schema(base: &Schema, variant: &Variant, extensions: Schema) -> Schem
         }),
     ];
     if !without_members(&extensions) {
-        let mut extensions = extensions;
+        let mut extensions = only_branch(extensions);
         if let Some(members) = extensions.as_object_mut() {
             open(members);
         }
@@ -826,4 +826,21 @@ fn variant_schema(base: &Schema, variant: &Variant, extensions: Schema) -> Schem
     }
 
     json_schema!({ "title": problem_type.title, "allOf": all_of })
+}
+
+/// The one branch of the `oneOf` or `anyOf` that `extensions` consists of, or `extensions` itself.
+///
+/// schemars describes an enum with one variant as a `oneOf` of it. Documentation viewers show the
+/// members of such a branch without the members it requires.
+fn only_branch(extensions: Schema) -> Schema {
+    extensions
+        .as_object()
+        .filter(|keywords| keywords.len() == 1)
+        .and_then(|keywords| keywords.get("oneOf").or_else(|| keywords.get("anyOf")))
+        .and_then(serde_json::Value::as_array)
+        .and_then(|branches| match branches.as_slice() {
+            [branch] => Schema::try_from(branch.clone()).ok(),
+            _ => None,
+        })
+        .unwrap_or(extensions)
 }

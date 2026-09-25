@@ -35,28 +35,24 @@
                       ]
                     },
                     {
-                      "oneOf": [
-                        {
+                      "type": "object",
+                      "properties": {
+                        "Expired": {
                           "type": "object",
                           "properties": {
-                            "Expired": {
-                              "type": "object",
-                              "properties": {
-                                "at": {
-                                  "type": "integer",
-                                  "format": "uint64",
-                                  "minimum": 0
-                                }
-                              },
-                              "required": [
-                                "at"
-                              ]
+                            "at": {
+                              "type": "integer",
+                              "format": "uint64",
+                              "minimum": 0
                             }
                           },
                           "required": [
-                            "Expired"
+                            "at"
                           ]
                         }
+                      },
+                      "required": [
+                        "Expired"
                       ]
                     }
                   ]

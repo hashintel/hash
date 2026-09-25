@@ -865,16 +865,27 @@ impl Problem for CheckToken {
 fn document_members_open() {
     let mut operation = Operation::default();
     document::<CheckToken>(&mut operation);
-    let rejected =
-        serde_json::to_string(&response(&operation, 401)).expect("the response should serialize");
+    let rejected = response(&operation, 401);
 
     assert!(
-        rejected.contains("Expired"),
-        "the schema should document the members of the enum"
-    );
-    assert!(
-        !rejected.contains("additionalProperties"),
-        "the members should not close the problem details to its standard members"
+        rejected["content"]["application/problem+json"]["schema"]["allOf"]
+            .as_array()
+            .expect("the schema should combine the problem details with the variant")
+            .contains(&json!({
+                "type": "object",
+                "properties": {
+                    "Expired": {
+                        "type": "object",
+                        "properties": {
+                            "at": { "type": "integer", "format": "uint64", "minimum": 0 }
+                        },
+                        "required": ["at"]
+                    }
+                },
+                "required": ["Expired"]
+            })),
+        "the members of an enum with one variant should be those of the variant, open to the \
+         standard members"
     );
     insta::assert_binary_snapshot!(
         ".json",
