@@ -5,25 +5,30 @@
 //!
 //! A client can act on some errors of an endpoint, such as a missing user. Other errors, such as
 //! a failed database query, are internal: the client receives `500 Internal Server Error` and
-//! nothing more. problematic defines on three levels which errors a client receives:
+//! learns nothing about the error. problematic defines on three levels which errors a client
+//! receives:
 //!
 //! - A [`ProblemVariant`] is one kind of error a client can receive. It specifies the
 //!   [`ProblemType`] of its response, and its fields become the extension members of the
 //!   [`ProblemDetails`].
-//! - A [`Problem`] lists the variants one endpoint answers with, and [`Variant::INTERNAL`] if an
-//!   error of the endpoint stays internal.
-//! - [`Expose`] maps every error of your error type to one of these variants, or keeps it internal.
+//! - A [`Problem`] lists the variants one endpoint answers with, including one for the errors that
+//!   stay internal.
+//! - [`Expose`] maps every error of your error type to one of these variants.
 //!
-//! Answering with a variant whose type URI and status the [`Problem`] does not list fails to
-//! compile. A handler returns <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code>, and `?` turns
-//! its error into the problem details response that `K` allows.
+//! Answering with a variant whose problem type the [`Problem`] does not list fails to compile. A
+//! handler returns <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code>, and `?` turns its error
+//! into the problem details response that `K` allows.
 //!
 //! With the `aide` feature, the handler documents the variants of `K` in the OpenAPI document.
 //! Each status gets one `application/problem+json` response with the schema, the description, the
-//! example and the headers of every variant at that status. A middleware that rejects requests is
-//! not part of the handler's return type: a transform of the OpenAPI document documents its errors
-//! through the `inferred_responses` implementation of <code>[Rejection]&lt;K&gt;</code>, and they
-//! join those of the handler.
+//! example and the headers of every variant at that status. A variant listed by several sources
+//! appears once, and two variants with the same type URI and status that differ in title,
+//! description or fields appear side by side. A middleware that rejects requests is not part of
+//! the handler's return type: a transform of the OpenAPI document documents its errors through the
+//! `inferred_responses` implementation of <code>[Rejection]&lt;K&gt;</code>, and they join those
+//! of the handler. Building the document panics if a variant cannot be documented, or if the
+//! status of a variant already has a response that documents none, such as a handler's explicit
+//! JSON response. A test that builds the document, such as a snapshot test, finds both.
 //!
 //! [`ProblemDetails`] serializes and deserializes problem details objects, borrowing strings from
 //! the input where it can, and describes them as JSON Schema. problematic requires a nightly
@@ -98,15 +103,34 @@
 //!     };
 //! }
 //!
+//! // The variant of an error that stays internal: its `detail` says nothing about the error.
+//! /// An internal error prevented the request from completing.
+//! #[derive(serde::Serialize, schemars::JsonSchema)]
+//! struct InternalServerError;
+//!
+//! impl fmt::Display for InternalServerError {
+//!     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+//!         formatter.write_str("An internal error prevented the request from completing.")
+//!     }
+//! }
+//!
+//! impl ProblemVariant for InternalServerError {
+//!     const TYPE: ProblemType = ProblemType {
+//!         type_uri: Cow::Borrowed("about:blank"),
+//!         title: Cow::Borrowed("Internal Server Error"),
+//!         status: StatusCode::INTERNAL_SERVER_ERROR,
+//!     };
+//! }
+//!
 //! // The errors a client can receive from `PATCH /users/{user}`. A failed store stays internal,
-//! // so `UpdateUserProblem` lists the internal error as well.
+//! // so `UpdateUserProblem` lists `InternalServerError` as well.
 //! struct UpdateUserProblem;
 //!
 //! impl Problem for UpdateUserProblem {
 //!     const VARIANTS: &'static [Variant] = &[
 //!         Variant::of::<UserNotFound<'static>>(),
 //!         Variant::of::<EmailTaken>(),
-//!         Variant::INTERNAL,
+//!         Variant::of::<InternalServerError>(),
 //!     ];
 //! }
 //!
@@ -125,13 +149,13 @@
 //! // A rejection keeps the error it was created from, so the error type implements `Error`.
 //! impl core::error::Error for UpdateUserError {}
 //!
-//! // Maps every error to the variant the client receives, or keeps it internal.
+//! // Maps every error to the variant the client receives.
 //! impl Expose<UpdateUserProblem> for UpdateUserError {
 //!     fn expose(&self) -> Answer<'_, UpdateUserProblem> {
 //!         match self {
 //!             Self::NotFound { user } => Answer::new(UserNotFound { user }),
 //!             Self::EmailTaken => Answer::new(EmailTaken),
-//!             Self::Store => Answer::internal(),
+//!             Self::Store => Answer::new(InternalServerError),
 //!         }
 //!     }
 //! }
@@ -236,14 +260,22 @@
 //!     })
 //! );
 //!
-//! // The response to a failed store is `500 Internal Server Error` alone.
+//! // The response to a failed store says nothing about the store.
 //! let error = update("carol").expect_err("the store should fail for carol");
 //! let response = Response::from(Rejection::<UpdateUserProblem>::from(error));
-//! assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+//! assert_eq!(
+//!     serde_json::from_slice::<Value>(response.body())?,
+//!     json!({
+//!         "type": "about:blank",
+//!         "title": "Internal Server Error",
+//!         "status": 500,
+//!         "detail": "An internal error prevented the request from completing."
+//!     })
+//! );
 //! # Ok::<(), serde_json::Error>(())
 //! ```
 
-#![feature(const_convert, const_destruct, const_trait_impl)]
+#![feature(const_cmp, const_convert, const_destruct, const_trait_impl)]
 #![cfg_attr(doc, feature(doc_cfg))]
 
 extern crate alloc;

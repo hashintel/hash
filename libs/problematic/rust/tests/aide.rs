@@ -5,6 +5,7 @@ use alloc::borrow::Cow;
 use aide::{
     OperationOutput as _, generate,
     openapi::{Operation, ReferenceOr, StatusCode as DocumentedStatus},
+    transform::TransformOperation,
 };
 use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
 use problematic::{
@@ -113,7 +114,6 @@ impl Problem for CreateEntity {
         Variant::of::<EntityNotFound>(),
         Variant::of::<WebNotFound>(),
         Variant::of::<StoreBusy>(),
-        Variant::INTERNAL,
     ];
 }
 
@@ -124,7 +124,6 @@ impl Problem for CreateEntityType {
         Variant::of::<WebNotFound>(),
         Variant::of::<EntityTypeNotFound>(),
         Variant::of::<StoreMaintenance>(),
-        Variant::INTERNAL,
     ];
 }
 
@@ -184,11 +183,12 @@ fn document_variant() {
             .contains(&json!({
                 "properties": {
                     "type": { "const": "/problems/store/busy" },
+                    "title": { "const": "Store busy" },
                     "status": { "const": 503 }
                 },
                 "required": ["type"]
             })),
-        "the schema should fix the type URI and status"
+        "the schema should fix the type URI, title and status"
     );
     assert_eq!(
         response["headers"]["Retry-After"]["required"], true,
@@ -255,15 +255,6 @@ fn document_variants_merged() {
         "a variant without members should be exemplified by its bare problem type, and one with \
          members but no example not at all"
     );
-    let retry_after = &response(&operation, 503)["headers"]["Retry-After"];
-    assert!(
-        retry_after.is_object(),
-        "a header some variants list should be documented"
-    );
-    assert_ne!(
-        retry_after["required"], true,
-        "a header only some variants list should not be required"
-    );
 }
 
 /// The store no longer takes requests.
@@ -312,6 +303,67 @@ fn document_headers_shared() {
         headers["Retry-After"]["required"], true,
         "a header every variant lists should be required"
     );
+    assert!(
+        headers["Retry-After"]["schema"].get("anyOf").is_none(),
+        "a header every variant gives the same schema should keep that schema"
+    );
+}
+
+/// The store is closed until a given date.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The store is closed.")]
+struct StoreClosed;
+
+impl ProblemVariant for StoreClosed {
+    const HEADERS: &'static [Header] = &[Header::new::<String>(
+        "Retry-After",
+        "The date after which to retry the request.",
+    )];
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/store/closed"),
+        title: Cow::Borrowed("Store closed"),
+        status: StatusCode::SERVICE_UNAVAILABLE,
+    };
+
+    fn headers(&self, headers: &mut HeaderMap) {
+        headers.insert(
+            RETRY_AFTER,
+            HeaderValue::from_static("Wed, 21 Oct 2026 07:28:00 GMT"),
+        );
+    }
+}
+
+struct CloseStore;
+
+impl Problem for CloseStore {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<StoreClosed>()];
+}
+
+#[test]
+fn document_header_schemas() {
+    let mut operation = Operation::default();
+    document::<CreateEntity>(&mut operation);
+    document::<CloseStore>(&mut operation);
+    // Gives `retry-after` a schema that is documented already, after the response has been read
+    // back with an `anyOf`.
+    document::<DrainStore>(&mut operation);
+    let retry_after = &response(&operation, 503)["headers"]["Retry-After"];
+
+    let types = retry_after["schema"]["anyOf"]
+        .as_array()
+        .expect("a header the variants give different schemas should document an `anyOf` of them")
+        .iter()
+        .map(|schema| schema["type"].clone())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        types,
+        ["integer", "string"],
+        "every schema of the header should be documented once"
+    );
+    assert_eq!(
+        retry_after["description"], "Seconds before retrying the request.",
+        "the header should be described like the first variant that lists it"
+    );
 }
 
 #[test]
@@ -332,33 +384,107 @@ fn document_headers_optional_kept() {
     );
 }
 
-/// Documented differently than [`WebNotFound`], under the same problem type.
-#[derive(Serialize, JsonSchema, derive_more::Display)]
-#[display("The web does not exist.")]
-struct WebMissing;
+#[test]
+fn document_headers_listed_later() {
+    let mut operation = Operation::default();
+    document::<CreateEntityType>(&mut operation);
+    document::<CreateEntity>(&mut operation);
+    let retry_after = &response(&operation, 503)["headers"]["Retry-After"];
 
-impl ProblemVariant for WebMissing {
+    assert!(
+        retry_after.is_object(),
+        "a header only a later variant lists should be documented"
+    );
+    assert_ne!(
+        retry_after["required"], true,
+        "a header only a later variant lists should be optional"
+    );
+}
+
+/// The web named in the request was deleted.
+///
+/// Its entities are kept for the retention period.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The web was deleted.")]
+struct WebDeleted;
+
+impl ProblemVariant for WebDeleted {
     const TYPE: ProblemType = WebNotFound::TYPE;
+
+    fn example() -> Option<Self> {
+        Some(Self)
+    }
 }
 
 struct ArchiveWeb;
 
 impl Problem for ArchiveWeb {
-    const VARIANTS: &'static [Variant] = &[Variant::of::<WebMissing>()];
+    const VARIANTS: &'static [Variant] = &[Variant::of::<WebDeleted>()];
+}
+
+#[test]
+fn document_same_problem_type() {
+    let mut operation = Operation::default();
+    document::<CreateEntity>(&mut operation);
+    document::<ArchiveWeb>(&mut operation);
+    // Documents `WebNotFound` again, after the response has been read back with labels.
+    document::<CreateEntityType>(&mut operation);
+    let media = response(&operation, 404)["content"]["application/problem+json"].clone();
+
+    let labels = media["schema"]["anyOf"]
+        .as_array()
+        .expect("variants with the same type URI and status should be documented in an `anyOf`")
+        .iter()
+        .map(|variant| variant["title"].clone())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        labels,
+        [
+            "Entity not found",
+            "Web not found: The web named in the request does not exist.",
+            "Web not found: The web named in the request was deleted.",
+            "Entity type not found",
+        ],
+        "every schema should be documented once, labelled by its description where its type URI \
+         is shared"
+    );
+    let example = &media["examples"]["/problems/web/not-found (2)"];
+    assert_eq!(
+        example["summary"], "Web not found: The web named in the request was deleted.",
+        "the example of the second variant of a type URI should be named apart"
+    );
+    assert_eq!(
+        example["value"]["detail"], "The web was deleted.",
+        "the example of the second variant of a type URI should stay its own after reading back"
+    );
+}
+
+#[test]
+fn document_explicit_response() {
+    let mut operation = Operation::default();
+    let _: TransformOperation<'_> =
+        TransformOperation::new(&mut operation).response::<400, Rejection<ArchiveWeb>>();
+
+    assert!(
+        response(&operation, 404).is_object(),
+        "an explicit response should document the variants of the rejection"
+    );
+    assert!(
+        operation
+            .responses
+            .as_ref()
+            .and_then(|responses| responses.responses.get(&DocumentedStatus::Code(400)))
+            .is_none(),
+        "the status of an explicit response should be ignored"
+    );
 }
 
 #[test]
 #[should_panic(
-    expected = "`/problems/web/not-found` at 404 should be documented the same by every source of \
-                the operation"
+    expected = "the response at 404 should document only problem variants, so \
+                `/problems/entity/not-found`, `/problems/web/not-found` can join it, but its \
+                schema documents something other than problem variants"
 )]
-fn document_conflict() {
-    let mut operation = Operation::default();
-    document::<CreateEntity>(&mut operation);
-    document::<ArchiveWeb>(&mut operation);
-}
-
-#[test]
 fn document_response_without_variants() {
     let mut operation = Operation::default();
     generate::in_context(|context| {
@@ -372,18 +498,38 @@ fn document_response_without_variants() {
             .insert(DocumentedStatus::Code(404), ReferenceOr::Item(foreign));
     });
     document::<CreateEntity>(&mut operation);
-    let not_found = response(&operation, 404);
+}
 
-    assert_eq!(
-        not_found["description"], "An RFC 9457 problem details document.",
-        "a response documenting no variants should stay as it was"
-    );
-    assert!(
-        not_found["content"]["application/problem+json"]["schema"]
-            .get("oneOf")
-            .is_none(),
-        "the variants should not be added to the response"
-    );
+#[test]
+#[should_panic(expected = "but it is a reference to a component")]
+fn document_response_reference() {
+    let mut operation = Operation::default();
+    operation
+        .responses
+        .get_or_insert_default()
+        .responses
+        .insert(
+            DocumentedStatus::Code(404),
+            ReferenceOr::ref_("#/components/responses/NotFound"),
+        );
+    document::<CreateEntity>(&mut operation);
+}
+
+#[test]
+#[should_panic(
+    expected = "but it holds more than problem variants, or another transform changed it"
+)]
+fn document_response_changed() {
+    let mut operation = Operation::default();
+    document::<CreateEntity>(&mut operation);
+    operation
+        .responses
+        .as_mut()
+        .and_then(|responses| responses.responses.get_mut(&DocumentedStatus::Code(404)))
+        .and_then(ReferenceOr::as_item_mut)
+        .expect("the status should be documented")
+        .description = String::from("The entity or its web does not exist.");
+    document::<ArchiveWeb>(&mut operation);
 }
 
 /// Names a standard member.
@@ -558,45 +704,6 @@ impl Problem for LinkEntity {
 )]
 fn document_non_object_members() {
     document::<LinkEntity>(&mut Operation::default());
-}
-
-#[test]
-fn document_internal() {
-    let mut operation = Operation::default();
-    document::<CreateEntity>(&mut operation);
-    document::<CreateEntityType>(&mut operation);
-    let internal = response(&operation, 500);
-
-    assert_eq!(
-        internal["description"], "An internal error prevented the request from completing.",
-        "the internal error should be documented"
-    );
-    assert_eq!(
-        internal["content"]["application/problem+json"]["example"],
-        json!({"type": "about:blank", "title": "Internal Server Error", "status": 500}),
-        "the internal error listed by both sets should be documented once"
-    );
-}
-
-struct GetWeb;
-
-impl Problem for GetWeb {
-    const VARIANTS: &'static [Variant] = &[Variant::of::<WebNotFound>()];
-}
-
-#[test]
-fn document_without_internal() {
-    let mut operation = Operation::default();
-    document::<GetWeb>(&mut operation);
-
-    assert!(
-        operation
-            .responses
-            .as_ref()
-            .and_then(|responses| responses.responses.get(&DocumentedStatus::Code(500)))
-            .is_none(),
-        "a set without the internal error should document no 500"
-    );
 }
 
 #[test]

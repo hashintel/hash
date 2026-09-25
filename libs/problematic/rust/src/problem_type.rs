@@ -39,6 +39,41 @@ pub struct ProblemType {
     pub status: StatusCode,
 }
 
+const impl PartialEq for ProblemType {
+    fn eq(&self, other: &Self) -> bool {
+        self.status.as_u16() == other.status.as_u16()
+            && same(text(&self.type_uri), text(&other.type_uri))
+            && same(text(&self.title), text(&other.title))
+    }
+}
+
+impl Eq for ProblemType {}
+
+#[expect(
+    clippy::ptr_arg,
+    reason = "a `Cow` derefs to `str` only outside of const, so the match does it here"
+)]
+const fn text<'a>(value: &'a Cow<'static, str>) -> &'a [u8] {
+    match value {
+        Cow::Borrowed(text) => text.as_bytes(),
+        Cow::Owned(text) => text.as_bytes(),
+    }
+}
+
+const fn same(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut index = 0;
+    while index < left.len() {
+        if left[index] != right[index] {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
 const impl<'a> From<ProblemType> for ProblemDetails<'a> {
     fn from(definition: ProblemType) -> Self {
         Self {
@@ -79,6 +114,45 @@ mod tests {
     use http::StatusCode;
 
     use crate::{ProblemDetails, ProblemType};
+
+    const fn web(type_uri: &'static str, title: &'static str, status: StatusCode) -> ProblemType {
+        ProblemType {
+            type_uri: Cow::Borrowed(type_uri),
+            title: Cow::Borrowed(title),
+            status,
+        }
+    }
+
+    #[test]
+    fn eq_every_member() {
+        let listed = web("/problems/web", "Web", StatusCode::NOT_FOUND);
+
+        assert_eq!(
+            listed,
+            ProblemType {
+                type_uri: Cow::Owned(String::from("/problems/web")),
+                title: Cow::Owned(String::from("Web")),
+                status: StatusCode::NOT_FOUND,
+            },
+            "a problem type with owned text should equal one with the same borrowed text"
+        );
+        for (other, member) in [
+            (
+                web("/problems/web/missing", "Web", StatusCode::NOT_FOUND),
+                "type URI",
+            ),
+            (
+                web("/problems/web", "Web gone", StatusCode::NOT_FOUND),
+                "title",
+            ),
+            (web("/problems/web", "Web", StatusCode::GONE), "status"),
+        ] {
+            assert_ne!(
+                listed, other,
+                "a problem type with another {member} should not be equal"
+            );
+        }
+    }
 
     #[test]
     fn details_owned_metadata() {

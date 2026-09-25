@@ -20,7 +20,7 @@ use aide::{
 };
 use schemars::{JsonSchema, Schema, json_schema};
 
-use crate::{Problem, ProblemDetails, Variant, problem::assert_variants, serde::STANDARD_MEMBERS};
+use crate::{Problem, ProblemDetails, Variant, serde::STANDARD_MEMBERS};
 
 impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
     type Inner = Self;
@@ -43,78 +43,48 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
     }
 }
 
-/// Documents a rejection through the responses `aide` infers for a handler, or through
-/// [`inferred_responses`](Self::inferred_responses). An explicit
-/// `TransformOperation::response::<N, Rejection<K>>()` documents nothing.
+/// Documents every variant of `K` at its own status, wherever `aide` meets the rejection: in the
+/// return type of a handler, through [`inferred_responses`](Self::inferred_responses), or in a
+/// [`TransformOperation`](aide::transform::TransformOperation) method given `Rejection<K>`, such
+/// as `response::<N, Rejection<K>>()`. Such a method documents nothing at `N`, and the `_with`
+/// methods do not apply their transform. `aide` documents no rejection of a handler while response
+/// inference is turned off, and none inside a tuple such as `(StatusCode, Rejection<K>)`.
+///
+/// The variants join those that other sources, such as middlewares, document at the same status.
+/// A variant listed by several sources is documented once. Variants with the same type URI and
+/// status that differ in title, description or members are documented side by side, and their
+/// status gets an `anyOf` instead of a `oneOf`. Their branches and examples are labelled with the
+/// first line of their description. A header is documented if a variant at its status lists it,
+/// and required if every one of them does. Variants that give a header different schemas document
+/// it with an `anyOf` of them, described like the first variant that lists it.
+///
+/// # Panics
+///
+/// Documenting a rejection panics if the fields of a variant serialize as neither an object nor
+/// a unit, if one of them is named like a standard member, or if the example of a variant fails to
+/// serialize. It also panics if the operation already has a response at the status of a variant
+/// that the variant cannot join: one that documents no variants, such as a response for
+/// [`ProblemDetails`] itself, one of another media type or a reference to a component, or one that
+/// another transform changed after it was documented.
 impl<K: Problem> OperationOutput for crate::Rejection<K> {
     type Inner = Self;
 
-    fn operation_response(_ctx: &mut GenContext, _operation: &mut Operation) -> Option<Response> {
+    fn operation_response(ctx: &mut GenContext, operation: &mut Operation) -> Option<Response> {
+        merge(ctx, operation, K::VARIANTS);
         None
     }
 
-    /// Documents the variants of `K` on the endpoint, joined with the errors every other
-    /// [`Problem`] of the endpoint documents at the same status.
-    ///
-    /// A status that already has a response documenting no variants, such as one for
-    /// [`ProblemDetails`] itself, keeps it. The variants of `K` for that status are not documented,
-    /// and a warning names them.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the fields of a variant serialize as neither an object nor a unit, or one of them
-    /// is named like a standard member, or if another [`Problem`] of the endpoint documents the
-    /// same type URI and status differently.
-    ///
-    /// Fails at compile time if `K` lists two variants with the same type URI and status:
-    ///
-    /// ```compile_fail,E0080
-    /// # use std::{borrow::Cow, fmt};
-    /// use aide::{OperationOutput as _, generate, openapi::Operation};
-    /// use http::StatusCode;
-    /// use problematic::{Problem, ProblemType, ProblemVariant, Rejection, Variant};
-    ///
-    /// #[derive(serde::Serialize, schemars::JsonSchema)]
-    /// struct UserNotFound;
-    /// # impl fmt::Display for UserNotFound {
-    /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         formatter.write_str("The user does not exist.")
-    /// #     }
-    /// # }
-    ///
-    /// impl ProblemVariant for UserNotFound {
-    ///     const TYPE: ProblemType = ProblemType {
-    ///         type_uri: Cow::Borrowed("https://example.com/problems/user-not-found"),
-    ///         title: Cow::Borrowed("User not found"),
-    ///         status: StatusCode::NOT_FOUND,
-    ///     };
-    /// }
-    ///
-    /// struct GetUserProblem;
-    ///
-    /// impl Problem for GetUserProblem {
-    ///     const VARIANTS: &'static [Variant] =
-    ///         &[Variant::of::<UserNotFound>(), Variant::of::<UserNotFound>()];
-    /// }
-    ///
-    /// // Fails to compile: `GetUserProblem` lists `UserNotFound` twice.
-    /// generate::in_context(|context| {
-    ///     Rejection::<GetUserProblem>::inferred_responses(context, &mut Operation::default())
-    /// });
-    /// ```
     fn inferred_responses(
         ctx: &mut GenContext,
         operation: &mut Operation,
     ) -> Vec<(Option<StatusCode>, Response)> {
-        const { assert_variants::<K>() };
-
         merge(ctx, operation, K::VARIANTS);
         Vec::new()
     }
 }
 
 /// One variant as a response documents it.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Fragment {
     type_uri: String,
     title: String,
@@ -122,6 +92,8 @@ struct Fragment {
     description: Option<String>,
     schema: Schema,
     example: Option<serde_json::Value>,
+    /// The headers the variant lists. A variant read back from a response lists none, as the
+    /// response keeps its headers apart from its variants.
     headers: Vec<HeaderFragment>,
 }
 
@@ -130,6 +102,55 @@ struct HeaderFragment {
     name: String,
     description: String,
     schema: Schema,
+}
+
+/// A header as a response documents it for every variant at its status that lists it.
+#[derive(Debug, Clone)]
+struct DocumentedHeader {
+    name: String,
+    /// The description of the first variant that lists the header.
+    description: String,
+    /// Every distinct schema a variant gives the header.
+    schemas: Vec<Schema>,
+    /// Whether every variant lists the header.
+    required: bool,
+}
+
+impl DocumentedHeader {
+    /// Adds the schemas of `schema` that are not documented yet.
+    fn join(&mut self, schema: &Schema) {
+        for member in members(schema) {
+            if !self.schemas.contains(&member) {
+                self.schemas.push(member);
+            }
+        }
+    }
+
+    /// The schema of the header: its one schema, or an `anyOf` of every schema.
+    fn schema(&self) -> Schema {
+        if let [schema] = self.schemas.as_slice() {
+            return schema.clone();
+        }
+        json_schema!({ "anyOf": self.schemas })
+    }
+}
+
+/// The schemas of a header that `schema` describes: the branches of an `anyOf` that stands alone,
+/// or `schema` itself.
+fn members(schema: &Schema) -> Vec<Schema> {
+    schema
+        .as_object()
+        .filter(|keywords| keywords.len() == 1)
+        .and_then(|keywords| keywords.get("anyOf"))
+        .and_then(serde_json::Value::as_array)
+        .filter(|branches| !branches.is_empty())
+        .and_then(|branches| {
+            branches
+                .iter()
+                .map(|branch| Schema::try_from(branch.clone()).ok())
+                .collect::<Option<Vec<_>>>()
+        })
+        .unwrap_or_else(|| vec![schema.clone()])
 }
 
 impl Fragment {
@@ -158,125 +179,148 @@ impl Fragment {
         }
     }
 
-    /// The variant a `branch` of a rendered response documents, with `headers`.
+    /// The variant a `branch` of a rendered response documents, with its `example`.
     ///
     /// `None` if `branch` does not document a variant.
-    fn read(
-        branch: &serde_json::Value,
-        media: &MediaType,
-        single: bool,
-        headers: &[HeaderFragment],
-    ) -> Option<Self> {
-        let (type_uri, status) = branch.get("allOf")?.as_array()?.iter().find_map(|part| {
-            let properties = part.get("properties")?;
-            Some((
-                properties.get("type")?.get("const")?.as_str()?,
-                properties.get("status")?.get("const")?.as_u64()?,
-            ))
-        })?;
-        let example = if single {
-            media.example.clone()
-        } else {
-            media
-                .examples
-                .get(type_uri)
-                .and_then(ReferenceOr::as_item)
-                .and_then(|example| example.value.clone())
-        };
+    fn read(branch: &serde_json::Value, example: Option<serde_json::Value>) -> Option<Self> {
+        let (type_uri, title, status) = constants(branch)?;
+        let mut schema: Schema = serde_json::from_value(branch.clone()).ok()?;
+        // A branch among several variants is titled with its label, see `labels`. The schema of the
+        // variant, which `join` compares, is titled with its problem type.
+        schema.insert("title".to_owned(), title.into());
 
         Some(Self {
             type_uri: type_uri.to_owned(),
-            title: branch.get("title")?.as_str()?.to_owned(),
+            title: title.to_owned(),
             status: u16::try_from(status).ok()?,
             description: branch
                 .get("description")
                 .and_then(serde_json::Value::as_str)
                 .map(ToOwned::to_owned),
-            schema: serde_json::from_value(branch.clone()).ok()?,
+            schema,
             example,
-            headers: headers.to_vec(),
+            headers: Vec::new(),
         })
-    }
-
-    fn same_problem(&self, other: &Self) -> bool {
-        self.status == other.status && self.type_uri == other.type_uri
-    }
-
-    /// Whether `other` documents the problem as `self` does, leaving the headers aside: a variant
-    /// read back from a response knows only the headers every variant at its status lists.
-    fn documents_like(&self, other: &Self) -> bool {
-        self.title == other.title
-            && self.description == other.description
-            && self.schema == other.schema
-            && self.example == other.example
     }
 }
 
 /// The variants documented at one status of an operation.
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Documented {
     fragments: Vec<Fragment>,
-    /// The headers only some variants list. A response read back no longer tells which ones.
-    optional_headers: Vec<HeaderFragment>,
+    /// Every header a variant lists.
+    headers: Vec<DocumentedHeader>,
 }
 
 impl Documented {
-    /// The variants `response` documents, or `None` if `response` does not document variants.
-    fn read(response: &Response) -> Option<Self> {
-        let media = response.content.get("application/problem+json")?;
-        let schema = media.schema.as_ref()?.json_schema.as_value();
-        let branches = match schema.get("oneOf") {
-            Some(branches) => branches.as_array()?.iter().collect(),
+    /// The variants `response` documents.
+    ///
+    /// # Errors
+    ///
+    /// Says why `response` is not a response of problem variants.
+    fn read(response: &Response) -> Result<Self, &'static str> {
+        let not_variants = "its schema documents something other than problem variants";
+        let media = response
+            .content
+            .get("application/problem+json")
+            .ok_or("it has no `application/problem+json` content")?;
+        let schema = media
+            .schema
+            .as_ref()
+            .ok_or(not_variants)?
+            .json_schema
+            .as_value();
+        let branches = match schema.get("oneOf").or_else(|| schema.get("anyOf")) {
+            Some(branches) => branches.as_array().ok_or(not_variants)?.iter().collect(),
             None => vec![schema],
         };
-
-        let mut required_headers = Vec::new();
-        let mut optional_headers = Vec::new();
-        for (name, header) in &response.headers {
-            let header = header.as_item()?;
-            let ParameterSchemaOrContent::Schema(schema) = &header.format else {
-                return None;
-            };
-            let fragment = HeaderFragment {
-                name: name.clone(),
-                description: header.description.clone().unwrap_or_default(),
-                schema: schema.json_schema.clone(),
-            };
-            if header.required {
-                required_headers.push(fragment);
-            } else {
-                optional_headers.push(fragment);
-            }
+        if branches.is_empty() {
+            return Err("its schema documents no variants");
         }
 
+        let type_uris = branches
+            .iter()
+            .map(|branch| constants(branch).map(|(type_uri, ..)| type_uri))
+            .collect::<Option<Vec<_>>>()
+            .ok_or(not_variants)?;
         let single = branches.len() == 1;
         let fragments = branches
             .into_iter()
-            .map(|branch| Fragment::read(branch, media, single, &required_headers))
-            .collect::<Option<_>>()?;
-        Some(Self {
-            fragments,
-            optional_headers,
-        })
+            .zip(example_names(&type_uris))
+            .map(|(branch, name)| {
+                let example = if single {
+                    media.example.clone()
+                } else {
+                    media
+                        .examples
+                        .get(&name)
+                        .and_then(ReferenceOr::as_item)
+                        .and_then(|example| example.value.clone())
+                };
+                Fragment::read(branch, example)
+            })
+            .collect::<Option<_>>()
+            .ok_or(not_variants)?;
+
+        let headers = response
+            .headers
+            .iter()
+            .map(|(name, header)| {
+                let header = header.as_item()?;
+                let ParameterSchemaOrContent::Schema(schema) = &header.format else {
+                    return None;
+                };
+                Some(DocumentedHeader {
+                    name: name.clone(),
+                    description: header.description.clone().unwrap_or_default(),
+                    schemas: members(&schema.json_schema),
+                    required: header.required,
+                })
+            })
+            .collect::<Option<_>>()
+            .ok_or("it lists a header by reference or by content")?;
+
+        Ok(Self { fragments, headers })
     }
 
-    /// Adds `fragment` unless it is documented already.
+    /// Adds `fragment` as a variant at the status.
     ///
-    /// # Panics
-    ///
-    /// Panics if the problem type and status of `fragment` are documented differently.
+    /// A variant with the schema of a documented one adds no branch, but its headers count as
+    /// those of any other variant, and its example is kept if the documented one has none.
     fn join(&mut self, fragment: Fragment) {
+        let first = self.fragments.is_empty();
+        for header in &mut self.headers {
+            header.required &= fragment
+                .headers
+                .iter()
+                .any(|listed| listed.name.eq_ignore_ascii_case(&header.name));
+        }
+        for listed in &fragment.headers {
+            match self
+                .headers
+                .iter_mut()
+                .find(|header| header.name.eq_ignore_ascii_case(&listed.name))
+            {
+                Some(header) => header.join(&listed.schema),
+                None => self.headers.push(DocumentedHeader {
+                    name: listed.name.clone(),
+                    description: listed.description.clone(),
+                    schemas: members(&listed.schema),
+                    required: first,
+                }),
+            }
+        }
+
         match self
             .fragments
-            .iter()
-            .find(|present| present.same_problem(&fragment))
+            .iter_mut()
+            .find(|documented| documented.schema == fragment.schema)
         {
-            Some(present) => assert!(
-                present.documents_like(&fragment),
-                "`{}` at {} should be documented the same by every source of the operation",
-                fragment.type_uri,
-                fragment.status
-            ),
+            Some(documented) => {
+                if documented.example.is_none() {
+                    documented.example = fragment.example;
+                }
+            }
             None => self.fragments.push(fragment),
         }
     }
@@ -287,12 +331,31 @@ impl Documented {
         add_examples(&mut media, &self.fragments);
 
         let mut response = problem_response(describe(&self.fragments), media);
-        add_headers(&mut response, &self.fragments, &self.optional_headers);
+        for header in self.headers {
+            let json_schema = header.schema();
+            response.headers.insert(
+                header.name,
+                ReferenceOr::Item(Header {
+                    description: Some(header.description),
+                    style: HeaderStyle::Simple,
+                    required: header.required,
+                    deprecated: None,
+                    format: ParameterSchemaOrContent::Schema(SchemaObject {
+                        json_schema,
+                        example: None,
+                        external_docs: None,
+                    }),
+                    example: None,
+                    examples: [].into(),
+                    extensions: [].into(),
+                }),
+            );
+        }
         response
     }
 }
 
-/// Documents `variants` on `operation`, joining the problems already documented per status.
+/// Documents `variants` on `operation`, joining the variants already documented at each status.
 fn merge<'v>(
     context: &mut GenContext,
     operation: &mut Operation,
@@ -309,24 +372,22 @@ fn merge<'v>(
     let responses = operation.responses.get_or_insert_default();
     for (code, fragments) in by_status {
         let status = StatusCode::Code(code);
-        let mut documented = match responses.responses.get(&status) {
-            None => Documented::default(),
-            Some(existing) => {
-                let Some(documented) = existing.as_item().and_then(Documented::read) else {
-                    tracing::warn!(
-                        operation = operation_id,
-                        status = code,
-                        variants = ?fragments
-                            .iter()
-                            .map(|fragment| fragment.type_uri.as_str())
-                            .collect::<Vec<_>>(),
-                        "problem variants yielded to a response that documents none"
-                    );
-                    continue;
-                };
-                documented
-            }
-        };
+        let mut documented = responses
+            .responses
+            .get(&status)
+            .map_or_else(|| Ok(Documented::default()), read_back)
+            .unwrap_or_else(|reason| {
+                let operation = operation_id.map_or_else(String::new, |id| format!(" of `{id}`"));
+                let variants = fragments
+                    .iter()
+                    .map(|fragment| format!("`{}`", fragment.type_uri))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                panic!(
+                    "the response at {code}{operation} should document only problem variants, so \
+                     {variants} can join it, but {reason}"
+                )
+            });
         for fragment in fragments {
             documented.join(fragment);
         }
@@ -336,84 +397,155 @@ fn merge<'v>(
     }
 }
 
-/// The schema of the one variant, or a `oneOf` over every variant.
+/// The variants an earlier merge documented in `response`.
+///
+/// # Errors
+///
+/// Says why `response` is not one an earlier merge rendered.
+fn read_back(response: &ReferenceOr<Response>) -> Result<Documented, &'static str> {
+    let response = response
+        .as_item()
+        .ok_or("it is a reference to a component")?;
+    let documented = Documented::read(response)?;
+    // Rendering again from what was read drops anything else, such as another media type.
+    if documented.clone().render() == *response {
+        Ok(documented)
+    } else {
+        Err("it holds more than problem variants, or another transform changed it")
+    }
+}
+
+/// The type URI, title and status that a branch of a rendered response fixes as constants.
+fn constants(branch: &serde_json::Value) -> Option<(&str, &str, u64)> {
+    branch.get("allOf")?.as_array()?.iter().find_map(|part| {
+        let properties = part.get("properties")?;
+        let constant = |member: &str| properties.get(member)?.get("const");
+        Some((
+            constant("type")?.as_str()?,
+            constant("title")?.as_str()?,
+            constant("status")?.as_u64()?,
+        ))
+    })
+}
+
+/// Whether two of `fragments` have the same type URI.
+fn share_type_uri(fragments: &[Fragment]) -> bool {
+    fragments.iter().enumerate().any(|(index, fragment)| {
+        fragments
+            .iter()
+            .skip(index + 1)
+            .any(|later| later.type_uri == fragment.type_uri)
+    })
+}
+
+/// The label of each of `fragments`, which documentation viewers show to choose between variants:
+/// the title, followed by the first line of the description where another variant has the same
+/// type URI, and numbered where it repeats.
+fn labels(fragments: &[Fragment]) -> Vec<String> {
+    let labels = fragments
+        .iter()
+        .map(|fragment| {
+            let shared = fragments
+                .iter()
+                .filter(|other| other.type_uri == fragment.type_uri)
+                .count()
+                > 1;
+            match fragment
+                .description
+                .as_deref()
+                .and_then(|description| description.lines().next())
+            {
+                Some(line) if shared && !line.is_empty() => format!("{}: {line}", fragment.title),
+                _ => fragment.title.clone(),
+            }
+        })
+        .collect::<Vec<_>>();
+    number_repeats(&labels)
+}
+
+/// The name of the example of each variant with one of `type_uris`: its type URI, numbered from
+/// the second variant with the same type URI on.
+fn example_names(type_uris: &[&str]) -> Vec<String> {
+    number_repeats(type_uris)
+}
+
+/// `names`, each numbered from its second occurrence on.
+fn number_repeats(names: &[impl AsRef<str>]) -> Vec<String> {
+    names
+        .iter()
+        .enumerate()
+        .map(|(index, name)| {
+            let name = name.as_ref();
+            let earlier = names
+                .iter()
+                .take(index)
+                .filter(|earlier| earlier.as_ref() == name)
+                .count();
+            if earlier == 0 {
+                name.to_owned()
+            } else {
+                format!("{name} ({})", earlier + 1)
+            }
+        })
+        .collect()
+}
+
+/// The schema of the one variant, or a `oneOf` of every variant, each titled with its label.
+///
+/// Two variants with the same type URI and status can both match a response, which `oneOf`
+/// forbids, so such a status gets an `anyOf`.
 fn response_schema(fragments: &[Fragment]) -> Schema {
     if let [fragment] = fragments {
         return fragment.schema.clone();
     }
 
-    let schemas = fragments
+    let branches = fragments
         .iter()
-        .map(|fragment| &fragment.schema)
-        .collect::<Vec<_>>();
-    json_schema!({ "oneOf": schemas })
+        .zip(labels(fragments))
+        .map(|(fragment, label)| {
+            let mut schema = fragment.schema.clone();
+            schema.insert("title".to_owned(), label.into());
+            schema.to_value()
+        })
+        .collect();
+    let keyword = if share_type_uri(fragments) {
+        "anyOf"
+    } else {
+        "oneOf"
+    };
+    let mut schema = json_schema!({});
+    schema.insert(keyword.to_owned(), serde_json::Value::Array(branches));
+    schema
 }
 
-/// Adds the example of the one variant, or a named example per variant that has one.
+/// Adds the example of the one variant, or a named and labelled example per variant that has
+/// one.
 fn add_examples(media: &mut MediaType, fragments: &[Fragment]) {
     if let [fragment] = fragments {
         media.example.clone_from(&fragment.example);
         return;
     }
 
-    // `assert_variants` and `join` keep the type URI unique within one status.
+    let type_uris = fragments
+        .iter()
+        .map(|fragment| fragment.type_uri.as_str())
+        .collect::<Vec<_>>();
     media.examples = fragments
         .iter()
-        .filter_map(|fragment| {
+        .zip(example_names(&type_uris))
+        .zip(labels(fragments))
+        .filter_map(|((fragment, name), label)| {
             let example = fragment.example.clone()?;
             Some((
-                fragment.type_uri.clone(),
+                name,
                 ReferenceOr::Item(Example {
-                    summary: Some(fragment.title.clone()),
+                    summary: Some(label),
                     value: Some(example),
                     ..Example::default()
                 }),
             ))
         })
         .collect();
-}
-
-/// Adds every header the variants list and every one of `optional`, each required if every
-/// variant lists it.
-fn add_headers(response: &mut Response, fragments: &[Fragment], optional: &[HeaderFragment]) {
-    let listed = optional
-        .iter()
-        .chain(fragments.iter().flat_map(|fragment| &fragment.headers));
-    for header in listed {
-        if response
-            .headers
-            .keys()
-            .any(|name| name.eq_ignore_ascii_case(&header.name))
-        {
-            continue;
-        }
-        let required = !optional
-            .iter()
-            .any(|candidate| candidate.name.eq_ignore_ascii_case(&header.name))
-            && fragments.iter().all(|fragment| {
-                fragment
-                    .headers
-                    .iter()
-                    .any(|candidate| candidate.name.eq_ignore_ascii_case(&header.name))
-            });
-        response.headers.insert(
-            header.name.clone(),
-            ReferenceOr::Item(Header {
-                description: Some(header.description.clone()),
-                style: HeaderStyle::Simple,
-                required,
-                deprecated: None,
-                format: ParameterSchemaOrContent::Schema(SchemaObject {
-                    json_schema: header.schema.clone(),
-                    example: None,
-                    external_docs: None,
-                }),
-                example: None,
-                examples: [].into(),
-                extensions: [].into(),
-            }),
-        );
-    }
 }
 
 fn problem_response(description: String, media: MediaType) -> Response {
@@ -578,6 +710,7 @@ fn variant_schema(
         json_schema!({
             "properties": {
                 "type": { "const": problem_type.type_uri },
+                "title": { "const": problem_type.title },
                 "status": { "const": problem_type.status.as_u16() },
             },
             "required": ["type"],

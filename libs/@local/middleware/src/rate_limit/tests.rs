@@ -36,6 +36,7 @@ use crate::{
         provider::StaticAuthenticationProvider,
         request::{AuthenticationError, AuthenticationErrorKind},
     },
+    problem::InternalServerError,
     test_metrics::{RecordedMetrics, noop_meter},
 };
 
@@ -477,11 +478,9 @@ async fn route_without_authentication_fails_loudly() {
     assert!(!response.headers().contains_key(RETRY_AFTER));
     assert_eq!(
         response_json(response).await,
-        json!({
-            "type": "about:blank",
-            "title": "Internal Server Error",
-            "status": 500,
-        })
+        serde_json::to_value(Answer::<RateLimitProblem>::new(InternalServerError).details())
+            .expect("the internal server error should serialize"),
+        "a wiring mistake should be answered with the internal server error"
     );
     assert_eq!(
         recorded.counter(

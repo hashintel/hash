@@ -1,18 +1,26 @@
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData};
 
 use http::{HeaderMap, HeaderValue, Response, StatusCode, header::CONTENT_TYPE};
 
-use crate::{Answer, Expose, Problem, ProblemDetails, problem::INTERNAL};
+use crate::{Answer, Expose, Problem, ProblemDetails, ProblemType};
+
+/// The problem type a client receives when the details of its variant fail to serialize.
+const UNSERIALIZABLE: ProblemType = ProblemType {
+    type_uri: Cow::Borrowed("about:blank"),
+    title: Cow::Borrowed("Internal Server Error"),
+    status: StatusCode::INTERNAL_SERVER_ERROR,
+};
 
 /// The error a request handler returns, which becomes a problem details response.
 ///
 /// A handler returns `Result<_, Rejection<K>>`, and `?` creates the rejection from any error that
 /// implements [`Expose<K>`](Expose): an [`Error`] or an `error_stack::Report` that is `Send`,
 /// `Sync` and `'static`. The response carries the [`ProblemDetails`] of the answer as
-/// `application/problem+json`, with the headers of the variant. A variant whose details fail to
-/// serialize is logged, and the client receives `500 Internal Server Error` instead.
-/// [`error`](Self::error) returns the error, for example to log it.
+/// `application/problem+json`, with the headers of the variant. If the details of the variant fail
+/// to serialize, the failure is logged and the client receives a bare `500 Internal Server Error`
+/// instead, which the documentation does not list. [`error`](Self::error) returns the error, for
+/// example to log it.
 ///
 /// An `http::Response<Vec<u8>>` converts from a rejection. With the `axum` feature, a rejection is
 /// an axum response, and with the `aide` feature, the documentation of a handler returning it
@@ -125,9 +133,9 @@ fn render<K>(answer: &Answer<'_, K>) -> (StatusCode, HeaderMap, Vec<u8>) {
 }
 
 fn internal() -> (StatusCode, HeaderMap, Vec<u8>) {
-    let body = serde_json::to_vec(&ProblemDetails::from(INTERNAL))
-        .expect("the internal problem should serialize");
-    (INTERNAL.status, HeaderMap::new(), body)
+    let body = serde_json::to_vec(&ProblemDetails::from(UNSERIALIZABLE))
+        .expect("a bare problem type should serialize");
+    (UNSERIALIZABLE.status, HeaderMap::new(), body)
 }
 
 #[cfg(test)]
@@ -143,8 +151,10 @@ mod tests {
     use serde::Serialize;
     use serde_json::{Value, json};
 
-    use super::Rejection;
-    use crate::{Answer, Expose, Header, Problem, ProblemType, ProblemVariant, Variant};
+    use super::{Rejection, UNSERIALIZABLE};
+    use crate::{
+        Answer, Expose, Header, Problem, ProblemDetails, ProblemType, ProblemVariant, Variant,
+    };
 
     #[derive(Serialize, JsonSchema, derive_more::Display)]
     #[display("The user store is busy.")]
@@ -212,7 +222,6 @@ mod tests {
             Variant::of::<StoreBusy>(),
             Variant::of::<UserLocked>(),
             Variant::of::<UserArchived>(),
-            Variant::INTERNAL,
         ];
     }
 
@@ -224,8 +233,6 @@ mod tests {
         Locked,
         #[display("the user is archived")]
         Archived,
-        #[display("the user store is unreachable")]
-        Unreachable,
     }
 
     impl Error for UpdateUserError {}
@@ -236,7 +243,6 @@ mod tests {
                 Self::Busy => Answer::new(StoreBusy { retry_after: 30 }),
                 Self::Locked => Answer::new(UserLocked { status: "locked" }),
                 Self::Archived => Answer::new(UserArchived),
-                Self::Unreachable => Answer::internal(),
             }
         }
     }
@@ -246,7 +252,8 @@ mod tests {
     }
 
     fn internal_body() -> Value {
-        json!({"type": "about:blank", "title": "Internal Server Error", "status": 500})
+        serde_json::to_value(ProblemDetails::from(UNSERIALIZABLE))
+            .expect("a bare problem type should serialize")
     }
 
     #[test]
@@ -294,24 +301,13 @@ mod tests {
     }
 
     #[test]
-    fn response_internal() {
-        let rejection = Rejection::<UpdateUserProblem>::from(UpdateUserError::Unreachable);
+    fn error_kept() {
+        let rejection = Rejection::<UpdateUserProblem>::from(UpdateUserError::Busy);
 
         assert_matches!(
             rejection.error().downcast_ref(),
-            Some(UpdateUserError::Unreachable),
+            Some(UpdateUserError::Busy),
             "the rejection should keep the error it was created from"
-        );
-        let response = Response::from(rejection);
-        assert_eq!(
-            response.status(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "an internal error should be answered with 500"
-        );
-        assert_eq!(
-            body(&response),
-            internal_body(),
-            "the body should reveal nothing of the error"
         );
     }
 

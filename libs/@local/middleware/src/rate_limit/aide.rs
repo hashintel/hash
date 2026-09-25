@@ -10,6 +10,11 @@ use super::{RateLimitProblem, RateLimitRejection};
 use crate::aide::document_rejection;
 
 /// Documents the responses that the rate-limit layers can return before a handler runs.
+///
+/// # Panics
+///
+/// Panics if the operation already has a response that documents no problem variants at a status
+/// these layers answer with.
 pub fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     document_rejection::<RateLimitRejection>(operation)
 }

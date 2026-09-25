@@ -58,6 +58,7 @@ use self::{
     request::{AuthenticationError, AuthenticationErrorKind, resolve_request_actor},
     service_secret::{presents_service_secret, service_credential},
 };
+use crate::problem::InternalServerError;
 
 /// How a request proceeded although its credential resolution failed.
 #[derive(Copy, Clone)]
@@ -162,7 +163,7 @@ impl Expose<AuthenticationProblem> for AuthenticationRejection {
     fn expose(&self) -> Answer<'_, AuthenticationProblem> {
         match self {
             Self::Authentication { report, .. } => report.expose(),
-            Self::Misconfigured { .. } => Answer::internal(),
+            Self::Misconfigured { .. } => Answer::new(InternalServerError),
         }
     }
 }
@@ -628,20 +629,22 @@ mod tests {
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
     use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
+    use problematic::Answer;
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{
-        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationRejection,
-        ServiceSecretLayer,
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationProblem,
+        AuthenticationRejection, ServiceSecretLayer,
     };
     use crate::{
         authentication::{
             provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
             request::{AuthenticationError, AuthenticationErrorKind},
         },
+        problem::InternalServerError,
         test_metrics::{RecordedMetrics, noop_meter},
     };
 
@@ -1429,11 +1432,11 @@ mod tests {
             .expect("the response body should be readable");
         assert_eq!(
             serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
-            json!({
-                "type": "about:blank",
-                "title": "Internal Server Error",
-                "status": 500,
-            })
+            serde_json::to_value(
+                Answer::<AuthenticationProblem>::new(InternalServerError).details()
+            )
+            .expect("the internal server error should serialize"),
+            "a route without the middleware should answer with the internal server error"
         );
     }
 }

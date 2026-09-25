@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, string::ToString as _};
+use alloc::string::ToString as _;
 use core::fmt::Display;
 
 use http::HeaderMap;
@@ -9,18 +9,6 @@ use serde_core::Serialize;
 
 use crate::{ProblemDetails, ProblemType};
 
-/// The problem type of an error that stays internal.
-pub(crate) const INTERNAL: ProblemType = ProblemType {
-    type_uri: Cow::Borrowed("about:blank"),
-    title: Cow::Borrowed("Internal Server Error"),
-    status: http::StatusCode::INTERNAL_SERVER_ERROR,
-};
-
-/// An internal error prevented the request from completing.
-#[cfg(feature = "aide")]
-#[derive(JsonSchema)]
-struct Internal;
-
 /// The errors a client can receive from one endpoint.
 ///
 /// Define one per endpoint, or per group of endpoints with the same errors, and list its
@@ -29,18 +17,17 @@ struct Internal;
 /// of `K`, an `Answer<K>` carries one of them, and a handler returns a `Rejection<K>`. With the
 /// `aide` feature, a handler returning `Rejection<K>` documents these variants.
 ///
-/// It identifies its variants by the type URI and status of their problem type, so
-/// [`Answer::new`](crate::Answer::new) accepts any variant with a listed type URI and status.
+/// It identifies its variants by their problem type: type URI, title and status.
+/// [`Answer::new`](crate::Answer::new) accepts any variant with a listed problem type. The
+/// documentation describes only the listed variants, so another variant with a listed problem
+/// type but other fields or another description answers with an undocumented response.
 ///
 /// [`Expose`]: crate::Expose
 /// [`Answer`]: crate::Answer
 /// [`Rejection`]: crate::Rejection
 pub trait Problem {
-    /// The variants a client can receive, each listed with [`Variant::of`], and
-    /// [`Variant::INTERNAL`] if an error can stay internal.
-    ///
-    /// Listing two variants with the same type URI and status fails to compile when the endpoint
-    /// is documented.
+    /// The variants a client can receive, each listed with [`Variant::of`], including one for the
+    /// errors that stay internal.
     const VARIANTS: &'static [Variant];
 }
 
@@ -62,10 +49,8 @@ pub trait Problem {
 /// JSON schema, which `#[derive(JsonSchema)]` takes from its doc comment.
 pub trait ProblemVariant: Display + Serialize + JsonSchema + Sized {
     /// The [`type`](ProblemDetails::type_uri), [`title`](ProblemDetails::title) and
-    /// [`status`](ProblemDetails::status) of every response for this error.
-    ///
-    /// The status is a client or server error status, and `about:blank` at `500` is reserved for
-    /// [`Variant::INTERNAL`].
+    /// [`status`](ProblemDetails::status) of every response for this error, with a client or
+    /// server error status.
     const TYPE: ProblemType;
 
     /// The response headers [`headers`](Self::headers) adds, as the documentation lists them.
@@ -186,10 +171,7 @@ impl Header {
     }
 }
 
-/// One error an endpoint can answer with, as its [`Problem`] lists it.
-///
-/// [`Variant::of`] lists a type implementing [`ProblemVariant`], and [`Variant::INTERNAL`] the
-/// internal error.
+/// One error an endpoint can answer with, as its [`Problem`] lists it through [`Variant::of`].
 #[derive(Debug)]
 pub struct Variant {
     problem_type: ProblemType,
@@ -202,22 +184,6 @@ pub struct Variant {
 }
 
 impl Variant {
-    /// Lists the internal error, which a client receives as `500 Internal Server Error` without
-    /// detail.
-    ///
-    /// A [`Problem`] lists it when an error of its endpoint can stay internal, answered with
-    /// [`Answer::internal`](crate::Answer::internal). A [`Problem`] without it documents no
-    /// `500 Internal Server Error`.
-    pub const INTERNAL: Self = Self {
-        problem_type: INTERNAL,
-        #[cfg(feature = "aide")]
-        extensions: Internal::json_schema,
-        #[cfg(feature = "aide")]
-        headers: &[],
-        #[cfg(feature = "aide")]
-        example: no_example,
-    };
-
     /// Lists the [`ProblemVariant`] `V`.
     ///
     /// A variant with lifetime parameters is listed with `'static` ones, such as
@@ -225,9 +191,8 @@ impl Variant {
     ///
     /// # Panics
     ///
-    /// Panics if the status of `V` is not a client or server error status, or if `V` has the
-    /// problem type reserved for [`Variant::INTERNAL`], `about:blank` at `500`. In a constant such
-    /// as `VARIANTS`, it fails at compile time:
+    /// Panics if the status of `V` is not a client or server error status. In a constant such as
+    /// `VARIANTS`, it fails at compile time:
     ///
     /// ```compile_fail,E0080
     /// # use std::{borrow::Cow, fmt};
@@ -269,10 +234,6 @@ impl Variant {
             400 <= status && status <= 599,
             "a problem variant should have a client or server error status"
         );
-        assert!(
-            !is_internal(&variant.problem_type),
-            "a problem variant should leave `about:blank` at 500 to `Variant::INTERNAL`"
-        );
         variant
     }
 
@@ -307,63 +268,16 @@ fn example_of<V: ProblemVariant>() -> Option<serde_json::Value> {
     })
 }
 
-#[cfg(feature = "aide")]
-const fn no_example() -> Option<serde_json::Value> {
-    None
-}
-
-/// Checks that no two variants of `P::VARIANTS` share a type URI and status.
-///
-/// Called in a `const` block of a generic function, it runs when the function is instantiated for
-/// `P`.
-///
-/// # Panics
-///
-/// Panics if two variants share a type URI and status. In a const context, it fails at compile
-/// time.
-#[cfg(feature = "aide")]
-#[track_caller]
-pub(crate) const fn assert_variants<P: Problem>() {
-    assert!(
-        unique(P::VARIANTS),
-        "`VARIANTS` should list every problem type once per status"
-    );
-}
-
-/// Whether no two `variants` share a type URI and status.
-///
-/// Within one status, the documented variants are told apart by their type URI alone.
-#[cfg(feature = "aide")]
-const fn unique(variants: &[Variant]) -> bool {
-    let mut rest = variants;
-    while let [variant, tail @ ..] = rest {
-        if contains(tail, &variant.problem_type) {
-            return false;
-        }
-        rest = tail;
-    }
-    true
-}
-
-/// Whether one of `variants` has the type URI and status of `problem_type`.
+/// Whether one of `variants` has `problem_type`.
 pub(crate) const fn contains(variants: &[Variant], problem_type: &ProblemType) -> bool {
     let mut rest = variants;
     while let [candidate, tail @ ..] = rest {
-        if same_problem_type(&candidate.problem_type, problem_type) {
+        if candidate.problem_type == *problem_type {
             return true;
         }
         rest = tail;
     }
     false
-}
-
-/// Whether `problem_type` is the one reserved for the internal error.
-pub(crate) const fn is_internal(problem_type: &ProblemType) -> bool {
-    same_problem_type(problem_type, &INTERNAL)
-}
-
-const fn same_problem_type(left: &ProblemType, right: &ProblemType) -> bool {
-    left.status.as_u16() == right.status.as_u16() && same(type_uri(left), type_uri(right))
 }
 
 /// Whether `name` is a token ([RFC 9110, section 5.6.2]), the syntax of a header name.
@@ -403,30 +317,9 @@ const fn is_token(name: &str) -> bool {
     true
 }
 
-const fn type_uri(problem_type: &ProblemType) -> &[u8] {
-    match &problem_type.type_uri {
-        Cow::Borrowed(type_uri) => type_uri.as_bytes(),
-        Cow::Owned(type_uri) => type_uri.as_bytes(),
-    }
-}
-
-const fn same(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
-    }
-    let mut index = 0;
-    while index < left.len() {
-        if left[index] != right[index] {
-            return false;
-        }
-        index += 1;
-    }
-    true
-}
-
 #[cfg(test)]
 mod tests {
-    use alloc::{borrow::Cow, string::String};
+    use alloc::borrow::Cow;
     use std::panic;
 
     use http::StatusCode;
@@ -434,8 +327,6 @@ mod tests {
     use serde::Serialize;
 
     use super::contains;
-    #[cfg(feature = "aide")]
-    use super::unique;
     use crate::{Header, ProblemType, ProblemVariant, Variant};
 
     const fn status(code: u16) -> StatusCode {
@@ -471,52 +362,16 @@ mod tests {
     }
 
     #[test]
-    fn contains_type_and_status() {
-        let variants = [Variant::of::<Web<404>>()];
+    fn contains_problem_type() {
+        let variants = [Variant::of::<WebMissing<404>>(), Variant::of::<Web<404>>()];
 
         assert!(
             contains(&variants, &Web::<404>::TYPE),
-            "the listed problem type should be found"
-        );
-        assert!(
-            contains(
-                &variants,
-                &ProblemType {
-                    type_uri: Cow::Owned(String::from("/problems/web")),
-                    title: Cow::Borrowed("Another title"),
-                    status: StatusCode::NOT_FOUND,
-                }
-            ),
-            "an owned type URI of the same text should be found, whatever the title"
+            "a problem type listed after another one should be found"
         );
         assert!(
             !contains(&variants, &Web::<410>::TYPE),
-            "the listed type URI at another status should not be found"
-        );
-        assert!(
-            !contains(&variants, &WebMissing::<404>::TYPE),
-            "a longer type URI starting with the listed one should not be found"
-        );
-    }
-
-    #[cfg(feature = "aide")]
-    #[test]
-    fn unique_type_and_status() {
-        assert!(
-            unique(&[
-                Variant::of::<Web<404>>(),
-                Variant::of::<Web<410>>(),
-                Variant::of::<WebMissing<404>>(),
-            ]),
-            "variants should be unique when they differ in type URI or status"
-        );
-        assert!(
-            !unique(&[
-                Variant::of::<Web<404>>(),
-                Variant::of::<WebMissing<404>>(),
-                Variant::of::<Web<404>>(),
-            ]),
-            "a type URI and status listed twice should not be unique, even apart"
+            "a problem type listed at another status only should not be found"
         );
     }
 
@@ -534,30 +389,6 @@ mod tests {
                 "a variant at status {code} should be accepted only for a client or server error"
             );
         }
-    }
-
-    #[derive(Serialize, JsonSchema, derive_more::Display)]
-    #[display("blank")]
-    struct Blank<const CODE: u16>;
-
-    impl<const CODE: u16> ProblemVariant for Blank<CODE> {
-        const TYPE: ProblemType = ProblemType {
-            type_uri: Cow::Borrowed("about:blank"),
-            title: Cow::Borrowed("Blank"),
-            status: status(CODE),
-        };
-    }
-
-    #[test]
-    fn variant_internal_reserved() {
-        assert!(
-            panic::catch_unwind(Variant::of::<Blank<500>>).is_err(),
-            "`about:blank` at 500 should be reserved for the internal error"
-        );
-        assert!(
-            panic::catch_unwind(Variant::of::<Blank<503>>).is_ok(),
-            "`about:blank` at another status should be accepted"
-        );
     }
 
     #[test]

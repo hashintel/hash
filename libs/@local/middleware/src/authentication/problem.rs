@@ -7,6 +7,7 @@ use http::StatusCode;
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Variant};
 
 use super::request::{AuthenticationError, AuthenticationErrorKind};
+use crate::problem::InternalServerError;
 
 /// The public problems of a request that failed authentication.
 pub struct AuthenticationProblem;
@@ -16,7 +17,7 @@ impl Problem for AuthenticationProblem {
         Variant::of::<BadRequest<'static>>(),
         Variant::of::<Unauthorized<'static>>(),
         Variant::of::<ServiceUnavailable<'static>>(),
-        Variant::INTERNAL,
+        Variant::of::<InternalServerError>(),
     ];
 }
 
@@ -42,7 +43,7 @@ impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
             // The service's own exchange with the provider failed, and a retry meets the same
             // fault.
             AuthenticationErrorKind::ProviderRejection
-            | AuthenticationErrorKind::InvalidProviderResponse => Answer::internal(),
+            | AuthenticationErrorKind::InvalidProviderResponse => Answer::new(InternalServerError),
         }
     }
 }
@@ -147,6 +148,7 @@ impl ProblemVariant for ServiceUnavailable<'_> {
 #[cfg(test)]
 mod tests {
     use error_stack::Report;
+    use http::StatusCode;
     use problematic::Expose;
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
@@ -165,7 +167,10 @@ mod tests {
             let message = error.to_string();
             let report = Report::new(error);
             assert_eq!(
-                Expose::<AuthenticationProblem>::expose(&report).is_internal(),
+                Expose::<AuthenticationProblem>::expose(&report)
+                    .details()
+                    .status
+                    == StatusCode::INTERNAL_SERVER_ERROR,
                 exchange_failed,
                 "`{message}` should be internal only if the exchange with the provider failed"
             );

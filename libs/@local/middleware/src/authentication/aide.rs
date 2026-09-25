@@ -10,6 +10,11 @@ use super::{AuthenticationProblem, AuthenticationRejection};
 use crate::aide::document_rejection;
 
 /// Documents the responses that the authentication layer can return before a handler runs.
+///
+/// # Panics
+///
+/// Panics if the operation already has a response that documents no problem variants at a status
+/// this layer answers with.
 pub fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     document_rejection::<AuthenticationRejection>(operation)
 }

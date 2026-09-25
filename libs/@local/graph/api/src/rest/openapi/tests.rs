@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::assert_matches;
 
 use aide::{
@@ -8,10 +9,33 @@ use aide::{
     openapi::{Info, OpenApi, PathItem, ReferenceOr, Response, StatusCode},
     transform::TransformOperation,
 };
-use problematic::ProblemDetails;
+use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant};
 
 use super::reference_responses;
 use crate::rest::{Api, middleware, openapi, test_utils::NoCredentials};
+
+/// The request uses an unsupported query.
+#[derive(serde::Serialize, schemars::JsonSchema, derive_more::Display)]
+#[display("The query is not supported.")]
+struct UnsupportedQuery;
+
+impl ProblemVariant for UnsupportedQuery {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/unsupported-query"),
+        title: Cow::Borrowed("Unsupported query"),
+        status: http::StatusCode::BAD_REQUEST,
+    };
+}
+
+struct QueryProblem;
+
+impl Problem for QueryProblem {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<UnsupportedQuery>()];
+}
+
+fn unsupported_query(operation: TransformOperation<'_>) -> TransformOperation<'_> {
+    operation.response::<400, Rejection<QueryProblem>>()
+}
 
 fn response<'doc>(
     document: &'doc OpenApi,
@@ -36,20 +60,10 @@ fn response<'doc>(
 }
 
 #[test]
-fn shared_response_becomes_component_over_earlier_override() {
+fn shared_response_component() {
     let mut document = OpenApi::default();
     let _: axum::Router = ApiRouter::new()
-        .api_route(
-            "/custom",
-            get_with(
-                || async {},
-                |operation| {
-                    operation.response_with::<400, ProblemDetails<'static>, _>(|response| {
-                        response.description("The request uses an unsupported query.")
-                    })
-                },
-            ),
-        )
+        .api_route("/custom", get_with(|| async {}, unsupported_query))
         .api_route("/first", get(|| async {}))
         .api_route("/second", post(|| async {}))
         .finish_api_with(&mut document, |document| {
@@ -68,13 +82,20 @@ fn shared_response_becomes_component_over_earlier_override() {
         response(&document, "/second", "post", 400),
         "every method documenting the shared response should reference the component"
     );
-    assert_eq!(
-        response(&document, "/custom", "get", 400)
-            .as_item()
-            .expect("the handler's distinct response should remain inline")
-            .description,
+    let custom = &response(&document, "/custom", "get", 400)
+        .as_item()
+        .expect("the handler's distinct response should remain inline")
+        .description;
+    for variant in [
         "The request uses an unsupported query.",
-    );
+        "The credentials are malformed.",
+    ] {
+        assert!(
+            custom.contains(variant),
+            "the distinct response should document the handler's variant beside the middleware's, \
+             including `{variant}`"
+        );
+    }
 }
 
 fn teapot(operation: TransformOperation<'_>) -> TransformOperation<'_> {

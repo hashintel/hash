@@ -10,6 +10,8 @@
 //! - [`rate_limit`] budgets requests by client address ahead of authentication and by resolved
 //!   caller behind it — its module documentation states the ordering contract.
 //! - [`telemetry`] spans every request and joins the caller's OpenTelemetry trace.
+//! - [`problem`] defines [`InternalServerError`], the problem variant of an error that stays
+//!   internal.
 //! - [`response`] renders a problem document as an `application/problem+json` response.
 //!
 //! The providers are the extension point, and the credential vocabulary is not. A new failure
@@ -21,6 +23,7 @@
 //! [`Caller`]: authentication::provider::Caller
 //! [`AuthenticatedActorId`]: authentication::AuthenticatedActorId
 //! [`AuthenticationErrorKind`]: authentication::request::AuthenticationErrorKind
+//! [`InternalServerError`]: problem::InternalServerError
 //!
 //! # Example
 //!
@@ -133,6 +136,7 @@ extern crate alloc;
 #[cfg(feature = "aide")]
 mod aide;
 pub mod authentication;
+pub mod problem;
 pub mod rate_limit;
 pub mod response;
 pub mod telemetry;

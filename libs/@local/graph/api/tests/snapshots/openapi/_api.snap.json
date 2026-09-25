@@ -20,6 +20,9 @@
                     "status": {
                       "const": 400
                     },
+                    "title": {
+                      "const": "Bad Request"
+                    },
                     "type": {
                       "const": "about:blank"
                     }
@@ -40,6 +43,7 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "An internal error prevented the request from completing.",
               "status": 500,
               "title": "Internal Server Error",
               "type": "about:blank"
@@ -53,6 +57,9 @@
                   "properties": {
                     "status": {
                       "const": 500
+                    },
+                    "title": {
+                      "const": "Internal Server Error"
                     },
                     "type": {
                       "const": "about:blank"
@@ -89,6 +96,9 @@
                     "status": {
                       "const": 503
                     },
+                    "title": {
+                      "const": "Service Unavailable"
+                    },
                     "type": {
                       "const": "about:blank"
                     }
@@ -123,6 +133,9 @@
                   "properties": {
                     "status": {
                       "const": 429
+                    },
+                    "title": {
+                      "const": "Too Many Requests"
                     },
                     "type": {
                       "const": "about:blank"
@@ -170,6 +183,9 @@
                   "properties": {
                     "status": {
                       "const": 401
+                    },
+                    "title": {
+                      "const": "Unauthorized"
                     },
                     "type": {
                       "const": "about:blank"

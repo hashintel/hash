@@ -73,28 +73,6 @@ impl Problem for WebProblem {
     ];
 }
 
-struct CheckWebProblem;
-
-impl Problem for CheckWebProblem {
-    const VARIANTS: &'static [Variant] = &[Variant::of::<Busy>(), Variant::INTERNAL];
-}
-
-#[test]
-fn answer_internal() {
-    assert!(
-        Answer::<CheckWebProblem>::internal().is_internal(),
-        "an internal answer should report itself as internal"
-    );
-    assert!(
-        !Answer::<CheckWebProblem>::new(Busy {
-            web: "alice",
-            retry_after: 30,
-        })
-        .is_internal(),
-        "an answer with a variant should not report itself as internal"
-    );
-}
-
 #[test]
 fn answer_details() {
     let answer = Answer::<WebProblem>::new(Busy {

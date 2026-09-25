@@ -66,6 +66,7 @@ use self::address::{BucketKey, ResolvedClientAddress};
 pub use self::config::{CallerRateLimitConfig, ClientIpSource, RateLimitConfig, RateLimitMode};
 use crate::{
     authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
+    problem::InternalServerError,
     response::problem_response_body,
 };
 
@@ -353,7 +354,10 @@ impl IntoResponse for TooManyRequests {
 pub struct RateLimitProblem;
 
 impl Problem for RateLimitProblem {
-    const VARIANTS: &'static [Variant] = &[Variant::of::<TooManyRequests>(), Variant::INTERNAL];
+    const VARIANTS: &'static [Variant] = &[
+        Variant::of::<TooManyRequests>(),
+        Variant::of::<InternalServerError>(),
+    ];
 }
 
 /// The response a request the caller limiter cannot serve is answered with.
@@ -383,7 +387,7 @@ impl Expose<RateLimitProblem> for RateLimitRejection {
     fn expose(&self) -> Answer<'_, RateLimitProblem> {
         match self {
             Self::TooManyRequests(too_many_requests) => Answer::new(*too_many_requests),
-            Self::Misconfigured => Answer::internal(),
+            Self::Misconfigured => Answer::new(InternalServerError),
         }
     }
 }

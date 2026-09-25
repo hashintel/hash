@@ -358,15 +358,15 @@ impl From<Report<VisibilityProofError>> for Problem<'static> {
 /// Carries an authentication failure as this crate's problem document.
 ///
 /// The status and detail are those of the middleware's public problem, and a failure the
-/// middleware keeps internal is answered as `internal`. The report is expected to belong to an
-/// [`AuthenticationRejection`], which logs it when dropped.
+/// middleware answers with status `500` becomes `/problems/atlas/internal`. The report is expected
+/// to belong to an [`AuthenticationRejection`], which logs it when dropped.
 impl From<&Report<AuthenticationError>> for Problem<'static> {
     fn from(report: &Report<AuthenticationError>) -> Self {
         let answer = Expose::<AuthenticationProblem>::expose(report);
-        if answer.is_internal() {
+        let details = answer.details();
+        if details.status == StatusCode::INTERNAL_SERVER_ERROR {
             return Self::internal_response(Cow::Borrowed("the credential could not be verified"));
         }
-        let details = answer.details();
         Self::new(
             details.status,
             ProblemType::Unauthenticated,

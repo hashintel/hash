@@ -2,18 +2,14 @@ use core::num::NonZero;
 
 use aide::{
     OperationOutput as _, generate,
-    openapi::{Operation, ParameterSchemaOrContent, ReferenceOr, Responses, StatusCode},
-    transform::TransformOperation,
+    openapi::{Operation, ParameterSchemaOrContent, ReferenceOr, StatusCode},
 };
 use axum::{body::to_bytes, response::IntoResponse as _};
 use http::header::{CONTENT_TYPE, RETRY_AFTER};
 use schemars::Schema;
 use serde_json::{Value, json};
 
-use crate::{
-    authentication, rate_limit,
-    rate_limit::{RateLimitRejection, TooManyRequests},
-};
+use crate::rate_limit::{RateLimitRejection, TooManyRequests};
 
 #[tokio::test]
 async fn rate_limit_rejection_documents_runtime_response() {
@@ -118,48 +114,4 @@ async fn rate_limit_rejection_documents_runtime_response() {
             );
         });
     }
-}
-
-#[test]
-fn document_rejection_preserves_handler_responses() {
-    generate::reset_context();
-    let handler_response = ReferenceOr::ref_("#/components/responses/HandlerUnauthorized");
-    let mut operation = Operation {
-        responses: Some(Responses {
-            responses: [(StatusCode::Code(401), handler_response.clone())].into(),
-            ..Responses::default()
-        }),
-        ..Operation::default()
-    };
-    let _: TransformOperation<'_> =
-        authentication::document(TransformOperation::new(&mut operation));
-    let authentication_error = operation
-        .responses
-        .as_ref()
-        .expect("should add authentication responses")
-        .responses
-        .get(&StatusCode::Code(500))
-        .expect("should document an internal authentication error")
-        .clone();
-
-    let _: TransformOperation<'_> = rate_limit::document(TransformOperation::new(&mut operation));
-    let responses = &operation
-        .responses
-        .as_ref()
-        .expect("should document middleware responses")
-        .responses;
-    assert_eq!(
-        responses.get(&StatusCode::Code(401)),
-        Some(&handler_response),
-        "should preserve an explicit handler response"
-    );
-    assert_eq!(
-        responses.get(&StatusCode::Code(500)),
-        Some(&authentication_error),
-        "should document the internal error both layers list only once"
-    );
-    assert!(
-        responses.contains_key(&StatusCode::Code(429)),
-        "should add the rate-limit rejection beside authentication responses"
-    );
 }

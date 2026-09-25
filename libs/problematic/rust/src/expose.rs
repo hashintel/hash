@@ -6,16 +6,15 @@ use serde_core::Serialize;
 
 use crate::{
     Problem, ProblemDetails, ProblemVariant,
-    problem::{INTERNAL, Occurrence, contains, is_internal},
+    problem::{Occurrence, contains},
 };
 
-/// Maps an error to the answer its client receives: a variant of the [`Problem`] `K`, or the
-/// internal error.
+/// Maps an error to the answer its client receives: a variant of the [`Problem`] `K`.
 ///
 /// Implement it for your error type, once for the [`Problem`] of each endpoint that can return
-/// the error. [`expose`](Self::expose) answers with a [`ProblemVariant`] through [`Answer::new`],
-/// or keeps the error internal through [`Answer::internal`]. As `K` is a local type, it can be
-/// implemented for a foreign error type such as `error_stack::Report<C>`.
+/// the error. [`expose`](Self::expose) answers through [`Answer::new`] with the
+/// [`ProblemVariant`] the client receives, also for an error that stays internal. As `K` is a
+/// local type, it can be implemented for a foreign error type such as `error_stack::Report<C>`.
 ///
 /// A [`Rejection<K>`](crate::Rejection) can be created from every error implementing `Expose<K>`
 /// that is an [`Error`](core::error::Error) or a `Report`, and `Send`, `Sync` and `'static`.
@@ -24,18 +23,12 @@ pub trait Expose<K: Problem> {
     fn expose(&self) -> Answer<'_, K>;
 }
 
-/// The answer to an error: a variant of the [`Problem`] `K`, or the internal error.
+/// The answer to an error: a variant of the [`Problem`] `K`.
 ///
-/// [`Expose::expose`] creates it with [`Answer::new`] or [`Answer::internal`]. It may borrow from
-/// the error.
+/// [`Expose::expose`] creates it with [`Answer::new`]. It may borrow from the error.
 pub struct Answer<'s, K> {
-    answered: Answered<'s>,
+    occurrence: Box<dyn Occurrence + Send + Sync + 's>,
     problem: PhantomData<fn() -> K>,
-}
-
-enum Answered<'s> {
-    Variant(Box<dyn Occurrence + Send + Sync + 's>),
-    Internal,
 }
 
 impl<'s, K: Problem> Answer<'s, K> {
@@ -43,8 +36,7 @@ impl<'s, K: Problem> Answer<'s, K> {
     ///
     /// # Panics
     ///
-    /// Fails at compile time if `K::VARIANTS` lists no variant with the type URI and status of
-    /// `V`:
+    /// Fails at compile time if `K::VARIANTS` lists no variant with the problem type of `V`:
     ///
     /// ```compile_fail,E0080
     /// # use std::{borrow::Cow, fmt};
@@ -93,43 +85,6 @@ impl<'s, K: Problem> Answer<'s, K> {
     /// // Fails to compile: `GetUserProblem` does not list `EmailTaken`.
     /// let answer = Answer::<GetUserProblem>::new(EmailTaken);
     /// ```
-    ///
-    /// It also fails to compile if `V` has the problem type reserved for the internal error,
-    /// `about:blank` at `500`:
-    ///
-    /// ```compile_fail,E0080
-    /// # use std::{borrow::Cow, fmt};
-    /// use http::StatusCode;
-    /// use problematic::{Answer, Problem, ProblemType, ProblemVariant, Variant};
-    ///
-    /// #[derive(serde::Serialize, schemars::JsonSchema)]
-    /// struct QueryFailed {
-    ///     query: &'static str,
-    /// }
-    /// # impl fmt::Display for QueryFailed {
-    /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         formatter.write_str("The query failed.")
-    /// #     }
-    /// # }
-    ///
-    /// impl ProblemVariant for QueryFailed {
-    ///     const TYPE: ProblemType = ProblemType {
-    ///         type_uri: Cow::Borrowed("about:blank"),
-    ///         title: Cow::Borrowed("Internal Server Error"),
-    ///         status: StatusCode::INTERNAL_SERVER_ERROR,
-    ///     };
-    /// }
-    ///
-    /// /// The errors a client can receive from `GET /users/{id}`.
-    /// struct GetUserProblem;
-    ///
-    /// impl Problem for GetUserProblem {
-    ///     const VARIANTS: &'static [Variant] = &[Variant::INTERNAL];
-    /// }
-    ///
-    /// // Fails to compile: `QueryFailed` would pass as the internal error, with its members.
-    /// let answer = Answer::<GetUserProblem>::new(QueryFailed { query: "SELECT 1" });
-    /// ```
     #[must_use]
     pub fn new<V: ProblemVariant + Send + Sync + 's>(variant: V) -> Self {
         const {
@@ -137,96 +92,24 @@ impl<'s, K: Problem> Answer<'s, K> {
                 contains(K::VARIANTS, &V::TYPE),
                 "`K::VARIANTS` should list the variant"
             );
-            assert!(
-                !is_internal(&V::TYPE),
-                "a variant should leave `about:blank` at 500 to `Answer::internal`"
-            );
         };
 
         Self {
-            answered: Answered::Variant(Box::new(variant)),
-            problem: PhantomData,
-        }
-    }
-
-    /// The answer for an error that stays internal: `500 Internal Server Error`, without detail.
-    ///
-    /// # Panics
-    ///
-    /// Fails at compile time if `K::VARIANTS` does not list
-    /// [`Variant::INTERNAL`](crate::Variant::INTERNAL):
-    ///
-    /// ```compile_fail,E0080
-    /// # use std::{borrow::Cow, fmt};
-    /// # use http::StatusCode;
-    /// use problematic::{Answer, Problem, Variant};
-    /// # use problematic::{ProblemType, ProblemVariant};
-    /// #
-    /// # #[derive(serde::Serialize, schemars::JsonSchema)]
-    /// # struct UserNotFound;
-    /// #
-    /// # impl fmt::Display for UserNotFound {
-    /// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         formatter.write_str("The user does not exist.")
-    /// #     }
-    /// # }
-    /// #
-    /// # impl ProblemVariant for UserNotFound {
-    /// #     const TYPE: ProblemType = ProblemType {
-    /// #         type_uri: Cow::Borrowed("https://example.com/problems/user-not-found"),
-    /// #         title: Cow::Borrowed("User not found"),
-    /// #         status: StatusCode::NOT_FOUND,
-    /// #     };
-    /// # }
-    ///
-    /// /// The errors a client can receive from `GET /users/{id}`.
-    /// struct GetUserProblem;
-    ///
-    /// impl Problem for GetUserProblem {
-    ///     const VARIANTS: &'static [Variant] = &[Variant::of::<UserNotFound>()];
-    /// }
-    ///
-    /// // Fails to compile: `GetUserProblem` does not list `Variant::INTERNAL`.
-    /// let answer = Answer::<GetUserProblem>::internal();
-    /// ```
-    #[must_use]
-    pub const fn internal() -> Self {
-        const {
-            assert!(
-                contains(K::VARIANTS, &INTERNAL),
-                "`K::VARIANTS` should list the internal error"
-            );
-        };
-
-        Self {
-            answered: Answered::Internal,
+            occurrence: Box::new(variant),
             problem: PhantomData,
         }
     }
 }
 
 impl<K> Answer<'_, K> {
-    /// Whether the error stays internal, answered with [`Answer::internal`].
-    #[must_use]
-    pub const fn is_internal(&self) -> bool {
-        matches!(self.answered, Answered::Internal)
-    }
-
     /// The [`ProblemDetails`] the client receives.
     #[must_use]
     pub fn details(&self) -> ProblemDetails<'_, impl Serialize + '_> {
-        match &self.answered {
-            Answered::Variant(occurrence) => occurrence.details(),
-            Answered::Internal => {
-                ProblemDetails::from(INTERNAL).with_extensions(&() as &dyn erased_serde::Serialize)
-            }
-        }
+        self.occurrence.details()
     }
 
     /// Adds the response headers of the variant, such as `Retry-After`, to `headers`.
     pub fn headers(&self, headers: &mut HeaderMap) {
-        if let Answered::Variant(occurrence) = &self.answered {
-            occurrence.headers(headers);
-        }
+        self.occurrence.headers(headers);
     }
 }
