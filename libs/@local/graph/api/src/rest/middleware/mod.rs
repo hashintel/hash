@@ -62,8 +62,9 @@ where
     }
 
     /// Attaches authentication and the caller budget to the legacy routes and to each API,
-    /// then puts the address gate over everything, including the documentation routes and the 404
-    /// fallback. The legacy routes and every API draw on the same budgets.
+    /// then puts the address gate over everything, including the documentation routes and the
+    /// problem documents for an unknown path and for a method its path does not serve. The legacy
+    /// routes and every API draw on the same budgets.
     ///
     /// # Panics
     ///
@@ -84,6 +85,12 @@ where
         }
         router
             .merge(documentation)
+            // Axum sets this on the routes registered before it and adds the `Allow` header. The
+            // operations do not document it: an operation is one method of one path.
+            .method_not_allowed_fallback(|method: Method, uri: Uri| async move {
+                tracing::debug!(%method, path = uri.path(), "route does not serve the method");
+                problem_response(&status_problem(StatusCode::METHOD_NOT_ALLOWED))
+            })
             .fallback(|method: Method, uri: Uri| async move {
                 tracing::debug!(%method, path = uri.path(), "no route matched");
                 problem_response(&status_problem(StatusCode::NOT_FOUND))

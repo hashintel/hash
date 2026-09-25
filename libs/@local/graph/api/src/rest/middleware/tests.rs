@@ -12,8 +12,8 @@ use hash_middleware::{
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use http::{
-    HeaderValue, Request, StatusCode,
-    header::{AUTHORIZATION, CONTENT_TYPE},
+    HeaderValue, Method, Request, StatusCode,
+    header::{ALLOW, AUTHORIZATION, CONTENT_TYPE},
 };
 use serde_json::json;
 use tower::ServiceExt as _;
@@ -78,6 +78,12 @@ fn request_from(path: &str, peer: IpAddr) -> Request<Body> {
 
 fn request_to(path: &str) -> Request<Body> {
     request_from(path, client(1))
+}
+
+fn request_with(method: Method, path: &str) -> Request<Body> {
+    let mut request = request_to(path);
+    *request.method_mut() = method;
+    request
 }
 
 async fn send_request(router: &Router, request: Request<Body>) -> Response {
@@ -209,6 +215,64 @@ async fn fallback_draws_on_address_gate() {
         send(&router, "/does-not-exist").await.status(),
         StatusCode::TOO_MANY_REQUESTS,
         "an unmatched path should draw from the address budget like any other request"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_problem_document() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    let response = send_request(&router, request_with(Method::DELETE, "/first/test")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "a path that does not serve the method should answer 405"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "the answer should be a problem document like every other rejection"
+    );
+    assert_eq!(
+        response.headers()[ALLOW],
+        "GET,HEAD",
+        "the answer should name the methods the path serves"
+    );
+    assert_eq!(
+        response_json(response).await["status"],
+        json!(405),
+        "the problem document should carry the response status"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_legacy_route() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route("/legacy", get(async || ())),
+        [],
+        Router::new(),
+    );
+
+    let response = send_request(&router, request_with(Method::DELETE, "/legacy")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "a legacy path that does not serve the method should answer 405"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "a legacy route should answer the same problem document as the APIs"
     );
 }
 
