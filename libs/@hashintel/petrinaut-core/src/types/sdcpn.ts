@@ -404,6 +404,30 @@ export type StatusView = {
    * position and the legend position.
    */
   labels: StatusLabel[];
+  /**
+   * Card highlights, in priority order: a card shows the first highlight
+   * whose places hold its token and whose condition holds. Highlights mark
+   * cards; they never change a card's label.
+   */
+  highlights?: StatusHighlight[];
+  /** Token attribute names each card shows, in display order. */
+  cardFields?: string[];
+};
+
+/** A named, coloured mark on the cards of a status view that match a rule. */
+export type StatusHighlight = {
+  id: ID;
+  name: string;
+  /** CSS colour of the highlight badge and card border. */
+  displayColor: string;
+  /** Optional glyph shown before the name. */
+  icon?: string;
+  /** The label the highlight was set up from, if any. */
+  statusLabelRef?: ID;
+  /** Places whose tokens are checked; same addressing as `StatusLabel`. */
+  places: ID[];
+  /** Boolean expression over the token's attributes. */
+  tokenCondition: string;
 };
 
 /**

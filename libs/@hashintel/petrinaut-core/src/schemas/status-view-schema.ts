@@ -3,7 +3,7 @@ import { z } from "zod";
 import { displayNameSchema } from "../validation/display-name";
 import { idSchema } from "./entity-schemas";
 
-import type { StatusLabel, StatusView } from "../types/sdcpn";
+import type { StatusHighlight, StatusLabel, StatusView } from "../types/sdcpn";
 
 export const statusLabelSchema = z
   .strictObject({
@@ -33,6 +33,36 @@ export const statusLabelSchema = z
     description: "One named status within a status view.",
   }) satisfies z.ZodType<StatusLabel>;
 
+export const statusHighlightSchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema.meta({
+      description:
+        "Badge text on matching cards (e.g. `At risk`). Highlights mark cards; they never change a card's label.",
+    }),
+    displayColor: z.string().min(1).meta({
+      description: "CSS colour of the highlight badge and card border.",
+    }),
+    icon: z.string().optional().meta({
+      description: "Optional glyph name shown before the badge text.",
+    }),
+    statusLabelRef: idSchema.optional().meta({
+      description: "ID of the label the highlight was set up from, if any.",
+    }),
+    places: z.array(idSchema).meta({
+      description:
+        "IDs of the places whose tokens are checked, addressed as in `StatusLabel.places`.",
+    }),
+    tokenCondition: z.string().meta({
+      description:
+        "Boolean expression over the token's attributes (e.g. `token.damage >= 0.8`).",
+    }),
+  })
+  .meta({
+    description:
+      "A named, coloured mark on the cards of a status view that match a rule.",
+  }) satisfies z.ZodType<StatusHighlight>;
+
 /**
  * The `statusViewSchema` shape without the whole-view label invariants, for
  * deriving partial-update schemas. Parse full views with `statusViewSchema`.
@@ -52,6 +82,13 @@ export const statusViewObjectSchema = z.strictObject({
   labels: z.array(statusLabelSchema).meta({
     description:
       "The view's labels. Position in this array is the label's order: the Kanban column position and the legend position. Reorder with `moveStatusViewLabel`.",
+  }),
+  highlights: z.array(statusHighlightSchema).optional().meta({
+    description:
+      "Card highlights in priority order: a card shows the first highlight that matches it.",
+  }),
+  cardFields: z.array(z.string()).optional().meta({
+    description: "Token attribute names each card shows, in display order.",
   }),
 });
 

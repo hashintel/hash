@@ -45,6 +45,41 @@ describe("statusViewSchema", () => {
     expect(statusViewSchema.parse(validStatusView)).toEqual(validStatusView);
   });
 
+  it("accepts highlights and card fields", () => {
+    const view: StatusView = {
+      ...validStatusView,
+      highlights: [
+        {
+          id: "highlight-late",
+          name: "Late",
+          displayColor: "#ea580c",
+          icon: "warning",
+          statusLabelRef: "label-in-progress",
+          places: ["place-doing"],
+          tokenCondition: "token.attempts > 2",
+        },
+      ],
+      cardFields: ["attempts"],
+    };
+    expect(statusViewSchema.parse(view)).toEqual(view);
+  });
+
+  it("rejects a highlight with an unknown key", () => {
+    parseExpectingIssues({
+      ...validStatusView,
+      highlights: [
+        {
+          id: "highlight-late",
+          name: "Late",
+          displayColor: "#ea580c",
+          places: [],
+          tokenCondition: "true",
+          colour: "red",
+        },
+      ],
+    });
+  });
+
   it("rejects duplicate label ids", () => {
     const issues = parseExpectingIssues({
       ...validStatusView,
