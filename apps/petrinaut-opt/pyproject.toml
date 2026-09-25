@@ -25,6 +25,7 @@ petrinaut-python         = { workspace = true }
 [dependency-groups]
 dev = [
     "httpx>=0.28",
+    "pytest>=9.1.1,<10",
 ]
 
 [tool.ruff]

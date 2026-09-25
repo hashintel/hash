@@ -7,11 +7,27 @@
   "tasks": {
     "build:docker": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
+      ]
+    },
+    "check:openapi": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
+      ]
     },
     "codegen": {
       "dependsOn": [
-        "@hashintel/petrinaut-cli#codegen"
+        "petrinaut-python#codegen"
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
@@ -21,7 +37,7 @@
     },
     "start": {
       "dependsOn": [
-        "@hashintel/petrinaut-cli#codegen"
+        "petrinaut-python#codegen"
       ],
       "cache": false,
       "persistent": true,
@@ -33,23 +49,10 @@
     },
     "start:dev": {
       "dependsOn": [
-        "@hashintel/petrinaut-cli#codegen"
+        "petrinaut-python#codegen"
       ],
       "cache": false,
       "persistent": true,
-      "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
-      ]
-    },
-    "test:unit": {
-      "dependsOn": [
-        "codegen"
-      ],
-      "env": [
-        "TEST_COVERAGE"
-      ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",

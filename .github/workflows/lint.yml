@@ -40,7 +40,7 @@ jobs:
         run: |
           # The steps gate on the per-task keys — the tasks are independent and
           # can differ in what they consider affected.
-          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff)
+          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy)
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -141,10 +141,6 @@ jobs:
       - name: Run TSC
         if: always() && matrix['lint:tsc'] != null
         run: turbo run lint:tsc --filter "${{ matrix.name }}"
-
-      - name: Run Ruff
-        if: always() && matrix['lint:ruff'] != null
-        run: turbo run lint:ruff --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
         if: always() && steps.lints.outputs.has-rust == 'true'

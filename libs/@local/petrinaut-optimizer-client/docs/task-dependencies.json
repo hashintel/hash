@@ -11,14 +11,19 @@
         "codegen"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "petrinaut-optimization",
-        "petrinaut-optimizer-core"
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "codegen": {
       "dependsOn": [],
       "affectedBy": [
-        "petrinaut-optimization"
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:tsc": {
@@ -27,8 +32,10 @@
         "codegen"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "petrinaut-optimization",
-        "petrinaut-optimizer-core"
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "test:unit": {
@@ -40,8 +47,10 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "petrinaut-optimization",
-        "petrinaut-optimizer-core"
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }

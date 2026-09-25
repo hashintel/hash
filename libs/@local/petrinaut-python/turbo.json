@@ -1,7 +1,11 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "@hashintel/petrinaut-cli#manifest"]
+    },
     "codegen": {
+      "command": ["./scripts/generate-models.sh"],
       "dependsOn": ["@hashintel/petrinaut-cli#codegen"],
       "inputs": [
         "../../@hashintel/petrinaut-cli/schemas/**",
@@ -12,8 +16,11 @@
       "outputs": ["src/petrinaut/models.py"],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
+    "test": {
+      "dependsOn": ["codegen", "manifest", "@hashintel/petrinaut-cli#build"]
+    },
     "test:unit": {
-      "dependsOn": ["codegen", "^manifest"]
+      "dependsOn": ["test"]
     }
   }
 }

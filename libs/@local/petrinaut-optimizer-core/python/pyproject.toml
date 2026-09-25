@@ -8,6 +8,8 @@ dependencies = [
     "optuna>=4.9,<5",
 ]
 
+[dependency-groups]
+dev = ["pytest>=9.1.1,<10"]
 
 [build-system]
 requires      = ["hatchling"]

@@ -2,12 +2,16 @@
   "extends": ["//"],
   "tasks": {
     "manifest": {
-      "dependsOn": ["^manifest", "petrinaut-optimizer-core#manifest"]
+      "dependsOn": [
+        "^manifest",
+        "petrinaut-optimization#manifest",
+        "petrinaut-optimizer-core#manifest",
+        "petrinaut-python#manifest"
+      ]
     },
     "doc:architecture": {
-      // The annotations this reads are source comments in the packages it depends
-      // on; `^manifest` carries their sources into the hash.
-      "dependsOn": ["^manifest"],
+      // The manifest includes source dependencies from both language workspaces.
+      "dependsOn": ["manifest"],
       // Not cached: with `PETRINAUT_ARCH_DOCS_DIFF_BASE` the build annotates the
       // difference to a git ref whose content the hash cannot see.
       "cache": false,
@@ -37,6 +41,7 @@
       ]
     },
     "lint:arch-docs": {
+      "dependsOn": ["manifest"],
       "cache": false
     }
   }
