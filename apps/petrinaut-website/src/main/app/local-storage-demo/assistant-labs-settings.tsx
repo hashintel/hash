@@ -57,7 +57,7 @@ const AssistantSetting = ({
   onChange,
   value,
 }: {
-  readonly description: string;
+  readonly description?: string;
   readonly disabled: boolean;
   readonly label: string;
   readonly onChange: (enabled: boolean) => void;
@@ -71,13 +71,17 @@ const AssistantSetting = ({
         <span id={`${id}-label`} className={labelStyle}>
           {label}
         </span>
-        <p id={`${id}-description`} className={descriptionStyle}>
-          {description}
-        </p>
+        {description !== undefined && (
+          <p id={`${id}-description`} className={descriptionStyle}>
+            {description}
+          </p>
+        )}
       </div>
       <Toggle
         aria-labelledby={`${id}-label`}
-        aria-describedby={`${id}-description`}
+        aria-describedby={
+          description === undefined ? undefined : `${id}-description`
+        }
         disabled={disabled}
         onChange={onChange}
         size="sm"
@@ -93,7 +97,10 @@ export const AssistantLabsSettings = ({
   brunchSelected,
   forceBrunch,
   openAIVoiceConfig,
+  realtimeEnabled,
+  realtimePreferenceReady,
   selectAssistant,
+  setRealtimeEnabled,
   setVoiceEnabled,
   voiceEnabled,
   voicePreferenceReady,
@@ -103,7 +110,10 @@ export const AssistantLabsSettings = ({
   readonly brunchSelected: boolean;
   readonly forceBrunch: boolean;
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
+  readonly realtimeEnabled: boolean;
+  readonly realtimePreferenceReady: boolean;
   readonly selectAssistant: (selection: AssistantSelection) => void;
+  readonly setRealtimeEnabled: (enabled: boolean) => void;
   readonly setVoiceEnabled: (enabled: boolean) => void;
   readonly voiceEnabled: boolean;
   readonly voicePreferenceReady: boolean;
@@ -147,6 +157,15 @@ export const AssistantLabsSettings = ({
         onChange={setVoiceEnabled}
         value={voiceEnabled}
       />
+      {brunchSelected && voicePreferenceReady && voiceEnabled && (
+        <AssistantSetting
+          description="Switch to an alternative voice engine if you’re having trouble with Live."
+          disabled={!realtimePreferenceReady || !openAIVoiceConfig}
+          label="Realtime mode"
+          onChange={setRealtimeEnabled}
+          value={realtimeEnabled}
+        />
+      )}
     </section>
   );
 };

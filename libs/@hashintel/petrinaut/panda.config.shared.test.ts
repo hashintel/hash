@@ -37,6 +37,26 @@ describe("resolveDsComponentsBuildInfoPath", () => {
     );
     expect(resolve).toHaveBeenCalledWith(DS_COMPONENTS_BUILD_INFO_SUBPATH);
   });
+
+  it("normalizes Windows paths for Panda's glob parser", () => {
+    const resolve = vi.fn(
+      () =>
+        "D:\\repo\\libs\\@hashintel\\ds-components\\dist\\panda.buildinfo.json",
+    );
+
+    expect(resolveDsComponentsBuildInfoPath(resolve, "win32")).toBe(
+      "D:/repo/libs/@hashintel/ds-components/dist/panda.buildinfo.json",
+    );
+  });
+
+  it("preserves paths on POSIX platforms", () => {
+    const path =
+      "/repo\\archive/libs/@hashintel/ds-components/dist/panda.buildinfo.json";
+    const resolve = vi.fn(() => path);
+
+    expect(resolveDsComponentsBuildInfoPath(resolve, "linux")).toBe(path);
+    expect(resolveDsComponentsBuildInfoPath(resolve, "darwin")).toBe(path);
+  });
 });
 
 describe("createPetrinautPandaConfig", () => {

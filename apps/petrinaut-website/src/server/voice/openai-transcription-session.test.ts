@@ -67,48 +67,44 @@ describe("OpenAI transcription WebRTC session", () => {
   );
 
   test.each([
-    { PETRINAUT_VOICE_PROVIDER: undefined },
-    { PETRINAUT_VOICE_PROVIDER: undefined, VERCEL_ENV: "production" },
-    { PETRINAUT_VOICE_PROVIDER: "realtime" },
-    { PETRINAUT_VOICE_PROVIDER: "realtime", VERCEL_ENV: "preview" },
     { PETRINAUT_OPENAI_VOICE_ENABLED: "false" },
     { OPENAI_VOICE_API_KEY: " " },
-  ])(
-    "requires Live selection and existing enablement/credentials: %j",
-    async (override) => {
-      const fetch = vi.fn<typeof globalThis.fetch>();
-      const response = await createOpenAITranscriptionSessionHandler({
-        environment: { ...environment, ...override },
-        fetch,
-      })(request());
-
-      expect(response.status).toBe(404);
-      expect(fetch).not.toHaveBeenCalled();
-    },
-  );
-
-  test("a Vercel preview without a provider override creates a transcription session", async () => {
-    vi.spyOn(console, "info").mockImplementation(() => {});
-    const fetch = vi
-      .fn<typeof globalThis.fetch>(
-        async () =>
-          new Response("v=0\r\no=answer", {
-            headers: { "content-type": "application/sdp" },
-          }),
-      )
-      .mockResolvedValueOnce(transcriptionSecret());
+  ])("requires existing enablement/credentials: %j", async (override) => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
     const response = await createOpenAITranscriptionSessionHandler({
-      environment: {
-        ...environment,
-        PETRINAUT_VOICE_PROVIDER: undefined,
-        VERCEL_ENV: "preview",
-      },
+      environment: { ...environment, ...override },
       fetch,
     })(request());
 
-    expect(response.status).toBe(201);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(404);
+    expect(fetch).not.toHaveBeenCalled();
   });
+
+  test.each([undefined, "realtime", "live"])(
+    "allows browser-selected Live transcription with server default %s",
+    async (provider) => {
+      vi.spyOn(console, "info").mockImplementation(() => {});
+      const fetch = vi
+        .fn<typeof globalThis.fetch>(
+          async () =>
+            new Response("v=0\r\no=answer", {
+              headers: { "content-type": "application/sdp" },
+            }),
+        )
+        .mockResolvedValueOnce(transcriptionSecret());
+      const response = await createOpenAITranscriptionSessionHandler({
+        environment: {
+          ...environment,
+          PETRINAUT_VOICE_PROVIDER: provider,
+          VERCEL_ENV: "production",
+        },
+        fetch,
+      })(request());
+
+      expect(response.status).toBe(201);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    },
+  );
 
   test("configures transcription through a server-only client secret before exchanging raw SDP", async () => {
     const log = vi.spyOn(console, "info").mockImplementation(() => {});

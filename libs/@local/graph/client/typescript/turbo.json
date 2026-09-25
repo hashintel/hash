@@ -8,17 +8,12 @@
       "dependsOn": ["codegen", "^manifest"],
       "outputs": ["./dist/**"]
     },
-    // The spec is read from its checked-in copy. `hash-graph-api#build:openapi`
-    // writes it and that package's `test:unit` diffs it, so depending on the task
-    // here would only add a Graph API compile to every consumer's build. The manifest
-    // edge keeps a change in the crate selecting this package.
+    // The spec is read from its checked-in copy, which `manifest:openapi` stands
+    // for. `hash-graph-api#build:openapi` writes it and that package's `test:unit`
+    // diffs it, so depending on the task here would only add a Graph API compile to
+    // every consumer's build.
     "codegen": {
-      "dependsOn": ["hash-graph-api#manifest"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "../../api/openapi/openapi.json",
-        "../../api/openapi/models/**"
-      ],
+      "dependsOn": ["hash-graph-api#manifest:openapi"],
       "outputs": [
         ".npmignore",
         "api.ts",
