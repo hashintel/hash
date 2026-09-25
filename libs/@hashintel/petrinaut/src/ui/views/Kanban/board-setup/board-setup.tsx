@@ -1,9 +1,8 @@
 import { use, useEffect, useRef, useState } from "react";
 
-import { Button, TextInput } from "@hashintel/ds-components";
+import { Button, Icon, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
-  getStatusViewEvaluationScope,
   statusViewSchema,
   type InstanceStatus,
   type Place,
@@ -13,18 +12,33 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../react";
-import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
+import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../react/state/panel-defaults";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
-import { StatusConditionArtifactsContext } from "../../../../react/status-condition-artifacts";
+import { GlassPanel } from "../../../components/glass-panel";
 import {
-  createBoardReplay,
-  type BoardSnapshot,
-} from "../kanban-view/board-replay";
+  MAX_PROPERTIES_PANEL_WIDTH,
+  MIN_PROPERTIES_PANEL_WIDTH,
+} from "../../../constants/ui";
+import {
+  anywhereViewId,
+  buildAnywhereView,
+  buildDraftDefinition,
+  buildHighlightView,
+  describeRule,
+  getSharedAttributes,
+  HIGHLIGHT_VIEW_ID,
+  insertRuleAsStatus,
+  movePlaceToLabel,
+  type DraftRule,
+} from "./draft-rules";
+import { RuleEditor } from "./rule-editor";
+import { useDraftConditionArtifacts, useDraftReplays } from "./use-draft-board";
 
 // Prototype: board setup for a status view. Places map, board of statuses
-// holding place chips, a tray for places without a status, and an inspector.
-// Edits a draft of the view's labels; "Use this board" saves it through the
-// same `updateStatusView` mutation the Status views drawer uses.
+// holding place chips, a tray for places without a status, and a status
+// panel floating over the board. Edits a draft of the view's labels;
+// "Use this board" saves it through the same `updateStatusView` mutation the
+// Status views drawer uses. Highlight rules live in draft state only.
 
 const PALETTE = [
   "#94a3b8",
@@ -70,7 +84,47 @@ const rootStyle = css({
   gap: "3",
   flex: "[1]",
   minHeight: "[0]",
+});
+const bodyStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+const scrollStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
   overflowY: "auto",
+});
+const floatingPanelStyle = css({
+  position: "absolute",
+  boxSizing: "border-box",
+  top: "[0]",
+  right: "[0]",
+  // Clears the floating editor toolbar at the bottom of the canvas.
+  bottom: "[72px]",
+  zIndex: "[2]",
+  borderWidth: "[1px]",
+  borderRadius: "lg",
+  boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)]",
+});
+const floatingPanelContentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "4",
+  overflowY: "auto",
+  padding: "4",
+});
+const draftBadgeStyle = css({
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  color: "orange.s110",
+  backgroundColor: "orange.s20",
+  borderRadius: "sm",
+  paddingX: "1.5",
+  paddingY: "0.5",
 });
 const toolbarClearanceStyle = css({ flexShrink: 0, height: "[96px]" });
 const runBannerStyle = css({
@@ -107,12 +161,6 @@ const reasonStyle = css({
   color: "orange.s110",
 });
 const errorStyle = css({ fontSize: "xs", color: "red.s105" });
-const layoutStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[minmax(0, 1fr) 320px]",
-  gap: "3",
-  alignItems: "start",
-});
 const panelStyle = css({
   backgroundColor: "neutral.s00",
   borderWidth: "[1px]",
@@ -267,6 +315,49 @@ const cardStyle = css({
   borderColor: "neutral.bd.subtle",
   backgroundColor: "neutral.s00",
   shadow: "[0px 1px 3px rgba(0, 0, 0, 0.06)]",
+});
+const cardHighlightStyle = css({
+  borderColor: "orange.s90",
+  backgroundColor: "orange.s20",
+});
+const cardAnywhereStyle = css({
+  borderColor: "orange.s90",
+  borderStyle: "dashed",
+});
+const cardBadgeStyle = css({
+  alignSelf: "flex-start",
+  fontSize: "[11px]",
+  fontWeight: "semibold",
+  color: "orange.s110",
+});
+const anywhereBadgeStyle = css({
+  alignSelf: "flex-start",
+  fontSize: "[11px]",
+  fontWeight: "semibold",
+  color: "neutral.s120",
+  backgroundColor: "neutral.s30",
+  borderRadius: "sm",
+  paddingX: "1.5",
+  paddingY: "0.5",
+});
+const ruleChipStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  width: "full",
+  paddingX: "2",
+  paddingY: "1",
+  borderRadius: "md",
+  borderWidth: "[1px]",
+  borderColor: "neutral.bd.solid",
+  backgroundColor: "neutral.s00",
+  fontSize: "[11px]",
+  color: "neutral.s110",
+  textAlign: "left",
+  cursor: "pointer",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 });
 const cardKeyStyle = css({
   fontSize: "sm",
@@ -956,60 +1047,6 @@ const PlacesMap = ({
   );
 };
 
-// ---------------------------------------------------------------- live cards
-
-/**
- * Replays the current frame source through the DRAFT view, so cards move as
- * the draft changes. Null when there is no run or stream to replay.
- */
-const useDraftBoard = (
-  draftView: StatusView,
-): { instances: InstanceStatus[] } | null => {
-  const { petriNetDefinition } = use(SDCPNContext);
-  const { currentFrameIndex, currentFrameReader, getFramesInRange } = use(
-    ExecutionFrameSourceContext,
-  );
-  const { statusConditions } = use(StatusConditionArtifactsContext);
-  const [board, setBoard] = useState<BoardSnapshot | null>(null);
-
-  useEffect(() => {
-    if (!currentFrameReader) {
-      return;
-    }
-    let cancelled = false;
-    const { places, types } = getStatusViewEvaluationScope(petriNetDefinition);
-    createBoardReplay({
-      statusView: draftView,
-      places,
-      types,
-      statusConditions,
-    })
-      .advanceTo(currentFrameIndex, getFramesInRange)
-      .then((snapshot) => {
-        if (!cancelled) {
-          setBoard(snapshot);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBoard(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    draftView,
-    currentFrameIndex,
-    currentFrameReader,
-    getFramesInRange,
-    petriNetDefinition,
-    statusConditions,
-  ]);
-
-  return currentFrameReader ? board : null;
-};
-
 // ---------------------------------------------------------------- setup
 
 export const BoardSetup = ({
@@ -1038,7 +1075,11 @@ export const BoardSetup = ({
   const [identityOpen, setIdentityOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [rules, setRules] = useState<DraftRule[]>([]);
+  const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PROPERTIES_PANEL_WIDTH);
   const dragPlace = useRef<string | null>(null);
+  const columnRefs = useRef(new Map<string, HTMLDivElement>());
 
   const identity = (petriNetDefinition.identities ?? []).find(
     (candidate) => candidate.id === statusView.identityRef,
@@ -1055,8 +1096,12 @@ export const BoardSetup = ({
   );
   const places = petriNetDefinition.places;
   const placeById = new Map(places.map((place) => [place.id, place]));
+  /** The status a place feeds; a status with a rule only shares places. */
   const labelOf = (placeId: string) =>
-    labels.find((label) => label.places.includes(placeId));
+    labels.find(
+      (label) =>
+        label.places.includes(placeId) && !(label.tokenCondition ?? "").trim(),
+    ) ?? labels.find((label) => label.places.includes(placeId));
   const exitLabel = labels.find((label) => label.isExit);
   const untrackedPlaces = places.filter(
     (place) => !trackedPlaceIds.has(place.id),
@@ -1076,8 +1121,114 @@ export const BoardSetup = ({
     (nameCounts.get(label.name.trim().toLowerCase()) ?? 0) > 1;
 
   const draftView: StatusView = { ...statusView, labels };
-  const liveBoard = useDraftBoard(draftView);
+  const highlightView = buildHighlightView(
+    rules,
+    labels,
+    trackedPlaceIds,
+    statusView.identityRef,
+  );
+  const anywhereViews = rules.flatMap((rule) => {
+    const view = buildAnywhereView(
+      rule,
+      trackedPlaceIds,
+      statusView.identityRef,
+    );
+    return view ? [view] : [];
+  });
+  const previewViews = [
+    ...(highlightView.labels.length > 0 ? [highlightView] : []),
+    ...anywhereViews,
+  ];
+  const artifacts = useDraftConditionArtifacts(
+    buildDraftDefinition(petriNetDefinition, draftView, previewViews)
+      .statusViews ?? [],
+  );
+  const replays = useDraftReplays(
+    [draftView, ...previewViews],
+    artifacts.statusConditions,
+  );
+  const liveBoard = replays
+    ? { instances: replays[statusView.id] ?? [] }
+    : null;
+  const instanceByKey = new Map(
+    (liveBoard?.instances ?? []).map((instance) => [instance.key, instance]),
+  );
+  /** Card key to the id of the first rule that highlights it. */
+  const highlightByKey = new Map(
+    (replays?.[HIGHLIGHT_VIEW_ID] ?? []).flatMap((instance) =>
+      instance.currentLabelId
+        ? [[instance.key, instance.currentLabelId] as const]
+        : [],
+    ),
+  );
+  /** Cards a rule would add if it checked every place. */
+  const anywhereExtras = (rule: DraftRule): InstanceStatus[] =>
+    rule.checks === "anywhere"
+      ? []
+      : (replays?.[anywhereViewId(rule.id)] ?? []).filter(
+          (instance) =>
+            instance.currentLabelId === rule.id &&
+            highlightByKey.get(instance.key) !== rule.id &&
+            Boolean(instanceByKey.get(instance.key)?.currentLabelId),
+        );
+  const previewRule = rules.find((rule) => rule.id === previewRuleId);
+  const previewExtras = previewRule ? anywhereExtras(previewRule) : [];
+  const previewExtraKeys = new Set(previewExtras.map((extra) => extra.key));
+  const extrasByLabel = new Map<string, number>();
+  for (const extra of previewExtras) {
+    const labelId = instanceByKey.get(extra.key)?.currentLabelId;
+    if (labelId) {
+      extrasByLabel.set(labelId, (extrasByLabel.get(labelId) ?? 0) + 1);
+    }
+  }
+  const cardName = (instance: InstanceStatus) =>
+    `${identity?.name ?? "Card"} ${instance.keyValues.join(", ")}`;
+  const describeLive = (rule: DraftRule): string | null => {
+    if (!replays) {
+      return null;
+    }
+    const matches = [...highlightByKey.values()].filter(
+      (id) => id === rule.id,
+    ).length;
+    const extras = anywhereExtras(rule);
+    const extraNames = extras.slice(0, 2).map((extra) => {
+      const labelId = instanceByKey.get(extra.key)?.currentLabelId;
+      const column = labels.find((label) => label.id === labelId);
+      return `${cardName(extra)}${column ? ` in ${column.name}` : ""}`;
+    });
+    const more = extras.length > 2 ? ` and ${extras.length - 2} more` : "";
+    const extraText =
+      extras.length === 0
+        ? ""
+        : ` Anywhere would add ${extraNames.join(", ")}${more}.`;
+    return `Live on the board: ${matches} ${matches === 1 ? "match" : "matches"} now.${extraText}`;
+  };
   const dirty = JSON.stringify(labels) !== JSON.stringify(statusView.labels);
+  const panelOpen = selectedLabel !== undefined;
+
+  useEffect(() => {
+    if (!panelOpen) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedId(undefined);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [panelOpen]);
+
+  // Scroll the selected status clear of the floating panel.
+  useEffect(() => {
+    if (selectedId) {
+      columnRefs.current.get(selectedId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [selectedId]);
 
   const blocker =
     needs.length > 0
@@ -1098,15 +1249,7 @@ export const BoardSetup = ({
       setTimeout(() => setRejectId(null), 2600);
       return;
     }
-    setLabels((current) =>
-      current.map((label) => ({
-        ...label,
-        places:
-          label.id === labelId
-            ? [...label.places.filter((id) => id !== placeId), placeId]
-            : label.places.filter((id) => id !== placeId),
-      })),
-    );
+    setLabels((current) => movePlaceToLabel(current, placeId, labelId));
     setLeaving((current) => {
       const next = new Set(current);
       next.delete(placeId);
@@ -1157,10 +1300,62 @@ export const BoardSetup = ({
 
   const deleteSelected = () => {
     setLabels((current) => current.filter((label) => label.id !== selectedId));
+    setRules((current) =>
+      current.filter((rule) => rule.labelId !== selectedId),
+    );
     setSelectedId(
       labels.find((label) => label.id !== selectedId && !label.isExit)?.id,
     );
     setConfirmDelete(false);
+  };
+
+  const addRule = (parent: StatusLabel) => {
+    const attributes = getSharedAttributes(petriNetDefinition, parent.places);
+    const field =
+      attributes.find(
+        (attribute) =>
+          attribute.name !== keyElementName &&
+          (attribute.type === "real" || attribute.type === "integer"),
+      ) ?? attributes[0];
+    setRules((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        labelId: parent.id,
+        name: "Flagged",
+        field: field?.name ?? "",
+        operator: ">=",
+        value: "",
+        expression: field ? null : "",
+        checks: "status",
+        alsoPlaceIds: [],
+      },
+    ]);
+  };
+
+  const updateRule = (ruleId: string, patch: Partial<DraftRule>) =>
+    setRules((current) =>
+      current.map((rule) =>
+        rule.id === ruleId ? { ...rule, ...patch } : rule,
+      ),
+    );
+
+  const removeRule = (ruleId: string) =>
+    setRules((current) => current.filter((rule) => rule.id !== ruleId));
+
+  const promoteRule = (rule: DraftRule) => {
+    const used = new Set(labels.map((label) => label.displayColor));
+    const id = crypto.randomUUID();
+    setLabels((current) =>
+      insertRuleAsStatus(current, rule, trackedPlaceIds, {
+        id,
+        displayColor:
+          ["#f59e0b", ...PALETTE].find((color) => !used.has(color)) ??
+          "#f59e0b",
+      }),
+    );
+    removeRule(rule.id);
+    setSelectedId(id);
   };
 
   const save = () => {
@@ -1191,6 +1386,7 @@ export const BoardSetup = ({
     setLeaving(new Set());
     setPicked(null);
     setSaveError(null);
+    setRules([]);
   };
 
   const cardsFor = (labelId: string) =>
@@ -1292,11 +1488,19 @@ export const BoardSetup = ({
         <div>
           <div className={titleStyle}>Board setup · {statusView.name}</div>
           <div className={subStyle}>
-            Prototype. Starts from this model's status view. Changes are saved
-            only when you use the board.
+            Prototype. Saved only when you use the board.
           </div>
         </div>
         <div className={growStyle} />
+        {(dirty || rules.length > 0) && (
+          <span className={draftBadgeStyle}>Draft · edited</span>
+        )}
+        {rules.length > 0 && (
+          <span className={faintStyle}>
+            {rules.length} {rules.length === 1 ? "highlight" : "highlights"} ·
+            not saved
+          </span>
+        )}
         {canClose ? (
           <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
             {dirty ? "Discard changes" : "Show live board"}
@@ -1311,7 +1515,10 @@ export const BoardSetup = ({
         {blocker ? (
           <span className={reasonStyle}>{blocker}</span>
         ) : (
-          !dirty && <span className={faintStyle}>No changes yet</span>
+          !dirty &&
+          rules.length === 0 && (
+            <span className={faintStyle}>No changes yet</span>
+          )
         )}
         {saveError && <span className={errorStyle}>{saveError}</span>}
         <Button size="sm" disabled={blocker !== null || !dirty} onClick={save}>
@@ -1319,24 +1526,29 @@ export const BoardSetup = ({
         </Button>
       </div>
 
-      {liveBoard === null && (
-        <div className={runBannerStyle} role="status">
-          <span>
-            <b>No run yet.</b> This board is set up from the model. Run the
-            simulation (▶ in the toolbar below) to see {noun}s move through it.
-          </span>
-        </div>
-      )}
-
-      <div className={layoutStyle}>
+      <div className={bodyStyle}>
         <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            gap: "3",
-            minWidth: "[0]",
-          })}
+          className={scrollStyle}
+          data-setup-empty=""
+          role="presentation"
+          onClick={(event) => {
+            if (
+              event.target instanceof HTMLElement &&
+              event.target.hasAttribute("data-setup-empty")
+            ) {
+              setSelectedId(undefined);
+            }
+          }}
         >
+          {liveBoard === null && (
+            <div className={runBannerStyle} role="status">
+              <span>
+                <b>No run yet.</b> This board is set up from the model. Run the
+                simulation (▶ in the toolbar below) to see {noun}s move through
+                it.
+              </span>
+            </div>
+          )}
           <section className={panelStyle}>
             <div className={panelHeadStyle}>
               <div>
@@ -1506,7 +1718,7 @@ export const BoardSetup = ({
               </div>
             )}
 
-            <div className={boardStyle}>
+            <div className={boardStyle} data-setup-empty="">
               <div
                 className={cx(
                   trayStyle,
@@ -1623,12 +1835,21 @@ export const BoardSetup = ({
                 return (
                   <div
                     key={label.id}
+                    ref={(element) => {
+                      if (element) {
+                        columnRefs.current.set(label.id, element);
+                      } else {
+                        columnRefs.current.delete(label.id);
+                      }
+                    }}
+                    data-testid={`setup-column-${label.name}`}
                     className={cx(
                       columnStyle,
                       selectedId === label.id && columnSelectedStyle,
                       dragOver === label.id && columnDropStyle,
                       rejectId === label.id && columnRejectStyle,
                     )}
+                    style={{ scrollMarginRight: panelWidth + 24 }}
                     {...dropZone(label.id, (placeId) =>
                       movePlace(placeId, label.id),
                     )}
@@ -1655,6 +1876,11 @@ export const BoardSetup = ({
                         {label.isExit ? "Exit" : liveBoard ? cards.length : ""}
                       </span>
                     </button>
+                    {extrasByLabel.has(label.id) && (
+                      <span className={anywhereBadgeStyle}>
+                        +{extrasByLabel.get(label.id)} if Anywhere
+                      </span>
+                    )}
                     {label.isExit ? (
                       <>
                         <div
@@ -1707,29 +1933,91 @@ export const BoardSetup = ({
                         )}
                         {label.tokenCondition && (
                           <span className={faintStyle}>
-                            Rule: {label.tokenCondition}
+                            Only cards where {label.tokenCondition}
                           </span>
                         )}
+                        {rules
+                          .filter((rule) => rule.labelId === label.id)
+                          .map((rule) => (
+                            <button
+                              key={rule.id}
+                              type="button"
+                              className={ruleChipStyle}
+                              title={`${describeRule(rule)}: highlight ${rule.name}`}
+                              onClick={() => setSelectedId(label.id)}
+                            >
+                              <Icon name="filter" size="xs" />
+                              {describeRule(rule)} → highlight{" "}
+                              {rule.name || "Flagged"}
+                            </button>
+                          ))}
                       </>
                     )}
                     <div className={dividerStyle} />
-                    {cards.map((instance) => (
-                      <div key={instance.key} className={cardStyle}>
-                        <div className={cardKeyStyle}>
-                          {instance.keyValues.join(", ")}
+                    {cards.map((instance) => {
+                      const highlightRule = rules.find(
+                        (rule) => rule.id === highlightByKey.get(instance.key),
+                      );
+                      return (
+                        <div
+                          key={instance.key}
+                          data-testid="setup-card"
+                          data-highlight={highlightRule?.name}
+                          data-anywhere={
+                            previewExtraKeys.has(instance.key) ? "" : undefined
+                          }
+                          className={cx(
+                            cardStyle,
+                            highlightRule && cardHighlightStyle,
+                            previewExtraKeys.has(instance.key) &&
+                              cardAnywhereStyle,
+                          )}
+                        >
+                          {highlightRule && (
+                            <span className={cardBadgeStyle}>
+                              {highlightRule.name || "Flagged"}
+                            </span>
+                          )}
+                          <div className={cardKeyStyle}>
+                            {cardName(instance)}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}
+              <div
+                aria-hidden="true"
+                style={{ flex: `0 0 ${panelOpen ? panelWidth : 0}px` }}
+              />
             </div>
           </section>
+          {/* Clears the floating editor toolbar at the bottom of the canvas. */}
+          <div className={toolbarClearanceStyle} aria-hidden="true" />
         </div>
 
-        <aside className={panelStyle}>
-          {selectedLabel ? (
-            <>
+        {selectedLabel && (
+          <GlassPanel
+            className={floatingPanelStyle}
+            style={{ width: panelWidth }}
+            contentClassName={floatingPanelContentStyle}
+            resizable={{
+              edge: "left",
+              size: panelWidth,
+              onResize: setPanelWidth,
+              minSize: MIN_PROPERTIES_PANEL_WIDTH,
+              maxSize: MAX_PROPERTIES_PANEL_WIDTH,
+            }}
+          >
+            <div
+              data-testid="status-panel"
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "4",
+              })}
+            >
               <div
                 className={css({
                   display: "flex",
@@ -1749,6 +2037,13 @@ export const BoardSetup = ({
                     ? "Exit status"
                     : `Status ${labels.indexOf(selectedLabel) + 1} of ${labels.length}`}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  iconName="close"
+                  aria-label="Close status panel"
+                  onClick={() => setSelectedId(undefined)}
+                />
               </div>
               <div className={fieldStyle}>
                 <span className={labelStyle}>Name</span>
@@ -1862,15 +2157,66 @@ export const BoardSetup = ({
                         })}
                     </select>
                   </div>
+                  {selectedLabel.tokenCondition !== undefined && (
+                    <div className={fieldStyle}>
+                      <span className={labelStyle}>Only cards where</span>
+                      <TextInput
+                        size="sm"
+                        value={selectedLabel.tokenCondition}
+                        onChange={(value) =>
+                          updateSelected({ tokenCondition: value })
+                        }
+                      />
+                      {artifacts.failures[selectedLabel.id] ? (
+                        <span className={errorStyle}>
+                          {artifacts.failures[selectedLabel.id]}
+                        </span>
+                      ) : (
+                        <span className={faintStyle}>
+                          Cards that match show here. The rest stay in the next
+                          status that holds the place.
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className={fieldStyle}>
-                    <span className={labelStyle}>
-                      Only include some {noun}s
-                    </span>
-                    <span className={faintStyle}>
-                      {selectedLabel.tokenCondition
-                        ? `Rule: ${selectedLabel.tokenCondition}. Edit rules in the Status views drawer.`
-                        : "Optional rule. Not editable in this prototype."}
-                    </span>
+                    <span className={labelStyle}>Rules on this status</span>
+                    {rules
+                      .filter((rule) => rule.labelId === selectedLabel.id)
+                      .map((rule) => (
+                        <RuleEditor
+                          key={rule.id}
+                          rule={rule}
+                          parent={selectedLabel}
+                          attributes={getSharedAttributes(
+                            petriNetDefinition,
+                            selectedLabel.places,
+                          )}
+                          otherPlaces={places.filter(
+                            (place) =>
+                              trackedPlaceIds.has(place.id) &&
+                              !selectedLabel.places.includes(place.id),
+                          )}
+                          trackedCount={trackedPlaceIds.size}
+                          noun={noun}
+                          live={describeLive(rule)}
+                          error={artifacts.failures[rule.id] ?? null}
+                          onChange={(patch) => updateRule(rule.id, patch)}
+                          onRemove={() => removeRule(rule.id)}
+                          onPromote={() => promoteRule(rule)}
+                          setPreviewRuleId={setPreviewRuleId}
+                        />
+                      ))}
+                    <div>
+                      <Button
+                        variant="subtle"
+                        tone="neutral"
+                        size="sm"
+                        onClick={() => addRule(selectedLabel)}
+                      >
+                        Add rule
+                      </Button>
+                    </div>
                   </div>
                   {confirmDelete ? (
                     <div className={explainStyle}>
@@ -1912,14 +2258,10 @@ export const BoardSetup = ({
                   )}
                 </>
               )}
-            </>
-          ) : (
-            <span className={faintStyle}>Select a status to edit it.</span>
-          )}
-        </aside>
+            </div>
+          </GlassPanel>
+        )}
       </div>
-      {/* Clears the floating editor toolbar at the bottom of the canvas. */}
-      <div className={toolbarClearanceStyle} aria-hidden="true" />
     </div>
   );
 };
