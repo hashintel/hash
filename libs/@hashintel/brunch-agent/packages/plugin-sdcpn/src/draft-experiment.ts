@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core";
-
-export const isDraftPetrinautExperimentToolName = (name: string): boolean =>
-  name === brunchTools.draftPetrinautExperiment;
 
 const nonempty = z.string().min(1);
 

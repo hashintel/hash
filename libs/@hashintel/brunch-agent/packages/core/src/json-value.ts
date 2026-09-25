@@ -13,7 +13,7 @@ export type ReadonlyJsonValue =
   | readonly ReadonlyJsonValue[]
   | { readonly [key: string]: ReadonlyJsonValue };
 
-export const isJsonValue = (value: unknown): value is ReadonlyJsonValue => {
+const isJsonValue = (value: unknown): value is ReadonlyJsonValue => {
   if (value === null || typeof value === "string" || typeof value === "boolean")
     return true;
   // JSON.stringify would silently rewrite non-finite numbers and negative zero,

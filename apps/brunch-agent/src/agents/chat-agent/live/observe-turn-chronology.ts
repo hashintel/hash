@@ -13,7 +13,7 @@ import type {
   FlueObservationSubscriber,
 } from "@flue/runtime";
 
-export type ToolCallChronology = {
+type ToolCallChronology = {
   readonly toolCallId: string;
   readonly toolName: string;
   /** Milliseconds from the turn's start to the first/last argument delta. */
@@ -42,7 +42,7 @@ type ResponseShape = {
   readonly toolCallParts: number;
 };
 
-export type TurnChronology = {
+type TurnChronology = {
   readonly turnId: string;
   readonly purpose: string;
   /** Milliseconds from `turn_start` to the first model event; null when none arrived. */

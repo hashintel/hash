@@ -1,7 +1,7 @@
 export const VOICE_ERROR_CODE_HEADER = "x-petrinaut-voice-error";
 export const VOICE_REQUEST_ID_HEADER = "x-request-id";
 
-export const voiceErrorCodes = [
+const voiceErrorCodes = [
   "microphone-permission",
   "microphone-device",
   "request-aborted",

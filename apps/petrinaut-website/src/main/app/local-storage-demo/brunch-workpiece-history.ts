@@ -4,7 +4,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const workpieceMutationToolNames: ReadonlySet<string> = new Set([

@@ -20,7 +20,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** Structural check of one delivered result; `output` may hold any value, including `null`. */
-export const isClientToolResult = (value: unknown): value is ClientToolResult =>
+const isClientToolResult = (value: unknown): value is ClientToolResult =>
   isRecord(value) &&
   typeof value.toolCallId === "string" &&
   typeof value.toolName === "string" &&
@@ -100,14 +100,6 @@ export const parseClientToolResults = (
   onIssue?: (issue: ClientToolResultParseIssue) => void,
 ): readonly ClientToolResult[] =>
   parseClientToolResultPayload(body, onIssue).results;
-
-/** Require the protocol's machine identity and its model-visible rendering tag. */
-export const isClientToolResultDelivery = (
-  delivery: DeliveredMessage,
-): delivery is Extract<DeliveredMessage, { kind: "signal" }> =>
-  delivery.kind === "signal" &&
-  delivery.type === brunchSignals.clientToolResult &&
-  delivery.tagName === brunchSignals.clientToolResult;
 
 /** The signal that carries completed client-tool results back into the conversation. */
 export const clientToolResultSignal = (

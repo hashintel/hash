@@ -26,7 +26,6 @@ import {
   brunchTools,
 } from "@hashintel/brunch-agent";
 
-import { clientToolNames } from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -43,6 +42,9 @@ import type { UIMessage, UIMessageChunk } from "ai";
 
 const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
+const clientToolNames: ReadonlySet<string> = new Set([
+  brunchTools.readPetrinautDocs,
+]);
 const question = "Which documentation page should we inspect next?";
 
 const principalKey = "principal-mission-1";

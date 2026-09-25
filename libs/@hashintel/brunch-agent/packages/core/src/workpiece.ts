@@ -59,12 +59,8 @@ export type WorkpieceEvidenceRelation = ReadonlyDeep<
  * Core stays substrate-neutral, so these finite unions are owned here; the app
  * pins its substrate projection against them at the producer.
  */
-export type WorkpieceMessageRole = "user" | "assistant" | "system";
-export type WorkpieceMessagePurpose =
-  | "user"
-  | "assistant"
-  | "dispatch"
-  | "advisory";
+type WorkpieceMessageRole = "user" | "assistant" | "system";
+type WorkpieceMessagePurpose = "user" | "assistant" | "dispatch" | "advisory";
 
 /** The app acquires these from this instance's authorized public history. */
 export interface WorkpieceEvidenceSource {
@@ -129,7 +125,7 @@ export type WorkpieceRevisionPointer = ReadonlyDeep<
   v.InferOutput<typeof workpieceRevisionPointerSchema>
 >;
 
-export const workpieceRefusalCodes = [
+const workpieceRefusalCodes = [
   "replay-conflict",
   "stale-base",
   "concurrent-revision",
@@ -140,7 +136,7 @@ export const workpieceRefusalCodes = [
 
 export type WorkpieceRefusalCode = (typeof workpieceRefusalCodes)[number];
 
-export const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
+const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
 
 export const updateWorkpieceRefusedOutputSchema = v.object({
   disposition: v.literal("refused"),

@@ -14,12 +14,6 @@ import type { PostgresRunner } from "@flue/postgres";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
-export type {
-  WorkedModelNetProjection,
-  WorkedModelNetProjectionDefinitionUpdate,
-  WorkedModelNetProjectionLookup,
-};
-
 export interface WorkedModelFixture {
   readonly bundleKey: string;
   readonly fixtureVersion: string;

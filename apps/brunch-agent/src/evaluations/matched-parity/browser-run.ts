@@ -30,7 +30,7 @@ const partsFrom = (messages: readonly unknown[]): readonly unknown[] =>
       : [],
   );
 
-export const toolCallsFromMessages = (
+const toolCallsFromMessages = (
   messages: readonly unknown[],
 ): CapturedToolCall[] =>
   partsFrom(messages).flatMap((part) => {

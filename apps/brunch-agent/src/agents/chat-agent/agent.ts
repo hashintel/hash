@@ -24,10 +24,7 @@ import {
   type BrowserContext,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
-  SDCPN_MODELLING_SKILL_NAME,
-  useSdcpnPlugin,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 import {
   getLatestNetDefinitionToolName,
@@ -55,10 +52,8 @@ import { ping } from "./tools/ping.ts";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
-export const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
+const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
-
-export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 const testCompactionConfig = loadTestCompactionConfig();
 const chatModelOptions = {

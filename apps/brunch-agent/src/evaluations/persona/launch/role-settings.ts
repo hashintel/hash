@@ -30,7 +30,7 @@ const catalog = () => {
   return models;
 };
 
-export const parseModelSpecifier = (value: string) => {
+const parseModelSpecifier = (value: string) => {
   const trimmed = value.trim();
   const index = trimmed.indexOf("/");
   if (index <= 0 || index >= trimmed.length - 1)
@@ -38,7 +38,7 @@ export const parseModelSpecifier = (value: string) => {
   return { provider: trimmed.slice(0, index), id: trimmed.slice(index + 1) };
 };
 
-export const resolveRoleSelection = (specifier: string, thinking: string) => {
+const resolveRoleSelection = (specifier: string, thinking: string) => {
   const { provider, id } = parseModelSpecifier(specifier);
   const model = catalog().getModel(provider, id);
   if (!model) throw new Error(`Unknown model specifier ${provider}/${id}`);

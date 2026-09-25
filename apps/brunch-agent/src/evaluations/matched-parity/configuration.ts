@@ -4,12 +4,12 @@ import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 
 import { brunchEnv } from "@hashintel/brunch-agent";
 
-export const matchedParityReasoning = "medium" as const;
+const matchedParityReasoning = "medium" as const;
 export const matchedParityArms = ["S", "F", "I"] as const;
 export type EvaluationArm = (typeof matchedParityArms)[number];
-export type BrunchEvaluationMode = Exclude<EvaluationArm, "S">;
+type BrunchEvaluationMode = Exclude<EvaluationArm, "S">;
 
-export interface MatchedParityArmConfiguration {
+interface MatchedParityArmConfiguration {
   readonly assistant: "stock" | "brunch";
   readonly label: string;
   readonly model: string;

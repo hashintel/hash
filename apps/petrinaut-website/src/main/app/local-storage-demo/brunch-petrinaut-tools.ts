@@ -16,7 +16,7 @@ import {
 
 import type { FlueConversationState } from "@flue/sdk";
 
-export interface DocumentRevisionMetadata {
+interface DocumentRevisionMetadata {
   readonly documentRevision: {
     readonly before?: string;
     readonly after?: string;

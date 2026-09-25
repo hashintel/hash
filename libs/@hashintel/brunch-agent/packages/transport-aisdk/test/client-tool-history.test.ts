@@ -4,51 +4,8 @@ import { brunchSignals } from "@hashintel/brunch-agent/constants";
 
 import {
   clientToolHistoryFrom,
-  isClientToolResultDelivery,
   type ClientToolHistoryMessage,
 } from "../src/index";
-
-describe("client-tool-result delivery identity", () => {
-  test.each([
-    {
-      label: "canonical signal",
-      delivery: {
-        kind: "signal",
-        type: brunchSignals.clientToolResult,
-        tagName: brunchSignals.clientToolResult,
-        body: "[]",
-      },
-      expected: true,
-    },
-    {
-      label: "matching type with a different render tag",
-      delivery: {
-        kind: "signal",
-        type: brunchSignals.clientToolResult,
-        tagName: "other",
-        body: "[]",
-      },
-      expected: false,
-    },
-    {
-      label: "matching render tag with a different signal type",
-      delivery: {
-        kind: "signal",
-        type: "other",
-        tagName: brunchSignals.clientToolResult,
-        body: "[]",
-      },
-      expected: false,
-    },
-    {
-      label: "user message",
-      delivery: { kind: "user", body: brunchSignals.clientToolResult },
-      expected: false,
-    },
-  ] as const)("recognizes $label", ({ delivery, expected }) => {
-    expect(isClientToolResultDelivery(delivery)).toBe(expected);
-  });
-});
 
 describe("clientToolHistoryFrom", () => {
   test("projects an in-band Flue browser outcome without synthesizing a client-result signal", () => {

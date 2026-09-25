@@ -29,21 +29,15 @@ import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 export {
   clientToolHistoryFrom,
-  type ClientToolHistory,
-  type ClientToolHistoryCall,
   type ClientToolHistoryMessage,
-  type ClientToolHistoryResult,
 } from "./client-tool-history";
 export {
   CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
   clientToolResultSignal,
-  isClientToolResult,
-  isClientToolResultDelivery,
   parseClientToolResultPayload,
   parseClientToolResults,
   type ClientToolResult,
   type ClientToolResultParseIssue,
-  type ClientToolResultPayload,
 } from "./client-tool-result";
 export {
   agentOwnershipHeaders,
@@ -51,29 +45,17 @@ export {
   identityPayload,
 } from "./identity";
 export type { ConversationIdentity } from "./identity";
-export {
-  snapshotToUiMessages,
-  type SnapshotToUiMessagesOptions,
-  type UiHistoryMessage,
-  type UiHistoryMessageMetadata,
-} from "./transcript";
-export {
-  createFlueUiStream,
-  type ClientToolProjectionOptions,
-  type FlueUiStream,
-  type FlueUiStreamOptions,
-  type FlueUiToolOutputError,
-} from "./ui-stream";
+export { snapshotToUiMessages } from "./transcript";
+export { createFlueUiStream } from "./ui-stream";
 export {
   readLiveToolStream,
   type LiveToolStreamEvent,
-  type LiveToolStreamOptions,
 } from "./live-tool-stream";
 
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
-export const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
+const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
 
 export interface PetrinautContextualUserMessagePayload {
   readonly userText: string;
@@ -164,7 +146,7 @@ export const parsePetrinautUserMessageBody = (
   };
 };
 
-export interface FlueChatResponseMessageEvent {
+interface FlueChatResponseMessageEvent {
   readonly messageId: string;
   readonly submissionId: AgentSendResult["submissionId"];
 }

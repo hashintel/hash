@@ -7,7 +7,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /** Editor-local memory only: neither the document nor Flue history stores Run or Dismiss. */
-export type EditorDraftRun =
+type EditorDraftRun =
   | { phase: "idle" }
   | {
       phase: "running";
@@ -17,7 +17,7 @@ export type EditorDraftRun =
   | { phase: "finished"; result: PetrinautExperimentResult }
   | { phase: "failed"; message: string };
 
-export type EditorDraft = {
+type EditorDraft = {
   toolCallId: string;
   input: DraftPetrinautExperimentInput;
   /** Frozen model the person reviewed, including simulation-only inputs. */
