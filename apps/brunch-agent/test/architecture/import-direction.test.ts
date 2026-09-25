@@ -244,7 +244,7 @@ describe("Brunch import direction", () => {
     {
       rule: "library imports application",
       edge: importEdge(
-        `${packagesRoot}/plugin-dafny/src/index.ts`,
+        `${packagesRoot}/plugin-sdcpn/src/index.ts`,
         "../../../../../../apps/brunch-agent/src/db-path.ts",
         `${appRoot}/src/db-path.ts`,
       ),
@@ -261,14 +261,14 @@ describe("Brunch import direction", () => {
       rule: "core imports a sibling Brunch package",
       edge: importEdge(
         `${packagesRoot}/core/src/index.ts`,
-        "@hashintel/brunch-agent-plugin-gherkin",
-        `${packagesRoot}/plugin-gherkin/src/index.ts`,
+        "@hashintel/brunch-agent-plugin-sdcpn",
+        `${packagesRoot}/plugin-sdcpn/src/index.ts`,
       ),
     },
     {
       rule: "Brunch extension imports a sibling extension",
       edge: importEdge(
-        `${packagesRoot}/plugin-gherkin/src/index.ts`,
+        `${packagesRoot}/transport-aisdk/src/index.ts`,
         "@hashintel/brunch-agent-plugin-sdcpn",
         `${packagesRoot}/plugin-sdcpn/src/index.ts`,
       ),
