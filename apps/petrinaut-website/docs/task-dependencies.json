@@ -30,7 +30,8 @@
         "VITE_VERCEL_ENV"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "codegen": {
@@ -51,7 +52,8 @@
       "cache": false,
       "persistent": true,
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "examples:generate": {
@@ -65,7 +67,8 @@
         "@local/petrinaut-optimizer-client#build"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
@@ -81,7 +84,8 @@
         "codegen"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -100,7 +104,8 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
@@ -116,7 +121,8 @@
         "examples:generate"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     },
     "test:integration": {
@@ -163,6 +169,7 @@
         "hash-graph-types",
         "hash-temporal-client",
         "petrinaut-optimization",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -182,7 +189,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "petrinaut-optimization"
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core"
       ]
     }
   }

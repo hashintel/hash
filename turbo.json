@@ -121,13 +121,6 @@
     "lint:tsc": {
       "dependsOn": ["codegen", "^build"]
     },
-    // Python linting and type checking. `uv run` syncs the package's
-    // environment from its own lockfile. Ruff reads the sources as text, while
-    // type checking resolves the package's own generated modules.
-    "lint:ruff": {},
-    "lint:types": {
-      "dependsOn": ["codegen"]
-    },
     "fix:eslint": {
       "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },

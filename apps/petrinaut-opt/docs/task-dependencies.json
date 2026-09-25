@@ -15,7 +15,8 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core"
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
       ]
     },
     "start": {
@@ -26,7 +27,8 @@
       "persistent": true,
       "affectedBy": [
         "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core"
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
       ]
     },
     "start:dev": {
@@ -37,7 +39,8 @@
       "persistent": true,
       "affectedBy": [
         "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core"
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -49,7 +52,8 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core"
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
       ]
     }
   }

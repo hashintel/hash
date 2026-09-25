@@ -8,7 +8,10 @@
       "dependsOn": [
         "sync:bundle"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "dev": {
       "dependsOn": [
@@ -18,19 +21,28 @@
       "persistent": true,
       "env": [
         "PORT"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "sync:bundle"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "sync:bundle": {
       "dependsOn": [
         "@local/petrinaut-arch-docs#doc:architecture"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     }
   }
 }

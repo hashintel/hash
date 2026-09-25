@@ -4,8 +4,8 @@
 # docker build -f apps/petrinaut-opt/docker/Dockerfile .
 
 ARG NODE_VERSION=22
-ARG PYTHON_VERSION=3.13
-ARG UV_VERSION=0.11.18
+ARG PYTHON_VERSION=3.14
+ARG UV_VERSION=0.12.16
 
 
 FROM node:${NODE_VERSION}-bookworm-slim AS bindings-tools
@@ -40,6 +40,16 @@ COPY . .
 
 RUN mise trust && \
     turbo prune '@local/petrinaut-python' --docker
+
+
+FROM bindings-tools AS python-pruner
+
+WORKDIR /repo
+
+COPY . .
+
+RUN mise trust && \
+    turbo prune petrinaut-optimization --docker
 
 
 FROM bindings-tools AS bindings-builder
@@ -90,20 +100,23 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/venv
 
-WORKDIR /repo/apps/petrinaut-opt
+WORKDIR /repo
 
 COPY --from=uv /uv /usr/local/bin/uv
 
-# Installs dependencies before the service's own source, so editing `src/`
-# reuses this layer. Editing the bindings or the optimizer core does rebuild
-# it, since they are part of the environment. `--no-editable` builds them into
-# the virtualenv, so the runner needs the virtualenv alone and no source tree
-# at a matching path.
-COPY apps/petrinaut-opt/pyproject.toml apps/petrinaut-opt/uv.lock ./
-COPY libs/@local/petrinaut-optimizer-core /repo/libs/@local/petrinaut-optimizer-core
-COPY libs/@local/petrinaut-python /repo/libs/@local/petrinaut-python
+# Installs the third-party dependencies from the pruned manifests first, so
+# source changes in any workspace member reuse that layer.
+COPY --from=python-pruner /repo/out/json/ ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project --no-editable
+    uv sync --frozen --no-dev --package petrinaut-optimization --no-install-workspace
+
+# Then the bindings and the optimizer core. `--no-editable` builds them into
+# the virtualenv, so the runner needs the virtualenv alone and no source tree
+# at a matching path. The service itself is not installed; the runner copies
+# its `src/`.
+COPY --from=python-pruner /repo/out/full/ ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --package petrinaut-optimization --no-install-project --no-editable
 
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runner

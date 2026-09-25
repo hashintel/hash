@@ -24,7 +24,7 @@
         "$TURBO_ROOT$/uv.lock",
         "scripts/generate_openapi.py",
         "src/**/*.py",
-        "../../libs/@local/petrinaut-optimizer-core/src/**/*.py",
+        "../../libs/@local/petrinaut-optimizer-core/python/src/**/*.py",
         "../../libs/@local/petrinaut-python/src/**/*.py"
       ],
       "outputs": ["openapi/openapi.json"],

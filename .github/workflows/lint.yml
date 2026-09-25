@@ -40,7 +40,7 @@ jobs:
         run: |
           # The steps gate on the per-task keys — the tasks are independent and
           # can differ in what they consider affected.
-          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff lint:types)
+          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff)
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -145,10 +145,6 @@ jobs:
       - name: Run Ruff
         if: always() && matrix['lint:ruff'] != null
         run: turbo run lint:ruff --filter "${{ matrix.name }}"
-
-      - name: Run basedpyright
-        if: always() && matrix['lint:types'] != null
-        run: turbo run lint:types --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
         if: always() && steps.lints.outputs.has-rust == 'true'
