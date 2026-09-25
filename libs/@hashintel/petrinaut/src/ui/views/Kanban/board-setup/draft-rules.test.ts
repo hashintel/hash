@@ -12,6 +12,7 @@ import {
   buildConditionExpression,
   buildDraftDefinition,
   buildHighlightView,
+  describeCondition,
   getRulePlaceIds,
   getSharedAttributes,
   HIGHLIGHT_VIEW_ID,
@@ -65,6 +66,17 @@ describe("buildConditionExpression", () => {
     expect(
       buildConditionExpression(rule({ expression: " token.x > 1 " })),
     ).toBe("token.x > 1");
+  });
+});
+
+describe("describeCondition", () => {
+  it("drops the token prefix and uses readable operators", () => {
+    expect(describeCondition("token.machine_damage_ratio >= 0.8")).toBe(
+      "machine_damage_ratio ≥ 0.8",
+    );
+    expect(describeCondition('token.a !== "x" && token.b === 1')).toBe(
+      'a ≠ "x" && b = 1',
+    );
   });
 });
 

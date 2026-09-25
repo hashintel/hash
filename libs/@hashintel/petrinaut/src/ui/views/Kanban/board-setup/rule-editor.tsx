@@ -42,7 +42,7 @@ const rowStyle = css({
   fontSize: "xs",
   color: "neutral.s110",
 });
-const controlStyle = css({
+const controlBase = css.raw({
   height: "[28px]",
   borderWidth: "[1px]",
   borderColor: "neutral.bd.solid",
@@ -53,10 +53,17 @@ const controlStyle = css({
   color: "neutral.s120",
   minWidth: "[0]",
 });
+const controlStyle = css(controlBase);
 const fieldSelectStyle = css({ flex: "[1 1 140px]" });
 const operatorSelectStyle = css({ flex: "[0 0 56px]" });
 const valueInputStyle = css({ flex: "[0 1 80px]", width: "[80px]" });
-const nameInputStyle = css({ width: "[96px]" });
+const nameInputStyle = css(controlBase, {
+  width: "[96px]",
+  fontWeight: "semibold",
+  color: "orange.s110",
+  backgroundColor: "orange.s20",
+  borderColor: "orange.s90",
+});
 const expressionInputStyle = css({
   width: "full",
   fontFamily: "mono",
@@ -230,7 +237,7 @@ export const RuleEditor = ({
       <div className={rowStyle}>
         <span>Show</span>
         <input
-          className={cx(controlStyle, nameInputStyle)}
+          className={nameInputStyle}
           aria-label="Badge text"
           value={rule.name}
           onChange={(event) => onChange({ name: event.target.value })}

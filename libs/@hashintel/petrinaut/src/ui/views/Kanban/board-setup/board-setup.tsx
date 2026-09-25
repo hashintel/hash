@@ -24,6 +24,7 @@ import {
   buildAnywhereView,
   buildDraftDefinition,
   buildHighlightView,
+  describeCondition,
   describeRule,
   getSharedAttributes,
   HIGHLIGHT_VIEW_ID,
@@ -195,7 +196,7 @@ const boardStyle = css({
   minHeight: "[320px]",
   paddingBottom: "1",
 });
-const columnStyle = css({
+const columnBase = css.raw({
   display: "flex",
   flexDirection: "column",
   gap: "2",
@@ -209,15 +210,16 @@ const columnStyle = css({
   borderColor: "neutral.bd.subtle",
   backgroundColor: "neutral.s25",
 });
-const columnSelectedStyle = css({
+const columnSelected = css.raw({
   borderColor: "blue.s90",
   backgroundColor: "blue.s10",
 });
-const columnDropStyle = css({ borderColor: "blue.s90", borderStyle: "dashed" });
-const columnRejectStyle = css({
+const columnDrop = css.raw({ borderColor: "blue.s90", borderStyle: "dashed" });
+const columnReject = css.raw({
   borderColor: "red.s105",
   borderStyle: "dashed",
 });
+const columnDropStyle = css(columnDrop);
 const trayStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -305,7 +307,7 @@ const dividerStyle = css({
   height: "[1px]",
   backgroundColor: "neutral.bd.subtle",
 });
-const cardStyle = css({
+const cardBase = css.raw({
   display: "flex",
   flexDirection: "column",
   gap: "1",
@@ -316,11 +318,11 @@ const cardStyle = css({
   backgroundColor: "neutral.s00",
   shadow: "[0px 1px 3px rgba(0, 0, 0, 0.06)]",
 });
-const cardHighlightStyle = css({
+const cardHighlight = css.raw({
   borderColor: "orange.s90",
   backgroundColor: "orange.s20",
 });
-const cardAnywhereStyle = css({
+const cardAnywhere = css.raw({
   borderColor: "orange.s90",
   borderStyle: "dashed",
 });
@@ -355,9 +357,6 @@ const ruleChipStyle = css({
   color: "neutral.s110",
   textAlign: "left",
   cursor: "pointer",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
 });
 const cardKeyStyle = css({
   fontSize: "sm",
@@ -1080,6 +1079,8 @@ export const BoardSetup = ({
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PROPERTIES_PANEL_WIDTH);
   const dragPlace = useRef<string | null>(null);
   const columnRefs = useRef(new Map<string, HTMLDivElement>());
+  const boardRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const identity = (petriNetDefinition.identities ?? []).find(
     (candidate) => candidate.id === statusView.identityRef,
@@ -1191,16 +1192,26 @@ export const BoardSetup = ({
       (id) => id === rule.id,
     ).length;
     const extras = anywhereExtras(rule);
-    const extraNames = extras.slice(0, 2).map((extra) => {
+    const byColumn = new Map<string, string[]>();
+    for (const extra of extras) {
       const labelId = instanceByKey.get(extra.key)?.currentLabelId;
-      const column = labels.find((label) => label.id === labelId);
-      return `${cardName(extra)}${column ? ` in ${column.name}` : ""}`;
-    });
-    const more = extras.length > 2 ? ` and ${extras.length - 2} more` : "";
+      const column =
+        labels.find((label) => label.id === labelId)?.name ?? "no status";
+      byColumn.set(column, [
+        ...(byColumn.get(column) ?? []),
+        extra.keyValues.join(", "),
+      ]);
+    }
+    const cardNoun = identity?.name ?? "Card";
     const extraText =
       extras.length === 0
         ? ""
-        : ` Anywhere would add ${extraNames.join(", ")}${more}.`;
+        : ` Anywhere would add ${[...byColumn]
+            .map(
+              ([column, keys]) =>
+                `${cardNoun}${keys.length > 1 ? "s" : ""} ${keys.join(", ")} in ${column}`,
+            )
+            .join("; ")}.`;
     return `Live on the board: ${matches} ${matches === 1 ? "match" : "matches"} now.${extraText}`;
   };
   const dirty = JSON.stringify(labels) !== JSON.stringify(statusView.labels);
@@ -1219,16 +1230,41 @@ export const BoardSetup = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [panelOpen]);
 
-  // Scroll the selected status clear of the floating panel.
+  // Scroll the board sideways just far enough to clear the selected status
+  // from the floating panel.
+  const scrolledForId = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (selectedId) {
-      columnRefs.current.get(selectedId)?.scrollIntoView({
+    if (scrolledForId.current === selectedId) {
+      return;
+    }
+    scrolledForId.current = selectedId;
+    const column = selectedId ? columnRefs.current.get(selectedId) : undefined;
+    const board = boardRef.current;
+    const body = bodyRef.current;
+    if (!column || !board || !body) {
+      return;
+    }
+    const columnBox = column.getBoundingClientRect();
+    const boardBox = board.getBoundingClientRect();
+    const clearRight = body.getBoundingClientRect().right - panelWidth - 16;
+    if (columnBox.right > clearRight) {
+      // Snap to the next column edge so no column is left cut in half.
+      const target = board.scrollLeft + columnBox.right - clearRight;
+      const edges = [...board.children].map(
+        (child) =>
+          child.getBoundingClientRect().left - boardBox.left + board.scrollLeft,
+      );
+      board.scrollTo({
+        left: edges.find((edge) => edge >= target) ?? target,
         behavior: "smooth",
-        block: "nearest",
-        inline: "nearest",
+      });
+    } else if (columnBox.left < boardBox.left) {
+      board.scrollBy({
+        left: columnBox.left - boardBox.left - 8,
+        behavior: "smooth",
       });
     }
-  }, [selectedId]);
+  }, [selectedId, panelWidth]);
 
   const blocker =
     needs.length > 0
@@ -1526,7 +1562,7 @@ export const BoardSetup = ({
         </Button>
       </div>
 
-      <div className={bodyStyle}>
+      <div ref={bodyRef} className={bodyStyle}>
         <div
           className={scrollStyle}
           data-setup-empty=""
@@ -1583,7 +1619,10 @@ export const BoardSetup = ({
           </section>
 
           <section className={panelStyle}>
-            <div className={panelHeadStyle}>
+            <div
+              className={panelHeadStyle}
+              style={{ paddingRight: panelOpen ? panelWidth : 0 }}
+            >
               <div>
                 <div className={panelTitleStyle}>Board</div>
                 <div className={captionStyle}>
@@ -1718,7 +1757,7 @@ export const BoardSetup = ({
               </div>
             )}
 
-            <div className={boardStyle} data-setup-empty="">
+            <div ref={boardRef} className={boardStyle} data-setup-empty="">
               <div
                 className={cx(
                   trayStyle,
@@ -1843,13 +1882,12 @@ export const BoardSetup = ({
                       }
                     }}
                     data-testid={`setup-column-${label.name}`}
-                    className={cx(
-                      columnStyle,
-                      selectedId === label.id && columnSelectedStyle,
-                      dragOver === label.id && columnDropStyle,
-                      rejectId === label.id && columnRejectStyle,
+                    className={css(
+                      columnBase,
+                      selectedId === label.id && columnSelected,
+                      dragOver === label.id && columnDrop,
+                      rejectId === label.id && columnReject,
                     )}
-                    style={{ scrollMarginRight: panelWidth + 24 }}
                     {...dropZone(label.id, (placeId) =>
                       movePlace(placeId, label.id),
                     )}
@@ -1932,9 +1970,10 @@ export const BoardSetup = ({
                           </span>
                         )}
                         {label.tokenCondition && (
-                          <span className={faintStyle}>
-                            Only cards where {label.tokenCondition}
-                          </span>
+                          <div className={ruleChipStyle}>
+                            <Icon name="filter" size="xs" />
+                            {describeCondition(label.tokenCondition)}
+                          </div>
                         )}
                         {rules
                           .filter((rule) => rule.labelId === label.id)
@@ -1947,8 +1986,7 @@ export const BoardSetup = ({
                               onClick={() => setSelectedId(label.id)}
                             >
                               <Icon name="filter" size="xs" />
-                              {describeRule(rule)} → highlight{" "}
-                              {rule.name || "Flagged"}
+                              {describeRule(rule)} → {rule.name || "Flagged"}
                             </button>
                           ))}
                       </>
@@ -1966,11 +2004,10 @@ export const BoardSetup = ({
                           data-anywhere={
                             previewExtraKeys.has(instance.key) ? "" : undefined
                           }
-                          className={cx(
-                            cardStyle,
-                            highlightRule && cardHighlightStyle,
-                            previewExtraKeys.has(instance.key) &&
-                              cardAnywhereStyle,
+                          className={css(
+                            cardBase,
+                            highlightRule && cardHighlight,
+                            previewExtraKeys.has(instance.key) && cardAnywhere,
                           )}
                         >
                           {highlightRule && (
@@ -2020,9 +2057,17 @@ export const BoardSetup = ({
             >
               <div
                 className={css({
+                  position: "sticky",
+                  top: "[-16px]",
+                  zIndex: "[1]",
                   display: "flex",
                   alignItems: "center",
                   gap: "2",
+                  marginTop: "[-16px]",
+                  paddingY: "3",
+                  backgroundColor: "neutral.s00",
+                  borderBottomWidth: "[1px]",
+                  borderColor: "neutral.bd.subtle",
                 })}
               >
                 <span

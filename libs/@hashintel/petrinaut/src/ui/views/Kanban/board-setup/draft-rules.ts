@@ -73,6 +73,16 @@ export const describeRule = (rule: DraftRule): string => {
   return `${rule.field} ${operator} ${rule.value.trim() || "…"}`;
 };
 
+/** A condition in short human form, e.g. `damage_ratio ≥ 0.8`. */
+export const describeCondition = (condition: string): string =>
+  condition
+    .replace(/\btoken\./g, "")
+    .replace(/===/g, "=")
+    .replace(/!==/g, "≠")
+    .replace(/>=/g, "≥")
+    .replace(/<=/g, "≤")
+    .trim();
+
 /** The places a rule checks, in model order. */
 export const getRulePlaceIds = (
   rule: DraftRule,
