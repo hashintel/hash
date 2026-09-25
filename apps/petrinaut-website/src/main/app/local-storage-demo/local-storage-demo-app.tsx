@@ -60,6 +60,7 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
+import { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -231,6 +232,7 @@ export const getBrunchVoiceMode = (
   tracker?: BrunchPanelConversationTracker,
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
+  mediationHistory?: VoiceMediationHistory,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -257,6 +259,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      mediationHistory={mediationHistory}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
       // independently by followMessages.canReplace below.
@@ -782,6 +785,22 @@ export const LocalStorageDemoApp = ({
     constructionBrowser,
     settleConstructionRevision,
   ]);
+  const mediationHistory = useMemo(
+    () =>
+      new VoiceMediationHistory(conversationId ?? "", {
+        getItem: (key) => window.localStorage.getItem(key),
+        setItem: (key, value) => window.localStorage.setItem(key, value),
+      }),
+    [conversationId],
+  );
+  const mapVoiceMessages = useSyncExternalStore(
+    mediationHistory.subscribe,
+    mediationHistory.getSnapshot,
+    mediationHistory.getSnapshot,
+  );
+  useLayoutEffect(() => {
+    mediationHistory.sync(flueHistory.snapshot);
+  }, [mediationHistory, flueHistory.snapshot]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;
     reportBrunchFailure("history", flueHistory.error, {
@@ -804,12 +823,14 @@ export const LocalStorageDemoApp = ({
         conversationTracker,
         flueHistory.settlements,
         flueHistory.snapshot,
+        mediationHistory,
       ),
     [
       brunchSelected,
       conversationTracker,
       flueHistory.settlements,
       flueHistory.snapshot,
+      mediationHistory,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -948,6 +969,7 @@ export const LocalStorageDemoApp = ({
         ? {
             primaryLabel: "Chat",
             presentation: "brunch" as const,
+            mapMessagesForDisplay: mapVoiceMessages,
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
             renderComposerControl: (
@@ -1025,6 +1047,7 @@ export const LocalStorageDemoApp = ({
     };
   }, [
     aiMessagesByNetId,
+    mapVoiceMessages,
     brunchSelected,
     brunchVoiceMode,
     canonicalHostTools,

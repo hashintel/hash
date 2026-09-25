@@ -6,18 +6,22 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { z } from "zod";
 
+import { validateVoiceWrapUp } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
+import { LiveSpeechCaptions } from "./live-speech-captions";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
   VoiceInterviewRetry,
 } from "./voice-interview-disclosure";
+import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { VoiceInterviewControl } from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
@@ -35,6 +39,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
   > & {
+    readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
       typeof LiveBrunchBridge
@@ -43,7 +48,23 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     readonly isDisclosureAcknowledged: () => boolean;
   };
 
+const prepareVoice = async (
+  kind: "brief" | "wrap-up",
+  text: string,
+  signal: AbortSignal,
+): Promise<unknown> => {
+  const response = await fetch("/api/voice/mediation", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind, text }),
+    signal,
+  });
+  if (!response.ok) throw new Error("Voice preparation failed");
+  return response.json();
+};
+
 export const LiveConversationControl = ({
+  mediationHistory,
   acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
@@ -65,6 +86,8 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
 }: LiveControlsContext) => {
+  const [localHistory] = useState(() => new VoiceMediationHistory("session"));
+  const history = mediationHistory ?? localHistory;
   const [audioSettingsStore] = useState(
     () => new VoiceAudioSettings("live", navigator.mediaDevices),
   );
@@ -96,6 +119,7 @@ export const LiveConversationControl = ({
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
+    messages,
     chat: {
       status,
       stopped,
@@ -130,6 +154,7 @@ export const LiveConversationControl = ({
     );
     latest.current = {
       submit,
+      messages,
       chat: {
         status,
         stopped,
@@ -182,6 +207,9 @@ export const LiveConversationControl = ({
     setSpeakerVolumeState(1);
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
+    const captions = new LiveSpeechCaptions(history.caption);
+    let offeredInput: string | undefined;
+    const appendInputs = new Map<string, string>();
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
@@ -215,7 +243,9 @@ export const LiveConversationControl = ({
       },
       connectionTimeoutMs,
       (input) => {
-        if (session.current === next) void bridge.current?.accept(input);
+        if (session.current !== next) return;
+        void bridge.current?.accept(input);
+        if (!input.superseded) captions.begin(input.id);
       },
       (delegationId) => {
         if (session.current === next)
@@ -223,6 +253,20 @@ export const LiveConversationControl = ({
       },
       (result) => {
         if (session.current !== next) return;
+        if (result.kind === "commentary") {
+          if (offeredInput) {
+            appendInputs.set(result.eventId, offeredInput);
+            offeredInput = undefined;
+          }
+          const inputId = appendInputs.get(result.eventId);
+          if (
+            inputId &&
+            result.status === "accepted" &&
+            result.startMs !== undefined
+          )
+            captions.wrapUp(inputId, result.startMs);
+          if (result.status !== "unknown") appendInputs.delete(result.eventId);
+        }
         // Every successful local send starts as unknown. Neither waiting
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
@@ -238,12 +282,39 @@ export const LiveConversationControl = ({
         );
       },
       audioSettingsStore,
+      {
+        started: () => {
+          captions.speechStarted();
+          bridge.current?.speechStarted();
+          offeredInput = undefined;
+          appendInputs.clear();
+        },
+        input: (fragment) => captions.input(fragment),
+        output: (fragment) => captions.output(fragment),
+        closed: () => captions.close(),
+      },
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
     next.setSpeakerVolume(1);
     bridge.current = new LiveBrunchBridge({
       submit: (input) => latest.current.submit(input),
+      mediation: {
+        history,
+        prepare: async (text, signal) =>
+          z
+            .object({ fields: z.record(z.string(), z.string()) })
+            .parse(await prepareVoice("brief", text, signal)).fields,
+        summarize: async (text, signal) =>
+          validateVoiceWrapUp(
+            z
+              .object({ text: z.string() })
+              .parse(await prepareVoice("wrap-up", text, signal)).text,
+          ),
+        offered: (inputId) => {
+          offeredInput = inputId;
+        },
+      },
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
       notice: setWarningMessage,
@@ -253,7 +324,13 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
+  }, [
+    audioSettingsStore,
+    connectionTimeoutMs,
+    history,
+    phase,
+    setVoiceActive,
+  ]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;
