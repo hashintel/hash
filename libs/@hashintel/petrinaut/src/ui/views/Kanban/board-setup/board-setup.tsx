@@ -212,7 +212,7 @@ const columnBase = css.raw({
 });
 const columnSelected = css.raw({
   borderColor: "blue.s90",
-  backgroundColor: "blue.s10",
+  backgroundColor: "blue.s20",
 });
 const columnDrop = css.raw({ borderColor: "blue.s90", borderStyle: "dashed" });
 const columnReject = css.raw({
@@ -1081,6 +1081,7 @@ export const BoardSetup = ({
   const columnRefs = useRef(new Map<string, HTMLDivElement>());
   const boardRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const panelContentRef = useRef<HTMLDivElement>(null);
 
   const identity = (petriNetDefinition.identities ?? []).find(
     (candidate) => candidate.id === statusView.identityRef,
@@ -1231,13 +1232,16 @@ export const BoardSetup = ({
   }, [panelOpen]);
 
   // Scroll the board sideways just far enough to clear the selected status
-  // from the floating panel.
+  // from the floating panel, again whenever the panel is resized. A newly
+  // selected status also opens the panel at its top.
   const scrolledForId = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (scrolledForId.current === selectedId) {
-      return;
-    }
+    const selectionChanged = scrolledForId.current !== selectedId;
     scrolledForId.current = selectedId;
+    if (selectionChanged) {
+      panelContentRef.current?.parentElement?.scrollTo({ top: 0 });
+    }
+    const behavior = selectionChanged ? "smooth" : "auto";
     const column = selectedId ? columnRefs.current.get(selectedId) : undefined;
     const board = boardRef.current;
     const body = bodyRef.current;
@@ -1256,9 +1260,9 @@ export const BoardSetup = ({
       );
       board.scrollTo({
         left: edges.find((edge) => edge >= target) ?? target,
-        behavior: "smooth",
+        behavior,
       });
-    } else if (columnBox.left < boardBox.left) {
+    } else if (selectionChanged && columnBox.left < boardBox.left) {
       board.scrollBy({
         left: columnBox.left - boardBox.left - 8,
         behavior: "smooth",
@@ -2048,6 +2052,7 @@ export const BoardSetup = ({
             }}
           >
             <div
+              ref={panelContentRef}
               data-testid="status-panel"
               className={css({
                 display: "flex",
