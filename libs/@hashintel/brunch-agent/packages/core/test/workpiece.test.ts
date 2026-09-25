@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
+import { latestRunbookIrBlock } from "../src/runbook-ir";
 import {
-  latestRunbookIrBlock,
   selectRunbookWorkpiece,
   type WorkpieceHistory,
   type WorkpieceHistoryMessage,

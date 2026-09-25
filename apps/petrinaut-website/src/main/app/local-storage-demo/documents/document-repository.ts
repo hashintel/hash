@@ -1,6 +1,6 @@
 import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
 
-export type DocumentOrigin =
+type DocumentOrigin =
   | { readonly kind: "local" }
   | {
       readonly kind: "template";

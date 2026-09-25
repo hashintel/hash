@@ -16,4 +16,9 @@
 
 export * from "./constants";
 export { type ToolExecution } from "./conversation/reply-protocol";
-export * from "./workpiece-tools";
+export { updateWorkpieceInputSchema } from "./update-workpiece";
+export {
+  createWorkpieceReadTool,
+  updateWorkpieceOutputSchema,
+  workpieceReadOutputSchema,
+} from "./workpiece-tools";

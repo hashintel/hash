@@ -36,7 +36,7 @@ import {
  *
  * Retained pointer-only outputs parse as applied so reopen can recover them.
  */
-export const updateWorkpieceAppliedOutputSchema = v.object({
+const updateWorkpieceAppliedOutputSchema = v.object({
   disposition: v.optional(v.literal("applied"), "applied"),
   applied: v.optional(v.literal(true), true),
   ...workpieceRevisionPointerSchema.entries,
@@ -355,8 +355,3 @@ export const createWorkpieceReadTool = (services: WorkpieceEvidenceServices) =>
       };
     },
   });
-
-export {
-  workpieceMarkdownByteCeiling,
-  updateWorkpieceInputSchema,
-} from "./update-workpiece";

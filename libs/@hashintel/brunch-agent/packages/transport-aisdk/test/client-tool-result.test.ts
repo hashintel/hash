@@ -6,7 +6,7 @@ import {
   type ClientToolResultParseIssue,
   parseClientToolResultPayload,
   parseClientToolResults,
-} from "../src";
+} from "../src/client-tool-result";
 
 const SENTINEL = "SENTINEL-body-content";
 

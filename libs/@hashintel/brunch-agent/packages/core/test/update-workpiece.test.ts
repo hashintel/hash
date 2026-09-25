@@ -9,13 +9,13 @@ import { useBrunchAgent } from "../src/flue";
 import {
   deriveWorkpieceMutation,
   updateWorkpieceInputSchema,
+  workpieceMarkdownByteCeiling,
 } from "../src/update-workpiece";
 import { type WorkpieceRevision } from "../src/workpiece";
 import {
   updateWorkpieceOutputSchema,
   createMutateWorkpieceTool,
   createWorkpieceReadTool,
-  workpieceMarkdownByteCeiling,
 } from "../src/workpiece-tools";
 
 // Only the Flue build packages skills; these tests exercise the hook around it.
