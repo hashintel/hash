@@ -32,7 +32,6 @@
                   ]
                 }
               ],
-              "description": "The credentials are malformed.",
               "title": "Bad Request"
             }
           }
@@ -70,7 +69,6 @@
                   ]
                 }
               ],
-              "description": "An internal error prevented the request from completing.",
               "title": "Internal Server Error"
             }
           }
@@ -108,7 +106,6 @@
                   ]
                 }
               ],
-              "description": "Authentication is temporarily unavailable.",
               "title": "Service Unavailable"
             }
           }
@@ -146,7 +143,6 @@
                   ]
                 }
               ],
-              "description": "The request exceeded its rate-limit budget.",
               "title": "Too Many Requests"
             }
           }
@@ -196,7 +192,6 @@
                   ]
                 }
               ],
-              "description": "The request carries no credentials, or they do not identify a permitted caller.",
               "title": "Unauthorized"
             }
           }
@@ -305,7 +300,6 @@
         "type": "object"
       },
       "ProblemDetails": {
-        "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
         "properties": {
           "detail": {
             "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\n\nUse extension members for structured information.",

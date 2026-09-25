@@ -172,9 +172,9 @@ fn document_variant() {
         media["schema"]["title"], "Store busy",
         "the schema should be titled with the problem type"
     );
-    assert_eq!(
-        media["schema"]["description"], "The store cannot take the request right now.",
-        "the schema should be described by the variant's doc comment"
+    assert!(
+        media["schema"].get("description").is_none(),
+        "the schema should leave the description to the response"
     );
     assert!(
         media["schema"]["allOf"]
@@ -222,6 +222,21 @@ fn document_variants_merged() {
             .iter()
             .any(|part| part["properties"]["id"]["description"] == "The ID of the missing entity."),
         "the schema of a variant should document its extension members"
+    );
+    assert!(
+        media["schema"]["oneOf"]
+            .as_array()
+            .expect("the schema should be one of the variants")
+            .iter()
+            .all(|variant| {
+                variant.get("description").is_none()
+                    && variant["allOf"]
+                        .as_array()
+                        .expect("the schema should combine the problem details with the variant")
+                        .iter()
+                        .all(|part| part.get("description").is_none())
+            }),
+        "no schema of a variant should repeat the description the response lists"
     );
     assert_eq!(
         not_found["description"],
@@ -401,7 +416,8 @@ fn document_headers_listed_later() {
     );
 }
 
-/// The web named in the request was deleted.
+/// The web named in the request was deleted, and its name stays reserved until the retention
+/// period ends.
 ///
 /// Its entities are kept for the retention period.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
@@ -442,20 +458,128 @@ fn document_same_problem_type() {
         [
             "Entity not found",
             "Web not found: The web named in the request does not exist.",
-            "Web not found: The web named in the request was deleted.",
+            "Web not found: The web named in the request was deleted, and its name stays reserved \
+             until the retention period ends.",
             "Entity type not found",
         ],
-        "every schema should be documented once, labelled by its description where its type URI \
-         is shared"
+        "every schema should be documented once, labelled by the first paragraph of its \
+         description where its type URI is shared"
     );
     let example = &media["examples"]["/problems/web/not-found (2)"];
     assert_eq!(
-        example["summary"], "Web not found: The web named in the request was deleted.",
+        example["summary"],
+        "Web not found: The web named in the request was deleted, and its name stays reserved \
+         until the retention period ends.",
         "the example of the second variant of a type URI should be named apart"
     );
     assert_eq!(
         example["value"]["detail"], "The web was deleted.",
         "the example of the second variant of a type URI should stay its own after reading back"
+    );
+}
+
+// Without a doc comment, the documentation describes it by its title alone.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The web is locked.")]
+struct WebLocked;
+
+impl ProblemVariant for WebLocked {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/web/locked"),
+        title: Cow::Borrowed("Web locked"),
+        status: StatusCode::LOCKED,
+    };
+}
+
+// Its description repeats its title.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[schemars(description = "Web frozen")]
+#[display("The web is frozen.")]
+struct WebFrozen;
+
+impl ProblemVariant for WebFrozen {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/web/frozen"),
+        title: Cow::Borrowed("Web frozen"),
+        status: StatusCode::CONFLICT,
+    };
+}
+
+/// The web named in the request is sealed by its owner.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The web is sealed.")]
+struct WebSealed;
+
+impl ProblemVariant for WebSealed {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("/problems/web/sealed"),
+        title: Cow::Borrowed("Web sealed"),
+        status: StatusCode::LOCKED,
+    };
+}
+
+struct LockWeb;
+
+impl Problem for LockWeb {
+    const VARIANTS: &'static [Variant] = &[
+        Variant::of::<WebDeleted>(),
+        Variant::of::<WebLocked>(),
+        Variant::of::<WebFrozen>(),
+    ];
+}
+
+struct SealWeb;
+
+impl Problem for SealWeb {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<WebSealed>()];
+}
+
+#[test]
+fn document_variants_repeated() {
+    let mut operation = Operation::default();
+    document::<LockWeb>(&mut operation);
+    // Joins `WebSealed` to `WebLocked`, whose response is described by its title.
+    document::<SealWeb>(&mut operation);
+    // Documents every variant again, after the responses have been read back.
+    document::<LockWeb>(&mut operation);
+
+    for (status, description) in [
+        (
+            404,
+            "The web named in the request was deleted, and its name stays reserved until the \
+             retention\nperiod ends.\n\nIts entities are kept for the retention period.",
+        ),
+        (409, "Web frozen"),
+    ] {
+        let response = response(&operation, status);
+        assert!(
+            response["content"]["application/problem+json"]["schema"]
+                .get("anyOf")
+                .is_none(),
+            "the variant documented again at {status} should stay the only one there"
+        );
+        assert_eq!(
+            response["description"], description,
+            "the variant documented again at {status} should keep its description"
+        );
+    }
+
+    let locked = response(&operation, 423);
+    let titles = locked["content"]["application/problem+json"]["schema"]["oneOf"]
+        .as_array()
+        .expect("the schema should be one of the variants")
+        .iter()
+        .map(|variant| variant["title"].clone())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        titles,
+        ["Web locked", "Web sealed"],
+        "a variant documented again should not join the variants a second time"
+    );
+    assert_eq!(
+        locked["description"],
+        "- Web locked\n- Web sealed: The web named in the request is sealed by its owner.",
+        "the description should list the variant without a description by its title alone"
     );
 }
 

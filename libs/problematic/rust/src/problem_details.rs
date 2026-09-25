@@ -17,12 +17,20 @@ fn status_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema
     schemars::json_schema!({ "type": "integer" })
 }
 
+/// Removes the description that the doc comment of [`ProblemDetails`] gives its schema.
+///
+/// Documentation viewers show the description of a schema for every schema that builds on it, such
+/// as the schema of each documented problem variant.
+fn without_description(schema: &mut schemars::Schema) {
+    schema.remove("description");
+}
+
 /// An RFC 9457 problem details object with problem-specific extension members.
 ///
 /// Serialization includes `type`, `title`, and `status`, plus `detail` and `instance` when
 /// supplied.
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
-#[schemars(title = "Problem Details")]
+#[schemars(title = "Problem Details", transform = without_description)]
 pub struct ProblemDetails<'a, E = ()> {
     /// A URI reference identifying the problem type.
     ///

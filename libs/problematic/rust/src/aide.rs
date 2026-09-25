@@ -56,9 +56,9 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
 /// A variant listed by several sources is documented once. Variants with the same type URI and
 /// status that differ in title, description or members are documented side by side, and their
 /// status gets an `anyOf` instead of a `oneOf`. Their branches and examples are labelled with the
-/// first line of their description. A header is documented if a variant at its status lists it,
-/// and required if every one of them does. Variants that give a header different schemas document
-/// it with an `anyOf` of them, described like the first variant that lists it.
+/// first paragraph of their description. A header is documented if a variant at its status lists
+/// it, and required if every one of them does. Variants that give a header different schemas
+/// document it with an `anyOf` of them, described like the first variant that lists it.
 ///
 /// # Panics
 ///
@@ -67,7 +67,8 @@ impl<E: JsonSchema> OperationOutput for ProblemDetails<'_, E> {
 /// serialize. It also panics if the operation already has a response at the status of a variant
 /// that the variant cannot join: one that documents no variants, such as a response for
 /// [`ProblemDetails`] itself, one of another media type or a reference to a component, or one that
-/// another transform changed after it was documented.
+/// another transform changed after it was documented, apart from rewording the descriptions of its
+/// variants.
 impl<K: Problem> OperationOutput for crate::Rejection<K> {
     type Inner = Self;
 
@@ -92,6 +93,8 @@ struct Fragment {
     title: String,
     status: u16,
     description: Option<String>,
+    /// The problem details of the variant, without its description, which only the response
+    /// carries.
     schema: Schema,
     example: Option<serde_json::Value>,
     /// The headers the variant lists.
@@ -160,17 +163,19 @@ fn members(schema: &Schema) -> Vec<Schema> {
 impl Fragment {
     fn of(context: &mut GenContext, base: &Schema, variant: &Variant) -> Self {
         let problem_type = variant.problem_type();
-        let extensions = variant.extensions(&mut context.schema);
+        let mut extensions = variant.extensions(&mut context.schema);
         assert_members(variant, &extensions);
-        let description = schema_description(&extensions);
+        let description = extensions
+            .remove("description")
+            .and_then(|description| description.as_str().map(ToOwned::to_owned));
 
         Self {
             type_uri: problem_type.type_uri.to_string(),
             title: problem_type.title.to_string(),
             status: problem_type.status.as_u16(),
             example: example(variant, &extensions),
-            schema: variant_schema(base, variant, extensions, description.as_deref()),
-            description,
+            schema: variant_schema(base, variant, extensions),
+            description: distinct_description(&problem_type.title, description),
             headers: variant
                 .headers()
                 .iter()
@@ -183,10 +188,15 @@ impl Fragment {
         }
     }
 
-    /// The variant a `branch` of a rendered response documents, with its `example`.
+    /// The variant a `branch` of a rendered response documents, with its `example` and the
+    /// `description` the response gives it.
     ///
     /// `None` if `branch` does not document a variant.
-    fn read(branch: &serde_json::Value, example: Option<serde_json::Value>) -> Option<Self> {
+    fn read(
+        branch: &serde_json::Value,
+        example: Option<serde_json::Value>,
+        description: Option<String>,
+    ) -> Option<Self> {
         let (type_uri, title, status) = constants(branch)?;
         let mut schema: Schema = serde_json::from_value(branch.clone()).ok()?;
         // A branch among several variants is titled with its label, see `labels`. The schema of the
@@ -197,10 +207,7 @@ impl Fragment {
             type_uri: type_uri.to_owned(),
             title: title.to_owned(),
             status: u16::try_from(status).ok()?,
-            description: branch
-                .get("description")
-                .and_then(serde_json::Value::as_str)
-                .map(ToOwned::to_owned),
+            description: distinct_description(title, description),
             schema,
             example,
             headers: Vec::new(),
@@ -242,16 +249,25 @@ impl Documented {
             return Err("its schema documents no variants");
         }
 
-        let type_uris = branches
+        let problem_types = branches
             .iter()
-            .map(|branch| constants(branch).map(|(type_uri, ..)| type_uri))
+            .map(|branch| constants(branch))
             .collect::<Option<Vec<_>>>()
             .ok_or(not_variants)?;
+        let type_uris = problem_types
+            .iter()
+            .map(|&(type_uri, ..)| type_uri)
+            .collect::<Vec<_>>();
+        let titles = problem_types
+            .iter()
+            .map(|&(_, title, _)| title)
+            .collect::<Vec<_>>();
         let single = branches.len() == 1;
         let fragments = branches
             .into_iter()
             .zip(example_names(&type_uris))
-            .map(|(branch, name)| {
+            .zip(descriptions(&response.description, &titles))
+            .map(|((branch, name), description)| {
                 let example = if single {
                     media.example.clone()
                 } else {
@@ -261,7 +277,7 @@ impl Documented {
                         .and_then(ReferenceOr::as_item)
                         .and_then(|example| example.value.clone())
                 };
-                Fragment::read(branch, example)
+                Fragment::read(branch, example, description)
             })
             .collect::<Option<_>>()
             .ok_or(not_variants)?;
@@ -289,8 +305,9 @@ impl Documented {
 
     /// Adds `fragment` as a variant at the status.
     ///
-    /// A variant with the schema of a documented one adds no branch, but its headers count as
-    /// those of any other variant, and its example is kept if the documented one has none.
+    /// A variant with the schema and the description of a documented one adds no branch, but its
+    /// headers count as those of any other variant, and its example is kept if the documented one
+    /// has none.
     fn join(&mut self, fragment: Fragment) {
         let first = self.fragments.is_empty();
         for header in &mut self.headers {
@@ -315,11 +332,9 @@ impl Documented {
             }
         }
 
-        match self
-            .fragments
-            .iter_mut()
-            .find(|documented| documented.schema == fragment.schema)
-        {
+        match self.fragments.iter_mut().find(|documented| {
+            documented.schema == fragment.schema && documented.description == fragment.description
+        }) {
             Some(documented) => {
                 if documented.example.is_none() {
                     documented.example = fragment.example;
@@ -443,8 +458,8 @@ fn share_type_uri(fragments: &[Fragment]) -> bool {
 }
 
 /// The label of each of `fragments`, which documentation viewers show to choose between variants:
-/// the title, followed by the first line of the description where another variant has the same
-/// type URI, and numbered where it repeats.
+/// the title, followed by the first paragraph of the description where another variant has the
+/// same type URI, and numbered where it repeats.
 fn labels(fragments: &[Fragment]) -> Vec<String> {
     let labels = fragments
         .iter()
@@ -457,9 +472,12 @@ fn labels(fragments: &[Fragment]) -> Vec<String> {
             match fragment
                 .description
                 .as_deref()
-                .and_then(|description| description.lines().next())
+                .and_then(|description| description.split("\n\n").next())
             {
-                Some(line) if shared && !line.is_empty() => format!("{}: {line}", fragment.title),
+                // A description keeps the line breaks of the doc comment it was taken from.
+                Some(paragraph) if shared && !paragraph.is_empty() => {
+                    format!("{}: {}", fragment.title, paragraph.replace('\n', " "))
+                }
                 _ => fragment.title.clone(),
             }
         })
@@ -575,7 +593,8 @@ fn problem_media(schema: Schema) -> MediaType {
 /// title.
 ///
 /// A variant is described by its extension schema, which a derived schema takes from the doc
-/// comment, and otherwise by its title alone.
+/// comment, and otherwise by its title alone. No schema of the response repeats the description,
+/// so [`descriptions`] reads the variants' descriptions back from this format.
 fn describe(fragments: &[Fragment]) -> String {
     if let [fragment] = fragments {
         return fragment
@@ -596,6 +615,43 @@ fn describe(fragments: &[Fragment]) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// The description of each variant titled one of `titles`, read from the `description` of their
+/// response.
+///
+/// No variant has one if `description` is not what [`describe`] renders for them. Rendering them
+/// again then tells the two apart.
+fn descriptions(description: &str, titles: &[&str]) -> Vec<Option<String>> {
+    if let [_] = titles {
+        return vec![Some(description.to_owned())];
+    }
+
+    description
+        .strip_prefix("- ")
+        .map(|list| list.split("\n- ").collect::<Vec<_>>())
+        .filter(|items| items.len() == titles.len())
+        .and_then(|items| {
+            items
+                .into_iter()
+                .zip(titles)
+                .map(|(item, title)| match item.strip_prefix(title)? {
+                    "" => Some(None),
+                    described => described
+                        .strip_prefix(": ")
+                        .map(|description| Some(description.replace("\n  ", "\n"))),
+                })
+                .collect::<Option<Vec<_>>>()
+        })
+        .unwrap_or_else(|| vec![None; titles.len()])
+}
+
+/// `description`, unless it only repeats `title`.
+///
+/// The response of a variant without a description is described by its title, which reads back as
+/// no description.
+fn distinct_description(title: &str, description: Option<String>) -> Option<String> {
+    description.filter(|description| description != title)
 }
 
 /// Checks that `extensions` describes members the variant's problem details can carry.
@@ -641,13 +697,6 @@ fn assert_members_of(type_uri: &str, schema: &serde_json::Value) {
             assert_members_of(type_uri, branch);
         }
     }
-}
-
-fn schema_description(extensions: &Schema) -> Option<String> {
-    extensions
-        .get("description")
-        .and_then(serde_json::Value::as_str)
-        .map(ToOwned::to_owned)
 }
 
 /// The example occurrence of `variant`.
@@ -701,13 +750,8 @@ fn open(schema: &mut serde_json::Map<String, serde_json::Value>) {
     }
 }
 
-/// The problem details of `variant`, titled with its problem type and described like the variant.
-fn variant_schema(
-    base: &Schema,
-    variant: &Variant,
-    extensions: Schema,
-    description: Option<&str>,
-) -> Schema {
+/// The problem details of `variant`, titled with its problem type.
+fn variant_schema(base: &Schema, variant: &Variant, extensions: Schema) -> Schema {
     let problem_type = variant.problem_type();
     let mut all_of = vec![
         base.clone(),
@@ -728,9 +772,5 @@ fn variant_schema(
         all_of.push(extensions);
     }
 
-    let mut schema = json_schema!({ "title": problem_type.title, "allOf": all_of });
-    if let Some(description) = description {
-        schema.insert("description".to_owned(), description.into());
-    }
-    schema
+    json_schema!({ "title": problem_type.title, "allOf": all_of })
 }
