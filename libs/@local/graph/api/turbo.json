@@ -33,6 +33,10 @@
     "lint:clippy": {
       "command": ["just", "clippy"]
     },
+    // The checked-in spec alone, for consumers that read it instead of the crate.
+    "manifest:openapi": {
+      "inputs": ["openapi/**"]
+    },
     "lint:openapi": {
       "command": [
         "git",
