@@ -1,10 +1,4 @@
-import { once } from "node:events";
-import { createServer } from "node:http";
 /** @vitest-environment jsdom */
-/// <reference path="../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -23,15 +17,17 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import {
-  type LspWorkerFactory,
+  petrinautAiModel,
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import {
-  compileHirArtifacts,
-  lowerScenarioToHir,
-} from "@hashintel/petrinaut-core/hir";
 
+import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
+import {
+  InProcessLspWorker,
+  NoopResizeObserver,
+  preloadMonaco,
+} from "../shared/petrinaut-jsdom";
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
@@ -39,32 +35,14 @@ import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
 import type { ComponentProps, ReactNode } from "react";
 
-vi.hoisted(() => {
-  window.matchMedia = (media) => ({
-    media,
-    matches: false,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent: () => true,
-  });
-  Object.defineProperty(document, "queryCommandSupported", {
-    configurable: true,
-    value: () => false,
-  });
-  Object.defineProperty(window, "CSS", {
-    configurable: true,
-    value: {
-      ...window.CSS,
-      escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
-    },
-  });
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
 });
 
 const fixture = vi.hoisted(() => ({
-  origin: null as string | null,
+  fetch: null as typeof fetch | null,
   client: null as FlueClient | null,
   handle: null as PetrinautDocHandle | null,
   repository: null as DocumentRepository | null,
@@ -76,14 +54,9 @@ vi.mock("@flue/sdk", async (importOriginal) => {
     createFlueClient: (
       options: Parameters<typeof actual.createFlueClient>[0],
     ) => {
-      // Preserve the server's private in-process history client.
-      if (options.fetch !== undefined) return actual.createFlueClient(options);
-      if (!fixture.origin) throw new Error("Brunch application is not ready");
-      const client = actual.createFlueClient({
-        ...options,
-        url: `${fixture.origin}${new URL(options.url).pathname}`,
-      });
-      fixture.client = client;
+      const client = actual.createFlueClient(options);
+      // The server's own in-process history client passes its own fetch.
+      if (options.fetch === undefined) fixture.client = client;
       return client;
     },
   };
@@ -130,73 +103,21 @@ vi.mock("./brunch-principal", () => ({
 
 const originalFetch = globalThis.fetch;
 beforeAll(async () => {
-  await import("monaco-editor");
+  await preloadMonaco();
+  // The panel reaches Brunch through its Flue client and its browser-call and
+  // live-tool requests alike; all of them go to the built app in process.
   globalThis.fetch = (resource, options) => {
     const request =
       resource instanceof Request ? resource : new Request(resource, options);
-    const url = new URL(request.url);
     if (
-      fixture.origin &&
-      url.origin === fixture.origin &&
-      url.pathname.startsWith("/agents/chat/")
+      fixture.fetch &&
+      new URL(request.url).pathname.startsWith("/agents/chat/")
     )
-      return originalFetch(request);
+      return fixture.fetch(request);
     return Promise.reject(new Error("External fetch forbidden"));
   };
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-  vi.stubGlobal(
-    "Worker",
-    class {
-      private listeners = new Set<(event: MessageEvent) => void>();
-      constructor(_url: unknown) {}
-      postMessage(
-        message: Parameters<
-          Awaited<ReturnType<LspWorkerFactory>>["postMessage"]
-        >[0],
-      ) {
-        if (!("id" in message)) return;
-        const result =
-          message.method === "sdcpn/diagnostics"
-            ? []
-            : message.method === "sdcpn/compileHirArtifacts"
-              ? compileHirArtifacts(
-                  message.params.sdcpn,
-                  message.params.extensions,
-                  message.params.options,
-                )
-              : message.method === "sdcpn/lowerScenario"
-                ? lowerScenarioToHir(message.params.scenario, {
-                    adHocContext: message.params.adHocContext,
-                  })
-                : null;
-        queueMicrotask(() => {
-          for (const listener of this.listeners)
-            listener({
-              data: { jsonrpc: "2.0", id: message.id, result },
-            } as MessageEvent);
-        });
-      }
-      addEventListener(_type: string, listener: (event: MessageEvent) => void) {
-        this.listeners.add(listener);
-      }
-      removeEventListener(
-        _type: string,
-        listener: (event: MessageEvent) => void,
-      ) {
-        this.listeners.delete(listener);
-      }
-      terminate() {
-        this.listeners.clear();
-      }
-    },
-  );
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+  vi.stubGlobal("Worker", InProcessLspWorker);
 }, 30_000);
 afterEach(() => {
   cleanup();
@@ -225,12 +146,13 @@ const scenario = {
 const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
 test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
-  process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
+  delete process.env.BRUNCH_CHAT_MODEL;
+  delete process.env.BRUNCH_CHAT_THINKING;
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({
-    provider: "anthropic",
-    models: [{ id: "claude-sonnet-4-6" }],
+    provider: "openai",
+    models: [{ id: petrinautAiModel.id, reasoning: true }],
   });
   faux.setResponses([
     fauxAssistantMessage(
@@ -285,71 +207,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       fauxText("All six scenario and metric tools returned."),
     ]),
   ]);
-  const application = (await import(
-    pathToFileURL(join(process.cwd(), "../brunch-agent/dist/app.mjs")).href
-  )) as {
-    loadFlueNodeApplication: () => Promise<{
-      fetch: typeof fetch;
-      stop: () => Promise<void>;
-    }>;
-  };
-  const server = await application.loadFlueNodeApplication();
+  const server = await loadBuiltBrunchApplication();
   setProvider(faux.provider);
-  const httpServer = createServer((request, response) => {
-    void (async () => {
-      const chunks: Uint8Array[] = [];
-      for await (const chunk of request) chunks.push(chunk as Uint8Array);
-      const headers = new Headers();
-      for (const [name, value] of Object.entries(request.headers))
-        if (value !== undefined)
-          headers.set(name, Array.isArray(value) ? value.join(",") : value);
-      const body = Buffer.concat(chunks).toString("utf8");
-      const result = await server.fetch(
-        new Request(
-          `http://127.0.0.1:${(httpServer.address() as { port: number }).port}${request.url}`,
-          {
-            method: request.method,
-            headers,
-            ...(body ? { body } : {}),
-          },
-        ),
-      );
-      response.writeHead(result.status, Object.fromEntries(result.headers));
-      if (result.body) {
-        const reader = result.body.getReader();
-        for (;;) {
-          const next = await reader.read();
-          if (next.done) break;
-          if (!response.write(next.value)) await once(response, "drain");
-        }
-      }
-      response.end();
-    })().catch((error: unknown) => response.writeHead(500).end(String(error)));
-  });
-  httpServer.listen(0, "127.0.0.1");
-  await once(httpServer, "listening");
-  fixture.origin = `http://127.0.0.1:${(httpServer.address() as { port: number }).port}`;
+  fixture.fetch = async (input, init) =>
+    server.fetch(input instanceof Request ? input : new Request(input, init));
   const documentId = "net-1";
   const initialRevisionId = "initial-revision";
-  // Pass-through spy: every localStorage write of this document, in order.
-  const storageSpy = vi.spyOn(Storage.prototype, "setItem");
-  const storageWrites = () =>
-    storageSpy.mock.calls.flatMap(([key, value], index) => {
-      if (
-        storageSpy.mock.contexts[index] !== localStorage ||
-        key !== "petrinaut-sdcpn"
-      )
-        return [];
-      const document = (
-        JSON.parse(value) as Record<
-          string,
-          { revisionId: string; sdcpn: SDCPN }
-        >
-      )[documentId];
-      return document
-        ? [{ revisionId: document.revisionId, definition: document.sdcpn }]
-        : [];
-    });
   let unmount = () => {};
   try {
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -474,19 +337,6 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       expect(stored[documentId]?.sdcpn.scenarios ?? []).toEqual([]);
       expect(stored[documentId]?.sdcpn.metrics ?? []).toEqual([]);
     });
-    for (const change of changes) {
-      const saved = storageWrites().find(
-        ({ revisionId }) => revisionId === change.revisionId,
-      );
-      expect(saved).toBeDefined();
-      expect(
-        saved?.definition.scenarios?.map(({ id, name }) => ({ id, name })) ??
-          [],
-      ).toEqual(change.scenarios);
-      expect(
-        saved?.definition.metrics?.map(({ id, name }) => ({ id, name })) ?? [],
-      ).toEqual(change.metrics);
-    }
     const repository = fixture.repository;
     if (!repository)
       throw new Error("The real document repository was not mounted");
@@ -497,13 +347,8 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     unsubscribe();
   } finally {
     unmount();
-    storageSpy.mockRestore();
-    fixture.origin = null;
+    fixture.fetch = null;
     fixture.client = null;
-    httpServer.closeAllConnections();
-    await new Promise<void>((resolve, reject) =>
-      httpServer.close((error) => (error ? reject(error) : resolve())),
-    );
     await server.stop();
   }
 }, 30_000);

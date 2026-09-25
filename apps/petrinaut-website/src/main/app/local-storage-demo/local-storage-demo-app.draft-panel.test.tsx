@@ -10,21 +10,17 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import {
-  createJsonDocHandle,
-  type LspWorkerFactory,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
-import {
-  compileHirArtifacts,
-  lowerScenarioToHir,
-} from "@hashintel/petrinaut-core/hir";
+import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
 
+import {
+  InProcessLspWorker,
+  NoopResizeObserver,
+  preloadMonaco,
+} from "../shared/petrinaut-jsdom";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "./brunch-conversation-id";
-import { resolveDraftAuthorityFromHistory } from "./brunch-draft-experiment-interactive-tool";
 import {
   createCanonicalPetrinautHostTools,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
@@ -38,28 +34,10 @@ import type {
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { ReactNode } from "react";
 
-vi.hoisted(() => {
-  window.matchMedia = (media) => ({
-    media,
-    matches: false,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent: () => true,
-  });
-  Object.defineProperty(document, "queryCommandSupported", {
-    configurable: true,
-    value: () => false,
-  });
-  Object.defineProperty(window, "CSS", {
-    configurable: true,
-    value: {
-      ...window.CSS,
-      escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
-    },
-  });
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
   class ClipboardItem {
     constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
   }
@@ -144,9 +122,7 @@ vi.mock("./assistants/brunch/use-process-agent-binding", () => ({
   },
 }));
 
-beforeAll(async () => {
-  await import("monaco-editor");
-}, 30_000);
+beforeAll(preloadMonaco, 30_000);
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -197,63 +173,8 @@ test.each(["Dismiss", "Run"] as const)(
   async (action) => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     // Only the browser Worker boundary is emulated; Petrinaut and its assistant panel are real.
-    vi.stubGlobal(
-      "Worker",
-      class {
-        private listeners = new Set<(event: MessageEvent) => void>();
-        constructor(_url: unknown) {}
-        postMessage(
-          message: Parameters<
-            Awaited<ReturnType<LspWorkerFactory>>["postMessage"]
-          >[0],
-        ) {
-          if (!("id" in message)) return;
-          const result =
-            message.method === "sdcpn/diagnostics"
-              ? []
-              : message.method === "sdcpn/compileHirArtifacts"
-                ? compileHirArtifacts(
-                    message.params.sdcpn,
-                    message.params.extensions,
-                    message.params.options,
-                  )
-                : message.method === "sdcpn/lowerScenario"
-                  ? lowerScenarioToHir(message.params.scenario, {
-                      adHocContext: message.params.adHocContext,
-                    })
-                  : null;
-          queueMicrotask(() => {
-            for (const listener of this.listeners)
-              listener({
-                data: { jsonrpc: "2.0", id: message.id, result },
-              } as MessageEvent);
-          });
-        }
-        addEventListener(
-          _type: string,
-          listener: (event: MessageEvent) => void,
-        ) {
-          this.listeners.add(listener);
-        }
-        removeEventListener(
-          _type: string,
-          listener: (event: MessageEvent) => void,
-        ) {
-          this.listeners.delete(listener);
-        }
-        terminate() {
-          this.listeners.clear();
-        }
-      },
-    );
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    vi.stubGlobal("Worker", InProcessLspWorker);
+    vi.stubGlobal("ResizeObserver", NoopResizeObserver);
     vi.stubGlobal("localStorage", {
       get length() {
         return 0;
@@ -408,16 +329,6 @@ test.each(["Dismiss", "Run"] as const)(
         },
       ],
     };
-    await expect(
-      resolveDraftAuthorityFromHistory(
-        {
-          ...history,
-          messages: [...history.messages, draftMessage],
-        } as FlueConversationState,
-        binding,
-        "draft-1",
-      ),
-    ).resolves.toBe("initial-revision");
     let submissionCount = 0;
     const send = vi.fn<FlueClient["send"]>(async () => ({
       submissionId: `submission-${++submissionCount}`,

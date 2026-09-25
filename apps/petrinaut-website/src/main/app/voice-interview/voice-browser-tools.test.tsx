@@ -11,6 +11,7 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
+import { NoopResizeObserver, preloadMonaco } from "../shared/petrinaut-jsdom";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
@@ -22,38 +23,13 @@ import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
-vi.hoisted(() => {
-  window.matchMedia = (media) => ({
-    media,
-    matches: false,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent: () => true,
-  });
-  // Monaco's clipboard contrib reads this at import time; jsdom does not
-  // implement it, and the lazy singleton can finish loading mid-suite.
-  Object.defineProperty(document, "queryCommandSupported", {
-    configurable: true,
-    value: () => false,
-  });
-  Object.defineProperty(window, "CSS", {
-    configurable: true,
-    value: {
-      ...window.CSS,
-      escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
-    },
-  });
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
 });
 
-beforeAll(async () => {
-  // The real panel loads Monaco lazily. Resolve its browser capability checks
-  // during setup, rather than letting an import failure race a later test.
-  // Cold transforms exceeded the default 10s when the full suite ran in parallel.
-  await import("monaco-editor");
-}, 30_000);
+beforeAll(preloadMonaco, 30_000);
 
 const VoiceObserver = ({
   current,
@@ -109,14 +85,7 @@ test.each([
   "settles the real panel/Voice browser-tool path ($outcome, preamble: $preamble)",
   async ({ preamble, outcome }) => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    vi.stubGlobal("ResizeObserver", NoopResizeObserver);
     const tracker = new BrunchPanelConversationTracker();
     let context: PetrinautAiVoiceModeContext | undefined;
     let emitInput: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;

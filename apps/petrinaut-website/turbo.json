@@ -11,6 +11,7 @@
       "env": [
         "SENTRY_DSN",
         "VITE_BRUNCH_CHAT_ENDPOINT",
+        "VITE_BRUNCH_EVALUATION_MODE",
         "VITE_PETRINAUT_DEFAULT_ASSISTANT",
         "VITE_VERCEL_ENV"
       ],
