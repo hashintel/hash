@@ -2,9 +2,7 @@ use alloc::string::ToString as _;
 use core::fmt::Display;
 
 use http::HeaderMap;
-use schemars::JsonSchema;
-#[cfg(feature = "aide")]
-use schemars::{Schema, SchemaGenerator};
+use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde_core::Serialize;
 
 use crate::{ProblemDetails, ProblemType};
@@ -108,12 +106,17 @@ impl<V: ProblemVariant> Occurrence for V {
 #[derive(Debug)]
 pub struct Header {
     name: &'static str,
-    #[cfg(feature = "aide")]
     description: &'static str,
-    #[cfg(feature = "aide")]
     schema: fn(&mut SchemaGenerator) -> Schema,
 }
 
+#[cfg_attr(
+    not(feature = "aide"),
+    expect(
+        dead_code,
+        reason = "only the OpenAPI documentation reads the description and the schema"
+    )
+)]
 impl Header {
     /// The header `name`, documented with `description` and the schema of its value `T`.
     ///
@@ -130,42 +133,27 @@ impl Header {
     ///     Header::new::<u64>("Retry After", "Seconds before retrying the request.");
     /// ```
     #[must_use]
-    #[cfg_attr(
-        not(feature = "aide"),
-        expect(
-            clippy::extra_unused_type_parameters,
-            reason = "only the documentation reads the header's type, and the signature stays the \
-                      same across features"
-        )
-    )]
     pub const fn new<T: JsonSchema>(name: &'static str, description: &'static str) -> Self {
         assert!(
             is_token(name),
             "a header name should be a token of letters, digits and `!#$%&'*+-.^_`|~`"
         );
-        #[cfg(not(feature = "aide"))]
-        let _: &str = description;
 
         Self {
             name,
-            #[cfg(feature = "aide")]
             description,
-            #[cfg(feature = "aide")]
             schema: T::json_schema,
         }
     }
 
-    #[cfg(feature = "aide")]
     pub(crate) const fn name(&self) -> &'static str {
         self.name
     }
 
-    #[cfg(feature = "aide")]
     pub(crate) const fn description(&self) -> &'static str {
         self.description
     }
 
-    #[cfg(feature = "aide")]
     pub(crate) fn schema(&self, generator: &mut SchemaGenerator) -> Schema {
         (self.schema)(generator)
     }
@@ -175,14 +163,19 @@ impl Header {
 #[derive(Debug)]
 pub struct Variant {
     problem_type: ProblemType,
-    #[cfg(feature = "aide")]
     extensions: fn(&mut SchemaGenerator) -> Schema,
-    #[cfg(feature = "aide")]
     headers: &'static [Header],
-    #[cfg(feature = "aide")]
     example: fn() -> Option<serde_json::Value>,
 }
 
+#[cfg_attr(
+    not(feature = "aide"),
+    expect(
+        dead_code,
+        reason = "only the OpenAPI documentation reads the extension members, the headers and the \
+                  example"
+    )
+)]
 impl Variant {
     /// Lists the [`ProblemVariant`] `V`.
     ///
@@ -222,11 +215,8 @@ impl Variant {
     pub const fn of<V: ProblemVariant>() -> Self {
         let variant = Self {
             problem_type: V::TYPE,
-            #[cfg(feature = "aide")]
             extensions: V::json_schema,
-            #[cfg(feature = "aide")]
             headers: V::HEADERS,
-            #[cfg(feature = "aide")]
             example: example_of::<V>,
         };
         let status = variant.problem_type.status.as_u16();
@@ -238,7 +228,6 @@ impl Variant {
     }
 
     /// The rendered example occurrence, if the variant has one.
-    #[cfg(feature = "aide")]
     pub(crate) fn example(&self) -> Option<serde_json::Value> {
         (self.example)()
     }
@@ -249,18 +238,15 @@ impl Variant {
         &self.problem_type
     }
 
-    #[cfg(feature = "aide")]
     pub(crate) fn extensions(&self, generator: &mut SchemaGenerator) -> Schema {
         (self.extensions)(generator)
     }
 
-    #[cfg(feature = "aide")]
     pub(crate) const fn headers(&self) -> &'static [Header] {
         self.headers
     }
 }
 
-#[cfg(feature = "aide")]
 fn example_of<V: ProblemVariant>() -> Option<serde_json::Value> {
     V::example().map(|example| {
         serde_json::to_value(Occurrence::details(&example))
