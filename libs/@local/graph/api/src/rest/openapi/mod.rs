@@ -1,18 +1,23 @@
 #[cfg(test)]
 mod tests;
 
+use alloc::collections::BTreeSet;
 use std::collections::HashSet;
 
 use aide::{
     Error,
     axum::ApiRouter,
     generate,
-    openapi::{Info, OpenApi, Operation, ReferenceOr, Response, StatusCode},
+    openapi::{
+        Info, OpenApi, Operation, Parameter, ParameterData, ParameterSchemaOrContent, ReferenceOr,
+        Response, SchemaObject, StatusCode,
+    },
     transform::TransformOpenApi,
     util::iter_operations_mut,
 };
 use convert_case::{Case, Casing as _};
 use indexmap::IndexMap;
+use serde_json::Value;
 
 use super::{Api, credentials::Credentials, middleware};
 
@@ -25,8 +30,10 @@ use super::{Api, credentials::Credentials, middleware};
 ///
 /// Panics if `prefix` is not a valid nesting path, if Aide reports a documentation defect such as
 /// two handlers documenting the same operation, if an operation requires a security scheme the
-/// document does not declare, or if the problem variants of an operation cannot be documented, such
-/// as when the status of a variant already has a response that documents none.
+/// document does not declare, if the path parameters of an operation are not the placeholders of
+/// its path or one of them is optional, a sequence or a map, or if the problem variants of an
+/// operation cannot be documented, such as when the status of a variant already has a response that
+/// documents none.
 pub(super) fn build<C: Credentials>(
     prefix: &'static str,
     info: Info,
@@ -60,6 +67,7 @@ pub(super) fn build<C: Credentials>(
                 .with(reference_responses)
         });
     assert_security_schemes_declared(&mut document);
+    assert_path_parameters_filled(&mut document);
     Api {
         audience: C::AUDIENCE,
         prefix,
@@ -101,6 +109,99 @@ fn assert_security_schemes_declared(document: &mut OpenApi) {
             }
         }
     }
+}
+
+/// Checks that the path parameters of every operation are the ones axum fills in.
+///
+/// Aide documents path parameters from the fields of the struct a handler reads them into, and axum
+/// fills each field from the placeholder of the same name, as a single value. A tuple or a single
+/// value documents no parameter. A field without a placeholder is a client error to axum on every
+/// request, and a sequence or a map a server error. The path always carries every placeholder, so
+/// an optional field documents a parameter a client cannot leave out.
+fn assert_path_parameters_filled(document: &mut OpenApi) {
+    let schemas = document
+        .components
+        .as_ref()
+        .map(|components| &components.schemas);
+    let Some(paths) = &mut document.paths else {
+        return;
+    };
+    for (path, item) in &mut paths.paths {
+        let Some(item) = item.as_item_mut() else {
+            continue;
+        };
+        let placeholders = path
+            .split('{')
+            .skip(1)
+            .filter_map(|rest| rest.split_once('}'))
+            .map(|(name, _)| name)
+            .collect::<BTreeSet<_>>();
+        let shared = path_parameters(&item.parameters)
+            .cloned()
+            .collect::<Vec<_>>();
+        for (method, operation) in iter_operations_mut(item) {
+            let parameters = shared
+                .iter()
+                .chain(path_parameters(&operation.parameters))
+                .collect::<Vec<_>>();
+            let documented = parameters
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<BTreeSet<_>>();
+            assert!(
+                documented == placeholders,
+                "{method} {path} should document one path parameter per placeholder, read into a \
+                 struct with a field named after each: the path has {placeholders:?}, the \
+                 operation documents {documented:?}"
+            );
+            for parameter in parameters {
+                let name = &parameter.name;
+                assert!(
+                    parameter.required,
+                    "{method} {path} should require its path parameter `{name}`, as the path \
+                     always carries it: read it into a field that is not an `Option`"
+                );
+                assert!(
+                    is_single_value(parameter, schemas),
+                    "{method} {path} should read its path parameter `{name}` as a single value, \
+                     as axum reads no sequence or map from a path segment"
+                );
+            }
+        }
+    }
+}
+
+/// The path parameters among `parameters`.
+fn path_parameters(parameters: &[ReferenceOr<Parameter>]) -> impl Iterator<Item = &ParameterData> {
+    parameters.iter().filter_map(|parameter| {
+        if let Some(Parameter::Path { parameter_data, .. }) = parameter.as_item() {
+            Some(parameter_data)
+        } else {
+            None
+        }
+    })
+}
+
+/// Whether the schema of `parameter` is neither an array nor an object, following a reference to
+/// one of `schemas`.
+fn is_single_value(
+    parameter: &ParameterData,
+    schemas: Option<&IndexMap<String, SchemaObject>>,
+) -> bool {
+    let ParameterSchemaOrContent::Schema(schema) = &parameter.format else {
+        return true;
+    };
+    let schema = schema
+        .json_schema
+        .get("$ref")
+        .and_then(Value::as_str)
+        .and_then(|reference| reference.strip_prefix("#/components/schemas/"))
+        .and_then(|name| schemas?.get(name))
+        .unwrap_or(schema);
+    !matches!(
+        schema.json_schema.get("type").and_then(Value::as_str),
+        Some("array" | "object")
+    )
 }
 
 /// Hoists the problem responses that operations share into `components/responses`.

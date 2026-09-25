@@ -12,7 +12,7 @@ use aide::{
 use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant};
 
 use super::reference_responses;
-use crate::rest::{Api, middleware, openapi, test_utils::NoCredentials};
+use crate::rest::{Api, extract::Path, middleware, openapi, test_utils::NoCredentials};
 
 /// The request uses an unsupported query.
 #[derive(serde::Serialize, schemars::JsonSchema, derive_more::Display)]
@@ -138,4 +138,119 @@ fn build_panics_on_duplicate_response() {
         },
         |document| document,
     );
+}
+
+/// Path parameters with a field the route has no placeholder for.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct DraftPath {
+    entity: String,
+    draft: String,
+}
+
+#[test]
+#[should_panic(expected = "should document one path parameter per placeholder")]
+fn build_panics_on_undocumented_placeholder() {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new().api_route(
+                "/entities/{entity}",
+                get(async |Path((entity,)): Path<(String,)>| entity),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(expected = "should document one path parameter per placeholder")]
+fn build_panics_on_extra_path_parameter() {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new().api_route(
+                "/entities/{entity}",
+                get(async |Path(DraftPath { entity, draft }): Path<DraftPath>| {
+                    format!("{entity}/{draft}")
+                }),
+            )
+        },
+        |document| document,
+    );
+}
+
+/// Path parameters with a field the path always carries.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct OptionalPath {
+    entity: Option<String>,
+}
+
+/// Path parameters with a sequence for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct SequencePath {
+    entity: Vec<String>,
+}
+
+/// A value with fields of its own.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct Entity {
+    id: String,
+}
+
+/// Path parameters with a struct for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct StructPath {
+    entity: Entity,
+}
+
+/// A single value with a name of its own.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct EntityUuid(String);
+
+/// Path parameters with a newtype for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct NewtypePath {
+    entity: EntityUuid,
+}
+
+fn build_entity_route<T>(read: fn(T) -> String)
+where
+    T: serde::de::DeserializeOwned + schemars::JsonSchema + Send + 'static,
+{
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new().api_route(
+                "/entities/{entity}",
+                get(async move |Path(parameters): Path<T>| read(parameters)),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(expected = "should require its path parameter `entity`")]
+fn build_panics_on_optional_path_parameter() {
+    build_entity_route(|OptionalPath { entity }: OptionalPath| entity.unwrap_or_default());
+}
+
+#[test]
+#[should_panic(expected = "should read its path parameter `entity` as a single value")]
+fn build_panics_on_sequence_path_parameter() {
+    build_entity_route(|SequencePath { entity }: SequencePath| entity.concat());
+}
+
+#[test]
+#[should_panic(expected = "should read its path parameter `entity` as a single value")]
+fn build_panics_on_struct_path_parameter() {
+    build_entity_route(|StructPath { entity }: StructPath| entity.id);
+}
+
+#[test]
+fn build_accepts_newtype_path_parameter() {
+    build_entity_route(|NewtypePath { entity }: NewtypePath| entity.0);
 }

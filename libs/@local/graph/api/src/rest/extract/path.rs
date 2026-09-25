@@ -55,6 +55,12 @@ impl Expose<PathProblem> for PathRejection {
 }
 
 /// Path parameters whose rejection is a problem details response.
+///
+/// `T` is a struct with one field per placeholder of the route, named like the placeholder. Each
+/// field holds a single value and is not an `Option`. [`openapi::build`] panics for an operation
+/// whose path parameters break this.
+///
+/// [`openapi::build`]: crate::rest::openapi::build
 pub(in crate::rest) struct Path<T>(pub T);
 
 impl<T, S> FromRequestParts<S> for Path<T>
