@@ -8,10 +8,15 @@ export interface LiveTranscriptFragment {
 }
 type Window = {
   id?: string;
+  previewId?: string;
   startMs: number;
   endMs?: number;
   wrapUpMs?: number;
   closed: boolean;
+};
+type InputPreview = {
+  update: (id: string, text: string) => void;
+  discard: (id: string) => void;
 };
 
 /**
@@ -27,45 +32,89 @@ export class LiveSpeechCaptions {
   ) => void;
   readonly #windows: Window[] = [];
   readonly #fragments = new Map<string, LiveTranscriptFragment>();
+  readonly #inputFragments = new Map<string, LiveTranscriptFragment>();
+  readonly #seenInputIds = new Set<string>();
+  readonly #input?: InputPreview;
+  #inputFloor = 0;
+  #inputEnd = 0;
   #waitingForInput = true;
   #pendingId?: string;
   #closed = false;
 
   public constructor(
     caption: (id: string, kind: "reply" | "wrapUp", line: VoiceLine) => void,
+    input?: InputPreview,
   ) {
     this.#caption = caption;
+    this.#input = input;
   }
 
   public speechStarted(): void {
     if (this.#closed) return;
     const previous = this.#windows.at(-1);
-    if (previous) previous.closed = true;
+    if (previous) {
+      previous.closed = true;
+      if (previous.previewId) this.#input?.discard(previous.previewId);
+    }
+    this.#inputFloor = this.#inputEnd;
+    this.#inputFragments.clear();
     this.#waitingForInput = true;
     this.#pendingId = undefined;
     this.#publish();
   }
-  public input(fragment: { startMs: number; endMs: number }): void {
-    if (this.#closed || !this.#waitingForInput) return;
-    const previous = this.#windows.at(-1);
-    // Late input deltas never rewind an already established window.
-    if (previous && fragment.startMs <= previous.startMs) return;
-    if (previous) previous.endMs = fragment.startMs;
-    this.#windows.push({
-      startMs: fragment.startMs,
-      id: this.#pendingId,
-      closed: false,
-    });
-    this.#pendingId = undefined;
-    this.#waitingForInput = false;
+  public input(fragment: LiveTranscriptFragment): void {
+    if (
+      this.#closed ||
+      this.#seenInputIds.has(fragment.id) ||
+      fragment.startMs < this.#inputFloor
+    )
+      return;
+    this.#seenInputIds.add(fragment.id);
+    this.#inputEnd = Math.max(this.#inputEnd, fragment.endMs);
+    let window = this.#windows.at(-1);
+    if (this.#waitingForInput) {
+      if (window && fragment.startMs <= window.startMs) return;
+      if (window) window.endMs = fragment.startMs;
+      window = {
+        startMs: fragment.startMs,
+        id: this.#pendingId,
+        previewId: this.#pendingId
+          ? undefined
+          : `voice-preview:${crypto.randomUUID()}`,
+        closed: false,
+      };
+      this.#windows.push(window);
+      this.#pendingId = undefined;
+      this.#waitingForInput = false;
+      this.#publish();
+    }
+    if (!window || window.closed || window.id) return;
+    this.#inputFragments.set(fragment.id, fragment);
+    // Out-of-order chunks may move the active start, never an earlier turn.
+    window.startMs = Math.min(window.startMs, fragment.startMs);
+    const previous = this.#windows.at(-2);
+    if (previous) previous.endMs = window.startMs;
+    if (window.previewId) {
+      const text = [...this.#inputFragments.values()]
+        .sort((left, right) => left.startMs - right.startMs)
+        .map((candidate) => candidate.text)
+        .join("");
+      this.#input?.update(window.previewId, text);
+    }
     this.#publish();
   }
-  public begin(id: string): void {
+  /** Returns the display-only input to retire; only finalized input is admitted. */
+  public begin(id: string): string | undefined {
     if (this.#closed) return;
     const window = this.#windows.at(-1);
-    if (!this.#waitingForInput && window && !window.id) window.id = id;
-    else this.#pendingId = id;
+    let previewId: string | undefined;
+    if (!this.#waitingForInput && window && !window.id) {
+      window.id = id;
+      previewId = window.previewId;
+      window.previewId = undefined;
+    } else this.#pendingId = id;
     this.#publish();
+    return previewId;
   }
   public wrapUp(id: string, startMs: number): void {
     if (this.#closed) return;
@@ -91,7 +140,10 @@ export class LiveSpeechCaptions {
   }
   public close(): void {
     this.#closed = true;
-    for (const window of this.#windows) window.closed = true;
+    for (const window of this.#windows) {
+      window.closed = true;
+      if (window.previewId) this.#input?.discard(window.previewId);
+    }
     this.#publish();
   }
   #publish(): void {

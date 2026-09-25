@@ -30,6 +30,7 @@ export class VoiceMediationHistory {
   readonly #storage?: Pick<Storage, "getItem" | "setItem">;
   readonly #turns = new Map<string, Turn>();
   readonly #pending = new Set<string>();
+  readonly #streamingInputs = new Set<string>();
   readonly #listeners = new Set<() => void>();
   #projection = (messages: PetrinautAiMessage[]) => this.project(messages);
 
@@ -80,8 +81,15 @@ export class VoiceMediationHistory {
     for (const listener of this.#listeners) listener();
   }
 
+  /** Live's approximate transcript stays local and never starts brief preparation. */
+  public input(id: string, text: string): void {
+    this.#turns.set(id, { id, text, responseIds: [] });
+    this.#streamingInputs.add(id);
+    this.#pending.add(id);
+    this.#publish();
+  }
   public begin(input: { id: string; text: string }): void {
-    this.#turns.set(input.id, { ...input, responseIds: [] });
+    this.#turns.set(input.id, { ...input, responseIds: [], fields: {} });
     this.#pending.add(input.id);
     this.#publish();
   }
@@ -101,6 +109,7 @@ export class VoiceMediationHistory {
   }
   public failed(id: string): void {
     this.#pending.delete(id);
+    if (this.#streamingInputs.delete(id)) this.#turns.delete(id);
     this.#publish();
   }
   public settled(id: string, responseIds: string[]): void {
@@ -209,12 +218,21 @@ export class VoiceMediationHistory {
           ...message,
           metadata: { ...message.metadata, source: "voice" },
           parts: [
-            { type: "text", text: turn.text },
-            ...(turn.fields && turn.submissionId
+            {
+              type: "text",
+              text: turn.text,
+              ...(this.#streamingInputs.has(turn.id)
+                ? { state: "streaming" as const }
+                : {}),
+            },
+            ...(turn.fields && (this.#pending.has(turn.id) || turn.submissionId)
               ? [
                   {
                     type: "data-brief" as const,
-                    data: { fields: turn.fields, state: "done" },
+                    data: {
+                      fields: turn.fields,
+                      state: turn.submissionId ? "done" : "streaming",
+                    },
                   },
                 ]
               : []),

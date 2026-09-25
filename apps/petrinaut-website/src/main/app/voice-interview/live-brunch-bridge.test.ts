@@ -183,6 +183,51 @@ test("prepares a brief before admission and summarizes only a settled rendered a
   expect(offered).toHaveBeenCalledWith("one");
 });
 
+test("brief stays streaming through extraction and transport, and becomes done only at admission", async () => {
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const response = Promise.withResolvers<{
+    kind: "message";
+    messageId: string;
+    submissionId: string;
+  }>();
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  fixture.submit.mockImplementation(() => response.promise);
+  const turn = fixture.bridge.accept({
+    id: "one",
+    text: "Compare two to eight agents",
+  });
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields: {}, state: "streaming" },
+  });
+  expect(fixture.submit).not.toHaveBeenCalled();
+  const fields = { decide: "two to eight agents", runs: "Still open" };
+  brief.resolve(fields);
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields, state: "streaming" },
+  });
+  fixture.submit.mock.calls[0]?.[0].onAdmission("root");
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields, state: "done" },
+  });
+  fixture.bridge.speechStarted();
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields, state: "done" },
+  });
+  response.resolve({ kind: "message", messageId: "one", submissionId: "root" });
+  await turn;
+});
+
 test("speech cancels preparation and stale asynchronous wrap-ups without cancelling admitted Brunch work", async () => {
   let resolveBrief!: (fields: Record<string, string>) => void;
   let resolveSummary!: (text: string) => void;
@@ -202,8 +247,10 @@ test("speech cancels preparation and stale asynchronous wrap-ups without cancell
   const fixture = setup({ history, prepare, summarize, offered: vi.fn() });
   const first = fixture.bridge.accept({ id: "one", text: "First request" });
   fixture.bridge.speechStarted();
+  expect(history.project([])).toEqual([]);
   resolveBrief({ goal: "First request" });
   await first;
+  expect(history.project([])).toEqual([]);
   expect(fixture.submit).not.toHaveBeenCalled();
   prepare.mockResolvedValue({ goal: "Correction" });
   await fixture.bridge.accept({ id: "two", text: "Correction" });

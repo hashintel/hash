@@ -118,6 +118,155 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
 
+test("streams a display-only user bubble, then prepares and admits only corrected final text", async () => {
+  let resolveBrief!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveBrief = resolve;
+        }),
+    ),
+  );
+  const props = context();
+  props.submitVoiceInput = vi.fn<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(async () => ({
+    kind: "message",
+    messageId: "final",
+  }));
+  const history = new VoiceMediationHistory("standalone");
+  const { unmount } = render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={history}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "partial",
+      text: "Compare four",
+      startMs: 100,
+      endMs: 300,
+    });
+  });
+  expect(history.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare four", state: "streaming" },
+  ]);
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  expect(fetch).not.toHaveBeenCalled();
+  act(() => call[2]({ id: "final", text: "Compare seven agents" }));
+  expect(history.project([])).toHaveLength(1);
+  expect(history.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare seven agents" },
+    { type: "data-brief", data: { fields: {}, state: "streaming" } },
+  ]);
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/voice/mediation",
+    expect.objectContaining({
+      body: JSON.stringify({ kind: "brief", text: "Compare seven agents" }),
+    }),
+  );
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  await act(async () =>
+    resolveBrief(
+      new Response(
+        JSON.stringify({
+          fields: { decide: "seven agents", runs: "Still open" },
+        }),
+        { status: 200 },
+      ),
+    ),
+  );
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+  const submitted = vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0];
+  expect(submitted?.id).toBe("final");
+  expect(submitted?.text).toContain('"runs":"Still open"');
+  act(() =>
+    call[6]?.input({ id: "late", text: "wrong", startMs: 300, endMs: 400 }),
+  );
+  expect(
+    history
+      .project([])
+      .some((message) =>
+        message.parts.some((part) => "text" in part && part.text === "wrong"),
+      ),
+  ).toBe(false);
+  unmount();
+  act(() =>
+    call[6]?.input({ id: "closed", text: "ghost", startMs: 500, endMs: 600 }),
+  );
+  expect(
+    history
+      .project([])
+      .some((message) =>
+        message.parts.some((part) => "text" in part && part.text === "ghost"),
+      ),
+  ).toBe(false);
+});
+
+test("a delayed superseded final never replaces the newer Live input preview", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const history = new VoiceMediationHistory("standalone");
+  render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={history}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({ id: "old", text: "four", startMs: 100, endMs: 200 });
+    call[6]?.started();
+    call[6]?.input({
+      id: "current",
+      text: "seven",
+      startMs: 1000,
+      endMs: 1200,
+    });
+  });
+  const preview = history.project([])[0];
+  expect(preview?.parts).toEqual([
+    { type: "text", text: "seven", state: "streaming" },
+  ]);
+  act(() =>
+    call[2]({ id: "old-final", text: "Four agents", superseded: true }),
+  );
+  expect(
+    history.project([]).find((message) => message.id === preview?.id),
+  ).toEqual(preview);
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  act(() => call[6]?.closed());
+  expect(
+    history.project([]).some((message) => message.id === preview?.id),
+  ).toBe(false);
+  act(() =>
+    call[6]?.input({
+      id: "after-close",
+      text: "ghost",
+      startMs: 1300,
+      endMs: 1400,
+    }),
+  );
+  expect(
+    history
+      .project([])
+      .some((message) => message.id.startsWith("voice-preview:")),
+  ).toBe(false);
+});
+
 test("starts Live directly after the voice disclosure is acknowledged", () => {
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
