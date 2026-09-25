@@ -8,7 +8,7 @@
 
 import { brunchEnv } from "@hashintel/brunch-agent";
 
-export interface SqliteDatabaseConfig {
+interface SqliteDatabaseConfig {
   readonly kind: "sqlite";
 }
 

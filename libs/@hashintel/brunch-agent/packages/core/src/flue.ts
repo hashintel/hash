@@ -20,10 +20,6 @@ import {
 } from "./workpiece";
 import { createMutateWorkpieceTool } from "./workpiece-tools";
 
-/** Core's one capability skill: universal, formalism-independent elicitation judgment. */
-export const ELICITATION_SKILL_NAME = elicitationSkill.name;
-export { elicitationSkill };
-
 /**
  * Mount the contributions owned by Brunch core and return its system prompt.
  *

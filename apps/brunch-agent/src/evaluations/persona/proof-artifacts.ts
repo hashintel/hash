@@ -21,7 +21,7 @@ interface ProofEventBase {
   readonly messageId: string;
 }
 
-export type ProofTraceEvent =
+type ProofTraceEvent =
   | (ProofEventBase & {
       readonly type: "user";
       readonly text: string;
@@ -213,7 +213,7 @@ const traceEventMarkdown = (event: ProofTraceEvent): string => {
   }
 };
 
-export const formatProofTrace = (trace: ProofTrace): string =>
+const formatProofTrace = (trace: ProofTrace): string =>
   [
     "# Canonical proof trace",
     "",

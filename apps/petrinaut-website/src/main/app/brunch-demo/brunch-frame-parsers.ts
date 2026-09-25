@@ -70,17 +70,6 @@ export const parseDefinitionFrameData = (
 };
 
 /**
- * Convenience parser for EventSource `definition` events.
- *
- * Use this when a caller only needs the validated Brunch definition and does
- * not need to retain the decoded raw JSON payload for export.
- */
-export const parseDefinitionFrame = (
-  event: MessageEvent,
-): BrunchNetDefinition =>
-  parseDefinitionFrameData(parseJsonEventData(event, "definition"));
-
-/**
  * Validate a decoded Brunch `initial_state` payload.
  *
  * This runs after JSON decoding and before the provider stores the initial
@@ -104,15 +93,6 @@ export const parseMarkingFrameData = (data: unknown): ActualModeMarking => {
 };
 
 /**
- * Convenience parser for EventSource `initial_state` events.
- *
- * Use this when a caller only needs the validated marking and does not need to
- * retain the decoded raw JSON payload for export.
- */
-export const parseMarkingFrame = (event: MessageEvent): ActualModeMarking =>
-  parseMarkingFrameData(parseJsonEventData(event, "initial_state"));
-
-/**
  * Validate a decoded Brunch `transition_firing` payload.
  *
  * This runs after JSON decoding and before the provider appends the event to
@@ -134,16 +114,3 @@ export const parseTransitionFiringFrameData = (
 
   return result.data;
 };
-
-/**
- * Convenience parser for EventSource `transition_firing` events.
- *
- * Use this when a caller only needs the validated transition firing and does
- * not need to retain the decoded raw JSON payload for export.
- */
-export const parseTransitionFiringFrame = (
-  event: MessageEvent,
-): ActualModeTransitionFiring =>
-  parseTransitionFiringFrameData(
-    parseJsonEventData(event, "transition_firing"),
-  );

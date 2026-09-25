@@ -23,7 +23,7 @@ const bufferLimitError = () =>
 const cancelled = () =>
   new DOMException("Brunch response cancelled before admission.", "AbortError");
 
-export type ModelStreamIdlePhase =
+type ModelStreamIdlePhase =
   | "active_reasoning"
   | "active_text"
   | "output_transition"
@@ -32,7 +32,7 @@ export type ModelStreamIdlePhase =
   | "tool_arguments"
   | "tool_complete";
 
-export class ModelStreamIdleError extends Error {
+class ModelStreamIdleError extends Error {
   public readonly code = "model_stream_idle";
   public readonly idleMs: number;
   public readonly lastEventType: AssistantMessageEvent["type"] | undefined;

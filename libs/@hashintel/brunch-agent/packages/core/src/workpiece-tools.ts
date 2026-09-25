@@ -51,10 +51,6 @@ export const updateWorkpieceOutputSchema = v.union([
   updateWorkpieceAppliedOutputSchema,
 ]);
 
-export type MutateWorkpieceResult = v.InferOutput<
-  typeof updateWorkpieceOutputSchema
->;
-
 const outputFromWorkpieceRevision = (
   revision: WorkpieceRevision,
   mutation: v.InferOutput<typeof workpieceMutationSchema>,
@@ -242,7 +238,7 @@ export const workpieceReadOutputSchema = v.object({
   quality: v.string(),
 });
 
-export const workpieceReadSourceIdsSchema = v.pipe(
+const workpieceReadSourceIdsSchema = v.pipe(
   v.array(v.pipe(v.string(), v.minLength(1))),
   v.maxLength(8),
   v.description(
@@ -360,14 +356,7 @@ export const createWorkpieceReadTool = (services: WorkpieceEvidenceServices) =>
     },
   });
 
-export { settleWorkpieceEvidence } from "./update-workpiece";
 export {
   workpieceMarkdownByteCeiling,
   updateWorkpieceInputSchema,
 } from "./update-workpiece";
-export {
-  isWorkpieceRefusedOutput,
-  workpieceRefusalCodeSchema,
-  workpieceRefusalCodes,
-  type WorkpieceRefusalCode,
-} from "./workpiece";

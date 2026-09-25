@@ -27,7 +27,7 @@ export interface ClientToolProjectionOptions {
  * `errorText` is the server's text and may quote content, so hosts classify
  * it before it leaves the browser.
  */
-export interface FlueUiToolOutputError {
+interface FlueUiToolOutputError {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly toolCallId: string;
   /** Undefined when the failing call's input was never seen on this stream. */

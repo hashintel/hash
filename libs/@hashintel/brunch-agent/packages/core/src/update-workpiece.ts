@@ -15,7 +15,7 @@ import type {
 } from "./workpiece";
 
 /** Model-facing evidence declaration: the passage is cited by its literal text, never by offsets. */
-export const evidenceDeclarationSchema = v.strictObject({
+const evidenceDeclarationSchema = v.strictObject({
   text: v.pipe(
     v.string(),
     v.minLength(1),
@@ -38,7 +38,7 @@ export const evidenceDeclarationSchema = v.strictObject({
   kind: evidenceRelationSchema.entries.kind,
 });
 
-export type WorkpieceEvidenceDeclaration = v.InferOutput<
+type WorkpieceEvidenceDeclaration = v.InferOutput<
   typeof evidenceDeclarationSchema
 >;
 
@@ -77,7 +77,7 @@ const literalOccurrences = (content: string, text: string): number[] => {
  * Markdown. Every failing declaration is reported in one refusal so the model
  * corrects the whole settlement at once; nothing is resolved partially.
  */
-export const resolveEvidenceDeclarations = (
+const resolveEvidenceDeclarations = (
   markdown: string,
   declarations: readonly WorkpieceEvidenceDeclaration[],
 ): v.InferOutput<typeof evidenceRelationSchema>[] => {
@@ -184,7 +184,7 @@ export const settleWorkpieceEvidence = async (
 
 /** Ceiling in UTF-8 bytes, before hashing; whitespace and line endings are preserved. */
 export const workpieceMarkdownByteCeiling = 262_144;
-export const workpieceMaximumUnannouncedShrinkRatio = 0.25;
+const workpieceMaximumUnannouncedShrinkRatio = 0.25;
 
 export const validateWorkpieceRetraction = (
   retraction: WorkpieceRetraction | undefined,

@@ -16,7 +16,7 @@ import type { UIMessage } from "ai";
 
 type UiMessagePart = UIMessage["parts"][number];
 
-export interface UiHistoryMessageMetadata {
+interface UiHistoryMessageMetadata {
   readonly source?: ClientToolResult["source"];
   readonly voiceToolCallIds?: readonly string[];
   readonly stopped?: true;

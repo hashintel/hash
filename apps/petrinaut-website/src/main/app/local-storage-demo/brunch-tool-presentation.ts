@@ -22,7 +22,7 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.ping,
 ] as const;
 
-export type VisibleOrdinaryBrunchToolName =
+type VisibleOrdinaryBrunchToolName =
   (typeof visibleOrdinaryBrunchToolNames)[number];
 
 type LifecycleTitles = Readonly<
@@ -209,7 +209,3 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
 
 /** Compile-time witness that every visible ordinary name has lifecycle copy. */
 export const brunchToolLifecycleTitles = lifecycleTitles;
-
-export const resolvePresentationForTest = (
-  context: PetrinautAiToolPresentationContext,
-) => resolveBrunchToolPresentation(context);

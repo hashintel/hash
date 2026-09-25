@@ -25,9 +25,6 @@ import {
 } from "./tools/petrinaut-construction";
 import { readPetrinautDocs } from "./tools/read-petrinaut-doc";
 
-export const SDCPN_MODELLING_SKILL_NAME = sdcpnModellingSkill.name;
-export { sdcpnModellingSkill };
-
 export const useSdcpnPlugin = (
   options?: WorkpieceAuthorityOptions & {
     readonly executeCanonicalBrowserTool?: Parameters<

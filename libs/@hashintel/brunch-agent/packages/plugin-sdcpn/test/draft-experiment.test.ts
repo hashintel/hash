@@ -7,7 +7,6 @@ import { brunchTools } from "@hashintel/brunch-agent/constants";
 import {
   draftPetrinautExperimentInputSchema,
   draftPetrinautExperimentOutputSchema,
-  isDraftPetrinautExperimentToolName,
 } from "../src/draft-experiment";
 import { createDraftExperimentTool } from "../src/tools/draft-experiment";
 
@@ -76,9 +75,6 @@ describe("draft_petrinaut_experiment input schema", () => {
     expect(brunchTools.draftPetrinautExperiment).toBe(
       "draft_petrinaut_experiment",
     );
-    expect(
-      isDraftPetrinautExperimentToolName("draft_petrinaut_experiment"),
-    ).toBe(true);
   });
 
   test("accepts an integer range and a disclosed restriction without protocol identity", () => {

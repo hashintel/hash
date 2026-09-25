@@ -54,8 +54,6 @@ import {
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
-export { openPersonaConversation } from "./launch/browser.ts";
-
 const execute = promisify(execFile);
 const report = (text: string) => process.stdout.write(`${text}\n`);
 const appRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -67,7 +65,7 @@ const casesRoot = join(
   "libs/@hashintel/brunch-agent/evaluations/cases",
 );
 
-export const listPersonaCases = async () => {
+const listPersonaCases = async () => {
   const entries = await readdir(casesRoot, { withFileTypes: true });
   const cases = await Promise.all(
     entries
@@ -403,7 +401,7 @@ export const responds = async (
 };
 
 /** One local operator command; run directories contain data, never launch scripts. */
-export const launchPersona = async (
+const launchPersona = async (
   caseDirectory: string,
   objective?: string,
   route = "/",

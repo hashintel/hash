@@ -19,8 +19,7 @@ export const useVoicePreference = () => {
   return { enabled, ready, setEnabled };
 };
 
-export const realtimePreferenceStorageKey =
-  "petrinaut-website:realtime-enabled";
+const realtimePreferenceStorageKey = "petrinaut-website:realtime-enabled";
 
 const readRealtimePreference = (): boolean =>
   readBrowserStorage(localStorage, realtimePreferenceStorageKey) === "true";
