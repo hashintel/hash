@@ -254,10 +254,11 @@ notice.
 
 #### Speaker echo check — 10 minutes
 
-The transcription session requests English and far-field noise reduction.
-Neither removes Live's own voice from the microphone; only the browser's echo
-cancellation can. To see whether that voice gets through, open DevTools, enable
-the **Verbose** console level and filter by `[Petrinaut Live trace]`:
+The transcription session requests English, far-field noise reduction and
+per-token log probabilities. None of these removes Live's own voice from the
+microphone; only the browser's echo cancellation can. To see whether that voice
+gets through, open DevTools, enable the **Verbose** console level and filter by
+`[Petrinaut Live trace]`:
 
 - `capture.settings` shows the echo cancellation, noise suppression and
   automatic gain control the browser applied, at start and after a microphone
@@ -272,7 +273,10 @@ the **Verbose** console level and filter by `[Petrinaut Live trace]`:
   `startedDuringOutput`. `sinceOutputMs`, present when Live was audible in the
   second before, is the time from its last audible moment until the speech
   start was reported. Below about 100 means Live was still audible; from 500,
-  the speech doesn't count as started during output.
+  the speech doesn't count as started during output. The same line records the
+  transcription's confidence from its per-token log probabilities:
+  `logprobTokens`, and when any were returned, `meanLogprob` and `minLogprob`.
+  Nothing is dropped on confidence yet.
 - `input.ignored` with `reason: "short-during-output"` marks a short transcript
   that started during output and was not sent to Brunch.
 

@@ -134,6 +134,7 @@ export const createOpenAITranscriptionSessionHandler =
                   turn_detection: { type: "semantic_vad", eagerness: "medium" },
                 },
               },
+              include: ["item.input_audio_transcription.logprobs"],
             },
           }),
         },
@@ -205,6 +206,7 @@ export const createOpenAITranscriptionSessionHandler =
                 "session.audio.input.transcription.model",
                 "session.audio.input.turn_detection",
                 "session.audio.input.turn_detection.type",
+                "session.include",
                 "audio.input.noise_reduction",
                 "audio.input.noise_reduction.type",
                 "audio.input.transcription",
@@ -215,6 +217,7 @@ export const createOpenAITranscriptionSessionHandler =
                 "transcription.model",
                 "turn_detection",
                 "turn_detection.type",
+                "include",
                 "model",
               ].includes(error.param)
             )

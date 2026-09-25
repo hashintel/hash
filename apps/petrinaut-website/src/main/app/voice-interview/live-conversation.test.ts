@@ -1628,6 +1628,70 @@ test("does not count speech as started during output while the speaker is muted 
   await stopped;
 });
 
+test("records transcription confidence on input.finalized from numbers only", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  await connect(fixture);
+  const items: readonly (readonly [string, unknown])[] = [
+    [
+      "scored",
+      [
+        { token: "PRIVATE", logprob: -0.1, bytes: [80] },
+        { token: " hmm", logprob: -2.25, bytes: [32, 104] },
+        { token: ".", logprob: -0.0004, bytes: [46] },
+      ],
+    ],
+    ["unscored", undefined],
+    ["malformed", [{ token: "PRIVATE", logprob: "low" }, null]],
+  ];
+  let previous: string | null = null;
+  for (const [itemId] of items) {
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previous,
+    });
+    previous = itemId;
+  }
+  for (const [itemId, logprobs] of items) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "PRIVATE hmm.",
+      ...(logprobs === undefined ? {} : { logprobs }),
+    });
+  }
+
+  const finalized = traceRecords(debug.mock.calls, "input.finalized");
+  expect(finalized).toEqual([
+    expect.objectContaining({
+      itemId: "scored",
+      logprobTokens: 3,
+      meanLogprob: -0.783,
+      minLogprob: -2.25,
+    }),
+    expect.objectContaining({ itemId: "unscored", logprobTokens: 0 }),
+    expect.objectContaining({ itemId: "malformed", logprobTokens: 0 }),
+  ]);
+  expect(finalized[1]).not.toHaveProperty("meanLogprob");
+  expect(finalized[2]).not.toHaveProperty("minLogprob");
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
+  ).toEqual([
+    ["id", "text", "startedDuringOutput"],
+    ["id", "text", "startedDuringOutput"],
+    ["id", "text", "startedDuringOutput"],
+  ]);
+  const traced = JSON.stringify(debug.mock.calls);
+  expect(traced).not.toContain("PRIVATE");
+  expect(traced).not.toContain("hmm");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
 test("flushes an unfinished output summary, with its mute state, when voice ends", async () => {
   vi.useFakeTimers();
   vi.stubEnv("DEV", true);

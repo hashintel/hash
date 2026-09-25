@@ -3,6 +3,10 @@ import {
   createOutputEchoTrace,
   logCaptureSettings,
 } from "./live-conversation/echo-diagnostics";
+import {
+  summarizeLogprobs,
+  type TranscriptionConfidence,
+} from "./live-conversation/transcription-confidence";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { VoiceAudioSettings } from "./voice-audio-settings";
@@ -76,6 +80,7 @@ export const createLiveConversation = (
     string,
     Omit<FinalizedInput, "startedDuringOutput">
   >();
+  const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
@@ -358,7 +363,9 @@ export const createLiveConversation = (
           characters: input.text.length,
           startedDuringOutput,
           sinceOutputMs: echoTrace.sinceOutputMs(itemId),
+          ...confidence.get(itemId),
         });
+        confidence.delete(itemId);
         onFinalizedInput({ ...input, startedDuringOutput });
       }
       itemId = committedAfter(itemId);
@@ -460,6 +467,9 @@ export const createLiveConversation = (
       ) {
         fail("Transcription identity conflicted. No automatic retry was made.");
         return;
+      }
+      if (!existing) {
+        confidence.set(data.item_id, summarizeLogprobs(data.logprobs));
       }
       completed.set(data.item_id, input);
       flushFinalizedInputs();

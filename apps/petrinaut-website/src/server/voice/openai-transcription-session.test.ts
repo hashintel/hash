@@ -143,6 +143,7 @@ describe("OpenAI transcription WebRTC session", () => {
             turn_detection: { type: "semantic_vad", eagerness: "medium" },
           },
         },
+        include: ["item.input_audio_transcription.logprobs"],
       },
     });
     const [callUrl, callInit] = fetch.mock.calls[1]!;
@@ -241,6 +242,7 @@ describe("OpenAI transcription WebRTC session", () => {
     ["model_not_found", "session.audio.input.transcription.model"],
     ["unknown_parameter", "session.audio.input.noise_reduction"],
     ["unsupported_value", "session.audio.input.transcription.language"],
+    ["invalid_parameter", "session.include"],
     ["server-only-secret", "private-transcript"],
   ])(
     "logs only allowlisted credential rejection metadata: %s",
