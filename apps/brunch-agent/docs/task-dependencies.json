@@ -351,14 +351,11 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@apps/petrinaut-opt",
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
         "@hashintel/petrinaut",
-        "@hashintel/petrinaut-cli",
         "@hashintel/refractive",
         "@local/petrinaut-optimizer-client",
-        "@local/petrinaut-python",
         "error-stack",
         "error-stack-macros",
         "harpc-types",

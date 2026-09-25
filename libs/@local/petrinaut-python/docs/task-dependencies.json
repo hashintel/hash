@@ -1,29 +1,5 @@
 {
-  "package": "@local/petrinaut-python",
-  "dependencies": [
-    "@hashintel/petrinaut-cli"
-  ],
-  "tasks": {
-    "codegen": {
-      "dependsOn": [
-        "@hashintel/petrinaut-cli#codegen"
-      ]
-    },
-    "lint:ruff": {
-      "dependsOn": []
-    },
-    "lint:types": {
-      "dependsOn": [
-        "codegen"
-      ]
-    },
-    "test:unit": {
-      "dependsOn": [
-        "codegen"
-      ],
-      "env": [
-        "TEST_COVERAGE"
-      ]
-    }
-  }
+  "package": "petrinaut-python",
+  "dependencies": [],
+  "tasks": {}
 }

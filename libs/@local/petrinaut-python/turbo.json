@@ -7,7 +7,7 @@
         "../../@hashintel/petrinaut-cli/schemas/**",
         "scripts/generate-models.sh",
         "pyproject.toml",
-        "uv.lock"
+        "$TURBO_ROOT$/uv.lock"
       ],
       "outputs": ["src/petrinaut/models.py"],
       "passThroughEnv": ["UV_CACHE_DIR"]

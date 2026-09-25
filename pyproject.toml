@@ -1,0 +1,44 @@
+[project]
+name            = "hash"
+version         = "0.1.0"
+description     = "Add your description here"
+readme          = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies    = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1,<10",
+    "ruff>=0.16.8,<0.17",
+    "tach>=0.35,<0.36",
+    "ty>=0.0.82,<0.1",
+]
+
+[tool.uv]
+preview       = true
+add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+exclude-newer = "5 days" # mirrors npm release age
+package       = false
+
+[tool.uv.workspace]
+members = [
+    "apps/petrinaut-opt",
+    "libs/@local/petrinaut-optimizer-core",
+    "libs/@local/petrinaut-python",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q --import-mode=importlib"
+testpaths = [
+    "apps/petrinaut-opt/tests",
+    "libs/@local/petrinaut-optimizer-core/tests",
+    "libs/@local/petrinaut-python/tests",
+]
+pythonpath = [
+    "apps/petrinaut-opt",
+    "libs/@local/petrinaut-python",
+    "libs/@local/petrinaut-optimizer-core",
+]
+
+[tool.turbo]
+name = "hash-python"

@@ -21,7 +21,7 @@ node        = { version = "22.21.1", postinstall = "corepack enable" }
 
 # Helper to install tools
 cargo-binstall = "1.19.1"
-uv             = "0.11.18"
+uv             = "0.12.16"
 
 # Tools to compile the project
 # binaryen provides `wasm-opt` prebuilt from its GitHub release assets — compiling the

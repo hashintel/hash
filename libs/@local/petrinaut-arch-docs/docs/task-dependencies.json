@@ -1,13 +1,10 @@
 {
   "package": "@local/petrinaut-arch-docs",
   "dependencies": [
-    "@apps/petrinaut-opt",
     "@apps/petrinaut-website",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-cli",
     "@hashintel/petrinaut-core",
-    "@local/petrinaut-optimizer-core",
-    "@local/petrinaut-python",
     "@local/tsconfig"
   ],
   "tasks": {
@@ -34,6 +31,9 @@
         "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization"
       ]
     },
     "lint:arch-docs": {
@@ -50,6 +50,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization"
       ]
     },
     "lint:tsc": {
@@ -58,6 +61,9 @@
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization"
       ]
     },
     "test:unit": {
