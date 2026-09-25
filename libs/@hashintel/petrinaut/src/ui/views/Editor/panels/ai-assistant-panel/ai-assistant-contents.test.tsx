@@ -2085,7 +2085,9 @@ describe("AiAssistantContents", () => {
     ]) {
       const button = within(dock).getByRole("button", { name: label });
       const icon = button.querySelector("svg");
-      expect(icon?.getAttribute("viewBox")).toBe("0 0 20 20");
+      expect(icon?.getAttribute("viewBox")).toBe(
+        label === "Stop AI response" ? "0 0 24 24" : "0 0 20 20",
+      );
       expect(icon?.getAttribute("width")).toBe("16");
       expect(icon?.getAttribute("height")).toBe("16");
       expect(within(button).queryByText(label)).toBeNull();
@@ -2666,10 +2668,11 @@ describe("AiAssistantContents", () => {
     expect(onInputModeChange).toHaveBeenCalledWith("voice");
   });
 
-  test("renders spoken and typed messages without per-message voice markers", () => {
-    render(
+  test("marks only spoken user messages when switching from Voice to Chat", () => {
+    const contents = (inputMode: "voice" | "text") => (
       <AiAssistantContents
         input=""
+        inputMode={inputMode}
         messages={[
           {
             id: "voice-user",
@@ -2682,25 +2685,38 @@ describe("AiAssistantContents", () => {
             role: "user",
             parts: [{ type: "text", text: "Typed follow-up" }],
           },
+          {
+            id: "voice-assistant",
+            metadata: { source: "voice" },
+            role: "assistant",
+            parts: [{ type: "text", text: "Assistant reply" }],
+          },
         ]}
         onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
         status="ready"
-      />,
+      />
     );
-
+    const { rerender } = render(contents("voice"));
+    expect(screen.queryByRole("img", { name: "Sent using voice" })).toBeNull();
+    rerender(contents("text"));
     expect(
       within(
         screen.getByText("Spoken workflow").closest("[data-role]")!,
-      ).queryByTestId("voice-input-provenance"),
-    ).toBeNull();
+      ).getByRole("img", { name: "Sent using voice" }),
+    ).not.toBeNull();
+    expect(
+      screen.getAllByRole("img", { name: "Sent using voice" }),
+    ).toHaveLength(1);
     expect(
       within(
         screen.getByText("Typed follow-up").closest("[data-role]")!,
-      ).queryByTestId("voice-input-provenance"),
+      ).queryByRole("img", { name: "Sent using voice" }),
     ).toBeNull();
+    rerender(contents("voice"));
+    expect(screen.queryByRole("img", { name: "Sent using voice" })).toBeNull();
   });
 
   test("retains spoken tool answers without per-message voice markers", () => {
