@@ -1,0 +1,6 @@
+---
+source: libs/problematic/rust/tests/aide.rs
+expression: "openapi_document(\"document_headers_shared\", operation)"
+extension: json
+snapshot_kind: binary
+---

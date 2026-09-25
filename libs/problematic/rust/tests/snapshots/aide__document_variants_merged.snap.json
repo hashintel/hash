@@ -1,0 +1,270 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "document_variants_merged",
+    "version": ""
+  },
+  "paths": {
+    "/document_variants_merged": {
+      "get": {
+        "responses": {
+          "404": {
+            "description": "- Entity not found: The entity named in the request does not exist.\n- Web not found: The web named in the request does not exist.\n- Entity type not found: The entity type of the entity does not exist.\n  \n  Its URL names the missing type.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "title": "Entity not found",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 404
+                            },
+                            "title": {
+                              "const": "Entity not found"
+                            },
+                            "type": {
+                              "const": "/problems/entity/not-found"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "description": "The ID of the missing entity.",
+                              "type": "integer",
+                              "format": "uint64",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Web not found",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 404
+                            },
+                            "title": {
+                              "const": "Web not found"
+                            },
+                            "type": {
+                              "const": "/problems/web/not-found"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Entity type not found",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 404
+                            },
+                            "title": {
+                              "const": "Entity type not found"
+                            },
+                            "type": {
+                              "const": "/problems/entity-type/not-found"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "description": "The URL of the missing entity type.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "/problems/entity/not-found": {
+                    "summary": "Entity not found",
+                    "value": {
+                      "detail": "The entity `42` does not exist.",
+                      "id": 42,
+                      "status": 404,
+                      "title": "Entity not found",
+                      "type": "/problems/entity/not-found"
+                    }
+                  },
+                  "/problems/web/not-found": {
+                    "summary": "Web not found",
+                    "value": {
+                      "status": 404,
+                      "title": "Web not found",
+                      "type": "/problems/web/not-found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "- Store busy: The store cannot take the request right now.\n- Store maintenance: The store is down for maintenance.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the request.",
+                "style": "simple",
+                "schema": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "title": "Store busy",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 503
+                            },
+                            "title": {
+                              "const": "Store busy"
+                            },
+                            "type": {
+                              "const": "/problems/store/busy"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Store maintenance",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 503
+                            },
+                            "title": {
+                              "const": "Store maintenance"
+                            },
+                            "type": {
+                              "const": "/problems/store/maintenance"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "/problems/store/busy": {
+                    "summary": "Store busy",
+                    "value": {
+                      "detail": "The store is busy.",
+                      "status": 503,
+                      "title": "Store busy",
+                      "type": "/problems/store/busy"
+                    }
+                  },
+                  "/problems/store/maintenance": {
+                    "summary": "Store maintenance",
+                    "value": {
+                      "status": 503,
+                      "title": "Store maintenance",
+                      "type": "/problems/store/maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProblemDetails": {
+        "title": "Problem Details",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\n\nUse extension members for structured information.",
+            "type": "string"
+          },
+          "instance": {
+            "description": "A URI reference identifying this occurrence.\n\nIt may identify the occurrence without resolving to further information.",
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "status": {
+            "description": "The HTTP status code sent with this occurrence.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.\n\nKeep it the same across occurrences, except for localization.",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference identifying the problem type.\n\nUse `about:blank` when the HTTP status code fully describes the problem type. If `type` is\nomitted during deserialization, it defaults to `about:blank`.",
+            "type": "string",
+            "format": "uri-reference",
+            "default": "about:blank"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      }
+    }
+  }
+}

@@ -4,14 +4,17 @@ use alloc::borrow::Cow;
 
 use aide::{
     OperationOutput as _, generate,
-    openapi::{Operation, ReferenceOr, StatusCode as DocumentedStatus},
+    openapi::{
+        Components, Info, OpenApi, Operation, PathItem, Paths, ReferenceOr, SchemaObject,
+        StatusCode as DocumentedStatus,
+    },
     transform::TransformOperation,
 };
 use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
 use problematic::{
     Header, Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant,
 };
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -147,6 +150,48 @@ fn response(operation: &Operation, status: u16) -> Value {
     serde_json::to_value(response).expect("the response should serialize")
 }
 
+/// The OpenAPI document of `operation` at `/{name}`, with the schemas it references, so a
+/// documentation viewer such as Scalar can open its snapshot.
+fn openapi_document(name: &str, operation: Operation) -> Vec<u8> {
+    let schemas = generate::in_context(|context| context.schema.definitions().clone())
+        .into_iter()
+        .map(|(name, schema)| {
+            let json_schema = Schema::try_from(schema).expect("a definition should be a schema");
+            (
+                name,
+                SchemaObject {
+                    json_schema,
+                    external_docs: None,
+                    example: None,
+                },
+            )
+        })
+        .collect();
+    let document = OpenApi {
+        info: Info {
+            title: name.to_owned(),
+            ..Info::default()
+        },
+        paths: Some(Paths {
+            paths: [(
+                format!("/{name}"),
+                ReferenceOr::Item(PathItem {
+                    get: Some(operation),
+                    ..PathItem::default()
+                }),
+            )]
+            .into(),
+            ..Paths::default()
+        }),
+        components: Some(Components {
+            schemas,
+            ..Components::default()
+        }),
+        ..OpenApi::default()
+    };
+    serde_json::to_vec_pretty(&document).expect("the document should serialize")
+}
+
 #[test]
 fn document_variant() {
     let mut operation = Operation::default();
@@ -194,6 +239,7 @@ fn document_variant() {
         response["headers"]["Retry-After"]["required"], true,
         "a header the only variant lists should be required"
     );
+    insta::assert_binary_snapshot!(".json", openapi_document("document_variant", operation));
 }
 
 #[test]
@@ -270,6 +316,10 @@ fn document_variants_merged() {
         "a variant without members should be exemplified by its bare problem type, and one with \
          members but no example not at all"
     );
+    insta::assert_binary_snapshot!(
+        ".json",
+        openapi_document("document_variants_merged", operation)
+    );
 }
 
 /// The store no longer takes requests.
@@ -321,6 +371,10 @@ fn document_headers_shared() {
     assert!(
         headers["Retry-After"]["schema"].get("anyOf").is_none(),
         "a header every variant gives the same schema should keep that schema"
+    );
+    insta::assert_binary_snapshot!(
+        ".json",
+        openapi_document("document_headers_shared", operation)
     );
 }
 
@@ -378,6 +432,10 @@ fn document_header_schemas() {
     assert_eq!(
         retry_after["description"], "Seconds before retrying the request.",
         "the header should be described like the first variant that lists it"
+    );
+    insta::assert_binary_snapshot!(
+        ".json",
+        openapi_document("document_header_schemas", operation)
     );
 }
 
@@ -475,6 +533,10 @@ fn document_same_problem_type() {
     assert_eq!(
         example["value"]["detail"], "The web was deleted.",
         "the example of the second variant of a type URI should stay its own after reading back"
+    );
+    insta::assert_binary_snapshot!(
+        ".json",
+        openapi_document("document_same_problem_type", operation)
     );
 }
 
@@ -580,6 +642,10 @@ fn document_variants_repeated() {
         locked["description"],
         "- Web locked\n- Web sealed: The web named in the request is sealed by its owner.",
         "the description should list the variant without a description by its title alone"
+    );
+    insta::assert_binary_snapshot!(
+        ".json",
+        openapi_document("document_variants_repeated", operation)
     );
 }
 
@@ -799,6 +865,10 @@ fn document_members_open() {
     assert!(
         !rejected.contains("additionalProperties"),
         "the members should not close the problem details to its standard members"
+    );
+    insta::assert_binary_snapshot!(
+        ".json",
+        openapi_document("document_members_open", operation)
     );
 }
 

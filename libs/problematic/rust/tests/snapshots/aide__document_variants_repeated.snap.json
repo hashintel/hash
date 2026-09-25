@@ -1,0 +1,202 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "document_variants_repeated",
+    "version": ""
+  },
+  "paths": {
+    "/document_variants_repeated": {
+      "get": {
+        "responses": {
+          "404": {
+            "description": "The web named in the request was deleted, and its name stays reserved until the retention\nperiod ends.\n\nIts entities are kept for the retention period.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "title": "Web not found",
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 404
+                        },
+                        "title": {
+                          "const": "Web not found"
+                        },
+                        "type": {
+                          "const": "/problems/web/not-found"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ]
+                },
+                "example": {
+                  "detail": "The web was deleted.",
+                  "status": 404,
+                  "title": "Web not found",
+                  "type": "/problems/web/not-found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Web frozen",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "title": "Web frozen",
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 409
+                        },
+                        "title": {
+                          "const": "Web frozen"
+                        },
+                        "type": {
+                          "const": "/problems/web/frozen"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ]
+                },
+                "example": {
+                  "status": 409,
+                  "title": "Web frozen",
+                  "type": "/problems/web/frozen"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "- Web locked\n- Web sealed: The web named in the request is sealed by its owner.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "title": "Web locked",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 423
+                            },
+                            "title": {
+                              "const": "Web locked"
+                            },
+                            "type": {
+                              "const": "/problems/web/locked"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Web sealed",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 423
+                            },
+                            "title": {
+                              "const": "Web sealed"
+                            },
+                            "type": {
+                              "const": "/problems/web/sealed"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "/problems/web/locked": {
+                    "summary": "Web locked",
+                    "value": {
+                      "status": 423,
+                      "title": "Web locked",
+                      "type": "/problems/web/locked"
+                    }
+                  },
+                  "/problems/web/sealed": {
+                    "summary": "Web sealed",
+                    "value": {
+                      "status": 423,
+                      "title": "Web sealed",
+                      "type": "/problems/web/sealed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProblemDetails": {
+        "title": "Problem Details",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\n\nUse extension members for structured information.",
+            "type": "string"
+          },
+          "instance": {
+            "description": "A URI reference identifying this occurrence.\n\nIt may identify the occurrence without resolving to further information.",
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "status": {
+            "description": "The HTTP status code sent with this occurrence.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.\n\nKeep it the same across occurrences, except for localization.",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference identifying the problem type.\n\nUse `about:blank` when the HTTP status code fully describes the problem type. If `type` is\nomitted during deserialization, it defaults to `about:blank`.",
+            "type": "string",
+            "format": "uri-reference",
+            "default": "about:blank"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      }
+    }
+  }
+}
