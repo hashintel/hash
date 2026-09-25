@@ -810,9 +810,9 @@ export const ExtendedAudioSettings: Story = {
     await expect(positions()).toEqual(beforeOpen);
     await expect(
       dockButtons
-        .slice(0, 3)
+        .slice(0, 2)
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Hide conversation", "Audio options", "Show 1 Voice issue"]);
+    ).toEqual(["Hide conversation", "Show 1 Voice issue"]);
     speed.focus();
     await userEvent.keyboard("{ArrowLeft}");
     await expect(speed).toHaveAttribute("aria-valuenow", "1");
@@ -1461,7 +1461,7 @@ export const NarrowVoiceDockWithAudioOptions: Story = {
     const triggerBounds = audioOptions.getBoundingClientRect();
     const popoverBounds = popover.getBoundingClientRect();
     await expect(
-      Math.abs(popoverBounds.left - triggerBounds.left),
+      Math.abs(popoverBounds.right - triggerBounds.right),
     ).toBeLessThan(2);
     await expect(
       triggerBounds.top - popoverBounds.bottom,
@@ -1778,6 +1778,46 @@ export const ChatVoiceOrigin: Story = {
   },
 };
 
+export const ChatAnswerActions: Story = {
+  render: () => (
+    <Frame
+      messages={[
+        supportDeskUser,
+        conversationTurn,
+        {
+          id: "next-question",
+          role: "user",
+          parts: [{ type: "text", text: "What is still open?" }],
+        },
+        {
+          id: "next-answer",
+          role: "assistant",
+          parts: [{ type: "text", text: "We still need the arrival rate." }],
+        },
+        {
+          id: "unsent-answer",
+          role: "user",
+          parts: [{ type: "text", text: "Keep the draft." }],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const copies = canvas.getAllByRole("button", { name: "Copy answer" });
+    const older = copies[0]!;
+    const latest = copies[1]!;
+    const olderActions = older.closest("[data-answer-actions]")!;
+    const latestActions = latest.closest("[data-answer-actions]")!;
+    await expect(getComputedStyle(olderActions).opacity).toBe("0");
+    await expect(getComputedStyle(latestActions).opacity).toBe("1");
+    older.focus();
+    await expect(getComputedStyle(olderActions).opacity).toBe("1");
+    older.blur();
+    await expect(getComputedStyle(olderActions).opacity).toBe("0");
+  },
+};
+
 export const VoicePreparing: Story = {
   render: () => (
     <Frame
@@ -1786,23 +1826,56 @@ export const VoicePreparing: Story = {
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
       messages={[
-        supportDeskUser,
         {
-          id: "preparing",
-          role: "assistant",
+          ...supportDeskUser,
           parts: [
+            ...supportDeskUser.parts,
             {
               type: "data-brief",
               data: {
                 state: "streaming",
-                fields: { goal: "Compare staffing" },
+                fields: {},
               },
             },
+          ],
+        },
+        {
+          id: "preparing-reply",
+          role: "assistant",
+          parts: [
             {
               type: "data-voiceAgentReply",
               data: {
                 state: "streaming",
-                text: "I’ll prepare that comparison for Brunch.",
+                text: "I’ll prepare that comparison.",
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+};
+
+export const VoiceSending: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking" })}
+      messages={[
+        {
+          ...supportDeskUser,
+          parts: [
+            ...supportDeskUser.parts,
+            {
+              type: "data-brief",
+              data: {
+                state: "streaming",
+                fields: {
+                  decide: "Compare 2–8 agents",
+                  measure: "Queue waiting time",
+                },
               },
             },
           ],

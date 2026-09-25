@@ -46,7 +46,11 @@ export const VoiceInputProvenance = ({ brief }: { brief: VoiceBrief }) => (
       >
         <Icon name="sparkles" size="xs" />
       </span>
-      Sent to Brunch
+      {brief.state === "streaming"
+        ? Object.keys(brief.fields).length === 0
+          ? "Preparing for Brunch"
+          : "Sending to Brunch"
+        : "Sent to Brunch"}
       <Icon name="chevronRight" size="xs" data-chevron />
     </summary>
     <div
@@ -55,7 +59,9 @@ export const VoiceInputProvenance = ({ brief }: { brief: VoiceBrief }) => (
       })}
     >
       <p className={css({ margin: "[4px 0 6px]", fontSize: "[11px]" })}>
-        Prepared from what you said
+        {brief.state === "streaming" && Object.keys(brief.fields).length === 0
+          ? "Preparing from what you said"
+          : "Prepared from what you said"}
       </p>
       <dl
         className={css({

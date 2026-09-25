@@ -100,6 +100,15 @@ export const AudioSettings = ({
   const infoRef = useRef<HTMLButtonElement>(null);
   const id = useId();
   const devices = settings.devices;
+  const microphoneName = devices.microphoneId
+    ? (devices.microphones.find(
+        (device) => device.value === devices.microphoneId,
+      )?.text ?? "Unavailable microphone")
+    : defaultDevice.text;
+  const speakerName = devices.speakerId
+    ? (devices.speakers.find((device) => device.value === devices.speakerId)
+        ?.text ?? "Unavailable speaker")
+    : defaultDevice.text;
   const deviceDisabled = disabled || devices.busy;
   const stopPreviewOnUnmount = useEffectEvent(() => {
     actions.stopVoicePreview?.();
@@ -238,8 +247,9 @@ export const AudioSettings = ({
       </div>
       <div className={sectionStyle}>
         <Button
-          className={headingStyle}
+          className={`${headingStyle} ${css({ height: "auto", paddingY: "1" })}`}
           aria-label="Devices"
+          aria-describedby={`${id}-devices-summary`}
           aria-expanded={devicesExpanded}
           aria-controls={`${id}-devices`}
           suffix={
@@ -252,7 +262,22 @@ export const AudioSettings = ({
           size="sm"
           variant="ghost"
         >
-          Devices
+          <span
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              minWidth: "[0]",
+              alignItems: "flex-start",
+            })}
+          >
+            <span>Devices</span>
+            <span
+              id={`${id}-devices-summary`}
+              className={`${helpStyle} ${css({ maxWidth: "full", whiteSpace: "normal", overflowWrap: "anywhere" })}`}
+            >
+              {microphoneName} · {speakerName}
+            </span>
+          </span>
         </Button>
         {devicesExpanded && (
           <div

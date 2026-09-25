@@ -27,6 +27,7 @@ import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interacti
 import { AiAssistantContents } from "./ai-assistant-contents";
 import { VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { AudioSettings } from "./ai-assistant-contents/voice-dock/audio-popover/settings";
+import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
 import type { PetrinautAiMessage } from "./types";
 
@@ -286,7 +287,8 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
   expect(rightActions.className).toContain("flex-sh_0");
   expect(center.className).toContain("min-w_[0]");
   expect(status.className).toContain("min-w_[0]");
-  expect(indicator.className).toContain("flex-sh_0");
+  expect(indicator.className).toContain("flex-sh_1");
+  expect(indicator.className).toContain("min-w_[32px]");
   expect(status.className).toContain("ov_hidden");
   expect(status.className).toContain("tov_ellipsis");
   expect(within(indicator).getByTestId("waveform")).toBeTruthy();
@@ -772,6 +774,95 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(stopVoicePreview).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
   expect(refreshDevices).toHaveBeenCalledTimes(2);
+});
+
+test("summarizes selected audio devices without exposing device IDs", () => {
+  const actions = {
+    refreshDevices: noop,
+    requestSpeaker: noop,
+    setMicrophoneDevice: noop,
+    setSpeakerDevice: noop,
+    setVoice: noop,
+  };
+  const settings = {
+    activeVoice: "alloy",
+    voice: "alloy",
+    voices: [{ value: "alloy", text: "Alloy" }],
+    devices: {
+      microphones: [{ value: "mic-1", text: "Desk microphone" }],
+      speakers: [{ value: "speaker-1", text: "Headphones" }],
+      microphoneId: "mic-1",
+      speakerId: "speaker-1",
+      canSelectSpeaker: true,
+      canRequestSpeaker: false,
+      busy: false,
+      message: null,
+    },
+  };
+  const { rerender } = render(
+    <AudioSettings
+      actions={actions}
+      disabled={false}
+      previewDisabledReason={null}
+      settings={settings}
+    />,
+  );
+  expect(screen.getByRole("button", { name: "Devices" }).textContent).toContain(
+    "Desk microphone · Headphones",
+  );
+  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
+  rerender(
+    <AudioSettings
+      actions={actions}
+      disabled={false}
+      previewDisabledReason={null}
+      settings={{
+        ...settings,
+        devices: {
+          ...settings.devices,
+          microphoneId: "",
+          speakerId: "disconnected-private-id",
+        },
+      }}
+    />,
+  );
+  expect(screen.getByRole("button", { name: "Devices" }).textContent).toContain(
+    "System default · Unavailable speaker",
+  );
+  expect(screen.queryByText(/disconnected-private-id/u)).toBeNull();
+});
+
+test.each<{
+  state: "streaming" | "done";
+  fields: Record<string, string>;
+  label: string;
+  note: string;
+}>([
+  {
+    state: "streaming" as const,
+    fields: {},
+    label: "Preparing for Brunch",
+    note: "Preparing from what you said",
+  },
+  {
+    state: "streaming" as const,
+    fields: { goal: "Compare staffing" },
+    label: "Sending to Brunch",
+    note: "Prepared from what you said",
+  },
+  {
+    state: "done" as const,
+    fields: { goal: "Compare staffing" },
+    label: "Sent to Brunch",
+    note: "Prepared from what you said",
+  },
+])("labels a brief truthfully: $label", ({ state, fields, label, note }) => {
+  render(<VoiceInputProvenance brief={{ state, fields }} />);
+  const disclosure = screen.getByText(label).closest("details");
+  expect(disclosure?.getAttribute("aria-busy")).toBe(
+    String(state === "streaming"),
+  );
+  expect(screen.getByText(note)).not.toBeNull();
 });
 
 test("stops a voice preview only when audio settings unmount", () => {
@@ -2078,6 +2169,18 @@ describe("AiAssistantContents", () => {
 
     const dock = screen.getByRole("region", { name: "Voice session" });
     expect(within(dock).getByText("Speaking")).not.toBeNull();
+    expect(
+      Array.from(
+        dock.querySelectorAll('[data-part="right-actions"] button'),
+        (button) => button.getAttribute("aria-label"),
+      ),
+    ).toEqual([
+      "Your turn",
+      "Stop AI response",
+      "Audio options",
+      "Mute microphone",
+      "End voice mode",
+    ]);
     for (const label of [
       "Mute microphone",
       "Stop AI response",
@@ -2086,7 +2189,7 @@ describe("AiAssistantContents", () => {
       const button = within(dock).getByRole("button", { name: label });
       const icon = button.querySelector("svg");
       expect(icon?.getAttribute("viewBox")).toBe(
-        label === "Stop AI response" ? "0 0 24 24" : "0 0 20 20",
+        label === "Mute microphone" ? "0 0 20 20" : "0 0 24 24",
       );
       expect(icon?.getAttribute("width")).toBe("16");
       expect(icon?.getAttribute("height")).toBe("16");
@@ -2393,7 +2496,7 @@ describe("AiAssistantContents", () => {
           .getAllByRole("button")
           .slice(0, 3)
           .map((button) => button.getAttribute("aria-label")),
-      ).toEqual(["Show conversation", "Audio options", "Show 1 Voice issue"]);
+      ).toEqual(["Show conversation", "Show 1 Voice issue", "Audio options"]);
       act(() => store.setActions({ end, pause: noop }));
       expect(
         within(dock)

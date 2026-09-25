@@ -22,13 +22,14 @@ export const StopIcon = () => (
   </svg>
 );
 
-/** Uses the same line weight and canvas as the other Voice action icons. */
+/** Hang-up handset from the Voice dock design, distinct from closing the panel. */
 export const EndIcon = () => (
-  <svg {...sharedIconProps}>
+  <svg {...sharedIconProps} viewBox="0 0 24 24">
     <path
-      d="M5 5l10 10M15 5L5 15"
+      d="M3.2 14.2a12.6 12.6 0 0 1 17.6 0l-1.7 2.2a1 1 0 0 1-1.3.3l-2.4-1.3a1 1 0 0 1-.5-.9v-1.9a10.3 10.3 0 0 0-5.8 0v1.9a1 1 0 0 1-.5.9l-2.4 1.3a1 1 0 0 1-1.3-.3z"
       stroke="currentColor"
       strokeLinecap="round"
+      strokeLinejoin="round"
       strokeWidth="1.6"
     />
   </svg>
