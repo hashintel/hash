@@ -157,7 +157,7 @@ Call ping when you need to confirm the server tool path.
 ${
   initialData?.mode === brunchModes.integrated
     ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown."
-    : "Submit browser tool calls separately from server tools, and wait for their correlated client results before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order. A client-tool-result signal carries canonical results as JSON [{ toolCallId, toolName, output, metadata? }], optionally inside a host envelope with transient diagnostics context. Treat output as the browser's canonical result for that call, keep host context distinct from user testimony and semantic evidence, and continue helping the user once; never reapply a completed mutation."
+    : "This conversation has no browser tools; use the available server tools and modelling skill."
 }
 `.replace(/^\s+|\s+$/gu, ""),
   );

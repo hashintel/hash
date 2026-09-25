@@ -2,14 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
-import { type FlueConversationSnapshot } from "@flue/sdk";
-
 import { brunchTools, runbookIrFence } from "@hashintel/brunch-agent";
 
-import {
-  isAwaitingClient,
-  type DynamicToolPart,
-} from "../../conversation/client-tools.ts";
+import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
+
+type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
 import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
@@ -182,7 +179,11 @@ export const deriveProofTrace = (
         toolCallId: part.toolCallId,
         name: part.toolName,
         executor:
-          part.state === "output-available" && isAwaitingClient(part.output)
+          part.state === "output-available" &&
+          typeof part.output === "object" &&
+          part.output !== null &&
+          "brunchBrowserResult" in part.output &&
+          part.output.brunchBrowserResult === true
             ? "client"
             : "server",
         outcome: toolOutcome(part),

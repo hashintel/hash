@@ -13,11 +13,7 @@ decides how to continue after each result.
 
 ## Brunch integration
 
-Brunch sends client tool calls through its AI SDK transport and resumes the
-conversation with a `client-tool-result` signal correlated by `toolCallId`.
-This supports browser experiments: Petrinaut owns the document and compute;
-Brunch owns the conversation. See the [route contract](https://github.com/hashintel/hash/blob/main/apps/brunch-agent/README.md#panel-and-voice-conversation-route)
-and [package topology](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/brunch-agent/docs/reference/architecture/topology.md).
+In integrated mode, Brunch awaits browser tool results in band over HTTP and returns the canonical output in the server tool result, correlated by `toolCallId`. Petrinaut owns the document and compute; Brunch owns the conversation. See the [route contract](https://github.com/hashintel/hash/blob/main/apps/brunch-agent/README.md#panel-and-voice-conversation-route) and [package topology](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/brunch-agent/docs/reference/architecture/topology.md).
 
 Brunch selects tools by integration mode. Its configured panel includes
 `readPetrinautDoc`, `getLatestNetDefinition`, and `mutate_petrinet`; other modes
@@ -32,9 +28,7 @@ experiments independently.
 | Integrating application                                | Select tools, carry schemas, preserve call identity, persist history, and continue the agent. |
 
 To adopt experiments, register `createExperiment` in Brunch's tool catalog and
-client-result admission boundary. Supply the canonical input schema to the
-model and return the browser result with the original call ID. Test continuation
-through the real Flue transport. Progress remains local while the call waits.
+in-band browser tool executor. Supply the canonical input schema to the model and return the browser result with the original call ID. Test continuation through the real Flue transport. Progress remains local while the call waits.
 
 :::danger[Important: tool schema conversion]
 Several legacy headless construction tools use an open Valibot object and

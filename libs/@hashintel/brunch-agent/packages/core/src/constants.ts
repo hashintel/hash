@@ -30,7 +30,6 @@ export const brunchTools = {
   mutateWorkpiece: "mutate_workpiece",
   ping: "ping",
   queryWorkpiece: "query_workpiece",
-  readPetrinautDocs: "read_petrinaut_docs",
   readSkillResource: "read_skill_resource",
   readWorkpiece: "read_workpiece",
 } as const;
@@ -39,12 +38,6 @@ export const brunchTools = {
 export const brunchModes = {
   /** Product baseline: Brunch composition with Petrinaut's canonical catalogue. */
   integrated: "integrated-brunch-canonical",
-} as const;
-
-/** Flue signal names. */
-export const brunchSignals = {
-  /** Carries completed client-tool results back into the conversation. */
-  clientToolResult: "client-tool-result",
 } as const;
 
 /** Request headers that carry conversation identity. */
@@ -109,9 +102,6 @@ export const brunchEnv = {
    */
   viteChatEndpoint: "VITE_BRUNCH_CHAT_ENDPOINT",
 } as const;
-
-/** A Flue tool result that delegates execution to the connected client. */
-export const awaitingClient = "client" as const;
 
 /** Info string of the fenced Runbook IR block in a workpiece. */
 export const runbookIrFence = "runbook-ir";

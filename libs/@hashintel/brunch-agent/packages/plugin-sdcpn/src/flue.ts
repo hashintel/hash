@@ -23,7 +23,6 @@ import {
   type BrowserToolExecutor,
   type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
-import { readPetrinautDocs } from "./tools/read-petrinaut-doc";
 
 export const useSdcpnPlugin = (
   options?: WorkpieceAuthorityOptions & {
@@ -57,10 +56,8 @@ export const useSdcpnPlugin = (
     for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
       useTool(tool);
   } else {
-    // A conversation with no initial mode historically offers the skill and docs,
-    // but no construction tools. Keep that route behavior.
+    // A conversation with no initial mode offers the instruction and skill only.
     useInstruction(sdcpnAppend.trim());
     useSkill(sdcpnModellingSkill);
-    useTool(readPetrinautDocs);
   }
 };

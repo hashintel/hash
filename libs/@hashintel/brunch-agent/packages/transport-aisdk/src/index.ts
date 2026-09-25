@@ -1,14 +1,8 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
-import { getToolName, isToolUIPart } from "ai";
 
-import {
-  CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
-  clientToolResultSignal,
-  type ClientToolResult,
-} from "./client-tool-result";
+import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
 import { petrinautContextualUserMessageBody } from "./contextual-user-message";
 import { serializeErrorText } from "./error-text";
-import { clientToolResultIdempotencyKey } from "./identity";
 import {
   readLiveToolStream,
   type LiveToolStreamOptions,
@@ -29,7 +23,7 @@ import type {
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 export { clientToolHistoryFrom } from "./client-tool-history";
-export type { ClientToolResult } from "./client-tool-result";
+export type { ClientToolResult } from "./browser-tool-result";
 export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
@@ -67,22 +61,11 @@ export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
   /** Opaque host-owned initialization, sent on user submissions only. */
   readonly initialData?: AgentPromptOptions["initialData"];
-  readonly clientToolResultMetadata?: (
-    result: ClientToolResult,
-  ) => ClientToolResult["metadata"];
-  /**
-   * Promote verified model-required fields out of a host metadata sidecar.
-   * The callback receives the sidecar produced for this exact result.
-   */
-  readonly clientToolResultOutput?: (
-    result: ClientToolResult,
-    metadata: ClientToolResult["metadata"],
-  ) => ClientToolResult["output"];
   /** Best-effort pre-admission presentation; canonical Flue history remains authoritative. */
   readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
-    readonly kind: "client-tool-result" | "user";
+    readonly kind: "user";
     readonly messageId: string;
   }) => void;
   readonly onResponseMessage?: (
@@ -139,74 +122,6 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-
-const completedClientToolResults = (
-  messages: readonly UIMessage[],
-  assistantMessageId: string,
-  clientToolNames: ReadonlySet<string>,
-): readonly ClientToolResult[] => {
-  const assistantMessage = messages.find(
-    (message) =>
-      message.id === assistantMessageId && message.role === "assistant",
-  );
-  if (assistantMessage === undefined) {
-    return [];
-  }
-  const metadata = asRecord(assistantMessage.metadata);
-  const voiceToolCallIds = new Set(
-    Array.isArray(metadata?.voiceToolCallIds)
-      ? metadata.voiceToolCallIds.filter(
-          (toolCallId): toolCallId is string => typeof toolCallId === "string",
-        )
-      : [],
-  );
-  if (typeof metadata?.toolCallId === "string") {
-    voiceToolCallIds.add(metadata.toolCallId);
-  }
-  const steps = assistantMessage.parts.reduce<
-    (typeof assistantMessage.parts)[]
-  >(
-    (collected, part) => {
-      if (part.type === "step-start") {
-        collected.push([]);
-      } else {
-        collected.at(-1)?.push(part);
-      }
-      return collected;
-    },
-    [[]],
-  );
-  const latestClientToolStep = steps.findLast((step) =>
-    step.some(
-      (part) =>
-        isToolUIPart(part) &&
-        clientToolNames.has(getToolName(part)) &&
-        part.providerExecuted !== true,
-    ),
-  );
-  return (latestClientToolStep ?? []).flatMap((part): ClientToolResult[] => {
-    if (!isToolUIPart(part)) return [];
-    const toolName = getToolName(part);
-    if (
-      !clientToolNames.has(toolName) ||
-      part.providerExecuted === true ||
-      part.state !== "output-available" ||
-      part.toolCallId.length === 0
-    ) {
-      return [];
-    }
-    return [
-      {
-        toolCallId: part.toolCallId,
-        toolName,
-        output: part.output,
-        ...(voiceToolCallIds.has(part.toolCallId)
-          ? { source: "voice" as const }
-          : {}),
-      },
-    ];
-  });
-};
 
 const diagnosticsContextMessageId = "petrinaut-diagnostics-context";
 
@@ -333,7 +248,6 @@ const streamFailureChunk = (
 const streamSubmission = (
   options: FlueChatTransportOptions,
   admission: AgentSendResult,
-  continuationMessageId: string | undefined,
   abortSignal: AbortSignal | undefined,
 ): ReadableStream<UIMessageChunk> => {
   const localAbort = new AbortController();
@@ -365,15 +279,11 @@ const streamSubmission = (
       };
       const write = (chunk: UIMessageChunk): void => {
         if (closed) return;
-        const projected =
-          chunk.type === "start" && continuationMessageId !== undefined
-            ? { ...chunk, messageId: continuationMessageId }
-            : chunk;
-        controller.enqueue(projected);
+        controller.enqueue(chunk);
         if (
-          projected.type === "finish" ||
-          projected.type === "error" ||
-          projected.type === "abort"
+          chunk.type === "finish" ||
+          chunk.type === "error" ||
+          chunk.type === "abort"
         ) {
           terminalEmitted = true;
         }
@@ -381,13 +291,11 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
-        asyncClientToolNames: options.asyncClientToolNames,
         dynamicClientToolNames: options.dynamicClientToolNames,
-        validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
         onToolOutputError: options.onToolOutputError,
         provisionalMessageId: (turnId) =>
-          continuationMessageId ?? `live:${admission.submissionId}:${turnId}`,
+          `live:${admission.submissionId}:${turnId}`,
         write,
       });
       disconnectLive = projector.disconnectLive;
@@ -417,11 +325,8 @@ const streamSubmission = (
               event.type === "message-started" &&
               event.submissionId === admission.submissionId
             ) {
-              // Report the id the consumer sees: a client-tool continuation is
-              // projected onto the assistant message it resumes.
               responseMessage = {
                 effectiveId:
-                  continuationMessageId ??
                   projector.effectiveMessageId(event.messageId) ??
                   event.messageId,
                 flueId: event.messageId,
@@ -466,77 +371,27 @@ export const createFlueChatTransport = <
   options: FlueChatTransportOptions,
 ): ChatTransport<UiMessage> => ({
   reconnectToStream: async () => null,
-  sendMessages: async ({ trigger, messageId, messages, abortSignal }) => {
+  sendMessages: async ({ trigger, messages, abortSignal }) => {
     if (trigger !== "submit-message") {
       throw new Error("Regenerating a Flue conversation is not supported.");
     }
 
-    const toolResults =
-      messageId === undefined
-        ? []
-        : completedClientToolResults(
-            messages,
-            messageId,
-            options.clientToolNames,
-          )
-            .map((result): ClientToolResult => {
-              const metadata = options.clientToolResultMetadata?.(result);
-              const delivered: {
-                -readonly [Key in keyof ClientToolResult]: ClientToolResult[Key];
-              } = {
-                toolCallId: result.toolCallId,
-                toolName: result.toolName,
-                output:
-                  options.clientToolResultOutput === undefined
-                    ? result.output
-                    : options.clientToolResultOutput(result, metadata),
-              };
-              if (result.source !== undefined) delivered.source = result.source;
-              if (metadata !== undefined) delivered.metadata = metadata;
-              return delivered;
-            })
-            .toSorted((left, right) =>
-              left.toolCallId < right.toolCallId
-                ? -1
-                : left.toolCallId > right.toolCallId
-                  ? 1
-                  : 0,
-            );
     const diagnosticsContext = submittedDiagnosticsContext(messages);
-    const userMessage =
-      messageId === undefined ? finalUserMessage(messages) : undefined;
-    const message: DeliveredMessage =
-      messageId === undefined
-        ? (() => {
-            if (userMessage === undefined) {
-              throw new Error("The submitted user message has no text.");
-            }
-            return {
-              kind: "user",
-              body:
-                diagnosticsContext === undefined
-                  ? userMessage.text
-                  : petrinautContextualUserMessageBody({
-                      userText: userMessage.text,
-                      diagnosticsContext,
-                    }),
-            };
-          })()
-        : (() => {
-            if (toolResults.length === 0) {
-              throw new Error(
-                "The client-tool follow-up has no completed result.",
-              );
-            }
-            return clientToolResultSignal(toolResults, diagnosticsContext);
-          })();
-    const idempotencyKey =
-      messageId === undefined
-        ? `ai-sdk:user:${userMessage!.id}`
-        : await clientToolResultIdempotencyKey(
-            messageId,
-            toolResults.map(({ toolCallId }) => toolCallId),
-          );
+    const userMessage = finalUserMessage(messages);
+    if (userMessage === undefined) {
+      throw new Error("The submitted user message has no text.");
+    }
+    const message: DeliveredMessage = {
+      kind: "user",
+      body:
+        diagnosticsContext === undefined
+          ? userMessage.text
+          : petrinautContextualUserMessageBody({
+              userText: userMessage.text,
+              diagnosticsContext,
+            }),
+    };
+    const idempotencyKey = `ai-sdk:user:${userMessage.id}`;
     if (Array.from(idempotencyKey).length > 256) {
       throw new Error("The submitted message identity is too long.");
     }
@@ -546,9 +401,9 @@ export const createFlueChatTransport = <
       admission = await options.client.send({
         idempotencyKey,
         message,
-        ...(messageId === undefined && options.initialData !== undefined
-          ? { initialData: options.initialData }
-          : {}),
+        ...(options.initialData === undefined
+          ? {}
+          : { initialData: options.initialData }),
         signal: abortSignal,
       });
     } catch (error) {
@@ -556,9 +411,9 @@ export const createFlueChatTransport = <
     }
     options.onAdmission?.({
       admission,
-      kind: messageId === undefined ? "user" : "client-tool-result",
-      messageId: messageId ?? userMessage!.id,
+      kind: "user",
+      messageId: userMessage.id,
     });
-    return streamSubmission(options, admission, messageId, abortSignal);
+    return streamSubmission(options, admission, abortSignal);
   },
 });

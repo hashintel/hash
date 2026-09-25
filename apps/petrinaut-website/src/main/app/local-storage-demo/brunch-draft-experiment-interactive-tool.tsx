@@ -1,6 +1,7 @@
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
+  browserToolMutatesDocument,
   canonicalContent,
   type DraftPetrinautExperimentInput,
   draftPetrinautExperimentInputSchema,
@@ -206,12 +207,12 @@ export const resolveDraftAuthorityFromHistory = async (
   );
   if (!ledger)
     throw new Error("Draft requires a current settled Ledger basis.");
+  // The draft must follow a net read with no document change after it.
   const relevant = calls.filter(
     (call) =>
       canonicalPetrinautClientToolNames.has(call.toolName) &&
-      call.toolName !== "getNetCompilationErrors" &&
-      call.toolName !== "readPetrinautDoc" &&
-      call.toolName !== "createExperiment",
+      (call.toolName === "getLatestNetDefinition" ||
+        browserToolMutatesDocument(call.toolName)),
   );
   const latest = relevant.at(-1);
   if (

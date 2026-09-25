@@ -93,7 +93,7 @@ const snapshot: FlueConversationSnapshot = {
           toolName: "readPetrinautDoc",
           state: "output-available",
           input: { doc: "simulation" },
-          output: { awaiting: "client" },
+          output: { brunchBrowserResult: true, output: "Petrinaut docs" },
         },
         {
           type: "dynamic-tool",

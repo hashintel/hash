@@ -1,5 +1,9 @@
 import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
 import {
+  petrinautToolEffects,
+  type PetrinautToolCapability,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
   petrinautAiTools,
   type PetrinautAiToolName,
 } from "@hashintel/petrinaut-core/ai";
@@ -16,10 +20,7 @@ export type ToolExecutionOwner = "flue" | "brunch-app" | "petrinaut-website";
 export type ToolCapabilityClass =
   | "substrate"
   | "ledger"
-  | "petrinaut-read"
-  | "petrinaut-mutation"
-  | "petrinaut-command"
-  | "petrinaut-experiment"
+  | PetrinautToolCapability
   | "petrinaut-experiment-draft"
   | "explanation"
   | "diagnostic";
@@ -31,60 +32,10 @@ export interface BrunchToolCatalogueEntry {
   readonly capability: ToolCapabilityClass;
 }
 
-const petrinautCapabilityByName = {
-  addPlace: "petrinaut-mutation",
-  updatePlace: "petrinaut-mutation",
-  updatePlacePosition: "petrinaut-mutation",
-  removePlace: "petrinaut-mutation",
-  addTransition: "petrinaut-mutation",
-  updateTransition: "petrinaut-mutation",
-  updateTransitionPosition: "petrinaut-mutation",
-  removeTransition: "petrinaut-mutation",
-  addArc: "petrinaut-mutation",
-  removeArc: "petrinaut-mutation",
-  updateArcWeight: "petrinaut-mutation",
-  updateArcType: "petrinaut-mutation",
-  updateArcPlace: "petrinaut-mutation",
-  addType: "petrinaut-mutation",
-  updateType: "petrinaut-mutation",
-  removeType: "petrinaut-mutation",
-  addTypeElement: "petrinaut-mutation",
-  updateTypeElement: "petrinaut-mutation",
-  removeTypeElement: "petrinaut-mutation",
-  moveTypeElement: "petrinaut-mutation",
-  addDifferentialEquation: "petrinaut-mutation",
-  updateDifferentialEquation: "petrinaut-mutation",
-  removeDifferentialEquation: "petrinaut-mutation",
-  addParameter: "petrinaut-mutation",
-  updateParameter: "petrinaut-mutation",
-  removeParameter: "petrinaut-mutation",
-  addScenario: "petrinaut-mutation",
-  updateScenario: "petrinaut-mutation",
-  removeScenario: "petrinaut-mutation",
-  addMetric: "petrinaut-mutation",
-  updateMetric: "petrinaut-mutation",
-  removeMetric: "petrinaut-mutation",
-  addSubnet: "petrinaut-mutation",
-  updateSubnet: "petrinaut-mutation",
-  removeSubnet: "petrinaut-mutation",
-  addComponentInstance: "petrinaut-mutation",
-  updateComponentInstance: "petrinaut-mutation",
-  updateComponentInstancePosition: "petrinaut-mutation",
-  removeComponentInstance: "petrinaut-mutation",
-  deleteItemsByIds: "petrinaut-mutation",
-  commitNodePositions: "petrinaut-mutation",
-  applyAutoLayout: "petrinaut-command",
-  getLatestNetDefinition: "petrinaut-read",
-  getNetCompilationErrors: "petrinaut-read",
-  setNetTitle: "petrinaut-mutation",
-  readPetrinautDoc: "petrinaut-read",
-  createExperiment: "petrinaut-experiment",
-} as const satisfies Record<PetrinautAiToolName, ToolCapabilityClass>;
-
 export const assertPetrinautToolCatalogueConformance = (
   canonicalNames: readonly string[] = Object.keys(petrinautAiTools),
 ): void => {
-  const classifiedNames = Object.keys(petrinautCapabilityByName);
+  const classifiedNames = Object.keys(petrinautToolEffects);
   const unclassified = canonicalNames.filter(
     (name) => !classifiedNames.includes(name),
   );
@@ -106,7 +57,7 @@ export const canonicalPetrinautToolCatalogue = Object.keys(
     name,
     definitionOwner: "petrinaut-core",
     executionOwner: "petrinaut-website",
-    capability: petrinautCapabilityByName[name as PetrinautAiToolName],
+    capability: petrinautToolEffects[name as PetrinautAiToolName].capability,
   }),
 );
 

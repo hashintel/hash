@@ -163,12 +163,12 @@ against this branch's image until a Mission 8 successor retargets it to `/agents
 
 Voice is a second input modality over the panel's conversation. It is not a Voice route and does not own provider audio or durable conversation state.
 
-|                       |                                                                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| URL                   | `/agents/chat/:instanceId`, called through the public Flue browser client and the same-origin local proxy                         |
-| Identity              | `x-brunch-principal` plus `x-brunch-conversation`; the server verifies that their hash matches the mounted instance id            |
-| Initial turn          | One `FlueClient.send()` carrying `{ kind: "user", body }`                                                                         |
-| Client-tool follow-up | One `FlueClient.send()` carrying the `client-tool-result` signal for completed client-tool parts, correlated by `toolCallId`      |
-| Response              | `FlueClient.wait()` chunks projected into one finite AI SDK UI-message stream; observation/history provides canonical rehydration |
+|               |                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| URL           | `/agents/chat/:instanceId`, called through the public Flue browser client and the same-origin local proxy                         |
+| Identity      | `x-brunch-principal` plus `x-brunch-conversation`; the server verifies that their hash matches the mounted instance id            |
+| Initial turn  | One `FlueClient.send()` carrying `{ kind: "user", body }`                                                                         |
+| Browser tools | Integrated mode awaits browser results over HTTP within the server tool call; no follow-up submission is sent                     |
+| Response      | `FlueClient.wait()` chunks projected into one finite AI SDK UI-message stream; observation/history provides canonical rehydration |
 
 Typed and finalized spoken turns use this same route. The panel's explicit **Stop** requests a conversation-wide Flue abort before cancelling its local stream. Local Voice interruption stops playback only and leaves canonical history unchanged.

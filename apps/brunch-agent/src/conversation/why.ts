@@ -2,6 +2,7 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import {
@@ -20,19 +21,7 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const elementSchema = v.object({
   selector: v.object({
-    kind: v.picklist([
-      "place",
-      "transition",
-      "arc",
-      "type",
-      "typeElement",
-      "parameter",
-      "differentialEquation",
-      "scenario",
-      "metric",
-      "subnet",
-      "componentInstance",
-    ]),
+    kind: v.picklist(netElementKinds),
     name: v.optional(v.string()),
     id: v.optional(v.string()),
     transitionId: v.optional(v.string()),

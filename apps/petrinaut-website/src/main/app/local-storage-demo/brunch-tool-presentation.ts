@@ -16,7 +16,6 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
   brunchTools.mutateWorkpiece,
-  brunchTools.readPetrinautDocs,
   brunchTools.readWorkpiece,
   brunchTools.queryWorkpiece,
   brunchTools.ping,
@@ -49,11 +48,6 @@ const lifecycleTitles = {
     pending: "Updating ledger",
     success: "Updated ledger",
     error: "Could not update ledger",
-  },
-  [brunchTools.readPetrinautDocs]: {
-    pending: "Reading Petrinaut guidance",
-    success: "Read Petrinaut guidance",
-    error: "Could not read Petrinaut guidance",
   },
   [brunchTools.readWorkpiece]: {
     pending: "Reading ledger",

@@ -42,7 +42,6 @@ test("production rejects every mixed proposal outside the allowlist before publi
     const ui = createFlueUiStream({
       submissionId: refusal.attempt.receipt.submissionId,
       clientToolNames: new Set(["addType"]),
-      asyncClientToolNames: new Set(["addType"]),
       write: (chunk) => {
         uiChunks.push(chunk);
       },

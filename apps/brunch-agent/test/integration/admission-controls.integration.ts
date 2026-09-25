@@ -53,8 +53,7 @@ const recordWire = (chunk: ConversationStreamChunk) => {
 const unobserve = observe((event) => record("runtime", event));
 const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {
-    clientToolNames: new Set(["addType", brunchTools.readPetrinautDocs]),
-    asyncClientToolNames: new Set(["addType"]),
+    clientToolNames: new Set(["addType"]),
   });
 const faux = fauxProvider({ provider: "openai" });
 const createStall = () => ({

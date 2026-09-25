@@ -11,7 +11,6 @@ import {
 import { useEffect, useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { brunchSignals } from "@hashintel/brunch-agent/constants";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
   definePetrinautAiInteractiveTool,
@@ -190,7 +189,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("projects typed, Voice-tool, and stopped fixture history after remount", async () => {
+test("projects typed, in-band tool, and stopped fixture history after remount", async () => {
   const storageEntries = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     get length() {
@@ -228,7 +227,10 @@ test("projects typed, Voice-tool, and stopped fixture history after remount", as
           parts: [
             {
               input: { question: "Who approves this?" },
-              output: { awaiting: "client" },
+              output: {
+                brunchBrowserResult: true,
+                output: { answer: "The supervisor" },
+              },
               state: "output-available",
               toolCallId: "voice-tool-1",
               toolName: voiceAnswerToolName,
@@ -238,27 +240,6 @@ test("projects typed, Voice-tool, and stopped fixture history after remount", as
           purpose: "assistant",
           role: "assistant",
           submissionId: "voice-submission",
-        },
-        {
-          display: "hidden",
-          id: "voice-tool-result",
-          parts: [
-            {
-              state: "done",
-              text: JSON.stringify([
-                {
-                  output: { answer: "The supervisor" },
-                  source: "voice",
-                  toolCallId: "voice-tool-1",
-                  toolName: voiceAnswerToolName,
-                },
-              ]),
-              type: "text",
-            },
-          ],
-          purpose: "dispatch",
-          role: "system",
-          signal: { tagName: brunchSignals.clientToolResult },
         },
       ],
       settlements: [{ outcome: "completed", submissionId: "voice-submission" }],
@@ -383,11 +364,7 @@ test("projects typed, Voice-tool, and stopped fixture history after remount", as
     ).queryByTestId("voice-input-provenance"),
   ).toBeNull();
   expect(
-    within(
-      secondMount.container.querySelector(
-        '[data-tool-call-id="voice-tool-1"]',
-      )!,
-    ).getByTestId("voice-input-provenance"),
+    secondMount.container.querySelector('[data-tool-call-id="voice-tool-1"]'),
   ).not.toBeNull();
   expect(screen.getByText("Durably interrupted response")).not.toBeNull();
   expect(screen.getByText("Response stopped")).not.toBeNull();
