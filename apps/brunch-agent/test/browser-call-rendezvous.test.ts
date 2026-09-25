@@ -46,31 +46,31 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
     capability: issued!.capability,
     disposition: "failed" as const,
   };
-  expect(await settleBrowserCall({ ...reply, capability: "forged" })).toBe(
+  expect(settleBrowserCall({ ...reply, capability: "forged" })).toBe(
+    "not-issued",
+  );
+  expect(settleBrowserCall({ ...reply, binding: "wrong-incarnation" })).toBe(
     "not-issued",
   );
   expect(
-    await settleBrowserCall({ ...reply, binding: "wrong-incarnation" }),
+    settleBrowserCall({ ...reply, canonicalInput: { name: "Other" } }),
   ).toBe("not-issued");
-  expect(
-    await settleBrowserCall({ ...reply, canonicalInput: { name: "Other" } }),
-  ).toBe("not-issued");
-  expect(await settleBrowserCall({ ...reply, toolName: "removePlace" })).toBe(
+  expect(settleBrowserCall({ ...reply, toolName: "removePlace" })).toBe(
     "not-issued",
   );
   expect(failBrowserCall({ ...reply, binding: "wrong-incarnation" })).toBe(
     false,
   );
   expect(failBrowserCall({ ...reply, capability: "forged" })).toBe(false);
-  expect(await settleBrowserCall(reply)).toBe("settled");
+  expect(settleBrowserCall(reply)).toBe("settled");
   await expect(result).resolves.toMatchObject({
     toolCallId: call.toolCallId,
     toolName: call.toolName,
     output: reply.output,
   });
-  expect(
-    await settleBrowserCall({ ...reply, output: { applied: false } }),
-  ).toBe("not-issued");
+  expect(settleBrowserCall({ ...reply, output: { applied: false } })).toBe(
+    "not-issued",
+  );
   expect(renewBrowserCall(reply)).toBe(false);
   expect(failBrowserCall(reply)).toBe(false);
 });
@@ -119,7 +119,7 @@ it("settles a claimed failure promptly, without fabricating a canonical output o
   ).toBe(true);
   await Promise.all([mutationRejection, readRejection]);
   expect(
-    await settleBrowserCall({
+    settleBrowserCall({
       ...read,
       capability: readCapability!,
       output: {},
@@ -147,7 +147,7 @@ it("settles a stopped call and refuses late results without replaying it", async
   controller.abort();
   await expect(result).rejects.toThrow(/unknown/);
   expect(
-    await settleBrowserCall({
+    settleBrowserCall({
       ...call,
       capability: issued!.capability,
       output: { applied: true },
@@ -260,7 +260,7 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
     false,
   );
   expect(
-    await settleBrowserCall({
+    settleBrowserCall({
       ...sibling,
       capability: siblingIssued!.capability,
       output: {},

@@ -62,16 +62,13 @@ export const createBrowserCallRouter = (): Hono => {
     const body = await readBody(context, resultBody);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
-    const settled = await settleBrowserCall({
+    return settleBrowserCall({
       instanceId: id,
       toolCallId: callId,
       ...body,
-    });
-    return settled === "settled"
+    }) === "settled"
       ? context.json({ settled: true })
-      : settled === "invalid"
-        ? context.json({ error: "invalid-result" }, 422)
-        : context.json({ error: "not-issued" }, 409);
+      : context.json({ error: "not-issued" }, 409);
   });
 
   router.post("/:id/browser-calls/:callId/fail", async (context) => {

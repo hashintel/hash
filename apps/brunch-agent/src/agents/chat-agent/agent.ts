@@ -20,6 +20,7 @@ import { createFlueClient } from "@flue/sdk";
 
 import { brunchModes, createWorkpieceReadTool } from "@hashintel/brunch-agent";
 import {
+  canonicalContent,
   sdcpnInitialDataSchema,
   type BrowserContext,
   type SdcpnInitialData,
@@ -137,7 +138,7 @@ export function ChatAgent({ id }: AgentProps) {
                   toolCallId,
                   toolName,
                   canonicalInput: input,
-                  binding: JSON.stringify(browserContext.binding),
+                  binding: canonicalContent(browserContext.binding),
                   signal,
                 });
                 return { output: result.output, metadata: result.metadata };

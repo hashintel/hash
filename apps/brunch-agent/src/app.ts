@@ -10,6 +10,7 @@ import { Hono } from "hono";
 
 import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
@@ -141,6 +142,11 @@ const integratedMixedToolNames = new Set([
   brunchTools.readWorkpiece,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
+  brunchTools.queryWorkpiece,
+]);
+// Running these beside their dependency would answer from the previous result.
+const integratedDependentToolNames = new Map([
+  [brunchTools.queryWorkpiece, getLatestNetDefinitionToolName],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(
@@ -154,6 +160,7 @@ const registerAdmittedProvider = (provider: Provider) => {
       {
         cancellationTimeoutMs: modelStreamCancellationTimeoutMs,
         mixedToolNames: integratedMixedToolNames,
+        dependentToolNames: integratedDependentToolNames,
         claimRetry: () => claimModelStreamIdleRetry(admissionScope.getStore()),
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,

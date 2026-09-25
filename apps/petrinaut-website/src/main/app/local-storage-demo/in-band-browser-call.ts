@@ -30,7 +30,7 @@ export const createInBandBrowserCalls = (input: {
   }) => {
     const client = await input.client;
     const url = `${client.url}/browser-calls/${encodeURIComponent(call.toolCallId)}`;
-    const boundClaimUrl = `${url}?binding=${encodeURIComponent(JSON.stringify(input.binding))}`;
+    const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
     const headers = agentOwnershipHeaders({
       principalKey: input.principalKey,
       conversationId: input.binding.conversationId,
@@ -74,7 +74,7 @@ export const createInBandBrowserCalls = (input: {
     if (
       !issued ||
       issued.toolName !== call.toolName ||
-      issued.binding !== JSON.stringify(input.binding) ||
+      issued.binding !== canonicalContent(input.binding) ||
       !(call.toolName in petrinautAiTools)
     )
       throw new Error(

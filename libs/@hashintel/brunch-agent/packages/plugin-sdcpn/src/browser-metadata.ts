@@ -1,4 +1,8 @@
-export const canonicalContent = (value: unknown): string | undefined => {
+/** Key-order-independent JSON; the wire form wherever both sides serialize one value. */
+export const canonicalContent: {
+  (value: object): string;
+  (value: unknown): string | undefined;
+} = (value: unknown) => {
   const normalize = (entry: unknown): unknown => {
     if (Array.isArray(entry)) return entry.map(normalize);
     if (typeof entry === "object" && entry !== null)

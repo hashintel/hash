@@ -183,6 +183,46 @@ test("why locates the latest read element and relates the applied call to its cu
   ).toBe("not-found");
 });
 
+test("why refuses to answer from a read that a later applied change made stale", () => {
+  const later = {
+    id: "assistant-later",
+    role: "assistant",
+    purpose: "assistant",
+    display: "visible",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "updatePlace",
+        toolCallId: "rename-queue",
+        state: "output-available",
+        input: { id: "queue", name: "Backlog" },
+        output: {
+          brunchBrowserResult: true,
+          output: { applied: true },
+          metadata: {
+            documentRevision: { before: "revision-2", after: "revision-3" },
+          },
+        },
+      },
+    ],
+  };
+  expect(
+    queryWorkpiece({
+      snapshot: {
+        ...snapshot,
+        messages: [...snapshot.messages, later],
+      } as FlueConversationSnapshot,
+      current,
+      browser,
+      query: { kind: "place", name: "Queue" },
+    }),
+  ).toMatchObject({
+    disposition: "stale-read",
+    readToolCallId: "read-queue",
+    changes: [],
+  });
+});
+
 test("a refused workpiece write does not displace the latest settled revision for draft or attribution", () => {
   const refused = {
     id: "assistant-refusal",
