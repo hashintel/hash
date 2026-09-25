@@ -785,7 +785,7 @@ test("async browser mode admits allowlisted mixes but refuses a call beside the 
       ...modelStreamIdleTimeoutDefaults,
       claimRetry: () => false,
       mixedToolNames: new Set(["read", "write", "query"]),
-      dependentToolNames: new Map([["query", "read"]]),
+      dependentToolNames: new Map([["query", ["read"]]]),
     },
   );
   const model = provider.getModels()[0]!;

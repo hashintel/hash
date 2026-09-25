@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
 
+import { brunchTools } from "@hashintel/brunch-agent";
+
 import type { ClientToolResult } from "@hashintel/brunch-agent-transport-aisdk";
 
 /** Process-local handoff for the documented single-owner Node deployment. No durable effects live here. */
@@ -178,6 +180,7 @@ export const failBrowserCall = (input: {
     "getNetCompilationErrors",
     "readPetrinautDoc",
     "createExperiment",
+    brunchTools.draftPetrinautExperiment,
   ].includes(entry.toolName);
   entry.result.reject(
     new Error(

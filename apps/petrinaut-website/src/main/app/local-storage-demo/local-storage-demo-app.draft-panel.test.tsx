@@ -168,7 +168,7 @@ const proposal = {
 };
 
 test.each(["Dismiss", "Run"] as const)(
-  "real LocalStorageDemoApp panel continues a host-authorized draft; %s stays out of Flue",
+  "real LocalStorageDemoApp panel settles a host-authorized draft in band; %s stays out of Flue",
   async (action) => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     // Only the browser Worker boundary is emulated; Petrinaut and its assistant panel are real.
@@ -306,6 +306,33 @@ test.each(["Dismiss", "Run"] as const)(
         },
       ],
     } as FlueConversationState;
+    const agentUrl = "http://local.test/agents/chat/instance";
+    const draftCallUrl = `${agentUrl}/browser-calls/draft-1`;
+    // The server awaits the draft in band: the stream pauses until the browser
+    // claims the issued call and posts its preparation.
+    const draftResult = Promise.withResolvers<{
+      output: { status: string };
+    }>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (url, init) => {
+        const target = typeof url === "string" ? url : "";
+        if (target.startsWith(`${draftCallUrl}?binding=`))
+          return Response.json({
+            capability: "capability",
+            binding: new URL(target).searchParams.get("binding"),
+            toolName: "draft_petrinaut_experiment",
+            input: proposal,
+          });
+        if (target === draftCallUrl && typeof init?.body === "string") {
+          draftResult.resolve(
+            JSON.parse(init.body) as { output: { status: string } },
+          );
+          return Response.json({ settled: true });
+        }
+        throw new Error(`Unexpected fetch ${target}`);
+      }),
+    );
     const draftMessage = {
       id: "assistant-draft",
       display: "visible",
@@ -316,9 +343,8 @@ test.each(["Dismiss", "Run"] as const)(
           type: "dynamic-tool",
           toolCallId: "draft-1",
           toolName: "draft_petrinaut_experiment",
-          state: "output-available",
+          state: "input-available",
           input: proposal,
-          output: { awaiting: "client" },
         },
       ],
     };
@@ -352,18 +378,40 @@ test.each(["Dismiss", "Run"] as const)(
           input: proposal,
           position: position(),
         });
+        // Flue history carries the in-flight call while its tool runs.
+        const prior = history.messages;
         history = {
           ...history,
-          messages: [...history.messages, draftMessage],
+          messages: [...prior, draftMessage],
+        } as FlueConversationState;
+        const settled = await draftResult.promise;
+        const output = {
+          brunchBrowserResult: true,
+          output: settled.output,
+        };
+        history = {
+          ...history,
+          messages: [
+            ...prior,
+            {
+              ...draftMessage,
+              parts: [
+                {
+                  ...draftMessage.parts[0],
+                  state: "output-available",
+                  output,
+                },
+              ],
+            },
+          ],
         } as FlueConversationState;
         await options?.onEvent?.({
           type: "tool-output",
           conversationId: binding.conversationId,
           toolCallId: "draft-1",
-          output: { awaiting: "client" },
+          output,
           position: position(),
         });
-      } else {
         await options?.onEvent?.({
           type: "message-delta",
           conversationId: binding.conversationId,
@@ -388,6 +436,7 @@ test.each(["Dismiss", "Run"] as const)(
       });
     });
     const client = {
+      url: agentUrl,
       history: async () => history,
       send,
       wait,
@@ -429,23 +478,12 @@ test.each(["Dismiss", "Run"] as const)(
     expect(
       screen.queryByRole("button", { name: /active Monte Carlo simulation/u }),
     ).toBeNull();
-    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
-    const delivery = send.mock.calls[1]?.[0].message;
-    expect(delivery?.kind).toBe("signal");
-    if (delivery?.kind !== "signal")
-      throw new Error("Missing draft continuation signal");
-    const results = JSON.parse(delivery.body) as {
-      toolCallId: string;
-      toolName: string;
-      output: { status: string };
-    }[];
-    expect(results).toMatchObject([
-      {
-        toolCallId: "draft-1",
-        toolName: "draft_petrinaut_experiment",
-        output: { status: "drafted" },
-      },
-    ]);
+    // The preparation settles the issued call; no continuation signal is sent.
+    expect((await draftResult.promise).output).toMatchObject({
+      status: "drafted",
+    });
+    await screen.findByText("Draft prepared, not run.");
+    expect(send).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: action }));
     if (action === "Dismiss") {
       expect(card.getAttribute("data-draft-status")).toBe("Dismissed");
@@ -461,7 +499,7 @@ test.each(["Dismiss", "Run"] as const)(
       expect(card.textContent).toContain("Finished");
       expect(card.textContent).toContain("20 runs");
     }
-    expect(send).toHaveBeenCalledTimes(2);
+    expect(send).toHaveBeenCalledTimes(1);
   },
   30_000,
 );

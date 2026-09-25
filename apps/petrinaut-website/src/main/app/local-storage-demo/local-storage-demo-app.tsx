@@ -701,7 +701,7 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
     undefined,
-    canonicalPetrinautClientToolNames,
+    integratedPetrinautClientToolNames,
   );
   const replayBindingKey = integratedConstructionBrowser
     ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
@@ -809,7 +809,7 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
-                asyncClientToolNames: canonicalPetrinautClientToolNames,
+                asyncClientToolNames: integratedPetrinautClientToolNames,
                 dynamicClientToolNames,
                 ...(canonicalHostTools === undefined
                   ? {}
@@ -863,8 +863,12 @@ export const LocalStorageDemoApp = ({
 
   const draftInteractiveTool = useMemo(
     () =>
-      integratedConstructionBrowser && activeHandle && flueClientPromise
+      integratedConstructionBrowser &&
+      activeHandle &&
+      flueClientPromise &&
+      inBandBrowserTools
         ? createBrunchDraftExperimentInteractiveTool({
+            browserCalls: inBandBrowserTools,
             readTitle: () => activeHandle.document.title,
             readDraftAuthority: async (toolCallId) => {
               const client = await flueClientPromise;
@@ -876,7 +880,12 @@ export const LocalStorageDemoApp = ({
             },
           })
         : undefined,
-    [activeHandle, flueClientPromise, integratedConstructionBrowser],
+    [
+      activeHandle,
+      flueClientPromise,
+      inBandBrowserTools,
+      integratedConstructionBrowser,
+    ],
   );
   const aiAssistant = useMemo(() => {
     const activityIdentities =

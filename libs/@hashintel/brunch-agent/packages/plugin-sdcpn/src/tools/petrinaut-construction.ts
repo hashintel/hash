@@ -21,15 +21,28 @@ type CanonicalJson =
   | CanonicalJson[]
   | { [key: string]: CanonicalJson };
 
-/** I returns canonical output to the model; the envelope remains host-only. */
-export const asyncCanonicalPetrinautTools = (
-  execute: (call: {
-    readonly toolName: keyof typeof petrinautAiTools;
-    readonly input: unknown;
-    readonly toolCallId: string;
-    readonly signal?: AbortSignal;
-  }) => Promise<{ readonly output: unknown; readonly metadata?: unknown }>,
-) =>
+/** Issues one call to the bound browser and resolves with its settled result. */
+export type BrowserToolExecutor = (call: {
+  readonly toolName: string;
+  readonly input: unknown;
+  readonly toolCallId: string;
+  readonly signal?: AbortSignal;
+}) => Promise<{ readonly output: unknown; readonly metadata?: unknown }>;
+
+/** The browser's output goes to the model; the envelope and its metadata stay host-only. */
+export const browserResultEnvelope = (result: {
+  readonly output: unknown;
+  readonly metadata?: unknown;
+}) =>
+  JSON.parse(
+    JSON.stringify({
+      brunchBrowserResult: true,
+      output: result.output,
+      ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
+    }),
+  ) as CanonicalJson;
+
+export const asyncCanonicalPetrinautTools = (execute: BrowserToolExecutor) =>
   CANONICAL_PETRINAUT_TOOL_NAMES.map((toolName) => {
     const tool = petrinautAiTools[toolName];
     return defineTool({
@@ -43,18 +56,7 @@ export const asyncCanonicalPetrinautTools = (
           toolCallId,
           signal,
         });
-        return {
-          output: JSON.parse(
-            JSON.stringify({
-              brunchBrowserResult: true,
-              output: result.output,
-              ...(result.metadata === undefined
-                ? {}
-                : { metadata: result.metadata }),
-            }),
-          ) as CanonicalJson,
-          terminate: false,
-        };
+        return { output: browserResultEnvelope(result), terminate: false };
       },
     });
   });

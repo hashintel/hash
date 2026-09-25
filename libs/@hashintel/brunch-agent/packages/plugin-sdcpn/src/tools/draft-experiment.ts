@@ -1,23 +1,27 @@
 import { defineTool } from "@flue/runtime";
-import * as v from "valibot";
 
-import { awaitingClient, brunchTools } from "@hashintel/brunch-agent/constants";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 
 import { draftPetrinautExperimentInputSchema } from "../draft-experiment";
-
-import type { WorkpieceAuthorityOptions } from "./petrinaut-construction";
+import {
+  browserResultEnvelope,
+  type BrowserToolExecutor,
+  type WorkpieceAuthorityOptions,
+} from "./petrinaut-construction";
 
 /**
  * Drafts one experiment for this conversation. The server resolves the settled
  * Ledger and canonical read from history, not from model-authored identities,
- * and hands the proposal to the browser, which prepares it against the
- * live model and shows it as drafted, not run. Nothing here starts a run.
+ * then issues the proposal to the browser, which prepares it against the live
+ * model, shows it as drafted, not run, and returns that preparation as this
+ * call's result. Nothing here starts a run.
  */
 export const createDraftExperimentTool = (
   options: WorkpieceAuthorityOptions & {
     authorizeDraft: (toolCallId: string) => Promise<{
       revisionId: string;
     }>;
+    executeBrowserTool: BrowserToolExecutor;
   },
 ) =>
   defineTool({
@@ -25,8 +29,7 @@ export const createDraftExperimentTool = (
     description:
       "Draft one experiment from the latest settled Ledger and canonical getLatestNetDefinition read in this conversation. Use saved identifiers from that read. The browser prepares the proposal against the live model and shows it as drafted, not run, with Run and Dismiss; the person starts it. Carry every restriction the request cannot enforce in `unsupported` — the request has no constraints — and never fold one into the objective. Call once per meaningful configuration; a later call supersedes the earlier draft. Do not call this to run an experiment.",
     input: draftPetrinautExperimentInputSchema,
-    output: v.object({ awaiting: v.literal(awaitingClient) }),
-    async run({ toolCallId }) {
+    async run({ data, toolCallId, signal }) {
       const revision = options.currentRevision;
       if (!revision)
         throw new Error(
@@ -35,6 +38,12 @@ export const createDraftExperimentTool = (
       const authority = await options.authorizeDraft(toolCallId);
       if (authority.revisionId !== revision.revisionId)
         throw new Error("Experiment draft Ledger basis is stale or unsettled.");
-      return { output: { awaiting: awaitingClient }, terminate: true };
+      const result = await options.executeBrowserTool({
+        toolName: brunchTools.draftPetrinautExperiment,
+        input: data,
+        toolCallId,
+        signal,
+      });
+      return { output: browserResultEnvelope(result), terminate: false };
     },
   });

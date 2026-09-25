@@ -44,6 +44,7 @@ import {
 } from "./brunch-workpiece-history";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
+import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
   PetrinautExperimentRequest,
@@ -758,6 +759,29 @@ export const BrunchDraftExperimentWidget = ({
 };
 
 /**
+ * The server awaits the draft call in band: claim the issued call, then settle
+ * it with the preparation result. A draft changes no document, so a failed
+ * settlement is reported as failed, never as an unknown document effect.
+ */
+const settleIssuedDraft = async (
+  browserCalls: ReturnType<typeof createInBandBrowserCalls>,
+  call: { readonly toolCallId: string; readonly input: unknown },
+  output: DraftPetrinautExperimentOutput,
+) => {
+  const issued = await browserCalls.claim({
+    ...call,
+    toolName: brunchTools.draftPetrinautExperiment,
+    signal: new AbortController().signal,
+  });
+  try {
+    await issued.submit(output);
+  } catch (error) {
+    await issued.fail("failed").catch(() => {});
+    throw error;
+  }
+};
+
+/**
  * The website-owned card for a Brunch-drafted experiment. It prepares the
  * proposal against the live model, tells Brunch it is drafted (not run), and
  * lets the person Run or Dismiss it. Run reuses the stock experiment host, so
@@ -765,9 +789,11 @@ export const BrunchDraftExperimentWidget = ({
  * Only View experiment navigates; drafts stay in this editor's memory.
  */
 export const createBrunchDraftExperimentInteractiveTool = ({
+  browserCalls,
   readTitle,
   readDraftAuthority,
 }: {
+  browserCalls: ReturnType<typeof createInBandBrowserCalls>;
   readTitle: () => string;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
@@ -781,6 +807,13 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     component: (props) => (
       <BrunchDraftExperimentWidget
         {...props}
+        submitAndWait={(output) =>
+          settleIssuedDraft(
+            browserCalls,
+            { toolCallId: props.toolCallId, input: props.input },
+            output,
+          )
+        }
         readTitle={readTitle}
         readDraftAuthority={readDraftAuthority}
       />

@@ -164,6 +164,13 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
   draftBrunchTool,
 ];
 
+/** Integrated tools the bound browser executes; the server awaits each result in band. */
+export const inBandBrowserToolNames: ReadonlySet<string> = new Set(
+  integratedBrunchTools
+    .filter(({ executionOwner }) => executionOwner === "petrinaut-website")
+    .map(({ name }) => name),
+);
+
 /**
  * Expected provider-visible names and ownership for integrated Brunch.
  * Schemas stay with Petrinaut; this map deliberately classifies names only.

@@ -10,6 +10,8 @@ import {
 } from "../src/draft-experiment";
 import { createDraftExperimentTool } from "../src/tools/draft-experiment";
 
+import type { BrowserToolExecutor } from "../src/tools/petrinaut-construction";
+
 const currentRevision = {
   revisionId: "revision-1",
   ordinal: 1,
@@ -240,30 +242,49 @@ describe("draft_petrinaut_experiment output schema", () => {
 });
 
 describe("createDraftExperimentTool", () => {
-  test("authorizes the issued call against a prior read and settled Ledger", async () => {
+  test("authorizes against a prior read and settled Ledger, then awaits the browser preparation in band", async () => {
     const authorizeDraft = vi.fn<() => Promise<{ revisionId: string }>>(
       async () => ({
         revisionId: currentRevision.revisionId,
       }),
     );
+    const prepared = {
+      status: "drafted" as const,
+      summary: "Drafted.",
+      diagnostics: [],
+    };
+    const executeBrowserTool = vi.fn<BrowserToolExecutor>(async () => ({
+      output: prepared,
+    }));
     const tool = createDraftExperimentTool({
       currentRevision,
       retainedRevisionFor: async () => undefined,
       authorizeDraft,
+      executeBrowserTool,
     });
     await expect(
       tool.run({ data: input, toolCallId: "draft-1" } as never),
-    ).resolves.toMatchObject({
-      output: { awaiting: "client" },
-      terminate: true,
+    ).resolves.toEqual({
+      output: { brunchBrowserResult: true, output: prepared },
+      terminate: false,
     });
     expect(authorizeDraft).toHaveBeenCalledWith("draft-1");
+    expect(executeBrowserTool).toHaveBeenCalledWith({
+      toolName: brunchTools.draftPetrinautExperiment,
+      input,
+      toolCallId: "draft-1",
+      signal: undefined,
+    });
   });
 
   test("fails closed for an absent read or unsettled basis", async () => {
+    const executeBrowserTool = vi.fn<BrowserToolExecutor>(async () => ({
+      output: null,
+    }));
     const options = {
       currentRevision,
       retainedRevisionFor: async () => undefined,
+      executeBrowserTool,
     };
     await expect(
       createDraftExperimentTool({
@@ -288,5 +309,6 @@ describe("createDraftExperimentTool", () => {
         }),
       }).run({ toolCallId: "draft-1", data: input } as never),
     ).rejects.toThrow(/Settle a Ledger/u);
+    expect(executeBrowserTool).not.toHaveBeenCalled();
   });
 });

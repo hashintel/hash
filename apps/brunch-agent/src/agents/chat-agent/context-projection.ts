@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
 import { brunchTools } from "@hashintel/brunch-agent";
-import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
+
+import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
 import type {
   ContextProjection,
@@ -139,10 +140,6 @@ const readAuthority = (
 const contentKey = (
   content: Pick<SettlementAuthority | ReadAuthority, "revisionId" | "sha256">,
 ) => `${content.revisionId}\u0000${content.sha256}`;
-
-const inBandBrowserToolNames: ReadonlySet<string> = new Set(
-  CANONICAL_PETRINAUT_TOOL_NAMES,
-);
 
 /** Flue retains the verified sidecar, but the provider sees only Petrinaut's exact canonical result. */
 const projectInBandBrowserResult = (
