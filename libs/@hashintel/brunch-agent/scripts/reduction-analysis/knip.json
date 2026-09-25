@@ -1,0 +1,60 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "includeEntryExports": true,
+  "ignore": ["**/dist/**", "apps/brunch-agent/.data-wipe-me/**"],
+  "ignoreUnresolved": ["\\.md\\?raw$", "/SKILL\\.md$"],
+  "ignoreBinaries": ["turbo", "pi"],
+  "ignoreIssues": {
+    "apps/brunch-agent/*.config.ts": ["exports"],
+    "apps/brunch-agent/src/{app,db}.ts": ["exports"],
+    "apps/petrinaut-website/api/**/*.ts": ["exports"],
+    "apps/petrinaut-website/src/routes/**": ["exports"],
+    "apps/brunch-agent/.pi/extensions/*.ts": ["exports"]
+  },
+  "workspaces": {
+    "apps/brunch-agent": {
+      "includeEntryExports": true,
+      "entry": [
+        "flue.config.ts!",
+        "src/app.ts!",
+        "src/db.ts!",
+        "src/agents/*/agent.ts!",
+        "src/{deployment-smoke,rds-iam-probe}.ts!",
+        "src/diagnostics/{context-replay-measurement,transcript-cli}.ts!",
+        "src/evaluations/persona/{launch,create-worked-model-fixture,refresh-proof-manifest}.ts!",
+        ".pi/extensions/*.ts!",
+        "test/history-retention-crash.integration.ts",
+        "test/history-retention-runtime-hook.ts",
+        "test/integration/petrinaut-chat.integration.ts",
+        "vite.config.ts!",
+        "vite.client.config.ts!",
+        "petrinaut-local.vite.config.ts!",
+        "src/ui/main.tsx!"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}!",
+        ".pi/**/*.ts!",
+        "*.ts!",
+        "test/**/*.ts"
+      ],
+      "vite": false,
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.integration.config.ts"]
+      }
+    },
+    "apps/petrinaut-website": {
+      "includeEntryExports": true,
+      "entry": ["api/**/*.ts!", "scripts/*.{ts,mjs}!"],
+      "postcss": {
+        "config": ["postcss.config.cjs"]
+      },
+      "ignoreDependencies": ["postcss"]
+    },
+    "libs/@hashintel/brunch-agent/packages/*": {
+      "includeEntryExports": true,
+      "entry": [
+        "src/{index,flue,client-tools,workpiece,constants,worked-model-net-projection}.ts!"
+      ]
+    }
+  }
+}

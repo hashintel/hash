@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "includeEntryExports": true,
+  "resolve": {
+    "conditions": ["@dev/source"]
+  },
+  "entry": [
+    "apps/brunch-agent/flue.config.ts",
+    "apps/brunch-agent/src/app.ts",
+    "apps/brunch-agent/src/db.ts",
+    "apps/brunch-agent/src/agents/*/agent.ts",
+    "apps/brunch-agent/test/history-retention-crash.integration.ts",
+    "apps/brunch-agent/test/history-retention-runtime-hook.ts",
+    "apps/brunch-agent/test/integration/petrinaut-chat.integration.ts",
+    "apps/petrinaut-website/api/**/*.ts",
+    "libs/@hashintel/brunch-agent/scripts/reduction-analysis/*.mts"
+  ],
+  "dynamicallyLoaded": [
+    "apps/brunch-agent/src/evaluations/persona/browser-bridge.ts",
+    "apps/brunch-agent/src/evaluations/persona/brunch-turn.ts"
+  ],
+  "ignorePatterns": ["**/dist/**", "apps/brunch-agent/.data-wipe-me/**"],
+  "ignoreUnresolvedImports": ["*.md?raw", "**/SKILL.md"],
+  "ignoreDependencies": ["oxc-transform-react"],
+  "ignoreExports": [
+    {
+      "file": "apps/brunch-agent/*.config.ts",
+      "exports": ["default"]
+    },
+    {
+      "file": "apps/brunch-agent/src/{app,db}.ts",
+      "exports": ["default"]
+    },
+    {
+      "file": "apps/petrinaut-website/*.config.ts",
+      "exports": ["default"]
+    },
+    {
+      "file": "apps/petrinaut-website/api/**/*.ts",
+      "exports": ["default"]
+    },
+    {
+      "file": "apps/brunch-agent/src/evaluations/persona/browser-bridge.ts",
+      "exports": ["sendPersonaBrowserTurn"]
+    },
+    {
+      "file": "apps/brunch-agent/src/evaluations/persona/brunch-turn.ts",
+      "exports": ["BrunchTurnExtensionApi", "createBrunchTurnTool"]
+    }
+  ],
+  "rules": {
+    "unused-class-member": "off"
+  }
+}
