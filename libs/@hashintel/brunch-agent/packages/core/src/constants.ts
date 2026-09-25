@@ -37,8 +37,6 @@ export const brunchTools = {
 
 /** Conversation modes admitted as `initialData.mode`. */
 export const brunchModes = {
-  /** Minimal exact-Stock control running through Flue, without Brunch composition. */
-  stockOverFlue: "canonical-petrinaut-tools",
   /** Product baseline: Brunch composition with Petrinaut's canonical catalogue. */
   integrated: "integrated-brunch-canonical",
 } as const;
@@ -110,7 +108,6 @@ export const brunchEnv = {
    * them as literal `import.meta.env` accesses so that Vite can replace them.
    */
   viteChatEndpoint: "VITE_BRUNCH_CHAT_ENDPOINT",
-  viteEvaluationMode: "VITE_BRUNCH_EVALUATION_MODE",
 } as const;
 
 /** A Flue tool result that delegates execution to the connected client. */

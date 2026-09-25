@@ -218,9 +218,6 @@ const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
-  (import.meta.env as unknown as Record<string, string | undefined>)[
-    "VITE_BRUNCH_EVALUATION_MODE"
-  ],
 );
 
 export const getBrunchVoiceMode = (
@@ -370,7 +367,7 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
 
 /**
  * The demo's own palette commands, registered beside Petrinaut's.
- * Evaluation modes are build-time-only and deliberately have no product UI.
+ * Brunch and Stock are selected through the product UI.
  */
 const DemoCommands = ({
   createNewNet,
@@ -423,8 +420,6 @@ export const LocalStorageDemoApp = ({
   search: SharedExampleSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
-  // Stock-vs-Brunch remains the native product choice. F/I/A/B only select
-  // the internal composition of Brunch and are never exposed in product UI.
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
@@ -446,8 +441,6 @@ export const LocalStorageDemoApp = ({
       brunchPreviewConfig.isBrunchConfigured,
       assistantSelection,
     );
-  const integratedBrunchSelected =
-    brunchSelected && brunchPreviewConfig.evaluationMode !== "F";
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
   >(undefined);
@@ -484,7 +477,7 @@ export const LocalStorageDemoApp = ({
   }, [navigation]);
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
-  const productConstructionSelected = integratedBrunchSelected;
+  const productConstructionSelected = brunchSelected;
   const { controller } = useDocumentController({
     onOpenDocument: clearSharedLocation,
   });
@@ -646,7 +639,6 @@ export const LocalStorageDemoApp = ({
             ...baseProcessAgentBinding,
             conversationId: brunchEvaluationConversationIdFrom(
               baseProcessAgentBinding.conversationId,
-              brunchPreviewConfig.evaluationMode,
             ),
           },
     [baseProcessAgentBinding],
@@ -696,15 +688,12 @@ export const LocalStorageDemoApp = ({
       "addArc",
     ]);
     names.add(brunchTools.draftPetrinautExperiment);
-    if (brunchPreviewConfig.serverMode === brunchModes.integrated)
-      for (const toolName of canonicalPetrinautClientToolNames)
-        names.add(toolName);
+    for (const toolName of canonicalPetrinautClientToolNames)
+      names.add(toolName);
     return names;
   }, [integratedConstructionBrowser]);
   const constructionClientTools = brunchSelected
-    ? integratedBrunchSelected
-      ? integratedPetrinautClientToolNames
-      : canonicalPetrinautClientToolNames
+    ? integratedPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
@@ -712,9 +701,7 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
     undefined,
-    brunchPreviewConfig.serverMode === brunchModes.integrated
-      ? canonicalPetrinautClientToolNames
-      : undefined,
+    canonicalPetrinautClientToolNames,
   );
   const replayBindingKey = integratedConstructionBrowser
     ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
@@ -802,7 +789,7 @@ export const LocalStorageDemoApp = ({
         conversationTracker,
         {
           initialData: {
-            mode: brunchPreviewConfig.serverMode,
+            mode: brunchModes.integrated,
             ...(constructionBrowser
               ? { construction: { binding: constructionBrowser.binding } }
               : {}),
@@ -822,19 +809,12 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
-                ...(brunchPreviewConfig.serverMode === brunchModes.integrated
-                  ? { asyncClientToolNames: canonicalPetrinautClientToolNames }
-                  : {}),
+                asyncClientToolNames: canonicalPetrinautClientToolNames,
                 dynamicClientToolNames,
                 ...(canonicalHostTools === undefined
                   ? {}
                   : {
-                      mapClientToolInput: (call) =>
-                        brunchPreviewConfig.serverMode ===
-                        brunchModes.integrated
-                          ? call.input
-                          : (canonicalHostTools.mapClientToolInput(call) ??
-                            call.input),
+                      mapClientToolInput: (call) => call.input,
                     }),
               }),
           onAdmission: flueHistory.refresh,
@@ -863,9 +843,7 @@ export const LocalStorageDemoApp = ({
 
   const inBandBrowserTools = useMemo(
     () =>
-      brunchPreviewConfig.serverMode === brunchModes.integrated &&
-      integratedConstructionBrowser &&
-      flueClientPromise
+      integratedConstructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
             client: flueClientPromise,
             principalKey: brunchPrincipal,
@@ -935,7 +913,7 @@ export const LocalStorageDemoApp = ({
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
       // These exact-name tools override the static registry only in integrated
-      // modes. Every other canonical capability remains on Petrinaut's registry.
+      // mode. Every other canonical capability remains on Petrinaut's registry.
       inBandBrowserTools,
       automaticTools: [...(canonicalHostTools?.tools ?? [])],
       interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],

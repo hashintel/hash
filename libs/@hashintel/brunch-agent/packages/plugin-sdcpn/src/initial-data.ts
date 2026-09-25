@@ -2,8 +2,6 @@ import * as v from "valibot";
 
 import { brunchModes } from "@hashintel/brunch-agent/constants";
 
-import { INTEGRATED_PETRINAUT_MODES } from "./construction-mode";
-
 const browserBindingSchema = v.strictObject({
   conversationId: v.string(),
   documentId: v.string(),
@@ -13,10 +11,7 @@ const browserBindingSchema = v.strictObject({
 export const sdcpnInitialDataSchema = v.optional(
   v.pipe(
     v.object({
-      mode: v.picklist([
-        brunchModes.stockOverFlue,
-        ...INTEGRATED_PETRINAUT_MODES,
-      ]),
+      mode: v.literal(brunchModes.integrated),
       construction: v.optional(
         v.strictObject({ binding: browserBindingSchema }),
       ),

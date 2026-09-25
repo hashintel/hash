@@ -11,7 +11,6 @@ import {
   useContextProjection,
   useInitialData,
   useInstruction,
-  useModel,
   useTool,
   type AgentProps,
 } from "@flue/runtime";
@@ -27,10 +26,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
-import {
-  getLatestNetDefinitionToolName,
-  petrinautAiPrompt,
-} from "@hashintel/petrinaut-core";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import {
   selectChatModelSpecifier,
@@ -66,20 +62,11 @@ const chatModelOptions = {
     : { compaction: testCompactionConfig }),
 };
 
-const useStockOverFlueAgent = (): string => {
-  useModel(CHAT_MODEL_SPECIFIER, chatModelOptions);
-  useSdcpnPlugin();
-  return petrinautAiPrompt;
-};
-
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   const admission = modelAdmissionScope.getStore();
   if (admission)
     admission.asyncBrowserTools = initialData?.mode === brunchModes.integrated;
-  if (initialData?.mode === brunchModes.stockOverFlue)
-    return useStockOverFlueAgent();
-
   useContextProjection(projectBrunchContext);
   const browserContext: BrowserContext | undefined = initialData?.construction
     ? { binding: initialData.construction.binding }

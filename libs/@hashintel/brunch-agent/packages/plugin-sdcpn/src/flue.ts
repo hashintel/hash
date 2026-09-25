@@ -19,7 +19,6 @@ import { type SdcpnInitialData } from "./initial-data";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
-  canonicalPetrinautTools,
   asyncCanonicalPetrinautTools,
   type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
@@ -36,9 +35,7 @@ export const useSdcpnPlugin = (
   },
 ): void => {
   const initialData = useInitialData<SdcpnInitialData>();
-  if (initialData?.mode === brunchModes.stockOverFlue) {
-    for (const tool of canonicalPetrinautTools) useTool(tool);
-  } else if (initialData?.mode === brunchModes.integrated) {
+  if (initialData?.mode === brunchModes.integrated) {
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
     useSkill(sdcpnModellingSkill);
@@ -55,9 +52,13 @@ export const useSdcpnPlugin = (
     useInstruction(
       "For Ledger-derived experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
     );
-    for (const tool of options.executeCanonicalBrowserTool
-      ? asyncCanonicalPetrinautTools(options.executeCanonicalBrowserTool)
-      : canonicalPetrinautTools)
+    if (!options.executeCanonicalBrowserTool)
+      throw new Error(
+        "Integrated Brunch requires canonical browser execution.",
+      );
+    for (const tool of asyncCanonicalPetrinautTools(
+      options.executeCanonicalBrowserTool,
+    ))
       useTool(tool);
   } else {
     // A conversation with no initial mode historically offers the skill and docs,

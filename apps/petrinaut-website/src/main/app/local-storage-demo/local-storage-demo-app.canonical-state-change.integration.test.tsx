@@ -93,8 +93,6 @@ vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
-    evaluationMode: "I",
-    serverMode: "integrated-brunch-canonical",
   }),
 }));
 vi.mock("./brunch-principal", () => ({

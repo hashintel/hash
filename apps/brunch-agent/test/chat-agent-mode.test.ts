@@ -5,7 +5,6 @@ import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
 import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautAiCapabilityGuidance,
-  petrinautAiPrompt,
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
@@ -68,17 +67,6 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("F preserves Stock's exact prompt and catalogue without Brunch contributions", async () => {
-  mounted.initialData = { mode: brunchModes.stockOverFlue, construction };
-  const { ChatAgent: renderChatAgent } =
-    await import("../src/agents/chat-agent/agent.ts");
-  expect(renderChatAgent({ id: "stock-control" })).toBe(petrinautAiPrompt);
-  expect(mounted.contextProjections).toBe(0);
-  expect(mounted.tools).toEqual(Object.keys(petrinautAiTools));
-  expect(mounted.skills).toEqual([]);
-  expect(mounted.instructions).toEqual([]);
-});
-
 test("I mounts the complete canonical catalogue plus Brunch workpiece and draft", async () => {
   mounted.initialData = { mode: brunchModes.integrated, construction };
   const { ChatAgent: renderChatAgent } =
@@ -100,25 +88,26 @@ test("I mounts the complete canonical catalogue plus Brunch workpiece and draft"
   expect(mounted.instructions).toContain(petrinautAiCapabilityGuidance);
 });
 
-test("only F and I are admitted with immutable document bindings", () => {
-  for (const mode of [brunchModes.stockOverFlue, brunchModes.integrated])
-    expect(v.parse(sdcpnInitialDataSchema, { mode, construction })).toEqual({
-      mode,
+test("only integrated mode is admitted with immutable document bindings", () => {
+  expect(
+    v.parse(sdcpnInitialDataSchema, {
+      mode: brunchModes.integrated,
       construction,
-    });
+    }),
+  ).toEqual({
+    mode: brunchModes.integrated,
+    construction,
+  });
   expect(
     v.safeParse(sdcpnInitialDataSchema, { mode: brunchModes.integrated })
       .success,
   ).toBe(false);
 });
 
-test("catalogues classify every canonical tool for F/I", () => {
+test("the integrated catalogue classifies every canonical tool", () => {
   const canonicalNames = Object.keys(petrinautAiTools);
   expect(canonicalPetrinautToolCatalogue.map(({ name }) => name)).toEqual(
     canonicalNames,
-  );
-  expect(toolCatalogueByMode[brunchModes.stockOverFlue]).toEqual(
-    canonicalPetrinautToolCatalogue,
   );
   expect(
     toolCatalogueByMode[brunchModes.integrated].map(({ name }) => name),

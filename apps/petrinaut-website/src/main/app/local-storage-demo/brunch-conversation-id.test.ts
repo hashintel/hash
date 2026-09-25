@@ -32,16 +32,7 @@ test("scopes ordinary construction conversations to the net incarnation", () => 
   );
 });
 
-test("isolates every evaluation mode in the conversation namespace", () => {
+test("preserves the integrated conversation namespace", () => {
   const base = ordinaryConstructionConversationIdFrom("incarnation-1");
-  expect(
-    (["F", "I", "A", "B"] as const).map((mode) =>
-      brunchEvaluationConversationIdFrom(base, mode),
-    ),
-  ).toEqual([
-    `${base}:evaluation-F`,
-    `${base}:evaluation-I`,
-    `${base}:evaluation-A`,
-    `${base}:evaluation-B`,
-  ]);
+  expect(brunchEvaluationConversationIdFrom(base)).toBe(`${base}:evaluation-I`);
 });

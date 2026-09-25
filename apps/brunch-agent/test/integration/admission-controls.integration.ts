@@ -19,24 +19,9 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import {
-  brunchModes,
-  brunchSignals,
-  brunchTools,
-} from "@hashintel/brunch-agent";
-import { CANONICAL_PETRINAUT_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  createJsonDocHandle,
-  createPetrinaut,
-} from "@hashintel/petrinaut-core";
-import {
-  createPetrinautAiWritableCallbacks,
-  petrinautAiTools,
-  type PetrinautAiToolInput,
-} from "@hashintel/petrinaut-core/ai";
 
-import { isAwaitingClient } from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -66,21 +51,10 @@ const recordWire = (chunk: ConversationStreamChunk) => {
   record("wire", chunk);
 };
 const unobserve = observe((event) => record("runtime", event));
-type Mode = (typeof brunchModes)[keyof typeof brunchModes];
-const canonicalNames: ReadonlySet<string> = new Set(
-  CANONICAL_PETRINAUT_TOOL_NAMES,
-);
-const browserNames: ReadonlySet<string> = new Set([
-  ...CANONICAL_PETRINAUT_TOOL_NAMES,
-  brunchTools.readPetrinautDocs,
-]);
-// F delivers canonical calls as terminal client tools; I executes them in band.
-const project = (mode: Mode, history: FlueConversationSnapshot) =>
+const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {
-    clientToolNames: browserNames,
-    ...(mode === brunchModes.integrated
-      ? { asyncClientToolNames: canonicalNames }
-      : {}),
+    clientToolNames: new Set(["addType", brunchTools.readPetrinautDocs]),
+    asyncClientToolNames: new Set(["addType"]),
   });
 const faux = fauxProvider({ provider: "openai" });
 const createStall = () => ({
@@ -107,63 +81,26 @@ installFauxProvider({
     return faux.provider.streamSimple(model, context, options);
   },
 } satisfies Provider);
-const toolsFrom = (snapshot: FlueConversationSnapshot) =>
-  snapshot.messages.flatMap((message) =>
-    message.parts.flatMap((part) =>
-      part.type === "dynamic-tool" ? [part] : [],
-    ),
-  );
-const pendingFrom = (snapshot: FlueConversationSnapshot) =>
-  toolsFrom(snapshot).filter(
-    (part) =>
-      part.toolName === "addType" &&
-      part.state === "output-available" &&
-      isAwaitingClient(part.output),
-  );
-/** The part of a headless Petrinaut host these cases need: one addType. */
-const createHeadlessPetrinaut = () => {
-  const instance = createPetrinaut({
-    document: createJsonDocHandle({ initial: { places: [], transitions: [] } }),
-  });
-  const callbacks = createPetrinautAiWritableCallbacks(instance);
-  return {
-    definition: () => structuredClone(instance.definition.get()),
-    addType: (input: unknown) => {
-      callbacks.addType(petrinautAiTools.addType.inputSchema.parse(input));
-      return { applied: true } as const;
-    },
-    dispose: instance.dispose,
-  };
-};
-const typeInput = {
-  id: "synthetic-type",
-  name: "SyntheticType",
-  iconSlug: "circle",
-  displayColor: "#808080",
-  elements: [],
-} satisfies PetrinautAiToolInput<"addType">;
 const question = "What remains unknown?";
 const privateMarkdown =
   "# Workpiece payload must not be spoken\nUnknown timing.";
 const makeCall = (name: string, baseRevisionId: string | null) =>
   fauxToolCall(
     name,
-    name === "addType"
-      ? typeInput
-      : name === brunchTools.mutateWorkpiece
-        ? { markdown: privateMarkdown, baseRevisionId }
-        : { question },
+    name === brunchTools.mutateWorkpiece
+      ? { markdown: privateMarkdown, baseRevisionId }
+      : { question },
     { id: `${caseId}-${name}` },
   );
 const run = async () => {
   const application = await loadBuiltBrunchApplication();
-  const clientFor = (mode: Mode) => {
+  const clientFor = () => {
     const identity = {
       principalKey: "admission-synthetic",
       conversationId: `${crypto.randomUUID()}-${caseId}`,
     };
     const initialData = {
-      mode,
+      mode: brunchModes.integrated,
       construction: {
         binding: {
           conversationId: identity.conversationId,
@@ -225,102 +162,63 @@ const run = async () => {
     return { seed, seeded: await client.history() };
   };
   const observations = [];
+  const refusals = [];
   try {
-    // F refuses any browser/server mix (`task` is Flue's built-in server tool,
-    // mounted in F) and delivers browser results by signal. I admits
-    // independent mixes by design and mounts the server-side Ledger revision.
-    for (const [mode, names] of [
-      [brunchModes.stockOverFlue, ["task", "addType"]],
-      [brunchModes.stockOverFlue, ["addType", "task"]],
-      [brunchModes.stockOverFlue, ["addType", "unmounted_admission_probe"]],
-      [brunchModes.stockOverFlue, ["addType"]],
-      [brunchModes.integrated, [brunchTools.mutateWorkpiece]],
-    ] as const) {
+    // I admits allowlisted mixes; `task` (Flue's built-in server tool) and an
+    // unmounted name are outside that allowlist beside a browser tool.
+    for (const names of [
+      ["task", "addType"],
+      ["addType", "task"],
+      ["addType", "unmounted_admission_probe"],
+    ]) {
       caseId = names.join("-");
-      const conversation = clientFor(mode);
-      const { client, send } = conversation;
-      const baseRevisionId = `${caseId}-old-revision`;
-      const seeding =
-        mode === brunchModes.integrated
-          ? await seedRevision(conversation, baseRevisionId)
-          : undefined;
+      const conversation = clientFor();
       const requestStart = requests.length;
-      const generated = names.map((name) =>
-        makeCall(name, seeding ? baseRevisionId : null),
-      );
+      const generated = names.map((name) => makeCall(name, null));
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
         fauxAssistantMessage([fauxText(question)]),
       ]);
-      const attempt = await send({
+      const attempt = await conversation.send({
         kind: "user",
         body: "Synthetic admission-control probe; no plant facts.",
       });
-      const history = await client.history();
-      const providerCallsBeforeClientResult = requests.length - requestStart;
-      const headless = createHeadlessPetrinaut();
-      try {
-        const before = headless.definition();
-        const pending = pendingFrom(history);
-        const results = [];
-        for (const call of pending)
-          results.push({
-            toolCallId: call.toolCallId,
-            toolName: call.toolName,
-            output: headless.addType(call.input),
-          });
-        const after = headless.definition();
-        let continuation;
-        if (names.length === 1 && results.length === 1) {
-          const signal = {
-            kind: "signal" as const,
-            type: brunchSignals.clientToolResult,
-            tagName: brunchSignals.clientToolResult,
-            body: JSON.stringify(
-              results.map((result) => ({ ...result, source: "voice" })),
-            ),
-          };
-          faux.setResponses([
-            fauxAssistantMessage([
-              fauxText("The correlated synthetic client result is received."),
-            ]),
-          ]);
-          record("client-result-send", signal);
-          const outcome = await send(signal);
-          const resumed = await client.history();
-          continuation = {
-            outcome,
-            history: resumed,
-            projected: project(mode, resumed),
-            definitionAfterResume: headless.definition(),
-            totalProviderCalls: requests.length - requestStart,
-          };
-        }
-        observations.push({
-          caseId,
-          mode,
-          seed: seeding?.seed,
-          seeded: seeding?.seeded,
-          generated,
-          attempt,
-          history,
-          projected: project(mode, history),
-          providerCallsBeforeClientResult,
-          pendingMutationIds: pending.map((part) => part.toolCallId),
-          results,
-          before,
-          after,
-          continuation,
-        });
-      } finally {
-        headless.dispose();
-      }
+      refusals.push({
+        caseId,
+        generated,
+        attempt,
+        history: await conversation.client.history(),
+        providerCalls: requests.length - requestStart,
+      });
     }
+    caseId = brunchTools.mutateWorkpiece;
+    const conversation = clientFor();
+    const baseRevisionId = `${caseId}-old-revision`;
+    const seeding = await seedRevision(conversation, baseRevisionId);
+    const requestStart = requests.length;
+    faux.setResponses([
+      fauxAssistantMessage(
+        [makeCall(brunchTools.mutateWorkpiece, baseRevisionId)],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText(question)]),
+    ]);
+    const attempt = await conversation.send({
+      kind: "user",
+      body: "Synthetic admission-control probe; no plant facts.",
+    });
+    observations.push({
+      caseId,
+      seed: seeding.seed,
+      seeded: seeding.seeded,
+      attempt,
+      providerCallsBeforeClientResult: requests.length - requestStart,
+    });
     // Voice runs on I, the product baseline, which also mounts the Ledger.
     const buffering = [];
     for (const abort of [false, true]) {
       caseId = abort ? "buffered-cancelled" : "buffered-valid";
-      const { client, initialData } = clientFor(brunchModes.integrated);
+      const { client, initialData } = clientFor();
       const stalled = createStall();
       const progressed = Promise.withResolvers<void>();
       nextStall = stalled;
@@ -419,22 +317,14 @@ const run = async () => {
         upstreamAborted: stalled.signal?.aborted,
         during,
         after,
-        projectedDuring: project(brunchModes.integrated, during),
-        projectedAfter: project(brunchModes.integrated, after),
+        projectedDuring: project(during),
+        projectedAfter: project(after),
         text,
         privateMarkdown,
       });
     }
-    // The rejected F conversation holds only the refused submission.
-    const rejected = observations.find(
-      (observation) => observation.caseId === "task-addType",
-    )!;
-    const voice: AdmissionVoiceEvidence = {
-      question,
-      buffering,
-      rejectedMessages: rejected.projected,
-    };
-    return { observations, buffering, question, wire, voice };
+    const voice: AdmissionVoiceEvidence = { question, buffering };
+    return { observations, refusals, buffering, question, wire, voice };
   } finally {
     await application.stop();
     unobserve();
