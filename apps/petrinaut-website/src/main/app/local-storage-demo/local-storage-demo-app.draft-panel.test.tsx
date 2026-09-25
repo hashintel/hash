@@ -1,6 +1,4 @@
 /** @vitest-environment jsdom */
-import { createHash } from "node:crypto";
-
 import {
   cleanup,
   fireEvent,
@@ -245,31 +243,16 @@ test.each(["Dismiss", "Run"] as const)(
       "read-1",
       readOutput,
     );
-    const markdown =
-      "Decision: observe baseline throughput over one unit of time; do not claim a guarantee.";
     let history: FlueConversationState = {
       conversationId: binding.conversationId,
       settlements: [],
       messages: [
         {
-          id: "assistant-ledger-read",
+          id: "assistant-read",
           display: "visible",
           role: "assistant",
           purpose: "assistant",
           parts: [
-            {
-              type: "dynamic-tool",
-              toolCallId: "ledger-1",
-              toolName: "mutate_workpiece",
-              state: "output-available",
-              input: { markdown },
-              output: {
-                revisionId: "ledger-1",
-                sha256: createHash("sha256").update(markdown).digest("hex"),
-                ordinal: 1,
-                disposition: "applied",
-              },
-            },
             {
               type: "dynamic-tool",
               toolCallId: "read-1",

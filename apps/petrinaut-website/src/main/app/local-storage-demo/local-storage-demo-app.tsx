@@ -858,7 +858,6 @@ export const LocalStorageDemoApp = ({
               const client = await flueClientPromise;
               return resolveDraftAuthorityFromHistory(
                 await client.history(),
-                integratedConstructionBrowser.binding,
                 toolCallId,
               );
             },

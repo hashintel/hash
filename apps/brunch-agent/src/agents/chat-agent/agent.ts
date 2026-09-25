@@ -33,15 +33,9 @@ import {
   selectChatThinking,
 } from "../../chat-model.ts";
 import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
-import {
-  latestNetReadBefore,
-  latestSettledWorkpieceBefore,
-} from "../../conversation/net-changes.ts";
+import { latestNetReadBefore } from "../../conversation/net-changes.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
-import {
-  retainedSettledRevision,
-  workpieceEvidenceSources,
-} from "../../conversation/workpiece.ts";
+import { workpieceEvidenceSources } from "../../conversation/workpiece.ts";
 import { modelAdmissionScope } from "../../provider-admission.ts";
 import { projectBrunchContext } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
@@ -89,26 +83,13 @@ export function ChatAgent({ id }: AgentProps) {
     chatModelOptions,
     (currentRevision) => {
       useSdcpnPlugin({
-        currentRevision,
-        retainedRevisionFor: async (revisionId) =>
-          retainedSettledRevision(await history(), revisionId),
         ...(browserContext
           ? {
               authorizeDraft: async (draftCallId: string) => {
-                const snapshot = await history();
-                const revision = latestSettledWorkpieceBefore(
-                  snapshot,
-                  draftCallId,
-                );
-                if (!revision)
-                  throw new Error(
-                    "Experiment draft requires a current settled Ledger basis.",
-                  );
-                if (!latestNetReadBefore(snapshot, draftCallId))
+                if (!latestNetReadBefore(await history(), draftCallId))
                   throw new Error(
                     "Experiment draft requires a prior canonical net read.",
                   );
-                return { revisionId: revision.revisionId };
               },
             }
           : {}),

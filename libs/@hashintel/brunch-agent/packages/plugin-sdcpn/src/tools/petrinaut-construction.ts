@@ -4,15 +4,6 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../construction-tool-names";
 
-import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
-
-export interface WorkpieceAuthorityOptions {
-  readonly currentRevision: WorkpieceRevision | null;
-  readonly retainedRevisionFor: (
-    revisionId: string,
-  ) => Promise<WorkpieceRevision | undefined>;
-}
-
 type CanonicalJson =
   | string
   | number

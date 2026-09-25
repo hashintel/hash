@@ -252,19 +252,7 @@ const draftedExperiment = async () => {
     savedDocument("draft-net", experimentNet),
   );
   faux.setResponses([
-    toolCall(
-      "mutate_workpiece",
-      {
-        markdown:
-          "Decision: observe baseline throughput for one time unit; no guarantee is established.",
-        baseRevisionId: null,
-      },
-      "ledger-1",
-    ),
-    (context: Context) => {
-      settledResult(context, "mutate_workpiece");
-      return toolCall("getLatestNetDefinition", {}, "read-1");
-    },
+    toolCall("getLatestNetDefinition", {}, "read-1"),
     (context: Context) => {
       settledResult(context, "getLatestNetDefinition");
       return toolCall(
@@ -299,7 +287,7 @@ const draftedExperiment = async () => {
   ]);
   const delivery = await fixture.ask(
     page,
-    "Record the decision, read this saved net, then draft the baseline experiment for review.",
+    "Read this saved net, then draft the baseline experiment for review.",
     "Draft prepared, not run.",
     90_000,
   );
@@ -330,11 +318,7 @@ const draftedExperiment = async () => {
       .flatMap((message) => message.parts)
       .filter((part) => part.type === "dynamic-tool")
       .map((part) => part.toolName),
-    [
-      "mutate_workpiece",
-      "getLatestNetDefinition",
-      "draft_petrinaut_experiment",
-    ],
+    ["getLatestNetDefinition", "draft_petrinaut_experiment"],
   );
   const postsBeforeDismiss = fixture.deliveries.length;
   await card.getByRole("button", { name: "Dismiss" }).click();

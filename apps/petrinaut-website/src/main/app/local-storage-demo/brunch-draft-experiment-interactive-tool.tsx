@@ -8,7 +8,6 @@ import {
   type DraftPetrinautExperimentOutput,
   draftPetrinautExperimentOutputSchema,
   parseClientToolResultMetadata,
-  type BrowserBinding,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { css } from "@hashintel/ds-helpers/css";
@@ -39,10 +38,6 @@ import {
   resetEditorDrafts,
   editorDraftsFor,
 } from "./brunch-draft-experiment-interactive-tool/editor-drafts";
-import {
-  foldBrunchWorkpieceHistory,
-  settledBrunchWorkpieceRevisionFrom,
-} from "./brunch-workpiece-history";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
@@ -171,7 +166,6 @@ export const resetBrunchEditorDrafts = resetEditorDrafts;
 /** Resolve only the history before the exact issued call, never a model-supplied citation. */
 export const resolveDraftAuthorityFromHistory = async (
   snapshot: FlueConversationState,
-  binding: BrowserBinding,
   draftCallId: string,
 ): Promise<string> => {
   const positions = snapshot.messages.flatMap((message, messageIndex) =>
@@ -202,11 +196,6 @@ export const resolveDraftAuthorityFromHistory = async (
       ? entry.parts.filter((part) => part.type === "dynamic-tool")
       : [],
   );
-  const ledger = settledBrunchWorkpieceRevisionFrom(
-    foldBrunchWorkpieceHistory(prefix.messages, binding),
-  );
-  if (!ledger)
-    throw new Error("Draft requires a current settled Ledger basis.");
   // The draft must follow a net read with no document change after it.
   const relevant = calls.filter(
     (call) =>

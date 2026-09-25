@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { describe, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent/constants";
@@ -12,13 +10,6 @@ import { createDraftExperimentTool } from "../src/tools/draft-experiment";
 
 import type { BrowserToolExecutor } from "../src/tools/petrinaut-construction";
 
-const currentRevision = {
-  revisionId: "revision-1",
-  ordinal: 1,
-  markdown: "Queue work.",
-  sha256: createHash("sha256").update("Queue work.").digest("hex"),
-  evidence: [],
-};
 const experiment = {
   name: "Vans on the parcel route",
   scenarioId: "scenario-peak",
@@ -242,12 +233,8 @@ describe("draft_petrinaut_experiment output schema", () => {
 });
 
 describe("createDraftExperimentTool", () => {
-  test("authorizes against a prior read and settled Ledger, then awaits the browser preparation in band", async () => {
-    const authorizeDraft = vi.fn<() => Promise<{ revisionId: string }>>(
-      async () => ({
-        revisionId: currentRevision.revisionId,
-      }),
-    );
+  test("authorizes against a prior read, then awaits the browser preparation in band", async () => {
+    const authorizeDraft = vi.fn<() => Promise<void>>(async () => {});
     const prepared = {
       status: "drafted" as const,
       summary: "Drafted.",
@@ -257,8 +244,6 @@ describe("createDraftExperimentTool", () => {
       output: prepared,
     }));
     const tool = createDraftExperimentTool({
-      currentRevision,
-      retainedRevisionFor: async () => undefined,
       authorizeDraft,
       executeBrowserTool,
     });
@@ -277,38 +262,18 @@ describe("createDraftExperimentTool", () => {
     });
   });
 
-  test("fails closed for an absent read or unsettled basis", async () => {
+  test("fails closed for an absent read", async () => {
     const executeBrowserTool = vi.fn<BrowserToolExecutor>(async () => ({
       output: null,
     }));
-    const options = {
-      currentRevision,
-      retainedRevisionFor: async () => undefined,
-      executeBrowserTool,
-    };
     await expect(
       createDraftExperimentTool({
-        ...options,
+        executeBrowserTool,
         authorizeDraft: async () => {
           throw new Error("Absent canonical read");
         },
       }).run({ toolCallId: "draft-1", data: input } as never),
     ).rejects.toThrow(/Absent canonical read/u);
-    await expect(
-      createDraftExperimentTool({
-        ...options,
-        authorizeDraft: async () => ({ revisionId: "other" }),
-      }).run({ toolCallId: "draft-1", data: input } as never),
-    ).rejects.toThrow(/stale or unsettled/u);
-    await expect(
-      createDraftExperimentTool({
-        ...options,
-        currentRevision: null,
-        authorizeDraft: async () => ({
-          revisionId: currentRevision.revisionId,
-        }),
-      }).run({ toolCallId: "draft-1", data: input } as never),
-    ).rejects.toThrow(/Settle a Ledger/u);
     expect(executeBrowserTool).not.toHaveBeenCalled();
   });
 });

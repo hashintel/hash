@@ -78,7 +78,7 @@ export const draftPetrinautExperimentInputSchema = z
     }
   })
   .describe(
-    "Draft one experiment for this conversation from the settled Ledger and latest canonical net read. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",
+    "Draft one experiment for this conversation from the latest canonical net read. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",
   );
 
 export type DraftPetrinautExperimentInput = z.output<
