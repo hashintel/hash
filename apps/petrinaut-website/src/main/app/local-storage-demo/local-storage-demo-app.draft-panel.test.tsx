@@ -17,6 +17,7 @@ import {
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
+import { assistantSelectionStorageKey } from "./assistant-selection";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -180,7 +181,8 @@ test.each(["Dismiss", "Run"] as const)(
         return 0;
       },
       clear() {},
-      getItem: () => null,
+      getItem: (key: string) =>
+        key === assistantSelectionStorageKey ? "brunch" : null,
       key: () => null,
       removeItem() {},
       setItem() {},
@@ -199,25 +201,18 @@ test.each(["Dismiss", "Run"] as const)(
       revisionId: "initial-revision",
       title: "Queue",
       definition,
-      origin: { kind: "template", bundleKey: "fixture", fixtureVersion: "1" },
     };
     fixture.controller = {
-      source: {
-        repository: {
-          records: [documentRecord],
-          current: documentRecord,
-          status: { state: "ready" },
-          open() {},
-          actions: {},
-          persistRevision: async () => {},
-          settleRevision: async () => {},
-        },
-        processAgentSeed: {
-          documentId: binding.documentId,
-          conversationId: baseId,
-        },
+      repository: {
+        records: [documentRecord],
+        current: documentRecord,
+        status: { state: "ready" },
+        open() {},
+        actions: { create: () => documentRecord, rename() {} },
+        persistRevision: async () => {},
+        settleRevision: async () => {},
       },
-      createLocalAndOpen() {},
+      createAndOpen() {},
     };
     const handle = createJsonDocHandle({
       id: binding.documentId,
@@ -410,12 +405,7 @@ test.each(["Dismiss", "Run"] as const)(
       }),
     } as unknown as FlueClient;
     fixture.client = client;
-    render(
-      <LocalStorageDemoApp
-        search={{ bundle: "fixture" }}
-        onSearchChange={() => {}}
-      />,
-    );
+    render(<LocalStorageDemoApp search={{}} onSearchChange={() => {}} />);
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",
     });

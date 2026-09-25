@@ -11,7 +11,6 @@ const writeVoicePreference = (enabled: boolean): void =>
 
 export const useVoicePreference = () => {
   const [enabled, setEnabled, ready] = usePersistedState({
-    enabled: true,
     fallback: true,
     read: readVoicePreference,
     write: writeVoicePreference,
@@ -33,7 +32,6 @@ const writeRealtimePreference = (enabled: boolean): void =>
 
 export const useRealtimePreference = () => {
   const [enabled, setEnabled, ready] = usePersistedState({
-    enabled: true,
     fallback: false,
     read: readRealtimePreference,
     write: writeRealtimePreference,

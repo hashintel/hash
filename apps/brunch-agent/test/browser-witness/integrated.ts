@@ -10,7 +10,6 @@ import {
   fauxText,
   type Context,
 } from "@earendil-works/pi-ai";
-import { Hono } from "hono";
 
 import { brunchModes } from "@hashintel/brunch-agent";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
@@ -19,11 +18,6 @@ import {
   isAppliedChange,
   netCalls,
 } from "../../src/conversation/net-changes.ts";
-import { createWorkedModelNetProjectionRouter } from "../../src/http/worked-models.ts";
-import {
-  createInMemoryWorkedModelStore,
-  type WorkedModelFixture,
-} from "../../src/worked-model-store.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,
@@ -38,46 +32,8 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 prepareWitnessProcess("integrated-browser-witness");
 const faux = installFauxOpenai();
 
-const workedModel: WorkedModelFixture = {
-  bundleKey: "inventory-purchasing",
-  fixtureVersion: "net-projection-tracer-v1",
-  sourceManifestSha256: "f".repeat(64),
-  title: "Inventory purchasing net-projection tracer",
-  session: {
-    v: 1,
-    conversationId: "fixture-source",
-    offset: "fixture-offset",
-    messages: [],
-    settlements: [],
-  },
-  workpiece: "# Net-projection tracer\n\nOne receiving place.",
-  definition: {
-    places: [],
-    transitions: [],
-    types: [],
-    parameters: [],
-    differentialEquations: [],
-  },
-  revisionId: "net-projection-tracer-fixture-revision",
-};
-let nextCopyId = 0;
-const workedModels = createInMemoryWorkedModelStore(
-  () => `net-projection-tracer-${nextCopyId++}`,
-);
-await workedModels.seed([workedModel]);
-const workedModelRoutes = new Hono().route(
-  "/api/worked-models",
-  createWorkedModelNetProjectionRouter(workedModels),
-);
-
-const built = await loadBuiltBrunchApplication();
-const fixture = await openBrowserFixture({
-  fetch: (request) =>
-    new URL(request.url).pathname.startsWith("/api/worked-models/")
-      ? workedModelRoutes.fetch(request)
-      : built.fetch(request),
-  stop: () => built.stop(),
-});
+const app = await loadBuiltBrunchApplication();
+const fixture = await openBrowserFixture(app);
 
 const experimentNet: SDCPN = {
   places: [],
@@ -394,87 +350,11 @@ const draftedExperiment = async () => {
   );
 };
 
-/**
- * An injected worked model: net mutation, reopen, clean net and principal
- * isolation. It does not prove build discovery, Postgres, retained fixture
- * session/workpiece hydration or provenance remapping.
- */
-const workedModelNetProjection = async () => {
-  const lookup = (principalKey: string) =>
-    workedModels.resolveNetProjection({
-      bundleKey: workedModel.bundleKey,
-      principalKey,
-    });
-  const bundlePath = `/?bundle=${workedModel.bundleKey}`;
-  const reply = "Worked-model net projection mutation completed.";
-  const page = await fixture.openAssistant(bundlePath);
-  faux.setResponses([
-    toolCall(
-      "addPlace",
-      {
-        id: "receiving",
-        name: "Receiving",
-        colorId: null,
-        dynamicsEnabled: false,
-        differentialEquationId: null,
-        x: 0,
-        y: 0,
-      },
-      "place-1",
-    ),
-    fauxAssistantMessage([fauxText(reply)]),
-  ]);
-  await fixture.ask(page, "Add the receiving place.", reply, 60_000);
-  const principalKey = await fixture.principalOf(page);
-  const changed = await lookup(principalKey);
-  assert.equal(changed?.definition.places[0]?.id, "receiving");
-
-  await page.reload();
-  await page
-    .getByRole("button", { name: "Show AI assistant", exact: true })
-    .click();
-  await page.getByText(reply, { exact: true }).waitFor({ timeout: 30_000 });
-  const reopened = await lookup(principalKey);
-  assert.equal(reopened?.copyId, changed.copyId);
-  assert.equal(reopened.definition.places[0]?.id, "receiving");
-
-  await page.keyboard.press("Meta+k");
-  await page
-    .getByRole("button", {
-      name: /Create a fresh net projection from this template/u,
-    })
-    .click();
-  await page.waitForFunction(
-    () => localStorage.getItem("brunch-principal-v1") !== null,
-  );
-  const clean = await lookup(principalKey);
-  assert(clean);
-  assert.notEqual(clean.copyId, changed.copyId);
-  assert.equal(clean.definition.places.length, 0);
-
-  const siblingPage = await fixture.openPage();
-  try {
-    await siblingPage.goto(`${fixture.origin}${bundlePath}`);
-    await siblingPage.waitForFunction(
-      () => localStorage.getItem("brunch-principal-v1") !== null,
-    );
-    const siblingPrincipal = await fixture.principalOf(siblingPage);
-    assert.notEqual(siblingPrincipal, principalKey);
-    const sibling = await lookup(siblingPrincipal);
-    assert(sibling);
-    assert.notEqual(sibling.copyId, clean.copyId);
-    assert.equal(sibling.definition.places.length, 0);
-  } finally {
-    await siblingPage.context().close();
-  }
-};
-
 try {
   for (const witness of [
     canonicalConstruction,
     directExperiment,
     draftedExperiment,
-    workedModelNetProjection,
   ]) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- The cases share one scripted response queue.
     await witness();
@@ -499,6 +379,6 @@ try {
   try {
     await fixture.close();
   } finally {
-    await built.stop();
+    await app.stop();
   }
 }

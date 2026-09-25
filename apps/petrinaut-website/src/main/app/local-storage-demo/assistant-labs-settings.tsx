@@ -95,7 +95,6 @@ export const AssistantLabsSettings = ({
   assistantReady,
   brunchConfigured,
   brunchSelected,
-  forceBrunch,
   openAIVoiceConfig,
   realtimeEnabled,
   realtimePreferenceReady,
@@ -108,7 +107,6 @@ export const AssistantLabsSettings = ({
   readonly assistantReady: boolean;
   readonly brunchConfigured: boolean;
   readonly brunchSelected: boolean;
-  readonly forceBrunch: boolean;
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
   readonly realtimeEnabled: boolean;
   readonly realtimePreferenceReady: boolean;
@@ -122,9 +120,7 @@ export const AssistantLabsSettings = ({
     ? "Loading your assistant preference…"
     : !brunchConfigured
       ? "Brunch is unavailable because this site has no Brunch endpoint configured."
-      : forceBrunch
-        ? "This document requires Brunch."
-        : "Use Brunch instead of the stock Petrinaut assistant.";
+      : "Use Brunch instead of the stock Petrinaut assistant.";
   const voiceDescription = !voicePreferenceReady
     ? "Loading your Voice preference…"
     : !brunchSelected
@@ -140,7 +136,7 @@ export const AssistantLabsSettings = ({
       <h3 className={sectionTitleStyle}>AI assistant</h3>
       <AssistantSetting
         description={brunchDescription}
-        disabled={!assistantReady || !brunchConfigured || forceBrunch}
+        disabled={!assistantReady || !brunchConfigured}
         label="Use Brunch"
         onChange={(enabled) => selectAssistant(enabled ? "brunch" : "stock")}
         value={brunchSelected}

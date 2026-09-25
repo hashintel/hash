@@ -10,7 +10,6 @@
     "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
     "dev": "vite dev",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "fixture:worked-model": "node --experimental-strip-types src/evaluations/persona/create-worked-model-fixture.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "measure:context-replay": "node --experimental-strip-types src/diagnostics/context-replay-measurement.ts",
@@ -21,15 +20,11 @@
     "smoke:deployment": "node --experimental-strip-types src/deployment-smoke.ts",
     "start": "PORT=3002 node dist/server.mjs",
     "start:healthcheck": "wait-on --timeout 1200000 http-get://localhost:3002/health",
-    "start:test": "NODE_ENV=test PORT=3002 node dist/server.mjs",
-    "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:3002/health",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:manual:integrated-browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch VITE_BRUNCH_EVALUATION_MODE=I turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/integrated.ts",
     "test:manual:stock-over-flue-browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch VITE_BRUNCH_EVALUATION_MODE=F turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/stock-over-flue.ts",
-    "test:manual:workpiece-evidence": "node --experimental-strip-types test/workpiece-evidence.integration.ts",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:worked-model-bundle-copy": "vitest run --config vitest.config.ts --reporter=verbose test/worked-model-bundle-copy.contract.test.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },
   "dependencies": {

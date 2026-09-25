@@ -84,7 +84,7 @@ vi.mock("./documents/use-document-controller", async (importOriginal) => {
       input: Parameters<typeof actual.useDocumentController>[0],
     ) => {
       const result = actual.useDocumentController(input);
-      fixture.repository = result.controller.source.repository;
+      fixture.repository = result.controller.repository;
       return result;
     },
   };

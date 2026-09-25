@@ -61,8 +61,6 @@ export const brunchRoutes = {
   chatAgent: "chat",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */
   health: "/health",
-  /** Principal-owned net projections instantiated from build-seeded worked-model fixtures. */
-  workedModels: "/api/worked-models",
 } as const;
 
 /** Per-conversation persistent state keys. */

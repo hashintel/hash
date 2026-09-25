@@ -112,8 +112,6 @@ const buildCorsTestApp = (
 ) => {
   const app = new Hono();
   app.use("/agents/*", createAgentCors(allowedOrigins));
-  app.use("/api/worked-models/*", createAgentCors(allowedOrigins));
-  app.all("/api/worked-models/*", (context) => context.text("admitted"));
   app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
   app.all(`${mount}/*`, (context) => context.text("admitted"));
   app.get(brunchRoutes.health, (context) => context.text("healthy"));
@@ -143,7 +141,7 @@ test("answers an allowed preflight before ownership", async () => {
     allowedOrigin,
   );
   expect(response.headers.get("access-control-allow-methods")).toBe(
-    "GET,POST,PUT,OPTIONS",
+    "GET,POST,OPTIONS",
   );
   expect(response.headers.get("access-control-allow-headers")).toBe(
     `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
@@ -153,33 +151,6 @@ test("answers an allowed preflight before ownership", async () => {
   expect(response.headers.get("vary")).toContain("Origin");
   expect(response.headers.get("vary")).toContain(
     "Access-Control-Request-Headers",
-  );
-});
-
-test("answers an allowed worked-model PUT preflight with its actual request envelope", async () => {
-  const response = await buildCorsTestApp().fetch(
-    new Request(
-      "http://brunch.test/api/worked-models/copies/copy-1/definition",
-      {
-        method: "OPTIONS",
-        headers: {
-          Origin: allowedOrigin,
-          "Access-Control-Request-Method": "PUT",
-          "Access-Control-Request-Headers": `content-type,${brunchHeaders.principal}`,
-        },
-      },
-    ),
-  );
-
-  expect(response.status).toBe(204);
-  expect(response.headers.get("access-control-allow-origin")).toBe(
-    allowedOrigin,
-  );
-  expect(response.headers.get("access-control-allow-methods")).toBe(
-    "GET,POST,PUT,OPTIONS",
-  );
-  expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
   );
 });
 

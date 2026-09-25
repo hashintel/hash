@@ -16,11 +16,6 @@
       "@dev/source": "./src/flue.ts",
       "import": "./dist/flue.js"
     },
-    "./worked-model": {
-      "types": "./src/worked-model-net-projection.ts",
-      "@dev/source": "./src/worked-model-net-projection.ts",
-      "import": "./dist/worked-model.js"
-    },
     "./skills/sdcpn-modelling/SKILL.md": "./src/skills/sdcpn-modelling/SKILL.md"
   },
   "scripts": {
