@@ -7,7 +7,10 @@ use aide::{
     generate::GenContext,
     openapi::{Operation, ReferenceOr},
 };
-use axum::extract::{FromRequest, Request, rejection::JsonRejection};
+use axum::extract::{
+    FromRequest, Request,
+    rejection::{BytesRejection, FailedToBufferBody, JsonRejection},
+};
 use hash_middleware::problem::InternalServerError;
 use http::StatusCode;
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
@@ -28,6 +31,14 @@ impl ProblemVariant for MalformedJson {
         title: Cow::Borrowed("Bad Request"),
         status: StatusCode::BAD_REQUEST,
     };
+
+    fn example() -> Option<Self> {
+        axum::Json::<serde_json::Value>::from_bytes(b"{")
+            .err()
+            .map(|rejection| Self {
+                detail: rejection.body_text(),
+            })
+    }
 }
 
 /// The request body could not be read to its end.
@@ -44,6 +55,13 @@ impl ProblemVariant for UnreadableBody {
         title: Cow::Borrowed("Bad Request"),
         status: StatusCode::BAD_REQUEST,
     };
+
+    fn example() -> Option<Self> {
+        Some(Self {
+            detail: "Failed to buffer the request body: error reading a body from connection"
+                .to_owned(),
+        })
+    }
 }
 
 /// The request body is larger than the operation accepts.
@@ -60,9 +78,15 @@ impl ProblemVariant for BodyTooLarge {
         title: Cow::Borrowed("Content Too Large"),
         status: StatusCode::PAYLOAD_TOO_LARGE,
     };
+
+    fn example() -> Option<Self> {
+        Some(Self {
+            detail: "Failed to buffer the request body: length limit exceeded".to_owned(),
+        })
+    }
 }
 
-/// The request does not declare its body as `application/json`.
+/// The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("{detail}")]
 struct UnsupportedMediaType {
@@ -76,6 +100,12 @@ impl ProblemVariant for UnsupportedMediaType {
         title: Cow::Borrowed("Unsupported Media Type"),
         status: StatusCode::UNSUPPORTED_MEDIA_TYPE,
     };
+
+    fn example() -> Option<Self> {
+        Some(Self {
+            detail: "Expected request with `Content-Type: application/json`".to_owned(),
+        })
+    }
 }
 
 /// The request body is well-formed JSON of a shape the operation does not accept.
@@ -92,9 +122,17 @@ impl ProblemVariant for InvalidBody {
         title: Cow::Borrowed("Unprocessable Content"),
         status: StatusCode::UNPROCESSABLE_ENTITY,
     };
+
+    fn example() -> Option<Self> {
+        axum::Json::<u8>::from_bytes(br#""many""#)
+            .err()
+            .map(|rejection| Self {
+                detail: rejection.body_text(),
+            })
+    }
 }
 
-/// The ways [`Json`] refuses a request body.
+/// The ways [`Json`] rejects a request body.
 pub(in crate::rest) struct JsonProblem;
 
 impl Problem for JsonProblem {
@@ -115,21 +153,21 @@ impl Expose<JsonProblem> for JsonRejection {
             Self::JsonSyntaxError(_) => Answer::new(MalformedJson { detail }),
             Self::JsonDataError(_) => Answer::new(InvalidBody { detail }),
             Self::MissingJsonContentType(_) => Answer::new(UnsupportedMediaType { detail }),
-            Self::BytesRejection(rejection)
-                if rejection.status() == StatusCode::PAYLOAD_TOO_LARGE =>
-            {
-                Answer::new(BodyTooLarge { detail })
+            Self::BytesRejection(BytesRejection::FailedToBufferBody(
+                FailedToBufferBody::LengthLimitError(_),
+            )) => Answer::new(BodyTooLarge { detail }),
+            Self::BytesRejection(BytesRejection::FailedToBufferBody(
+                FailedToBufferBody::UnknownBodyError(_),
+            )) => Answer::new(UnreadableBody { detail }),
+            // `JsonRejection` and the rejections it wraps are `#[non_exhaustive]`: these arms
+            // handle a rejection a later axum version adds until an arm above names it.
+            Self::BytesRejection(_) | _ if self.status().is_server_error() => {
+                tracing::error!(status = %self.status(), %detail, "axum rejected the JSON body in a way this extractor does not name");
+                Answer::new(InternalServerError)
             }
-            Self::BytesRejection(_) => Answer::new(UnreadableBody { detail }),
-            _ => {
-                // `JsonRejection` is not exhaustive: a rejection added upstream lands here until
-                // it is named above.
-                tracing::warn!(status = %self.status(), %detail, "the JSON body was refused in a way this extractor does not name");
-                if self.status().is_server_error() {
-                    Answer::new(InternalServerError)
-                } else {
-                    Answer::new(UnreadableBody { detail })
-                }
+            Self::BytesRejection(_) | _ => {
+                tracing::warn!(status = %self.status(), %detail, "axum rejected the JSON body in a way this extractor does not name");
+                Answer::new(UnreadableBody { detail })
             }
         }
     }

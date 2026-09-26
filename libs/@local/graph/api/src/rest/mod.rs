@@ -7,7 +7,7 @@ mod documentation;
     expect(
         dead_code,
         unused_imports,
-        reason = "the entity and type operations will read their requests through these extractors"
+        reason = "only the tests read requests through these extractors"
     )
 )]
 mod extract;

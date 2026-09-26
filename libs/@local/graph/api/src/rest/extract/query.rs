@@ -1,16 +1,17 @@
 //! Query parameters whose rejection is a problem details response.
 
 use alloc::borrow::Cow;
+use std::collections::HashMap;
 
 use aide::{OperationInput, OperationOutput as _, generate::GenContext, openapi::Operation};
 use axum::extract::{FromRequestParts, rejection::QueryRejection};
 use hash_middleware::problem::InternalServerError;
-use http::{StatusCode, request::Parts};
+use http::{StatusCode, Uri, request::Parts};
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
 use schemars::JsonSchema;
 use serde::{Serialize, de::DeserializeOwned};
 
-/// The query string does not parse as the parameters the operation reads.
+/// A required query parameter is missing, or one does not match its documented schema.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("{detail}")]
 struct MalformedQuery {
@@ -24,9 +25,17 @@ impl ProblemVariant for MalformedQuery {
         title: Cow::Borrowed("Bad Request"),
         status: StatusCode::BAD_REQUEST,
     };
+
+    fn example() -> Option<Self> {
+        axum::extract::Query::<HashMap<String, u8>>::try_from_uri(&Uri::from_static("/?limit=many"))
+            .err()
+            .map(|rejection| Self {
+                detail: rejection.body_text(),
+            })
+    }
 }
 
-/// The ways [`Query`] refuses a request.
+/// The ways [`Query`] rejects a request.
 pub(in crate::rest) struct QueryProblem;
 
 impl Problem for QueryProblem {
@@ -39,15 +48,16 @@ impl Problem for QueryProblem {
 impl Expose<QueryProblem> for QueryRejection {
     fn expose(&self) -> Answer<'_, QueryProblem> {
         let detail = self.body_text();
-        if let Self::FailedToDeserializeQueryString(_) = self {
-            Answer::new(MalformedQuery { detail })
-        } else {
-            // `QueryRejection` is not exhaustive: a rejection added upstream lands here until it
-            // is named above.
-            tracing::warn!(status = %self.status(), %detail, "the query was refused in a way this extractor does not name");
-            if self.status().is_server_error() {
+        match self {
+            Self::FailedToDeserializeQueryString(_) => Answer::new(MalformedQuery { detail }),
+            // `QueryRejection` is `#[non_exhaustive]`: this arm handles a rejection a later axum
+            // version adds until an arm above names it.
+            _ if self.status().is_server_error() => {
+                tracing::error!(status = %self.status(), %detail, "axum rejected the query in a way this extractor does not name");
                 Answer::new(InternalServerError)
-            } else {
+            }
+            _ => {
+                tracing::warn!(status = %self.status(), %detail, "axum rejected the query in a way this extractor does not name");
                 Answer::new(MalformedQuery { detail })
             }
         }

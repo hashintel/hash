@@ -6,16 +6,18 @@
           "application/problem+json": {
             "examples": {
               "about:blank": {
-                "summary": "Bad Request: A path parameter does not parse as the type the operation reads.",
+                "summary": "Bad Request: A path parameter does not match its documented schema.",
                 "value": {
+                  "detail": "Invalid URL: Cannot parse `limit` with value `many` to a `u8`",
                   "status": 400,
                   "title": "Bad Request",
                   "type": "about:blank"
                 }
               },
               "about:blank (2)": {
-                "summary": "Bad Request: The query string does not parse as the parameters the operation reads.",
+                "summary": "Bad Request: A required query parameter is missing, or one does not match its documented schema.",
                 "value": {
+                  "detail": "Failed to deserialize query string: limit: invalid digit found in string",
                   "status": 400,
                   "title": "Bad Request",
                   "type": "about:blank"
@@ -24,6 +26,7 @@
               "about:blank (3)": {
                 "summary": "Bad Request: The request body is not valid JSON.",
                 "value": {
+                  "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
                   "status": 400,
                   "title": "Bad Request",
                   "type": "about:blank"
@@ -32,6 +35,7 @@
               "about:blank (4)": {
                 "summary": "Bad Request: The request body could not be read to its end.",
                 "value": {
+                  "detail": "Failed to buffer the request body: error reading a body from connection",
                   "status": 400,
                   "title": "Bad Request",
                   "type": "about:blank"
@@ -71,7 +75,7 @@
                       ]
                     }
                   ],
-                  "title": "Bad Request: A path parameter does not parse as the type the operation reads."
+                  "title": "Bad Request: A path parameter does not match its documented schema."
                 },
                 {
                   "allOf": [
@@ -95,7 +99,7 @@
                       ]
                     }
                   ],
-                  "title": "Bad Request: The query string does not parse as the parameters the operation reads."
+                  "title": "Bad Request: A required query parameter is missing, or one does not match its documented schema."
                 },
                 {
                   "allOf": [
@@ -173,7 +177,7 @@
             }
           }
         },
-        "description": "- Bad Request: A path parameter does not parse as the type the operation reads.\n- Bad Request: The query string does not parse as the parameters the operation reads.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.\n- Bad Request: The credentials are malformed."
+        "description": "- Bad Request: A path parameter does not match its documented schema.\n- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.\n- Bad Request: The credentials are malformed."
       },
       "InternalServerError": {
         "content": {
@@ -216,6 +220,7 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "Failed to buffer the request body: length limit exceeded",
               "status": 413,
               "title": "Content Too Large",
               "type": "about:blank"
@@ -375,6 +380,7 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
               "status": 422,
               "title": "Unprocessable Content",
               "type": "about:blank"
@@ -411,6 +417,7 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "Expected request with `Content-Type: application/json`",
               "status": 415,
               "title": "Unsupported Media Type",
               "type": "about:blank"
@@ -441,7 +448,7 @@
             }
           }
         },
-        "description": "The request does not declare its body as `application/json`."
+        "description": "The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`."
       }
     },
     "schemas": {

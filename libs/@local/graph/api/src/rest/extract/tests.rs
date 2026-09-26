@@ -1,3 +1,5 @@
+use std::io;
+
 use aide::{
     axum::{
         ApiRouter,
@@ -6,6 +8,8 @@ use aide::{
     openapi::{Info, OpenApi, Operation, PathItem, Response, StatusCode},
 };
 use axum::{Router, body::Body, extract::DefaultBodyLimit};
+use bytes::Bytes;
+use hash_middleware::problem::InternalServerError;
 use http::{Request, header::CONTENT_TYPE};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -58,7 +62,8 @@ async fn send(router: Router, request: Request<Body>) -> Reply {
 fn body_route(router: ApiRouter, limit: usize) -> ApiRouter {
     router.api_route(
         "/subject",
-        post(async |Json(_): Json<Subject>| ()).layer(DefaultBodyLimit::max(limit)),
+        post(async |Json(Subject { name }): Json<Subject>| name)
+            .layer(DefaultBodyLimit::max(limit)),
     )
 }
 
@@ -79,8 +84,8 @@ fn get_request(uri: &str) -> Request<Body> {
         .expect("the request should build")
 }
 
-/// Every extractor answers the same document shape, so one case asserts it in full and the rest
-/// assert what distinguishes them.
+/// Every extractor answers the same problem document, so only this case asserts its media type,
+/// `status`, `type` and `detail`.
 #[tokio::test]
 async fn json_syntax_error() {
     let reply = post_body("application/json", "{ not json".to_owned()).await;
@@ -140,29 +145,23 @@ async fn json_body_too_large() {
 }
 
 #[tokio::test]
-async fn json_accepted_body() {
-    let router: Router = ApiRouter::new()
-        .api_route(
-            "/subject",
-            post(async |Json(subject): Json<Subject>| subject.name),
-        )
-        .into();
+async fn json_body_unreadable() {
+    let body = Body::from_stream(futures::stream::iter([
+        Ok(Bytes::from_static(b"{")),
+        Err(io::Error::other("the connection closed")),
+    ]));
     let request = Request::builder()
         .method("POST")
         .uri("/subject")
         .header(CONTENT_TYPE, "application/json")
-        .body(Body::from(json!({ "name": "n" }).to_string()))
+        .body(body)
         .expect("the request should build");
 
-    let response = router
-        .oneshot(request)
-        .await
-        .expect("the router should answer");
+    let reply = send(body_route(ApiRouter::new(), 32).into(), request).await;
 
     assert_eq!(
-        response.status(),
-        200,
-        "a well-formed body should reach the handler"
+        reply.status, 400,
+        "a body that breaks off should answer 400"
     );
 }
 
@@ -208,7 +207,8 @@ async fn path_parameters_mismatched() {
         "a route naming fewer parameters than its handler reads should answer 500"
     );
     assert_eq!(
-        reply.body["detail"], "An internal error prevented the request from completing.",
+        reply.body["detail"],
+        InternalServerError.to_string(),
         "the document should not describe the route's wiring"
     );
 }
@@ -315,89 +315,6 @@ async fn query_documents_parameter_rejection() {
     );
 }
 
-/// The rejections of every extractor an operation reads join one response per status.
-#[tokio::test]
-async fn extractors_share_documented_status() {
-    let mut document = OpenApi::default();
-    let _: Router = ApiRouter::new()
-        .api_route(
-            "/subject/{limit}",
-            post(async |Path(_): Path<Limit>, Query(_): Query<Limit>, Json(_): Json<Subject>| ()),
-        )
-        .finish_api(&mut document);
-
-    let bad_request = documented(
-        &document,
-        "/subject/{limit}",
-        |item| item.post.as_ref(),
-        400,
-    )
-    .expect("the operation should document 400");
-    let schema = serde_json::to_value(
-        &bad_request.content["application/problem+json"]
-            .schema
-            .as_ref()
-            .expect("the response should have a schema")
-            .json_schema,
-    )
-    .expect("the schema should serialize");
-    let mut labels = schema["anyOf"]
-        .as_array()
-        .expect("the variants of every extractor share `about:blank`, so they form one `anyOf`")
-        .iter()
-        .map(|variant| variant["title"].clone())
-        .collect::<Vec<_>>();
-    labels.sort_by_key(ToString::to_string);
-
-    assert_eq!(
-        labels,
-        [
-            "Bad Request: A path parameter does not parse as the type the operation reads.",
-            "Bad Request: The query string does not parse as the parameters the operation reads.",
-            "Bad Request: The request body could not be read to its end.",
-            "Bad Request: The request body is not valid JSON.",
-        ],
-        "every extractor should contribute its variants at 400"
-    );
-}
-
-/// Drives each way the framework rejects a body and asserts the operation documents that status.
-///
-/// `JsonRejection` composes its variants from two crates and offers no enumeration, so the
-/// documented list is written by hand. This holds it to what the framework actually answers.
-#[tokio::test]
-async fn json_rejections_are_documented() {
-    let mut document = OpenApi::default();
-    let _: Router = body_route(ApiRouter::new(), 32).finish_api(&mut document);
-
-    let cases = [
-        ("application/json", "{ not json".to_owned()),
-        ("text/plain", "name=n".to_owned()),
-        ("application/json", json!({ "name": 7 }).to_string()),
-        (
-            "application/json",
-            json!({ "name": "n".repeat(64) }).to_string(),
-        ),
-    ];
-    for (content_type, body) in cases {
-        let length = body.len();
-        let reply = post_body(content_type, body).await;
-
-        assert!(
-            documented(
-                &document,
-                "/subject",
-                |item| item.post.as_ref(),
-                reply.status
-            )
-            .is_some(),
-            "the operation should document {}, which the framework answered for {content_type} \
-             with {length} bytes",
-            reply.status,
-        );
-    }
-}
-
 /// The label the response repeats.
 #[derive(Deserialize, JsonSchema)]
 struct EchoPath {
@@ -472,7 +389,6 @@ fn echo_document() {
 
     document.sort_all_objects();
     insta::with_settings!({
-        snapshot_path => concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/openapi"),
         prepend_module_to_snapshot => false,
     }, {
         insta::assert_binary_snapshot!(

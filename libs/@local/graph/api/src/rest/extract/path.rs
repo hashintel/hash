@@ -10,7 +10,7 @@ use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejectio
 use schemars::JsonSchema;
 use serde::{Serialize, de::DeserializeOwned};
 
-/// A path parameter does not parse as the type the operation reads.
+/// A path parameter does not match its documented schema.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("{detail}")]
 struct MalformedPathParameter {
@@ -24,9 +24,15 @@ impl ProblemVariant for MalformedPathParameter {
         title: Cow::Borrowed("Bad Request"),
         status: StatusCode::BAD_REQUEST,
     };
+
+    fn example() -> Option<Self> {
+        Some(Self {
+            detail: "Invalid URL: Cannot parse `limit` with value `many` to a `u8`".to_owned(),
+        })
+    }
 }
 
-/// The ways [`Path`] refuses a request.
+/// The ways [`Path`] rejects a request.
 pub(in crate::rest) struct PathProblem;
 
 impl Problem for PathProblem {
@@ -39,16 +45,17 @@ impl Problem for PathProblem {
 impl Expose<PathProblem> for PathRejection {
     fn expose(&self) -> Answer<'_, PathProblem> {
         let detail = self.body_text();
-        // The framework answers `5xx` when the route and its handler disagree on the parameters,
-        // which the client cannot fix, also for a parameter that fails to deserialize.
+        // Axum answers `500` for `MissingPathParams` and for a `FailedToDeserializePathParams`
+        // with the wrong number of parameters or a type it cannot read: the route and its handler
+        // disagree, which the client cannot fix.
         if self.status().is_server_error() {
             tracing::error!(%detail, "the route cannot extract the path parameters its handler reads");
             return Answer::new(InternalServerError);
         }
         if !matches!(self, Self::FailedToDeserializePathParams(_)) {
-            // `PathRejection` is not exhaustive: a rejection added upstream lands here until it
-            // is named above.
-            tracing::warn!(status = %self.status(), %detail, "the path was refused in a way this extractor does not name");
+            // `PathRejection` is `#[non_exhaustive]`: this handles a rejection a later axum version
+            // adds until it is named above.
+            tracing::warn!(status = %self.status(), %detail, "axum rejected the path in a way this extractor does not name");
         }
         Answer::new(MalformedPathParameter { detail })
     }
