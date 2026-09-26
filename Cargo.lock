@@ -89,6 +89,7 @@ checksum = "390515b47251185fa076ac92a7a582d9d383b03e13cef0c801e7670cf928229b"
 dependencies = [
  "aide-macros",
  "axum",
+ "axum-extra",
  "bytes",
  "cfg-if",
  "http 1.4.2",
@@ -1193,6 +1194,31 @@ dependencies = [
  "mime",
  "pin-project-lite",
  "sync_wrapper",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-extra"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be44683b41ccb9ab2d23a5230015c9c3c55be97a25e4428366de8873103f7970"
+dependencies = [
+ "axum",
+ "axum-core",
+ "bytes",
+ "form_urlencoded",
+ "futures-core",
+ "futures-util",
+ "http 1.4.2",
+ "http-body 1.0.1",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "serde_core",
+ "serde_html_form",
+ "serde_path_to_error",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -5945,6 +5971,7 @@ dependencies = [
  "aide",
  "axum",
  "axum-core",
+ "axum-extra",
  "base16ct",
  "bytes",
  "clap",
@@ -12899,6 +12926,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_html_form"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2f2d7ff8a2140333718bb329f5c40fc5f0865b84c426183ce14c97d2ab8154f"
+dependencies = [
+ "form_urlencoded",
+ "indexmap 2.14.0",
+ "itoa",
+ "ryu",
+ "serde_core",
+]
+
+[[package]]
 name = "serde_json"
 version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13879,7 +13919,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.60.2",
@@ -14711,6 +14751,7 @@ dependencies = [
  "futures-util",
  "http 1.4.2",
  "http-body 1.0.1",
+ "http-body-util",
  "pin-project-lite",
  "tower",
  "tower-layer",
