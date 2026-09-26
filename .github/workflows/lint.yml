@@ -157,19 +157,27 @@ jobs:
 
       - name: Run clippy
         if: always() && matrix['lint:clippy'] != null
-        # `bash` gives us `pipefail`, so a failing `turbo`/`clippy` fails the step instead of
-        # being masked by a later pipeline stage exiting 0.
         shell: bash
         run: |
           pushd ${{ matrix.path }}
+          CLIPPY_EXIT=0
           turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
-            | tee clippy-output.log \
-            | clippy-sarif \
+            > clippy-output.log || CLIPPY_EXIT=$?
+          clippy-sarif < clippy-output.log \
             | jq --arg path "${{ matrix.path }}" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
           sarif-fmt < ${{ matrix.path }}/clippy.sarif
+
+          # The SARIF above keeps only this crate's spanned diagnostics; a failed build also needs
+          # errors from dependencies and span-less errors such as "could not compile".
+          if [[ $CLIPPY_EXIT -ne 0 ]]; then
+            jq -Rr '(fromjson? // .) | if type == "object" then select(.reason == "compiler-message") | .message.rendered else . end' \
+              ${{ matrix.path }}/clippy-output.log
+            exit "$CLIPPY_EXIT"
+          fi
+
           jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif > /dev/null
 
           # Cargo's manifest lints (e.g. `cargo::unused_dependencies`) are plain text, not compiler
