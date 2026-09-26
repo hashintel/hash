@@ -71,7 +71,7 @@ const ApplyAutoLayoutWidget = ({
             })
           }
         >
-          Yes, auto-layout
+          Allow
         </Button>
         <Button
           size="sm"
@@ -81,7 +81,7 @@ const ApplyAutoLayoutWidget = ({
             submit({ applied: false, reason: "User declined auto-layout." })
           }
         >
-          No, keep current layout
+          Deny
         </Button>
       </ButtonGroup>
     </div>

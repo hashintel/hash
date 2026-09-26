@@ -387,10 +387,11 @@ test("projects typed, Voice-tool, and stopped fixture history after remount", as
       secondMount.container.querySelector(
         '[data-tool-call-id="voice-tool-1"]',
       )!,
-    ).getByTestId("voice-input-provenance"),
-  ).not.toBeNull();
+    ).queryByTestId("voice-input-provenance"),
+  ).toBeNull();
+  expect(screen.getByText("voice-tool-1: The supervisor")).not.toBeNull();
   expect(screen.getByText("Durably interrupted response")).not.toBeNull();
-  expect(screen.getByText("Response stopped")).not.toBeNull();
+  expect(screen.getByText("Stopped")).not.toBeNull();
 
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" })),

@@ -40,6 +40,8 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
 export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
   toolName: string;
+  /** Produced cards stay below the answer rather than inside the work fold. */
+  placement?: "work" | "card";
   /** Runtime contract for the tool-call input. */
   inputSchema: PetrinautAiInteractiveToolSchema<Input>;
   /** Runtime contract for the widget's submitted output. */
@@ -58,6 +60,7 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
 
 type ErasedInteractiveToolDefinition = {
   toolName: string;
+  placement?: "work" | "card";
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
@@ -87,6 +90,7 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
     toolName: definition.toolName,
     [interactiveToolDefinition]: {
       toolName: definition.toolName,
+      placement: definition.placement,
       parseInput: (value) => definition.inputSchema.parse(value),
       parseOutput: (value) => definition.outputSchema.parse(value),
       fromComposerText: fromComposerText

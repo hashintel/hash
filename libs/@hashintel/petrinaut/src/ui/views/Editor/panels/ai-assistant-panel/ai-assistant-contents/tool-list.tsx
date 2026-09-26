@@ -1,5 +1,5 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -19,7 +19,7 @@ import {
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
-import { VoiceInputProvenance } from "./voice-input-provenance";
+import { useElapsedTime } from "./shared/use-elapsed-time";
 
 import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
@@ -36,14 +36,14 @@ const petrinautDocsBaseUrl =
 export type ToolRenderItem = {
   id: string;
   state: string;
+  input?: unknown;
+  output?: unknown;
   summary: AiToolSummary;
   hasConfiguredTitle: boolean;
   tone: ToolTone;
   toolName: string;
   notApplied: boolean;
   stateLabel: string;
-  /** True only for the persisted spoken answer to this exact tool call. */
-  voiceOrigin: boolean;
   /** Server-reported error message for tools whose state is `output-error`. */
   errorText?: string;
   /** Set when the tool requires an inline widget for human input. */
@@ -96,6 +96,20 @@ const toolItemCollapsibleStyle = css({
   },
 });
 
+const statusDotStyle = css({
+  width: "[6px]",
+  height: "[6px]",
+  borderRadius: "full",
+  flexShrink: 0,
+  backgroundColor: "yellow.s90",
+  '&[data-tool-status="ok"]': { backgroundColor: "green.s90" },
+  '&[data-tool-status="error"]': { backgroundColor: "red.s90" },
+  '&[data-tool-status="cancelled"]': {
+    backgroundColor: "neutral.s80",
+    height: "[2px]",
+  },
+});
+
 const interactiveToolStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -111,46 +125,58 @@ const toolItemStyle = cva({
     minHeight: "8",
     paddingX: "2",
     paddingY: "[5px]",
-    borderWidth: "thin",
-    borderStyle: "solid",
-    borderRadius: "lg",
+    border: "none",
+    borderRadius: "md",
+    backgroundColor: "[transparent]",
     color: "neutral.s90",
-    fontSize: "sm",
+    fontSize: "xs",
     fontWeight: "medium",
     textAlign: "left",
     cursor: "default",
     _enabled: {
       cursor: "pointer",
     },
+    _hover: { backgroundColor: "neutral.a20" },
     "& svg[data-chevron]": {
+      marginLeft: "auto",
       transition: "[transform 150ms ease-out]",
     },
     "&[data-state=closed] svg[data-chevron]": {
+      transform: "[rotate(90deg)]",
+    },
+    "&[data-state=open] svg[data-chevron]": {
       transform: "[rotate(180deg)]",
     },
   },
   variants: {
     tone: {
       danger: {
-        backgroundColor: "red.s20",
-        borderColor: "red.a40",
+        color: "red.s100",
       },
       info: {
-        backgroundColor: "[#eff9ff]",
-        borderColor: "[#bee6ff]",
-        color: "[#0666c6]",
+        color: "neutral.s100",
       },
       neutral: {
-        backgroundColor: "neutral.s10",
-        borderColor: "neutral.a30",
+        color: "neutral.s90",
       },
       pending: {
-        backgroundColor: "yellow.s20",
-        borderColor: "yellow.a40",
+        color: "neutral.s90",
       },
       success: {
-        backgroundColor: "green.s20",
-        borderColor: "green.a40",
+        color: "neutral.s90",
+      },
+    },
+    group: {
+      true: {
+        display: "inline-flex",
+        width: "[fit-content]",
+        minHeight: "[0]",
+        padding: "[2px 6px 2px 2px]",
+        gap: "1",
+        color: "neutral.s80",
+        _hover: { color: "neutral.s90" },
+        _focusVisible: { outline: "[2px solid {colors.blue.s90}]" },
+        "& svg[data-chevron]": { marginLeft: "0" },
       },
     },
     link: {
@@ -159,58 +185,6 @@ const toolItemStyle = cva({
         textDecoration: "none",
       },
     },
-  },
-});
-
-const toolStatusStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "[14px]",
-    height: "[14px]",
-    borderRadius: "full",
-    flexShrink: 0,
-    boxShadow: "[0px 0px 0px 1px white]",
-    color: "white",
-  },
-  variants: {
-    tone: {
-      danger: {
-        backgroundColor: "red.s90",
-      },
-      info: {
-        backgroundColor: "[#2a80c8]",
-      },
-      neutral: {
-        backgroundColor: "neutral.s90",
-      },
-      pending: {
-        backgroundColor: "yellow.s90",
-      },
-      success: {
-        backgroundColor: "green.s90",
-      },
-    },
-    state: {
-      active: {
-        backgroundColor: "white",
-        borderWidth: "thin",
-        borderStyle: "dashed",
-        borderColor: "blue.s70",
-        color: "blue.s70",
-      },
-      complete: {},
-      error: {
-        backgroundColor: "red.s90",
-      },
-    },
-  },
-});
-
-const toolProgressSpinnerStyle = css({
-  "@media (prefers-reduced-motion: reduce)": {
-    animation: "[none !important]",
   },
 });
 
@@ -489,6 +463,8 @@ export const toToolRenderItem = (
         ? part.toolCallId
         : `${message.id}-${part.type}`,
     state,
+    input: part.input,
+    output: part.output,
     summary,
     hasConfiguredTitle: presentation !== undefined,
     tone:
@@ -506,12 +482,6 @@ export const toToolRenderItem = (
             : state === "output-error"
               ? defaultPetrinautAiToolStateLabels.outputError
               : defaultPetrinautAiToolStateLabels.outputAvailable,
-    voiceOrigin:
-      state === "output-available" &&
-      typeof part.toolCallId === "string" &&
-      message.metadata?.source === "voice" &&
-      (message.metadata.voiceToolCallIds?.includes(part.toolCallId) === true ||
-        message.metadata.toolCallId === part.toolCallId),
     errorText,
     interactive,
   };
@@ -578,7 +548,6 @@ const InteractiveToolItem = ({
           submittedOutput={definition.parseOutput(submittedOutput)}
           toolCallId={tool.id}
         />
-        {tool.voiceOrigin && <VoiceInputProvenance />}
       </div>
     );
   }
@@ -602,12 +571,20 @@ const ToolItem = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   tool,
+  active = false,
+  stopped = false,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tool: ToolRenderItem;
+  active?: boolean;
+  stopped?: boolean;
 }) => {
-  if (tool.interactive) {
+  const inProgress =
+    tool.state === "input-streaming" || tool.state === "input-available";
+  const cancelled = stopped && inProgress;
+  const duration = useElapsedTime(active && inProgress && !tool.interactive);
+  if (tool.interactive && !cancelled) {
     return (
       <InteractiveToolItem
         onInteractiveToolSubmit={onInteractiveToolSubmit}
@@ -618,66 +595,21 @@ const ToolItem = ({
 
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
-  const stateLabel = tool.stateLabel || undefined;
-  const inProgress =
-    tool.state === "input-streaming" || tool.state === "input-available";
+  const stateLabel = cancelled ? "Cancelled" : tool.stateLabel || undefined;
   const target = tool.summary.target;
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
-  const expandable = children.length > 0;
   const title =
     errored && !tool.hasConfiguredTitle
       ? (tool.errorText ?? "Tool failed")
       : tool.summary.title;
-
-  if (href && !errored) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={toolItemStyle({ tone: tool.tone, link: true })}
-        data-tone={tool.tone}
-        aria-busy={inProgress ? true : undefined}
-      >
-        <span
-          className={toolStatusStyle({
-            state: complete ? "complete" : "active",
-            tone: tool.tone,
-          })}
-        >
-          {complete ? (
-            <Icon name="check" size="xs" />
-          ) : inProgress ? (
-            <LoadingSpinner
-              aria-hidden="true"
-              className={toolProgressSpinnerStyle}
-              data-tool-progress-spinner
-              size="xs"
-              variant="bars"
-            />
-          ) : null}
-        </span>
-        <span className={toolTextStyle}>
-          <span>{title}</span>
-          {tool.summary.detail && (
-            <span className={toolDetailStyle} data-testid="tool-detail">
-              {tool.summary.detail}
-            </span>
-          )}
-          {stateLabel && <span className={toolDetailStyle}>{stateLabel}</span>}
-        </span>
-      </a>
-    );
-  }
 
   const button = (
     <button
       type="button"
       className={toolItemStyle({ tone: tool.tone })}
       data-tone={tool.tone}
-      disabled={!target && !expandable}
-      aria-busy={inProgress ? true : undefined}
+      aria-busy={inProgress && !cancelled ? true : undefined}
       onClick={() => {
         if (target) {
           onSelectToolTarget?.(target);
@@ -685,27 +617,26 @@ const ToolItem = ({
       }}
     >
       <span
-        className={toolStatusStyle({
-          state: errored ? "error" : complete ? "complete" : "active",
-          tone: tool.tone,
-        })}
-      >
-        {errored ? (
-          <Icon name="close" size="xs" />
-        ) : tool.notApplied ? (
-          <Icon name="dash" size="xs" data-tool-result-icon="not-applied" />
-        ) : complete ? (
-          <Icon name="check" size="xs" data-tool-result-icon="complete" />
-        ) : inProgress ? (
-          <LoadingSpinner
-            aria-hidden="true"
-            className={toolProgressSpinnerStyle}
-            data-tool-progress-spinner
-            size="xs"
-            variant="bars"
-          />
-        ) : null}
-      </span>
+        className={statusDotStyle}
+        data-tool-status={
+          cancelled
+            ? "cancelled"
+            : errored
+              ? "error"
+              : complete
+                ? "ok"
+                : "pending"
+        }
+        aria-label={
+          cancelled
+            ? "Cancelled"
+            : errored
+              ? "Error"
+              : complete
+                ? "Complete"
+                : "Pending"
+        }
+      />
       <span className={toolTextStyle}>
         <span>{title}</span>
         {errored && !tool.hasConfiguredTitle ? (
@@ -719,19 +650,52 @@ const ToolItem = ({
         ) : null}
         {stateLabel && <span className={toolDetailStyle}>{stateLabel}</span>}
       </span>
-      {expandable && <Icon name="chevronUp" data-chevron size="sm" />}
+      <span
+        className={toolDetailStyle}
+        title={duration === undefined ? "Duration unavailable" : undefined}
+      >
+        {duration === undefined ? "—" : `${(duration / 1_000).toFixed(1)}s`}
+      </span>
+      <Icon name="chevronUp" data-chevron size="sm" />
     </button>
   );
-
-  if (!expandable) {
-    return button;
-  }
 
   return (
     <Collapsible.Root className={toolItemCollapsibleStyle} defaultOpen={false}>
       <Collapsible.Trigger asChild>{button}</Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div className={toolSubItemListStyle}>
+          <strong>{tool.toolName}</strong>
+          {href && !errored && (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              Open user guide
+            </a>
+          )}
+          <strong>Arguments</strong>
+          <pre
+            className={css({
+              whiteSpace: "pre-wrap",
+              overflowWrap: "anywhere",
+            })}
+          >
+            {tool.input === undefined
+              ? "Not available"
+              : JSON.stringify(tool.input, null, 2)}
+          </pre>
+          <strong>Result</strong>
+          <pre
+            className={css({
+              whiteSpace: "pre-wrap",
+              overflowWrap: "anywhere",
+            })}
+          >
+            {tool.errorText ??
+              (tool.output === undefined
+                ? cancelled
+                  ? "Cancelled before a result was received"
+                  : "Pending"
+                : JSON.stringify(tool.output, null, 2))}
+          </pre>
           {children.map((item, index) => (
             // oxlint-disable-next-line react/no-array-index-key
             <div className={toolSubItemStyle} key={`${tool.id}-${index}`}>
@@ -769,16 +733,32 @@ export const AiAssistantToolList = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   tools,
+  active = false,
+  stopped = false,
+  producedCard = false,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
+  active?: boolean;
+  stopped?: boolean;
+  producedCard?: boolean;
 }) => {
+  const running =
+    active &&
+    !stopped &&
+    tools.some(
+      (tool) =>
+        !tool.interactive &&
+        (tool.state === "input-streaming" || tool.state === "input-available"),
+    );
+  const [disclosure, setDisclosure] = useState({ running, open: running });
+  if (disclosure.running !== running) setDisclosure({ running, open: running });
   if (tools.length === 0) {
     return null;
   }
 
-  return (
+  const content = (
     <div className={toolListStyle}>
       <ToolListContent
         tools={tools}
@@ -786,5 +766,67 @@ export const AiAssistantToolList = ({
         onSelectToolTarget={onSelectToolTarget}
       />
     </div>
+  );
+
+  if (producedCard) return content;
+  return (
+    <>
+      <Collapsible.Root
+        open={disclosure.open}
+        onOpenChange={({ open }) => setDisclosure({ running, open })}
+      >
+        <Collapsible.Trigger
+          className={toolItemStyle({ tone: "neutral", group: true })}
+        >
+          {running ? (
+            <LoadingSpinner size="xs" aria-hidden="true" />
+          ) : (
+            <Icon name="lightning" size="xs" />
+          )}
+          {running
+            ? "Running tools"
+            : `${stopped ? "Stopped after" : "Used"} ${tools.length} ${tools.length === 1 ? "tool" : "tools"}`}
+          <Icon name="chevronUp" size="xs" data-chevron />
+        </Collapsible.Trigger>
+        <Collapsible.Content className={collapsibleContentStyle}>
+          <div
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: "1",
+              margin: "[2px 0 4px 7px]",
+              paddingLeft: "2.5",
+              borderLeft: "[2px solid {colors.neutral.a30}]",
+            })}
+          >
+            {tools
+              .filter(
+                (tool) => !tool.interactive || tool.state !== "input-available",
+              )
+              .map((tool) => (
+                <ToolItem
+                  key={tool.id}
+                  tool={tool}
+                  active={active && !stopped}
+                  stopped={stopped}
+                  onInteractiveToolSubmit={onInteractiveToolSubmit}
+                  onSelectToolTarget={onSelectToolTarget}
+                />
+              ))}
+          </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
+      {tools
+        .filter((tool) => tool.interactive && tool.state === "input-available")
+        .map((tool) => (
+          <ToolItem
+            key={tool.id}
+            tool={tool}
+            stopped={stopped}
+            onInteractiveToolSubmit={onInteractiveToolSubmit}
+            onSelectToolTarget={onSelectToolTarget}
+          />
+        ))}
+    </>
   );
 };

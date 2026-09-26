@@ -454,8 +454,8 @@ describe("AiAssistantPanel composer submissions", () => {
       },
     });
     const hostTab = screen.getByRole("tab", { name: "Workpiece" });
-    screen.getByRole("tab", { name: "AI" }).focus();
-    fireEvent.keyDown(screen.getByRole("tab", { name: "AI" }), {
+    screen.getByRole("tab", { name: "Chat" }).focus();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Chat" }), {
       key: "ArrowRight",
     });
     expect(document.activeElement).toBe(hostTab);
@@ -465,7 +465,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toContain("Saved workpiece");
     fireEvent.keyDown(hostTab, { key: "Home" });
     expect(
-      screen.getByRole("tab", { name: "AI" }).getAttribute("aria-selected"),
+      screen.getByRole("tab", { name: "Chat" }).getAttribute("aria-selected"),
     ).toBe("true");
     expect(sendMessages).not.toHaveBeenCalled();
   });
@@ -502,7 +502,7 @@ describe("AiAssistantPanel composer submissions", () => {
       ]),
     );
     const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
-    expect(ledgerTab.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    expect(ledgerTab.querySelector("[data-attention]")).not.toBeNull();
 
     fireEvent.click(ledgerTab);
     await waitFor(() => expect(screen.queryByText("9+")).toBeNull());
@@ -587,14 +587,14 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
     );
     fireEvent.click(chatTab);
     await waitFor(() =>
       expect(
         screen
           .getByRole("tab", { name: "Chat" })
-          .querySelector('[aria-hidden="true"]'),
+          .querySelector("[data-attention]"),
       ).toBeNull(),
     );
   });
@@ -625,7 +625,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
     );
   });
 
@@ -1213,12 +1213,10 @@ describe("AiAssistantPanel composer submissions", () => {
       },
     });
     const applyLayout = vi.spyOn(instance.commands, "applyAutoLayout");
-    await screen.findByRole("button", { name: "Yes, auto-layout" });
+    await screen.findByRole("button", { name: "Allow" });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Yes, auto-layout" }));
-      fireEvent.click(
-        screen.getByRole("button", { name: "No, keep current layout" }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+      fireEvent.click(screen.getByRole("button", { name: "Deny" }));
     });
     expect(applyLayout).not.toHaveBeenCalled();
     expect(sendMessages).not.toHaveBeenCalled();
@@ -2839,9 +2837,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Voice mode voice" }));
 
-    expect(
-      screen.getByPlaceholderText("Describe the process you want to create"),
-    ).not.toBeNull();
+    expect(screen.getByPlaceholderText("Continue iterating...")).not.toBeNull();
     expect(endVoice).toHaveBeenCalledOnce();
     expect(voiceModeMounts).toBe(1);
     expect(voiceModeUnmounts).toBe(0);
@@ -2911,9 +2907,7 @@ describe("AiAssistantPanel composer submissions", () => {
     rendered.rerenderPanel(unavailableAssistant, editorContextValue);
 
     expect(screen.queryByText("Voice mode")).toBeNull();
-    expect(
-      screen.getByPlaceholderText("Describe the process you want to create"),
-    ).not.toBeNull();
+    expect(screen.getByPlaceholderText("Continue iterating...")).not.toBeNull();
     expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
   });
 
@@ -3400,12 +3394,12 @@ describe("AiAssistantPanel composer submissions", () => {
     );
 
     await waitFor(() => expect(aborted).toHaveBeenCalledOnce());
-    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
     await waitFor(() =>
       expect(
         screen
           .getByRole("tab", { name: "Chat" })
-          .querySelector('[aria-hidden="true"]'),
+          .querySelector("[data-attention]"),
       ).not.toBeNull(),
     );
   });
@@ -3452,7 +3446,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(requestStop.mock.invocationCallOrder[0]).toBeLessThan(
       localCancellation.mock.invocationCallOrder[0]!,
     );
-    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
   });
 
   test("keeps a response completed before the durable Stop race", async () => {
@@ -3506,7 +3500,7 @@ describe("AiAssistantPanel composer submissions", () => {
       ).toHaveProperty("disabled", true),
     );
     expect(localCancellation).not.toHaveBeenCalled();
-    expect(screen.queryByText("Response stopped")).toBeNull();
+    expect(screen.queryByText("Stopped")).toBeNull();
   });
 
   test("withholds the client-tool follow-up when a durable Stop lands after a tool-calls step", async () => {
@@ -3561,7 +3555,7 @@ describe("AiAssistantPanel composer submissions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
 
     await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
-    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
     // Let both deferred execution and any follow-up drain: withholding only
     // the send is insufficient if the mutation already ran after Stop.
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
@@ -3641,7 +3635,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
       expect(latest?.status).toBe("error");
       expect(latest?.stopped).toBe(false);
-      expect(screen.queryByText("Response stopped")).toBeNull();
+      expect(screen.queryByText("Stopped")).toBeNull();
       expect(
         screen.getAllByText(/Durable stop failed/u).length,
       ).toBeGreaterThan(0);
@@ -3720,7 +3714,7 @@ describe("AiAssistantPanel composer submissions", () => {
       "PlaceOne",
     );
     expect(sendMessages).not.toHaveBeenCalled();
-    expect(screen.getByText("Response stopped")).not.toBeNull();
+    expect(screen.getByText("Stopped")).not.toBeNull();
   });
 
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {
@@ -3936,7 +3930,7 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() =>
       expect(screen.getByTestId("host-status").textContent).toBe("ready"),
     );
-    expect(screen.queryByText("Response stopped")).toBeNull();
+    expect(screen.queryByText("Stopped")).toBeNull();
   });
 
   test("does not let a late durable Stop cancel a newer turn", async () => {
@@ -4050,7 +4044,7 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() =>
       expect(screen.getByTestId("host-status").textContent).toBe("ready"),
     );
-    expect(screen.queryByText("Response stopped")).toBeNull();
+    expect(screen.queryByText("Stopped")).toBeNull();
   });
 
   test("does not surface a late durable Stop failure on a newer turn", async () => {
@@ -4986,6 +4980,51 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toBe(true);
   });
 
+  test("retries an answer as a new turn while preserving history and the unsent draft", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            textChunks(
+              `answer-${requestMessages.length}`,
+              `Answer ${requestMessages.length}`,
+            ),
+          ),
+        );
+      }),
+    };
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Explain the queue",
+    });
+    await screen.findByText("Answer 1");
+    const retry = await screen.findByRole("button", { name: "Retry answer" });
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(retry);
+    await screen.findByText("Answer 2");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+    expect(screen.getByText("Answer 1")).toBeTruthy();
+    expect(requestMessages).toHaveLength(2);
+    expect(requestMessages[1]?.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "Explain the queue" }],
+    });
+    expect(requestMessages[1]?.at(-1)?.id).not.toBe(
+      requestMessages[0]?.[0]?.id,
+    );
+  });
+
   test("can force a separate message while an interactive tool is pending", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {
@@ -5033,6 +5072,7 @@ describe("AiAssistantPanel composer submissions", () => {
               void submitText({
                 id: "correction-1",
                 target: "message",
+                preserveDraft: true,
                 text: "Correction: staging, not production.",
               }).then((result) => results.push(result));
             }}
@@ -5046,8 +5086,13 @@ describe("AiAssistantPanel composer submissions", () => {
     });
     await screen.findByText("Which environment?");
 
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit correction" }));
     await screen.findByText("Correction accepted");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
 
     expect(requestMessages[1]?.at(-1)).toMatchObject({
       id: "correction-1",

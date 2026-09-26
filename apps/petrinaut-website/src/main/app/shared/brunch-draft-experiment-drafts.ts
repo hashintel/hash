@@ -1,4 +1,4 @@
-import type { PreparedExperiment } from "./describe-draft";
+import type { PreparedExperiment } from "./brunch-draft-experiment-summary";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   PetrinautExperimentProgress,
@@ -32,9 +32,11 @@ export type SessionDraft = {
   invalid: string | null;
   dismissed: boolean;
   run: SessionDraftRun;
+  /** One completion turn per local run, independent of the original tool output. */
+  followUp?: "pending" | "sent" | "failed";
 };
 
-type SessionDraftsState = {
+export type SessionDraftsState = {
   currentToolCallId: string | null;
   drafts: ReadonlyMap<string, SessionDraft>;
 };

@@ -59,6 +59,7 @@ export const getInteractiveTool = (
       : hostDefinition
         ? {
             toolName: hostDefinition.toolName,
+            placement: hostDefinition.placement,
             shouldHandle: () => true,
             parseInput: hostDefinition.parseInput,
             parseOutput: hostDefinition.parseOutput,

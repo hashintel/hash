@@ -70,7 +70,9 @@ const centerStyle = css({
 
 const indicatorStyle = css({
   display: "flex",
-  flexShrink: "0",
+  flexShrink: "1",
+  minWidth: "[32px]",
+  "& > canvas": { maxWidth: "full" },
 });
 
 const statusStyle = cva({
@@ -229,27 +231,6 @@ export const VoiceDock = ({
           type="button"
           variant="ghost"
         />
-        {actions !== null &&
-          (actions.readFullResponse ||
-            actions.repeatQuestion ||
-            actions.setInterruptionBySpeaking ||
-            actions.setSpeakerMuted ||
-            actions.setSpeakerVolume ||
-            actions.audioSettings) && (
-            <AudioPopover
-              actions={actions}
-              settings={audioSettings}
-              canReadFullResponse={canReadFullResponse}
-              canRepeatQuestion={canRepeatQuestion}
-              interruptionBySpeaking={interruptionBySpeaking}
-              speakerControlsDisabled={speakerControlsDisabled}
-              speakerMuted={speakerMuted}
-              speakerVolume={speakerVolume}
-              previewDisabledReason={previewDisabledReason}
-              showStatusText={showStatusText}
-              setShowStatusText={setShowStatusText}
-            />
-          )}
         {errorIndicator}
       </span>
 
@@ -320,6 +301,43 @@ export const VoiceDock = ({
                 variant="ghost"
               />
             )}
+            {assistantBusy && (
+              <Button
+                aria-label={voiceSessionActionLabels.stop}
+                className={css({
+                  width: "[28px]",
+                  height: "[28px]",
+                  minWidth: "[28px]",
+                  borderRadius: "md",
+                })}
+                onClick={onStop}
+                prefix={<StopIcon />}
+                size="sm"
+                tooltip={voiceSessionActionLabels.stop}
+                type="button"
+                variant="ghost"
+              />
+            )}
+            {(actions.readFullResponse ||
+              actions.repeatQuestion ||
+              actions.setInterruptionBySpeaking ||
+              actions.setSpeakerMuted ||
+              actions.setSpeakerVolume ||
+              actions.audioSettings) && (
+              <AudioPopover
+                actions={actions}
+                settings={audioSettings}
+                canReadFullResponse={canReadFullResponse}
+                canRepeatQuestion={canRepeatQuestion}
+                interruptionBySpeaking={interruptionBySpeaking}
+                speakerControlsDisabled={speakerControlsDisabled}
+                speakerMuted={speakerMuted}
+                speakerVolume={speakerVolume}
+                previewDisabledReason={previewDisabledReason}
+                showStatusText={showStatusText}
+                setShowStatusText={setShowStatusText}
+              />
+            )}
             {actions.setMicrophoneMuted && (
               <Button
                 aria-label={microphoneLabel}
@@ -336,17 +354,6 @@ export const VoiceDock = ({
                 pressed={microphoneMuted}
                 size="sm"
                 tooltip={microphoneLabel}
-                type="button"
-                variant="ghost"
-              />
-            )}
-            {assistantBusy && (
-              <Button
-                aria-label={voiceSessionActionLabels.stop}
-                onClick={onStop}
-                prefix={<StopIcon />}
-                size="sm"
-                tooltip={voiceSessionActionLabels.stop}
                 type="button"
                 variant="ghost"
               />

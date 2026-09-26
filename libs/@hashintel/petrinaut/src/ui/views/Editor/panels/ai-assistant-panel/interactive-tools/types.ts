@@ -18,6 +18,7 @@ export type InteractiveToolWidgetProps<Input, Output> =
  */
 export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   toolName: string;
+  placement?: "work" | "card";
   /**
    * Whether this tool call should be handled interactively. Lets a single
    * tool branch between interactive and non-interactive paths based on its
