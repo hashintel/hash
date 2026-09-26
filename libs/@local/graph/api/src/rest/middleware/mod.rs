@@ -7,7 +7,7 @@ use aide::{
     transform::{TransformOpenApi, TransformOperation},
     util::iter_operations_mut,
 };
-use axum::Router;
+use axum::{Router, response::Response};
 use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
@@ -38,6 +38,12 @@ pub(super) fn document(mut document: TransformOpenApi<'_>) -> TransformOpenApi<'
     document
 }
 
+/// Answers a request with a method its route does not serve. Axum adds the `Allow` header.
+async fn method_not_allowed(method: Method, uri: Uri) -> Response {
+    tracing::debug!(%method, path = uri.path(), "route does not serve the method");
+    problem_response(&status_problem(StatusCode::METHOD_NOT_ALLOWED))
+}
+
 pub(super) struct Middleware<P, I> {
     pub public_provider: Arc<P>,
     pub internal_provider: Arc<I>,
@@ -61,10 +67,12 @@ where
         }
     }
 
-    /// Attaches authentication and the caller budget to the legacy routes and to each API,
-    /// then puts the address gate over everything, including the documentation routes and the
-    /// problem documents for an unknown path and for a method its path does not serve. The legacy
-    /// routes and every API draw on the same budgets.
+    /// Attaches authentication and the caller budget to the legacy routes and to each API, and puts
+    /// the address gate over everything.
+    ///
+    /// The address gate also covers the documentation routes and the problem documents for an
+    /// unknown path and for a method its path does not serve. The legacy routes and every API draw
+    /// on the same budgets, and answer a method a path does not serve after authentication.
     ///
     /// # Panics
     ///
@@ -83,15 +91,11 @@ where
         for api in apis {
             router = router.merge(self.attach_api(api));
         }
-        // The method-not-allowed fallback applies to the routes merged before it, and axum adds
-        // the `Allow` header to its response. The operations do not document it: an operation is
-        // one method of one path.
+        // Axum sets the method-not-allowed fallback only on routes without one, which leaves the
+        // documentation routes.
         router
             .merge(documentation)
-            .method_not_allowed_fallback(|method: Method, uri: Uri| async move {
-                tracing::debug!(%method, path = uri.path(), "route does not serve the method");
-                problem_response(&status_problem(StatusCode::METHOD_NOT_ALLOWED))
-            })
+            .method_not_allowed_fallback(method_not_allowed)
             .fallback(|method: Method, uri: Uri| async move {
                 tracing::debug!(%method, path = uri.path(), "no route matched");
                 problem_response(&status_problem(StatusCode::NOT_FOUND))
@@ -116,8 +120,10 @@ where
             return routes;
         }
 
-        // Authentication runs before the caller limiter; route layers skip unmatched paths.
+        // Authentication runs before the caller limiter; route layers skip unmatched paths. The
+        // method-not-allowed fallback is set first, so the route layers wrap it too.
         routes
+            .method_not_allowed_fallback(method_not_allowed)
             .route_layer(CallerLimitLayer {
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Arc::clone(&self.service_secret),

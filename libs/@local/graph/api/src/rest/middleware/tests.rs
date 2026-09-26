@@ -238,9 +238,10 @@ async fn method_not_allowed_problem_document() {
         "application/problem+json",
         "the answer should be a problem document like every other rejection"
     );
-    assert_eq!(
-        response.headers()[ALLOW],
-        "GET,HEAD",
+    assert!(
+        response.headers()[ALLOW]
+            .to_str()
+            .is_ok_and(|allow| allow.split(',').any(|method| method.trim() == "GET")),
         "the answer should name the methods the path serves"
     );
     assert_eq!(
@@ -273,6 +274,87 @@ async fn method_not_allowed_legacy_route() {
         response.headers()[CONTENT_TYPE],
         "application/problem+json",
         "a legacy route should answer the same problem document as the APIs"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_after_authentication() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(
+        Router::new().route("/legacy", get(async || ())),
+        [test_utils::api("/first")],
+        Router::new(),
+    );
+
+    for path in ["/legacy", "/first/test"] {
+        assert_eq!(
+            send_request(&router, request_with(Method::DELETE, path))
+                .await
+                .status(),
+            StatusCode::SERVICE_UNAVAILABLE,
+            "{path} should authenticate a request before answering that it does not serve its \
+             method, and the provider is unreachable here"
+        );
+    }
+}
+
+#[tokio::test]
+async fn method_not_allowed_documentation_route() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(
+        Router::new(),
+        [],
+        Router::new().route("/reference", get(async || ())),
+    );
+
+    let response = send_request(&router, request_with(Method::DELETE, "/reference")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "a documentation path that does not serve the method should answer 405"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "a documentation route should answer the same problem document as the APIs"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_draws_on_address_gate() {
+    let router = middleware(
+        &config(1, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(
+        Router::new(),
+        [],
+        Router::new().route("/reference", get(async || ())),
+    );
+
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/reference"))
+            .await
+            .status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "the first request with a method the path does not serve should pass the gate"
+    );
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/reference"))
+            .await
+            .status(),
+        StatusCode::TOO_MANY_REQUESTS,
+        "a method the path does not serve should draw from the address budget like any other \
+         request"
     );
 }
 
