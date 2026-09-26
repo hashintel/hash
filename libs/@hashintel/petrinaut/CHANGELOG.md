@@ -1,5 +1,282 @@
 # @hashintel/petrinaut
 
+## 0.0.20
+
+### Patch Changes
+
+- Improve scenario and experiment forms with keyboard navigation, stacked section headers, overlay scrollbars, default starting-place filtering with a compact toggle beside the section title, and source expressions over selected computed values. Align the Time Step label and info icon, align token totals with place headers, keep select chevrons inside spreadsheet cells, and keep validation errors visible while editing ad-hoc values. ([@kube](https://github.com/kube), [#9724](https://github.com/hashintel/hash/pull/9724))
+
+- Arc weight labels sit on the Adaptive Bezier curve instead of floating at the straight-line midpoint between the arc's endpoints. ([@kube](https://github.com/kube), [#9354](https://github.com/hashintel/hash/pull/9354))
+
+- The create-experiment drawer accepts an ad-hoc scenario when "No scenario" is selected: Initial State + Parameters defined inline compile through a generated, never-persisted scenario at experiment start. ([@kube](https://github.com/kube), [#9288](https://github.com/hashintel/hash/pull/9288))
+
+- Fix three defects in the ad-hoc scenario form: the optimize bounds popover
+  ignored every press (Min, Max, Step and Scale were uneditable, and each press
+  dismissed it), a focused section painted over the sticky header of the section
+  hosting it, and the experiment drawer's computed initial state grew unbounded
+  instead of scrolling in its own region. ([@kube](https://github.com/kube), [#9473](https://github.com/hashintel/hash/pull/9473))
+
+- The create-optimization drawer offers "Ad-hoc (define inline)": Initial State + Parameters with Optimize selections compile to a generated, never-persisted scenario whose generated parameters the optimization manifest binds to their optimize domains. ([@kube](https://github.com/kube), [#9289](https://github.com/hashintel/hash/pull/9289))
+
+- Quick simulation runs an ad-hoc scenario when none is selected: a "Define initial state" drawer in the simulation settings panel edits token counts and values that compile through a generated, never-persisted scenario. ([@kube](https://github.com/kube), [#9287](https://github.com/hashintel/hash/pull/9287))
+
+- Behind the new experimental "Ad-hoc scenarios" setting, the scenario creation form authors scenarios through the ad-hoc form: exposed Variables become the saved scenario's tunable parameters, and the definition persists as `initialState.type: "adhoc"`. ([@kube](https://github.com/kube), [#9368](https://github.com/hashintel/hash/pull/9368))
+
+- Add the ad-hoc scenarios user-guide page and register it with the in-app AI assistant's doc reader. ([@kube](https://github.com/kube), [#9290](https://github.com/hashintel/hash/pull/9290))
+
+- The ad-hoc scenario form matches the ratified prototype: gutter-cycled row kinds (fixed → dynamic → count-optimized) with quiet count strips, shared columns with a wash and derived cells, a phantom trailing row, place totals, compact Variables blocks, and Monaco expression editors type-checked live through a new ad-hoc LSP session with diagnostics rendered on closed cells. ([@kube](https://github.com/kube))
+
+- Allow hosts to register validated dynamic AI tools that execute automatically against the mounted editor. `ErrorTrackerContext.captureException` now accepts an optional `{ source, tags }` context, and the AI assistant panel reports its operational failures (stream errors, tool execution, continuation, Stop) to the host's tracker at their source. ([@lunelson](https://github.com/lunelson), [#9649](https://github.com/hashintel/hash/pull/9649))
+
+- Describe a clean net-code diagnostic check without claiming the whole model compiles. ([@kube](https://github.com/kube), [#9675](https://github.com/hashintel/hash/pull/9675))
+
+- Transition kernels, lambdas, and differential equations can now be written as a bare function body ending in `return`, like metrics and scenario code: `input` (or `tokens` for dynamics) and `parameters` are in scope ambiently, with full editor type checking and completions. The `export default TransitionKernel(...)` / `Lambda(...)` / `Dynamics(...)` module form is still accepted, and the editor picks the right checking mode per form. Default templates, built-in examples, and the AI assistant now use the bare form. Visualizers are unchanged. ([@kube](https://github.com/kube), [#9370](https://github.com/hashintel/hash/pull/9370))
+
+- Keep the bottom toolbar clear of the side panels and the viewport controls: it stays centered on the canvas until a panel would cover it, then shifts aside, and collapses to its essential controls — expanding again on hover or focus — when the space between the panels is too narrow for the full set. ([@kube](https://github.com/kube), [#9533](https://github.com/hashintel/hash/pull/9533))
+
+- Expose `ExperimentHostContext.runExperiment` with validation, progress callbacks, cancellation, and captured results for up to 100,000 runs. ([@kube](https://github.com/kube), [#9676](https://github.com/hashintel/hash/pull/9676))
+
+- Hosts can also provide an additional assistant tab for content such as a saved workpiece, reusing the panel's sizing and keeping the conversation, composer and Voice controls mounted across tab switches. Add an optional synchronous `aiAssistant.executeMutation` boundary so embedding applications can inspect their live document around a canonical mutation or refuse execution, while the panel retains control of tool results and continuation. Show explicitly unapplied assistant operations with their reason instead of a successful mutation summary, and label grouped tool calls as operations rather than changes. Hosts can opt into following canonical AI conversation history once local submissions are settled, while preserving local streaming output; externally observed and reloaded tools are display-only in that mode, and locally streamed tools retain normal execution. ([@lunelson](https://github.com/lunelson), [#9562](https://github.com/hashintel/hash/pull/9562))
+
+- Expose revision identity, editor commands, current-definition diagnostics, optimizer availability, and user-guide content to host-owned assistant tools, while showing unfinished tool and experiment progress, refusing unavailable title edits, and rejecting unavailable optimization before an experiment record is created. Keep host transport and store resources current across route changes, with stable React subscriptions and capability-based read-only titles. ([@lunelson](https://github.com/lunelson), [#9667](https://github.com/hashintel/hash/pull/9667))
+
+- Hosts can now resolve tool cards with an optional pending or correctable-refusal presentation: unfinished rows may use a gold pending tone, and a completed non-applied result can carry collapsed detail items instead of an inline reason. Stock defaults stay unchanged. ([@lunelson](https://github.com/lunelson), [#9761](https://github.com/hashintel/hash/pull/9761))
+
+- Let hosts label assistant tabs, resolve tool presentation from lifecycle context, signal unseen tab activity, and frame the rendered canvas from automatic tools. Tool calls now render chronologically with preserved result details, Brunch omits internal marker and automatic framing calls, generated reasoning headings are explicitly presented as thinking, an optional working label spans active turns, and the Ledger presents its readable account without internal record metadata. Auto-layout still awaits an inset-aware post-render viewport fit across built-in entry points. ([@lunelson](https://github.com/lunelson), [#9722](https://github.com/hashintel/hash/pull/9722))
+
+- Firing animations run only on the transitions and arcs in view, and not at all when the canvas is zoomed out far enough that a node is a few pixels across. ([@kube](https://github.com/kube), [#9655](https://github.com/hashintel/hash/pull/9655))
+
+- Playback re-renders only the places and transitions whose values moved, so large nets play back several times faster. ([@kube](https://github.com/kube), [#9592](https://github.com/hashintel/hash/pull/9592))
+
+- Hovering a node re-renders only the nodes and arcs its highlight touches, and a **Highlight on hover** setting turns the pointer highlight off. ([@kube](https://github.com/kube), [#9576](https://github.com/hashintel/hash/pull/9576))
+
+- A hovered or selected node's neighbourhood is highlighted in colour, blue for what feeds it and orange for what it feeds, instead of fading the rest of the net. The highlight waits for the pointer to rest. ([@kube](https://github.com/kube), [#9591](https://github.com/hashintel/hash/pull/9591))
+
+- The canvas renders centered on the net from its first frame, instead of jumping there after a first paint at the origin. Component instances grow with their port count so their ports have room, and auto-layout on import no longer depends on the compact/classic setting. ([@kube](https://github.com/kube), [#9352](https://github.com/hashintel/hash/pull/9352))
+
+- Remember the canvas viewport per net, so switching between nets or reloading returns to the same position and zoom. ([@kube](https://github.com/kube), [#9510](https://github.com/hashintel/hash/pull/9510))
+
+- Improve Voice controls with provider-specific audio options, independent microphone and speaker state, distinct Stop and End actions, and a responsive compact dock. ([@kostandinang](https://github.com/kostandinang), [#9747](https://github.com/hashintel/hash/pull/9747))
+
+- Added a command registry for host-rendered command palettes: `createCommandRegistry()` and `combineCommandRegistries()` in core, and `CommandRegistryProvider`, `useCommand(command, { when })`, `useCommands()`, and `formatShortcutKeys()` in `@hashintel/petrinaut/react`. The editor registers its undo/redo, tool, auto-layout, search, and panel commands. Petrinaut ships no palette. ([@kube](https://github.com/kube), [#9457](https://github.com/hashintel/hash/pull/9457))
+
+- A connected optimization source runs studies in this browser behind the experimental **In-browser optimization** setting. The create form gains **Runs per step**, **Parallel steps** (1 to 4) and the experiments' **Backend** switch, and seeds each study with a fresh random **Seed** that can be edited for reproducibility. A connected study's drawer lays everything out in view at once: a summary strip (status, steps, best, backend), the **Parameters** band whose controls follow each step while the study runs, the **Surface** drawn from the study's own steps beside the objective's chart, and the steps table with the best step starred; once the study is over, or **Follow steps** is off, the controls, the Surface and the chart move together to whichever point is picked. A connected study can be stopped with **Stop** and continued with more steps on the same sampler with **Continue**. ([@kube](https://github.com/kube), [#9516](https://github.com/hashintel/hash/pull/9516))
+
+- Show transient copied or failed feedback when copying notification details, with a document-based fallback when the Clipboard API rejects the copy. ([@kostandinang](https://github.com/kostandinang), [#9792](https://github.com/hashintel/hash/pull/9792))
+
+- `createExperiment` resolves with the experiment record, which now carries the scenario it compiled (`ExperimentRecord.scenario`), and no longer selects it. ([@kube](https://github.com/kube), [#9689](https://github.com/hashintel/hash/pull/9689))
+
+- Give default canvas nodes lighter colours, a soft shadow, a muted 1.5px outline, and matching name styling. Places are circular; transitions are rectangular with an icon on the left, a wrapped name, and the transition type. Preserve words in node names and align minimap nodes with their canvas positions and dimensions. ([@kube](https://github.com/kube), [#9595](https://github.com/hashintel/hash/pull/9595))
+
+- The experiment and optimization result drawers keep the summary, navigator and surface still at the top; only the step and metric lists scroll, with the step table's header pinned. ([@kube](https://github.com/kube), [#9422](https://github.com/hashintel/hash/pull/9422))
+
+- Let hosts make the assistant's Stop action durable before Petrinaut cancels its local response stream, while preserving local-only cancellation for hosts that do not provide the new stop request. ([@lunelson](https://github.com/lunelson), [#9528](https://github.com/hashintel/hash/pull/9528))
+
+- The embedded preview's playback bar scrolls only sideways, so resting the pointer on one of its controls no longer shows a vertical scrollbar inside the bar. ([@CiaranMn](https://github.com/CiaranMn), [#9718](https://github.com/hashintel/hash/pull/9718))
+
+- The left panel shows the Entities tree for everyone. The stack of separate Nodes, Token Types, Differential Equations and Parameters lists is gone, along with the "Entities tree view" setting that chose between them. Nets with subnets keep the Subnets panel below the tree, and the panel opens at 280px rather than 320px. ([@kube](https://github.com/kube), [#9597](https://github.com/hashintel/hash/pull/9597))
+
+- Offer GPU compute, parameter sweeps, and in-browser optimization without feature flags, with automatic metric names, grouped constraints that accept state expressions, keyboard controls, and explicit optimizer startup. Simplify results with manual optimizer controls, compact details, single-value parameter sliders, sensitivity estimates ordered by importance, and best parameters that remain available after optimization with a View best action. ([@kube](https://github.com/kube), [#9725](https://github.com/hashintel/hash/pull/9725))
+
+- Experiments can sweep scenario parameters. A Sweep toggle per numeric parameter defines the values, and the results drawer gains a navigator: only the selected combination computes, in escalating run batches that stream into the charts, and visited combinations keep their results. ([@kube](https://github.com/kube), [#9093](https://github.com/hashintel/hash/pull/9093))
+
+- `prepareExperiment` is exported from `@hashintel/petrinaut/react`, so a host can resolve an experiment request against the live model and build its optimization input without starting a run. ([@kostandinang](https://github.com/kostandinang), [#9771](https://github.com/hashintel/hash/pull/9771))
+
+- Add optional host-provided voice, speaking-speed, and audio-device controls alongside output mute and volume, with collapsed Devices and Real-time sections, a compact speed control, and next-session voice information. Keep voice selection available independently of muted-and-idle cached previews, with right-aligned loading and playing indicators, switches for status text and interruptions, and collision-safe Voice dock status truncation that preserves full screen-reader announcements. ([@kostandinang](https://github.com/kostandinang), [#9774](https://github.com/hashintel/hash/pull/9774))
+
+- Add half-duplex Voice handoff, exact response and marked-question replay, live transcripts, compact Voice setup and playback controls, and persistent copyable errors. Keep the conversation busy through browser-tool continuations, withhold pending work on Stop, preserve rejected durable Stop failures through late provider completion, surface automatic-tool failures to Voice, and display stopped entries and surviving client-tool Voice origins supplied by canonical history. ([@lunelson](https://github.com/lunelson), [#9564](https://github.com/hashintel/hash/pull/9564))
+
+- Removes the Optimizations tab; a study now runs from a sweep's Parameters card. ([@kube](https://github.com/kube), [#9685](https://github.com/hashintel/hash/pull/9685))
+
+- The WebGPU backend matches the CPU engine's stochastic semantics and frame numbering, streams metric frames per dispatch chunk, and runs range sweeps from a per-run parameter buffer. It sizes and calibrates metric histograms and typed-place buffers from the model and device instead of refusing or warning, and tiles experiments larger than the device's limits with bit-identical results. Sweep batch instantiation no longer blocks the main thread: scenario compilation is prepared once per experiment and per-run values travel as one typed-array plan. ([@kube](https://github.com/kube), [#9454](https://github.com/hashintel/hash/pull/9454))
+
+- Distribution heatmaps in experiment metric charts render as a magma-coloured density image in one draw call, so they stay fast at high run counts. ([@kube](https://github.com/kube), [#9450](https://github.com/hashintel/hash/pull/9450))
+
+- Swept parameters declare an interval instead of a value count, and the navigator becomes a range slider per parameter: the whole interval by default, resizable, collapsible to a point. A range selection samples the region and streams the merged distribution over it. The slider is a two-thumb range control local to the navigator, whose thumbs may coincide. ([@kube](https://github.com/kube), [#9396](https://github.com/hashintel/hash/pull/9396))
+
+- Extract the contour plot into a `ContourSurface` component shared by the sweep and optimization surfaces, decouple `SweepNavigator` from the experiments context, and add Storybook stories for each component's states. Sweep navigation is continuous: a point selection uses a single-thumb slider, slider moves commit during the drag, and charts keep their axes, grid and size while frames stream in. `Slider` treats 0 as a real value, and `useElementSize` follows an element that mounts after the first render. ([@kube](https://github.com/kube), [#9421](https://github.com/hashintel/hash/pull/9421))
+
+- Metric cards lay out their chart options as runs and time aggregates and gain an Enlarge button. ([@kube](https://github.com/kube), [#9666](https://github.com/hashintel/hash/pull/9666))
+
+- Optimization studies with two or more optimized numeric parameters gain a Surface section: a contour of the objective over two chosen parameters, computed locally against the study's frozen model, with the study's trials as markers. Sliders and clicks move the selected point, which refines with escalating batches. `Slider` accepts `step` and `onChangeEnd`. ([@kube](https://github.com/kube), [#9398](https://github.com/hashintel/hash/pull/9398))
+
+- In the Optimizations list a cancelled study's status chip is grey rather than red, and a study whose event stream is being re-established reads Reconnecting. ([@kube](https://github.com/kube), [#9653](https://github.com/hashintel/hash/pull/9653))
+
+- Run an experiment's runs in parallel across several Web Workers. ([@kube](https://github.com/kube), [#9162](https://github.com/hashintel/hash/pull/9162))
+
+  An experiment used to run every one of its runs in a single worker, using one core however many the machine had. Runs are independent, so they now split across one worker per logical core (minus one, so the editor stays responsive), capped at the run count. Measured at ~4x on 8 shards on a 10-core machine.
+
+  Sharding cannot change what an experiment reports. Per-run seeds derive from the run's **global** index rather than its position within a shard, so run _i_ gets the same seed whichever worker owns it, and each worker's per-frame statistics recombine through the metric accumulator monoids (`empty`/`merge`). Output is byte-identical at every shard count while every shard still has an active run. A frame is only finalised once every still-running shard has reported it, with finished shards dropped from that watermark rather than blocking it — so once a whole shard's runs have ended early (for example by deadlock), that shard's completed runs stop contributing samples to later frames, where a single simulator would keep sampling their frozen state.
+
+  Scalar metric frames now carry their pre-reduction accumulator state, because `frameValue` is already reduced and a mean of means is not a mean.
+
+  Hosts can cap or pin parallelism with `experimentShardCount` on `ExperimentsProvider`, or `shardCount` on `createMonteCarloExperiment`.
+
+- Add a `navigation` prop to `Petrinaut`: a router-neutral controller through
+  which the host can read and drive the app location (mode, Simulate section and
+  resource, scenario, subnet, selection, and creation drawers), making them real
+  browser history destinations. A creation drawer now layers over the record
+  already open instead of closing it, and the hamburger menu hides **Layout** on
+  a read-only net. ([@kube](https://github.com/kube), [#9426](https://github.com/hashintel/hash/pull/9426))
+
+- In experimental Brunch demo mode, File → New offers Build with Brunch or Start blank, then Build with Brunch asks for careful elicitation or a quick preview. ([@lunelson](https://github.com/lunelson), [#9649](https://github.com/hashintel/hash/pull/9649))
+
+- Add `PetrinautPreview`, a compact read-only embed surface exported from
+  `@hashintel/petrinaut/preview` that reuses the editor's canvas, navigation,
+  and property-inspection components. ([@kube](https://github.com/kube), [#9545](https://github.com/hashintel/hash/pull/9545))
+
+- Add Petricon, an optional animated SVG icon library across the editor with adjustable stroke weight, subtle action hints, state transitions, configurable effects, and automatic fallback for icons outside the pack. ([@kube](https://github.com/kube), [#9696](https://github.com/hashintel/hash/pull/9696))
+
+- Allow hosts to render application-specific content in the Labs settings section. ([@kostandinang](https://github.com/kostandinang), [#9793](https://github.com/hashintel/hash/pull/9793))
+
+- Add a `presentationProfile` prop to `Petrinaut` (`editor` or `review`) that
+  gates authoring-only controls, and extract the scenario and playback controls
+  into shared components reusable outside the full editor. ([@kube](https://github.com/kube), [#9425](https://github.com/hashintel/hash/pull/9425))
+
+- Add an optional Quick Simulation mode to `PetrinautPreview`: hosts supply
+  precompiled HIR artifacts and bounded run settings, and the preview gains
+  scenario configuration, compact playback controls, and an expandable timeline
+  reusing the editor's simulation components. ([@kube](https://github.com/kube), [#9546](https://github.com/hashintel/hash/pull/9546))
+
+- Provide movable, resizable User Settings with keyboard-accessible sections, inline experimental badges, and scroll-edge blur. ([@kube](https://github.com/kube))
+
+- Allow Voice users to interrupt assistant playback by speaking, with a browser-saved preference and optional manual handoff. ([@kostandinang](https://github.com/kostandinang), [#9619](https://github.com/hashintel/hash/pull/9619))
+
+- A place's state visualizer opens from a button on the hovered place, with or without a run, and can be pinned to stay in view while the timeline is scrubbed. ([@kube](https://github.com/kube), [#9601](https://github.com/hashintel/hash/pull/9601))
+
+- Add an optional per-place token capacity. ([@kube](https://github.com/kube), [#9177](https://github.com/hashintel/hash/pull/9177))
+
+  A place can now declare a maximum number of tokens it will hold, set from the place properties panel. Useful for supply-chain style models with finite storage. It also converts frames from growable to fixed-size, which is the precondition for a fixed-layout GPU or WASM path.
+
+  Capacity participates in transition enablement, following the standard Petri-net capacity constraint: a transition cannot fire if doing so would take any output place above its capacity. Output tokens are applied at the end of a frame, so the check accounts for what transitions earlier in the same frame have already committed. Several transitions feeding one capped place cannot collectively overflow it.
+
+  Deadlock detection includes the same check, so a net whose only remaining transitions are blocked by full output places is reported as deadlocked rather than stepping to `maxTime` with nothing happening.
+
+  Nets without capacities are unaffected: the constraint tables are empty and the hot path skips them.
+
+- The playback readout shows elapsed and total simulated time instead of the frame index and frame count, in both the editor's toolbar and the embedded Preview's bar. Times print at the precision the run's time step carries, stacked over two lines. The scrubber sizes itself to the space the bar has instead of a fixed width. ([@kube](https://github.com/kube), [#9598](https://github.com/hashintel/hash/pull/9598))
+
+- `PetrinautPreview` takes a `fullViewUrl`, and offers it in the header as a **Full view** link that opens in a new tab. The link replaces the "View only" badge, and text in the preview is no longer selectable, apart from a field that still takes typing. ([@kube](https://github.com/kube), [#9594](https://github.com/hashintel/hash/pull/9594))
+
+- Export the `EditorGlobalMode` and `SimulateViewMode` types, so a host encoding Petrinaut's navigation state into its own router can spell both vocabularies and fail its build when either gains a member. ([@kube](https://github.com/kube), [#9491](https://github.com/hashintel/hash/pull/9491))
+
+- Polish properties panels with readable, clickable checkbox labels, animated capacity options, a single equation link, consistent fields, and clearer section controls and dividers. ([@kube](https://github.com/kube), [#9728](https://github.com/hashintel/hash/pull/9728))
+
+- Add experimental automatic arc connections with a single outgoing hover handle and curves that follow place and transition outlines. ([@kube](https://github.com/kube), [#9677](https://github.com/hashintel/hash/pull/9677))
+
+- Dock the AI assistant on the right, detach it into a movable floating panel, and toggle it with Cmd/Ctrl+Shift+K across editor views while preserving the conversation and keeping the toolbar centered.
+  Space out the header tabs, animate its icons, align the send button inside the composer, resize the floating panel from any edge or corner with fading border highlights, and hide Clear AI while the conversation is empty. ([@kube](https://github.com/kube), [#9659](https://github.com/hashintel/hash/pull/9659))
+
+- The properties panel shows a read-only net's names, descriptions, and the single-value fields of places, arcs, differential equations and component instances as text instead of as disabled inputs. They read at full contrast, and their labels no longer grey out. Toggles, checkboxes and the list editors keep their controls. ([@kube](https://github.com/kube), [#9596](https://github.com/hashintel/hash/pull/9596))
+
+- Restore consistent sidebar, toolbar, and code-editor styling; stabilize toolbar resizing and panel animations; and clarify shortcuts, playback times, and experiment best-result selection. Keep place state read-only, correct scenario navigation and sticky headers, preserve browser-compatible background blur, and enable Petricon by default. ([@kube](https://github.com/kube), [#9764](https://github.com/hashintel/hash/pull/9764))
+
+- Report an AI mutation that leaves the document unchanged as not applied, without claiming the requested state was already present, so hosts can distinguish an applied document change from an unchanged one, and reliably continue consecutive browser tool calls from live or rehydrated assistant messages. ([@lunelson](https://github.com/lunelson), [#9537](https://github.com/hashintel/hash/pull/9537))
+
+- The Preview's playback bar has rounded corners, matching the zoom controls and the minimap that float over the same canvas. ([@kube](https://github.com/kube), [#9593](https://github.com/hashintel/hash/pull/9593))
+
+- Add resizable, routed Experiment and Scenario panels with keyboard selection and fullscreen views that keep the tabs and AI assistant accessible. ([@kube](https://github.com/kube), [#9723](https://github.com/hashintel/hash/pull/9723))
+
+- Reject net identifiers that collide with `Object.prototype` member names (`__proto__`, `constructor`, ...) at file import and before simulation, and store user-authored keys in prototype-free records. Place visualizer code now runs under the same sandbox hardening as scenario code. ([@kube](https://github.com/kube), [#9222](https://github.com/hashintel/hash/pull/9222))
+
+- Makes the scenario form the only scenario form and removes the Ad-hoc scenarios setting. ([@kube](https://github.com/kube), [#9686](https://github.com/hashintel/hash/pull/9686))
+
+- Scenario code (parameter overrides, per-place expressions, code-mode initial state) now compiles through the HIR and runs in an interpreter: no `new Function`, no sandbox. Out-of-subset code fails with positioned errors in the editor and at compile. Stricter than the old evaluator: `==` is strict, conditions and `&&`/`||` take booleans, unknown place names in code mode are errors, and array methods beyond `.map`/`.reduce`/`.concat` are unavailable. `Array.from({ length: n }, fn)` desugars to `range(n).map(fn)`. ([@kube](https://github.com/kube), [#9332](https://github.com/hashintel/hash/pull/9332))
+
+- The place, transition, component-instance, and type properties panels display and allow editing of the element's optional `description`. ([@CiaranMn](https://github.com/CiaranMn), [#9484](https://github.com/hashintel/hash/pull/9484))
+
+- Range sweeps rotate each axis's low-discrepancy parameter draws by a seed-derived shift, so experiments with different seeds explore different value sequences. ([@kube](https://github.com/kube), [#9435](https://github.com/hashintel/hash/pull/9435))
+
+- Export `ExperimentExecutionCard` from `@hashintel/petrinaut/ui` so host-owned assistants can present simulation and optimization progress, cancellation, metrics and errors with the same UI as the built-in assistant, keeping optimization text visible throughout its glow animation. Hosts supply execution state and callbacks and retain control of execution and navigation. ([@kostandinang](https://github.com/kostandinang), [#9800](https://github.com/hashintel/hash/pull/9800))
+
+- Experiment drawer cards take the wider Figma chrome, the header drops the time step from its title and keeps its stat strip on one line, turning into chips in a narrow drawer. ([@kube](https://github.com/kube), [#9621](https://github.com/hashintel/hash/pull/9621))
+
+- Sidebar list labels use the full row width and truncate with an ellipsis consistently; the row menu button only takes space while hovering the row or while its menu is open. ([@kube](https://github.com/kube), [#9377](https://github.com/hashintel/hash/pull/9377))
+
+- Metric charts and a study's summary in the Simulate drawers share one card chrome, with each chart's aggregation controls in a Chart options menu in the card's header. ([@kube](https://github.com/kube), [#9602](https://github.com/hashintel/hash/pull/9602))
+
+- The Simulate drawers share one frame with a condensing header, a Parameters band across the body and fixed-height cards, and the Summary section folds into the header. ([@kube](https://github.com/kube), [#9607](https://github.com/hashintel/hash/pull/9607))
+
+- Run experiments and optimizations from AI chat with progress, cancellation, and a link to metric distributions. Keep the conversation open while inspecting experiments. ([@kube](https://github.com/kube), [#9678](https://github.com/hashintel/hash/pull/9678))
+
+- Add generic host-rendered AI composer controls and a persistent inline Voice session, protected
+  active conversations, keyboard fallback, and one-answer buffering while the normal chat stream
+  settles. Add the provider-neutral `renderVoiceMode` contract and export `PetrinautAiInputMode`, with
+  the selected input mode and mode-change callback available to host-rendered Voice modes. Include
+  stable finalized-text submission, conversation identity, stop handling, schema-validated
+  interactive-tool text mapping, explicit separate-message targeting for corrections, and a
+  queue-aware voice submission path. Present text and voice through one transcript and composer whose
+  trailing action switches between waveform, Send, and Stop. `renderComposerControl` remains a
+  supported public seam for hosts that only need their own control beside the message box,
+  independently of Voice mode. Surface assistant request failures as error toasts instead of
+  transcript entries. ([@kostandinang](https://github.com/kostandinang), [#9355](https://github.com/hashintel/hash/pull/9355))
+
+  Render every live Voice surface from a session snapshot the host reports through
+  `reportVoiceSessionState`, so hosts describe their session while Petrinaut owns its chrome. Replace
+  the composer with a low-profile Voice dock -- a canvas ribbon of three travelling waves, one leading
+  and two trailing it more faintly, fading out at both ends, opening with the microphone while
+  listening and moving under its own power through the same drawing path while the assistant speaks,
+  near flat while neither holds the turn, and naming one phase at a time -- with an announced phase and
+  reduced-motion behavior. Curve the raw microphone level before it drives the waves, so an ordinary
+  speaking level is plainly visible rather than a flicker above the line and a raised voice still has
+  somewhere to go. Sample the level per animation frame rather than through React, so drawing costs no
+  re-renders, and ease it against the frame delta so it looks the same at any refresh rate. Hold spoken
+  turns out of the transcript until the session ends, then reveal them together under a turn-count
+  divider, while typed messages and interactive tools awaiting an answer stay visible throughout. Let a
+  per-session Show transcription in chat action write those turns into the conversation as they land
+  instead. Keep every session control -- transcription, the microphone toggle, Resume, Reconnect, and
+  End -- in the dock, leaving the canvas toolbar untouched. Add `setMicrophoneMuted` to the Voice mode
+  controls and a `muted` session phase, so muting stops capture without interrupting what the assistant
+  is saying, unlike pausing. Keep the complete legacy Voice controls and context registration contract
+  required while a separate optional registration seam accepts provider-specific capabilities. Offer
+  an explicit playback retry when a browser blocks session audio, keeping the warning visible until
+  that user gesture succeeds. Surface voice recovery failures as toasts with privacy-safe diagnostic
+  references, and request one-time consent before the host starts the microphone. Mark persisted
+  spoken messages and the exact interactive-tool answer completed by Voice with an inline Voice chip
+  ahead of the words themselves.
+
+  End Voice mode before submitting typed text exactly once through the shared composer, preserving the
+  draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session
+  paused. Provisional transcription and Realtime audio remain ephemeral rather than becoming
+  persisted chat history.
+
+- Storybook gains a "With real optimizer" story that runs optimization studies against a local Petrinaut Optimizer service; start it with `turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service`. ([@kube](https://github.com/kube), [#9395](https://github.com/hashintel/hash/pull/9395))
+
+- A sweep's range selection runs as one stochastic simulation over the ranges: every run draws its own value per ranged parameter, and the metric distribution over the region streams live. `ExperimentRequest` carries optional per-run overrides (`runs`), forwarded by the worker-pool backend and refused by the WebGPU backend. ([@kube](https://github.com/kube), [#9419](https://github.com/hashintel/hash/pull/9419))
+
+- Sweep compute is reused and pipelined: simulation workers persist across batches, surface cells sample in batched chunks in quad-tree order across the CPU pool, the navigator's selection streams first while the ladder pipelines its rungs, and one GPU backend (device, shader, calibration) with a small preview tile serves a session's batches. The surface reads a cell's value from the last sampled frame, so terminating nets fill it; charts mount their axes when the drawer opens and apply data once per animation frame. ([@kube](https://github.com/kube), [#9474](https://github.com/hashintel/hash/pull/9474))
+
+- The frame inspector draws a frame's distribution as a canvas histogram with value and count axes. Distribution frames carry their bins' extent and heatmaps paint each bin across the rows it covers, so mixed strides no longer stripe, and streamed updates ease in instead of snapping. The sweep surface navigates by drag as well as click and marks the navigator's position, and the summary lists every batch computing in parallel. Parameter sweeps and the optimization surface are experimental settings, off by default. ([@kube](https://github.com/kube), [#9478](https://github.com/hashintel/hash/pull/9478))
+
+- Sweeps with two or more swept parameters gain a Surface section: a contour of a metric's final value over two chosen parameters, filled in live on a background lane. Clicking it moves the navigator to the nearest combination. ([@kube](https://github.com/kube), [#9369](https://github.com/hashintel/hash/pull/9369))
+
+- Expand code sections to fill the Properties Panel with smooth transitions, a parent breadcrumb, keyboard focus restoration, and browser history navigation. Make Canvas and Definitions available as Edit views with browser history navigation. Preserve the latest code when switching between Edit views. ([@kube](https://github.com/kube), [#9664](https://github.com/hashintel/hash/pull/9664))
+
+- Allow host-owned Voice sessions to report a neutral connected state and omit unsupported controls, keeping viewport controls above the collapsed dock. Contain Voice failures and explicit recovery warnings behind a warning icon with hover previews and a scrollable details popover instead of global notifications, while temporary session notices remain in the dock status. ([@kostandinang](https://github.com/kostandinang), [#9671](https://github.com/hashintel/hash/pull/9671))
+
+  Keep voice permission content above the compact dock without moving the controls, and show Voice setup until a connection actually starts. Keep the error icon in the same dock position when expanding or collapsing a Voice session.
+
+- A closed simulation timeline stops reading frames and drawing until it is reopened. ([@kube](https://github.com/kube), [#9656](https://github.com/hashintel/hash/pull/9656))
+
+- Hosts can mount `UserSettingsProvider` from `@hashintel/petrinaut/react` above `Petrinaut` to read and change the persisted user settings from their own components; the editor reuses that provider instead of creating its own. ([@kube](https://github.com/kube), [#9634](https://github.com/hashintel/hash/pull/9634))
+
+- Let hosts withdraw a retained voice input through an `AbortSignal`, keep a late durable Stop result from cancelling a newer turn, replace all conversation-owned assistant state when the conversation identity changes, hydrate host-owned history only once it carries every locally streamed reply, keep the composer status busy across the automatic follow-up to a client-tool step, and let a Stop pressed during that step withhold the follow-up. ([@lunelson](https://github.com/lunelson), [#9528](https://github.com/hashintel/hash/pull/9528))
+
+- Keep rejected overlapping Voice tool answers from restoring failed sibling provenance or overwriting newer message metadata. ([@kostandinang](https://github.com/kostandinang), [#9615](https://github.com/hashintel/hash/pull/9615))
+
+- Add an experimental WebGPU compute backend for experiments, chosen per experiment behind a user setting. It runs the net's lowered HIR on the device, declines nets it cannot run so they fall back to the CPU, and agrees with the CPU in distribution rather than seed for seed. A Compilation panel, also behind a setting, shows what the compiler made of each condition, kernel and equation. ([@kube](https://github.com/kube), [#9179](https://github.com/hashintel/hash/pull/9179))
+
+- Restore design-system component styles in Petrinaut builds on Windows. ([@aacarcrash](https://github.com/aacarcrash), [#9808](https://github.com/hashintel/hash/pull/9808))
+
+- Add the worksheet keyboard-flow primitives (`FocusStack`, `FocusRoot`, `useFocusGrid`, `useFocusStops`): reusable arrow-key routing, per-group focus memory, and roving tab stops for panels composed of grids and controls. ([@kube](https://github.com/kube), [#9411](https://github.com/hashintel/hash/pull/9411))
+
+- Nets and optimization manifests can be imported and exported in YAML and JSON. ([@kube](https://github.com/kube), [#9379](https://github.com/hashintel/hash/pull/9379))
+
+- Updated dependencies:
+  - @hashintel/petrinaut-core@0.0.5
+  - @hashintel/ds-components@0.4.0
+  - @hashintel/refractive@0.0.5
+
 ## Unreleased
 
 ### Patch Changes
