@@ -29,7 +29,7 @@ type ConnectionKind = "live" | "transcription";
 
 export interface LiveAppendResult {
   readonly eventId: string;
-  readonly kind: "commentary" | "instructions";
+  readonly kind: "commentary" | "instructions" | "thinking";
   readonly delegationId: string | null;
   /** Unknown means sent locally, but provider acceptance is not yet confirmed. */
   readonly status: "local-failure" | "unknown" | "accepted" | "rejected";
@@ -451,6 +451,7 @@ export const createLiveConversation = (
         "session.delegation.created",
         "session.commentary.appended",
         "session.instructions.appended",
+        "session.thinking.appended",
         "input_audio_buffer.speech_started",
         "input_audio_buffer.speech_stopped",
         "input_audio_buffer.committed",
@@ -538,7 +539,8 @@ export const createLiveConversation = (
       onDelegation(delegation.id);
     } else if (
       data.type === "session.commentary.appended" ||
-      data.type === "session.instructions.appended"
+      data.type === "session.instructions.appended" ||
+      data.type === "session.thinking.appended"
     ) {
       if (
         !("client_event_id" in data) ||
@@ -548,7 +550,8 @@ export const createLiveConversation = (
       const pending = pendingAppends.get(data.client_event_id);
       if (!pending || data.type !== `session.${pending.kind}.appended`) return;
       pendingAppends.delete(pending.eventId);
-      if (pending.delegationId !== null)
+      // Quiet context does not answer a delegation; only speech or a redirect does.
+      if (pending.delegationId !== null && pending.kind !== "thinking")
         openDelegations.delete(pending.delegationId);
       reportAppendResult({ ...pending, status: "accepted" });
     } else if (
@@ -844,5 +847,7 @@ export const createLiveConversation = (
       append("commentary", text, delegationId),
     appendInstructions: (text: string, delegationId: string | null) =>
       append("instructions", text, delegationId),
+    appendThinking: (text: string, delegationId: string | null) =>
+      append("thinking", text, delegationId),
   };
 };

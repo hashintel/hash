@@ -26,13 +26,13 @@ import {
 } from "@hashintel/petrinaut/react";
 
 import {
+  describeBudget,
+  describeExperiment,
+} from "../shared/brunch-draft-experiment-summary";
+import {
   BrunchDraftExperimentWidget,
   resetBrunchDraftExperimentSession,
 } from "./brunch-draft-experiment-interactive-tool";
-import {
-  describeBudget,
-  describeExperiment,
-} from "./brunch-draft-experiment-interactive-tool/describe-draft";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
 vi.hoisted(() => {
