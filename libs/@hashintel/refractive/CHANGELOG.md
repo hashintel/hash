@@ -1,5 +1,11 @@
 # @hashintel/refractive
 
+## 0.0.5
+
+### Patch Changes
+
+- Apply native backdrop blur across browsers, adding SVG glass distortion only on Chromium and skipping filter generation in other browsers. ([@kube](https://github.com/kube), [#9764](https://github.com/hashintel/hash/pull/9764))
+
 ## 0.0.4
 
 ### Patch Changes
