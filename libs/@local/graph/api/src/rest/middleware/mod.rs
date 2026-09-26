@@ -42,9 +42,11 @@ pub(super) fn document(mut document: TransformOpenApi<'_>) -> TransformOpenApi<'
     document
 }
 
-/// Answers a request with a method its route does not serve. Axum adds the `Allow` header.
+/// Answers a request with a method its path does not serve.
+///
+/// Axum adds the `Allow` header.
 pub(super) async fn method_not_allowed(method: Method, uri: Uri) -> Response {
-    tracing::debug!(%method, path = uri.path(), "route does not serve the method");
+    tracing::debug!(%method, path = uri.path(), "path does not serve the method");
     problem_response(&status_problem(StatusCode::METHOD_NOT_ALLOWED))
 }
 
@@ -91,7 +93,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics if the routes of two groups overlap.
+    /// Panics if two groups serve the same path.
     pub(super) fn assemble(
         &self,
         legacy_routes: Router,

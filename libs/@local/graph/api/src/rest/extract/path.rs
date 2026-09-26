@@ -67,7 +67,8 @@ impl Expose<PathProblem> for PathRejection {
 ///
 /// `T` is a struct with one field per placeholder of the route, named like the placeholder. Each
 /// field holds a single value and is not an `Option`. [`openapi::build`] panics for an operation
-/// whose path parameters break this.
+/// whose path parameters break this. `T` cannot flatten a struct into itself: axum hands flattened
+/// fields their values as strings, which only a string field accepts.
 ///
 /// [`openapi::build`]: crate::rest::openapi::build
 pub(in crate::rest) struct Path<T>(pub T);

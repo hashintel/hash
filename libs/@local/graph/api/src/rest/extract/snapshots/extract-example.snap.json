@@ -411,7 +411,7 @@
             }
           }
         },
-        "description": "The request body is well-formed JSON of a shape the operation does not accept."
+        "description": "The request body does not match the schema of the operation."
       },
       "UnsupportedMediaType": {
         "content": {
@@ -495,12 +495,14 @@
         "type": "object"
       },
       "EchoResponse": {
-        "description": "What the request carried.",
+        "description": "The label from the path and copies of the value from the body.",
         "properties": {
           "label": {
+            "description": "The path parameter `label`.",
             "type": "string"
           },
           "values": {
+            "description": "As many copies of the body's `value` as `repeat` asks for.",
             "items": {
               "type": "string"
             },
@@ -556,7 +558,7 @@
   "paths": {
     "/example/echo/{label}": {
       "post": {
-        "description": "Repeats what the request carried in its path, query string and body.",
+        "description": "Returns the label from the path and the value from the body, repeated as often as the query parameter `repeat` asks.",
         "operationId": "echo",
         "parameters": [
           {
@@ -603,7 +605,7 @@
                 }
               }
             },
-            "description": "What the request carried."
+            "description": "The label from the path and copies of the value from the body."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"

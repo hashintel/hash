@@ -113,7 +113,7 @@ impl ProblemVariant for UnsupportedMediaType {
     }
 }
 
-/// The request body is well-formed JSON of a shape the operation does not accept.
+/// The request body does not match the schema of the operation.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("{detail}")]
 struct InvalidBody {

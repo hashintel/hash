@@ -42,9 +42,9 @@ pub struct Dependencies<S> {
 ///
 /// # Panics
 ///
-/// Panics when called outside a Tokio runtime, if routes overlap, if an OpenAPI document does not
-/// generate or serialize, or if the documentation routes cannot be built from the embedded Scalar
-/// bundle and configuration.
+/// Panics when called outside a Tokio runtime, if two route groups serve the same path, if an
+/// OpenAPI document does not generate or serialize, or if the documentation routes cannot be built
+/// from the embedded Scalar bundle and configuration.
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,

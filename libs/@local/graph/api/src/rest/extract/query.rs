@@ -52,14 +52,14 @@ impl Expose<QueryProblem> for QueryRejection {
         let detail = self.body_text();
         match self {
             Self::FailedToDeserializeQueryString(_) => Answer::new(MalformedQuery { detail }),
-            // `QueryRejection` is `#[non_exhaustive]`: this arm handles a rejection a later axum
-            // version adds until an arm above names it.
+            // `QueryRejection` is `#[non_exhaustive]`: these arms handle a rejection a later
+            // axum-extra version adds until an arm above names it.
             _ if self.status().is_server_error() => {
-                tracing::error!(status = %self.status(), %detail, "axum rejected the query in a way this extractor does not name");
+                tracing::error!(status = %self.status(), %detail, "axum-extra rejected the query in a way this extractor does not name");
                 Answer::new(InternalServerError)
             }
             _ => {
-                tracing::warn!(status = %self.status(), %detail, "axum rejected the query in a way this extractor does not name");
+                tracing::warn!(status = %self.status(), %detail, "axum-extra rejected the query in a way this extractor does not name");
                 Answer::new(MalformedQuery { detail })
             }
         }

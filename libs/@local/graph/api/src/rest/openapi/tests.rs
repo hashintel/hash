@@ -127,7 +127,7 @@ fn component_names_keep_to_alphanumeric_keys() {
 
 #[test]
 #[should_panic(expected = "should generate without errors")]
-fn build_panics_on_duplicate_response() {
+fn build_duplicate_response() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),
@@ -157,7 +157,7 @@ struct DraftPath {
 
 #[test]
 #[should_panic(expected = "should document one path parameter per placeholder")]
-fn build_panics_on_undocumented_placeholder() {
+fn build_path_placeholder_undocumented() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),
@@ -173,7 +173,7 @@ fn build_panics_on_undocumented_placeholder() {
 
 #[test]
 #[should_panic(expected = "should document one path parameter per placeholder")]
-fn build_panics_on_extra_path_parameter() {
+fn build_path_parameter_without_placeholder() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),
@@ -242,24 +242,40 @@ where
 
 #[test]
 #[should_panic(expected = "should require its path parameter `entity`")]
-fn build_panics_on_optional_path_parameter() {
+fn build_path_parameter_optional() {
     build_entity_route(|OptionalPath { entity }: OptionalPath| entity.unwrap_or_default());
 }
 
 #[test]
 #[should_panic(expected = "should read its path parameter `entity` as a single value")]
-fn build_panics_on_sequence_path_parameter() {
+fn build_path_parameter_sequence() {
     build_entity_route(|SequencePath { entity }: SequencePath| entity.concat());
 }
 
 #[test]
 #[should_panic(expected = "should read its path parameter `entity` as a single value")]
-fn build_panics_on_struct_path_parameter() {
+fn build_path_parameter_struct() {
     build_entity_route(|StructPath { entity }: StructPath| entity.id);
 }
 
+/// A single value around a value with fields of its own.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct WrappedEntity(Entity);
+
+/// Path parameters with a newtype around a struct for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct WrappedPath {
+    entity: WrappedEntity,
+}
+
 #[test]
-fn build_accepts_newtype_path_parameter() {
+#[should_panic(expected = "should read its path parameter `entity` as a single value")]
+fn build_path_parameter_wrapped_struct() {
+    build_entity_route(|WrappedPath { entity }: WrappedPath| entity.0.id);
+}
+
+#[test]
+fn build_path_parameter_newtype_accepted() {
     build_entity_route(|NewtypePath { entity }: NewtypePath| entity.0);
 }
 
@@ -316,7 +332,7 @@ where
 #[should_panic(
     expected = "should read its query parameter `entity` as a single value or a sequence"
 )]
-fn build_panics_on_struct_query_parameter() {
+fn build_query_parameter_struct() {
     build_query_route(|StructQuery { entity }: StructQuery| entity.id);
 }
 
@@ -324,7 +340,7 @@ fn build_panics_on_struct_query_parameter() {
 #[should_panic(
     expected = "should read its query parameter `filter` as a single value or a sequence"
 )]
-fn build_panics_on_enum_query_parameter() {
+fn build_query_parameter_enum() {
     build_query_route(|EnumQuery { filter }: EnumQuery| match filter {
         Filter::ById { id } => id,
         Filter::ByName { name } => name,
@@ -335,7 +351,7 @@ fn build_panics_on_enum_query_parameter() {
 #[should_panic(
     expected = "should read its query parameter `entities` as a single value or a sequence"
 )]
-fn build_panics_on_struct_sequence_query_parameter() {
+fn build_query_parameter_struct_sequence() {
     build_query_route(|StructSequenceQuery { entities }: StructSequenceQuery| {
         entities
             .unwrap_or_default()
@@ -346,13 +362,13 @@ fn build_panics_on_struct_sequence_query_parameter() {
 }
 
 #[test]
-fn build_accepts_value_query_parameters() {
+fn build_query_parameter_values_accepted() {
     build_query_route(|ValuesQuery { ids, limit }: ValuesQuery| format!("{ids:?} {limit:?}"));
 }
 
 #[test]
 #[should_panic(expected = "should read its path parameter `entity` through `rest::extract::Path`")]
-fn build_panics_on_axum_path() {
+fn build_axum_path() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),
@@ -372,7 +388,7 @@ fn build_panics_on_axum_path() {
 
 #[test]
 #[should_panic(expected = "should read its query parameter `ids` through `rest::extract::Query`")]
-fn build_panics_on_axum_extra_query() {
+fn build_axum_extra_query() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),
@@ -392,7 +408,7 @@ fn build_panics_on_axum_extra_query() {
 
 #[test]
 #[should_panic(expected = "should read its request body through `rest::extract::Json`")]
-fn build_panics_on_bytes_body() {
+fn build_bytes_body() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),
@@ -444,7 +460,7 @@ fn parameter_data(name: &str) -> ParameterData {
 
 #[test]
 #[should_panic(expected = "should read no header parameter such as `x-trace`")]
-fn build_panics_on_header_parameter() {
+fn build_header_parameter() {
     build_with_parameter(Parameter::Header {
         parameter_data: parameter_data("x-trace"),
         style: HeaderStyle::Simple,
@@ -453,7 +469,7 @@ fn build_panics_on_header_parameter() {
 
 #[test]
 #[should_panic(expected = "should read no cookie parameter such as `session`")]
-fn build_panics_on_cookie_parameter() {
+fn build_cookie_parameter() {
     build_with_parameter(Parameter::Cookie {
         parameter_data: parameter_data("session"),
         style: CookieStyle::Form,
@@ -462,7 +478,7 @@ fn build_panics_on_cookie_parameter() {
 
 #[test]
 #[should_panic(expected = "should answer with JSON through `rest::extract::Json`")]
-fn build_panics_on_axum_json_response() {
+fn build_axum_json_response() {
     let _: Api = openapi::build::<NoCredentials>(
         "/test",
         Info::default(),

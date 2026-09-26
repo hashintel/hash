@@ -475,11 +475,13 @@ struct EchoRequest {
     value: String,
 }
 
-/// What the request carried.
+/// The label from the path and copies of the value from the body.
 #[derive(Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct EchoResponse {
+    /// The path parameter `label`.
     label: String,
+    /// As many copies of the body's `value` as `repeat` asks for.
     values: Vec<String>,
 }
 
@@ -510,7 +512,8 @@ fn echo_document() {
                 "/echo/{label}",
                 post_with(echo, |operation| {
                     operation.id("echo").summary("Echo a request").description(
-                        "Repeats what the request carried in its path, query string and body.",
+                        "Returns the label from the path and the value from the body, repeated as \
+                         often as the query parameter `repeat` asks.",
                     )
                 }),
             )

@@ -28,17 +28,23 @@ use super::{Api, credentials::Credentials, extract::MessagePart, middleware};
 ///
 /// # Panics
 ///
-/// Panics if `prefix` is not a valid nesting path, if Aide reports a documentation defect such as
-/// two handlers documenting the same operation, if an operation requires a security scheme the
-/// document does not declare, if the path parameters of an operation are not the placeholders of
-/// its path or one of them is optional, a sequence or a map, if a query parameter is a map or a
-/// sequence of anything but single values, if an operation reads a path parameter, a query
-/// parameter or its body, or answers with JSON, through anything but the items of
-/// [`rest::extract`], if it documents a header or cookie parameter, or if the problem variants of
-/// an operation cannot be documented, such as when the status of a variant already has a response
-/// that documents none.
+/// Panics if:
 ///
-/// [`rest::extract`]: crate::rest::extract
+/// - `prefix` is not a valid nesting path.
+/// - Aide reports a documentation defect, such as two handlers documenting the same operation.
+/// - An operation requires a security scheme the document does not declare.
+/// - The path parameters an operation documents are not exactly the placeholders of its path, or
+///   one of them is optional, a sequence or a map.
+/// - A query parameter is a map or a sequence of anything but single values.
+/// - An operation documents a path parameter, a query parameter, a request body or a JSON response
+///   that [`Json`], [`Path`] or [`Query`] did not read or write, or documents a header or cookie
+///   parameter.
+/// - The problem variants of an operation cannot be documented, such as when the status of a
+///   variant already has a response that documents none.
+///
+/// [`Json`]: crate::rest::extract::Json
+/// [`Path`]: crate::rest::extract::Path
+/// [`Query`]: crate::rest::extract::Query
 pub(super) fn build<C: Credentials>(
     prefix: &'static str,
     info: Info,
@@ -117,12 +123,13 @@ fn assert_security_schemes_declared(document: &mut OpenApi) {
     }
 }
 
-/// Checks that axum can read every path and query parameter an operation documents.
+/// Checks that an operation documents one path parameter per placeholder of its path, and that axum
+/// can read every path and query parameter it documents.
 ///
-/// Aide documents these parameters from the fields of the struct a handler reads them into. Axum
-/// fills each field of a path struct from the placeholder of the same name, as a single value. A
-/// tuple or a single value documents no parameter. A field without a placeholder is a client error
-/// to axum on every request, and a sequence or a map a server error. The path always carries every
+/// Aide documents one parameter per field of the struct a handler reads the parameters into, and
+/// none for a tuple or a single value. Axum fills each field of a path struct from the placeholder
+/// of the same name, as a single value: a field without a placeholder makes it answer every request
+/// with `400`, and a sequence or a map makes it answer `500`. The path always carries every
 /// placeholder, so an optional field documents a parameter a client cannot leave out. A query
 /// struct reads single values and, from repeated keys, sequences of them, but no map.
 fn assert_parameters_readable(document: &mut OpenApi) {
@@ -176,7 +183,8 @@ fn assert_parameters_readable(document: &mut OpenApi) {
                         assert!(
                             parameter_data.required,
                             "{method} {path} should require its path parameter `{name}`, as the \
-                             path always carries it: read it into a field that is not an `Option`"
+                             path always carries it: read it into a field that is neither an \
+                             `Option` nor `#[serde(default)]`"
                         );
                         assert!(
                             parameter_schema(parameter_data)
@@ -202,14 +210,15 @@ fn assert_parameters_readable(document: &mut OpenApi) {
     }
 }
 
-/// Checks that the items of [`rest::extract`] read every parameter and request body and write
-/// every JSON response an operation documents, and removes the marks they leave on it.
+/// Checks that [`Json`], [`Path`] and [`Query`] read every path parameter, query parameter and
+/// request body and write every JSON response an operation documents, and removes their marks.
 ///
-/// Axum's own extractors answer a rejection with plain text, `axum::Json` answers a body that fails
-/// to serialize with plain text, and no extractor reads a header or a cookie with problem details
-/// yet.
+/// Axum's own extractors and `axum::Json` answer a failure with plain text. An operation that
+/// documents a header or cookie parameter panics.
 ///
-/// [`rest::extract`]: crate::rest::extract
+/// [`Json`]: crate::rest::extract::Json
+/// [`Path`]: crate::rest::extract::Path
+/// [`Query`]: crate::rest::extract::Query
 fn assert_read_through_extractors(document: &mut OpenApi) {
     let Some(paths) = &mut document.paths else {
         return;
@@ -293,17 +302,35 @@ fn parameter_schema(parameter: &ParameterData) -> Option<&Value> {
     }
 }
 
-/// `schema`, or the one of `schemas` it references.
+/// `schema`, following references to `schemas` and the single-member `allOf` that wraps a
+/// reference with a description.
 fn resolved<'schema>(
-    schema: &'schema Value,
+    mut schema: &'schema Value,
     schemas: Option<&'schema IndexMap<String, SchemaObject>>,
 ) -> &'schema Value {
+    // Component schemas reference each other in short chains, so a bound stands in for a cycle
+    // check.
+    for _ in 0..8 {
+        let next = if let Some([member]) = schema
+            .get("allOf")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+        {
+            Some(member)
+        } else {
+            schema
+                .get("$ref")
+                .and_then(Value::as_str)
+                .and_then(|reference| reference.strip_prefix("#/components/schemas/"))
+                .and_then(|name| schemas?.get(name))
+                .map(|component| component.json_schema.as_value())
+        };
+        let Some(next) = next else {
+            break;
+        };
+        schema = next;
+    }
     schema
-        .get("$ref")
-        .and_then(Value::as_str)
-        .and_then(|reference| reference.strip_prefix("#/components/schemas/"))
-        .and_then(|name| schemas?.get(name))
-        .map_or(schema, |component| component.json_schema.as_value())
 }
 
 /// Whether `schema`, and every branch of its `anyOf` or `oneOf`, is the schema of a single value.

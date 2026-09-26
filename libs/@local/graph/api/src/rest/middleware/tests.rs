@@ -360,6 +360,32 @@ async fn method_not_allowed_draws_on_address_gate() {
 }
 
 #[tokio::test]
+async fn method_not_allowed_draws_on_caller_budget() {
+    let router = middleware(
+        &config(10, 1),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/first/test"))
+            .await
+            .status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "the first request with a method the path does not serve should pass the caller budget"
+    );
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/first/test"))
+            .await
+            .status(),
+        StatusCode::TOO_MANY_REQUESTS,
+        "a method the path does not serve should draw from the caller budget like any other \
+         request"
+    );
+}
+
+#[tokio::test]
 async fn panic_problem_document() {
     let router = middleware(
         &config(10, 10),
