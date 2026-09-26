@@ -136,7 +136,6 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::Value;
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     ///
@@ -181,7 +180,6 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Int, List, Value};
@@ -392,7 +390,6 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;

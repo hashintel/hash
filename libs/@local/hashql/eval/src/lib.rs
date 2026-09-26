@@ -9,7 +9,7 @@
     exhaustive_patterns,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     const_convert,
     const_trait_impl,
     get_mut_unchecked,

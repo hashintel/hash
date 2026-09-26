@@ -14,7 +14,6 @@ use super::Value;
 /// # Examples
 ///
 /// ```
-/// # #![feature(allocator_api)]
 /// # extern crate alloc;
 /// use alloc::alloc::Global;
 ///
@@ -44,7 +43,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::Dict;
@@ -65,7 +63,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Value};
@@ -87,7 +84,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Value};
@@ -111,7 +107,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Value};
@@ -135,7 +130,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Value};
@@ -160,7 +154,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Value};
@@ -191,7 +184,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Dict, Value};

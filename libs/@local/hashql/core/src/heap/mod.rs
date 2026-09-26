@@ -5,7 +5,6 @@
 //! # Usage
 //!
 //! ```
-//! # #![feature(allocator_api)]
 //! use hashql_core::heap::Heap;
 //!
 //! let heap = Heap::new();
@@ -46,7 +45,6 @@
 //! Clone a value into an allocator:
 //!
 //! ```
-//! # #![feature(allocator_api)]
 //! use hashql_core::heap::{CloneIn, Heap};
 //!
 //! let heap = Heap::new();
@@ -59,7 +57,6 @@
 //! Convert values with allocation:
 //!
 //! ```
-//! # #![feature(allocator_api)]
 //! use hashql_core::heap::{Heap, IntoIn};
 //!
 //! let heap = Heap::new();
@@ -71,7 +68,6 @@
 //! Collect iterators into arena containers:
 //!
 //! ```
-//! # #![feature(allocator_api)]
 //! use hashql_core::heap::{CollectIn, Heap};
 //!
 //! let heap = Heap::new();
@@ -84,7 +80,6 @@
 //! arena's lifetime, ensuring the data is freed when the arena resets:
 //!
 //! ```
-//! # #![feature(allocator_api)]
 //! use hashql_core::heap::{Heap, TransferInto};
 //!
 //! let heap = Heap::new();
