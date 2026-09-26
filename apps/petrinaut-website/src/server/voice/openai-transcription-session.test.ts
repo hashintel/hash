@@ -138,7 +138,8 @@ describe("OpenAI transcription WebRTC session", () => {
         type: "transcription",
         audio: {
           input: {
-            transcription: { model: "gpt-4o-transcribe" },
+            noise_reduction: { type: "far_field" },
+            transcription: { model: "gpt-4o-transcribe", language: "en" },
             turn_detection: { type: "semantic_vad", eagerness: "medium" },
           },
         },
@@ -238,6 +239,8 @@ describe("OpenAI transcription WebRTC session", () => {
   test.each([
     ["invalid_value", "session.audio.input.turn_detection.type"],
     ["model_not_found", "session.audio.input.transcription.model"],
+    ["unknown_parameter", "session.audio.input.noise_reduction"],
+    ["unsupported_value", "session.audio.input.transcription.language"],
     ["server-only-secret", "private-transcript"],
   ])(
     "logs only allowlisted credential rejection metadata: %s",

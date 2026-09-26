@@ -1,4 +1,8 @@
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
+import {
+  createOutputEchoTrace,
+  logCaptureSettings,
+} from "./live-conversation/echo-diagnostics";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { VoiceAudioSettings } from "./voice-audio-settings";
@@ -46,6 +50,7 @@ export const createLiveConversation = (
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
+  const echoTrace = createOutputEchoTrace(sessionId);
   const seenDelegations = new Set<string>();
   const openDelegations = new Set<string>();
   const pendingAppends = new Map<string, LiveAppendResult>();
@@ -109,6 +114,7 @@ export const createLiveConversation = (
   };
 
   const stopMedia = () => {
+    echoTrace.end();
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
@@ -249,6 +255,8 @@ export const createLiveConversation = (
     if (stopping || !livePeer) return;
     let microphoneLevel = 0;
     let outputLevel = 0;
+    let echoReturnLoss: number | undefined;
+    let echoReturnLossEnhancement: number | undefined;
     try {
       const stats = await livePeer.getStats();
       stats.forEach((report: unknown) => {
@@ -262,7 +270,19 @@ export const createLiveConversation = (
           !("type" in report)
         )
           return;
-        if (report.type === "media-source") microphoneLevel = report.audioLevel;
+        if (report.type === "media-source") {
+          microphoneLevel = report.audioLevel;
+          if (
+            "echoReturnLoss" in report &&
+            typeof report.echoReturnLoss === "number"
+          )
+            echoReturnLoss = report.echoReturnLoss;
+          if (
+            "echoReturnLossEnhancement" in report &&
+            typeof report.echoReturnLossEnhancement === "number"
+          )
+            echoReturnLossEnhancement = report.echoReturnLossEnhancement;
+        }
         if (report.type === "inbound-rtp") outputLevel = report.audioLevel;
       });
     } catch {
@@ -273,6 +293,16 @@ export const createLiveConversation = (
     if (recoveryTimers.size > 0) return;
     const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
+    echoTrace.sample(Date.now(), {
+      audible: Boolean(playing) && outputLevel > 0.01,
+      microphoneLevel,
+      echoReturnLoss,
+      echoReturnLossEnhancement,
+      microphoneMuted,
+      speakerMuted,
+      speakerVolume,
+      selectedSpeaker: Boolean(audio?.sinkId),
+    });
     const activity = {
       microphoneLevel: microphoneMuted
         ? 0
@@ -316,6 +346,7 @@ export const createLiveConversation = (
           itemId,
           inputId: input.id,
           characters: input.text.length,
+          startedDuringOutput: echoTrace.startedDuringOutput(itemId),
         });
         onFinalizedInput(input);
       }
@@ -340,6 +371,7 @@ export const createLiveConversation = (
         ),
         replaceMicrophone: (stream) => {
           microphone = stream;
+          logCaptureSettings(sessionId, stream, "microphone-switched");
           applyMicrophoneMuted();
         },
       });
@@ -351,6 +383,10 @@ export const createLiveConversation = (
   const handleTranscriptionEvent = (data: Record<string, unknown>) => {
     if (data.type === "session.created" || data.type === "session.updated") {
       if (!ready.has("transcription")) markReady("transcription");
+      return;
+    }
+    if (data.type === "input_audio_buffer.speech_started") {
+      echoTrace.transcriptionSpeechStarted(data.item_id);
       return;
     }
     if (data.type === "input_audio_buffer.committed") {
@@ -551,6 +587,15 @@ export const createLiveConversation = (
       if (pending.delegationId !== null)
         openDelegations.delete(pending.delegationId);
       reportAppendResult({ ...pending, status: "accepted" });
+    } else if (data.type === "session.output_transcript.delta") {
+      echoTrace.liveOutputFragment(
+        "start_ms" in data ? data.start_ms : undefined,
+        "end_ms" in data ? data.end_ms : undefined,
+      );
+    } else if (data.type === "session.input_transcript.delta") {
+      echoTrace.liveInputFragment(
+        "start_ms" in data ? data.start_ms : undefined,
+      );
     } else if (
       !stopping &&
       (data.type === "error" || data.type === "session.error")
@@ -752,6 +797,7 @@ export const createLiveConversation = (
         return;
       }
       microphone = stream;
+      logCaptureSettings(sessionId, stream, "started");
       applyMicrophoneMuted();
       if (!audioSettings)
         stream.getTracks().forEach((track) =>
