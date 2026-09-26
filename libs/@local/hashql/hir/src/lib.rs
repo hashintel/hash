@@ -11,7 +11,6 @@
     macro_metavar_expr_concat,
 
     // Library Features
-    allocator_api,
     const_convert,
     const_index,
     const_trait_impl,

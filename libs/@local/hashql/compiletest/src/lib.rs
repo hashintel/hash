@@ -6,7 +6,6 @@
     coverage_attribute,
 
     // Library Features
-    allocator_api,
     core_io,
     duration_millis_float,
     exitcode_exit_method,

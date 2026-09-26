@@ -15,7 +15,6 @@ use super::{Int, Value};
 /// # Examples
 ///
 /// ```
-/// # #![feature(allocator_api)]
 /// # extern crate alloc;
 /// use alloc::alloc::Global;
 ///
@@ -54,7 +53,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::List;
@@ -75,7 +73,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{List, Value};
@@ -97,7 +94,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{List, Value};
@@ -119,7 +115,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Int, List, Value};
@@ -143,7 +138,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Int, List, Value};
@@ -182,7 +176,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{Int, List, Value};
@@ -218,7 +211,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::{List, Value};

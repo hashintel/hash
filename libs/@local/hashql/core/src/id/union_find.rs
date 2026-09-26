@@ -128,7 +128,6 @@ where
     /// # Examples
     ///
     /// ```
-    /// #![feature(allocator_api)]
     /// use hashql_core::id::{newtype, IdUnionFind};
     /// use std::alloc::Global;
     ///
