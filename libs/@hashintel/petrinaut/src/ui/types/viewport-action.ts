@@ -1,3 +1,7 @@
+/**
+ * @deprecated Install a plugin with a `viewport-controls` button through
+ * `PetrinautPluginsProvider` instead.
+ */
 export type ViewportAction = {
   /** Unique key for React rendering. */
   key: string;

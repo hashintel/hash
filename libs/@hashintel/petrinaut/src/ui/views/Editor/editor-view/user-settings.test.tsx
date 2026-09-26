@@ -19,6 +19,11 @@ import { CommandRegistryProvider } from "../../../../react/commands/command-regi
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { InstalledPluginsProvider } from "../../../plugins/installed-plugins";
+import {
+  definePetrinautPlugin,
+  type PetrinautPlugin,
+} from "../../../plugins/plugin";
 import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
@@ -51,6 +56,7 @@ const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
   settingsLabs?: ReactNode,
+  plugins: readonly PetrinautPlugin[] = [],
 ) => {
   const registry = createCommandRegistry();
   const result = render(
@@ -58,7 +64,9 @@ const renderSettings = (
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
           <PetrinautOptimizationContext value={optimization}>
-            <UserSettings settingsLabs={settingsLabs} />
+            <InstalledPluginsProvider plugins={plugins}>
+              <UserSettings settingsLabs={settingsLabs} />
+            </InstalledPluginsProvider>
           </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
@@ -496,6 +504,73 @@ describe("Labs settings", () => {
     expect(document.activeElement).toBe(labs);
     fireEvent.keyDown(labs, { key: "ArrowRight" });
     expect(document.activeElement).toBe(last);
+  });
+
+  it("renders plugin Labs groups after host content and walks them in install order", async () => {
+    const labsGroup = (id: string, label: string) =>
+      definePetrinautPlugin({
+        id,
+        settingsGroups: [
+          {
+            id: `${id}.labs`,
+            section: "labs",
+            title: `${label} group`,
+            component: () => <button type="button">{label}</button>,
+          },
+        ],
+      });
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      <section aria-label="Host AI settings">
+        <button type="button">Host control</button>
+      </section>,
+      [
+        labsGroup("test.first", "First plugin"),
+        labsGroup("test.second", "Second plugin"),
+      ],
+    );
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(
+      screen.getByRole("region", { name: "First plugin group" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Second plugin group" }),
+    ).toBeTruthy();
+    const host = screen.getByRole("button", { name: "Host control" });
+    const first = screen.getByRole("button", { name: "First plugin" });
+    const second = screen.getByRole("button", { name: "Second plugin" });
+
+    act(() => host.focus());
+    fireEvent.keyDown(host, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(second);
+    fireEvent.keyDown(second, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(first);
+  });
+
+  it("renders plugin Labs groups only in the Labs section", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "general" } },
+      null,
+      undefined,
+      [
+        definePetrinautPlugin({
+          id: "test.labs-only",
+          settingsGroups: [
+            {
+              id: "test.labs-only.labs",
+              section: "labs",
+              title: "Labs only",
+              component: () => <button type="button">Labs only</button>,
+            },
+          ],
+        }),
+      ],
+    );
+    await screen.findByRole("heading", { name: "General" });
+    expect(screen.queryByRole("button", { name: "Labs only" })).toBeNull();
   });
 });
 

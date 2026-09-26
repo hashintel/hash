@@ -14,6 +14,7 @@
 import { defaultPetrinautNavigationState } from "@hashintel/petrinaut/react";
 
 import {
+  isSharedEditView,
   selectionFromInput,
   selectionToSearch,
   type SharedExampleSearch,
@@ -59,9 +60,11 @@ const scenarioToSearch = (
  * The editor's vocabularies, narrowed to the contract's. These are assignments
  * rather than casts, so adding a mode, a Simulate section or an overlay to the
  * editor fails this file's type check until the contract decides whether the
- * URL should carry it.
+ * URL should carry it. Edit views are the exception: plugins contribute them
+ * by id, so a view the contract does not know is left out of the URL.
  */
-const editViewToSearch = (view: EditViewMode): SharedEditView => view;
+const editViewToSearch = (view: EditViewMode): SharedEditView | undefined =>
+  isSharedEditView(view) ? view : undefined;
 
 const modeToSearch = (mode: EditorGlobalMode): SharedMode => mode;
 

@@ -15,20 +15,26 @@ export type DraggingStateByNodeId = Record<
 >;
 
 export type EditorGlobalMode = "edit" | "simulate" | "actual";
-export type EditViewMode = "canvas" | "definitions";
+/**
+ * The Canvas is built in; every other edit view is a plugin contribution,
+ * named by its id. `string & {}` keeps the literal in completions.
+ */
+export type EditViewMode = "canvas" | (string & {});
 type EditorEditionMode =
   | "cursor"
   | "add-place"
   | "add-transition"
   | "add-component";
 export type CursorMode = "select" | "pan";
+/** The built-in bottom panel tabs; plugin tabs are named by their subview id. */
 export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"
   | "actual-timeline"
-  | "simulation-timeline";
+  | "simulation-timeline"
+  | (string & {});
 
 export type TimelineChartType = "run" | "stacked";
 

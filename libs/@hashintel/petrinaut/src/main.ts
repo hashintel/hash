@@ -2,7 +2,7 @@
  * Public surface for `@hashintel/petrinaut` — the host-facing entry point.
  *
  * Re-exports the handful of contexts and types a host needs to embed the editor
- * and inject its own capabilities (error tracking, optimization, slots). The
+ * and inject its own capabilities (error tracking, optimization, plugins). The
  * editor itself is reached through `/ui`, and the React bindings through
  * `/react`.
  *
@@ -25,6 +25,26 @@ export type {
 } from "./react/optimization-context";
 export { PetrinautOptimizationContext } from "./react/optimization-context";
 
+export { petrinautBuiltInPlugins } from "./ui/plugins/built-in-plugins";
+export { definePetrinautPlugin } from "./ui/plugins/plugin";
+export type {
+  PetrinautPlugin,
+  PetrinautPluginButton,
+  PetrinautPluginButtonPlacement,
+  PetrinautPluginEditView,
+  PetrinautPluginSettingsGroup,
+  PetrinautPluginSettingsSection,
+  PetrinautPluginSubView,
+  PetrinautPluginSubViewPlacement,
+  PetrinautPluginTopBarItem,
+  PetrinautPluginTopBarPlacement,
+} from "./ui/plugins/plugin";
+export { PetrinautPluginsProvider } from "./ui/plugins/plugins-provider";
+export type { PetrinautPluginsProviderProps } from "./ui/plugins/plugins-provider";
+export type {
+  SubView,
+  SubViewResizeConfig,
+} from "./ui/components/sub-view/types";
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type { ViewportAction } from "./ui/types/viewport-action";
 export type {
