@@ -17,7 +17,12 @@ import {
   type FunctionComponent,
 } from "react";
 
-import { Button, Icon, PortalContainerContext } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  PortalContainerContext,
+  useCustomScrollbarUI,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createJsonDocHandle,
@@ -249,6 +254,8 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
+
+  useCustomScrollbarUI();
 
   /**
    * `handle` is rebuilt whenever the host swaps the model, while `handle.id`

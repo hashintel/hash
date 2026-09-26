@@ -98,4 +98,8 @@ export {
 } from "./util/portal-container-context";
 export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
+export {
+  applyCustomScrollbarUI,
+  useCustomScrollbarUI,
+} from "./util/use-custom-scrollbar-ui";
 export { useScrollLock } from "./util/use-scroll-lock";

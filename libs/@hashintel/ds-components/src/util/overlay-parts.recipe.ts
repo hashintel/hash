@@ -127,7 +127,6 @@ export const overlayPartsStyles = sva({
       flex: "[1 1 auto]",
       minHeight: "0",
       overflow: "auto",
-      scrollbarWidth: "[thin]",
       background: "white",
       borderInline: "[1px solid {colors.neutral.s50}]",
       borderBottom: "[1px solid {colors.neutral.s50}]",
