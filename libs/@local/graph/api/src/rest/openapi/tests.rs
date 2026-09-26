@@ -459,3 +459,14 @@ fn build_panics_on_cookie_parameter() {
         style: CookieStyle::Form,
     });
 }
+
+#[test]
+#[should_panic(expected = "should answer with JSON through `rest::extract::Json`")]
+fn build_panics_on_axum_json_response() {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || ApiRouter::new().api_route("/entities", get(async || axum::Json(0_u8))),
+        |document| document,
+    );
+}

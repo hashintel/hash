@@ -1,23 +1,26 @@
-//! A JSON request body whose rejection is a problem details response.
+//! A JSON request or response body whose failures are problem details responses.
 
 use alloc::borrow::Cow;
 
 use aide::{
-    OperationInput, OperationOutput as _,
+    OperationInput, OperationOutput,
     generate::GenContext,
-    openapi::{Operation, ReferenceOr},
+    openapi::{self, Operation, ReferenceOr},
 };
-use axum::extract::{
-    FromRequest, Request,
-    rejection::{BytesRejection, FailedToBufferBody, JsonRejection},
+use axum::{
+    extract::{
+        FromRequest, Request,
+        rejection::{BytesRejection, FailedToBufferBody, JsonRejection},
+    },
+    response::{IntoResponse, Response},
 };
 use hash_middleware::problem::InternalServerError;
-use http::StatusCode;
+use http::{HeaderValue, StatusCode, header::CONTENT_TYPE};
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
 use schemars::JsonSchema;
 use serde::{Serialize, de::DeserializeOwned};
 
-use super::RequestPart;
+use super::MessagePart;
 
 /// The request body is not valid JSON.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
@@ -175,8 +178,38 @@ impl Expose<JsonProblem> for JsonRejection {
     }
 }
 
-/// A JSON request body whose rejection is a problem details response.
-pub(in crate::rest) struct Json<T>(pub T);
+/// The way [`Json`] fails to answer.
+struct JsonResponseProblem;
+
+impl Problem for JsonResponseProblem {
+    const VARIANTS: &'static [Variant] = &[Variant::of::<InternalServerError>()];
+}
+
+impl Expose<JsonResponseProblem> for serde_json::Error {
+    fn expose(&self) -> Answer<'_, JsonResponseProblem> {
+        Answer::new(InternalServerError)
+    }
+}
+
+/// The status for `status` if it is a success status that carries content.
+pub(super) const fn content_status(status: u16) -> Option<StatusCode> {
+    match status {
+        204 | 205 => None,
+        200..=299 => match StatusCode::from_u16(status) {
+            Ok(status) => Some(status),
+            Err(_) => None,
+        },
+        _ => None,
+    }
+}
+
+/// A JSON request or response body whose failures are problem details responses.
+///
+/// As a request body, it rejects a request with problem details. As a response body, it answers
+/// with `STATUS`, a success status that carries content, and answers a body that fails to serialize
+/// with [`InternalServerError`]. A status set through a tuple would replace the status of that
+/// answer, so a response states its status in its type.
+pub(in crate::rest) struct Json<T, const STATUS: u16 = 200>(pub T);
 
 impl<T, S> FromRequest<S> for Json<T>
 where
@@ -201,6 +234,56 @@ impl<T: JsonSchema> OperationInput for Json<T> {
         }
         // Documents the variants on the operation itself, so there are no responses to infer.
         Rejection::<JsonProblem>::inferred_responses(ctx, operation);
-        RequestPart::Body.mark(operation);
+        MessagePart::RequestBody.mark(operation);
+    }
+}
+
+impl<T: Serialize, const STATUS: u16> IntoResponse for Json<T, STATUS> {
+    fn into_response(self) -> Response {
+        let status = const {
+            content_status(STATUS)
+                .expect("a JSON response should have a success status that carries content")
+        };
+        match serde_json::to_vec(&self.0) {
+            Ok(body) => (
+                status,
+                [(CONTENT_TYPE, HeaderValue::from_static("application/json"))],
+                body,
+            )
+                .into_response(),
+            Err(error) => {
+                tracing::error!(%error, body = core::any::type_name::<T>(), "the response body failed to serialize");
+                Rejection::<JsonResponseProblem>::from(error).into_response()
+            }
+        }
+    }
+}
+
+impl<T: JsonSchema, const STATUS: u16> OperationOutput for Json<T, STATUS> {
+    type Inner = T;
+
+    fn operation_response(
+        ctx: &mut GenContext,
+        operation: &mut Operation,
+    ) -> Option<openapi::Response> {
+        // Documents the answer to a body that fails to serialize on the operation itself.
+        Rejection::<JsonResponseProblem>::inferred_responses(ctx, operation);
+        MessagePart::ResponseBody.mark(operation);
+        axum::Json::<T>::operation_response(ctx, operation)
+    }
+
+    fn inferred_responses(
+        ctx: &mut GenContext,
+        operation: &mut Operation,
+    ) -> Vec<(Option<openapi::StatusCode>, openapi::Response)> {
+        let status = const {
+            content_status(STATUS)
+                .expect("a JSON response should have a success status that carries content")
+                .as_u16()
+        };
+        Self::operation_response(ctx, operation)
+            .map(|response| (Some(openapi::StatusCode::Code(status)), response))
+            .into_iter()
+            .collect()
     }
 }

@@ -10,13 +10,13 @@ use aide::{
 use axum::{Router, body::Body, extract::DefaultBodyLimit};
 use bytes::Bytes;
 use hash_middleware::problem::InternalServerError;
-use http::{Request, header::CONTENT_TYPE};
+use http::{Request, StatusCode as HttpStatusCode, header::CONTENT_TYPE};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::Error as _};
 use serde_json::{Value, json};
 use tower::ServiceExt as _;
 
-use super::{Json, Path, Query};
+use super::{Json, Path, Query, json::content_status};
 use crate::rest::{openapi, test_utils::NoCredentials};
 
 #[derive(Deserialize, JsonSchema)]
@@ -248,7 +248,7 @@ async fn query_repeated_key() {
     let router: Router = ApiRouter::new()
         .api_route(
             "/ids",
-            get(async |Query(Ids { id }): Query<Ids>| axum::Json(id)),
+            get(async |Query(Ids { id }): Query<Ids>| Json::<_, 200>(id)),
         )
         .into();
 
@@ -263,6 +263,86 @@ async fn query_repeated_key() {
         json!([1, 2]),
         "the sequence should hold every occurrence of the key"
     );
+}
+
+/// A body that fails to serialize.
+struct Unserializable;
+
+impl Serialize for Unserializable {
+    fn serialize<S: Serializer>(&self, _serializer: S) -> Result<S::Ok, S::Error> {
+        Err(S::Error::custom("the body cannot be serialized"))
+    }
+}
+
+#[tokio::test]
+async fn json_response_status() {
+    let router = Router::new().route(
+        "/subject",
+        axum::routing::get(async || Json::<_, 201>(json!({ "name": "n" }))),
+    );
+
+    let reply = send(router, get_request("/subject")).await;
+
+    assert_eq!(
+        reply.status, 201,
+        "the response should answer with the status of its type"
+    );
+    assert_eq!(
+        reply.content_type.as_deref(),
+        Some("application/json"),
+        "the response should declare its body as JSON"
+    );
+    assert_eq!(
+        reply.body,
+        json!({ "name": "n" }),
+        "the response should carry the serialized body"
+    );
+}
+
+#[tokio::test]
+async fn json_response_unserializable() {
+    let router = Router::new().route(
+        "/subject",
+        axum::routing::get(async || Json::<_, 201>(Unserializable)),
+    );
+
+    let reply = send(router, get_request("/subject")).await;
+
+    assert_eq!(
+        reply.status, 500,
+        "a body that fails to serialize should answer 500 whatever the status of its type"
+    );
+    assert_eq!(
+        reply.content_type.as_deref(),
+        Some("application/problem+json"),
+        "a body that fails to serialize should answer a problem document"
+    );
+    assert_eq!(
+        reply.body["detail"],
+        InternalServerError.to_string(),
+        "the document should not describe the serialization error"
+    );
+}
+
+#[test]
+fn json_content_status() {
+    assert_eq!(
+        content_status(200),
+        Some(HttpStatusCode::OK),
+        "200 should carry content"
+    );
+    assert_eq!(
+        content_status(299).map(|status| status.as_u16()),
+        Some(299),
+        "every other success status should carry content"
+    );
+    for status in [199, 204, 205, 300] {
+        assert_eq!(
+            content_status(status),
+            None,
+            "{status} should not be the status of a JSON response"
+        );
+    }
 }
 
 fn documented<'a>(
@@ -343,6 +423,37 @@ async fn query_documents_parameter_rejection() {
     );
 }
 
+#[tokio::test]
+async fn json_documents_response() {
+    let mut document = OpenApi::default();
+    let _: Router = ApiRouter::new()
+        .api_route(
+            "/subject",
+            get(async || {
+                Json::<_, 201>(EchoResponse {
+                    label: String::new(),
+                    values: Vec::new(),
+                })
+            }),
+        )
+        .finish_api(&mut document);
+
+    assert!(
+        documented(&document, "/subject", |item| item.get.as_ref(), 201)
+            .is_some_and(|response| response.content.contains_key("application/json")),
+        "the operation should document the status of the response type"
+    );
+    assert!(
+        is_problem_response(documented(
+            &document,
+            "/subject",
+            |item| item.get.as_ref(),
+            500
+        )),
+        "the operation should document the answer to a body that fails to serialize"
+    );
+}
+
 /// The label the response repeats.
 #[derive(Deserialize, JsonSchema)]
 struct EchoPath {
@@ -376,8 +487,8 @@ async fn echo(
     Path(EchoPath { label }): Path<EchoPath>,
     Query(EchoQuery { repeat }): Query<EchoQuery>,
     Json(EchoRequest { value }): Json<EchoRequest>,
-) -> axum::Json<EchoResponse> {
-    axum::Json(EchoResponse {
+) -> Json<EchoResponse> {
+    Json(EchoResponse {
         label,
         values: vec![value; usize::from(repeat.unwrap_or(1))],
     })

@@ -19,7 +19,7 @@ use convert_case::{Case, Casing as _};
 use indexmap::IndexMap;
 use serde_json::Value;
 
-use super::{Api, credentials::Credentials, extract::RequestPart, middleware};
+use super::{Api, credentials::Credentials, extract::MessagePart, middleware};
 
 /// Builds an API from its routes and generates the document describing them.
 ///
@@ -33,9 +33,10 @@ use super::{Api, credentials::Credentials, extract::RequestPart, middleware};
 /// document does not declare, if the path parameters of an operation are not the placeholders of
 /// its path or one of them is optional, a sequence or a map, if a query parameter is a map or a
 /// sequence of anything but single values, if an operation reads a path parameter, a query
-/// parameter or its body through anything but the extractors of [`rest::extract`] or documents a
-/// header or cookie parameter, or if the problem variants of an operation cannot be documented,
-/// such as when the status of a variant already has a response that documents none.
+/// parameter or its body, or answers with JSON, through anything but the items of
+/// [`rest::extract`], if it documents a header or cookie parameter, or if the problem variants of
+/// an operation cannot be documented, such as when the status of a variant already has a response
+/// that documents none.
 ///
 /// [`rest::extract`]: crate::rest::extract
 pub(super) fn build<C: Credentials>(
@@ -201,11 +202,12 @@ fn assert_parameters_readable(document: &mut OpenApi) {
     }
 }
 
-/// Checks that the extractors of [`rest::extract`] read every parameter and request body an
-/// operation documents, and removes the marks they leave on it.
+/// Checks that the items of [`rest::extract`] read every parameter and request body and write
+/// every JSON response an operation documents, and removes the marks they leave on it.
 ///
-/// Axum's own extractors answer a rejection with plain text, and no extractor reads a header or a
-/// cookie with problem details yet.
+/// Axum's own extractors answer a rejection with plain text, `axum::Json` answers a body that fails
+/// to serialize with plain text, and no extractor reads a header or a cookie with problem details
+/// yet.
 ///
 /// [`rest::extract`]: crate::rest::extract
 fn assert_read_through_extractors(document: &mut OpenApi) {
@@ -223,15 +225,16 @@ fn assert_read_through_extractors(document: &mut OpenApi) {
             .cloned()
             .collect::<Vec<_>>();
         for (method, operation) in iter_operations_mut(item) {
-            let mut marked = |part: RequestPart| {
+            let mut marked = |part: MessagePart| {
                 operation
                     .extensions
                     .shift_remove(part.extension())
                     .is_some()
             };
-            let path_read = marked(RequestPart::Path);
-            let query_read = marked(RequestPart::Query);
-            let body_read = marked(RequestPart::Body);
+            let path_read = marked(MessagePart::PathParameters);
+            let query_read = marked(MessagePart::QueryParameters);
+            let body_read = marked(MessagePart::RequestBody);
+            let response_written = marked(MessagePart::ResponseBody);
             for parameter in shared
                 .iter()
                 .chain(operation.parameters.iter().filter_map(ReferenceOr::as_item))
@@ -265,6 +268,17 @@ fn assert_read_through_extractors(document: &mut OpenApi) {
                 operation.request_body.is_none() || body_read,
                 "{method} {path} should read its request body through `rest::extract::Json`, \
                  whose rejections are problem details"
+            );
+            let answers_json = operation
+                .responses
+                .iter()
+                .flat_map(|responses| responses.responses.values().chain(&responses.default))
+                .filter_map(ReferenceOr::as_item)
+                .any(|response| response.content.contains_key("application/json"));
+            assert!(
+                !answers_json || response_written,
+                "{method} {path} should answer with JSON through `rest::extract::Json`, which \
+                 answers a body that fails to serialize with problem details"
             );
         }
     }

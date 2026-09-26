@@ -10,7 +10,7 @@ use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejectio
 use schemars::JsonSchema;
 use serde::{Serialize, de::DeserializeOwned};
 
-use super::RequestPart;
+use super::MessagePart;
 
 /// A path parameter does not match its documented schema.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
@@ -91,6 +91,6 @@ impl<T: JsonSchema> OperationInput for Path<T> {
         axum::extract::Path::<T>::operation_input(ctx, operation);
         // Documents the variants on the operation itself, so there are no responses to infer.
         Rejection::<PathProblem>::inferred_responses(ctx, operation);
-        RequestPart::Path.mark(operation);
+        MessagePart::PathParameters.mark(operation);
     }
 }
