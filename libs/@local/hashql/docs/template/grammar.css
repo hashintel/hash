@@ -1,0 +1,152 @@
+.grammar-rule {
+  margin-block: 1.75rem;
+  scroll-margin-top: 2rem;
+}
+
+.grammar-body {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.25em 0.85em;
+  margin: 0;
+  overflow-x: auto;
+  font-family: var(--font-code);
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+
+.grammar-body code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.grammar-head {
+  white-space: nowrap;
+}
+
+.grammar-name {
+  font-weight: 600;
+}
+
+.grammar-rhs {
+  min-width: 0;
+}
+
+.grammar-name a {
+  color: var(--ink);
+}
+
+.grammar-token {
+  white-space: nowrap;
+}
+
+.grammar-op {
+  margin-inline: 0.15em;
+  color: var(--secondary);
+}
+
+.grammar-repeat {
+  color: var(--secondary);
+}
+
+.grammar-term,
+.grammar-term-ci {
+  color: var(--ink);
+  white-space: pre;
+}
+
+/* Numeric ranges retain their bounds in the text. */
+.grammar-term-range {
+  color: var(--secondary);
+  white-space: pre;
+}
+
+/* Prose values describe a match rather than supplying literal text. */
+.grammar-prose {
+  font-style: italic;
+  color: var(--secondary);
+}
+
+.grammar-nonterm {
+  color: var(--link);
+  white-space: nowrap;
+}
+
+.grammar-body a {
+  text-decoration: none;
+}
+
+.grammar-body a:is(:hover, :focus-visible) {
+  text-decoration: underline;
+}
+
+.grammar-diagram {
+  margin-block: 0.6rem 0;
+}
+
+.grammar-diagram summary {
+  cursor: pointer;
+  color: var(--secondary);
+  font-size: 0.875rem;
+}
+
+.grammar-diagram summary:is(:hover, :focus-visible) {
+  color: var(--link);
+}
+
+.grammar-diagram-scroll {
+  margin-block: 0.5rem 0;
+  overflow-x: auto;
+  padding-block: 0.5rem;
+}
+
+.grammar-diagram-scroll svg {
+  display: block;
+  max-width: none;
+}
+
+.grammar-diagram-scroll path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1px;
+}
+
+.grammar-diagram-scroll rect {
+  fill: var(--paper);
+}
+
+.grammar-diagram-scroll rect:not(.railroad_canvas) {
+  stroke: var(--ink);
+  stroke-width: 1px;
+}
+
+.grammar-diagram-scroll text {
+  fill: var(--ink);
+  font-family: var(--font-code);
+  font-size: 14px;
+  text-anchor: middle;
+}
+
+.grammar-diagram-scroll .nonterminal text {
+  font-weight: bold;
+}
+
+.grammar-diagram-scroll text.comment {
+  font-size: 12px;
+  font-style: italic;
+}
+
+@media (max-width: 40rem) {
+  .grammar-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grammar-rhs {
+    padding-inline-start: 1em;
+  }
+}
+
+@media print {
+  .grammar-diagram {
+    display: none;
+  }
+}

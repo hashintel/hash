@@ -1,0 +1,61 @@
+mccarthy1960:
+  type: Article
+  title: "Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part {I}"
+  author: "McCarthy, John"
+  date: 1960-04
+  page-range: 184-195
+  serial-number:
+    doi: 10.1145/367177.367199
+  parent:
+    type: Periodical
+    title: "Communications of the {ACM}"
+    volume: 3
+    issue: 4
+
+rfc8259:
+  type: Report
+  title: "The {JavaScript Object Notation (JSON)} Data Interchange Format"
+  editor: "Bray, Tim"
+  date: 2017-12
+  genre: RFC
+  serial-number: "8259"
+  organization: Internet Engineering Task Force
+  url: https://www.rfc-editor.org/rfc/rfc8259
+
+rfc5234:
+  type: Report
+  title: "Augmented {BNF} for Syntax Specifications: {ABNF}"
+  author:
+    - "Crocker, Dave"
+    - "Overell, Paul"
+  date: 2008-01
+  genre: RFC
+  serial-number: "5234"
+  organization: Internet Engineering Task Force
+  url: https://www.rfc-editor.org/rfc/rfc5234
+
+rfc7405:
+  type: Report
+  title: "Case-Sensitive String Support in {ABNF}"
+  author: "Kyzivat, Paul"
+  date: 2014-12
+  genre: RFC
+  serial-number: "7405"
+  organization: Internet Engineering Task Force
+  url: https://www.rfc-editor.org/rfc/rfc7405
+
+mahmoud2025:
+  type: Thesis
+  title: "A Processing Pipeline for Querying Bitemporal Graph Databases"
+  author: "Mahmoud, Bilal"
+  date: "2025"
+  genre: Großer Beleg
+  organization: Technische Universität Dresden
+
+mahmoud2026:
+  type: Thesis
+  title: "An Extended Evaluator and Backend for Querying Bi-temporal Graph Databases"
+  author: "Mahmoud, Bilal"
+  date: "2026-04-21"
+  genre: Diplomarbeit
+  organization: Technische Universität Dresden

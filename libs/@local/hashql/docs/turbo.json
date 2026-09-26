@@ -1,0 +1,15 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "railroad-plugin#manifest"]
+    },
+    "build": {
+      "dependsOn": ["railroad-plugin#build:wasm", "^manifest"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["railroad-plugin#build:wasm"]
+    }
+  }
+}

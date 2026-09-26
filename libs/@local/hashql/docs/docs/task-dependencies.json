@@ -1,0 +1,24 @@
+{
+  "package": "@local/hashql-docs",
+  "dependencies": [],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "railroad-plugin#build:wasm"
+      ],
+      "affectedBy": [
+        "railroad-plugin"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "railroad-plugin#build:wasm"
+      ],
+      "cache": false,
+      "persistent": true,
+      "affectedBy": [
+        "railroad-plugin"
+      ]
+    }
+  }
+}
