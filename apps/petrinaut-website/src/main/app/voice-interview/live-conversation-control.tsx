@@ -7,6 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { z } from "zod";
 
 import {
   PetrinautInstanceContext,
@@ -15,6 +16,7 @@ import {
   usePlaybackState,
 } from "@hashintel/petrinaut/react";
 
+import { validateVoiceWrapUp } from "../../../shared/voice-mediation";
 import { sessionDraftsFor } from "../shared/brunch-draft-experiment-drafts";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
@@ -24,11 +26,13 @@ import {
 } from "./live-conversation";
 import { ExperimentVoiceRelay } from "./live-conversation-control/experiment-voice-relay";
 import { describePlaybackChange } from "./live-conversation-control/playback-voice-note";
+import { LiveSpeechCaptions } from "./live-speech-captions";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
   VoiceInterviewRetry,
 } from "./voice-interview-disclosure";
+import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { VoiceInterviewControl } from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
@@ -46,6 +50,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
   > & {
+    readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
       typeof LiveBrunchBridge
@@ -61,7 +66,23 @@ const noDrafts: ReturnType<ReturnType<typeof sessionDraftsFor>["get"]> = {
 const subscribeToNothing = () => () => {};
 const getNoDrafts = () => noDrafts;
 
+const prepareVoice = async (
+  kind: "brief" | "wrap-up",
+  text: string,
+  signal: AbortSignal,
+): Promise<unknown> => {
+  const response = await fetch("/api/voice/mediation", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind, text }),
+    signal,
+  });
+  if (!response.ok) throw new Error("Voice preparation failed");
+  return response.json();
+};
+
 export const LiveConversationControl = ({
+  mediationHistory,
   acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
@@ -83,6 +104,8 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
 }: LiveControlsContext) => {
+  const [localHistory] = useState(() => new VoiceMediationHistory("session"));
+  const history = mediationHistory ?? localHistory;
   const [audioSettingsStore] = useState(
     () => new VoiceAudioSettings("live", navigator.mediaDevices),
   );
@@ -112,6 +135,7 @@ export const LiveConversationControl = ({
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
+    messages,
     chat: {
       status,
       stopped,
@@ -185,6 +209,7 @@ export const LiveConversationControl = ({
     );
     latest.current = {
       submit,
+      messages,
       chat: {
         status,
         stopped,
@@ -239,6 +264,12 @@ export const LiveConversationControl = ({
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
     let connected = false;
+    const captions = new LiveSpeechCaptions(history.caption, {
+      update: (id, text) => history.input(id, text),
+      discard: (id) => history.failed(id),
+    });
+    let offeredInput: string | undefined;
+    const appendInputs = new Map<string, string>();
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
@@ -281,7 +312,12 @@ export const LiveConversationControl = ({
       },
       connectionTimeoutMs,
       (input) => {
-        if (session.current === next) void bridge.current?.accept(input);
+        if (session.current !== next) return;
+        void bridge.current?.accept(input);
+        if (!input.superseded) {
+          const previewId = captions.begin(input.id);
+          if (previewId) history.failed(previewId);
+        }
       },
       (delegationId) => {
         if (session.current === next)
@@ -289,6 +325,20 @@ export const LiveConversationControl = ({
       },
       (result) => {
         if (session.current !== next) return;
+        if (result.kind === "commentary") {
+          if (offeredInput) {
+            appendInputs.set(result.eventId, offeredInput);
+            offeredInput = undefined;
+          }
+          const inputId = appendInputs.get(result.eventId);
+          if (
+            inputId &&
+            result.status === "accepted" &&
+            result.startMs !== undefined
+          )
+            captions.wrapUp(inputId, result.startMs);
+          if (result.status !== "unknown") appendInputs.delete(result.eventId);
+        }
         // Every successful local send starts as unknown. Neither waiting
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
@@ -307,12 +357,45 @@ export const LiveConversationControl = ({
         );
       },
       audioSettingsStore,
+      {
+        started: () => {
+          if (session.current !== next) return;
+          captions.speechStarted();
+          bridge.current?.speechStarted();
+          relay.current?.interrupt();
+          offeredInput = undefined;
+          appendInputs.clear();
+        },
+        input: (fragment) => {
+          if (session.current === next) captions.input(fragment);
+        },
+        output: (fragment) => {
+          if (session.current === next) captions.output(fragment);
+        },
+        closed: () => captions.close(),
+      },
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
     next.setSpeakerVolume(1);
     bridge.current = new LiveBrunchBridge({
       submit: (input) => latest.current.submit(input),
+      mediation: {
+        history,
+        prepare: async (text, signal) =>
+          z
+            .object({ fields: z.record(z.string(), z.string()) })
+            .parse(await prepareVoice("brief", text, signal)).fields,
+        summarize: async (text, signal) =>
+          validateVoiceWrapUp(
+            z
+              .object({ text: z.string() })
+              .parse(await prepareVoice("wrap-up", text, signal)).text,
+          ),
+        offered: (inputId) => {
+          offeredInput = inputId;
+        },
+      },
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
       appendThinking: next.appendThinking,
@@ -331,6 +414,20 @@ export const LiveConversationControl = ({
     relay.current = new ExperimentVoiceRelay({
       appendThinking: next.appendThinking,
       appendCommentary: next.appendCommentary,
+      resultReady: (toolCallId, source) => {
+        const responseIds = latest.current.messages
+          .filter((entry) =>
+            entry.parts.some(
+              (part) => "toolCallId" in part && part.toolCallId === toolCallId,
+            ),
+          )
+          .map((entry) => entry.id);
+        bridge.current?.offerResult(
+          `voice-result:${toolCallId}`,
+          source,
+          responseIds,
+        );
+      },
     });
     relay.current.update(latestDrafts.current);
     session.current = next;
@@ -340,6 +437,7 @@ export const LiveConversationControl = ({
   }, [
     audioSettingsStore,
     connectionTimeoutMs,
+    history,
     instance,
     phase,
     setVoiceActive,

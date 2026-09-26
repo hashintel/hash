@@ -19,6 +19,38 @@ const request = (overrides: RequestInit & { duplex?: "half" } = {}) =>
     ...overrides,
   });
 
+test("Live mediation policy requests a brief acknowledgement and a summary, never independent modelling", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json({
+      session: { id: "session" },
+      transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+    }),
+  );
+  await createOpenAILiveSessionHandler({ environment, fetch })(request());
+  const payload = fetch.mock.calls[0]?.[1]?.body;
+  if (typeof payload !== "string") throw new Error("Expected JSON body");
+  const body = JSON.parse(payload) as {
+    session: { instructions: string };
+  };
+  expect(body.session.instructions).toContain("one or two short sentences");
+  expect(body.session.instructions).toContain("before delegating");
+  expect(body.session.instructions).toContain(
+    "Do not read Brunch's full written answer",
+  );
+  expect(body.session.instructions).toContain("unspecified values remain open");
+  expect(body.session.instructions).toContain(
+    "Keep internal names and handoffs out of speech",
+  );
+  expect(body.session.instructions).not.toContain("I'll pass that to Brunch");
+  expect(body.session.instructions).toContain("Okay, I'll take a look.");
+  expect(body.session.instructions).toContain(
+    "Do not fill silence with status updates",
+  );
+  expect(body.session.instructions).toContain(
+    "Ask a supplied clarification directly",
+  );
+});
+
 describe("Live configuration and session creation", () => {
   test.each([
     [undefined, "live", true],

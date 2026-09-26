@@ -116,6 +116,55 @@ const setup = () => {
   return { relay, appendThinking, appendCommentary };
 };
 
+test("mediates a completed result once and suppresses a run interrupted by new speech", () => {
+  const appendThinking = vi.fn(() => true);
+  const appendCommentary = vi.fn(() => true);
+  const resultReady = vi.fn();
+  const relay = new ExperimentVoiceRelay({
+    appendThinking,
+    appendCommentary,
+    resultReady,
+  });
+  relay.update(state(null));
+  relay.update(
+    state(
+      "first",
+      draft("first", {
+        run: {
+          phase: "running",
+          controller: new AbortController(),
+          progress: null,
+        },
+      }),
+    ),
+  );
+  relay.interrupt();
+  relay.update(
+    state("first", draft("first", { run: { phase: "finished", result } })),
+  );
+  expect(resultReady).not.toHaveBeenCalled();
+  relay.update(
+    state(
+      "second",
+      draft("second", {
+        run: {
+          phase: "running",
+          controller: new AbortController(),
+          progress: null,
+        },
+      }),
+    ),
+  );
+  relay.update(
+    state("second", draft("second", { run: { phase: "finished", result } })),
+  );
+  expect(resultReady).toHaveBeenCalledExactlyOnceWith(
+    "second",
+    expect.stringContaining("finished after 35 runs"),
+  );
+  expect(appendCommentary).not.toHaveBeenCalled();
+});
+
 test("a draft is quiet context, a run is quiet context, a completed result is spoken once", () => {
   const { relay, appendThinking, appendCommentary } = setup();
   relay.update(state(null));
