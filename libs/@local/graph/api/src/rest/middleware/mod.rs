@@ -2,6 +2,7 @@
 mod tests;
 
 use alloc::sync::Arc;
+use core::any::Any;
 
 use aide::{
     transform::{TransformOpenApi, TransformOperation},
@@ -12,10 +13,13 @@ use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
     },
+    problem::InternalServerError,
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
     response::{problem_response, status_problem},
 };
 use http::{Method, StatusCode, Uri};
+use problematic::{ProblemDetails, ProblemVariant as _};
+use tower_http::catch_panic::CatchPanicLayer;
 use type_system::principal::actor::ActorId;
 
 use super::{Api, Audience, legacy};
@@ -39,9 +43,19 @@ pub(super) fn document(mut document: TransformOpenApi<'_>) -> TransformOpenApi<'
 }
 
 /// Answers a request with a method its route does not serve. Axum adds the `Allow` header.
-async fn method_not_allowed(method: Method, uri: Uri) -> Response {
+pub(super) async fn method_not_allowed(method: Method, uri: Uri) -> Response {
     tracing::debug!(%method, path = uri.path(), "route does not serve the method");
     problem_response(&status_problem(StatusCode::METHOD_NOT_ALLOWED))
+}
+
+/// Answers a request whose handling panicked.
+///
+/// Sentry's panic hook reports the panic.
+fn panicked(_panic: Box<dyn Any + Send>) -> Response {
+    problem_response(
+        &ProblemDetails::from(InternalServerError::TYPE)
+            .with_detail(InternalServerError.to_string()),
+    )
 }
 
 pub(super) struct Middleware<P, I> {
@@ -72,7 +86,8 @@ where
     ///
     /// The address gate also covers the documentation routes and the problem documents for an
     /// unknown path and for a method its path does not serve. The legacy routes and every API draw
-    /// on the same budgets, and answer a method a path does not serve after authentication.
+    /// on the same budgets, and answer a method a path does not serve after authentication. A
+    /// request whose handling panics is answered with [`InternalServerError`].
     ///
     /// # Panics
     ///
@@ -104,6 +119,7 @@ where
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Arc::clone(&self.service_secret),
             })
+            .layer(CatchPanicLayer::custom(panicked))
     }
 
     fn attach<A>(

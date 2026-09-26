@@ -17,7 +17,7 @@ use type_system::ontology::json_schema::DomainValidator;
 use super::{
     authentication, documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
-    middleware::Middleware,
+    middleware::{self, Middleware},
     probe, rate_limit, telemetry,
 };
 
@@ -106,6 +106,48 @@ where
         router = router.layer(Extension(query_logger));
     }
 
-    // Merged after the layers, so the probe carries no budget, no span, and no extensions.
-    router.merge(probe::router())
+    merge_probe(router)
+}
+
+/// Merges the health probe after the layers, so it carries no budget, no span, and no extensions.
+fn merge_probe(router: Router) -> Router {
+    // Axum sets the method-not-allowed fallback only on routes without one, which leaves the probe.
+    router
+        .merge(probe::router())
+        .method_not_allowed_fallback(middleware::method_not_allowed)
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{Router, body::Body};
+    use http::{Method, Request, StatusCode, header::CONTENT_TYPE};
+    use tower::ServiceExt as _;
+
+    use super::merge_probe;
+    use crate::rest::probe::HEALTH_PATH;
+
+    #[tokio::test]
+    async fn probe_method_not_allowed() {
+        let request = Request::builder()
+            .method(Method::POST)
+            .uri(HEALTH_PATH)
+            .body(Body::empty())
+            .expect("the request should build");
+
+        let response = merge_probe(Router::new())
+            .oneshot(request)
+            .await
+            .expect("the router should answer");
+
+        assert_eq!(
+            response.status(),
+            StatusCode::METHOD_NOT_ALLOWED,
+            "the probe should answer 405 to a method it does not serve"
+        );
+        assert_eq!(
+            response.headers()[CONTENT_TYPE],
+            "application/problem+json",
+            "the probe should answer the same problem document as the APIs"
+        );
+    }
 }

@@ -9,6 +9,7 @@ use hash_middleware::{
     authentication::{
         AuthenticatedActorId, AuthenticationMetrics, provider::StaticAuthenticationProvider,
     },
+    problem::InternalServerError,
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use http::{
@@ -355,6 +356,40 @@ async fn method_not_allowed_draws_on_address_gate() {
         StatusCode::TOO_MANY_REQUESTS,
         "a method the path does not serve should draw from the address budget like any other \
          request"
+    );
+}
+
+#[tokio::test]
+async fn panic_problem_document() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route(
+            "/legacy",
+            get(async || -> StatusCode { panic!("the handler failed") }),
+        ),
+        [],
+        Router::new(),
+    );
+
+    let response = send(&router, "/legacy").await;
+    assert_eq!(
+        response.status(),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "a request whose handler panics should answer 500"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "a panic should answer a problem document like every other failure"
+    );
+    assert_eq!(
+        response_json(response).await["detail"],
+        json!(InternalServerError.to_string()),
+        "the problem document should not describe the panic"
     );
 }
 
