@@ -17,6 +17,8 @@ use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejectio
 use schemars::JsonSchema;
 use serde::{Serialize, de::DeserializeOwned};
 
+use super::RequestPart;
+
 /// The request body is not valid JSON.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("{detail}")]
@@ -199,5 +201,6 @@ impl<T: JsonSchema> OperationInput for Json<T> {
         }
         // Documents the variants on the operation itself, so there are no responses to infer.
         Rejection::<JsonProblem>::inferred_responses(ctx, operation);
+        RequestPart::Body.mark(operation);
     }
 }

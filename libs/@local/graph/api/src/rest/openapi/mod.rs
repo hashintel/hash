@@ -19,7 +19,7 @@ use convert_case::{Case, Casing as _};
 use indexmap::IndexMap;
 use serde_json::Value;
 
-use super::{Api, credentials::Credentials, middleware};
+use super::{Api, credentials::Credentials, extract::RequestPart, middleware};
 
 /// Builds an API from its routes and generates the document describing them.
 ///
@@ -32,8 +32,12 @@ use super::{Api, credentials::Credentials, middleware};
 /// two handlers documenting the same operation, if an operation requires a security scheme the
 /// document does not declare, if the path parameters of an operation are not the placeholders of
 /// its path or one of them is optional, a sequence or a map, if a query parameter is a map or a
-/// sequence of anything but single values, or if the problem variants of an operation cannot be
-/// documented, such as when the status of a variant already has a response that documents none.
+/// sequence of anything but single values, if an operation reads a path parameter, a query
+/// parameter or its body through anything but the extractors of [`rest::extract`] or documents a
+/// header or cookie parameter, or if the problem variants of an operation cannot be documented,
+/// such as when the status of a variant already has a response that documents none.
+///
+/// [`rest::extract`]: crate::rest::extract
 pub(super) fn build<C: Credentials>(
     prefix: &'static str,
     info: Info,
@@ -68,6 +72,7 @@ pub(super) fn build<C: Credentials>(
         });
     assert_security_schemes_declared(&mut document);
     assert_parameters_readable(&mut document);
+    assert_read_through_extractors(&mut document);
     Api {
         audience: C::AUDIENCE,
         prefix,
@@ -192,6 +197,75 @@ fn assert_parameters_readable(document: &mut OpenApi) {
                     Parameter::Header { .. } | Parameter::Cookie { .. } => {}
                 }
             }
+        }
+    }
+}
+
+/// Checks that the extractors of [`rest::extract`] read every parameter and request body an
+/// operation documents, and removes the marks they leave on it.
+///
+/// Axum's own extractors answer a rejection with plain text, and no extractor reads a header or a
+/// cookie with problem details yet.
+///
+/// [`rest::extract`]: crate::rest::extract
+fn assert_read_through_extractors(document: &mut OpenApi) {
+    let Some(paths) = &mut document.paths else {
+        return;
+    };
+    for (path, item) in &mut paths.paths {
+        let Some(item) = item.as_item_mut() else {
+            continue;
+        };
+        let shared = item
+            .parameters
+            .iter()
+            .filter_map(ReferenceOr::as_item)
+            .cloned()
+            .collect::<Vec<_>>();
+        for (method, operation) in iter_operations_mut(item) {
+            let mut marked = |part: RequestPart| {
+                operation
+                    .extensions
+                    .shift_remove(part.extension())
+                    .is_some()
+            };
+            let path_read = marked(RequestPart::Path);
+            let query_read = marked(RequestPart::Query);
+            let body_read = marked(RequestPart::Body);
+            for parameter in shared
+                .iter()
+                .chain(operation.parameters.iter().filter_map(ReferenceOr::as_item))
+            {
+                match parameter {
+                    Parameter::Path { parameter_data, .. } => assert!(
+                        path_read,
+                        "{method} {path} should read its path parameter `{}` through \
+                         `rest::extract::Path`, whose rejections are problem details",
+                        parameter_data.name
+                    ),
+                    Parameter::Query { parameter_data, .. } => assert!(
+                        query_read,
+                        "{method} {path} should read its query parameter `{}` through \
+                         `rest::extract::Query`, whose rejections are problem details",
+                        parameter_data.name
+                    ),
+                    Parameter::Header { parameter_data, .. } => panic!(
+                        "{method} {path} should read no header parameter such as `{}`, as no \
+                         extractor answers a malformed header with problem details",
+                        parameter_data.name
+                    ),
+                    Parameter::Cookie { parameter_data, .. } => panic!(
+                        "{method} {path} should read no cookie parameter such as `{}`, as no \
+                         extractor answers a malformed cookie with problem details",
+                        parameter_data.name
+                    ),
+                }
+            }
+            assert!(
+                operation.request_body.is_none() || body_read,
+                "{method} {path} should read its request body through `rest::extract::Json`, \
+                 whose rejections are problem details"
+            );
         }
     }
 }

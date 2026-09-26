@@ -11,6 +11,8 @@ use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejectio
 use schemars::JsonSchema;
 use serde::{Serialize, de::DeserializeOwned};
 
+use super::RequestPart;
+
 /// A required query parameter is missing, or one does not match its documented schema.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("{detail}")]
@@ -93,5 +95,6 @@ impl<T: JsonSchema> OperationInput for Query<T> {
         axum_extra::extract::Query::<T>::operation_input(ctx, operation);
         // Documents the variants on the operation itself, so there are no responses to infer.
         Rejection::<QueryProblem>::inferred_responses(ctx, operation);
+        RequestPart::Query.mark(operation);
     }
 }

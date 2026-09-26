@@ -6,7 +6,10 @@ use aide::{
         ApiRouter,
         routing::{get, get_with, post},
     },
-    openapi::{Info, OpenApi, PathItem, ReferenceOr, Response, StatusCode},
+    openapi::{
+        CookieStyle, HeaderStyle, Info, OpenApi, Parameter, ParameterData,
+        ParameterSchemaOrContent, PathItem, ReferenceOr, Response, SchemaObject, StatusCode,
+    },
     transform::TransformOperation,
 };
 use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant};
@@ -345,4 +348,114 @@ fn build_panics_on_struct_sequence_query_parameter() {
 #[test]
 fn build_accepts_value_query_parameters() {
     build_query_route(|ValuesQuery { ids, limit }: ValuesQuery| format!("{ids:?} {limit:?}"));
+}
+
+#[test]
+#[should_panic(expected = "should read its path parameter `entity` through `rest::extract::Path`")]
+fn build_panics_on_axum_path() {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new().api_route(
+                "/entities/{entity}",
+                get(
+                    async |axum::extract::Path(NewtypePath { entity }): axum::extract::Path<
+                        NewtypePath,
+                    >| entity.0,
+                ),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(expected = "should read its query parameter `ids` through `rest::extract::Query`")]
+fn build_panics_on_axum_extra_query() {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new().api_route(
+                "/entities",
+                get(
+                    async |axum_extra::extract::Query(ValuesQuery { ids, limit }): axum_extra::extract::Query<
+                        ValuesQuery,
+                    >| format!("{ids:?} {limit:?}"),
+                ),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(expected = "should read its request body through `rest::extract::Json`")]
+fn build_panics_on_bytes_body() {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || ApiRouter::new().api_route("/entities", post(async |body: bytes::Bytes| body)),
+        |document| document,
+    );
+}
+
+fn build_with_parameter(parameter: Parameter) {
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        move || {
+            ApiRouter::new().api_route(
+                "/entities",
+                get_with(
+                    || async {},
+                    move |mut operation| {
+                        operation
+                            .inner_mut()
+                            .parameters
+                            .push(ReferenceOr::Item(parameter));
+                        operation
+                    },
+                ),
+            )
+        },
+        |document| document,
+    );
+}
+
+fn parameter_data(name: &str) -> ParameterData {
+    ParameterData {
+        name: name.to_owned(),
+        description: None,
+        required: false,
+        deprecated: None,
+        format: ParameterSchemaOrContent::Schema(SchemaObject {
+            json_schema: schemars::json_schema!({ "type": "string" }),
+            example: None,
+            external_docs: None,
+        }),
+        example: None,
+        examples: indexmap::IndexMap::new(),
+        explode: None,
+        extensions: indexmap::IndexMap::new(),
+    }
+}
+
+#[test]
+#[should_panic(expected = "should read no header parameter such as `x-trace`")]
+fn build_panics_on_header_parameter() {
+    build_with_parameter(Parameter::Header {
+        parameter_data: parameter_data("x-trace"),
+        style: HeaderStyle::Simple,
+    });
+}
+
+#[test]
+#[should_panic(expected = "should read no cookie parameter such as `session`")]
+fn build_panics_on_cookie_parameter() {
+    build_with_parameter(Parameter::Cookie {
+        parameter_data: parameter_data("session"),
+        style: CookieStyle::Form,
+    });
 }
