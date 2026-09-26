@@ -1,63 +1,35 @@
 # Brunch architecture
 
-This document describes the implementation as it exists. Detailed application operation and deployment configuration live in [`apps/brunch-agent/README.md`](../../../apps/brunch-agent/README.md).
+`apps/brunch-agent` composes the Flue server, Brunch workpiece, SDCPN modelling skill and Petrinaut canonical tools. `apps/petrinaut-website` owns browser-local document state and executes browser tools through Petrinaut's editor. The server imports Petrinaut's published headless catalogue, not the UI package. Native Stock remains a separate panel choice.
 
-## Runtime composition
+## Assistant modes
 
-`apps/brunch-agent` is the Flue server and composition point. Its `ChatAgent` combines:
+Integrated Brunch (`integrated-brunch-canonical`) mounts the Brunch prompt, skill, workpiece, reviewed experiment draft and explanation tool while preserving every canonical Petrinaut tool. A conversation admitted without a mode retains the plugin skill and documentation tool but no canonical construction tools.
 
-- `@hashintel/brunch-agent/flue`: the model, core system prompt, elicitation skill, and durable workpiece tools;
-- `@hashintel/brunch-agent-plugin-sdcpn/flue`: the SDCPN prompt append, modelling skill, Petrinaut documentation access, and conditional construction tools;
-- app-owned routing, diagnostics, context projection, evidence lookup, and explanation tools.
+The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input. Prompts are imported with `?raw`. Each skill is an Agent Skills directory whose `SKILL.md` the package exports and imports natively; library builds leave that import in place and the consuming Flue application packages the directory. Gherkin is packaged but unmounted; Dafny and Claims are unmounted experimental packages.
 
-`@hashintel/brunch-agent-transport-aisdk` projects a caller-provided Flue conversation into AI SDK streams and transcripts; it does not own server state. `apps/petrinaut-website` owns browser-local document state, document/conversation binding, and execution of browser tools.
+## Package entries
 
-The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is imported with `?raw` and bundled as runtime model input. It is implementation source, not project documentation.
+Each Brunch package has a main entry and a `./flue` entry. The main entry holds everything that loads without a Flue build: constants, schemas, types and pure functions, plus core's workpiece tools. `./flue` holds the agent hooks and the skills they mount; a `SKILL.md` import loads only in code Flue builds, so only the Flue application imports `./flue`. The persona launcher, scripts and the website import the main entries. The SDCPN main entry stays browser-safe because the website imports it, so its Flue tool definitions live behind `./flue`; core additionally exposes browser-safe `./client-tools` and `./workpiece` slices. Brunch's named constants live in core's `constants.ts`, which imports nothing; the main entry exports them, and browser code, the transport and the SDCPN plugin import them through the `./constants` slice, because the main entry's workpiece tools load `@flue/runtime`. Tests exercise the hooks with the `SKILL.md` import mocked; the Flue build is what packages and validates the skills.
 
-Gherkin is packaged but currently unmounted. Dafny and Claims are unmounted experimental packages.
+## Loading workspace source in dev
 
-## Conversation and workpiece authority
+Each Brunch package points TypeScript at `src` but runs from `dist`. So that a dev server does not run stale code, every export in these packages carries an `"@dev/source"` condition, placed after `types` and before `import`, that names the TypeScript source. The Brunch and website Vite configs prepend that condition to Vite's default client and server conditions only when they serve; builds, Vitest and plain Node never enable it and keep resolving `dist`. The name is a custom condition rather than `source` or `development`: Vite enables `development` by default in dev, and some published packages ship a `source` condition, so either would also switch third-party packages to unbuilt code. A new Brunch package export adds the condition beside its `types` entry. Petrinaut and petrinaut-core do not use it: they need their own build (Panda CSS and Vite-only imports), so their dev servers run from `dist`.
 
-Flue’s persisted conversation is the canonical conversation record. Browser-tool results return through the canonical Flue delivery path and correlate by tool-call ID. The ephemeral live-tool stream exists only to show pending work; it does not validate or execute tools and is not durable history.
+## Browser and conversation boundary
 
-The current workpiece is per-conversation persistent state. `mutate_workpiece` atomically replaces the complete Markdown revision with its tool outcome. Successful revisions can be reconstructed from canonical history by joining the submitted Markdown to the successful result and verifying the tool-call ID and SHA-256.
+Flue's persisted conversation is canonical history. In integrated mode, every browser tool, the canonical catalogue and the experiment draft, is a server-issued call that waits for a direct one-use HTTP result; no browser result arrives as a later Flue signal. The panel orders same-document canonical calls; the draft card claims and settles its own call once preparation finishes. Admission refuses a proposal that places a tool beside a tool whose result it reads (`query_workpiece` beside `getLatestNetDefinition`; the draft beside `getLatestNetDefinition` or `mutate_workpiece`). The browser returns Petrinaut's own output unchanged and host-only `documentRevision: { before?: string; after?: string }`: `before` names the revision observed before the call and `after` exists only when a document change has settled. The model-context projection strips the host envelope before each provider request. Neither the one-use capability nor the document binding authenticates the person; ownership middleware binds the authorized conversation and document incarnation. An attempted write without a settled result is never presumed rolled back or retried after reload.
 
-Workpiece settlement enforces these invariants:
+The server credits an applied canonical call with its settled `after` revision; it does not re-hash or replay browser-produced evidence. `net-changes.ts` projects those calls in history order. `query_workpiece` looks up a named element in the latest canonical definition read and lists applied calls associated by element ID, each with the workpiece revision current at the call, its turn range and user message IDs. These temporal associations do not prove a semantic basis. A reviewed experiment draft requires an earlier canonical definition read and the latest settled workpiece revision; the browser prepares against the current document revision. Canonical `createExperiment` remains Petrinaut-owned and does not mutate the document.
 
-- the first revision names a `null` base; later revisions name the current revision;
-- replaying one tool-call ID requires identical content;
-- evidence cites literal text in the submitted Markdown and authorized user-message IDs, then resolves to UTF-16 locators;
-- invalid or ambiguous evidence refuses the entire settlement;
-- dropping an existing heading or more than 25% of the prior body requires an explicit, source-backed retraction;
-- an expected validation refusal writes no revision and returns a typed non-applied result; infrastructure and unexpected failures still throw.
+## Workpiece authority
 
-`read_workpiece` exposes the current revision and focused source/locator reads. It does not accept replacement content.
+`mutate_workpiece` atomically replaces the complete Markdown revision in per-conversation persistent state. A successful revision can be recovered from canonical history by joining its submitted Markdown to the successful result and checking tool-call ID and SHA-256. Evidence cites literal text and authorized user-message IDs and resolves to UTF-16 locators. Dropping a heading or more than a quarter of the body requires explicit source-backed retraction. Expected validation refusal writes no revision; infrastructure failures throw. `read_workpiece` exposes the current revision and focused reads.
 
-## Model-context projection
+The model-context projection reduces superseded workpiece and net-read bodies before provider invocation. It does not change canonical conversation history, public history, call identity or ordering.
 
-`apps/brunch-agent/src/agents/chat-agent/context-projection.ts` reduces superseded workpiece and net-read bodies before model invocation. This projection is model-facing and recomputable. It must not modify canonical conversation history, public history, call identity, ordering, or the latest authoritative body.
+## Runtime and persistence
 
-## Tool boundary
+Local development and tests use Flue's SQLite store; production requires Postgres. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`.
 
-The checked catalogue at `apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts` records mounted names and their definition and execution owners.
-
-- Flue owns task and skill activation/resource tools.
-- Core defines `mutate_workpiece` and `read_workpiece`, which execute on the server.
-- Petrinaut read, diagnostics, layout, and net-mutation tools execute in the browser against the open document.
-- `ping` and `query_workpiece` are app-owned server tools.
-
-A net mutation must cite a settled workpiece basis and a verified browser observation whose hash matches the submitted base. Browser mutations return only after the editor host settles any resulting document revision.
-
-## Persistence
-
-Local development and tests default to Flue’s SQLite store. Production requires Postgres and fails rather than falling back to local storage. The application also maintains a separate worked-model store: in-memory locally and Postgres in production. See `apps/brunch-agent/src/database-config.ts` and `apps/brunch-agent/src/db.ts`.
-
-## Flue and Pi patches
-
-The repository currently pins Flue `2.0.3` and applies root patches to:
-
-- `@flue/runtime@2.0.3` for Brunch’s context-projection and native tool-input behavior, tool-scoped persistent-state handling, and retry integration;
-- `@earendil-works/pi-agent-core@0.83.0` for authoritative tool-argument validation used by the Flue bridge;
-- `@earendil-works/pi-ai@0.83.0` / `^0.83.0` for complete Anthropic tool schemas and valid union-value handling.
-
-The patch files under `.yarn/patches/`, the root `resolutions`, and `ChatAgent`’s `useContextProjection` call are one compatibility boundary. Re-evaluate that boundary when upgrading Flue or Pi rather than deleting an individual patch in isolation.
+The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0` and `@earendil-works/pi-ai@0.83.0` for context projection, native tool input and complete provider schemas. Re-evaluate this patch boundary together when upgrading Flue or Pi.

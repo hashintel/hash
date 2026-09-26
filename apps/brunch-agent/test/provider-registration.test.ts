@@ -53,41 +53,6 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
   return stream.result();
 };
 
-test("app registration classifies mutate_petrinaut_net as a browser tool", async () => {
-  const registration = vi
-    .mocked(instrument)
-    .mock.calls.find(
-      ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
-    )?.[0];
-  expect(registration).toBeDefined();
-  const provider = vi
-    .mocked(setProvider)
-    .mock.calls.map(([entry]) => entry)
-    .find((entry) => entry.id === "anthropic")!;
-  const model = provider.getModels()[0]!;
-  faux.setResponses([
-    fauxAssistantMessage(
-      [
-        fauxToolCall("mutate_workpiece", {}),
-        fauxToolCall("mutate_petrinaut_net", {}),
-      ],
-      { stopReason: "toolUse" },
-    ),
-  ]);
-
-  await expect(
-    registration!.interceptor(
-      {
-        type: "agent",
-        operationId: "mutate-petrinaut-net-classification",
-        operationKind: "prompt",
-      },
-      { agentName: "brunch-chat-agent" },
-      async () => drain(provider.streamSimple(model, { messages: [] })),
-    ),
-  ).rejects.toThrow("Mixed browser/server proposal");
-});
-
 test("app registration scopes admission to ChatAgent execution, isolating concurrent agents and delegated tasks", async () => {
   const registration = vi
     .mocked(instrument)

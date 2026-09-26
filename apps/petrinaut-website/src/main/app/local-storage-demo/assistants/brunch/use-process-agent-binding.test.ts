@@ -32,47 +32,13 @@ const document = (
     parameters: [],
     differentialEquations: [],
   },
-  origin: { kind: "local" },
 });
 
 describe("resolveProcessAgentBinding", () => {
-  test("binds a remote seed to the canonical document identity", () => {
-    expect(
-      resolveProcessAgentBinding({
-        document: document("remote-document"),
-        seed: {
-          documentId: "remote-document",
-          conversationId: "remote-conversation",
-        },
-        fixture: undefined,
-      }),
-    ).toEqual({
-      conversationId: "remote-conversation",
-      documentId: "remote-document",
-      incarnationId: "remote-document-incarnation",
-    });
-  });
-
-  test("fails when a seed belongs to another document", () => {
-    expect(() =>
-      resolveProcessAgentBinding({
-        document: document("current-document"),
-        seed: {
-          documentId: "stale-document",
-          conversationId: "stale-conversation",
-        },
-        fixture: undefined,
-      }),
-    ).toThrow(
-      "Process-agent seed belongs to stale-document, not current-document.",
-    );
-  });
-
   test("uses fixture configuration without adding it to the document", () => {
     expect(
       resolveProcessAgentBinding({
         document: document("fixture-document"),
-        seed: undefined,
         fixture: { conversationId: "fixture-conversation" },
       }),
     ).toMatchObject({
@@ -86,23 +52,16 @@ describe("resolveProcessAgentBinding", () => {
     const { rerender, result } = renderHook(
       (input: {
         readonly document: DocumentRecord;
-        readonly seed: {
-          readonly documentId: string;
-          readonly conversationId: string;
-        };
+        readonly fixture: { readonly conversationId: string };
       }) =>
         useProcessAgentBinding({
           document: input.document,
-          seed: input.seed,
-          fixture: undefined,
+          fixture: input.fixture,
         }),
       {
         initialProps: {
           document: initialDocument,
-          seed: {
-            documentId: initialDocument.documentId,
-            conversationId: "stable-conversation",
-          },
+          fixture: { conversationId: "stable-conversation" },
         },
       },
     );
@@ -114,10 +73,7 @@ describe("resolveProcessAgentBinding", () => {
         revisionId: "second-revision",
         definition: structuredClone(initialDocument.definition),
       },
-      seed: {
-        documentId: initialDocument.documentId,
-        conversationId: "stable-conversation",
-      },
+      fixture: { conversationId: "stable-conversation" },
     });
 
     expect(result.current).toBe(initialBinding);
@@ -143,7 +99,6 @@ describe("resolveProcessAgentBinding", () => {
     const Abandoned = () => {
       useProcessAgentBinding({
         document: document("abandoned-document"),
-        seed: undefined,
         fixture: undefined,
       });
       throw never;
@@ -162,7 +117,6 @@ describe("resolveProcessAgentBinding", () => {
       ({ currentDocument }: { currentDocument: DocumentRecord }) =>
         useProcessAgentBinding({
           document: currentDocument,
-          seed: undefined,
           fixture: undefined,
         }),
       {

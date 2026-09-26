@@ -4,18 +4,27 @@ import {
   createFlueClient,
   FlueExecutionError,
   type AgentSendResult,
+  type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { isAwaitingClient } from "../../conversation/client-tools.ts";
-import {
-  agentOwnershipHeaders,
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "../../conversation/identity.ts";
+import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 
 import type { Page, Response as BrowserResponse } from "@playwright/test";
+
+/** A failed persona turn that still carries the admitted conversation's history. */
+class PersonaBrowserTurnError extends Error {
+  readonly snapshot: FlueConversationSnapshot;
+  constructor(
+    message: string,
+    options: { cause: unknown; snapshot: FlueConversationSnapshot },
+  ) {
+    super(message, { cause: options.cause });
+    this.name = "PersonaBrowserTurnError";
+    this.snapshot = options.snapshot;
+  }
+}
 
 export interface PersonaBrowserSession {
   readonly url: string;
@@ -55,38 +64,11 @@ export const submitPersonaBrowserTurn = async (
     "",
     "Refusing to overwrite an existing browser draft",
   );
-  const responses: BrowserResponse[] = [];
-  // Only the conversation POST admits work. /abort is a control request,
-  // not another conversation or a client-tool continuation.
+  // Only the conversation POST admits work; /abort is a control request.
   const isAdmission = (response: BrowserResponse) =>
     response.request().method() === "POST" &&
     /^\/agents\/chat\/[^/]+$/u.test(new URL(response.url()).pathname);
-  let admissionSession: PersonaBrowserSession | undefined;
-  const continuationAdmissionTasks: Promise<void>[] = [];
-  const collect = (response: BrowserResponse) => {
-    if (!isAdmission(response)) return;
-    responses.push(response);
-    const session = admissionSession;
-    if (session === undefined) return;
-    continuationAdmissionTasks.push(
-      (async () => {
-        assert.equal(
-          response.url(),
-          session.url,
-          "Another conversation submitted during the persona turn",
-        );
-        assert.equal(
-          response.status(),
-          202,
-          "A browser continuation failed admission",
-        );
-        await options.onAdmission?.(
-          session,
-          (await response.json()) as AgentSendResult,
-        );
-      })(),
-    );
-  };
+  let client: ReturnType<typeof createFlueClient> | undefined;
   let admitted = false;
   let stopTask: Promise<void> | undefined;
   const aborted = Promise.withResolvers<never>();
@@ -99,7 +81,6 @@ export const submitPersonaBrowserTurn = async (
     });
     if (signal?.aborted) aborted.reject(signal.reason);
   };
-  page.on("response", collect);
   signal?.addEventListener("abort", cancel, { once: true });
   try {
     await composer.fill(message);
@@ -124,8 +105,8 @@ export const submitPersonaBrowserTurn = async (
         request.kind === "user",
       "Persona utterance must be a user submission",
     );
-    const principalKey = headers[BRUNCH_PRINCIPAL_HEADER];
-    const conversationId = headers[BRUNCH_CONVERSATION_HEADER];
+    const principalKey = headers[brunchHeaders.principal];
+    const conversationId = headers[brunchHeaders.conversation];
     assert(principalKey && conversationId && admission.uid);
     const session: PersonaBrowserSession = {
       url: first.url(),
@@ -150,41 +131,21 @@ export const submitPersonaBrowserTurn = async (
           `Persona browser changed ${key}`,
         );
     }
-    admissionSession = session;
+    client = createFlueClient({
+      url: session.url,
+      headers: agentOwnershipHeaders(session),
+    });
     await options.onAdmission?.(session, admission);
     if (signal?.aborted) cancel();
-    // The product's busy status spans client-tool continuations, unlike one Flue settlement.
     await Promise.race([
       stop.waitFor({ state: "hidden", timeout: 0 }),
       aborted.promise,
     ]);
     await stopTask;
-    await Promise.all(continuationAdmissionTasks);
-    const admissions = await Promise.all(
-      responses.map(async (response) => {
-        assert.equal(
-          response.url(),
-          session.url,
-          "Another conversation submitted during the persona turn",
-        );
-        assert.equal(
-          response.status(),
-          202,
-          "A browser continuation failed admission",
-        );
-        return (await response.json()) as AgentSendResult;
-      }),
-    );
-    const last = admissions.at(-1);
-    assert(last);
-    const client = createFlueClient({
-      url: session.url,
-      headers: agentOwnershipHeaders(session),
-    });
     // Local Stop hides the busy state before the native abort can settle.
     // read() waits for that settlement; a history snapshot alone can race it.
     const reply = await client
-      .read(last, { signal })
+      .read(admission, { signal })
       .catch((error: unknown) => {
         if (error instanceof FlueExecutionError) {
           admitted = false;
@@ -197,24 +158,16 @@ export const submitPersonaBrowserTurn = async (
         throw error;
       });
     const snapshot = await client.history();
-    const submissionIds = admissions.map((entry) => entry.submissionId);
-    for (const entry of admissions) {
-      assert.equal(
-        entry.uid,
-        session.uid,
-        "Runtime incarnation changed during a turn",
-      );
-      const settlement = snapshot.settlements.find(
-        (item) => item.submissionId === entry.submissionId,
-      );
-      assert.equal(
-        settlement?.outcome,
-        "completed",
-        "Persona browser turn did not complete",
-      );
-    }
+    const submissionIds = [admission.submissionId];
+    const settlement = snapshot.settlements.find(
+      (item) => item.submissionId === admission.submissionId,
+    );
+    assert.equal(
+      settlement?.outcome,
+      "completed",
+      "Persona browser turn did not complete",
+    );
     signal?.throwIfAborted();
-    const results = clientToolHistoryFrom(snapshot.messages).results;
     for (const entry of snapshot.messages.filter(
       (item) =>
         item.submissionId !== undefined &&
@@ -227,15 +180,6 @@ export const submitPersonaBrowserTurn = async (
           "input-available",
           "Incomplete server tool call",
         );
-        if (part.state === "output-available" && isAwaitingClient(part.output))
-          assert(
-            results.some(
-              (result) =>
-                result.toolCallId === part.toolCallId &&
-                result.toolName === part.toolName,
-            ),
-            `Unanswered browser call ${part.toolName}`,
-          );
       }
     }
     assert(reply.text.trim(), "Persona turn completed without reply text");
@@ -245,9 +189,16 @@ export const submitPersonaBrowserTurn = async (
       cancel();
       await stopTask;
     }
+    // Keep the admitted conversation's history with the failure so a failed
+    // arm can be diagnosed from what was actually delivered.
+    const history = await client?.history().catch(() => undefined);
+    if (history !== undefined)
+      throw new PersonaBrowserTurnError(
+        error instanceof Error ? error.message : String(error),
+        { cause: error, snapshot: history },
+      );
     throw error;
   } finally {
-    page.off("response", collect);
     signal?.removeEventListener("abort", cancel);
   }
 };

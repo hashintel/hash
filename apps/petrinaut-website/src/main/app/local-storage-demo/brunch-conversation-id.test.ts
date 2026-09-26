@@ -1,6 +1,7 @@
 import { expect, test, vi } from "vitest";
 
 import {
+  brunchEvaluationConversationIdFrom,
   getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
 } from "./brunch-conversation-id";
@@ -29,4 +30,9 @@ test("scopes ordinary construction conversations to the net incarnation", () => 
   expect(ordinaryConstructionConversationIdFrom("incarnation-1")).toBe(
     "brunch-construction-v1:incarnation-1",
   );
+});
+
+test("preserves the integrated conversation namespace", () => {
+  const base = ordinaryConstructionConversationIdFrom("incarnation-1");
+  expect(brunchEvaluationConversationIdFrom(base)).toBe(`${base}:evaluation-I`);
 });

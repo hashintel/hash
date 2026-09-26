@@ -5,7 +5,7 @@ import {
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-import { brunchClientToolNames } from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
@@ -87,29 +87,19 @@ export class BrunchPanelConversationTracker {
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
     this.#admittedSubmissionIds.add(admission.admission.submissionId);
-    if (admission.kind === "user") {
-      this.#inputSubmissions.set(
-        admission.messageId,
-        admission.admission.submissionId,
-      );
-    }
+    this.#inputSubmissions.set(
+      admission.messageId,
+      admission.admission.submissionId,
+    );
     for (const subscription of this.#admissionSubscriptions) {
-      if (
-        subscription.target.kind === admission.kind &&
-        subscription.target.messageId === admission.messageId
-      ) {
+      if (subscription.target.messageId === admission.messageId) {
         this.#admissionSubscriptions.delete(subscription);
         subscription.listener(admission);
       }
     }
   }
 
-  /**
-   * A client-tool continuation is projected onto the assistant message it
-   * resumes, so one message can be written by several submissions. Keep them
-   * all: Voice correlates a reply by membership, whichever side admitted the
-   * continuation.
-   */
+  /** Associate each response message with its admitted submission for Voice. */
   public recordResponse(event: FlueChatResponseMessageStartedEvent): void {
     const recorded = this.#responseSubmissions.get(event.messageId);
     if (recorded === undefined) {
@@ -159,10 +149,7 @@ export class BrunchPanelConversationTracker {
     error: FlueChatAdmissionError,
   ): void {
     for (const subscription of this.#admissionFailureSubscriptions) {
-      if (
-        subscription.target.kind === target.kind &&
-        subscription.target.messageId === target.messageId
-      ) {
+      if (subscription.target.messageId === target.messageId) {
         this.#admissionFailureSubscriptions.delete(subscription);
         subscription.listener(error);
       }
@@ -341,17 +328,10 @@ export const createBrunchPanelTransport = (
   tracker: BrunchPanelConversationTracker,
   options?: {
     readonly initialData?: FlueChatTransportOptions["initialData"];
-    /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
+    /** Browser tools executed by Petrinaut's static panel registry. */
     readonly clientToolNames?: ReadonlySet<string>;
-    readonly dynamicClientToolNames?: ReadonlySet<string>;
-    readonly validatedClientToolNames?: ReadonlySet<string>;
-    readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
-    readonly clientToolResultOutput?: FlueChatTransportOptions["clientToolResultOutput"];
-    readonly mapClientToolInput?: (input: {
-      readonly input: unknown;
-      readonly toolName: string;
-      readonly toolCallId: string;
-    }) => unknown;
+    readonly dynamicClientToolNames?: FlueChatTransportOptions["dynamicClientToolNames"];
+    readonly mapClientToolInput?: FlueChatTransportOptions["mapClientToolInput"];
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
@@ -367,15 +347,11 @@ export const createBrunchPanelTransport = (
           ...(options?.initialData === undefined
             ? {}
             : { initialData: options.initialData }),
-          clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
+          clientToolNames:
+            options?.clientToolNames ?? canonicalPetrinautClientToolNames,
           dynamicClientToolNames: options?.dynamicClientToolNames,
-          validatedClientToolNames: options?.validatedClientToolNames,
-          clientToolResultMetadata: options?.clientToolResultMetadata,
-          clientToolResultOutput: options?.clientToolResultOutput,
+          mapClientToolInput: options?.mapClientToolInput,
           liveToolStream: options?.liveToolStream,
-          ...(options?.mapClientToolInput === undefined
-            ? {}
-            : { mapClientToolInput: options.mapClientToolInput }),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             options?.onAdmission?.(event.admission);
@@ -398,10 +374,7 @@ export const createBrunchPanelTransport = (
           ) {
             tracker.recordAdmissionFailure(
               {
-                kind:
-                  sendOptions.messageId === undefined
-                    ? "user"
-                    : "client-tool-result",
+                kind: "user",
                 messageId,
               },
               error,

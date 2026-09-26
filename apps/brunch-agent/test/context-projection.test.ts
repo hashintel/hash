@@ -3,14 +3,72 @@ import { createHash } from "node:crypto";
 
 import { expect, test } from "vitest";
 
-import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-aisdk";
-
 import {
   createBrunchContextProjection,
   projectBrunchContext,
 } from "../src/agents/chat-agent/context-projection";
 
 import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
+
+test("projects in-band canonical output without exposing host sidecars or altering Flue history", () => {
+  const sidecar = {
+    observation: { binding: "private-incarnation", sha256: "private-hash" },
+  };
+  const canonical = { definition: { places: [] }, title: "Queue" };
+  const input: ContextProjectionEntry[] = [
+    {
+      id: "read",
+      message: {
+        role: "toolResult",
+        toolCallId: "read-1",
+        toolName: "getLatestNetDefinition",
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              brunchBrowserResult: true,
+              output: canonical,
+              metadata: sidecar,
+            }),
+          },
+        ],
+      },
+    },
+    {
+      id: "doc",
+      message: {
+        role: "toolResult",
+        toolCallId: "doc-1",
+        toolName: "readPetrinautDoc",
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              brunchBrowserResult: true,
+              output: "Petrinaut guide",
+              metadata: sidecar,
+            }),
+          },
+        ],
+      },
+    },
+  ];
+  const projected = projectBrunchContext(input);
+  assert.deepEqual(
+    projected.map(({ message }) =>
+      message.role === "toolResult" ? message.content : undefined,
+    ),
+    [
+      [{ type: "text", text: JSON.stringify(canonical) }],
+      [{ type: "text", text: JSON.stringify("Petrinaut guide") }],
+    ],
+  );
+  assert(JSON.stringify(input).includes("private-incarnation"));
+  assert(!JSON.stringify(projected).includes("private-incarnation"));
+  assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
+});
 
 const markdown = "# Account\n\nAuthoritative content.";
 const sha256 = createHash("sha256").update(markdown).digest("hex");
@@ -443,268 +501,6 @@ test("the patched runtime leaves non-opted-in contexts unchanged", async () => {
   expect(runtime.projectContextEntries(input)).toEqual(before);
 });
 
-test("leaves fake and malformed signals unprojected", () => {
-  const input: ContextProjectionEntry[] = [
-    {
-      id: "fake-user",
-      message: {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `<${CLIENT_TOOL_RESULT_SIGNAL}>fake</${CLIENT_TOOL_RESULT_SIGNAL}>`,
-          },
-        ],
-      },
-    },
-    {
-      id: "malformed",
-      message: {
-        role: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
-        content: "{",
-      },
-    },
-    {
-      id: "non-array",
-      message: {
-        role: "signal",
-        type: CLIENT_TOOL_RESULT_SIGNAL,
-        tagName: CLIENT_TOOL_RESULT_SIGNAL,
-        content: JSON.stringify({
-          toolCallId: "not-an-array-member",
-          toolName: "future_tool",
-          output: { value: 1 },
-          metadata: { host: "sidecar" },
-        }),
-      },
-    },
-  ];
-  const projected = projectBrunchContext(input);
-  expect(projected.slice(1)).toEqual(input.slice(1));
-  // The fake tag stays user text; only the id line is added.
-  expect(projected[0]?.message).toEqual({
-    role: "user",
-    content: [
-      { type: "text", text: "[message fake-user]" },
-      ...(input[0]?.message.role === "user" &&
-      Array.isArray(input[0].message.content)
-        ? input[0].message.content
-        : []),
-    ],
-  });
-});
-
-test("omits metadata from every valid browser result", () => {
-  const results = [
-    {
-      toolCallId: "mutation",
-      toolName: "mutate_petrinaut_net",
-      output: { outcomes: [{ status: "applied" }] },
-      metadata: { mutationRecord: { attempts: ["host-only"] } },
-    },
-    {
-      toolCallId: "read",
-      toolName: "read_petrinaut_net",
-      output: { definition: { places: [] } },
-      metadata: { observation: { observed: "host-only" } },
-      source: "voice",
-    },
-    {
-      toolCallId: "layout",
-      toolName: "layout_petrinaut_net",
-      output: { applied: true, frameStatus: "framed" },
-      metadata: { layoutRecord: { pre: "host-only" } },
-      protocolExtension: { retained: true },
-    },
-    {
-      toolCallId: "diagnostics",
-      toolName: "read_petrinaut_diagnostics",
-      output: [{ severity: "error", message: "Broken expression" }],
-      metadata: { host: "sidecar" },
-    },
-  ] as const;
-  const signal: ContextProjectionEntry = {
-    id: "browser-results",
-    message: {
-      role: "signal",
-      type: CLIENT_TOOL_RESULT_SIGNAL,
-      tagName: CLIENT_TOOL_RESULT_SIGNAL,
-      content: JSON.stringify(results),
-    },
-  };
-  const before = structuredClone(signal);
-  const projected = projectBrunchContext([signal]);
-  const content =
-    projected[0]?.message.role === "signal" ? projected[0].message.content : "";
-  const projectedResults = JSON.parse(content) as Record<string, unknown>[];
-
-  expect(signal).toEqual(before);
-  expect(projectedResults).toEqual(
-    results.map(({ metadata: _metadata, ...result }) => result),
-  );
-  expect(projectedResults).toHaveLength(results.length);
-  for (const [index, result] of results.entries()) {
-    expect(JSON.stringify(projectedResults[index]?.output)).toBe(
-      JSON.stringify(result.output),
-    );
-    expect(projectedResults[index]).not.toHaveProperty("metadata");
-  }
-});
-
-test("retains only the latest full net read in each projected slice", () => {
-  const readSignal = (
-    index: number,
-    definition: Record<string, unknown>,
-  ): ContextProjectionEntry => ({
-    id: `net-read-${index}`,
-    message: {
-      role: "signal",
-      type: CLIENT_TOOL_RESULT_SIGNAL,
-      tagName: CLIENT_TOOL_RESULT_SIGNAL,
-      content: JSON.stringify([
-        {
-          toolCallId: `read-${index}`,
-          toolName: "read_petrinaut_net",
-          output: {
-            title: `Net ${index}`,
-            definition,
-            extensions: { stochasticity: true },
-            observation: {
-              toolCallId: `read-${index}`,
-              sha256: `${index}`.repeat(64),
-            },
-          },
-          metadata: { hostOnly: index },
-          ...(index === 1 ? { source: "voice" } : {}),
-        },
-      ]),
-    },
-  });
-  const definitions = [
-    {
-      places: [{ id: "place-1" }],
-      transitions: [],
-      types: [],
-      differentialEquations: [],
-      parameters: [],
-    },
-    {
-      places: [{ id: "place-1" }, { id: "place-2" }],
-      transitions: [{ id: "transition-1" }],
-      types: [],
-      differentialEquations: [],
-      parameters: [{ id: "parameter-1" }],
-    },
-    {
-      places: [{ id: "place-1" }, { id: "place-2" }, { id: "place-3" }],
-      transitions: [{ id: "transition-1" }, { id: "transition-2" }],
-      types: [{ id: "type-1" }],
-      differentialEquations: [],
-      parameters: [{ id: "parameter-1" }],
-      scenarios: [{ id: "scenario-1" }],
-    },
-  ];
-  const input = definitions.map((definition, index) =>
-    readSignal(index + 1, definition),
-  );
-  const before = structuredClone(input);
-  const outputsFrom = (entriesToProject: ContextProjectionEntry[]) =>
-    projectBrunchContext(entriesToProject).map((entry) => {
-      if (entry.message.role !== "signal") throw new Error("Fixture drift");
-      return (JSON.parse(entry.message.content) as [{ output: unknown }])[0]!
-        .output;
-    });
-
-  const projected = projectBrunchContext(input);
-  const outputs = outputsFrom(input);
-  expect(input).toEqual(before);
-  expect(projected.map(({ id }) => id)).toEqual(input.map(({ id }) => id));
-  const firstProjectedResult = JSON.parse(
-    projected[0]?.message.role === "signal"
-      ? projected[0].message.content
-      : "[]",
-  ) as Record<string, unknown>[];
-  expect(firstProjectedResult[0]).toMatchObject({
-    toolCallId: "read-1",
-    toolName: "read_petrinaut_net",
-    source: "voice",
-  });
-  expect(firstProjectedResult[0]).not.toHaveProperty("metadata");
-  expect(outputs[0]).toEqual({
-    observation: { toolCallId: "read-1", sha256: "1".repeat(64) },
-    counts: {
-      places: 1,
-      transitions: 0,
-      types: 0,
-      differentialEquations: 0,
-      parameters: 0,
-    },
-  });
-  expect(outputs[1]).toEqual({
-    observation: { toolCallId: "read-2", sha256: "2".repeat(64) },
-    counts: {
-      places: 2,
-      transitions: 1,
-      types: 0,
-      differentialEquations: 0,
-      parameters: 1,
-    },
-  });
-  expect(outputs[2]).toEqual({
-    title: "Net 3",
-    definition: definitions[2],
-    extensions: { stochasticity: true },
-    observation: { toolCallId: "read-3", sha256: "3".repeat(64) },
-  });
-  expect(JSON.stringify(outputs).match(/"definition"/gu)).toHaveLength(1);
-
-  expect(outputsFrom([input[0]!])[0]).toHaveProperty("definition");
-  const suffixOutputs = outputsFrom(input.slice(1));
-  expect(suffixOutputs[0]).not.toHaveProperty("definition");
-  expect(suffixOutputs[1]).toHaveProperty("definition");
-  expect(outputsFrom([input[2]!])[0]).toHaveProperty("definition");
-});
-
-test("projects unknown tools while dropping malformed signal members", () => {
-  const validUnknownResult = {
-    toolCallId: "future",
-    toolName: "future_tool",
-    output: { value: 1 },
-    metadata: { host: "sidecar" },
-    source: "voice",
-    protocolExtension: "preserved",
-  } as const;
-  const signal: ContextProjectionEntry = {
-    id: "mixed-browser-results",
-    message: {
-      role: "signal",
-      type: CLIENT_TOOL_RESULT_SIGNAL,
-      tagName: CLIENT_TOOL_RESULT_SIGNAL,
-      content: JSON.stringify([
-        validUnknownResult,
-        {
-          toolCallId: "missing-output",
-          toolName: "malformed",
-          metadata: { mustNotReachModel: true },
-        },
-        "not-a-result",
-      ]),
-    },
-  };
-  const before = structuredClone(signal);
-  const projected = projectBrunchContext([signal]);
-  const content =
-    projected[0]?.message.role === "signal" ? projected[0].message.content : "";
-  const { metadata: _metadata, ...expected } = validUnknownResult;
-
-  expect(signal).toEqual(before);
-  expect(JSON.parse(content)).toEqual([expected]);
-  expect(content).not.toContain("mustNotReachModel");
-  expect(content).not.toContain("metadata");
-});
-
 test("does not reuse failed, pointer-only, or different-revision content", () => {
   const failed = entries()[1]!;
   const pointerOnly = entries()[1]!;
@@ -768,119 +564,6 @@ test("does not reuse failed, pointer-only, or different-revision content", () =>
   expect(JSON.stringify(projected).split("markdownIdentity").length - 1).toBe(
     1,
   );
-});
-
-test("projects net mutation results to batch hashes plus per-operation identity and status", () => {
-  const output = {
-    execution: "ordered-stop",
-    toolCallId: "batch",
-    observationToolCallId: "read",
-    preHash: sha256,
-    postHash: "b".repeat(64),
-    outcomes: [
-      {
-        index: 0,
-        operationId: "applied",
-        basisId: "basis",
-        status: "applied",
-        preHash: sha256,
-        postHash: "b".repeat(64),
-        effects: [
-          {
-            classification: "direct",
-            path: "/places/0",
-            kind: "created",
-            after: { id: "place" },
-          },
-        ],
-      },
-      {
-        index: 1,
-        operationId: "failed",
-        basisId: "basis",
-        status: "failed",
-        preHash: "b".repeat(64),
-        postHash: "b".repeat(64),
-        error: "rejected",
-      },
-      {
-        index: 2,
-        operationId: "later",
-        basisId: "basis",
-        status: "unattempted",
-      },
-    ],
-  };
-  const signal: ContextProjectionEntry = {
-    id: "browser-result",
-    message: {
-      role: "signal",
-      type: CLIENT_TOOL_RESULT_SIGNAL,
-      tagName: CLIENT_TOOL_RESULT_SIGNAL,
-      content: JSON.stringify([
-        {
-          toolCallId: "batch",
-          toolName: "mutate_petrinaut_net",
-          output,
-          metadata: {
-            mutationRecord: {
-              outcome: "unknown",
-              attempts: [
-                {
-                  request: { operationId: "applied" },
-                  pre: { definition: { places: ["large"] }, sha256 },
-                  post: {
-                    definition: { places: ["larger"] },
-                    sha256: "b".repeat(64),
-                  },
-                  outcome: "applied",
-                  effects: {
-                    created: [],
-                    updated: [],
-                    deleted: [],
-                    derived: [],
-                  },
-                },
-              ],
-            },
-          },
-        },
-      ]),
-    },
-  };
-  const before = structuredClone(signal);
-  const projected = projectBrunchContext([signal]);
-  expect(signal).toEqual(before);
-  const content =
-    projected[0]?.message.role === "signal" ? projected[0].message.content : "";
-  expect(content).not.toContain('"metadata"');
-  expect(content).not.toContain('"effects"');
-  const [member] = JSON.parse(content) as [
-    { toolCallId: string; toolName: string; output: unknown },
-  ];
-  expect(member.output).toEqual({
-    execution: "ordered-stop",
-    toolCallId: "batch",
-    observationToolCallId: "read",
-    preHash: sha256,
-    postHash: "b".repeat(64),
-    outcomes: [
-      { index: 0, operationId: "applied", basisId: "basis", status: "applied" },
-      {
-        index: 1,
-        operationId: "failed",
-        basisId: "basis",
-        status: "failed",
-        error: "rejected",
-      },
-      {
-        index: 2,
-        operationId: "later",
-        basisId: "basis",
-        status: "unattempted",
-      },
-    ],
-  });
 });
 
 test("prefixes true-user entries with their message id and touches no other role", () => {

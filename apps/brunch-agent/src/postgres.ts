@@ -3,10 +3,9 @@ import { readFileSync } from "node:fs";
 import { Signer, type SignerConfig } from "@aws-sdk/rds-signer";
 import { Pool } from "pg";
 
-import {
-  type PostgresDatabaseConfig,
-  POSTGRES_ENV,
-} from "./database-config.ts";
+import { brunchEnv } from "@hashintel/brunch-agent";
+
+import { type PostgresDatabaseConfig } from "./database-config.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
 import { errorCode, recordOperationalFailure } from "./telemetry.ts";
 
@@ -80,7 +79,7 @@ export function createPostgresPoolConfig(
         // The code (ENOENT, EACCES, EISDIR) is enough to act on; the path
         // stays out of the message and out of the logs.
         throw new Error(
-          `Unable to read ${POSTGRES_ENV.tlsCaPath} (${errorCode(error) ?? "unknown"}).`,
+          `Unable to read ${brunchEnv.postgres.tlsCaPath} (${errorCode(error) ?? "unknown"}).`,
           { cause: error },
         );
       }

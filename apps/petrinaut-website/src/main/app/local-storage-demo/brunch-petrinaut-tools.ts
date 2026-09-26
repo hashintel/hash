@@ -1,188 +1,270 @@
-/**
- * @role The Brunch-named Petrinaut tools the browser answers, wrapping canonical
- *   Petrinaut capabilities under Brunch's own names without renaming them.
- *
- * Brunch mounts `read_petrinaut_docs`, `read_petrinaut_net`,
- * `read_petrinaut_diagnostics`, `layout_petrinaut_net` and
- * `mutate_petrinaut_net` on the server; the browser owns their execution. Each
- * wrapper runs the same operation the stock assistant tool would, and every
- * wrapper passes through one durability barrier: when a tool changes the
- * document, its result is not returned until the host has settled that
- * revision, so a reported success implies the change was stored.
- */
 import {
-  layoutPetrinautNetToolName,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautDiagnosticsToolName,
-  readPetrinautNetToolName,
   type BrowserBinding,
-  type ConstructionMutationAttempt,
+  browserToolMutatesDocument,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
-  aiCommandActionInputSchemas,
-  readPetrinautDocToolInputSchema,
+  getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
+  mutationActionInputSchemas,
+  petrinautAiTools,
   resolvePetrinautHandleCapabilities,
   type DocumentRevisionId,
+  type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 import {
-  petrinautDocsContent,
+  executePetrinautAiMutation,
   type PetrinautAiAutomaticTool,
-  type PetrinautAiAutomaticToolExecuteParams,
 } from "@hashintel/petrinaut/ui";
 
-import {
-  createMutatePetrinetAutomaticTool,
-  type MutatePetrinetOperationFailure,
-} from "./mutate-petrinet-tool";
-import { observeBrowserDefinition } from "./mutation-record";
+import type { FlueConversationState } from "@flue/sdk";
 
-const passthrough = { parse: (value: unknown) => value };
-
-const readDocsTool: PetrinautAiAutomaticTool = {
-  toolName: READ_PETRINAUT_DOCS_TOOL_NAME,
-  inputSchema: readPetrinautDocToolInputSchema,
-  outputSchema: passthrough,
-  execute: ({ input }) => {
-    const { doc } = readPetrinautDocToolInputSchema.parse(input);
-    return petrinautDocsContent[doc];
-  },
-};
-
-/**
- * The same `{ title, definition, extensions }` the stock net read returns,
- * read from the live handle the mutation recorder independently observes so
- * the transport's verification compares like with like.
- */
-const createReadNetTool = (
-  readTitle: () => string,
-): PetrinautAiAutomaticTool => ({
-  toolName: readPetrinautNetToolName,
-  inputSchema: passthrough,
-  outputSchema: passthrough,
-  execute: ({ handle, toolCallId }) => {
-    const observed = observeBrowserDefinition(handle);
-    return {
-      title: readTitle(),
-      definition: observed.definition,
-      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-        .extensions,
-      // Model-required freshness identity belongs in output. The fuller
-      // binding/definition observation remains a host-only metadata sidecar.
-      observation: { toolCallId, sha256: observed.sha256 },
-    };
-  },
-});
-
-const readDiagnosticsTool: PetrinautAiAutomaticTool = {
-  toolName: readPetrinautDiagnosticsToolName,
-  inputSchema: passthrough,
-  outputSchema: passthrough,
-  execute: ({ readDiagnosticsContext }) => readDiagnosticsContext(),
-};
-
-/**
- * Lays the net out immediately. The canonical input carries `askUserFirst`,
- * but the Brunch route has no inline confirmation handler, so the result says
- * the layout was applied without asking rather than stalling on a prompt
- * nobody can answer.
- */
-const layoutNetTool: PetrinautAiAutomaticTool = {
-  toolName: layoutPetrinautNetToolName,
-  visibility: "hidden",
-  inputSchema: aiCommandActionInputSchemas.applyAutoLayout,
-  outputSchema: passthrough,
-  execute: async ({ input, commands, viewport }) => {
-    const { askUserFirst } =
-      aiCommandActionInputSchemas.applyAutoLayout.parse(input);
-    const { commitCount } = await commands.applyAutoLayout();
-    const frameStatus = await viewport.frameSceneAfterRender();
-    const detail = [
-      askUserFirst
-        ? "Applied without confirmation: this host has no inline prompt for layout."
-        : undefined,
-      `Viewport frame: ${frameStatus}.`,
-    ]
-      .filter((item): item is string => item !== undefined)
-      .join(" ");
-    return {
-      applied: true,
-      commitCount,
-      title:
-        commitCount === 0
-          ? "Auto-layout had no effect"
-          : `Auto-laid out ${commitCount} node${commitCount === 1 ? "" : "s"}`,
-      detail,
-    };
-  },
-};
-
-/**
- * Return a tool whose result waits for the host to settle any document
- * revision the tool produced. Tools that leave the document unchanged return
- * immediately.
- */
-const withDocumentRevisionBarrier = (
-  tool: PetrinautAiAutomaticTool,
-  settleDocumentRevision: (revisionId: DocumentRevisionId) => Promise<void>,
-): PetrinautAiAutomaticTool => ({
-  ...tool,
-  execute: async (params: PetrinautAiAutomaticToolExecuteParams) => {
-    const revisionBefore = params.handle.revisionId.get();
-    const output: unknown = await tool.execute(params);
-    const revisionAfter = params.handle.revisionId.get();
-    if (revisionAfter !== revisionBefore)
-      await settleDocumentRevision(revisionAfter);
-    return output;
-  },
-});
-
-export interface BrunchPetrinautToolsInput {
-  /** The user-visible net title the net read reports. */
-  readonly readTitle: () => string;
-  /**
-   * Present when this conversation may mutate: the binding the batch tool
-   * records its attempts against.
-   */
-  readonly mutation?: {
-    readonly binding: BrowserBinding;
-    readonly onOperationFailure?: (
-      failure: MutatePetrinetOperationFailure,
-    ) => void;
-    readonly retainAttempt?: (
-      attempt: ConstructionMutationAttempt,
-      retainOptions?: { verifyEffects?: boolean },
-    ) => void;
+interface DocumentRevisionMetadata {
+  readonly documentRevision: {
+    readonly before?: string;
+    readonly after?: string;
   };
-  /**
-   * Durability barrier for tool-applied document changes. Omitted when the
-   * document has no host persistence to wait for.
-   */
-  readonly settleDocumentRevision?: (
-    revisionId: DocumentRevisionId,
-  ) => Promise<void>;
 }
 
-export const createBrunchPetrinautTools = (
-  input: BrunchPetrinautToolsInput,
-): PetrinautAiAutomaticTool[] => {
-  const tools: PetrinautAiAutomaticTool[] = [
-    readDocsTool,
-    createReadNetTool(input.readTitle),
-    readDiagnosticsTool,
-    layoutNetTool,
-    ...(input.mutation === undefined
-      ? []
-      : [
-          createMutatePetrinetAutomaticTool(input.mutation.binding, {
-            onOperationFailure: input.mutation.onOperationFailure,
-            retainAttempt: input.mutation.retainAttempt,
-          }),
-        ]),
-  ];
-  const settleDocumentRevision = input.settleDocumentRevision;
-  return settleDocumentRevision === undefined
-    ? tools
-    : tools.map((tool) =>
-        withDocumentRevisionBarrier(tool, settleDocumentRevision),
+type RetainedCall = {
+  readonly toolName: string;
+  readonly input: unknown;
+  readonly output?: unknown;
+  readonly metadata?: DocumentRevisionMetadata;
+};
+export interface CanonicalPetrinautReplay {
+  readonly calls: ReadonlyMap<string, RetainedCall>;
+}
+export type CanonicalPetrinautReplayReadiness =
+  | { readonly status: "pending" }
+  | { readonly status: "ready"; readonly replay: CanonicalPetrinautReplay };
+export const EMPTY_CANONICAL_PETRINAUT_REPLAY: CanonicalPetrinautReplay = {
+  calls: new Map(),
+};
+
+/** The immutable pre-admission history: an uncertain call remains attempted, never retried. */
+export const issuedCanonicalCallsFromHistory = async ({
+  snapshot,
+}: {
+  readonly snapshot: Pick<FlueConversationState, "messages">;
+}): Promise<CanonicalPetrinautReplay> => {
+  const calls = new Map<string, RetainedCall>();
+  for (const message of snapshot.messages) {
+    if (message.role !== "assistant" || message.purpose !== "assistant")
+      continue;
+    for (const part of message.parts) {
+      if (part.type !== "dynamic-tool" || !(part.toolName in petrinautAiTools))
+        continue;
+      const output =
+        part.state === "output-available" &&
+        typeof part.output === "object" &&
+        part.output !== null &&
+        "brunchBrowserResult" in part.output &&
+        part.output.brunchBrowserResult === true &&
+        "output" in part.output
+          ? part.output.output
+          : undefined;
+      const metadata =
+        part.state === "output-available" &&
+        typeof part.output === "object" &&
+        part.output !== null &&
+        "metadata" in part.output
+          ? (part.output.metadata as DocumentRevisionMetadata)
+          : undefined;
+      calls.set(part.toolCallId, {
+        toolName: part.toolName,
+        input: part.input,
+        ...(output === undefined ? {} : { output }),
+        ...(metadata === undefined ? {} : { metadata }),
+      });
+    }
+  }
+  return { calls };
+};
+
+export interface CanonicalPetrinautHostToolsInput {
+  readonly handle: PetrinautDocHandle;
+  readonly binding: BrowserBinding;
+  readonly readTitle: () => string;
+  readonly replayReadiness: CanonicalPetrinautReplayReadiness;
+  readonly settleRevision: (input: {
+    readonly documentId: string;
+    readonly revisionId: DocumentRevisionId;
+  }) => Promise<void>;
+}
+
+/** Petrinaut executes canonical actions; the host records only settled revision identities. */
+export const createCanonicalPetrinautHostTools = (
+  input: CanonicalPetrinautHostToolsInput,
+) => {
+  const before = new Map<string, DocumentRevisionId>();
+  const toolNames = new Map<string, string>();
+  const prepared = new Set<string>();
+  const replay =
+    input.replayReadiness.status === "ready"
+      ? input.replayReadiness.replay.calls
+      : new Map<string, RetainedCall>();
+  const started = new Map<
+    string,
+    {
+      readonly toolName: string;
+      readonly input: unknown;
+      readonly output: unknown;
+    }
+  >();
+  const metadata = new Map<string, DocumentRevisionMetadata>();
+  const passthrough = { parse: (value: unknown) => value };
+
+  const priorOutput = (
+    toolCallId: string,
+  ): { found: boolean; output?: unknown } => {
+    const previous = replay.get(toolCallId) ?? started.get(toolCallId);
+    if (previous === undefined) return { found: false };
+    if (!("output" in previous))
+      throw new Error(
+        "This browser call was already attempted; it will not run again.",
       );
+    if ("metadata" in previous && previous.metadata !== undefined)
+      metadata.set(toolCallId, previous.metadata);
+    return { found: true, output: previous.output };
+  };
+
+  const readNetTool: PetrinautAiAutomaticTool = {
+    toolName: getLatestNetDefinitionToolName,
+    inputSchema: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
+    outputSchema: passthrough,
+    execute: ({ toolCallId, handle }) => {
+      const prior = priorOutput(toolCallId);
+      if (prior.found) return prior.output;
+      if (input.replayReadiness.status === "pending")
+        throw new Error("Conversation history is not ready.");
+      const definition = handle.doc();
+      if (!definition)
+        throw new Error("The bound browser document is unavailable.");
+      const output = {
+        title: input.readTitle(),
+        definition: structuredClone(definition),
+        extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+          .extensions,
+      };
+      before.set(toolCallId, handle.revisionId.get());
+      toolNames.set(toolCallId, getLatestNetDefinitionToolName);
+      started.set(toolCallId, {
+        toolName: getLatestNetDefinitionToolName,
+        input: {},
+        output,
+      });
+      return output;
+    },
+  };
+  const diagnosticsTool: PetrinautAiAutomaticTool = {
+    toolName: getNetCompilationErrorsToolName,
+    inputSchema: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
+    outputSchema: passthrough,
+    execute: ({ readDiagnosticsContext }) => readDiagnosticsContext(),
+  };
+  const mutationTools: PetrinautAiAutomaticTool[] = (
+    ["addPlace", "addTransition", "addArc"] as const
+  ).map((toolName) => ({
+    toolName,
+    inputSchema: mutationActionInputSchemas[toolName],
+    outputSchema: passthrough,
+    execute: ({ toolCallId, input: rawInput, handle, mutations }) => {
+      const prior = priorOutput(toolCallId);
+      if (prior.found) return prior.output;
+      if (input.replayReadiness.status === "pending")
+        throw new Error("Conversation history is not ready.");
+      const parsed = mutationActionInputSchemas[toolName].parse(rawInput);
+      const definition = () => {
+        const current = handle.doc();
+        if (!current)
+          throw new Error("The bound browser document is unavailable.");
+        return current;
+      };
+      before.set(toolCallId, handle.revisionId.get());
+      toolNames.set(toolCallId, toolName);
+      const aiToolCall =
+        toolName === "addPlace"
+          ? ({
+              toolName,
+              input: mutationActionInputSchemas.addPlace.parse(rawInput),
+            } as const)
+          : toolName === "addTransition"
+            ? ({
+                toolName,
+                input: mutationActionInputSchemas.addTransition.parse(rawInput),
+              } as const)
+            : {
+                toolName: "addArc" as const,
+                input: mutationActionInputSchemas.addArc.parse(rawInput),
+              };
+      const output = executePetrinautAiMutation({
+        aiToolCall,
+        getDefinition: definition,
+        mutations,
+      });
+      started.set(toolCallId, { toolName, input: parsed, output });
+      return output;
+    },
+  }));
+  return {
+    tools: [readNetTool, diagnosticsTool, ...mutationTools],
+    mapClientToolInput: ({
+      input: rawInput,
+      toolCallId,
+      toolName,
+    }: {
+      readonly input: unknown;
+      readonly toolCallId: string;
+      readonly toolName: string;
+    }) => {
+      const prior = priorOutput(toolCallId);
+      if (
+        prior.found &&
+        toolName !== getLatestNetDefinitionToolName &&
+        toolName !== "addPlace" &&
+        toolName !== "addTransition" &&
+        toolName !== "addArc"
+      )
+        throw new Error(
+          "This browser call was already recorded; it will not run again.",
+        );
+      if (input.replayReadiness.status === "pending")
+        throw new Error("Conversation history is not ready.");
+      if (prepared.has(toolCallId))
+        throw new Error(
+          "This browser call was already attempted; it will not run again.",
+        );
+      prepared.add(toolCallId);
+      toolNames.set(toolCallId, toolName);
+      before.set(toolCallId, input.handle.revisionId.get());
+      return rawInput;
+    },
+    clientToolResultMetadataFor: async (
+      toolCallId: string,
+      _output?: unknown,
+    ): Promise<DocumentRevisionMetadata> => {
+      const existing = metadata.get(toolCallId);
+      if (existing) return existing;
+      const revisionBefore = before.get(toolCallId);
+      const revisionAfter = input.handle.revisionId.get();
+      const toolName = toolNames.get(toolCallId);
+      const changed =
+        revisionBefore !== undefined &&
+        revisionBefore !== revisionAfter &&
+        (toolName === undefined || browserToolMutatesDocument(toolName));
+      if (changed)
+        await input.settleRevision({
+          documentId: input.binding.documentId,
+          revisionId: revisionAfter,
+        });
+      const result: DocumentRevisionMetadata = {
+        documentRevision: {
+          ...(revisionBefore === undefined ? {} : { before: revisionBefore }),
+          ...(changed ? { after: revisionAfter } : {}),
+        },
+      };
+      metadata.set(toolCallId, result);
+      return result;
+    },
+  };
 };

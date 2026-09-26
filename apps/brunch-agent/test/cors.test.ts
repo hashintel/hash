@@ -1,21 +1,18 @@
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
 
-import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import {
+  brunchEnv,
+  brunchHeaders,
+  brunchRoutes,
+} from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
-import {
-  BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
-  createAgentCors,
-  parseCorsAllowedOrigins,
-} from "../src/http/cors.ts";
+import { createAgentCors, parseCorsAllowedOrigins } from "../src/http/cors.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
-import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "../src/http/routes.ts";
 
 describe("parseCorsAllowedOrigins", () => {
   test("grants no cross-origin access when configuration is absent or blank", () => {
@@ -37,7 +34,7 @@ describe("parseCorsAllowedOrigins", () => {
     "https://app.example.com,,https://preview.example.com",
   ])("rejects an empty comma-separated entry in %s", (value) => {
     expect(() => parseCorsAllowedOrigins(value)).toThrow(
-      BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+      brunchEnv.corsAllowedOrigins,
     );
   });
 
@@ -54,7 +51,7 @@ describe("parseCorsAllowedOrigins", () => {
     "not-an-origin",
   ])("rejects invalid or broader-than-origin entry %s", (value) => {
     expect(() => parseCorsAllowedOrigins(value)).toThrow(
-      BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+      brunchEnv.corsAllowedOrigins,
     );
   });
 
@@ -81,7 +78,7 @@ describe("parseCorsAllowedOrigins", () => {
     "rejects wildcard entry %s that is not one leading label before a domain",
     (value) => {
       expect(() => parseCorsAllowedOrigins(value)).toThrow(
-        BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+        brunchEnv.corsAllowedOrigins,
       );
     },
   );
@@ -93,14 +90,14 @@ describe("parseCorsAllowedOrigins", () => {
     String.raw`https:\\example.com`,
   ])("rejects forgiving WHATWG URL form %s", (value) => {
     expect(() => parseCorsAllowedOrigins(value)).toThrow(
-      BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+      brunchEnv.corsAllowedOrigins,
     );
   });
 });
 
 const allowedOrigin = "https://app.example.com";
 const rejectedOrigin = "https://attacker.example";
-const mount = `/agents/${CHAT_AGENT_ROUTE}`;
+const mount = `/agents/${brunchRoutes.chatAgent}`;
 const identity = {
   principalKey: "principal-cors",
   conversationId: "conversation-cors",
@@ -115,11 +112,9 @@ const buildCorsTestApp = (
 ) => {
   const app = new Hono();
   app.use("/agents/*", createAgentCors(allowedOrigins));
-  app.use("/api/worked-models/*", createAgentCors(allowedOrigins));
-  app.all("/api/worked-models/*", (context) => context.text("admitted"));
   app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
   app.all(`${mount}/*`, (context) => context.text("admitted"));
-  app.get(HEALTH_ROUTE, (context) => context.text("healthy"));
+  app.get(brunchRoutes.health, (context) => context.text("healthy"));
   app.get("/", (context) => context.text("root"));
   app.get("/assets/*", (context) => context.text("asset"));
   return app;
@@ -134,9 +129,8 @@ test("answers an allowed preflight before ownership", async () => {
         "Access-Control-Request-Method": "POST",
         "Access-Control-Request-Headers": [
           "content-type",
-          BRUNCH_PRINCIPAL_HEADER,
-          BRUNCH_CONVERSATION_HEADER,
-          BRUNCH_DOCUMENT_REVISION_HEADER,
+          brunchHeaders.principal,
+          brunchHeaders.conversation,
         ].join(","),
       },
     }),
@@ -147,43 +141,16 @@ test("answers an allowed preflight before ownership", async () => {
     allowedOrigin,
   );
   expect(response.headers.get("access-control-allow-methods")).toBe(
-    "GET,POST,PUT,OPTIONS",
+    "GET,POST,OPTIONS",
   );
   expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
+    `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
   );
   expect(response.headers.get("access-control-max-age")).toBe("600");
   expect(response.headers.get("access-control-allow-credentials")).toBeNull();
   expect(response.headers.get("vary")).toContain("Origin");
   expect(response.headers.get("vary")).toContain(
     "Access-Control-Request-Headers",
-  );
-});
-
-test("answers an allowed worked-model PUT preflight with its actual request envelope", async () => {
-  const response = await buildCorsTestApp().fetch(
-    new Request(
-      "http://brunch.test/api/worked-models/copies/copy-1/definition",
-      {
-        method: "OPTIONS",
-        headers: {
-          Origin: allowedOrigin,
-          "Access-Control-Request-Method": "PUT",
-          "Access-Control-Request-Headers": `content-type,${BRUNCH_PRINCIPAL_HEADER}`,
-        },
-      },
-    ),
-  );
-
-  expect(response.status).toBe(204);
-  expect(response.headers.get("access-control-allow-origin")).toBe(
-    allowedOrigin,
-  );
-  expect(response.headers.get("access-control-allow-methods")).toBe(
-    "GET,POST,PUT,OPTIONS",
-  );
-  expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
   );
 });
 
@@ -275,7 +242,7 @@ test.each(["GET", "POST"])(
   },
 );
 
-test.each(["/", HEALTH_ROUTE, "/assets/app.js"])(
+test.each(["/", brunchRoutes.health, "/assets/app.js"])(
   "does not add CORS headers to unrelated route %s",
   async (path) => {
     const response = await buildCorsTestApp().fetch(

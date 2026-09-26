@@ -1,8 +1,11 @@
 import {
   createPetrinautAiWritableCallbacks,
   isSDCPNEqual,
+  mutationActionInputSchemas,
   type Petrinaut,
   type PetrinautAiMutationToolName,
+  type PetrinautMutations,
+  type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -14,27 +17,42 @@ import {
 
 import type { PetrinautAiMutationExecutor } from "./types";
 
-const applyMutation = ({
+type PetrinautAiMutationCall = Extract<
+  AiToolCall,
+  { toolName: PetrinautAiMutationToolName }
+>;
+
+/**
+ * Execute one canonical mutation while Petrinaut owns its no-op detection and
+ * model-facing output. Hosts may observe around this synchronous boundary,
+ * but do not need a full editor instance to use it.
+ */
+export const executePetrinautAiMutation = ({
   aiToolCall,
-  instance,
+  getDefinition,
+  mutations,
 }: {
-  aiToolCall: Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
-  instance: Petrinaut;
+  aiToolCall: PetrinautAiMutationCall;
+  getDefinition: () => SDCPN;
+  mutations: PetrinautMutations;
 }): AiToolOutput => {
-  const definition = instance.definition.get();
-  const toolCallbacks = createPetrinautAiWritableCallbacks(instance);
+  const definition = getDefinition();
+
+  if (!Object.hasOwn(mutationActionInputSchemas, aiToolCall.toolName)) {
+    throw new Error(`Unsupported Petrinaut mutation: ${aiToolCall.toolName}`);
+  }
+
   const summary = summarizePetrinautAiToolCall(aiToolCall, { definition });
-  const callback = toolCallbacks[aiToolCall.toolName] as (
+  const callback = mutations[aiToolCall.toolName] as (
     input: typeof aiToolCall.input,
   ) => void;
-
   callback(aiToolCall.input);
 
   // Only the unchanged document is observed here. The mutation may have
   // declined for a reason narrower than "already present" (an arc between the
   // same endpoints with a different weight, for one), so the reason must not
   // claim the requested state exists.
-  if (isSDCPNEqual(definition, instance.definition.get())) {
+  if (isSDCPNEqual(definition, getDefinition())) {
     return {
       applied: false,
       reason: `${summary.title} left the document unchanged.`,
@@ -43,6 +61,19 @@ const applyMutation = ({
 
   return toPetrinautAiToolOutput(summary);
 };
+
+const applyMutation = ({
+  aiToolCall,
+  instance,
+}: {
+  aiToolCall: PetrinautAiMutationCall;
+  instance: Petrinaut;
+}): AiToolOutput =>
+  executePetrinautAiMutation({
+    aiToolCall,
+    getDefinition: () => instance.definition.get(),
+    mutations: createPetrinautAiWritableCallbacks(instance),
+  });
 
 export const applyPetrinautAiMutation = ({
   aiToolCall,

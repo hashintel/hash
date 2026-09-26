@@ -385,6 +385,43 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("uses the latest host transport without replacing the conversation", async () => {
+    const firstSend = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(streamChunks([...textChunks("first", "First reply")])),
+    );
+    const secondSend = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(streamChunks([...textChunks("second", "Second reply")])),
+    );
+    const transport = (
+      sendMessages: PetrinautAiTransport["sendMessages"],
+    ): PetrinautAiTransport => ({
+      sendMessages,
+      reconnectToStream: async () => null,
+    });
+    const mounted = renderTestPanel({
+      aiAssistant: {
+        conversationId: "stable-host-transport",
+        transport: transport(firstSend),
+      },
+    });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "First" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(firstSend).toHaveBeenCalledOnce());
+    await screen.findByText("First reply");
+
+    mounted.rerenderPanel({
+      conversationId: "stable-host-transport",
+      transport: transport(secondSend),
+    });
+    fireEvent.change(textarea, { target: { value: "Second" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(secondSend).toHaveBeenCalledOnce());
+    expect(firstSend).toHaveBeenCalledOnce();
+  });
+
   test("declines setNetTitle when the host omits title editing", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

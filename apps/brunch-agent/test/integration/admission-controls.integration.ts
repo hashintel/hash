@@ -1,5 +1,5 @@
-/** Unpaid production registration, rejection, continuation and active-Stop probe. */
-/* eslint-disable no-await-in-loop -- One faux response queue; ordering is the assertion boundary. */
+/** Unpaid production rejection, continuation and active-Stop probe. */
+/* oxlint-disable eslint/no-await-in-loop -- One faux response queue; ordering is the assertion boundary. */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -19,34 +19,23 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import {
-  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  VALIDATED_CONSTRUCTION_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  isAwaitingClient,
-} from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
-import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
-import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
+import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";
-import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 const directory =
   process.env.A2_OUTPUT_DIRECTORY ?? mkdtempSync(join(tmpdir(), "admission-"));
 if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
   mkdirSync(directory, { recursive: true });
 }
-process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
 process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
 const save = (name: string, value: unknown) =>
   writeFileSync(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
@@ -62,18 +51,11 @@ const recordWire = (chunk: ConversationStreamChunk) => {
   record("wire", chunk);
 };
 const unobserve = observe((event) => record("runtime", event));
-const browserNames: ReadonlySet<string> = new Set([
-  ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-]);
 const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {
-    clientToolNames: browserNames,
+    clientToolNames: new Set(["addType"]),
   });
-const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: "claude-sonnet-4-6", reasoning: true }],
-});
+const faux = fauxProvider({ provider: "openai" });
 const createStall = () => ({
   upstream: createAssistantMessageEventStream(),
   started: Promise.withResolvers<void>(),
@@ -98,37 +80,15 @@ installFauxProvider({
     return faux.provider.streamSimple(model, context, options);
   },
 } satisfies Provider);
-const toolsFrom = (snapshot: FlueConversationSnapshot) =>
-  snapshot.messages.flatMap((message) =>
-    message.parts.flatMap((part) =>
-      part.type === "dynamic-tool" ? [part] : [],
-    ),
-  );
-const pendingFrom = (snapshot: FlueConversationSnapshot) =>
-  toolsFrom(snapshot).filter(
-    (part) =>
-      part.toolName === "addType" &&
-      part.state === "output-available" &&
-      isAwaitingClient(part.output),
-  );
-const typeInput = {
-  id: "synthetic-type",
-  name: "SyntheticType",
-  iconSlug: "circle",
-  displayColor: "#808080",
-  elements: [],
-} satisfies PetrinautAiToolInput<"addType">;
 const question = "What remains unknown?";
 const privateMarkdown =
   "# Workpiece payload must not be spoken\nUnknown timing.";
 const makeCall = (name: string, baseRevisionId: string | null) =>
   fauxToolCall(
     name,
-    name === "addType"
-      ? typeInput
-      : name === "mutate_workpiece"
-        ? { markdown: privateMarkdown, baseRevisionId }
-        : { question },
+    name === brunchTools.mutateWorkpiece
+      ? { markdown: privateMarkdown, baseRevisionId }
+      : { question },
     { id: `${caseId}-${name}` },
   );
 const run = async () => {
@@ -138,147 +98,131 @@ const run = async () => {
       principalKey: "admission-synthetic",
       conversationId: `${crypto.randomUUID()}-${caseId}`,
     };
-    return createFlueClient({
-      url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
+    const initialData = {
+      mode: brunchModes.integrated,
+      construction: {
+        binding: {
+          conversationId: identity.conversationId,
+          documentId: `document-${caseId}`,
+          incarnationId: `incarnation-${caseId}`,
+        },
+      },
+    };
+    const client = createFlueClient({
+      url: `http://brunch.local/agents/chat/${flueConversationIdFrom(
+        identity,
+      )}`,
       headers: agentOwnershipHeaders(identity),
       fetch: async (input, init) =>
         application.fetch(
           input instanceof Request ? input : new Request(input, init),
         ),
     });
+    const send = async (
+      message: Parameters<typeof client.send>[0]["message"],
+    ) => {
+      const receipt = await client.send({ initialData, message });
+      try {
+        await client.wait(receipt, {
+          signal: AbortSignal.timeout(10000),
+          onEvent: recordWire,
+        });
+        return { receipt, error: null };
+      } catch (error) {
+        return { receipt, error: String(error) };
+      }
+    };
+    return { client, initialData, send };
+  };
+  const seedRevision = async (
+    { client, send }: ReturnType<typeof clientFor>,
+    revisionId: string,
+  ) => {
+    faux.setResponses([
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            brunchTools.mutateWorkpiece,
+            {
+              markdown: "# Synthetic settled account\nUnknown timing.",
+              baseRevisionId: null,
+            },
+            { id: revisionId },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText("Recorded the synthetic account.")]),
+    ]);
+    const seed = await send({
+      kind: "user",
+      body: "Record this synthetic account.",
+    });
+    return { seed, seeded: await client.history() };
   };
   const observations = [];
+  const refusals = [];
   try {
+    // I admits allowlisted mixes; `task` (Flue's built-in server tool) and an
+    // unmounted name are outside that allowlist beside a browser tool.
     for (const names of [
-      ["mutate_workpiece", "addType"],
-      ["addType", "mutate_workpiece"],
+      ["task", "addType"],
+      ["addType", "task"],
       ["addType", "unmounted_admission_probe"],
-      ["addType"],
-      ["mutate_workpiece"],
     ]) {
       caseId = names.join("-");
-      const client = clientFor();
-      const send = async (
-        message: Parameters<typeof client.send>[0]["message"],
-      ) => {
-        const receipt = await client.send({
-          initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
-          message,
-        });
-        try {
-          await client.wait(receipt, {
-            signal: AbortSignal.timeout(10000),
-            onEvent: recordWire,
-          });
-          return { receipt, error: null };
-        } catch (error) {
-          return { receipt, error: String(error) };
-        }
-      };
-      faux.setResponses([
-        fauxAssistantMessage(
-          [
-            fauxToolCall(
-              "mutate_workpiece",
-              {
-                markdown: "# Synthetic settled account\nUnknown timing.",
-                baseRevisionId: null,
-              },
-              { id: `${caseId}-old-revision` },
-            ),
-          ],
-          { stopReason: "toolUse" },
-        ),
-        fauxAssistantMessage([fauxText("Recorded the synthetic account.")]),
-      ]);
-      const seed = await send({
-        kind: "user",
-        body: "Record this synthetic account.",
-      });
-      const seeded = await client.history();
+      const conversation = clientFor();
       const requestStart = requests.length;
-      const baseRevisionId = `${caseId}-old-revision`;
-      const generated = names.map((name) => makeCall(name, baseRevisionId));
+      const generated = names.map((name) => makeCall(name, null));
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
         fauxAssistantMessage([fauxText(question)]),
       ]);
-      const attempt = await send({
+      const attempt = await conversation.send({
         kind: "user",
         body: "Synthetic admission-control probe; no plant facts.",
       });
-      const history = await client.history();
-      const providerCallsBeforeClientResult = requests.length - requestStart;
-      const headless = createHeadlessPetrinautClient(caseId);
-      try {
-        const before = structuredClone(headless.definition());
-        const pending = pendingFrom(history);
-        const results = [];
-        for (const call of pending)
-          results.push(
-            await headless.execute({
-              toolName: call.toolName,
-              toolCallId: call.toolCallId,
-              input: call.input,
-            }),
-          );
-        const after = structuredClone(headless.definition());
-        let continuation;
-        if (names.length === 1 && results.length === 1) {
-          const signal = {
-            kind: "signal" as const,
-            type: CLIENT_TOOL_RESULT_SIGNAL,
-            tagName: CLIENT_TOOL_RESULT_SIGNAL,
-            body: JSON.stringify(
-              results.map((result) => ({ ...result, source: "voice" })),
-            ),
-          };
-          faux.setResponses([
-            fauxAssistantMessage([
-              fauxText("The correlated synthetic client result is received."),
-            ]),
-          ]);
-          record("client-result-send", signal);
-          const outcome = await send(signal);
-          const resumed = await client.history();
-          continuation = {
-            outcome,
-            history: resumed,
-            projected: project(resumed),
-            definitionAfterResume: structuredClone(headless.definition()),
-            totalProviderCalls: requests.length - requestStart,
-          };
-        }
-        observations.push({
-          caseId,
-          seed,
-          seeded,
-          generated,
-          attempt,
-          history,
-          projected: project(history),
-          providerCallsBeforeClientResult,
-          pendingMutationIds: pending.map((part) => part.toolCallId),
-          results,
-          before,
-          after,
-          mutationApplied: before.types.length !== after.types.length,
-          continuation,
-          actualBrowserApplied: null,
-        });
-      } finally {
-        headless.dispose();
-      }
+      refusals.push({
+        caseId,
+        generated,
+        attempt,
+        history: await conversation.client.history(),
+        providerCalls: requests.length - requestStart,
+      });
     }
+    caseId = brunchTools.mutateWorkpiece;
+    const conversation = clientFor();
+    const baseRevisionId = `${caseId}-old-revision`;
+    const seeding = await seedRevision(conversation, baseRevisionId);
+    const requestStart = requests.length;
+    faux.setResponses([
+      fauxAssistantMessage(
+        [makeCall(brunchTools.mutateWorkpiece, baseRevisionId)],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText(question)]),
+    ]);
+    const attempt = await conversation.send({
+      kind: "user",
+      body: "Synthetic admission-control probe; no plant facts.",
+    });
+    observations.push({
+      caseId,
+      seed: seeding.seed,
+      seeded: seeding.seeded,
+      attempt,
+      providerCallsBeforeClientResult: requests.length - requestStart,
+    });
+    // Voice runs on I, the product baseline, which also mounts the Ledger.
     const buffering = [];
     for (const abort of [false, true]) {
       caseId = abort ? "buffered-cancelled" : "buffered-valid";
-      const client = clientFor();
+      const { client, initialData } = clientFor();
       const stalled = createStall();
       const progressed = Promise.withResolvers<void>();
       nextStall = stalled;
       const receipt = await client.send({
-        initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+        initialData,
         message: {
           kind: "user",
           body: "Synthetic completed Voice transcript.",
@@ -303,9 +247,7 @@ const run = async () => {
       const message = fauxAssistantMessage(
         [
           fauxText(text),
-          ...(abort
-            ? [makeCall("addType", null)]
-            : [makeCall("mutate_workpiece", null)]),
+          makeCall(abort ? "addType" : brunchTools.mutateWorkpiece, null),
         ],
         { stopReason: "toolUse" },
       );
@@ -349,7 +291,7 @@ const run = async () => {
         }
       }
       // Progress is published natively before completion, but executable tool
-      // inputs remain withheld from browser hosts until the proposal is valid.
+      // inputs remain withheld until the proposal is admitted.
       await Promise.race([
         progressed.promise,
         settlement.then((error) => {
@@ -380,20 +322,8 @@ const run = async () => {
         privateMarkdown,
       });
     }
-    const rejected = observations.find(
-      (observation) => observation.caseId === "mutate_workpiece-addType",
-    )!;
-    const priorIds = new Set(
-      rejected.seeded.messages.map((message) => message.id),
-    );
-    const voice: AdmissionVoiceEvidence = {
-      question,
-      buffering,
-      rejectedMessages: rejected.projected.filter(
-        (message) => !priorIds.has(message.id),
-      ),
-    };
-    return { observations, buffering, question, wire, voice };
+    const voice: AdmissionVoiceEvidence = { question, buffering };
+    return { observations, refusals, buffering, question, wire, voice };
   } finally {
     await application.stop();
     unobserve();

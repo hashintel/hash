@@ -1,47 +1,35 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
 import "./telemetry-bootstrap.ts";
-import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
-import {
-  layoutPetrinautNetToolName,
-  mutatePetrinautNetToolName,
-  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
-  readPetrinautDiagnosticsToolName,
-  readPetrinautNetToolName,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
 import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
-import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
-import { workedModelStore } from "./db.ts";
+import { inBandBrowserToolNames } from "./agents/chat-agent/tool-catalogue.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
+import { createBrowserCallRouter } from "./http/browser-calls.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
-import {
-  CHAT_AGENT_ROUTE,
-  HEALTH_ROUTE,
-  WORKED_MODELS_ROUTE,
-} from "./http/routes.ts";
-import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { logger } from "./logger.ts";
+import { openaiProviderWithGpt6 } from "./openai-provider.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
+  modelStreamIdleTimeoutDefaults,
+  modelAdmissionScope,
   withBufferedToolAdmission,
-  type ModelStreamIdleRetryScope,
 } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
 
@@ -86,9 +74,7 @@ instrument({
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
-const admissionScope = new AsyncLocalStorage<
-  ModelStreamIdleRetryScope | false
->();
+const admissionScope = modelAdmissionScope;
 const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   if (process.env.NODE_ENV !== "test") return productionMs;
   const configured = process.env[environmentName];
@@ -100,42 +86,39 @@ const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   return milliseconds;
 };
 const modelStreamIdleTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
-  10_000,
+  brunchEnv.modelStreamIdleTimeoutMs,
+  modelStreamIdleTimeoutDefaults.idleTimeoutMs,
 );
 const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
-  10_000,
+  brunchEnv.modelStreamFirstEventTimeoutMs,
+  modelStreamIdleTimeoutDefaults.firstEventTimeoutMs,
 );
 const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
-  15_000,
+  brunchEnv.modelStreamReasoningStartTimeoutMs,
+  modelStreamIdleTimeoutDefaults.reasoningStartTimeoutMs,
 );
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
-  "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
-  2_000,
+  brunchEnv.modelStreamCancellationTimeoutMs,
+  modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
   interceptor(operation, context, next) {
-    return withReportedDocumentRevisionScope(context.submissionId, () => {
-      if (operation.type === "agent" && context.agentName !== undefined) {
-        return admissionScope.run(
-          context.agentName === ChatAgent.agentName
-            ? { idleRetryAvailable: true }
-            : false,
-          next,
-        );
-      }
-      if (operation.type === "task") return admissionScope.run(false, next);
-      return next();
-    });
+    if (operation.type === "agent" && context.agentName !== undefined)
+      return admissionScope.run(
+        context.agentName === ChatAgent.agentName
+          ? { idleRetryAvailable: true }
+          : false,
+        next,
+      );
+    if (operation.type === "task") return admissionScope.run(false, next);
+    return next();
   },
   dispose() {},
 });
 const accounting = createStepARequestAccounting(
-  process.env.BRUNCH_STEP_A_ACCOUNTING,
+  process.env[brunchEnv.stepAAccounting],
 );
 if (accounting) {
   instrument({
@@ -148,13 +131,23 @@ if (accounting) {
 // Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
-const browserToolNames = new Set([
-  ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  readPetrinautNetToolName,
-  readPetrinautDiagnosticsToolName,
-  layoutPetrinautNetToolName,
-  mutatePetrinautNetToolName,
-  READ_PETRINAUT_DOCS_TOOL_NAME,
+const browserToolNames = inBandBrowserToolNames;
+const integratedMixedToolNames = new Set([
+  ...inBandBrowserToolNames,
+  brunchTools.ping,
+  brunchTools.mutateWorkpiece,
+  brunchTools.readWorkpiece,
+  brunchTools.activateSkill,
+  brunchTools.readSkillResource,
+  brunchTools.queryWorkpiece,
+]);
+// Running these beside their dependency would answer from the previous result.
+const integratedDependentToolNames = new Map([
+  [brunchTools.queryWorkpiece, [getLatestNetDefinitionToolName]],
+  [
+    brunchTools.draftPetrinautExperiment,
+    [getLatestNetDefinitionToolName, brunchTools.mutateWorkpiece],
+  ],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(
@@ -167,6 +160,8 @@ const registerAdmittedProvider = (provider: Provider) => {
       browserToolNames,
       {
         cancellationTimeoutMs: modelStreamCancellationTimeoutMs,
+        mixedToolNames: integratedMixedToolNames,
+        dependentToolNames: integratedDependentToolNames,
         claimRetry: () => claimModelStreamIdleRetry(admissionScope.getStore()),
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
@@ -176,16 +171,16 @@ const registerAdmittedProvider = (provider: Provider) => {
   );
 };
 registerAdmittedProvider(anthropicProvider());
-registerAdmittedProvider(openaiProvider());
+registerAdmittedProvider(openaiProviderWithGpt6());
 
 const app = new Hono();
 
 const agentMount = "/agents";
-const chatAgentMount = `${agentMount}/${CHAT_AGENT_ROUTE}`;
+const chatAgentMount = `${agentMount}/${brunchRoutes.chatAgent}`;
 app.use(
   `${agentMount}/*`,
   createAgentCors(
-    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+    parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
   ),
 );
 app.use(
@@ -193,19 +188,10 @@ app.use(
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
 app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
+app.route(chatAgentMount, createBrowserCallRouter());
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
-app.use(
-  `${WORKED_MODELS_ROUTE}/*`,
-  createAgentCors(
-    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
-  ),
-);
-app.route(
-  WORKED_MODELS_ROUTE,
-  createWorkedModelNetProjectionRouter(workedModelStore),
-);
 
-app.get(HEALTH_ROUTE, healthHandler);
+app.get(brunchRoutes.health, healthHandler);
 
 const uiRoot = new URL(
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- import.meta.env is absent when Node executes this module directly.

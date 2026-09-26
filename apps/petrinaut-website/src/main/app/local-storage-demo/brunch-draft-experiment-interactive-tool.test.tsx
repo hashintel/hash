@@ -1,8 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-import { sha256 } from "@noble/hashes/sha2.js";
-import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   act,
   cleanup,
@@ -27,7 +25,7 @@ import {
 
 import {
   BrunchDraftExperimentWidget,
-  resetBrunchDraftExperimentSession,
+  resetBrunchEditorDrafts,
 } from "./brunch-draft-experiment-interactive-tool";
 import {
   describeBudget,
@@ -143,15 +141,10 @@ const makeRequest = (
   ...overrides,
 });
 
-const definitionHash = (definition: SDCPN) =>
-  bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(definition))));
-
 const makeInput = (
   experiment: PetrinautExperimentRequest = makeRequest(),
   unsupported: DraftPetrinautExperimentInput["unsupported"] = [],
-  baseHash = definitionHash(makeDefinition()),
 ): DraftPetrinautExperimentInput => ({
-  observation: { toolCallId: "call_read_1", baseHash },
   experiment,
   declarations: [
     {
@@ -159,14 +152,6 @@ const makeInput = (
       statement: "Minutes; the two-hour peak window is 120 minutes.",
     },
   ],
-  basis: {
-    kind: "declared",
-    revisionId: "workpiece-revision",
-    sha256: "a".repeat(64),
-    locators: [{ start: 0, end: 1 }],
-    rationale: "The person accepted this experiment configuration.",
-    scope: "operation",
-  },
   unsupported,
 });
 
@@ -187,6 +172,7 @@ const renderWidget = ({
   optimizationUnavailableReason = null,
   omitOptimizationUnavailableReason = false,
   submitOutput = async () => {},
+  readDraftAuthority,
   instance: suppliedInstance,
 }: {
   input: DraftPetrinautExperimentInput;
@@ -197,6 +183,7 @@ const renderWidget = ({
   optimizationUnavailableReason?: string | null;
   omitOptimizationUnavailableReason?: boolean;
   submitOutput?: (output: DraftPetrinautExperimentOutput) => Promise<void>;
+  readDraftAuthority?: (toolCallId: string) => Promise<string>;
   instance?: Petrinaut;
 }) => {
   const submit = vi.fn(submitOutput);
@@ -236,6 +223,9 @@ const renderWidget = ({
         {...state}
         input={input}
         readTitle={() => "Support desk"}
+        readDraftAuthority={
+          readDraftAuthority ?? (async () => instance.handle.revisionId.get())
+        }
         submit={() => {}}
         submitAndWait={submit}
         toolCallId={toolCallId}
@@ -252,7 +242,7 @@ const heading = () =>
 
 describe("BrunchDraftExperimentWidget", () => {
   beforeEach(() => {
-    resetBrunchDraftExperimentSession();
+    resetBrunchEditorDrafts();
   });
 
   afterEach(() => {
@@ -342,7 +332,9 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(
       screen.getByText("reported by metric__abandonment_rate, not enforced"),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", { name: "Run" }).disabled,
+    ).toBe(false);
     expect(runExperiment).not.toHaveBeenCalled();
 
     // Once the panel marks the call submitted the card keeps its draft and
@@ -356,6 +348,7 @@ describe("BrunchDraftExperimentWidget", () => {
           submit={() => {}}
           submitAndWait={submit}
           toolCallId="call_draft_1"
+          readDraftAuthority={async () => "test-revision"}
         />,
       ),
     );
@@ -377,7 +370,7 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(heading()).toEqual(["Preparing draft"]);
     expect(screen.getByText(/being prepared/u)).toBeTruthy();
-    expect(screen.queryByText(/earlier session/u)).toBeNull();
+    expect(screen.queryByText(/before this editor was loaded/u)).toBeNull();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
 
     await act(async () => submission.resolve());
@@ -388,34 +381,40 @@ describe("BrunchDraftExperimentWidget", () => {
     );
   });
 
-  it("blocks an unsupported hard restriction unless reporting-only exploration was explicitly accepted", async () => {
-    const runExperiment = vi.fn();
-    const input = {
-      ...makeInput(),
-      unsupported: [
-        {
-          condition: "Never exceed ten minutes.",
-          reason: "No constraint carriage.",
-        },
-      ],
-    } as unknown as DraftPetrinautExperimentInput;
-    const { submit } = renderWidget({
-      input,
-      toolCallId: "hard-restriction",
-      state: awaiting,
-      definition: createReadableStore(makeDefinition()),
-      runExperiment,
-    });
-    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
-    expect(submit.mock.calls[0]?.[0].diagnostics).toContain(
-      "Run blocked: Never exceed ten minutes.",
-    );
-    const run = screen.getByRole<HTMLButtonElement>("button", { name: "Run" });
-    expect(run.disabled).toBe(true);
-    expect(screen.getByRole("alert").textContent).toContain("Run is blocked");
-    fireEvent.click(run);
-    expect(runExperiment).not.toHaveBeenCalled();
-  });
+  it.each([undefined, true])(
+    "blocks a hard restriction when blocksRun is %s",
+    async (blocksRun) => {
+      const runExperiment = vi.fn();
+      const input = {
+        ...makeInput(),
+        unsupported: [
+          {
+            condition: "Never exceed ten minutes.",
+            reason: "No constraint carriage.",
+            ...(blocksRun === undefined ? {} : { blocksRun }),
+          },
+        ],
+      } as unknown as DraftPetrinautExperimentInput;
+      const { submit } = renderWidget({
+        input,
+        toolCallId: "hard-restriction",
+        state: awaiting,
+        definition: createReadableStore(makeDefinition()),
+        runExperiment,
+      });
+      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+      expect(submit.mock.calls[0]?.[0].diagnostics).toContain(
+        "Run blocked: Never exceed ten minutes.",
+      );
+      const run = screen.getByRole<HTMLButtonElement>("button", {
+        name: "Run",
+      });
+      expect(run.disabled).toBe(true);
+      expect(screen.getByRole("alert").textContent).toContain("Run is blocked");
+      fireEvent.click(run);
+      expect(runExperiment).not.toHaveBeenCalled();
+    },
+  );
 
   it("prepares from the observed handle when the readable store normalizes key order", async () => {
     const instance = createPetrinaut({
@@ -452,13 +451,11 @@ describe("BrunchDraftExperimentWidget", () => {
     });
     const observedDefinition = instance.handle.doc();
     expect(observedDefinition).toBeDefined();
-    expect(definitionHash(observedDefinition!)).not.toBe(
-      definitionHash(instance.definition.get()),
-    );
 
     const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
     const { submit } = renderWidget({
-      input: makeInput(makeRequest(), [], definitionHash(observedDefinition!)),
+      input: makeInput(),
+      readDraftAuthority: async () => instance.handle.revisionId.get(),
       toolCallId: "metric-before-scenario",
       state: awaiting,
       definition: instance.definition,
@@ -518,14 +515,46 @@ describe("BrunchDraftExperimentWidget", () => {
       state: awaiting,
       definition: createReadableStore(changed),
       runExperiment,
+      readDraftAuthority: async () => "previous-revision",
     });
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "invalid" });
     expect(submit.mock.calls[0]?.[0].diagnostics[0]).toMatch(
-      /changed since the verified observation/u,
+      /changed since the canonical read/u,
     );
     expect(heading()).toEqual(["Could not be prepared"]);
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  });
+
+  it("rechecks the live handle after the asynchronous history fetch", async () => {
+    const original = makeDefinition();
+    let liveDefinition = original;
+    let liveRevision = "test-revision";
+    const definition = createReadableStore(original);
+    const instance = {
+      definition,
+      handle: {
+        doc: () => liveDefinition,
+        revisionId: { get: () => liveRevision },
+      },
+    } as unknown as Petrinaut;
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "changed-during-history-fetch",
+      state: awaiting,
+      definition,
+      instance,
+      runExperiment: vi.fn(),
+      readDraftAuthority: async () => {
+        liveDefinition = structuredClone(original);
+        liveDefinition.metrics![0]!.code = "return 3;";
+        liveRevision = "later-revision";
+        return "test-revision";
+      },
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "invalid" });
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 
@@ -559,6 +588,7 @@ describe("BrunchDraftExperimentWidget", () => {
           submit={() => {}}
           submitAndWait={(output) => submit(output)}
           toolCallId="retry-draft"
+          readDraftAuthority={async () => "test-revision"}
         />,
       ),
     );
@@ -1049,8 +1079,10 @@ describe("BrunchDraftExperimentWidget", () => {
     });
 
     expect(submit).not.toHaveBeenCalled();
-    expect(heading()).toEqual(["Not retained in this session"]);
-    expect(screen.getByText(/prepared in an earlier session/u)).toBeTruthy();
+    expect(heading()).toEqual(["Not retained in this editor"]);
+    expect(
+      screen.getByText(/prepared before this editor was loaded/u),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 

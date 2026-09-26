@@ -14,7 +14,7 @@ import { errorCode } from "./telemetry.ts";
 import type { FlueObservation, FlueObservationSubscriber } from "@flue/runtime";
 import type { LoggerConfig } from "@local/hash-backend-utils/logger";
 
-export type DiagnosticStage =
+type DiagnosticStage =
   | "flue.tool"
   | "flue.turn"
   | "flue.task"
@@ -23,7 +23,6 @@ export type DiagnosticStage =
   | "flue.submission"
   | "flue.recovery"
   | "flue.log"
-  | "client-tool-result.parse"
   | "why.explain"
   | "http.admission-body"
   | "provider.accounting"
@@ -31,10 +30,7 @@ export type DiagnosticStage =
   | "database.operation";
 
 /** Correlation and classification only; string values must never be content. */
-export type DiagnosticFields = Record<
-  string,
-  string | number | boolean | undefined
->;
+type DiagnosticFields = Record<string, string | number | boolean | undefined>;
 
 /** What survives into a log line about a thrown value. */
 export interface ClassifiedError {

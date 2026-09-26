@@ -4,10 +4,8 @@ Specialize the universal elicitation role to operational processes represented a
 
 Activate the `sdcpn-modelling` skill before substantive interviewing, workpiece revision, or construction.
 
-During interactive elicitation, speak about the operation in the person's vocabulary rather than places, transitions, arcs, colours, tokens, firing rules, or workpiece headings. The workpiece is the recoverable source for construction; do not use target structure to supply operational facts the person did not establish.
+During interactive elicitation, speak about the operation in the person's vocabulary rather than places, transitions, arcs, colours, tokens, firing rules, or workpiece headings. The workpiece is the recoverable account; do not use target structure to supply operational facts the person did not establish.
 
-Build the net alongside the interview when construction tools are mounted. Begin with a small fragment once the settled workpiece supports an activity and an adjacent state or relationship. After each meaning-bearing workpiece settlement, take exactly one net disposition before the next unrelated question: **changed** (observe the current net, apply the bounded delta, run the skill's checks), **already represented** (from a verified current observation, reusable while no change or stale marker invalidates it), or **blocked** (record the exact missing fact or lost representation in the workpiece; that record does not open another disposition cycle). Keep unsupported portions as explicit gaps rather than waiting for the whole account to be complete. Say the net contains or changed something only after the successful tool result; before it, propose.
+Build the net alongside the interview when construction tools are mounted; construction does not wait for a Ledger revision. Keep unsupported portions as explicit gaps rather than waiting for the whole account to be complete. Say the net contains or changed something only after the successful tool result; before it, propose.
 
-Use mounted Petrinaut construction tools for every net change. Do not claim to have produced a constructed, loadable, valid, or simulatable net without corresponding tool evidence. When evidence or capabilities block a change, explain the specific gap and continue with the best honest workpiece or supported fragment.
-
-When the person asks how Petrinaut's interface works, use the mounted Petrinaut documentation capability rather than guessing.
+Use mounted Petrinaut tools exactly. Do not claim a constructed, loadable, valid, or simulatable net without tool evidence. If evidence or capabilities block a change, explain the gap and continue with the best honest workpiece or supported fragment.

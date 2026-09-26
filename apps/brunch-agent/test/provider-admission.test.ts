@@ -11,6 +11,9 @@ import { expect, test, vi } from "vitest";
 
 import {
   admissionBufferLimits,
+  claimModelStreamIdleRetry,
+  modelAdmissionScope,
+  modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
 } from "../src/provider-admission";
 
@@ -19,6 +22,21 @@ const collect = async (stream: ReturnType<Provider["streamSimple"]>) => {
   for await (const event of stream) events.push(event);
   return { events, result: await stream.result() };
 };
+test("production idle policy tolerates long reasoning silence while remaining bounded", () => {
+  expect(modelStreamIdleTimeoutDefaults).toEqual({
+    cancellationTimeoutMs: 2_000,
+    firstEventTimeoutMs: 60_000,
+    idleTimeoutMs: 120_000,
+    reasoningStartTimeoutMs: 120_000,
+  });
+});
+
+test("an idle retry scope can be claimed only once", () => {
+  const scope = { idleRetryAvailable: true };
+  expect(claimModelStreamIdleRetry(scope)).toBe(true);
+  expect(claimModelStreamIdleRetry(scope)).toBe(false);
+});
+
 const fixture = (active = true) => {
   const faux = fauxProvider({
     provider: "anthropic",
@@ -66,40 +84,87 @@ test.each(["stream", "streamSimple"] as const)(
   },
 );
 
-for (const method of ["stream", "streamSimple"] as const) {
-  test.each([false, true])(
-    `${method} rejects multiple browser calls before publication (duplicate id: %s)`,
-    async (duplicateId) => {
-      const { faux, provider, model } = fixture();
-      faux.setResponses([
-        fauxAssistantMessage(
-          [
-            fauxToolCall("browser", {}, { id: "first" }),
-            fauxToolCall(
-              "browser",
-              {},
-              { id: duplicateId ? "first" : "second" },
-            ),
-          ],
-          { stopReason: "toolUse" },
-        ),
-      ]);
-      const events: AssistantMessageEvent[] = [];
-      const stream = provider[method](model, { messages: [] });
-      await expect(
-        (async () => {
-          for await (const event of stream) events.push(event);
-        })(),
-      ).rejects.toThrow("Multiple browser calls");
-      expect(
-        events.filter(
-          (event) => event.type === "toolcall_end" || event.type === "done",
-        ),
-      ).toEqual([]);
-      await expect(stream.result()).rejects.toThrow("Multiple browser calls");
-    },
-  );
-}
+test.each(["stream", "streamSimple"] as const)(
+  "%s admits a complete browser-only proposal containing multiple calls",
+  async (method) => {
+    const { faux, provider, model } = fixture();
+    const message = fauxAssistantMessage(
+      [
+        fauxToolCall("browser", { sequence: 1 }, { id: "first" }),
+        fauxToolCall("browser", { sequence: 2 }, { id: "second" }),
+      ],
+      { stopReason: "toolUse" },
+    );
+    faux.setResponses([message]);
+
+    const { events, result } = await collect(
+      provider[method](model, { messages: [] }),
+    );
+
+    expect(result.content).toEqual(message.content);
+    expect(result.stopReason).toBe("toolUse");
+    expect(
+      events.filter((event) => event.type === "toolcall_end"),
+    ).toHaveLength(2);
+    expect(events.at(-1)?.type).toBe("done");
+  },
+);
+
+test.each(["final", "streamed"] as const)(
+  "refuses duplicate browser IDs in the %s representation before publication",
+  async (duplicateRepresentation) => {
+    const { faux, model } = fixture();
+    const first = fauxToolCall("browser", { sequence: 1 }, { id: "duplicate" });
+    const second = fauxToolCall(
+      "browser",
+      { sequence: 2 },
+      {
+        id:
+          duplicateRepresentation === "final" ? "duplicate" : "distinct-final",
+      },
+    );
+    const message = fauxAssistantMessage([first, second], {
+      stopReason: "toolUse",
+    });
+    const upstream = createAssistantMessageEventStream();
+    upstream.push({
+      type: "toolcall_end",
+      contentIndex: 0,
+      toolCall: first,
+      partial: message,
+    });
+    if (duplicateRepresentation === "streamed") {
+      upstream.push({
+        type: "toolcall_end",
+        contentIndex: 1,
+        toolCall: fauxToolCall("browser", { sequence: 2 }, { id: "duplicate" }),
+        partial: message,
+      });
+    }
+    upstream.push({ type: "done", reason: "toolUse", message });
+    const provider = withBufferedToolAdmission(
+      { ...faux.provider, streamSimple: () => upstream },
+      () => true,
+      new Set(["browser"]),
+    );
+    const events: AssistantMessageEvent[] = [];
+    const stream = provider.streamSimple(model, { messages: [] });
+
+    await expect(
+      (async () => {
+        for await (const event of stream) events.push(event);
+      })(),
+    ).rejects.toThrow("Duplicate browser tool-call IDs");
+    expect(
+      events.filter(
+        (event) => event.type === "toolcall_end" || event.type === "done",
+      ),
+    ).toEqual([]);
+    await expect(stream.result()).rejects.toThrow(
+      "Duplicate browser tool-call IDs",
+    );
+  },
+);
 
 test.each(["stream", "streamSimple"] as const)(
   "%s streams progress before completion but holds executable inputs until admission",
@@ -249,6 +314,87 @@ test("gives newly opened reasoning its longer first-delta grace", async () => {
       lastEventType: "thinking_start",
       phase: "reasoning_start",
     });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("active reasoning continues below its configured threshold and retries once above it", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    let upstreamSignal: AbortSignal | undefined;
+    const retryScope = { idleRetryAvailable: true };
+    const claimRetry = vi.fn<() => boolean>(() =>
+      claimModelStreamIdleRetry(retryScope),
+    );
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          upstreamSignal = options?.signal;
+          options?.signal?.addEventListener(
+            "abort",
+            () => {
+              upstream.push({
+                error: fauxAssistantMessage([], { stopReason: "aborted" }),
+                reason: "aborted",
+                type: "error",
+              });
+            },
+            { once: true },
+          );
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const message = fauxAssistantMessage([
+      {
+        type: "thinking",
+        thinking: "Reasoning began.",
+        thinkingSignature: "synthetic",
+      },
+    ]);
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "thinking_start",
+    });
+    upstream.push({
+      contentIndex: 0,
+      delta: "Reasoning began.",
+      partial: message,
+      type: "thinking_delta",
+    });
+
+    await vi.advanceTimersByTimeAsync(9);
+    expect(upstreamSignal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    const error: unknown = await reading.catch((reason: unknown) => reason);
+    expect(error).toMatchObject({
+      code: "model_stream_idle",
+      idleMs: 10,
+      lastEventType: "thinking_delta",
+      phase: "active_reasoning",
+    });
+    expect(error).toBeInstanceOf(Error);
+    if (!(error instanceof Error)) throw new Error("Expected idle failure.");
+    expect(error.message).toContain("retryable_interruption");
+    expect(claimRetry).toHaveBeenCalledOnce();
+    expect(retryScope.idleRetryAvailable).toBe(false);
   } finally {
     vi.useRealTimers();
   }
@@ -624,6 +770,41 @@ test("cancellation after approval but before replay still releases no events", a
     })(),
   ).rejects.toThrow("cancelled");
   expect(events).toEqual([]);
+});
+
+test("async browser mode admits allowlisted mixes but refuses a call beside the result it reads", async () => {
+  const faux = fauxProvider({
+    provider: "anthropic",
+    models: [{ id: "synthetic", reasoning: true }],
+  });
+  const provider = withBufferedToolAdmission(
+    faux.provider,
+    () => true,
+    new Set(["read", "write"]),
+    {
+      ...modelStreamIdleTimeoutDefaults,
+      claimRetry: () => false,
+      mixedToolNames: new Set(["read", "write", "query"]),
+      dependentToolNames: new Map([["query", ["read"]]]),
+    },
+  );
+  const model = provider.getModels()[0]!;
+  const proposal = (...names: string[]) =>
+    fauxAssistantMessage(
+      names.map((name) => fauxToolCall(name, {}, { id: name })),
+      { stopReason: "toolUse" },
+    );
+  faux.setResponses([proposal("write", "query"), proposal("read", "query")]);
+  const inScope = () =>
+    modelAdmissionScope.run(
+      { idleRetryAvailable: false, asyncBrowserTools: true },
+      () => collect(provider.streamSimple(model, { messages: [] })),
+    );
+
+  expect((await inScope()).result.stopReason).toBe("toolUse");
+  await expect(inScope()).rejects.toThrow(
+    "Dependent proposal refused before admission: query reads the result of read.",
+  );
 });
 
 test("checks the tool inputs Flue publishes as well as the final response calls", async () => {

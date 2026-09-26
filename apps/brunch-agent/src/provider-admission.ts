@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
 
 import { EventStream } from "@earendil-works/pi-ai";
@@ -22,7 +23,7 @@ const bufferLimitError = () =>
 const cancelled = () =>
   new DOMException("Brunch response cancelled before admission.", "AbortError");
 
-export type ModelStreamIdlePhase =
+type ModelStreamIdlePhase =
   | "active_reasoning"
   | "active_text"
   | "output_transition"
@@ -31,7 +32,7 @@ export type ModelStreamIdlePhase =
   | "tool_arguments"
   | "tool_complete";
 
-export class ModelStreamIdleError extends Error {
+class ModelStreamIdleError extends Error {
   public readonly code = "model_stream_idle";
   public readonly idleMs: number;
   public readonly lastEventType: AssistantMessageEvent["type"] | undefined;
@@ -68,7 +69,26 @@ class ModelStreamCancellationUnacknowledgedError extends Error {
 
 export type ModelStreamIdleRetryScope = {
   idleRetryAvailable: boolean;
+  asyncBrowserTools?: boolean;
 };
+export const modelAdmissionScope = new AsyncLocalStorage<
+  ModelStreamIdleRetryScope | false
+>();
+
+/**
+ * Reasoning streams can legitimately pause after opening a thinking part and
+ * between thinking deltas. A production trace crossed the former 15-second
+ * reasoning-start limit, then crossed the former 10-second active-reasoning
+ * limit on its sole retry, without completing a tool call. Keep dispatch
+ * tighter, but give supported reasoning models two minutes between progress
+ * events before bounded cancellation and the existing safe single retry.
+ */
+export const modelStreamIdleTimeoutDefaults = {
+  cancellationTimeoutMs: 2_000,
+  firstEventTimeoutMs: 60_000,
+  idleTimeoutMs: 120_000,
+  reasoningStartTimeoutMs: 120_000,
+} as const;
 
 export const claimModelStreamIdleRetry = (
   scope: ModelStreamIdleRetryScope | false | undefined,
@@ -82,6 +102,10 @@ export const claimModelStreamIdleRetry = (
 };
 
 type StreamIdleRecovery = {
+  /** Only these independent I-mode calls may share a browser/server proposal. */
+  readonly mixedToolNames?: ReadonlySet<string>;
+  /** Tool name to the tools whose results it reads; none may share its proposal. */
+  readonly dependentToolNames?: ReadonlyMap<string, readonly string[]>;
   readonly cancellationTimeoutMs: number;
   readonly claimRetry: () => boolean;
   readonly firstEventTimeoutMs: number;
@@ -108,6 +132,7 @@ class AdmittedStream extends EventStream<
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
+    allowMixed: boolean,
   ) {
     super(
       (event) => event.type === "done" || event.type === "error",
@@ -123,6 +148,7 @@ class AdmittedStream extends EventStream<
       parentSignal,
       browserToolNames,
       idleRecovery,
+      allowMixed,
     );
     // Providers start eagerly; a caller may not yet have attached its iterator.
     // Keep rejection observable through both read surfaces, without an unhandled
@@ -135,6 +161,7 @@ class AdmittedStream extends EventStream<
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
+    allowMixed: boolean,
   ) {
     const controller = new AbortController();
     const signal = parentSignal
@@ -297,11 +324,23 @@ class AdmittedStream extends EventStream<
       const names = [...finalCalls, ...streamedCalls].map((call) => call.name);
       if (
         names.some((name) => browserToolNames.has(name)) &&
-        names.some((name) => !browserToolNames.has(name))
+        names.some((name) => !browserToolNames.has(name)) &&
+        (!allowMixed ||
+          names.some((name) => !idleRecovery?.mixedToolNames?.has(name)))
       ) {
         throw new Error(
           "Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
         );
+      }
+      for (const [
+        dependent,
+        dependencies,
+      ] of idleRecovery?.dependentToolNames ?? []) {
+        const dependency = dependencies.find((name) => names.includes(name));
+        if (names.includes(dependent) && dependency !== undefined)
+          throw new Error(
+            `Dependent proposal refused before admission: ${dependent} reads the result of ${dependency}. Call ${dependency} first, then ${dependent} after its result returns.`,
+          );
       }
       const browserCalls = finalCalls.filter((call) =>
         browserToolNames.has(call.name),
@@ -309,12 +348,14 @@ class AdmittedStream extends EventStream<
       const streamedBrowserCalls = streamedCalls.filter((call) =>
         browserToolNames.has(call.name),
       );
-      const browserCallIds = new Set(
-        [...browserCalls, ...streamedBrowserCalls].map((call) => call.id),
-      );
-      if (browserCalls.length > 1 || browserCallIds.size > 1) {
+      const hasDuplicateIds = (calls: readonly { id: string }[]) =>
+        new Set(calls.map((call) => call.id)).size !== calls.length;
+      if (
+        hasDuplicateIds(browserCalls) ||
+        hasDuplicateIds(streamedBrowserCalls)
+      ) {
         throw new Error(
-          "Multiple browser calls refused before admission. Submit one browser call per proposal and wait for its correlated result.",
+          "Duplicate browser tool-call IDs refused before admission. Each call in a proposal representation must have a unique ID.",
         );
       }
       if (
@@ -377,6 +418,11 @@ class AdmittedStream extends EventStream<
   }
 }
 
+const asyncBrowserToolAdmission = () => {
+  const scope = modelAdmissionScope.getStore();
+  return scope !== false && scope?.asyncBrowserTools === true;
+};
+
 /** Decorate both provider entrypoints; unrelated execution keeps its original stream. */
 export const withBufferedToolAdmission = (
   provider: Provider,
@@ -393,6 +439,7 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
+          asyncBrowserToolAdmission(),
         )
       : provider.stream(model, context, options);
   },
@@ -404,6 +451,7 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
+          asyncBrowserToolAdmission(),
         )
       : provider.streamSimple(model, context, options);
   },

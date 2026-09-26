@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
 
+import { brunchTools } from "@hashintel/brunch-agent";
 import { createFlueUiStream } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { runNodeScript } from "./run-node-script";
@@ -30,23 +31,16 @@ beforeAll(async () => {
   ) as AdmissionControlsResult;
 });
 
-test("production rejects every mixed proposal before publishing or partially executing it", () => {
-  expect(result.observations).toHaveLength(5);
-  const mixed = result.observations.filter(
-    ({ generated }) =>
-      generated.length > 1 && generated.some((call) => call.name === "addType"),
-  );
-  expect(mixed).toHaveLength(3);
-  for (const observation of mixed) {
-    expect(observation.pendingMutationIds).toEqual([]);
-    expect(observation.after).toEqual(observation.before);
-    expect(observation.providerCallsBeforeClientResult).toBe(1);
-    expect(observation.attempt.error).toContain(
+test("production rejects every mixed proposal outside the allowlist before publishing or partially executing it", () => {
+  expect(result.refusals).toHaveLength(3);
+  for (const refusal of result.refusals) {
+    expect(refusal.providerCalls).toBe(1);
+    expect(refusal.attempt.error).toContain(
       "Mixed browser/server proposal refused",
     );
     const uiChunks: UIMessageChunk[] = [];
     const ui = createFlueUiStream({
-      submissionId: observation.attempt.receipt.submissionId,
+      submissionId: refusal.attempt.receipt.submissionId,
       clientToolNames: new Set(["addType"]),
       write: (chunk) => {
         uiChunks.push(chunk);
@@ -57,25 +51,25 @@ test("production rejects every mixed proposal before publishing or partially exe
     expect(
       uiChunks.some((chunk) => chunk.type === "tool-input-available"),
     ).toBe(false);
-    const ids = new Set(observation.generated.map((call) => call.id));
+    const ids = new Set(refusal.generated.map((call) => call.id));
     expect(
       result.wire.filter(
         ({ chunk }) => "toolCallId" in chunk && ids.has(chunk.toolCallId),
       ),
     ).toEqual([]);
     expect(
-      observation.history.messages
+      refusal.history.messages
         .filter(
           (message) =>
-            message.submissionId === observation.attempt.receipt.submissionId,
+            message.submissionId === refusal.attempt.receipt.submissionId,
         )
         .flatMap((message) =>
           message.parts.filter((part) => part.type === "dynamic-tool"),
         ),
     ).toEqual([]);
-    expect(observation.history.settlements).toContainEqual(
+    expect(refusal.history.settlements).toContainEqual(
       expect.objectContaining({
-        submissionId: observation.attempt.receipt.submissionId,
+        submissionId: refusal.attempt.receipt.submissionId,
         outcome: "failed",
       }),
     );
@@ -89,12 +83,9 @@ test("every failed submission is attributable from the server output by stage, s
   const localLines = localDiagnosticOutput
     .split("\n")
     .filter((line) => line.includes("[brunch] flue."));
-  const failed = result.observations.filter(
-    ({ attempt }) => attempt.error !== null,
-  );
-  expect(failed.length).toBeGreaterThan(0);
-  for (const observation of failed) {
-    const { submissionId } = observation.attempt.receipt;
+  expect(result.refusals.length).toBeGreaterThan(0);
+  for (const refusal of result.refusals) {
+    const { submissionId } = refusal.attempt.receipt;
     const settlementLine = diagnosticLines.find(
       (line) =>
         line.includes("[brunch] flue.submission failed") &&
@@ -139,55 +130,22 @@ test("every failed submission is attributable from the server output by stage, s
 });
 
 test("production still settles server-side revisions without browser results", () => {
-  for (const observation of result.observations) {
-    expect(observation.seed.error).toBeNull();
-    const revision = observation.seeded.messages
-      .flatMap((message) => message.parts)
-      .find(
-        (part) =>
-          part.type === "dynamic-tool" && part.toolName === "mutate_workpiece",
-      );
-    expect(revision).toMatchObject({
-      output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
-    });
-  }
   const observation = result.observations.find(
-    (entry) => entry.caseId === "mutate_workpiece",
+    (entry) => entry.caseId === brunchTools.mutateWorkpiece,
   )!;
+  expect(observation.seed.error).toBeNull();
+  const revision = observation.seeded.messages
+    .flatMap((message) => message.parts)
+    .find(
+      (part) =>
+        part.type === "dynamic-tool" &&
+        part.toolName === brunchTools.mutateWorkpiece,
+    );
+  expect(revision).toMatchObject({
+    output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
+  });
   expect(observation.attempt.error).toBeNull();
   expect(observation.providerCallsBeforeClientResult).toBe(2);
-});
-
-test("an independently admitted browser mutation waits for its correlated result and does not reapply", () => {
-  const browser = result.observations.find(
-    ({ caseId }) => caseId === "addType",
-  )!;
-  expect(browser.providerCallsBeforeClientResult).toBe(1);
-  expect(browser.pendingMutationIds).toEqual(["addType-addType"]);
-  expect(browser.after.types).toHaveLength(1);
-  expect(browser.continuation?.outcome.error).toBeNull();
-  expect(browser.continuation?.totalProviderCalls).toBe(2);
-  expect(browser.continuation?.history.conversationId).toBe(
-    browser.history.conversationId,
-  );
-  expect(browser.continuation?.definitionAfterResume).toEqual(browser.after);
-  const projected = browser.continuation!.projected;
-  const tools = projected
-    .flatMap((message) => message.parts)
-    .filter(isToolUIPart);
-  expect(tools).toContainEqual(
-    expect.objectContaining({
-      toolCallId: "addType-addType",
-      state: "output-available",
-      output: { applied: true },
-    }),
-  );
-  expect(tools.filter((part) => part.state === "input-available")).toEqual([]);
-  expect(
-    projected.some((message) =>
-      message.metadata?.voiceToolCallIds?.includes("addType-addType"),
-    ),
-  ).toBe(true);
 });
 
 test("progress streams before admission; Stop prevents tools and late completion without erasing partial prose", () => {

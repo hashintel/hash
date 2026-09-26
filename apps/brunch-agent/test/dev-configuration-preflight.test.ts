@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  selectChatModel,
   selectChatModelSpecifier,
+  selectChatThinking,
 } from "../src/chat-model.ts";
 import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
 
@@ -79,7 +79,7 @@ describe("development configuration preflight (synthetic only)", () => {
       present: true,
       selection: "not loaded by dev server",
     });
-    expect(report.model.actual).toBe("anthropic/claude-haiku-4-5");
+    expect(report.model.actual).toBe("openai/gpt-6-luna");
   });
 
   it("rejects a process dummy overriding valid local configuration", async () => {
@@ -191,15 +191,28 @@ describe("development configuration preflight (synthetic only)", () => {
   });
 });
 
-it("preserves canonical ChatAgent default semantics", () => {
-  expect(selectChatModel({})).toBe("claude-haiku-4-5");
-  expect(selectChatModel({ BRUNCH_CHAT_MODEL: "" })).toBe("claude-haiku-4-5");
-  expect(selectChatModel({ BRUNCH_CHAT_MODEL: " " })).toBe(" ");
-  expect(selectChatModel({ BRUNCH_CHAT_MODEL: "claude-sonnet-4-6" })).toBe(
-    "claude-sonnet-4-6",
+it("selects the shared Petrinaut default unless the environment overrides it", () => {
+  expect(selectChatModelSpecifier({})).toBe("openai/gpt-6-luna");
+  expect(selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "" })).toBe(
+    "openai/gpt-6-luna",
   );
-  expect(selectChatModelSpecifier({})).toBe("anthropic/claude-haiku-4-5");
+  expect(
+    selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "claude-sonnet-4-6" }),
+  ).toBe("anthropic/claude-sonnet-4-6");
   expect(
     selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "openai/gpt-5.6-sol" }),
   ).toBe("openai/gpt-5.6-sol");
+});
+
+it("applies the default thinking level only to the default model", () => {
+  expect(selectChatThinking({})).toBe("xhigh");
+  expect(
+    selectChatThinking({ BRUNCH_CHAT_MODEL: "claude-sonnet-4-6" }),
+  ).toBeUndefined();
+  expect(
+    selectChatThinking({
+      BRUNCH_CHAT_MODEL: "claude-sonnet-4-6",
+      BRUNCH_CHAT_THINKING: "low",
+    }),
+  ).toBe("low");
 });

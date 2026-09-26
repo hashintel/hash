@@ -3,18 +3,18 @@ import {
   getSupportedThinkingLevels,
 } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 
 import {
   isChatThinkingLevel,
   LEGACY_PERSONA_THINKING,
-  PERSONA_DEFAULT_BRUNCH_MODEL,
-  PERSONA_DEFAULT_BRUNCH_THINKING,
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_CHAT_THINKING,
   PERSONA_DEFAULT_PERSONA_MODEL,
   PERSONA_DEFAULT_PERSONA_THINKING,
   STEP_A_MODEL_ID,
   type ChatThinkingLevel,
 } from "../../../chat-model.ts";
+import { openaiProviderWithGpt6 } from "../../../openai-provider.ts";
 
 export type PersonaRoleSettings = {
   brunchModel: string;
@@ -26,11 +26,11 @@ export type PersonaRoleSettings = {
 const catalog = () => {
   const models = createModels();
   models.setProvider(anthropicProvider());
-  models.setProvider(openaiProvider());
+  models.setProvider(openaiProviderWithGpt6());
   return models;
 };
 
-export const parseModelSpecifier = (value: string) => {
+const parseModelSpecifier = (value: string) => {
   const trimmed = value.trim();
   const index = trimmed.indexOf("/");
   if (index <= 0 || index >= trimmed.length - 1)
@@ -38,7 +38,7 @@ export const parseModelSpecifier = (value: string) => {
   return { provider: trimmed.slice(0, index), id: trimmed.slice(index + 1) };
 };
 
-export const resolveRoleSelection = (specifier: string, thinking: string) => {
+const resolveRoleSelection = (specifier: string, thinking: string) => {
   const { provider, id } = parseModelSpecifier(specifier);
   const model = catalog().getModel(provider, id);
   if (!model) throw new Error(`Unknown model specifier ${provider}/${id}`);
@@ -62,8 +62,8 @@ export const resolvePersonaRoleSettings = (
   } = {},
 ): PersonaRoleSettings => {
   const brunch = resolveRoleSelection(
-    input.brunchModel ?? PERSONA_DEFAULT_BRUNCH_MODEL,
-    input.brunchThinking ?? PERSONA_DEFAULT_BRUNCH_THINKING,
+    input.brunchModel ?? DEFAULT_CHAT_MODEL,
+    input.brunchThinking ?? DEFAULT_CHAT_THINKING,
   );
   const persona = resolveRoleSelection(
     input.personaModel ?? PERSONA_DEFAULT_PERSONA_MODEL,

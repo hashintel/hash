@@ -13,11 +13,7 @@ import type {
   PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
 
-export type VoiceConnectionState =
-  | "idle"
-  | "connecting"
-  | "connected"
-  | "error";
+type VoiceConnectionState = "idle" | "connecting" | "connected" | "error";
 export type VoiceInputState = "listening" | "paused" | "submitting";
 export type VoiceOutputState =
   | "cancelling"
@@ -25,8 +21,8 @@ export type VoiceOutputState =
   | "waiting-for-tool"
   | "speaking"
   | "interrupted";
-export type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
-export type VoiceInputNotice =
+type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
+type VoiceInputNotice =
   | "none"
   | "not-heard"
   | "too-long"

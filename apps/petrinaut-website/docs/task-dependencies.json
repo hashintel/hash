@@ -7,8 +7,7 @@
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
     "@hashintel/petrinaut",
-    "@hashintel/petrinaut-core",
-    "@local/petrinaut-optimizer-client"
+    "@hashintel/petrinaut-core"
   ],
   "tasks": {
     "build": {
@@ -19,7 +18,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],
@@ -41,7 +39,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],
@@ -55,8 +52,7 @@
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
-        "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build"
+        "@hashintel/petrinaut-core#build"
       ]
     },
     "fix:eslint": {
@@ -68,7 +64,6 @@
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen"
       ]
     },
@@ -81,7 +76,6 @@
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen"
       ],
       "env": [
@@ -96,7 +90,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ]
@@ -110,7 +103,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],
@@ -155,7 +147,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],

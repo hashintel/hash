@@ -6,10 +6,9 @@
 import * as v from "valibot";
 
 import { JsonValueSchema } from "./json-value";
+import { latestRunbookIrBlock } from "./runbook-ir";
 
 import type { ReadonlyDeep } from "./readonly-deep";
-
-export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
 
 /** Locators have meaning only within their immutable revision's Markdown. */
 export const evidenceRelationSchema = v.strictObject({
@@ -60,12 +59,8 @@ export type WorkpieceEvidenceRelation = ReadonlyDeep<
  * Core stays substrate-neutral, so these finite unions are owned here; the app
  * pins its substrate projection against them at the producer.
  */
-export type WorkpieceMessageRole = "user" | "assistant" | "system";
-export type WorkpieceMessagePurpose =
-  | "user"
-  | "assistant"
-  | "dispatch"
-  | "advisory";
+type WorkpieceMessageRole = "user" | "assistant" | "system";
+type WorkpieceMessagePurpose = "user" | "assistant" | "dispatch" | "advisory";
 
 /** The app acquires these from this instance's authorized public history. */
 export interface WorkpieceEvidenceSource {
@@ -130,7 +125,7 @@ export type WorkpieceRevisionPointer = ReadonlyDeep<
   v.InferOutput<typeof workpieceRevisionPointerSchema>
 >;
 
-export const workpieceRefusalCodes = [
+const workpieceRefusalCodes = [
   "replay-conflict",
   "stale-base",
   "concurrent-revision",
@@ -141,7 +136,7 @@ export const workpieceRefusalCodes = [
 
 export type WorkpieceRefusalCode = (typeof workpieceRefusalCodes)[number];
 
-export const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
+const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
 
 export const updateWorkpieceRefusedOutputSchema = v.object({
   disposition: v.literal("refused"),
@@ -174,8 +169,6 @@ export const workpieceRevisionSchema = v.object({
 export type WorkpieceRevision = ReadonlyDeep<
   v.InferOutput<typeof workpieceRevisionSchema>
 >;
-
-export const runbookIrFence = "runbook-ir";
 
 type WorkpieceTextPart = {
   readonly text: string;
@@ -216,44 +209,6 @@ export interface SelectedRunbookWorkpiece {
   readonly sourceMessageId: string;
   readonly sourceSubmissionId?: string;
 }
-
-const openingRunbookIrFence = `\`\`\`${runbookIrFence}`;
-const closingFence = "```";
-
-export const latestRunbookIrBlock = (text: string): string | undefined => {
-  let last: string | undefined;
-  let searchFrom = 0;
-  while (searchFrom < text.length) {
-    const openAt = text.indexOf(openingRunbookIrFence, searchFrom);
-    if (openAt === -1) {
-      break;
-    }
-    let cursor = openAt + openingRunbookIrFence.length;
-    let lastNewline: number | undefined;
-    while (cursor < text.length) {
-      const character = text[cursor];
-      if (character === undefined || character.trim() !== "") {
-        break;
-      }
-      if (character === "\n") {
-        lastNewline = cursor;
-      }
-      cursor += 1;
-    }
-    if (lastNewline === undefined) {
-      searchFrom = openAt + 1;
-      continue;
-    }
-    const contentStart = lastNewline + 1;
-    const closeAt = text.indexOf(closingFence, contentStart);
-    if (closeAt === -1) {
-      break;
-    }
-    last = text.slice(contentStart, closeAt).trim();
-    searchFrom = closeAt + closingFence.length;
-  }
-  return last;
-};
 
 const textFrom = (message: WorkpieceHistoryMessage): string =>
   message.parts

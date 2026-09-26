@@ -4,6 +4,10 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
+    },
+    "test:unit": {
+      "dependsOn": ["^manifest"],
+      "env": ["TEST_COVERAGE"]
     }
   }
 }

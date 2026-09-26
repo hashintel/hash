@@ -1,9 +1,12 @@
+import { previewConversationIdPrefix } from "@hashintel/brunch-agent/constants";
+
 export const resolveBrunchPreviewConfig = (endpoint: string | undefined) => {
   const configuredEndpoint = endpoint?.trim();
-  return configuredEndpoint
-    ? { chatEndpoint: configuredEndpoint, isBrunchConfigured: true }
-    : { chatEndpoint: "/api/chat", isBrunchConfigured: false };
+  return {
+    chatEndpoint: configuredEndpoint || "/api/chat",
+    isBrunchConfigured: Boolean(configuredEndpoint),
+  };
 };
 
 export const createBrunchPreviewConversationId = (netId: string): string =>
-  `petrinaut-preview:${netId}`;
+  `${previewConversationIdPrefix}${netId}`;

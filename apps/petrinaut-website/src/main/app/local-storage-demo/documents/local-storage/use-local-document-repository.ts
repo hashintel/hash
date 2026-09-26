@@ -39,7 +39,6 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
     revisionId: stored.revisionId ?? crypto.randomUUID(),
     title: stored.title,
     definition: stored.sdcpn,
-    origin: { kind: "local" },
     lastUpdated: stored.lastUpdated,
   };
 };
@@ -54,15 +53,14 @@ const createDefaultDocument = (): SDCPNInLocalStorage => ({
 });
 
 export const useLocalDocumentRepository = (input: {
-  readonly enabled: boolean;
   readonly onOpen: () => void;
 }): LocalDocumentRepositoryAdapter => {
-  const { enabled, onOpen } = input;
+  const { onOpen } = input;
   const {
     ready: storageReady,
     storedSDCPNs,
     setStoredSDCPNs,
-  } = useLocalStorageSDCPNs({ enabled });
+  } = useLocalStorageSDCPNs();
   const [defaultDocument] = useState(createDefaultDocument);
   const documents = useMemo(
     () =>
@@ -89,7 +87,7 @@ export const useLocalDocumentRepository = (input: {
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
     null,
   );
-  if (enabled && storageReady && currentDocumentId === null) {
+  if (storageReady && currentDocumentId === null) {
     const initialDocumentId = mostRecentDocumentId(documents);
     if (initialDocumentId !== undefined)
       setCurrentDocumentId(initialDocumentId);
@@ -105,7 +103,7 @@ export const useLocalDocumentRepository = (input: {
     null;
 
   useEffect(() => {
-    if (!enabled || current === null) return;
+    if (current === null) return;
     const stored = storedSDCPNs[current.documentId];
     if (
       stored?.incarnationId === current.incarnationId &&
@@ -121,7 +119,7 @@ export const useLocalDocumentRepository = (input: {
         revisionId: current.revisionId,
       },
     }));
-  }, [current, defaultDocument, enabled, setStoredSDCPNs, storedSDCPNs]);
+  }, [current, defaultDocument, setStoredSDCPNs, storedSDCPNs]);
 
   const updateStoredDocuments = useCallback(
     (update: (previous: StoredDocuments) => StoredDocuments) => {

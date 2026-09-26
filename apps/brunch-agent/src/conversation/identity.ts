@@ -7,12 +7,7 @@ import {
   type ConversationIdentity,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-export {
-  agentOwnershipHeaders,
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "@hashintel/brunch-agent-transport-aisdk";
-export { LOCAL_UI_PRINCIPAL } from "./payload.ts";
+export { agentOwnershipHeaders } from "@hashintel/brunch-agent-transport-aisdk";
 export type { ConversationIdentity };
 
 export const flueConversationId = (identity: ConversationIdentity): string =>

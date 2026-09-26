@@ -23,7 +23,6 @@ const defaultProps = {
   assistantReady: true,
   brunchConfigured: true,
   brunchSelected: false,
-  forceBrunch: false,
   openAIVoiceConfig: voiceConfig,
   realtimeEnabled: false,
   realtimePreferenceReady: true,
@@ -130,13 +129,6 @@ test.each([
     checked: false,
     description:
       "Brunch is unavailable because this site has no Brunch endpoint configured.",
-  },
-  {
-    name: "forced Brunch",
-    props: { brunchSelected: true, forceBrunch: true },
-    control: "Use Brunch",
-    checked: true,
-    description: "This document requires Brunch.",
   },
   {
     name: "Voice preference loading",

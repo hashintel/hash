@@ -1,20 +1,34 @@
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  canonicalContent,
+  parseClientToolResultMetadata,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const workpieceMutationToolNames: ReadonlySet<string> = new Set([
-  "mutate_workpiece",
+  brunchTools.mutateWorkpiece,
 ]);
-const workpieceReadToolNames: ReadonlySet<string> = new Set(["read_workpiece"]);
+const workpieceReadToolNames: ReadonlySet<string> = new Set([
+  brunchTools.readWorkpiece,
+]);
 const workpieceQueryToolNames: ReadonlySet<string> = new Set([
-  "query_workpiece",
+  brunchTools.queryWorkpiece,
 ]);
 
 export type BrunchWorkpieceHistoryMessage = {
   readonly role: string;
   readonly purpose: string;
   readonly parts: readonly unknown[];
+  readonly signal?: unknown;
+};
+
+export type SettledBrunchWorkpieceRevision = {
+  readonly revisionId: string;
+  readonly sha256: string;
+  readonly ordinal: number;
+  readonly markdown: string;
 };
 
 export type BrunchWorkpieceHistory = {
@@ -39,6 +53,26 @@ export type BrunchWorkpieceHistory = {
  * toolCallId`); failed, refused, pending or unbound inputs never become
  * state and do not mark the displayed Ledger newer.
  */
+export const settledBrunchWorkpieceRevisionFrom = (
+  history: BrunchWorkpieceHistory,
+): SettledBrunchWorkpieceRevision | undefined => {
+  const workpiece = history.report?.workpiece;
+  if (
+    workpiece === undefined ||
+    typeof workpiece.revisionId !== "string" ||
+    typeof workpiece.sha256 !== "string" ||
+    typeof workpiece.ordinal !== "number" ||
+    typeof workpiece.markdown !== "string"
+  )
+    return undefined;
+  return {
+    revisionId: workpiece.revisionId,
+    sha256: workpiece.sha256,
+    ordinal: workpiece.ordinal,
+    markdown: workpiece.markdown,
+  };
+};
+
 export const foldBrunchWorkpieceHistory = (
   messages: readonly BrunchWorkpieceHistoryMessage[],
   binding: {
@@ -67,6 +101,15 @@ export const foldBrunchWorkpieceHistory = (
       ) {
         continue;
       }
+      const envelope =
+        isRecord(part.output) && part.output.brunchBrowserResult === true
+          ? part.output
+          : undefined;
+      if (
+        parseClientToolResultMetadata(envelope?.metadata)?.documentRevision
+          .after !== undefined
+      )
+        activityIdentities.add(part.toolCallId);
       if (workpieceMutationToolNames.has(part.toolName)) {
         if (
           isRecord(part.output) &&

@@ -11,7 +11,6 @@ const writeVoicePreference = (enabled: boolean): void =>
 
 export const useVoicePreference = () => {
   const [enabled, setEnabled, ready] = usePersistedState({
-    enabled: true,
     fallback: true,
     read: readVoicePreference,
     write: writeVoicePreference,
@@ -19,8 +18,7 @@ export const useVoicePreference = () => {
   return { enabled, ready, setEnabled };
 };
 
-export const realtimePreferenceStorageKey =
-  "petrinaut-website:realtime-enabled";
+const realtimePreferenceStorageKey = "petrinaut-website:realtime-enabled";
 
 const readRealtimePreference = (): boolean =>
   readBrowserStorage(localStorage, realtimePreferenceStorageKey) === "true";
@@ -34,7 +32,6 @@ const writeRealtimePreference = (enabled: boolean): void =>
 
 export const useRealtimePreference = () => {
   const [enabled, setEnabled, ready] = usePersistedState({
-    enabled: true,
     fallback: false,
     read: readRealtimePreference,
     write: writeRealtimePreference,

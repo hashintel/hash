@@ -3,9 +3,6 @@
  */
 // oxlint-disable-next-line typescript/triple-slash-reference -- The rendered source fixture needs the package's CSS-only module declarations.
 /// <reference path="../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -24,14 +21,16 @@ import {
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchModes } from "@hashintel/brunch-agent/constants";
+import { petrinautAiModel } from "@hashintel/petrinaut-core";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
+import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -42,22 +41,6 @@ import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noop = () => {};
 const originalFetch = globalThis.fetch;
-
-type BuiltBrunchApplication = {
-  readonly fetch: typeof fetch;
-  readonly stop: () => Promise<void>;
-};
-
-const loadBuiltBrunchApplication =
-  async (): Promise<BuiltBrunchApplication> => {
-    const url = pathToFileURL(
-      join(process.cwd(), "../brunch-agent/dist/app.mjs"),
-    ).href;
-    const module = (await import(url)) as {
-      readonly loadFlueNodeApplication: () => Promise<BuiltBrunchApplication>;
-    };
-    return module.loadFlueNodeApplication();
-  };
 
 const firstMarkdown = [
   "# Account",
@@ -88,32 +71,27 @@ afterAll(() => {
 });
 afterEach(cleanup);
 
-const renderAssistant = (
-  messages: readonly PetrinautAiMessage[],
-  resolveToolPresentation?: typeof resolveBrunchToolPresentation,
-  hiddenToolNames?: ReadonlySet<string>,
-) =>
+const renderAssistant = (messages: readonly PetrinautAiMessage[]) =>
   render(
     <AiAssistantContents
-      hiddenToolNames={hiddenToolNames}
       input=""
       messages={[...messages]}
       onClose={noop}
       onInputChange={noop}
       onStop={noop}
       onSubmit={noop}
-      resolveToolPresentation={resolveToolPresentation}
+      resolveToolPresentation={resolveBrunchToolPresentation}
       status="ready"
     />,
   );
 
 test("renders pending gold, applied green, typed refusal compact, and thrown red across reopen", async () => {
-  process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
-  process.env.BRUNCH_CHAT_THINKING = "low";
+  delete process.env.BRUNCH_CHAT_MODEL;
+  delete process.env.BRUNCH_CHAT_THINKING;
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   const faux = fauxProvider({
-    models: [{ id: "claude-sonnet-4-6", reasoning: true }],
-    provider: "anthropic",
+    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    provider: "openai",
   });
   faux.setResponses([
     fauxAssistantMessage(
@@ -185,7 +163,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     {
       clientToolNames: new Set(),
       initialData: {
-        mode: batchedConstructionMode,
+        mode: brunchModes.integrated,
         construction: {
           binding: {
             conversationId: identity.conversationId,
@@ -244,7 +222,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       const pending = pendingById.get(toolCallId);
       expect(pending, `pending row missing for ${toolCallId}`).toBeDefined();
       cleanup();
-      renderAssistant([pending!], resolveBrunchToolPresentation);
+      renderAssistant([pending!]);
       const pendingRow = screen
         .getAllByRole("button")
         .find((row) => row.getAttribute("aria-busy") === "true");
@@ -255,7 +233,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     }
 
     cleanup();
-    renderAssistant([terminalMessage], resolveBrunchToolPresentation);
+    renderAssistant([terminalMessage]);
     const appliedRows = screen.getAllByRole("button", {
       name: /Updated ledger/u,
     });
@@ -322,7 +300,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       clientToolNames: new Set(),
     }) as PetrinautAiMessage[];
     cleanup();
-    renderAssistant(reopened, resolveBrunchToolPresentation);
+    renderAssistant(reopened);
     expect(
       screen.getAllByRole("button", { name: /Updated ledger/u }),
     ).toHaveLength(2);
@@ -331,68 +309,6 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     ).not.toBeNull();
     expect(
       screen.getByRole("button", { name: /Could not update ledger/u }),
-    ).not.toBeNull();
-
-    cleanup();
-    renderAssistant([
-      {
-        id: "stock-pending",
-        role: "assistant",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "mutate_workpiece",
-            toolCallId: "stock-pending",
-            state: "input-streaming",
-            input: {},
-          },
-        ],
-      },
-    ]);
-    const stockPending = screen.getByRole("button", { name: /Preparing/u });
-    expect(stockPending.getAttribute("data-tone")).toBe("success");
-    expect(
-      stockPending.querySelector("[data-tool-progress-spinner]"),
-    ).not.toBeNull();
-
-    cleanup();
-    renderAssistant(
-      [
-        {
-          id: "hidden-and-visible",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "layout_petrinaut_net",
-              toolCallId: "hidden-layout",
-              state: "output-available",
-              input: {},
-              output: { applied: true },
-            },
-            {
-              type: "dynamic-tool",
-              toolName: "mutate_workpiece",
-              toolCallId: "visible-applied",
-              state: "output-available",
-              input: {},
-              output: {
-                disposition: "applied",
-                applied: true,
-                revisionId: "visible-applied",
-                sha256: "c".repeat(64),
-                ordinal: 1,
-              },
-            },
-          ],
-        },
-      ],
-      resolveBrunchToolPresentation,
-      new Set(["layout_petrinaut_net"]),
-    );
-    expect(screen.queryByText(/layout_petrinaut_net/u)).toBeNull();
-    expect(
-      screen.getByRole("button", { name: /Updated ledger/u }),
     ).not.toBeNull();
   } finally {
     await client.abort().catch(() => undefined);

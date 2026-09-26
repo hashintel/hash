@@ -195,6 +195,7 @@ export {
   type PetrinautAiMessage,
   type PetrinautAiMessageMetadata,
 } from "./views/Editor/panels/ai-assistant-panel";
+export { executePetrinautAiMutation } from "./views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,

@@ -1,21 +1,14 @@
 import { cors } from "hono/cors";
 
-import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_DOCUMENT_REVISION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchEnv, brunchHeaders } from "@hashintel/brunch-agent";
 
 import type { MiddlewareHandler } from "hono";
 
-export const BRUNCH_CORS_ALLOWED_ORIGINS_ENV = "BRUNCH_CORS_ALLOWED_ORIGINS";
-
-const AGENT_CORS_METHODS = ["GET", "POST", "PUT", "OPTIONS"];
+const AGENT_CORS_METHODS = ["GET", "POST", "OPTIONS"];
 const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
-  BRUNCH_PRINCIPAL_HEADER,
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_DOCUMENT_REVISION_HEADER,
+  brunchHeaders.principal,
+  brunchHeaders.conversation,
 ];
 // No upstream package exports this complete set, so keep the browser-response list local.
 const AGENT_CORS_RESPONSE_HEADERS = [
@@ -35,7 +28,7 @@ const wildcardHostPattern = /^\*\.[^.*]+(?:\.[^.*]+)+$/u;
 
 const invalidOriginConfiguration = (): Error =>
   new Error(
-    `${BRUNCH_CORS_ALLOWED_ORIGINS_ENV} must contain only comma-separated exact HTTP(S) origins, optionally with one leading wildcard label such as https://*.example.com`,
+    `${brunchEnv.corsAllowedOrigins} must contain only comma-separated exact HTTP(S) origins, optionally with one leading wildcard label such as https://*.example.com`,
   );
 
 const normalizeCorsOrigin = (value: string): string => {

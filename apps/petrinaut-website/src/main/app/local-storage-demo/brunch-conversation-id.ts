@@ -1,12 +1,16 @@
 const conversationStorageKey = "brunch-conversation-id-v1";
 
 /** Incarnation-scoped Flue conversation for ordinary configured Brunch. */
-export const ordinaryConstructionConversationIdPrefix =
-  "brunch-construction-v1";
+const ordinaryConstructionConversationIdPrefix = "brunch-construction-v1";
 
 export const ordinaryConstructionConversationIdFrom = (
   incarnationId: string,
 ): string => `${ordinaryConstructionConversationIdPrefix}:${incarnationId}`;
+
+/** Preserve the integrated conversation namespace for existing local history. */
+export const brunchEvaluationConversationIdFrom = (
+  conversationId: string,
+): string => `${conversationId}:evaluation-I`;
 
 interface ConversationStorage {
   getItem(key: string): string | null;

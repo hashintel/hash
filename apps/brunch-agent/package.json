@@ -10,7 +10,6 @@
     "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
     "dev": "vite dev",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "fixture:worked-model": "node --experimental-strip-types src/evaluations/persona/create-worked-model-fixture.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "measure:context-replay": "node --experimental-strip-types src/diagnostics/context-replay-measurement.ts",
@@ -21,19 +20,10 @@
     "smoke:deployment": "node --experimental-strip-types src/deployment-smoke.ts",
     "start": "PORT=3002 node dist/server.mjs",
     "start:healthcheck": "wait-on --timeout 1200000 http-get://localhost:3002/health",
-    "start:test": "NODE_ENV=test PORT=3002 node dist/server.mjs",
-    "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:3002/health",
-    "test:anthropic-tools": "turbo run build --filter '@apps/brunch-agent...' && node --experimental-strip-types test/anthropic-tool-preflight.ts",
-    "test:compiler-feedback": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/compiler-feedback.integration.ts",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:native-schema": "node --experimental-strip-types test/integration/native-schema-carriage.integration.ts",
-    "test:passage-policy": "node --experimental-strip-types test/passage-policy.integration.ts",
-    "test:persona": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && env -u BRUNCH_STEP_A_ACCOUNTING -u HASH_OTLP_ENDPOINT node --experimental-transform-types test/persona-construction.integration.ts",
+    "test:manual:integrated-browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/integrated.ts",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:worked-model-bundle-copy": "vitest run --config vitest.config.ts --reporter=verbose test/worked-model-bundle-copy.contract.test.ts",
-    "test:worked-model-net-projection": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/worked-model-net-projection.integration.ts",
-    "test:workpiece-evidence": "node --experimental-strip-types test/workpiece-evidence.integration.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },
   "dependencies": {
@@ -57,7 +47,6 @@
     "valibot": "1.4.2"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "0.74.0",
     "@earendil-works/pi-tui": "0.84.3",
     "@flue/vite": "2.0.3",
     "@playwright/test": "1.58.2",

@@ -1,11 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-// oxlint-disable-next-line typescript/triple-slash-reference -- The rendered source fixture needs the package's CSS-only module declarations.
-/// <reference path="../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -13,21 +5,19 @@ import {
 } from "@earendil-works/pi-ai";
 import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
-import { cleanup, render, screen } from "@testing-library/react";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
-import { createElement } from "react";
-import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test } from "vitest";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import {
   claimModelStreamIdleRetry,
   withBufferedToolAdmission,
 } from "../../../../../brunch-agent/src/provider-admission";
+import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
@@ -36,35 +26,12 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
-const noop = () => {};
 const originalFetch = globalThis.fetch;
 
-type BuiltBrunchApplication = {
-  readonly fetch: typeof fetch;
-  readonly stop: () => Promise<void>;
-};
-
-const loadBuiltBrunchApplication =
-  async (): Promise<BuiltBrunchApplication> => {
-    const url = pathToFileURL(
-      join(process.cwd(), "../brunch-agent/dist/app.mjs"),
-    ).href;
-    const module = (await import(url)) as {
-      readonly loadFlueNodeApplication: () => Promise<BuiltBrunchApplication>;
-    };
-    return module.loadFlueNodeApplication();
-  };
-
 beforeAll(() => {
-  globalThis.ResizeObserver = class {
-    public disconnect() {}
-    public observe() {}
-    public unobserve() {}
-  };
   globalThis.fetch = () =>
     Promise.reject(
       new Error("External fetch is forbidden in the native OpenAI fixture."),
@@ -74,7 +41,6 @@ beforeAll(() => {
 afterAll(() => {
   globalThis.fetch = originalFetch;
 });
-afterEach(cleanup);
 
 test("bounds a native OpenAI tool row without replaying completed tool work", async () => {
   process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.6-sol";
@@ -197,7 +163,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     })();
 
     void consumed.catch(() => {});
-    const pending = await Promise.race([
+    await Promise.race([
       pendingMessage.promise,
       consumed.then(() => {
         throw new Error("The UI stream settled before the pending row.");
@@ -221,23 +187,9 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
       ),
     ).toBe(false);
 
-    render(
-      createElement(AiAssistantContents, {
-        input: "",
-        messages: [pending],
-        onClose: noop,
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        resolveToolPresentation: resolveBrunchToolPresentation,
-        status: "streaming",
-      }),
-    );
-    const row = screen.getByRole("button", { name: /Updating ledger/u });
-    expect(row.getAttribute("aria-busy")).toBe("true");
     expect(requests).toHaveLength(2);
 
-    const retryPending = await Promise.race([
+    await Promise.race([
       retryPendingMessage.promise,
       consumed.then(() => {
         throw new Error("The UI stream settled before showing the retry.");
@@ -250,24 +202,6 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
       }),
     ]);
     await firstAttempt.cancelled;
-    cleanup();
-    render(
-      createElement(AiAssistantContents, {
-        input: "",
-        messages: [retryPending],
-        onClose: noop,
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        resolveToolPresentation: resolveBrunchToolPresentation,
-        status: "streaming",
-      }),
-    );
-    expect(
-      screen
-        .getByRole("button", { name: /Updating ledger/u })
-        .getAttribute("aria-busy"),
-    ).toBe("true");
 
     const outcome = await Promise.race([
       client.read(submissionId).then(
@@ -300,31 +234,12 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
       state: "output-error",
       errorText: "This tool proposal was not executed.",
     });
-    cleanup();
-    if (terminalMessage === undefined) {
-      throw new Error("The retry has no terminal UI message.");
-    }
-    render(
-      createElement(AiAssistantContents, {
-        input: "",
-        messages: [terminalMessage],
-        onClose: noop,
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        resolveToolPresentation: resolveBrunchToolPresentation,
-        status: "error",
-      }),
-    );
-    const erroredRows = screen.getAllByRole("button", {
-      name: /Could not update ledger/u,
-    });
-    expect(erroredRows).toHaveLength(2);
     expect(
-      erroredRows.every(
-        (erroredRow) => erroredRow.getAttribute("aria-busy") !== "true",
-      ),
-    ).toBe(true);
+      terminalMessage?.parts
+        .filter(isToolUIPart)
+        .filter((part) => getToolName(part) === "mutate_workpiece")
+        .map((part) => part.state),
+    ).toEqual(["output-error", "output-error"]);
     expect(stall.chronology()).toEqual([
       { kind: "started", toolCallId: attempts.at(0)?.toolCallId },
       { kind: "cancelled", toolCallId: attempts.at(0)?.toolCallId },

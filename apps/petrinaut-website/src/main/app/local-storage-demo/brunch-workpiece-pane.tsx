@@ -5,7 +5,6 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import {
   foldBrunchWorkpieceHistory,
-  isRecord as record,
   type BrunchWorkpieceHistoryMessage,
 } from "./brunch-workpiece-history";
 
@@ -47,7 +46,6 @@ const noticeStyle = css({
 export const BrunchWorkpiecePane = ({
   messages,
   binding,
-  liveHash,
 }: {
   messages: readonly BrunchWorkpieceHistoryMessage[];
   binding: {
@@ -55,19 +53,10 @@ export const BrunchWorkpiecePane = ({
     documentId: string;
     incarnationId: string;
   };
-  liveHash: string | undefined;
 }) => {
-  const { report, stateChangedSinceReport, why, whyPredatesSettlement } =
+  const { report, stateChangedSinceReport, whyPredatesSettlement } =
     foldBrunchWorkpieceHistory(messages, binding);
   const workpiece = report?.workpiece;
-  const reconciliation =
-    why && record(why.output.reconciliation)
-      ? why.output.reconciliation
-      : undefined;
-  const liveDiffers =
-    liveHash !== undefined &&
-    typeof reconciliation?.sha256 === "string" &&
-    liveHash !== reconciliation.sha256;
   return (
     <section
       aria-label="Brunch Ledger"
@@ -89,13 +78,6 @@ export const BrunchWorkpiecePane = ({
         <p role="status" className={noticeStyle}>
           The recorded explanation predates a newer Ledger revision. Ask why
           again to assess the latest account.
-        </p>
-      )}
-      {liveDiffers && (
-        <p role="alert" className={noticeStyle}>
-          Live document hash differs from this recorded answer. Ask why again
-          before current attribution; hash difference alone identifies neither a
-          hand edit nor its actor.
         </p>
       )}
       {workpiece && typeof workpiece.markdown === "string" && (

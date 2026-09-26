@@ -14,14 +14,14 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { brunchModes } from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type { AgentSendResult, FlueConversationSnapshot } from "@flue/sdk";
 
@@ -72,16 +72,12 @@ if (phase === "recover") save("store-before-boot", inspect());
 process.env.NODE_ENV = "test";
 process.env.OTEL_SDK_DISABLED = "true";
 delete process.env.HASH_OTLP_ENDPOINT;
-process.env.BRUNCH_CHAT_MODEL = "a4-crash-faux";
 process.env.BRUNCH_DEV_DB_PATH = dbPath;
 const nativeFetch = globalThis.fetch;
 globalThis.fetch = () => {
   throw new Error("Network disabled in crash diagnostic");
 };
-const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: "a4-crash-faux" }],
-});
+const faux = fauxProvider({ provider: "openai" });
 const contexts: unknown[] = [];
 installFauxProvider({
   ...faux.provider,
@@ -205,7 +201,7 @@ try {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: batchedConstructionMode,
+        mode: brunchModes.integrated,
         construction: {
           binding: {
             conversationId: identity.conversationId,
@@ -221,7 +217,11 @@ try {
     });
     writeFileSync(
       join(directory, "receipt.json"),
-      `${JSON.stringify({ receipt, pid: process.pid, identity, markdown }, null, 2)}\n`,
+      `${JSON.stringify(
+        { receipt, pid: process.pid, identity, markdown },
+        null,
+        2,
+      )}\n`,
     );
     await client.read(receipt, { signal: AbortSignal.timeout(60000) });
     const history = await client.history();

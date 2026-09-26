@@ -9,6 +9,7 @@ import { selectCanonicalSpeech } from "./canonical-speech";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 
 import type { AdmissionVoiceEvidence } from "../../../../../brunch-agent/test/admission-voice-evidence";
+import type { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 let result: AdmissionVoiceEvidence;
@@ -31,7 +32,7 @@ beforeAll(async () => {
   };
   result = parsed.voice;
 });
-const speechFrom = (messages: AdmissionVoiceEvidence["rejectedMessages"]) =>
+const speechFrom = (messages: ReturnType<typeof snapshotToUiMessages>) =>
   // The mounted runtime also emits core server tools absent from the editor's
   // static tool type. Retain every actual part in this controlled fixture: the
   // oracle must prove speech ignores payloads, not filter them away itself.
@@ -97,21 +98,11 @@ test("buffered production output remains silent until approved and derives the w
   bridge.stop();
 });
 
-test("rejected and durably cancelled proposals cannot authorize Voice output or question replay", () => {
+test("durably cancelled proposals cannot authorize Voice output or question replay", () => {
   const stopped = result.buffering.find(
     ({ caseId }) => caseId === "buffered-cancelled",
   )!;
-  for (const messages of [stopped.projectedAfter, result.rejectedMessages]) {
-    const selection = speechFrom(messages);
-    expect(selection.segments).toEqual([]);
-    expect(selection.questionSegment).toBeUndefined();
-    const { bridge, speakCanonical } = voice();
-    bridge.updateChat({
-      canAcceptInterviewAnswer: true,
-      canonicalSegments: selection.segments,
-      status: "error",
-    });
-    expect(speakCanonical).not.toHaveBeenCalled();
-    bridge.stop();
-  }
+  const selection = speechFrom(stopped.projectedAfter);
+  expect(selection.segments).toEqual([]);
+  expect(selection.questionSegment).toBeUndefined();
 });

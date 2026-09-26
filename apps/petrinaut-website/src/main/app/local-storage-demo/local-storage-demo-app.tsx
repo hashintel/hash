@@ -16,16 +16,13 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
-  type RefObject,
 } from "react";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchModes } from "@hashintel/brunch-agent/constants";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -74,41 +71,147 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
+import { integratedPetrinautClientToolNames } from "./brunch-client-tools";
 import {
-  batchedConstructionClientToolNames,
-  brunchPetrinautDynamicToolNames,
-} from "./brunch-client-tools";
-import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
-import { createBrunchDraftExperimentInteractiveTool } from "./brunch-draft-experiment-interactive-tool";
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "./brunch-conversation-id";
+import {
+  createBrunchDraftExperimentInteractiveTool,
+  resolveDraftAuthorityFromHistory,
+} from "./brunch-draft-experiment-interactive-tool";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
-import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
+import {
+  createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromHistory,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplay,
+  type CanonicalPetrinautReplayReadiness,
+} from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
-import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
-import {
-  createJoinedBrowserMutationRecorder,
-  observeBrowserDefinition,
-} from "./mutation-record";
+import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
-import type { DocumentRecord } from "./documents/document-repository";
-import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
+import type { SharedExampleSearch } from "../../../examples/example-search";
+import type {
+  DocumentRecord,
+  DocumentRepository,
+} from "./documents/document-repository";
+
+const useCurrentSettlementAction = (
+  settleRevision: DocumentRepository["settleRevision"],
+): DocumentRepository["settleRevision"] => {
+  const latest = useRef(settleRevision);
+  useLayoutEffect(() => {
+    latest.current = settleRevision;
+  }, [settleRevision]);
+  return useCallback((revision) => latest.current(revision), []);
+};
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
+
+type ReplayReadiness<Replay> =
+  | { readonly status: "pending" }
+  | { readonly status: "ready"; readonly replay: Replay };
+
+type ReplayBaseline<Snapshot, Replay> = {
+  readonly key: string;
+  readonly snapshot: Snapshot | undefined;
+  readonly readiness: ReplayReadiness<Replay>;
+};
+
+/**
+ * Captures the first authoritative history state for one mounted binding. An
+ * absent history becomes an empty baseline during render; an existing history
+ * is captured once and stays fail-closed until its asynchronous verification
+ * completes. Later observation offsets cannot alter the ready baseline.
+ */
+const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
+  readonly bindingKey: string | undefined;
+  readonly emptyReplay: Replay;
+  readonly historyPhase: string | undefined;
+  readonly snapshot: Snapshot | undefined;
+  readonly derive: (snapshot: Snapshot) => Promise<Replay>;
+}): ReplayReadiness<Replay> => {
+  const [storedBaseline, setStoredBaseline] = useState<
+    ReplayBaseline<Snapshot, Replay> | undefined
+  >(undefined);
+  let baseline = storedBaseline;
+
+  if (input.bindingKey === undefined) {
+    if (baseline !== undefined) setStoredBaseline(undefined);
+    baseline = undefined;
+  } else if (baseline === undefined || baseline.key !== input.bindingKey) {
+    baseline = {
+      key: input.bindingKey,
+      snapshot: input.snapshot,
+      readiness:
+        input.historyPhase === "absent"
+          ? { status: "ready", replay: input.emptyReplay }
+          : { status: "pending" },
+    };
+    setStoredBaseline(baseline);
+  } else if (
+    baseline.readiness.status === "pending" &&
+    baseline.snapshot === undefined &&
+    (input.historyPhase === "absent" || input.snapshot !== undefined)
+  ) {
+    baseline = {
+      ...baseline,
+      snapshot: input.snapshot,
+      readiness:
+        input.historyPhase === "absent"
+          ? { status: "ready", replay: input.emptyReplay }
+          : baseline.readiness,
+    };
+    setStoredBaseline(baseline);
+  }
+
+  const derive = input.derive;
+  useEffect(() => {
+    const capturedSnapshot = baseline?.snapshot;
+    if (
+      baseline === undefined ||
+      baseline.readiness.status === "ready" ||
+      capturedSnapshot === undefined
+    )
+      return;
+    let cancelled = false;
+    const capturedBaseline = baseline;
+    void derive(capturedSnapshot).then((replay) => {
+      if (!cancelled) {
+        setStoredBaseline((current) =>
+          current === capturedBaseline
+            ? {
+                ...capturedBaseline,
+                readiness: { status: "ready", replay },
+              }
+            : current,
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [baseline, derive]);
+
+  return baseline?.readiness ?? { status: "pending" };
+};
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
@@ -179,10 +282,7 @@ const stockChatTransport = new DefaultChatTransport({
   }),
 });
 
-const createBrunchFlueClient = async (
-  conversationId: string,
-  currentRevisionId: () => string | undefined,
-) => {
+const createBrunchFlueClient = async (conversationId: string) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
   const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(
@@ -192,15 +292,7 @@ const createBrunchFlueClient = async (
   mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
   return createFlueClient({
     url: mountUrl.href,
-    headers: () => {
-      const revisionId = currentRevisionId();
-      return {
-        ...agentOwnershipHeaders(identity),
-        ...(revisionId === undefined
-          ? {}
-          : { [BRUNCH_DOCUMENT_REVISION_HEADER]: revisionId }),
-      };
-    },
+    headers: () => agentOwnershipHeaders(identity),
   });
 };
 
@@ -246,34 +338,19 @@ type PersistFailure = {
 };
 
 const useProcessAgentSession = (input: {
-  readonly activeHandleRef: RefObject<ActiveHandle | null>;
   readonly binding: ProcessAgentBinding | null;
   readonly brunchSelected: boolean;
 }) => {
-  "use no memo"; // The Flue header callback deliberately reads the live handle ref after render.
-
-  const readCurrentRevisionId = useCallback(() => {
-    const handle = input.activeHandleRef.current;
-    return input.binding !== null &&
-      handle?.document.documentId === input.binding.documentId &&
-      handle.document.incarnationId === input.binding.incarnationId
-      ? handle.handle.revisionId.get()
-      : undefined;
-  }, [input.activeHandleRef, input.binding]);
-
   return useMemo(() => {
     const conversationTracker = createConversationTrackerFor(
       input.binding?.conversationId ?? null,
     );
     const flueClientPromise =
       input.brunchSelected && input.binding !== null
-        ? createBrunchFlueClient(
-            input.binding.conversationId,
-            readCurrentRevisionId,
-          )
+        ? createBrunchFlueClient(input.binding.conversationId)
         : null;
     return { conversationTracker, flueClientPromise };
-  }, [input.binding, input.brunchSelected, readCurrentRevisionId]);
+  }, [input.binding, input.brunchSelected]);
 };
 
 const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
@@ -286,20 +363,16 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
 };
 
 /**
- * The demo's own palette commands, registered beside Petrinaut's: one starts
- * a fresh net, one switches between Brunch and the stock assistant, one
+ * The demo's own palette commands, registered beside Petrinaut's.
+ * Brunch and Stock are selected through the product UI.
  */
 const DemoCommands = ({
   createNewNet,
-  createCleanNetProjection,
   brunchSelected,
-  canSelectAssistant,
   selectAssistant,
 }: {
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
-  createCleanNetProjection?: () => Promise<void>;
   brunchSelected: boolean;
-  canSelectAssistant: boolean;
   selectAssistant: (selection: "brunch" | "stock") => void;
 }) => {
   useCommand({
@@ -310,20 +383,6 @@ const DemoCommands = ({
     run: () =>
       createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
   });
-  // Only offered when there is a Brunch to select; without an endpoint the
-  // stock assistant is the only one and the choice would be a fiction.
-  useCommand(
-    {
-      id: "demo.worked-model.fresh-net-projection",
-      label: "Create a fresh net projection from this template",
-      category: "Demo",
-      keywords: ["fresh", "net", "projection", "template"],
-      run: () => {
-        void createCleanNetProjection?.();
-      },
-    },
-    { when: createCleanNetProjection !== undefined },
-  );
   useCommand(
     {
       id: "demo.assistant.switch",
@@ -334,7 +393,7 @@ const DemoCommands = ({
       keywords: ["assistant", "brunch", "stock", "ai"],
       run: () => selectAssistant(brunchSelected ? "stock" : "brunch"),
     },
-    { when: brunchPreviewConfig.isBrunchConfigured && canSelectAssistant },
+    { when: brunchPreviewConfig.isBrunchConfigured },
   );
   return null;
 };
@@ -352,23 +411,17 @@ export const LocalStorageDemoApp = ({
   search,
 }: {
   onSearchChange: (
-    search: LocalStorageDemoSearch,
+    search: SharedExampleSearch,
     history: "push" | "replace",
   ) => void;
-  search: LocalStorageDemoSearch;
+  search: SharedExampleSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
-  const routeIdentity = localStorageDemoRouteIdentity(search);
-  const remoteRouteSelected =
-    routeIdentity === "worked-model-bundle" && search.bundle !== undefined;
-  // Stock is the default assistant; Brunch is the host-selected hidden alternate.
-  // Every Brunch-specific branch below keys off this, never off bare configuration,
-  // so selecting stock leaves no Brunch dependency behind.
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
     setSelection: setAssistantSelection,
-  } = useAssistantSelection({ enabled: !remoteRouteSelected });
+  } = useAssistantSelection();
   const {
     enabled: voiceEnabled,
     ready: voicePreferenceReady,
@@ -379,13 +432,12 @@ export const LocalStorageDemoApp = ({
     ready: realtimePreferenceReady,
     setEnabled: setRealtimeEnabled,
   } = useRealtimePreference();
-  const brunchSelected = remoteRouteSelected
-    ? brunchPreviewConfig.isBrunchConfigured
-    : assistantSelectionReady &&
-      isBrunchSelected(
-        brunchPreviewConfig.isBrunchConfigured,
-        assistantSelection,
-      );
+  const brunchSelected =
+    assistantSelectionReady &&
+    isBrunchSelected(
+      brunchPreviewConfig.isBrunchConfigured,
+      assistantSelection,
+    );
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
   >(undefined);
@@ -420,35 +472,15 @@ export const LocalStorageDemoApp = ({
       intent: { cause: "normalization", action: "selection" },
     });
   }, [navigation]);
-  const { aiMessagesByNetId, setAiMessagesByNetId } = useLocalStorageAiMessages(
-    { enabled: !remoteRouteSelected },
-  );
+  const { aiMessagesByNetId, setAiMessagesByNetId } =
+    useLocalStorageAiMessages();
   const productConstructionSelected = brunchSelected;
-  const batchedConstructionSelected = productConstructionSelected;
-  const selectLocalRoute = useCallback(
-    () =>
-      onSearchChange(
-        {
-          bundle: undefined,
-        },
-        "push",
-      ),
-    [onSearchChange],
-  );
   const { controller } = useDocumentController({
-    bundleKey: search.bundle,
-    chatEndpoint: brunchPreviewConfig.chatEndpoint,
-    currentOrigin: window.location.origin,
-    isBrunchConfigured: brunchPreviewConfig.isBrunchConfigured,
-    principalKey: brunchPrincipal,
-    remoteRouteSelected,
     onOpenDocument: clearSharedLocation,
-    onSelectLocalRoute: selectLocalRoute,
   });
-  const { source } = controller;
-  const currentDocument = source.repository.current;
+  const { repository } = controller;
+  const currentDocument = repository.current;
   const currentNetId = currentDocument?.documentId ?? null;
-  const currentNetTitle = currentDocument?.title ?? "";
 
   useEffect(() => {
     if (!brunchSelected) {
@@ -456,6 +488,7 @@ export const LocalStorageDemoApp = ({
     }
 
     const abortController = new AbortController();
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- reset stale capability before a newly selected Brunch session checks Voice
     setOpenAIVoiceConfig(undefined);
     void loadOpenAIVoiceConfig(
       globalThis.fetch.bind(globalThis),
@@ -471,12 +504,6 @@ export const LocalStorageDemoApp = ({
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(null);
-  const activeHandleRef = useRef<ActiveHandle | null>(null);
-
-  useLayoutEffect(() => {
-    activeHandleRef.current = activeHandle;
-  }, [activeHandle]);
-
   // The most recent change the repository refused to persist, if any. It is
   // about the open document: cleared once a later change to that document
   // lands, or when another document is opened in its place.
@@ -518,7 +545,6 @@ export const LocalStorageDemoApp = ({
     }
 
     const { document, emittedRevisionIds, handle } = activeHandle;
-    const repository = source.repository;
     return handle.subscribe((event) => {
       emittedRevisionIds.add(event.revisionId);
       repository
@@ -546,7 +572,7 @@ export const LocalStorageDemoApp = ({
             }),
         );
     });
-  }, [activeHandle, source.repository]);
+  }, [activeHandle, repository]);
   const unsavedChangeMessage =
     persistFailure !== null &&
     persistFailure.documentId === currentDocument?.documentId &&
@@ -554,7 +580,7 @@ export const LocalStorageDemoApp = ({
       ? persistFailure.error.message
       : null;
 
-  const existingNets: MinimalNetMetadata[] = source.repository.records
+  const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
       netId: document.documentId,
       title: document.title,
@@ -567,47 +593,55 @@ export const LocalStorageDemoApp = ({
     );
 
   const createNewNet = (params: { petriNetDefinition: SDCPN; title: string }) =>
-    controller.createLocalAndOpen({
+    controller.createAndOpen({
       definition: params.petriNetDefinition,
       title: params.title,
     });
 
   const loadPetriNet = (petriNetId: string) => {
-    source.repository.open(petriNetId);
+    repository.open(petriNetId);
   };
 
-  const renameCurrentDocument = source.repository.actions.rename;
+  const renameCurrentDocument = repository.actions.rename;
   const setTitle =
-    currentDocument === null || renameCurrentDocument === undefined
+    currentDocument === null
       ? undefined
       : (title: string) =>
           renameCurrentDocument({
             documentId: currentDocument.documentId,
             title,
           });
-  const productConstructionConversationId =
-    currentDocument === null
+  const baseConstructionConversationId =
+    currentDocument === null || !brunchSelected
       ? undefined
-      : productConstructionSelected
-        ? ordinaryConstructionConversationIdFrom(currentDocument.incarnationId)
-        : undefined;
+      : ordinaryConstructionConversationIdFrom(currentDocument.incarnationId);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
     () =>
-      productConstructionConversationId === undefined
+      baseConstructionConversationId === undefined
         ? undefined
-        : { conversationId: productConstructionConversationId },
-    [productConstructionConversationId],
+        : { conversationId: baseConstructionConversationId },
+    [baseConstructionConversationId],
   );
-  const processAgentBinding = useProcessAgentBinding({
+  const baseProcessAgentBinding = useProcessAgentBinding({
     document: currentDocument,
-    seed: source.processAgentSeed,
     fixture: fixtureProcessAgentConfiguration,
   });
+  const processAgentBinding = useMemo(
+    () =>
+      baseProcessAgentBinding === null
+        ? null
+        : {
+            ...baseProcessAgentBinding,
+            conversationId: brunchEvaluationConversationIdFrom(
+              baseProcessAgentBinding.conversationId,
+            ),
+          },
+    [baseProcessAgentBinding],
+  );
   const conversationId = processAgentBinding?.conversationId ?? null;
   const processAgentSession = useProcessAgentSession({
-    activeHandleRef,
     binding: processAgentBinding,
     brunchSelected,
   });
@@ -632,61 +666,71 @@ export const LocalStorageDemoApp = ({
     if (
       !activeHandle ||
       processAgentBinding === null ||
-      activeHandle.document.documentId !== processAgentBinding.documentId
+      activeHandle.document.documentId !== processAgentBinding.documentId ||
+      activeHandle.document.incarnationId !== processAgentBinding.incarnationId
     )
       return undefined;
-    return productConstructionSelected
-      ? { binding: processAgentBinding }
-      : undefined;
-  }, [activeHandle, processAgentBinding, productConstructionSelected]);
-  // The handle mutates behind a stable identity. Subscribe to its real snapshot;
-  // a render-time read alone can be memoized by React Compiler across hand edits.
-  const subscribeToObservedLiveHash = useCallback(
-    (changed: () => void) =>
-      constructionBrowser && activeHandle
-        ? activeHandle.handle.subscribe(changed)
-        : () => {},
-    [activeHandle, constructionBrowser],
-  );
-  const getObservedLiveHash = useCallback(
-    () =>
-      constructionBrowser && activeHandle?.handle.doc()
-        ? observeBrowserDefinition(activeHandle.handle).sha256
-        : undefined,
-    [activeHandle, constructionBrowser],
-  );
-  const getServerObservedLiveHash = useCallback(() => undefined, []);
-  const observedLiveHash = useSyncExternalStore(
-    subscribeToObservedLiveHash,
-    getObservedLiveHash,
-    getServerObservedLiveHash,
-  );
-  const mutationRecorder = useMemo(
-    () =>
-      constructionBrowser && activeHandle
-        ? createJoinedBrowserMutationRecorder({
-            handle: activeHandle.handle,
-            ...constructionBrowser,
-            onContainedFailure: (failure) =>
-              reportBrunchFailure("mutation-record", failure.error, {
-                kind: failure.kind,
-                toolCallId: failure.toolCallId,
-              }),
-          })
-        : undefined,
-    [constructionBrowser, activeHandle, reportBrunchFailure],
-  );
-  const constructionClientTools = batchedConstructionSelected
-    ? batchedConstructionClientToolNames
+    return brunchSelected ? { binding: processAgentBinding } : undefined;
+  }, [activeHandle, brunchSelected, processAgentBinding]);
+  const integratedConstructionBrowser = productConstructionSelected
+    ? constructionBrowser
+    : undefined;
+  const dynamicClientToolNames =
+    integratedConstructionBrowser === undefined
+      ? undefined
+      : integratedPetrinautClientToolNames;
+  const constructionClientTools = brunchSelected
+    ? integratedPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     constructionClientTools,
-    mutationRecorder?.mapClientToolInput,
-    mutationRecorder?.validatedClientToolNames,
-    brunchPetrinautDynamicToolNames,
+    dynamicClientToolNames,
   );
+  const replayBindingKey = integratedConstructionBrowser
+    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
+    : undefined;
+  const deriveCanonicalReplay = useCallback(
+    async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
+      if (integratedConstructionBrowser === undefined)
+        return EMPTY_CANONICAL_PETRINAUT_REPLAY;
+      return issuedCanonicalCallsFromHistory({ snapshot });
+    },
+    [integratedConstructionBrowser],
+  );
+  const canonicalReplayReadiness = useImmutableReplayBaseline<
+    NonNullable<typeof flueHistory.snapshot>,
+    CanonicalPetrinautReplay
+  >({
+    bindingKey: replayBindingKey,
+    emptyReplay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
+    historyPhase: flueHistory.phase,
+    snapshot: flueHistory.snapshot,
+    derive: deriveCanonicalReplay,
+  }) satisfies CanonicalPetrinautReplayReadiness;
+  // A persisted revision can change the repository action's identity while a
+  // canonical tool is still settling. Keep the host adapter's evidence store
+  // alive, but dispatch settlement through the latest committed action.
+  const settleConstructionRevision = useCurrentSettlementAction(
+    // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
+    repository.settleRevision,
+  );
+  const canonicalHostTools = useMemo(() => {
+    if (!integratedConstructionBrowser || !activeHandle) return undefined;
+    return createCanonicalPetrinautHostTools({
+      handle: activeHandle.handle,
+      binding: integratedConstructionBrowser.binding,
+      readTitle: () => activeHandle.document.title,
+      replayReadiness: canonicalReplayReadiness,
+      settleRevision: settleConstructionRevision,
+    });
+  }, [
+    activeHandle,
+    canonicalReplayReadiness,
+    integratedConstructionBrowser,
+    settleConstructionRevision,
+  ]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;
     reportBrunchFailure("history", flueHistory.error, {
@@ -729,15 +773,12 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
-          ...(productConstructionSelected && constructionBrowser
-            ? {
-                initialData: {
-                  mode: batchedConstructionMode,
-                  construction: { binding: constructionBrowser.binding },
-                },
-              }
-            : {}),
-          dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+          initialData: {
+            mode: brunchModes.integrated,
+            ...(constructionBrowser
+              ? { construction: { binding: constructionBrowser.binding } }
+              : {}),
+          },
           ...(transportClientPromise === flueClientPromise &&
           conversationId !== null
             ? {
@@ -753,13 +794,12 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
-                mapClientToolInput: mutationRecorder?.mapClientToolInput,
-                validatedClientToolNames:
-                  mutationRecorder?.validatedClientToolNames,
-                clientToolResultMetadata:
-                  mutationRecorder?.clientToolResultMetadata,
-                clientToolResultOutput:
-                  mutationRecorder?.clientToolResultOutput,
+                dynamicClientToolNames,
+                ...(canonicalHostTools === undefined
+                  ? {}
+                  : {
+                      mapClientToolInput: (call) => call.input,
+                    }),
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -776,37 +816,81 @@ export const LocalStorageDemoApp = ({
     conversationTracker,
     conversationId,
     constructionClientTools,
-    productConstructionSelected,
     constructionBrowser,
+    canonicalHostTools,
+    dynamicClientToolNames,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
-    mutationRecorder,
   ]);
 
+  const inBandBrowserTools = useMemo(
+    () =>
+      integratedConstructionBrowser && flueClientPromise
+        ? createInBandBrowserCalls({
+            client: flueClientPromise,
+            principalKey: brunchPrincipal,
+            binding: integratedConstructionBrowser.binding,
+            metadataFor: async (toolCallId, output) =>
+              canonicalHostTools?.clientToolResultMetadataFor(
+                toolCallId,
+                output,
+              ),
+            prepareInput: (call) => {
+              canonicalHostTools?.mapClientToolInput(call);
+            },
+          })
+        : undefined,
+    [integratedConstructionBrowser, flueClientPromise, canonicalHostTools],
+  );
+
+  const draftInteractiveTool = useMemo(
+    () =>
+      integratedConstructionBrowser &&
+      activeHandle &&
+      flueClientPromise &&
+      inBandBrowserTools
+        ? createBrunchDraftExperimentInteractiveTool({
+            browserCalls: inBandBrowserTools,
+            readTitle: () => activeHandle.document.title,
+            readDraftAuthority: async (toolCallId) => {
+              const client = await flueClientPromise;
+              return resolveDraftAuthorityFromHistory(
+                await client.history(),
+                toolCallId,
+              );
+            },
+          })
+        : undefined,
+    [
+      activeHandle,
+      flueClientPromise,
+      inBandBrowserTools,
+      integratedConstructionBrowser,
+    ],
+  );
   const aiAssistant = useMemo(() => {
     const activityIdentities =
-      constructionBrowser && flueHistory.ready
+      integratedConstructionBrowser && flueHistory.ready
         ? flueHistory.phase === "absent"
           ? []
           : flueHistory.snapshot === undefined
             ? undefined
             : foldBrunchWorkpieceHistory(
                 flueHistory.snapshot.messages,
-                constructionBrowser.binding,
+                integratedConstructionBrowser.binding,
               ).activityIdentities
         : undefined;
     return {
-      additionalTab: constructionBrowser
+      additionalTab: integratedConstructionBrowser
         ? {
             label: "Ledger",
             activityIdentities,
             content: (
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
-                binding={constructionBrowser.binding}
-                liveHash={observedLiveHash}
+                binding={integratedConstructionBrowser.binding}
               />
             ),
           }
@@ -820,53 +904,12 @@ export const LocalStorageDemoApp = ({
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      // Brunch's own tool names wrap canonical Petrinaut operations here, in
-      // the host; Petrinaut keeps its names and executes only what it is told.
-      automaticTools:
-        flueClientPromise === null
-          ? []
-          : createBrunchPetrinautTools({
-              readTitle: () => currentNetTitle,
-              ...(batchedConstructionSelected && constructionBrowser
-                ? {
-                    mutation: {
-                      binding: constructionBrowser.binding,
-                      retainAttempt: mutationRecorder?.retainAttempt,
-                      onOperationFailure: (failure) =>
-                        reportBrunchFailure("mutate-petrinet", failure.error, {
-                          toolCallId: failure.toolCallId,
-                          operationId: failure.operationId,
-                          operationType: failure.operationType,
-                          status: failure.status,
-                        }),
-                    },
-                  }
-                : {}),
-              ...(currentDocument === null
-                ? {}
-                : {
-                    settleDocumentRevision: (revisionId) =>
-                      source.repository.settleRevision({
-                        documentId: currentDocument.documentId,
-                        revisionId,
-                      }),
-                  }),
-            }),
-      // The drafted-experiment card is the one Brunch tool the person answers
-      // in the panel: it prepares against the live model, reports "drafted",
-      // and waits for Run or Dismiss. Session-only; nothing is persisted.
-      interactiveTools:
-        flueClientPromise === null
-          ? []
-          : [
-              createBrunchDraftExperimentInteractiveTool({
-                readTitle: () => currentNetTitle,
-              }),
-            ],
+      // These exact-name tools override the static registry only in integrated
+      // mode. Every other canonical capability remains on Petrinaut's registry.
+      inBandBrowserTools,
+      automaticTools: [...(canonicalHostTools?.tools ?? [])],
+      interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],
       transport: petrinautAiChatTransport,
-      ...(mutationRecorder === undefined
-        ? {}
-        : { executeMutation: mutationRecorder.executeMutation }),
       ...(flueClientPromise === null
         ? {}
         : {
@@ -916,37 +959,24 @@ export const LocalStorageDemoApp = ({
     aiMessagesByNetId,
     brunchSelected,
     brunchVoiceMode,
-    batchedConstructionSelected,
-    observedLiveHash,
-    constructionBrowser,
+    canonicalHostTools,
+    inBandBrowserTools,
+    draftInteractiveTool,
+    integratedConstructionBrowser,
     conversationTracker,
     conversationId,
     currentNetId,
-    currentNetTitle,
     flueClientPromise,
     flueHistory.messages,
     flueHistory.phase,
     flueHistory.ready,
     flueHistory.snapshot,
     petrinautAiChatTransport,
-    reportBrunchFailure,
-    mutationRecorder,
     setAiMessagesByNetId,
-    currentDocument,
-    source.repository,
   ]);
 
-  if (source.repository.status.state === "unavailable") {
-    return (
-      <main role="main">
-        <h1>Worked-model document unavailable</h1>
-        <p>{source.repository.status.error.message}</p>
-      </main>
-    );
-  }
-
   if (
-    source.repository.status.state === "loading" ||
+    repository.status.state === "loading" ||
     currentDocument === null ||
     !activeHandle ||
     activeHandle.document.documentId !== currentDocument.documentId
@@ -962,7 +992,7 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {remoteRouteSelected || unsavedChangeMessage !== null ? (
+      {unsavedChangeMessage !== null ? (
         // Host notices are centred below Petrinaut's 64px top bar and stacked
         // above its side panels (z-index 1097) and bar (1100), so neither can
         // hide them.
@@ -983,38 +1013,21 @@ export const LocalStorageDemoApp = ({
             zIndex: 1200,
           }}
         >
-          {remoteRouteSelected ? (
-            <p
-              style={{
-                background: "#edf6ff",
-                border: "1px solid #91caff",
-                borderRadius: 8,
-                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-                color: "#0958d9",
-                margin: 0,
-                padding: "10px 12px",
-              }}
-            >
-              This document uses the Brunch process assistant
-            </p>
-          ) : null}
-          {unsavedChangeMessage !== null ? (
-            <p
-              role="alert"
-              style={{
-                background: "#fff1f0",
-                border: "1px solid #ffa39e",
-                borderRadius: 8,
-                boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-                color: "#a8071a",
-                margin: 0,
-                padding: "10px 12px",
-              }}
-            >
-              Changes not saved: {unsavedChangeMessage} The editor shows the
-              last saved version.
-            </p>
-          ) : null}
+          <p
+            role="alert"
+            style={{
+              background: "#fff1f0",
+              border: "1px solid #ffa39e",
+              borderRadius: 8,
+              boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
+              color: "#a8071a",
+              margin: 0,
+              padding: "10px 12px",
+            }}
+          >
+            Changes not saved: {unsavedChangeMessage} The editor shows the last
+            saved version.
+          </p>
         </div>
       ) : null}
       {/* The settings are mounted here, above the editor, so the demo's own
@@ -1037,7 +1050,6 @@ export const LocalStorageDemoApp = ({
                     assistantReady={assistantSelectionReady}
                     brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                     brunchSelected={brunchSelected}
-                    forceBrunch={remoteRouteSelected}
                     openAIVoiceConfig={openAIVoiceConfig}
                     realtimeEnabled={realtimeEnabled}
                     realtimePreferenceReady={realtimePreferenceReady}
@@ -1055,11 +1067,7 @@ export const LocalStorageDemoApp = ({
           </WalkthroughProvider>
           <DemoCommands
             createNewNet={createNewNet}
-            createCleanNetProjection={
-              source.repository.actions.createCleanNetProjection
-            }
             brunchSelected={brunchSelected}
-            canSelectAssistant={!remoteRouteSelected}
             selectAssistant={selectAssistant}
           />
           <CommandPalette />

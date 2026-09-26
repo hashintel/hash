@@ -1,6 +1,6 @@
 # Process-Model Workpiece Template
 
-This domain-primary workpiece is maintained during elicitation and revision and consumed during construction. It is structurally organized but not a closed semantic claim system. Follow the person's thread during the conversation; do not read these headings aloud as a questionnaire.
+This domain-primary workpiece is maintained during elicitation and revision. It is structurally organized but not a closed semantic claim system. Follow the person's thread during the conversation; do not read these headings aloud as a questionnaire.
 
 ## Locality rule
 
@@ -10,7 +10,7 @@ Labels such as **Expert evidence**, **Working account**, **Agent inference**, **
 
 Use the cross-cutting issue ledger only when an unresolved matter affects several authoritative claims or needs a later return path. Ledger entries reference those claims; they do not summarize them again.
 
-Follow core's `elicitation` guidance for workpiece settlement, evidence and locator handling. The `sdcpn-modelling` skill owns the settled-revision construction handoff; this template supplies the operational recording shape, not a separate update trigger or workpiece authority.
+Follow core's `elicitation` guidance for workpiece settlement, evidence and locator handling. This template supplies the operational recording shape, not a separate update trigger or workpiece authority.
 
 ```markdown
 # Process-Model Workpiece
@@ -93,7 +93,7 @@ Summarize status by reference to the authoritative account and issue ledger; do 
 
 ### Net status
 
-State whether construction was not attempted, blocked, partial, or tool-schema accepted; whether the inspected definition was structurally reviewed against the workpiece; and whether behavior was untested, observed in named simulations, or established to a stated scope by stronger analysis. Do not infer a higher level from a lower one.
+State whether construction was not attempted, blocked, partial, or tool-schema accepted; whether the inspected definition was structurally reviewed against the account; and whether behavior was untested, observed in named simulations, or established to a stated scope by stronger analysis. Do not infer a higher level from a lower one.
 ```
 
 ## Maintenance guidance
@@ -103,4 +103,4 @@ State whether construction was not attempted, blocked, partial, or tool-schema a
 - Keep evidence and epistemic treatment local even when a cross-cutting issue references the claim.
 - Update the authoritative case-and-process-spine section when ordering or case behavior changes; reference local activity and resource claims rather than repeating them.
 - Empty sections may be removed when irrelevant. Use **Not yet asked**, **Unknown**, or **Omitted** only when that state itself matters to later work.
-- Construction consumes this workpiece. If construction needs transcript archaeology to recover a load-bearing fact, the workpiece is incomplete at that point.
+- If a load-bearing fact is recoverable only from the transcript, the workpiece is incomplete at that point.

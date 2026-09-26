@@ -2,16 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
-import { type FlueConversationSnapshot } from "@flue/sdk";
+import { brunchTools, runbookIrFence } from "@hashintel/brunch-agent";
 
-import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
+import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
-import {
-  ACTIVATE_SKILL_TOOL_NAME,
-  isAwaitingClient,
-  READ_SKILL_RESOURCE_TOOL_NAME,
-  type DynamicToolPart,
-} from "../../conversation/client-tools.ts";
+type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
 import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
@@ -23,7 +18,7 @@ interface ProofEventBase {
   readonly messageId: string;
 }
 
-export type ProofTraceEvent =
+type ProofTraceEvent =
   | (ProofEventBase & {
       readonly type: "user";
       readonly text: string;
@@ -153,7 +148,7 @@ export const deriveProofTrace = (
       }
       if (part.type !== "dynamic-tool") continue;
 
-      if (part.toolName === ACTIVATE_SKILL_TOOL_NAME) {
+      if (part.toolName === brunchTools.activateSkill) {
         append({
           type: "activate",
           turn,
@@ -164,7 +159,7 @@ export const deriveProofTrace = (
         });
         continue;
       }
-      if (part.toolName === READ_SKILL_RESOURCE_TOOL_NAME) {
+      if (part.toolName === brunchTools.readSkillResource) {
         const path = stringInputField(part, "path");
         append({
           type: "read",
@@ -184,7 +179,11 @@ export const deriveProofTrace = (
         toolCallId: part.toolCallId,
         name: part.toolName,
         executor:
-          part.state === "output-available" && isAwaitingClient(part.output)
+          part.state === "output-available" &&
+          typeof part.output === "object" &&
+          part.output !== null &&
+          "brunchBrowserResult" in part.output &&
+          part.output.brunchBrowserResult === true
             ? "client"
             : "server",
         outcome: toolOutcome(part),
@@ -215,7 +214,7 @@ const traceEventMarkdown = (event: ProofTraceEvent): string => {
   }
 };
 
-export const formatProofTrace = (trace: ProofTrace): string =>
+const formatProofTrace = (trace: ProofTrace): string =>
   [
     "# Canonical proof trace",
     "",

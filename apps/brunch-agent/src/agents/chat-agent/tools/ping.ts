@@ -1,10 +1,10 @@
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
-export const PING_TOOL_NAME = "ping";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 export const ping = defineTool({
-  name: PING_TOOL_NAME,
+  name: brunchTools.ping,
   description:
     "Return a short server-side acknowledgement. Call this when you need to confirm the server is in the loop.",
   input: v.object({

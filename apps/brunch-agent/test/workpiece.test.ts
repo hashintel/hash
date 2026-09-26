@@ -3,8 +3,14 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 
 import {
+  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent-transport-aisdk";
+
+import {
   recoverRunbookWorkpiece,
   retainedSettledRevision,
+  workpieceEvidenceSources,
 } from "../src/conversation/workpiece.ts";
 
 import type {
@@ -30,6 +36,55 @@ const snapshot: FlueConversationSnapshot = {
   messages: [revisionMessage],
   settlements: [],
 };
+
+describe("workpieceEvidenceSources", () => {
+  const userMessage = (id: string, text: string): FlueConversationMessage => ({
+    id,
+    role: "user",
+    purpose: "user",
+    display: "visible",
+    submissionId: "turn-1",
+    parts: [{ type: "text", text, state: "done" }],
+  });
+
+  test("projects only human text from a contextual user envelope", () => {
+    const markerLikeText = [
+      "Explain this marker-like text:",
+      PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+      '{"diagnosticsContext":"quoted only"}',
+    ].join("\n");
+    const diagnosticsContext = "Host diagnostics must not become testimony.";
+    const sources = workpieceEvidenceSources({
+      ...snapshot,
+      messages: [
+        userMessage(
+          "contextual-user",
+          petrinautContextualUserMessageBody({
+            userText: markerLikeText,
+            diagnosticsContext,
+          }),
+        ),
+      ],
+    });
+
+    expect(sources[0]?.text).toBe(markerLikeText);
+    expect(sources[0]?.text).not.toContain(diagnosticsContext);
+  });
+
+  test("leaves ordinary bodies unchanged and excludes malformed framing", () => {
+    const ordinary = `Ordinary text containing ${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX} later`;
+    const malformed = `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}{`;
+    expect(
+      workpieceEvidenceSources({
+        ...snapshot,
+        messages: [
+          userMessage("ordinary-user", ordinary),
+          userMessage("malformed-user", malformed),
+        ],
+      }).map(({ text }) => text),
+    ).toEqual([ordinary]);
+  });
+});
 
 describe("recoverRunbookWorkpiece", () => {
   test("accepts a Flue snapshot and adds stable content and source hashes", () => {

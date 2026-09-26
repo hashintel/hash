@@ -86,7 +86,7 @@ The compose stack and the graph take these, so a new dev server stays off them a
 | 8200       | Vault                       | `HASH_VAULT_PORT`              |
 | 9000, 9001 | MinIO API and console       |                                |
 
-The Brunch agent's `start` and `start:test` scripts and its production image listen on 3002, where the integration tests expect it; the dev pair uses 4321 and 4915.
+The Brunch agent's `start` script and its production image listen on 3002; the dev pair uses 4321 and 4915.
 
 ### Starting Services
 

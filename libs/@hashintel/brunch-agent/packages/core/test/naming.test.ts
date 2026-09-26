@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
+import { brunchProductName } from "../src/constants";
 import {
   OPERATIONS,
-  PRODUCT_NAME,
   toolName,
   toolPrefix,
   type Operation,
@@ -38,7 +38,7 @@ describe("tool namespacing", () => {
 
   test("tool names default to the current product name", () => {
     const askToolName: ToolName<"ask"> = toolName("ask");
-    expect(askToolName).toBe(`${toolPrefix(PRODUCT_NAME)}ask`);
+    expect(askToolName).toBe(`${toolPrefix(brunchProductName)}ask`);
   });
 
   test("an operation name that is not an identifier is refused", () => {
@@ -59,7 +59,7 @@ describe("the settled product name", () => {
     // settled (ADR-0001); the ban on naming what a tool *does* did not, and it
     // is the half that was load-bearing — `elicit_*` would fix the product's
     // purpose in every model-facing string it owns.
-    const prefix = toolPrefix(PRODUCT_NAME);
+    const prefix = toolPrefix(brunchProductName);
     expect(prefix).not.toContain("elicit");
     for (const operation of OPERATIONS) {
       expect(toolName(operation)).not.toContain("elicit");
@@ -71,9 +71,9 @@ describe("the settled product name", () => {
     // its own; the prefix is what keeps this product's tools from colliding
     // with a co-mounted library's.
     for (const operation of OPERATIONS) {
-      expect(toolName(operation).startsWith(toolPrefix(PRODUCT_NAME))).toBe(
-        true,
-      );
+      expect(
+        toolName(operation).startsWith(toolPrefix(brunchProductName)),
+      ).toBe(true);
     }
   });
 

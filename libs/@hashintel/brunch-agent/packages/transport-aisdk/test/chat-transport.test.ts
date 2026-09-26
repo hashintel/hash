@@ -1,11 +1,13 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
+import { createFlueChatTransport } from "../src";
 import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  createFlueChatTransport,
-  snapshotToUiMessages,
-} from "../src";
+  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+  PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+} from "../src/contextual-user-message";
 
 import type { FlueChatTransportOptions } from "../src";
 import type {
@@ -99,260 +101,95 @@ const sendOptions = (
   abortSignal: undefined,
 });
 
-test("forwards opaque initial data on every user submission, never client results", async () => {
-  const { client, send } = clientWith(completedEvents);
-  const initialData = { mode: "test-bound", browser: { incarnationId: "one" } };
-  const transport = createFlueChatTransport({
-    client,
-    clientToolNames: new Set(["read_petrinaut_net"]),
-    initialData,
-  });
-  const user = sendOptions([
-    { id: "user-one", role: "user", parts: [{ type: "text", text: "Hello" }] },
-  ]);
-  await readChunks(await transport.sendMessages(user));
-  await readChunks(await transport.sendMessages(user));
-  expect(send.mock.calls[0]?.[0].initialData).toBe(initialData);
-  expect(send.mock.calls[1]?.[0]).toEqual(send.mock.calls[0]?.[0]);
-  await readChunks(
-    await transport.sendMessages(
-      sendOptions(
-        [
-          {
-            id: "reply",
-            role: "assistant",
-            parts: [
-              {
-                type: "dynamic-tool",
-                toolName: "read_petrinaut_net",
-                toolCallId: "read",
-                input: {},
-                state: "output-available",
-                output: {},
-              },
-            ],
-          },
-        ],
-        "reply",
-      ),
-    ),
+test("round trips contextual user evidence and diagnostics through explicit framing", () => {
+  const markerLikeText = [
+    "Human-authored request containing marker-like content:",
+    PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+    '{"userText":"not framing","diagnosticsContext":"not host evidence"}',
+  ].join("\n");
+  const payload = {
+    userText: markerLikeText,
+    diagnosticsContext: "Petrinaut diagnostics context only; one error.",
+  };
+  const body = petrinautContextualUserMessageBody(payload);
+
+  expect(body).toBe(
+    `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify(payload)}`,
   );
-  expect(send.mock.calls[2]?.[0]).not.toHaveProperty("initialData");
-  const ordinary = createFlueChatTransport({
+  expect(parsePetrinautUserMessageBody(body)).toEqual({
+    kind: "contextual",
+    ...payload,
+  });
+  expect(parsePetrinautUserMessageBody(markerLikeText)).toEqual({
+    kind: "ordinary",
+    userText: markerLikeText,
+  });
+});
+
+test("bounds contextual user fields before admission", () => {
+  expect(() =>
+    petrinautContextualUserMessageBody({
+      userText: "x".repeat(PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH + 1),
+      diagnosticsContext: "bounded diagnostics",
+    }),
+  ).toThrow("The contextual user message payload is invalid or too long.");
+});
+
+test.each([
+  ["malformed JSON", "{"],
+  [
+    "extra fields",
+    JSON.stringify({
+      userText: "request",
+      diagnosticsContext: "context",
+      assertedBy: "user",
+    }),
+  ],
+  ["missing fields", JSON.stringify({ userText: "request" })],
+])("refuses %s in contextual user framing", (_label, payload) => {
+  expect(
+    parsePetrinautUserMessageBody(
+      `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${payload}`,
+    ),
+  ).toEqual({ kind: "invalid-contextual" });
+});
+
+test("carries reserved diagnostics on the correlated user turn", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),
   });
-  await readChunks(await ordinary.sendMessages(user));
-  expect(send.mock.calls[3]?.[0]).not.toHaveProperty("initialData");
-});
-
-test("submits results from the latest assistant step with completed client tools", async () => {
-  const { client, send } = clientWith(completedEvents);
-  const transport = createFlueChatTransport({
-    client,
-    clientToolNames: new Set(["read_petrinaut_net", "mutate_petrinaut_net"]),
-  });
+  const context = "Petrinaut diagnostics context only; one current error.";
 
   await readChunks(
     await transport.sendMessages(
-      sendOptions(
-        [
-          {
-            id: "assistant-original",
-            role: "assistant",
-            parts: [
-              { type: "step-start" },
-              {
-                type: "dynamic-tool",
-                toolName: "read_petrinaut_net",
-                toolCallId: "read-before-1",
-                state: "output-available",
-                input: {},
-                output: { revision: 0 },
-              },
-              { type: "step-start" },
-              {
-                type: "dynamic-tool",
-                toolName: "read_petrinaut_net",
-                toolCallId: "read-before-2",
-                state: "output-available",
-                input: {},
-                output: { revision: 0 },
-              },
-              { type: "step-start" },
-              {
-                type: "dynamic-tool",
-                toolName: "mutate_petrinaut_net",
-                toolCallId: "mutation-latest",
-                state: "output-available",
-                input: {},
-                output: { applied: true },
-              },
-              { type: "step-start" },
-              {
-                type: "dynamic-tool",
-                toolName: "activate_skill",
-                toolCallId: "server-tool-later",
-                state: "output-available",
-                input: {},
-                output: { activated: true },
-                providerExecuted: true,
-              },
-            ],
-          },
-        ],
-        "assistant-original",
-      ),
+      sendOptions([
+        {
+          id: "user-with-context",
+          role: "user",
+          parts: [{ type: "text", text: "Repair the model." }],
+        },
+        {
+          id: "petrinaut-diagnostics-context",
+          role: "user",
+          parts: [{ type: "text", text: context }],
+        },
+      ]),
     ),
   );
 
-  expect(send).toHaveBeenCalledWith(
-    expect.objectContaining({
-      message: {
-        kind: "signal",
-        type: "client-tool-result",
-        tagName: "client-tool-result",
-        body: JSON.stringify([
-          {
-            toolCallId: "mutation-latest",
-            toolName: "mutate_petrinaut_net",
-            output: { applied: true },
-          },
-        ]),
-        attributes: { toolCallIds: "mutation-latest" },
-      },
-      signal: undefined,
-    }),
-  );
-});
-
-test("after snapshot fold, submits only the latest client-tool step", async () => {
-  const { client, send } = clientWith(completedEvents);
-  const clientToolNames = new Set([
-    "read_petrinaut_net",
-    "mutate_petrinaut_net",
-  ]);
-  const transport = createFlueChatTransport({
-    client,
-    clientToolNames,
-  });
-  const folded = snapshotToUiMessages(
-    {
-      messages: [
-        {
-          id: "assistant-1",
-          role: "assistant",
-          purpose: "assistant",
-          display: "visible",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolCallId: "read-before-1",
-              toolName: "read_petrinaut_net",
-              state: "output-available",
-              input: {},
-              output: { awaiting: "client" },
-            },
-          ],
-        },
-        {
-          id: "signal-1",
-          role: "system",
-          purpose: "dispatch",
-          display: "hidden",
-          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
-          parts: [
-            {
-              type: "text",
-              text: '[{"toolCallId":"read-before-1","toolName":"read_petrinaut_net","output":{"revision":0}}]',
-              state: "done",
-            },
-          ],
-        },
-        {
-          id: "assistant-2",
-          role: "assistant",
-          purpose: "assistant",
-          display: "visible",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolCallId: "mutation-latest",
-              toolName: "mutate_petrinaut_net",
-              state: "output-available",
-              input: {},
-              output: { awaiting: "client" },
-            },
-          ],
-        },
-        {
-          id: "signal-2",
-          role: "system",
-          purpose: "dispatch",
-          display: "hidden",
-          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
-          parts: [
-            {
-              type: "text",
-              text: '[{"toolCallId":"mutation-latest","toolName":"mutate_petrinaut_net","output":{"applied":true}}]',
-              state: "done",
-            },
-          ],
-        },
-      ],
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user:user-with-context",
+    message: {
+      kind: "user",
+      body: petrinautContextualUserMessageBody({
+        userText: "Repair the model.",
+        diagnosticsContext: context,
+      }),
     },
-    { clientToolNames },
-  );
-
-  await readChunks(
-    await transport.sendMessages(sendOptions([...folded], "assistant-1")),
-  );
-
-  expect(send).toHaveBeenCalledWith(
-    expect.objectContaining({
-      message: {
-        kind: "signal",
-        type: "client-tool-result",
-        tagName: "client-tool-result",
-        body: JSON.stringify([
-          {
-            toolCallId: "mutation-latest",
-            toolName: "mutate_petrinaut_net",
-            output: { applied: true },
-          },
-        ]),
-        attributes: { toolCallIds: "mutation-latest" },
-      },
-      signal: undefined,
-    }),
-  );
-});
-
-test("keeps reordered cumulative tool results byte-identical for idempotent retry", async () => {
-  const { client, send } = clientWith(completedEvents);
-  const transport = createFlueChatTransport({
-    client,
-    clientToolNames: new Set(["readPetrinautDoc"]),
+    signal: undefined,
   });
-  const parts: UIMessage["parts"] = ["tool-b", "tool-a"].map((toolCallId) => ({
-    type: "dynamic-tool",
-    toolName: "readPetrinautDoc",
-    toolCallId,
-    state: "output-available",
-    input: {},
-    output: toolCallId,
-  }));
-  for (const ordered of [parts, [...parts].reverse()]) {
-    await readChunks(
-      await transport.sendMessages(
-        sendOptions(
-          [{ id: "assistant-original", role: "assistant", parts: ordered }],
-          "assistant-original",
-        ),
-      ),
-    );
-  }
-  expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
 });
 
 test("admits one user message and projects a finite per-turn stream", async () => {
@@ -387,58 +224,6 @@ test("admits one user message and projects a finite per-turn stream", async () =
     "finish-step",
     "finish",
   ]);
-});
-
-test("admits one client-tool result signal and resumes its assistant id", async () => {
-  const { client, send } = clientWith(completedEvents);
-  const transport = createFlueChatTransport({
-    client,
-    clientToolNames: new Set(["readPetrinautDoc"]),
-  });
-
-  const stream = await transport.sendMessages(
-    sendOptions(
-      [
-        {
-          id: "assistant-original",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "readPetrinautDoc",
-              toolCallId: "tool-1",
-              state: "output-available",
-              input: { doc: "ai-assistant" },
-              output: "The guide.",
-            },
-          ],
-        },
-      ],
-      "assistant-original",
-    ),
-  );
-
-  expect(send).toHaveBeenCalledWith({
-    idempotencyKey: "ai-sdk:client-tools:assistant-original:tool-1",
-    message: {
-      kind: "signal",
-      type: "client-tool-result",
-      tagName: "client-tool-result",
-      body: JSON.stringify([
-        {
-          toolCallId: "tool-1",
-          toolName: "readPetrinautDoc",
-          output: "The guide.",
-        },
-      ]),
-      attributes: { toolCallIds: "tool-1" },
-    },
-    signal: undefined,
-  });
-  expect((await readChunks(stream))[0]).toEqual({
-    type: "start",
-    messageId: "assistant-original",
-  });
 });
 
 test("derives the same idempotency key for exact AI SDK retries", async () => {
@@ -753,58 +538,6 @@ test("stays silent after the consumer cancels the per-turn stream", async () => 
 
   expect(waitSignal?.aborted).toBe(true);
   await expect(reader.closed).resolves.toBeUndefined();
-});
-
-test("reports a client-tool continuation and completion against the resumed assistant id", async () => {
-  const { client } = clientWith(completedEvents);
-  const onResponseMessage =
-    vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
-  const onResponseMessageCompleted =
-    vi.fn<
-      NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
-    >();
-  const transport = createFlueChatTransport({
-    client,
-    clientToolNames: new Set(["readPetrinautDoc"]),
-    onResponseMessage,
-    onResponseMessageCompleted,
-  });
-
-  const stream = await transport.sendMessages(
-    sendOptions(
-      [
-        {
-          id: "assistant-original",
-          role: "assistant",
-          parts: [
-            {
-              type: "dynamic-tool",
-              toolName: "readPetrinautDoc",
-              toolCallId: "tool-1",
-              state: "output-available",
-              input: { doc: "ai-assistant" },
-              output: "The guide.",
-            },
-          ],
-        },
-      ],
-      "assistant-original",
-    ),
-  );
-  await readChunks(stream);
-
-  expect(onResponseMessage).toHaveBeenCalledOnce();
-  expect(onResponseMessage).toHaveBeenCalledWith({
-    messageId: "assistant-original",
-    position: position(0),
-    submissionId: admission.submissionId,
-  });
-  expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
-  expect(onResponseMessageCompleted).toHaveBeenCalledWith({
-    messageId: "assistant-original",
-    position: position(2),
-    submissionId: admission.submissionId,
-  });
 });
 
 test("replays a stable typed or Voice message with the same idempotency key", async () => {

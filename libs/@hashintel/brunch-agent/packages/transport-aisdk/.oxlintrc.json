@@ -25,7 +25,7 @@
           },
           {
             "name": "@hashintel/brunch-agent",
-            "message": "Brunch transports must remain independent of Brunch core."
+            "message": "Brunch transports must remain independent of Brunch core, except its browser-safe `./constants` slice."
           }
         ],
         "patterns": [
@@ -42,8 +42,12 @@
             "message": "Brunch transports may depend on the public Flue SDK, but not a runtime or provider substrate."
           },
           {
-            "group": ["@hashintel/brunch-agent/*", "@hashintel/brunch-agent-*"],
-            "message": "Brunch transports must remain independent of Brunch core and extensions."
+            "group": [
+              "@hashintel/brunch-agent/*",
+              "!@hashintel/brunch-agent/constants",
+              "@hashintel/brunch-agent-*"
+            ],
+            "message": "Brunch transports must remain independent of Brunch core and extensions, except core's browser-safe `./constants` slice."
           }
         ]
       }
