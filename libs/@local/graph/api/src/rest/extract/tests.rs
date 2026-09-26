@@ -237,6 +237,34 @@ async fn query_parameter_unparsable() {
     );
 }
 
+/// Query parameters with a sequence for a field.
+#[derive(Deserialize, JsonSchema)]
+struct Ids {
+    id: Vec<u8>,
+}
+
+#[tokio::test]
+async fn query_repeated_key() {
+    let router: Router = ApiRouter::new()
+        .api_route(
+            "/ids",
+            get(async |Query(Ids { id }): Query<Ids>| axum::Json(id)),
+        )
+        .into();
+
+    let reply = send(router, get_request("/ids?id=1&id=2")).await;
+
+    assert_eq!(
+        reply.status, 200,
+        "a repeated key should reach the handler as a sequence"
+    );
+    assert_eq!(
+        reply.body,
+        json!([1, 2]),
+        "the sequence should hold every occurrence of the key"
+    );
+}
+
 fn documented<'a>(
     document: &'a OpenApi,
     path: &str,

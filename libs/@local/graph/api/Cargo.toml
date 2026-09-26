@@ -55,7 +55,8 @@ problematic                    = { workspace = true, features = ["aide", "axum"]
 type-system                    = { workspace = true, features = ["schemars", "utoipa"] }
 
 # Private third-party dependencies
-aide                 = { workspace = true, features = ["axum", "axum-json", "axum-query"] }
+aide                 = { workspace = true, features = ["axum", "axum-extra-query", "axum-json"] }
+axum-extra           = { workspace = true, features = ["query"] }
 base16ct             = { workspace = true }
 bytes                = { workspace = true }
 clap                 = { workspace = true, optional = true, features = ["derive", "env"] }

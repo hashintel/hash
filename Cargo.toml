@@ -133,6 +133,7 @@ aws-smithy-types                   = { version = "1.6.3", default-features = fal
 aws-types                          = { version = "1.6.0", default-features = false }
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
+axum-extra                         = { version = "0.12.6", default-features = false }
 base16ct                           = { version = "1.0.0", default-features = false }
 base64                             = { version = "0.22.1" }
 bitvec                             = { version = "1.0.1", default-features = false }

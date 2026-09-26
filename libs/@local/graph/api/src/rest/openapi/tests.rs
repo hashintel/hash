@@ -12,7 +12,12 @@ use aide::{
 use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant};
 
 use super::reference_responses;
-use crate::rest::{Api, extract::Path, middleware, openapi, test_utils::NoCredentials};
+use crate::rest::{
+    Api,
+    extract::{Path, Query},
+    middleware, openapi,
+    test_utils::NoCredentials,
+};
 
 /// The request uses an unsupported query.
 #[derive(serde::Serialize, schemars::JsonSchema, derive_more::Display)]
@@ -253,4 +258,91 @@ fn build_panics_on_struct_path_parameter() {
 #[test]
 fn build_accepts_newtype_path_parameter() {
     build_entity_route(|NewtypePath { entity }: NewtypePath| entity.0);
+}
+
+/// Query parameters with a struct for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct StructQuery {
+    entity: Entity,
+}
+
+/// A choice between values with fields of their own.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+enum Filter {
+    ById { id: String },
+    ByName { name: String },
+}
+
+/// Query parameters with an enum of structs for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct EnumQuery {
+    filter: Filter,
+}
+
+/// Query parameters with an optional sequence of structs for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct StructSequenceQuery {
+    entities: Option<Vec<Entity>>,
+}
+
+/// Query parameters with single values and a sequence of them.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct ValuesQuery {
+    ids: Vec<u8>,
+    limit: Option<u8>,
+}
+
+fn build_query_route<T>(read: fn(T) -> String)
+where
+    T: serde::de::DeserializeOwned + schemars::JsonSchema + Send + 'static,
+{
+    let _: Api = openapi::build::<NoCredentials>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new().api_route(
+                "/entities",
+                get(async move |Query(parameters): Query<T>| read(parameters)),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(
+    expected = "should read its query parameter `entity` as a single value or a sequence"
+)]
+fn build_panics_on_struct_query_parameter() {
+    build_query_route(|StructQuery { entity }: StructQuery| entity.id);
+}
+
+#[test]
+#[should_panic(
+    expected = "should read its query parameter `filter` as a single value or a sequence"
+)]
+fn build_panics_on_enum_query_parameter() {
+    build_query_route(|EnumQuery { filter }: EnumQuery| match filter {
+        Filter::ById { id } => id,
+        Filter::ByName { name } => name,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "should read its query parameter `entities` as a single value or a sequence"
+)]
+fn build_panics_on_struct_sequence_query_parameter() {
+    build_query_route(|StructSequenceQuery { entities }: StructSequenceQuery| {
+        entities
+            .unwrap_or_default()
+            .into_iter()
+            .map(|entity| entity.id)
+            .collect()
+    });
+}
+
+#[test]
+fn build_accepts_value_query_parameters() {
+    build_query_route(|ValuesQuery { ids, limit }: ValuesQuery| format!("{ids:?} {limit:?}"));
 }
