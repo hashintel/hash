@@ -23,6 +23,7 @@ import { loadEnv } from "vite";
 import { brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
+import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
 import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 import {
   defaultChatOrigin,
@@ -30,12 +31,25 @@ import {
 } from "../../http/local-origins.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import { submitPersonaBrowserTurn } from "./browser-turn.ts";
-import { checkPersonaConfiguration } from "./configuration.ts";
+import {
+  agentSettingsFromRun,
+  personaAgentLabel,
+  personaAgentPresets,
+  personaAgentShellCommand,
+  personaLaunchPrompt,
+  resolvePersonaAgentSettings,
+  startPersonaAgent,
+  writePersonaHelper,
+  type PersonaAgentProcess,
+  type PersonaAgentSettings,
+} from "./launch/agent.ts";
 import {
   axisSettingsFromRun,
   resolvePersonaAxisSettings,
   type PersonaAxisSettings,
 } from "./launch/axis-settings.ts";
+import { appendAdmittedUtterance } from "./launch/bridge-log.ts";
+import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
 import {
   openRetainedPersonaBrowser,
@@ -47,6 +61,7 @@ import {
   roleSettingsFromRun,
   type PersonaRoleSettings,
 } from "./launch/role-settings.ts";
+import { personaTranscriptFrom } from "./launch/transcript.ts";
 import {
   refreshProofManifest,
   writeProofArtifacts,
@@ -58,7 +73,6 @@ const execute = promisify(execFile);
 const report = (text: string) => process.stdout.write(`${text}\n`);
 const appRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const repoRoot = resolve(appRoot, "../..");
-const entry = fileURLToPath(import.meta.url);
 const panelOrigin = `http://${localPanelListen.host}:${localPanelListen.port}`;
 const casesRoot = join(
   repoRoot,
@@ -102,56 +116,8 @@ export const readPersonaCase = async (directory: string) => {
   return { pack, opening };
 };
 
-export const personaArguments = (
-  run: string,
-  roles: PersonaRoleSettings,
-  axes: PersonaAxisSettings,
-  socketPath: string,
-  piSession?: string,
-) => {
-  const axisDirectory = join(
-    appRoot,
-    ".pi/extensions/brunch-persona-testing/axes",
-  );
-  const axisPromptPaths = [
-    ...(axes.personaVerbosity === "default"
-      ? []
-      : [join(axisDirectory, `verbosity-${axes.personaVerbosity}.md`)]),
-    ...(axes.personaDisclosure === "default"
-      ? []
-      : [join(axisDirectory, `disclosure-${axes.personaDisclosure}.md`)]),
-  ];
-  return [
-    "--model",
-    roles.personaModel,
-    "--thinking",
-    roles.personaThinking,
-    "--no-extensions",
-    "--extension",
-    join(appRoot, ".pi/extensions/brunch-persona-testing.ts"),
-    "--no-builtin-tools",
-    "--tools",
-    "brunch_turn",
-    "--no-skills",
-    "--no-prompt-templates",
-    "--no-context-files",
-    "--append-system-prompt",
-    join(appRoot, ".pi/extensions/brunch-persona-testing/SYSTEM.md"),
-    ...axisPromptPaths.flatMap((path) => ["--append-system-prompt", path]),
-    "--brunch-browser-bridge",
-    socketPath,
-    "--session-dir",
-    join(run, "pi/sessions"),
-    ...(piSession ? ["--session", piSession] : []),
-    "--approve",
-    "--",
-    `@${join(run, piSession ? "resume-input.md" : "persona-input.md")}`,
-  ];
-};
-
 const save = (path: string, value: unknown) =>
   writeFile(path, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
-const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 export const personaEnvironment = (
@@ -170,23 +136,6 @@ export const personaEnvironment = (
   loaded[brunchEnv.stepAAccounting] = "";
   return loaded;
 };
-export const paneIdFrom = (stdout: string) => {
-  const parsed: unknown = JSON.parse(stdout);
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    "result" in parsed &&
-    parsed.result &&
-    typeof parsed.result === "object" &&
-    "pane" in parsed.result &&
-    parsed.result.pane &&
-    typeof parsed.result.pane === "object" &&
-    "pane_id" in parsed.result.pane &&
-    typeof parsed.result.pane.pane_id === "string"
-  )
-    return parsed.result.pane.pane_id;
-  throw new Error("herdr pane split did not return a pane id");
-};
 
 export const recordingReadySummary = ({
   title,
@@ -194,6 +143,7 @@ export const recordingReadySummary = ({
   browserProfile,
   roles,
   axes,
+  agent,
   resume,
 }: {
   title: string;
@@ -201,85 +151,22 @@ export const recordingReadySummary = ({
   browserProfile: string;
   roles: PersonaRoleSettings;
   axes: PersonaAxisSettings;
+  agent: PersonaAgentSettings;
   resume: boolean;
 }) =>
-  `Chrome window: ${title}\nURL: ${url}\nProfile: ${browserProfile}\nModels: Brunch ${roles.brunchModel} (${roles.brunchThinking}) + Pi ${roles.personaModel} (${roles.personaThinking})\nPersona axes: verbosity ${axes.personaVerbosity}; disclosure ${axes.personaDisclosure}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`;
+  `Chrome window: ${title}\nURL: ${url}\nProfile: ${browserProfile}\nBrunch: ${roles.brunchModel} (${roles.brunchThinking})\nPersona agent: ${personaAgentLabel(agent)}\nPersona axes: verbosity ${axes.personaVerbosity}; disclosure ${axes.personaDisclosure}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and the persona agent have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`;
 
 export const personaSettingsRecord = (
   roles: PersonaRoleSettings,
   axes: PersonaAxisSettings,
+  agent: PersonaAgentSettings,
 ) => ({
   brunchModel: roles.brunchModel,
   brunchThinking: roles.brunchThinking,
-  personaModel: roles.personaModel,
-  personaThinking: roles.personaThinking,
   personaVerbosity: axes.personaVerbosity,
   personaDisclosure: axes.personaDisclosure,
+  personaAgent: agent,
 });
-
-const runPersona = async (run: string) => {
-  const config: unknown = JSON.parse(
-    await readFile(join(run, "run.json"), "utf8"),
-  );
-  const roles = roleSettingsFromRun(config);
-  const axes = axisSettingsFromRun(config);
-  const fields =
-    typeof config === "object" && config !== null && !Array.isArray(config)
-      ? (config as Record<string, unknown>)
-      : {};
-  const socketPath =
-    typeof fields.socketPath === "string" ? fields.socketPath : undefined;
-  const piSession =
-    typeof fields.piSession === "string" ? fields.piSession : undefined;
-  if (!socketPath) throw new Error("Persona run is missing its private socket");
-  const credentials = checkPersonaConfiguration(
-    {
-      ...process.env,
-      PI_CODING_AGENT_DIR: join(run, "pi"),
-      PI_OFFLINE: "1",
-    },
-    roles.personaModel,
-  );
-  const child = spawn(
-    "pi",
-    personaArguments(run, roles, axes, socketPath, piSession),
-    {
-      cwd: appRoot,
-      stdio: "inherit",
-      env: {
-        // The pane supplies the selected credential; do not reload app env files
-        // or inherit server credentials and executable configuration into Pi.
-        ...Object.fromEntries(
-          [
-            "PATH",
-            "HOME",
-            "USER",
-            "LOGNAME",
-            "SHELL",
-            "TERM",
-            "COLORTERM",
-            "LANG",
-            "LC_ALL",
-            "LC_CTYPE",
-            "TMPDIR",
-          ].map((name) => [name, process.env[name]]),
-        ),
-        ...credentials,
-        PI_CODING_AGENT_DIR: join(run, "pi"),
-        PI_SUBAGENT_NAME: basename(run),
-        PI_OFFLINE: "1",
-        PI_TELEMETRY: "0",
-      },
-    },
-  );
-  await new Promise<void>((done, reject) => {
-    child.once("error", reject);
-    child.once("exit", (code) => {
-      process.exitCode = code ?? 1;
-      done();
-    });
-  });
-};
 
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -400,31 +287,55 @@ export const responds = async (
   }
 };
 
-/** One local operator command; run directories contain data, never launch scripts. */
-const launchPersona = async (
-  caseDirectory: string,
-  objective?: string,
+type PersonaLaunchOptions = {
+  readonly caseDirectory: string;
+  readonly objective?: string;
+  readonly route?: string;
+  readonly initialNetPath?: string;
+  readonly resume?: Awaited<ReturnType<typeof readPersonaResume>>;
+  readonly roles?: PersonaRoleSettings;
+  readonly axes?: PersonaAxisSettings;
+  /** Undefined on resume reuses the original run's agent. */
+  readonly agent?: PersonaAgentSettings;
+  /** Wait for Enter before the first message; only possible on a TTY. */
+  readonly recordingPause?: boolean;
+};
+
+/**
+ * One local command: services, Chrome, the browser bridge and, optionally,
+ * the persona agent. The run directory holds data plus the bridge helper.
+ */
+const launchPersona = async ({
+  caseDirectory,
+  objective,
   route = "/",
-  initialNetPath?: string,
-  resume?: Awaited<ReturnType<typeof readPersonaResume>>,
-  roles: PersonaRoleSettings = resolvePersonaRoleSettings(),
-  axes: PersonaAxisSettings = resolvePersonaAxisSettings(),
-) => {
+  initialNetPath,
+  resume,
+  roles = resolvePersonaRoleSettings(),
+  axes = resolvePersonaAxisSettings(),
+  agent,
+  recordingPause: pauseForRecording = true,
+}: PersonaLaunchOptions) => {
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
     : await readPersonaCase(caseDirectory);
-  if (process.env.HERDR_ENV !== "1")
-    throw new Error("Run brunch:persona from a Herdr terminal");
-  if (!process.stdin.isTTY)
+  const settings = resume ? roleSettingsFromRun(resume.config) : roles;
+  const axisSettings = resume ? axisSettingsFromRun(resume.config) : axes;
+  const agentSettings =
+    agent ?? (resume ? agentSettingsFromRun(resume.config) : {});
+  if (
+    (agentSettings.agent !== undefined ||
+      agentSettings.agentCommand !== undefined) &&
+    process.env.HERDR_ENV !== "1" &&
+    !process.stdin.isTTY
+  )
     throw new Error(
-      "Use an interactive terminal for the recording-ready prompt",
+      "Without Herdr the persona agent needs an interactive terminal; run from a terminal or Herdr, or omit --agent and start the agent yourself",
     );
   if (resume && panelOrigin !== resume.config.panelOrigin)
     throw new Error(
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
     );
-  const settings = resume ? roleSettingsFromRun(resume.config) : roles;
-  const axisSettings = resume ? axisSettingsFromRun(resume.config) : axes;
   const env = personaEnvironment(settings);
   const initialNet =
     initialNetPath === undefined
@@ -452,23 +363,9 @@ const launchPersona = async (
   const browserProfile =
     resume?.config.browserProfile ??
     (await mkdtemp(join(tmpdir(), "brunch-persona-browser-")));
-  if (!resume) {
-    await mkdir(join(run, "pi"), { mode: 0o700 });
-    await save(join(run, "pi/settings.json"), {
-      retry: { enabled: false, provider: { maxRetries: 0 } },
-    });
-  }
-  const credentials = checkPersonaConfiguration(
-    {
-      ...env,
-      PI_CODING_AGENT_DIR: join(run, "pi"),
-      PI_OFFLINE: "1",
-    },
-    settings.personaModel,
-  );
   const record = {
     caseDirectory,
-    ...personaSettingsRecord(settings, axisSettings),
+    ...personaSettingsRecord(settings, axisSettings, agentSettings),
     databasePath: env[brunchEnv.devDbPath],
     browserProfile,
     panelOrigin,
@@ -481,6 +378,7 @@ const launchPersona = async (
         }),
     createdAt: new Date().toISOString(),
     ...resume?.config,
+    ...(resume ? { personaAgent: agentSettings } : {}),
   };
   if (!resume) await save(join(run, "run.json"), record);
   report(`Run: ${run}`);
@@ -512,7 +410,9 @@ const launchPersona = async (
   let page: Page | undefined;
   let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
   let documentId: string | undefined;
-  let pane: string | undefined;
+  let agentProcess: PersonaAgentProcess | undefined;
+  // Set from bridge and child-process callbacks.
+  const lifecycle = { endedByPersona: false, agentExited: false };
   let activeAdmission:
     | { client: FlueClient; receipt: AgentSendResult }
     | undefined;
@@ -520,7 +420,11 @@ const launchPersona = async (
     if (stop.signal.aborted) return;
     stop.abort();
   };
-  process.on("SIGINT", interrupt);
+  // A foreground agent shares this terminal; its own Ctrl-C must not end the run.
+  const onInterruptKey = () => {
+    if (agentProcess?.kind !== "foreground") interrupt();
+  };
+  process.on("SIGINT", onInterruptKey);
   process.on("SIGTERM", interrupt);
   try {
     const preflight = await execute(
@@ -537,7 +441,7 @@ const launchPersona = async (
       { mode: 0o600 },
     );
     report(
-      `Brunch ${settings.brunchModel} (${settings.brunchThinking}) configuration verified; credential validity untested. Pi verifies ${settings.personaModel} (${settings.personaThinking}) on startup.`,
+      `Brunch ${settings.brunchModel} (${settings.brunchThinking}) configuration verified; credential validity untested.`,
     );
     const services = [
       { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
@@ -639,6 +543,7 @@ const launchPersona = async (
         document.title = value;
       }, title);
       await personaPage.bringToFront();
+      if (!pauseForRecording || !process.stdin.isTTY) return;
       report(
         recordingReadySummary({
           title,
@@ -646,6 +551,7 @@ const launchPersona = async (
           browserProfile,
           roles: settings,
           axes: axisSettings,
+          agent: agentSettings,
           resume: resume !== undefined,
         }),
       );
@@ -673,16 +579,12 @@ const launchPersona = async (
       await recordingPause();
       for (const service of services)
         if (service.script === "dev:brunch:server") await startService(service);
-      const reconciled = await reconcilePersonaResume(
+      return reconcilePersonaResume(
         personaPage,
         retained.session,
         retained.lastUtterance,
         stop.signal,
       );
-      await writeFile(join(run, "resume-input.md"), reconciled.prompt, {
-        mode: 0o600,
-      });
-      return { ...reconciled, reply: { text: "" } };
     };
     report(
       resume
@@ -690,110 +592,131 @@ const launchPersona = async (
         : "Opening a fresh browser conversation…",
     );
     const opened = resume
-      ? await reopen(resume)
-      : await openPersonaConversation(personaPage, panelOrigin, opening, {
-          route,
-          sessionPath: join(run, "session.json"),
-          signal: stop.signal,
-          beforeOpening: recordingPause,
-        });
+      ? { kind: "resumed" as const, ...(await reopen(resume)) }
+      : {
+          kind: "fresh" as const,
+          ...(await openPersonaConversation(personaPage, panelOrigin, opening, {
+            route,
+            sessionPath: join(run, "session.json"),
+            signal: stop.signal,
+            beforeOpening: recordingPause,
+          })),
+        };
+    if (opened.kind === "fresh")
+      await appendAdmittedUtterance(run, "opening", opening);
     documentId = documentIdFromInitialData(opened.session.initialData);
     await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
-    bridge = await openPersonaBrowserBridge(async (message, signal) => {
-      try {
-        const result = await submitPersonaBrowserTurn(personaPage, message, {
-          session: opened.session,
-          signal: AbortSignal.any([signal, stop.signal]),
-          onAdmission: async (session, receipt) => {
-            activeAdmission = {
-              client: createFlueClient({
-                url: session.url,
-                headers: agentOwnershipHeaders(session),
-              }),
-              receipt,
-            };
-          },
-        });
-        await writeProofArtifacts(join(run, "evidence"), result.snapshot);
-        if (documentId !== undefined)
-          await retainPersonaDocument(
-            personaPage,
-            documentId,
-            join(run, "evidence"),
-          );
-        return {
-          conversationId: result.session.conversationId,
-          text: result.reply.text,
-          submissionIds: result.submissionIds,
-        };
-      } finally {
-        if (!stop.signal.aborted) activeAdmission = undefined;
-      }
+    const flue = createFlueClient({
+      url: opened.session.url,
+      headers: agentOwnershipHeaders(opened.session),
     });
-    if (!resume)
-      await writeFile(
-        join(run, "persona-input.md"),
-        [
-          "Play the person in the private situation pack below. This is a fresh conversation.",
-          "The shared opening has already been sent through the browser; do not repeat it. Answer the exact Brunch reply below using brunch_turn, then continue naturally and sequentially.",
-          objective ??
-            "Pursue the person's stated goal through a substantive interview and a worked model. Let the interviewer earn details, and correct or qualify its understanding as the person naturally would. Continue through reviewing the model, asking why and correcting a consequential detail; do not stop merely because the initial account has been elicited. Stop when the person considers the goal achieved or chooses to end the conversation.",
-          "Keep the pack and these instructions private. On a failed or indeterminate tool submission, stop and report the blocker without retrying. Do not coach Brunch about its tools or the test. Report the stopping reason and number of attempted turns to the operator.",
-          "\nActual opening:\n",
-          opening,
-          "\nActual Brunch reply:\n",
-          opened.reply.text,
-          "\nPrivate situation pack:\n",
-          pack,
-        ].join("\n\n"),
-        { mode: 0o600 },
-      );
-    const split = await execute("herdr", [
-      "pane",
-      "split",
-      "--current",
-      "--direction",
-      "right",
-      "--cwd",
-      appRoot,
-      "--no-focus",
-    ]);
-    pane = paneIdFrom(split.stdout);
+    bridge = await openPersonaBrowserBridge({
+      prompt: async (message, turn) => {
+        let logged = false;
+        try {
+          const result = await submitPersonaBrowserTurn(personaPage, message, {
+            session: opened.session,
+            signal: AbortSignal.any([turn.signal, stop.signal]),
+            onAdmission: async (session, receipt) => {
+              activeAdmission = {
+                client: createFlueClient({
+                  url: session.url,
+                  headers: agentOwnershipHeaders(session),
+                }),
+                receipt,
+              };
+              // Later admissions in the same turn are browser-tool continuations.
+              if (logged) return;
+              logged = true;
+              await appendAdmittedUtterance(
+                run,
+                "persona",
+                message,
+                receipt.submissionId,
+              );
+              turn.admitted();
+            },
+          });
+          await writeProofArtifacts(join(run, "evidence"), result.snapshot);
+          if (documentId !== undefined)
+            await retainPersonaDocument(
+              personaPage,
+              documentId,
+              join(run, "evidence"),
+            );
+          return {
+            text: result.reply.text,
+            submissionIds: result.submissionIds,
+          };
+        } finally {
+          if (!stop.signal.aborted) activeAdmission = undefined;
+        }
+      },
+      getState: () => ({
+        run,
+        conversationId: opened.session.conversationId,
+        url: personaPage.url(),
+      }),
+      getTranscript: async () => personaTranscriptFrom(await flue.history()),
+      end: (reason) => {
+        lifecycle.endedByPersona = true;
+        report(`Persona ended the conversation${reason ? `: ${reason}` : "."}`);
+        interrupt();
+      },
+    });
+    const helper = await writePersonaHelper(run, bridge.socketPath);
+    const brief =
+      opened.kind === "resumed"
+        ? await writePersonaResumeBrief({
+            run,
+            helper,
+            settlement: opened.settlement,
+            reply: opened.reply,
+          })
+        : await writePersonaBrief({
+            run,
+            helper,
+            axes: axisSettings,
+            objective,
+            opening,
+            reply: opened.reply.text,
+            pack,
+          });
     await save(join(run, "run.json"), {
       ...record,
-      ...(resume ? { piSession: resume.piSession } : {}),
-      pane,
       socketPath: bridge.socketPath,
       startedPids: started.map((child) => child.pid),
     });
-    // Credentials stay in a run-private env file, never in Herdr/process argv.
-    await writeFile(
-      join(run, "pane.env"),
-      Object.entries(credentials)
-        .map(([variable, value]) => `export ${variable}=${shellQuote(value)}`)
-        .join("\n") + "\n",
-      { mode: 0o600 },
-    );
-    await execute("herdr", [
-      "pane",
-      "run",
-      pane,
-      [
-        "set -a",
-        `. ${shellQuote(join(run, "pane.env"))}`,
-        "set +a",
-        [
-          shellQuote(process.execPath),
-          "--experimental-strip-types",
-          shellQuote(entry),
-          "--run-persona",
-          shellQuote(run),
-        ].join(" "),
-      ].join(" && "),
-    ]);
-    report(
-      `Persona: ${pane}. Browser follows the same conversation. Ctrl-C stops this launcher and its owned resources; run data is retained.`,
-    );
+    const launchPrompt = personaLaunchPrompt(brief);
+    const agentCommand = personaAgentShellCommand(agentSettings, launchPrompt);
+    if (agentCommand === undefined) {
+      report(
+        `Browser bridge ready. Start any coding agent in ${run} with this prompt:\n\n  ${launchPrompt}\n\nPersona command: ${helper}\nCtrl-C stops this launcher and its owned resources; run data is retained.`,
+      );
+    } else {
+      agentProcess = await startPersonaAgent({
+        run,
+        socketPath: bridge.socketPath,
+        command: agentCommand,
+      });
+      if (agentProcess.kind === "herdr") {
+        await save(join(run, "run.json"), {
+          ...record,
+          socketPath: bridge.socketPath,
+          startedPids: started.map((child) => child.pid),
+          pane: agentProcess.pane,
+        });
+        report(
+          `Persona agent: Herdr pane ${agentProcess.pane}. The browser follows the same conversation. Ctrl-C here stops this launcher and its owned resources; run data is retained.`,
+        );
+      } else {
+        const onAgentExit = () => {
+          lifecycle.agentExited = true;
+          interrupt();
+        };
+        void agentProcess.exited.then(onAgentExit, onAgentExit);
+      }
+    }
     if (!stop.signal.aborted)
       await new Promise<void>((done) =>
         stop.signal.addEventListener("abort", () => done(), { once: true }),
@@ -821,12 +744,17 @@ const launchPersona = async (
         stopStartedServices();
       }
       await bridge?.close();
-      if (pane)
-        await execute("herdr", ["pane", "close", pane]).catch(() => {
-          process.stderr.write(
-            `Could not close persona pane ${pane}; inspect it in Herdr.\n`,
-          );
-        });
+      if (agentProcess?.kind === "herdr") {
+        const { pane } = agentProcess;
+        // After `end` the agent still owes the operator its report.
+        if (lifecycle.endedByPersona) report(`Persona pane ${pane} left open.`);
+        else
+          await execute("herdr", ["pane", "close", pane]).catch(() => {
+            process.stderr.write(
+              `Could not close persona pane ${pane}; inspect it in Herdr.\n`,
+            );
+          });
+      }
       try {
         try {
           if (page && !page.isClosed() && documentId !== undefined)
@@ -842,8 +770,12 @@ const launchPersona = async (
         stopStartedServices();
         report(`Retained run: ${run}`);
       }
+      if (agentProcess?.kind === "foreground" && !lifecycle.agentExited) {
+        report("The run is closed; exit the persona agent when you are done.");
+        await agentProcess.exited.catch(() => undefined);
+      }
     } finally {
-      process.removeListener("SIGINT", interrupt);
+      process.removeListener("SIGINT", onInterruptKey);
       process.removeListener("SIGTERM", interrupt);
     }
   }
@@ -862,21 +794,26 @@ if (
       route: { type: "string" },
       "brunch-model": { type: "string" },
       "brunch-thinking": { type: "string" },
-      "persona-model": { type: "string" },
-      "persona-thinking": { type: "string" },
       "persona-verbosity": { type: "string" },
       "persona-disclosure": { type: "string" },
+      agent: { type: "string" },
+      "agent-command": { type: "string" },
+      "persona-model": { type: "string" },
+      "persona-thinking": { type: "string" },
+      "skip-recording-pause": { type: "boolean" },
       resume: { type: "string" },
-      "run-persona": { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>] [--persona-verbosity terse|default|expansive] [--persona-disclosure reticent|default|forthcoming]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low, persona verbosity default, persona disclosure default. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and each selected provider's API key (OPENAI_API_KEY or ANTHROPIC_API_KEY). Ctrl-C stops owned resources; run data is retained.`,
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-verbosity terse|default|expansive] [--persona-disclosure reticent|default|forthcoming] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}, persona verbosity default, persona disclosure default. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. Ctrl-C stops owned resources; run data is retained.`,
     );
     report(
-      `Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database, exact Pi session, and retained effective persona axes. Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md`,
+      `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
+    );
+    report(
+      `Resume: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile, database and retained effective persona axes, and starts a fresh persona agent with a resume notice (the original agent unless agent options are given). Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/src/evaluations/persona/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
@@ -890,63 +827,73 @@ if (
       (isAbsolute(selected) || selected.includes("/")
         ? resolve(process.env.INIT_CWD ?? process.cwd(), selected)
         : join(casesRoot, selected));
-    const resumeRun = async () => {
+    const agentOptions = [
+      values.agent,
+      values["agent-command"],
+      values["persona-model"],
+      values["persona-thinking"],
+    ];
+    const agent = () =>
+      agentOptions.some((value) => value !== undefined)
+        ? resolvePersonaAgentSettings({
+            agent: values.agent,
+            agentCommand: values["agent-command"],
+            personaModel: values["persona-model"],
+            personaThinking: values["persona-thinking"],
+          })
+        : undefined;
+    const recordingPause = !values["skip-recording-pause"];
+    const resumeRun = async (resumeDirectory: string) => {
       if (
-        !values.resume ||
         values.case ||
         values.objective ||
         values.route ||
         values["initial-net"] ||
         values["brunch-model"] ||
         values["brunch-thinking"] ||
-        values["persona-model"] ||
-        values["persona-thinking"] ||
         values["persona-verbosity"] ||
-        values["persona-disclosure"] ||
-        values["run-persona"]
+        values["persona-disclosure"]
       )
-        throw new Error(
-          "--resume cannot be combined with fresh-run options or --run-persona",
-        );
+        throw new Error("--resume cannot be combined with fresh-run options");
+      const selectedAgent = agent();
       const retained = await readPersonaResume(
-        resolve(process.env.INIT_CWD ?? process.cwd(), values.resume),
+        resolve(process.env.INIT_CWD ?? process.cwd(), resumeDirectory),
       );
-      await launchPersona(
-        retained.config.caseDirectory,
-        undefined,
-        retained.config.route,
-        undefined,
-        retained,
-      );
+      await launchPersona({
+        caseDirectory: retained.config.caseDirectory,
+        route: retained.config.route,
+        resume: retained,
+        agent: selectedAgent,
+        recordingPause,
+      });
     };
-    const task = values.resume
-      ? resumeRun()
-      : values["run-persona"]
-        ? runPersona(resolve(values["run-persona"]))
-        : directory
-          ? launchPersona(
-              directory,
-              values.objective,
-              values.route,
-              values["initial-net"]
-                ? resolve(
-                    process.env.INIT_CWD ?? process.cwd(),
-                    values["initial-net"],
-                  )
-                : undefined,
-              undefined,
-              resolvePersonaRoleSettings({
-                brunchModel: values["brunch-model"],
-                brunchThinking: values["brunch-thinking"],
-                personaModel: values["persona-model"],
-                personaThinking: values["persona-thinking"],
-              }),
-              resolvePersonaAxisSettings({
-                personaVerbosity: values["persona-verbosity"],
-                personaDisclosure: values["persona-disclosure"],
-              }),
+    const freshRun = async (caseDirectory: string) =>
+      launchPersona({
+        caseDirectory,
+        objective: values.objective,
+        route: values.route,
+        initialNetPath: values["initial-net"]
+          ? resolve(
+              process.env.INIT_CWD ?? process.cwd(),
+              values["initial-net"],
             )
-          : Promise.reject(new Error("Supply --case <name-or-directory>"));
+          : undefined,
+        roles: resolvePersonaRoleSettings({
+          brunchModel: values["brunch-model"],
+          brunchThinking: values["brunch-thinking"],
+        }),
+        axes: resolvePersonaAxisSettings({
+          personaVerbosity: values["persona-verbosity"],
+          personaDisclosure: values["persona-disclosure"],
+        }),
+        agent: agent() ?? {},
+        recordingPause,
+      });
+    const task = values.resume
+      ? resumeRun(values.resume)
+      : directory
+        ? freshRun(directory)
+        : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {
       process.stderr.write(
         `${error instanceof Error ? error.message : "Persona launch failed"}\n`,

@@ -9,18 +9,15 @@ import {
   LEGACY_PERSONA_THINKING,
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
-  PERSONA_DEFAULT_PERSONA_MODEL,
-  PERSONA_DEFAULT_PERSONA_THINKING,
   STEP_A_MODEL_ID,
   type ChatThinkingLevel,
 } from "../../../chat-model.ts";
 import { openaiProviderWithGpt6 } from "../../../openai-provider.ts";
 
+/** Brunch's own model; the persona agent chooses its model through its harness. */
 export type PersonaRoleSettings = {
   brunchModel: string;
   brunchThinking: ChatThinkingLevel;
-  personaModel: string;
-  personaThinking: ChatThinkingLevel;
 };
 
 const catalog = () => {
@@ -57,24 +54,13 @@ export const resolvePersonaRoleSettings = (
   input: {
     brunchModel?: string;
     brunchThinking?: string;
-    personaModel?: string;
-    personaThinking?: string;
   } = {},
 ): PersonaRoleSettings => {
   const brunch = resolveRoleSelection(
     input.brunchModel ?? DEFAULT_CHAT_MODEL,
     input.brunchThinking ?? DEFAULT_CHAT_THINKING,
   );
-  const persona = resolveRoleSelection(
-    input.personaModel ?? PERSONA_DEFAULT_PERSONA_MODEL,
-    input.personaThinking ?? PERSONA_DEFAULT_PERSONA_THINKING,
-  );
-  return {
-    brunchModel: brunch.specifier,
-    brunchThinking: brunch.thinking,
-    personaModel: persona.specifier,
-    personaThinking: persona.thinking,
-  };
+  return { brunchModel: brunch.specifier, brunchThinking: brunch.thinking };
 };
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -84,28 +70,19 @@ export const roleSettingsFromRun = (config: unknown): PersonaRoleSettings => {
   if (!record(config)) throw new Error("Persona run is missing role settings");
   if (
     typeof config.brunchModel === "string" &&
-    typeof config.brunchThinking === "string" &&
-    typeof config.personaModel === "string" &&
-    typeof config.personaThinking === "string"
+    typeof config.brunchThinking === "string"
   ) {
-    if (
-      !isChatThinkingLevel(config.brunchThinking) ||
-      !isChatThinkingLevel(config.personaThinking)
-    )
+    if (!isChatThinkingLevel(config.brunchThinking))
       throw new Error("Persona run has an unsupported thinking level");
     return {
       brunchModel: config.brunchModel,
       brunchThinking: config.brunchThinking,
-      personaModel: config.personaModel,
-      personaThinking: config.personaThinking,
     };
   }
   if (config.model === STEP_A_MODEL_ID) {
     return {
       brunchModel: `anthropic/${STEP_A_MODEL_ID}`,
       brunchThinking: LEGACY_PERSONA_THINKING,
-      personaModel: `anthropic/${STEP_A_MODEL_ID}`,
-      personaThinking: LEGACY_PERSONA_THINKING,
     };
   }
   throw new Error("Persona run is missing role model settings");

@@ -12,14 +12,14 @@ The first step builds the Petrinaut libraries the panel imports (`dist/` and des
 
 Native Stock remains a separate assistant choice. Brunch conversations use integrated mode (`I`); `VITE_PETRINAUT_DEFAULT_ASSISTANT` selects native Stock or Brunch.
 
-For browser-visible persona testing, use the [persona launcher and operator guide](.pi/extensions/brunch-persona-testing/README.md):
+For browser-visible persona testing, use the [persona launcher and operator guide](src/evaluations/persona/README.md):
 
 ```sh
 yarn brunch:persona --list-cases
-yarn brunch:persona --case inventory-purchasing
+yarn brunch:persona --case inventory-purchasing --agent claude
 ```
 
-The launcher opens a dedicated Chrome window, pauses for recording readiness, then drives the real panel with a private Pi persona. Petrinaut's stock tool calls update the visible net. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. There is no automatic budget cutoff; native usage is retained. The guide owns prerequisites, stop/resume and evidence instructions; consult it before paid execution.
+The launcher opens a dedicated Chrome window, pauses for recording readiness, then lets any coding agent play the simulated person: the agent talks to Brunch through a small command-line helper, and the launcher types each message into the real panel. Petrinaut's stock tool calls update the visible net. Select any listed case or a directory containing `situation-pack.md` and `opening-message.md`. There is no automatic budget cutoff; native usage is retained. The guide owns prerequisites, stop/resume and evidence instructions; consult it before paid execution.
 
 By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
