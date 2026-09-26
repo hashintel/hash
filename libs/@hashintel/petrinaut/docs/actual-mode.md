@@ -14,7 +14,7 @@ The demo website enables Actual mode on the `/brunch` route when the URL include
 
 Petrinaut connects to the stream, waits for the Petri net definition and initial state, lays out the net if the stream did not include node positions, and then shows the net in Actual mode.
 
-If the stream connection is interrupted, Petrinaut keeps any loaded Actual mode data visible and waits for the browser to reconnect. Once the connection is restored, the Brunch stream replays the run from the beginning and Petrinaut rebuilds the timeline and events from that replay, so an interruption does not duplicate transition events or miss ones that fired while disconnected. If the stream sends invalid data, Petrinaut shows an error page with a link back to the normal demo site.
+If the stream connection is interrupted, Petrinaut keeps any loaded Actual mode data visible and waits for the browser to reconnect. Once the connection is restored, the Brunch stream replays the run from the beginning and Petrinaut rebuilds the timeline and events from that replay, so an interruption does not duplicate transition events or miss ones that fired while disconnected. If the stream sends invalid data, such as a token record that does not match its place or a transition that consumes a token the place does not hold, Petrinaut shows an error page with a link back to the normal demo site.
 
 ## Timeline and events
 
@@ -26,13 +26,13 @@ Choose **Export Stream** to download the received event stream. Brunch stream ex
 
 Choose **Export Net** to download a normal Petrinaut net file (YAML). This file contains the read-only Petri net currently shown in Actual mode and can be imported back into Petrinaut like other net exports.
 
-For Brunch, the export is a JSON object with an `events` array. Each item stores the SSE event name and the parsed JSON payload exactly as Petrinaut received it. Transition payloads store the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
+For Brunch, the export is a JSON object with an `events` array. Each item stores the SSE event name and the parsed JSON payload exactly as Petrinaut received it. Transition payloads store the tokens the firing consumed and produced rather than a full before/after snapshot. The `inputTokens` and `outputTokens` fields list one record per token, keyed by place id. A record carries a value for every element of the place's colour, and is empty (`{}`) for a place without a colour. Brunch nets have no colours, so their records are empty:
 
 ```json
 {
   "transitionId": "start_implementation",
-  "input": { "queued": 1 },
-  "output": { "implementing": 1 },
+  "inputTokens": { "queued": [{}] },
+  "outputTokens": { "implementing": [{}] },
   "ts": "2026-06-05T17:17:27.866Z"
 }
 ```

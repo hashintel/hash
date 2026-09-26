@@ -113,6 +113,23 @@ export type Place = {
   y: number;
 };
 
+/**
+ * A named instance identity, e.g. "ticket": the thing whose per-instance
+ * status a status view tracks. Colour elements reference it via
+ * `identityRef` to mark themselves as key elements, so identity is declared
+ * once and correlates keys across colours without relying on element-name
+ * equality.
+ */
+export type Identity = {
+  id: ID;
+  name: string;
+  /**
+   * Type(s) of the key element(s), in key order; two or more entries form a
+   * compound key, correlated by tuple equality.
+   */
+  keyElementTypes: ColorElementType[];
+};
+
 export type Color = {
   id: ID;
   name: string;
@@ -123,6 +140,12 @@ export type Color = {
     elementId: string;
     name: string;
     type: ColorElementType;
+    /**
+     * Id of the Identity whose key this element carries; setting it marks
+     * the element as a key element. Tokens whose key elements are
+     * tuple-equal are the same instance, across colours.
+     */
+    identityRef?: ID;
   }[];
 };
 
@@ -337,6 +360,53 @@ export type Metric = {
 };
 
 /**
+ * One named status within a status view, mapped to the places whose tokens
+ * carry it. Labels are many-to-one: several places can map to the same label.
+ */
+export type StatusLabel = {
+  id: ID;
+  name: string;
+  /** CSS colour used for the label's badge, tint, and Kanban column. */
+  displayColor: string;
+  /**
+   * Places whose tokens carry this label. A componentInstance's copy of a
+   * subnet place is addressed by scoped id (`instanceId::placeId`, see
+   * `scoped-ids.ts`). Empty for an exit label.
+   */
+  places: ID[];
+  /**
+   * Optional boolean expression over the token's attributes; the label
+   * applies only while the token is in the label's places AND the
+   * expression holds.
+   */
+  tokenCondition?: string;
+  /**
+   * Marks the view's exit label, assigned to an instance whose token has
+   * left every place of the view's labels. At most one per view, and it
+   * has no places.
+   */
+  isExit?: boolean;
+};
+
+/**
+ * A user-defined mapping from net state to named statuses for the instances
+ * of one identity: which label each tracked instance carries is derived from
+ * where its token sits (and the labels' token conditions), never stored.
+ */
+export type StatusView = {
+  id: ID;
+  name: string;
+  description?: string;
+  /** Id of the Identity this view tracks. */
+  identityRef: ID;
+  /**
+   * Position in this array is the label's order: the Kanban column
+   * position and the legend position.
+   */
+  labels: StatusLabel[];
+};
+
+/**
  * An instance of a subnet placed inside another net.
  */
 export type ComponentInstance = {
@@ -383,6 +453,8 @@ export type SDCPN = {
   parameters: Parameter[];
   scenarios?: Scenario[];
   metrics?: Metric[];
+  identities?: Identity[];
+  statusViews?: StatusView[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
 };

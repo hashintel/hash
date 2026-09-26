@@ -26,12 +26,15 @@ import http, { type ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
+import { ACTUAL_MODE_RECORDING_VERSION } from "@hashintel/petrinaut-core";
+
 import type {
   BrunchNetDefinitionInput,
   BrunchTransitionInput,
 } from "../src/main/app/brunch-demo/brunch-protocol";
 import type {
   ActualModeReceivedEvent,
+  ActualModeTokenValues,
   ActualModeTransitionFiring,
 } from "@hashintel/petrinaut-core";
 
@@ -192,25 +195,27 @@ const parseNumericMarking = (data: unknown, label: string): NumericMarking => {
   return marking;
 };
 
-const parseTransitionEffect = (
+const parseTokenValues = (
   data: unknown,
   label: string,
-): ActualModeTransitionFiring["input"] => {
+): ActualModeTokenValues => {
   if (!isRecord(data)) {
     throw new Error(`Recording ${label} must be an object.`);
   }
 
-  const effect: ActualModeTransitionFiring["input"] = {};
+  const tokenValues: ActualModeTokenValues = {};
 
-  for (const [placeId, value] of Object.entries(data)) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      throw new Error(`Recording ${label}.${placeId} must be a finite number.`);
+  for (const [placeId, tokens] of Object.entries(data)) {
+    if (!Array.isArray(tokens) || !tokens.every(isRecord)) {
+      throw new Error(
+        `Recording ${label}.${placeId} must be an array of token records.`,
+      );
     }
 
-    effect[placeId] = value;
+    tokenValues[placeId] = tokens as ActualModeTokenValues[string];
   }
 
-  return effect;
+  return tokenValues;
 };
 
 const parseTransitionFiring = (
@@ -233,8 +238,8 @@ const parseTransitionFiring = (
 
   return {
     transitionId: data.transitionId,
-    input: parseTransitionEffect(data.input, `${label}.input`),
-    output: parseTransitionEffect(data.output, `${label}.output`),
+    inputTokens: parseTokenValues(data.inputTokens, `${label}.inputTokens`),
+    outputTokens: parseTokenValues(data.outputTokens, `${label}.outputTokens`),
     ts: data.ts,
   };
 };
@@ -413,6 +418,12 @@ const parseRecordingEvents = (data: unknown): ActualModeReceivedEvent[] => {
     throw new Error("Recording root must be an object.");
   }
 
+  if (data.version !== ACTUAL_MODE_RECORDING_VERSION) {
+    throw new Error(
+      `Recording version must be ${ACTUAL_MODE_RECORDING_VERSION}, got ${String(data.version)}.`,
+    );
+  }
+
   if ("events" in data) {
     return parseReceivedEventsRecording(data);
   }
@@ -426,7 +437,7 @@ const parseRecordingEvents = (data: unknown): ActualModeReceivedEvent[] => {
   }
 
   throw new Error(
-    "Recording must be an Actual Events export with `events` or an older normalized recording.",
+    "Recording must be an Actual Events export with `events` or a normalized recording with `transitionFirings`.",
   );
 };
 
@@ -517,12 +528,12 @@ const applyFiringToMarking = (
   marking: NumericMarking,
   firing: ActualModeTransitionFiring,
 ): void => {
-  for (const [placeId, value] of Object.entries(firing.input)) {
-    marking[placeId] = (marking[placeId] ?? 0) - value;
+  for (const [placeId, tokens] of Object.entries(firing.inputTokens)) {
+    marking[placeId] = (marking[placeId] ?? 0) - tokens.length;
   }
 
-  for (const [placeId, value] of Object.entries(firing.output)) {
-    marking[placeId] = (marking[placeId] ?? 0) + value;
+  for (const [placeId, tokens] of Object.entries(firing.outputTokens)) {
+    marking[placeId] = (marking[placeId] ?? 0) + tokens.length;
   }
 };
 
@@ -609,32 +620,40 @@ const canFire = (marking: NumericMarking, transitionId: string): boolean => {
   );
 };
 
+/** The fixture's places are uncoloured, so each moved token is an empty record. */
+const emptyTokens = (count: number): ActualModeTokenValues[string] =>
+  Array.from({ length: count }, () => ({}));
+
 const applyTransition = (
   marking: NumericMarking,
   transitionId: string,
 ): ActualModeTransitionFiring => {
   const transition = getTransition(transitionId);
-  const input: ActualModeTransitionFiring["input"] = {};
-  const output: ActualModeTransitionFiring["output"] = {};
+  const inputTokens: ActualModeTokenValues = {};
+  const outputTokens: ActualModeTokenValues = {};
 
   for (const arc of transition.inputArcs) {
     if ((arc.type ?? "standard") !== "standard") {
       continue;
     }
 
-    input[arc.placeId] = (input[arc.placeId] ?? 0) + arc.weight;
+    inputTokens[arc.placeId] = (inputTokens[arc.placeId] ?? []).concat(
+      emptyTokens(arc.weight),
+    );
     marking[arc.placeId] = (marking[arc.placeId] ?? 0) - arc.weight;
   }
 
   for (const arc of transition.outputArcs) {
-    output[arc.placeId] = (output[arc.placeId] ?? 0) + arc.weight;
+    outputTokens[arc.placeId] = (outputTokens[arc.placeId] ?? []).concat(
+      emptyTokens(arc.weight),
+    );
     marking[arc.placeId] = (marking[arc.placeId] ?? 0) + arc.weight;
   }
 
   return {
     transitionId,
-    input,
-    output,
+    inputTokens,
+    outputTokens,
     ts: new Date().toISOString(),
   };
 };
@@ -864,6 +883,16 @@ const server = http.createServer((request, response) => {
   );
 });
 
+const producedTokensPerPlace = (
+  outputTokens: ActualModeTokenValues,
+): Record<string, number> =>
+  Object.fromEntries(
+    Object.entries(outputTokens).map(([placeId, tokens]) => [
+      placeId,
+      tokens.length,
+    ]),
+  );
+
 const broadcastLiveFiring = (): void => {
   const firing = nextLiveFiring();
 
@@ -877,7 +906,7 @@ const broadcastLiveFiring = (): void => {
 
   console.log(
     `[${firing.ts}] transition_firing ${firing.transitionId} -> ${JSON.stringify(
-      firing.output,
+      producedTokensPerPlace(firing.outputTokens),
     )}`,
   );
 };

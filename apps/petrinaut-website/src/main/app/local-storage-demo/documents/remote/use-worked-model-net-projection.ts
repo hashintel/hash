@@ -196,12 +196,10 @@ export const useWorkedModelNetProjection = (input: {
           `Worked-model revision ${revisionId} has no persistence operation.`,
         );
       }
-      try {
-        await write;
-      } finally {
+      await write.finally(() => {
         if (writesByRevisionRef.current.get(revisionId) === write)
           writesByRevisionRef.current.delete(revisionId);
-      }
+      });
     },
     [],
   );

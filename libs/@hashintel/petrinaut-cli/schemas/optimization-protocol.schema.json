@@ -1226,7 +1226,8 @@
         "kernel",
         "metric",
         "scenario-expression",
-        "scenario-code"
+        "scenario-code",
+        "status-condition"
       ]
     },
     "HirFunction": {

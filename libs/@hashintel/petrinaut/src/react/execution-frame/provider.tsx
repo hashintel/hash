@@ -7,7 +7,7 @@ import { use, useState, type FC, type PropsWithChildren } from "react";
 
 import {
   buildActualModeTimelinePoints,
-  createActualModeTimelineFrameReader,
+  createActualModeFrameReplay,
   getActualModeTransitionFiringTimesMs,
 } from "@hashintel/petrinaut-core";
 
@@ -112,9 +112,10 @@ export const useActualExecutionFrameSource = (params: {
   );
   const currentPoint = timelinePoints[currentFrameIndex];
   const currentFrameReader = currentPoint
-    ? createActualModeTimelineFrameReader({
+    ? createActualModeFrameReplay({
         definition: petriNetDefinition,
         initialState,
+      }).readerAt({
         transitionFirings: actualMode.transitionFirings,
         transitionFiringTimesMs,
         point: currentPoint,
@@ -125,17 +126,20 @@ export const useActualExecutionFrameSource = (params: {
   const getFramesInRange = async (
     startIndex: number,
     endIndex = timelinePoints.length,
-  ): Promise<SimulationFrameReader[]> =>
-    timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
-      createActualModeTimelineFrameReader({
-        definition: petriNetDefinition,
-        initialState,
+  ): Promise<SimulationFrameReader[]> => {
+    const replay = createActualModeFrameReplay({
+      definition: petriNetDefinition,
+      initialState,
+    });
+    return timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
+      replay.readerAt({
         transitionFirings: actualMode.transitionFirings,
         transitionFiringTimesMs,
         point,
         number: startIndex + offset,
       }),
     );
+  };
 
   const { source } = actualMode;
   const baselineKey = getSourceBaselineKey(

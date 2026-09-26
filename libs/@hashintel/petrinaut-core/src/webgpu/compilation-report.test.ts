@@ -87,12 +87,14 @@ describe("analyzeCompilation", () => {
     ).toHaveLength(2);
   });
 
-  it("accepts every bundled example except the one multi-place consumer", () => {
+  it("accepts every bundled example except Production Machines and Ticket Processing", () => {
     // With derived capacities, calibrated histogram windows, forwarded
-    // kernel tokens, and the tiling-aware state gate, the only example the
-    // GPU still declines is Production Machines — its \`Start Repair\`
-    // consumes typed tokens from two places, a cross-product enumeration
-    // the shader does not scan yet (the weight > 2 family).
+    // kernel tokens, and the tiling-aware state gate, the GPU declines only
+    // two examples. Ticket Processing's tokens carry a \`string\` identity key
+    // so Kanban cards read as tickets, and the shader has no string
+    // attributes. Production Machines passes eligibility, but its
+    // \`Start Repair\` consumes typed tokens from two places, a cross-product
+    // enumeration the shader does not scan yet.
     // Deliberately exhaustive over the examples namespace: adding an example
     // MUST extend this matrix, so its GPU verdict is a decision, not an
     // accident.
@@ -107,6 +109,7 @@ describe("analyzeCompilation", () => {
     expect(readiness).toStrictEqual({
       productionMachines: false,
       deploymentPipelineSDCPN: true,
+      ticketProcessingSDCPN: false,
       probabilisticSatellitesSDCPN: true,
       sirModel: true,
       cafeQueue: true,
@@ -115,9 +118,18 @@ describe("analyzeCompilation", () => {
       supplyChainProfit: true,
       vaccinationCampaign: true,
     });
+    const tickets = analyze(
+      allExamples.ticketProcessingSDCPN.petriNetDefinition,
+    );
+    expect(tickets.eligibilityReasons.length).toBeGreaterThan(0);
+    for (const reason of tickets.eligibilityReasons) {
+      expect(reason.code).toBe("unsupported-attribute-type");
+      expect(reason.message).toMatch(/`string` attribute/);
+    }
     const production = analyze(
       allExamples.productionMachines.petriNetDefinition,
     );
+    expect(production.eligibilityReasons).toStrictEqual([]);
     expect(production.shaderFailure).toMatch(
       /consumes typed tokens from 2 places/,
     );
@@ -281,8 +293,9 @@ describe("analyzeCompilation", () => {
     // the readiness matrix: a metric added to an example fails here until its
     // GPU verdict is recorded. Every translatable metric on a GPU-ready net is
     // `gpu-ready`; the two `.concat` averages are `cpu-only` with their own
-    // reason; Production Machines' other metrics are `cpu-only` because the
-    // net's shader fails, which is a different sentence.
+    // reason; Production Machines' other metrics are `cpu-only` because its
+    // shader fails to compile, and Ticket Processing's are `not-attempted`
+    // because eligibility refuses the net before emission.
     const statuses = Object.fromEntries(
       Object.entries(allExamples).map(([name, example]) => {
         const definition = (example as { petriNetDefinition: SDCPN })
@@ -314,6 +327,10 @@ describe("analyzeCompilation", () => {
         metric__active_incidents: "gpu-ready",
         metric__deployment_gate_blocked: "gpu-ready",
         metric__failure_share: "gpu-ready",
+      },
+      ticketProcessingSDCPN: {
+        metric__open_tickets: "not-attempted",
+        metric__done_tickets: "not-attempted",
       },
       probabilisticSatellitesSDCPN: {
         metric__satellites_in_orbit: "gpu-ready",

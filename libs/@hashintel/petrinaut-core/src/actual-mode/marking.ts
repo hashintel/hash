@@ -1,17 +1,24 @@
 import { createUserKeyedRecord } from "../validation/record-keys";
+import {
+  createTokenCountOnColouredPlaceError,
+  getElementBearingPlaceColour,
+  validateActualModeInitialState,
+  validateActualModeTransitionFiring,
+} from "./token-records";
 
+import type { ActualModeDefinition } from "./token-records";
 import type {
   ActualModeMarking,
-  ActualModeTokenColour,
+  ActualModeTokenRecord,
   ActualModeTransitionFiring,
 } from "./types";
 
 export const isActualModeTokenColourArray = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
-): markingValue is ActualModeTokenColour[] => Array.isArray(markingValue);
+  markingValue: number | ActualModeTokenRecord[] | undefined,
+): markingValue is ActualModeTokenRecord[] => Array.isArray(markingValue);
 
 export const getActualModePlaceMarkingTokenCount = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
+  markingValue: number | ActualModeTokenRecord[] | undefined,
 ): number => {
   if (markingValue === undefined) {
     return 0;
@@ -24,15 +31,17 @@ export const getActualModePlaceMarkingTokenCount = (
       : 0;
 };
 
-const cloneTokenColour = (
-  token: ActualModeTokenColour,
-): ActualModeTokenColour => ({ ...token });
+const cloneTokenRecord = (
+  token: ActualModeTokenRecord,
+): ActualModeTokenRecord => ({
+  ...token,
+});
 
 const cloneMarkingValue = (
-  markingValue: number | ActualModeTokenColour[],
-): number | ActualModeTokenColour[] =>
+  markingValue: number | ActualModeTokenRecord[],
+): number | ActualModeTokenRecord[] =>
   Array.isArray(markingValue)
-    ? markingValue.map((token) => cloneTokenColour(token))
+    ? markingValue.map((token) => cloneTokenRecord(token))
     : markingValue;
 
 // Keyed by place ids from recorded firings: no prototype, so the writes in
@@ -45,65 +54,152 @@ const cloneMarking = (marking: ActualModeMarking): ActualModeMarking => {
   return next;
 };
 
-const emptyTokens = (count: number): ActualModeTokenColour[] =>
+const emptyTokens = (count: number): ActualModeTokenRecord[] =>
   Array.from(
     { length: getActualModePlaceMarkingTokenCount(count) },
     () => ({}),
   );
 
 const toTokenArray = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
-): ActualModeTokenColour[] => {
+  markingValue: number | ActualModeTokenRecord[] | undefined,
+): ActualModeTokenRecord[] => {
   if (markingValue === undefined) {
     return [];
   }
 
   return Array.isArray(markingValue)
-    ? markingValue.map((token) => cloneTokenColour(token))
+    ? markingValue.map((token) => cloneTokenRecord(token))
     : emptyTokens(markingValue);
 };
 
+const tokenRecordsEqual = (
+  left: ActualModeTokenRecord,
+  right: ActualModeTokenRecord,
+): boolean => {
+  const leftNames = Object.keys(left);
+  return (
+    leftNames.length === Object.keys(right).length &&
+    leftNames.every(
+      (name) => Object.hasOwn(right, name) && left[name] === right[name],
+    )
+  );
+};
+
+const hasAttributes = (token: ActualModeTokenRecord): boolean =>
+  Object.keys(token).length > 0;
+
+/**
+ * Removes the consumed tokens from a place's token array. Each recorded token
+ * removes the first marking token equal to it on every attribute.
+ *
+ * @throws when a recorded token matches no token left in the place.
+ */
+const removeConsumedTokens = (
+  currentTokens: ActualModeTokenRecord[],
+  consumedTokens: readonly ActualModeTokenRecord[],
+  firing: ActualModeTransitionFiring,
+  placeId: string,
+): ActualModeTokenRecord[] => {
+  const remaining = [...currentTokens];
+  for (const consumedToken of consumedTokens) {
+    const matchIndex = remaining.findIndex((token) =>
+      tokenRecordsEqual(token, consumedToken),
+    );
+    if (matchIndex === -1) {
+      throw new Error(
+        `Transition firing of "${firing.transitionId}" at ${firing.ts} consumes token ${JSON.stringify(
+          consumedToken,
+        )} from place "${placeId}", which holds no matching token (${remaining.length} remaining)`,
+      );
+    }
+    remaining.splice(matchIndex, 1);
+  }
+  return remaining;
+};
+
+/**
+ * Applies one firing to a marking. A place stays a token count while every
+ * token recorded for it is `{}`; the first token with attributes turns it
+ * into an array. A place whose colour declares elements holds an array once
+ * a firing names it.
+ *
+ * @throws when a token record does not fit its place in `definition` (see
+ * `validateActualModeTransitionFiring`), when `marking` holds a token count
+ * on a place the firing names whose colour declares elements, or when the
+ * firing consumes a token the marking does not hold: more tokens than a
+ * place holds, or a recorded token equal to none of them.
+ */
 export const applyActualModeTransitionFiring = (
+  definition: ActualModeDefinition,
   marking: ActualModeMarking,
   firing: ActualModeTransitionFiring,
 ): ActualModeMarking => {
+  validateActualModeTransitionFiring(definition, firing);
   const next = cloneMarking(marking);
   const placeIds = new Set([
-    ...Object.keys(next),
-    ...Object.keys(firing.input),
-    ...Object.keys(firing.output),
+    ...Object.keys(firing.inputTokens),
+    ...Object.keys(firing.outputTokens),
   ]);
 
   for (const placeId of placeIds) {
     const currentValue = next[placeId];
-    const inputValue = firing.input[placeId];
-    const outputValue = firing.output[placeId];
+    const consumedTokens = firing.inputTokens[placeId] ?? [];
+    const producedTokens = firing.outputTokens[placeId] ?? [];
+    const recordColour = getElementBearingPlaceColour(definition, placeId);
+
+    if (typeof currentValue === "number" && recordColour) {
+      throw createTokenCountOnColouredPlaceError(
+        "Marking",
+        placeId,
+        currentValue,
+        recordColour,
+      );
+    }
 
     if (
-      Array.isArray(currentValue) ||
-      Array.isArray(inputValue) ||
-      Array.isArray(outputValue)
+      !recordColour &&
+      !Array.isArray(currentValue) &&
+      !consumedTokens.some(hasAttributes) &&
+      !producedTokens.some(hasAttributes)
     ) {
-      const currentTokens = toTokenArray(currentValue);
-      const inputCount = getActualModePlaceMarkingTokenCount(inputValue);
-      const outputTokens = toTokenArray(outputValue);
-      next[placeId] = currentTokens.slice(inputCount).concat(outputTokens);
+      const tokenCount = getActualModePlaceMarkingTokenCount(currentValue);
+      if (consumedTokens.length > tokenCount) {
+        throw new Error(
+          `Transition firing of "${firing.transitionId}" at ${firing.ts} consumes ${consumedTokens.length} ${consumedTokens.length === 1 ? "token" : "tokens"} from place "${placeId}", which holds ${tokenCount}`,
+        );
+      }
+      next[placeId] =
+        tokenCount - consumedTokens.length + producedTokens.length;
       continue;
     }
 
-    next[placeId] =
-      (currentValue ?? 0) - (inputValue ?? 0) + (outputValue ?? 0);
+    next[placeId] = removeConsumedTokens(
+      toTokenArray(currentValue),
+      consumedTokens,
+      firing,
+      placeId,
+    ).concat(producedTokens.map((token) => cloneTokenRecord(token)));
   }
 
   return next;
 };
 
+/**
+ * @throws when `initialState` or a replayed firing holds a token record that
+ * does not fit its place in `definition`, `initialState` holds a token count
+ * on a place whose colour declares elements, or a firing consumes a token the
+ * marking does not hold.
+ */
 export const getActualModeMarkingAtTransitionFiringIndex = (params: {
+  definition: ActualModeDefinition;
   initialState: ActualModeMarking;
   transitionFirings: readonly ActualModeTransitionFiring[];
   transitionFiringIndex: number | null;
 }): ActualModeMarking => {
-  const { initialState, transitionFiringIndex, transitionFirings } = params;
+  const { definition, initialState, transitionFiringIndex, transitionFirings } =
+    params;
+
+  validateActualModeInitialState(definition, initialState);
 
   if (transitionFiringIndex === null) {
     return initialState;
@@ -119,7 +215,7 @@ export const getActualModeMarkingAtTransitionFiringIndex = (params: {
     const firing = transitionFirings[index];
 
     if (firing) {
-      marking = applyActualModeTransitionFiring(marking, firing);
+      marking = applyActualModeTransitionFiring(definition, marking, firing);
     }
   }
 

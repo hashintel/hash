@@ -3,6 +3,8 @@ import type {
   ComponentInstance,
   Place,
   SDCPN,
+  StatusLabel,
+  StatusView,
   Subnet,
   Transition,
 } from "../types/sdcpn";
@@ -18,8 +20,15 @@ type NetWithoutVisualInfo<Net extends SDCPN | Subnet> = Omit<
 };
 
 type SubnetWithoutVisualInfo = NetWithoutVisualInfo<Subnet>;
-type SDCPNWithoutVisualInfo = NetWithoutVisualInfo<SDCPN> & {
+type StatusViewWithoutVisualInfo = Omit<StatusView, "labels"> & {
+  labels: Array<Omit<StatusLabel, "displayColor">>;
+};
+type SDCPNWithoutVisualInfo = Omit<
+  NetWithoutVisualInfo<SDCPN>,
+  "statusViews"
+> & {
   subnets: SubnetWithoutVisualInfo[];
+  statusViews?: StatusViewWithoutVisualInfo[];
 };
 
 const stripVisualFromNet = <Net extends SDCPN | Subnet>(
@@ -47,5 +56,15 @@ export function removeVisualInformation(sdcpn: SDCPN): SDCPNWithoutVisualInfo {
   return {
     ...stripVisualFromNet(sdcpn),
     subnets: (sdcpn.subnets ?? []).map((subnet) => stripVisualFromNet(subnet)),
+    ...(sdcpn.statusViews
+      ? {
+          statusViews: sdcpn.statusViews.map((statusView) => ({
+            ...statusView,
+            labels: statusView.labels.map(
+              ({ displayColor: _displayColor, ...label }) => label,
+            ),
+          })),
+        }
+      : {}),
   };
 }

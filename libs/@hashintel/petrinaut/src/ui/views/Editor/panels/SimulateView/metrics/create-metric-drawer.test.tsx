@@ -65,6 +65,7 @@ function makeLanguageClientValue(): LanguageClientContextValue {
           lambdas: {},
           kernels: {},
           metrics: {},
+          statusConditions: {},
         },
         failures: [],
       }),

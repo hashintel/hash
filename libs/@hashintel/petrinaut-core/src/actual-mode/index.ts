@@ -19,13 +19,20 @@ export {
   actualModeReceivedEventsRecordingSchema,
   actualModeRecordingSchema,
   actualModeSourceSchema,
-  actualModeTransitionEffectSchema,
+  actualModeTokenValuesSchema,
   actualModeTransitionFiringSchema,
 } from "./schemas";
 export {
+  validateActualModeInitialState,
+  type ActualModeDefinition,
+} from "./token-records";
+export {
   buildActualModeTimelinePoints,
+  createActualModeFrameReplay,
   createActualModeTimelineFrameReader,
+  extendActualModeTransitionFiringTimesMs,
   getActualModeTransitionFiringTimesMs,
+  type ActualModeFrameReplay,
 } from "./timeline";
 export type {
   ActualModeContextValue,
@@ -36,7 +43,7 @@ export type {
   ActualModeSource,
   ActualModeTimelinePoint,
   ActualModeTimelinePointKind,
-  ActualModeTokenColour,
-  ActualModeTransitionEffect,
+  ActualModeTokenRecord,
+  ActualModeTokenValues,
   ActualModeTransitionFiring,
 } from "./types";

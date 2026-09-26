@@ -116,8 +116,9 @@ export const parseMarkingFrame = (event: MessageEvent): ActualModeMarking =>
  * Validate a decoded Brunch `transition_firing` payload.
  *
  * This runs after JSON decoding and before the provider appends the event to
- * Actual Mode state. The accepted schema is the transition effect protocol:
- * `{ transitionId, input, output, ts }`.
+ * Actual Mode state. The accepted shape is
+ * `{ transitionId, inputTokens, outputTokens, ts }`, where the token maps
+ * carry the consumed and produced token attribute values keyed by place id.
  */
 export const parseTransitionFiringFrameData = (
   data: unknown,

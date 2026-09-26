@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { use, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import {
@@ -11,18 +11,22 @@ import {
 } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
+  identityKeyTypesMatch,
   validateDisplayName,
   type ColorElementType,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
-import { ColorSelect } from "../color-select";
+import { ColorSelect } from "../../../shared/color-select";
 import { useTypePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -130,6 +134,11 @@ const dimensionTypeSelectStyle = css({
   flexShrink: 0,
 });
 
+const dimensionIdentitySelectStyle = css({
+  width: "[110px]",
+  flexShrink: 0,
+});
+
 const deleteDimensionButtonStyle = css({
   color: "neutral.s90",
 
@@ -148,6 +157,9 @@ type ElementNameInputState = Record<
   string,
   { sourceName: string; value: string }
 >;
+
+const NO_IDENTITY_VALUE = "__none__";
+const NEW_IDENTITY_VALUE = "__new__";
 
 const typeOptions: SelectItem<ColorElementType>[] = [
   { value: "real", text: "Real" },
@@ -187,6 +199,10 @@ const TypeMainContent: React.FC = () => {
   } = useTypePropertiesContext();
   const isDisabled = useIsReadOnly();
   const presentation = usePetrinautPresentation();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { enableStatusViews } = use(UserSettingsContext);
+  const { addIdentity } = usePetrinautMutations();
+  const identities = petriNetDefinition.identities ?? [];
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [elementNameInputs, setElementNameInputs] =
@@ -288,6 +304,73 @@ const TypeMainContent: React.FC = () => {
       typeId: type.id,
       elementId,
       update: { type: elementType },
+    });
+  };
+
+  /**
+   * Identities an element can take without breaking key coherence: the
+   * resulting key elements of this colour for the identity must match its
+   * keyElementTypes in order (the actions layer rejects anything else). The
+   * element's current identity always stays listed so an imported document
+   * still displays.
+   */
+  const getIdentityOptionsForElement = (
+    element: (typeof type.elements)[number],
+  ): SelectItem<string>[] => {
+    const selectableIdentities = identities.filter((identity) => {
+      if (identity.id === element.identityRef) {
+        return true;
+      }
+      const resultingKeyTypes = type.elements
+        .map((candidate) =>
+          candidate.elementId === element.elementId
+            ? { ...candidate, identityRef: identity.id }
+            : candidate,
+        )
+        .filter((candidate) => candidate.identityRef === identity.id)
+        .map((candidate) => candidate.type);
+      return identityKeyTypesMatch(resultingKeyTypes, identity);
+    });
+    return [
+      { value: NO_IDENTITY_VALUE, text: "No identity" },
+      ...selectableIdentities.map((identity) => ({
+        value: identity.id,
+        text: identity.name,
+      })),
+      { value: NEW_IDENTITY_VALUE, text: "New identity…" },
+    ];
+  };
+
+  const handleUpdateElementIdentity = (
+    element: (typeof type.elements)[number],
+    selectedValue: string,
+  ) => {
+    if (selectedValue === NEW_IDENTITY_VALUE) {
+      const identityId = uuidv4();
+      const existingNames = new Set(identities.map(({ name }) => name));
+      let identityName = type.name;
+      for (let suffix = 2; existingNames.has(identityName); suffix += 1) {
+        identityName = `${type.name} ${suffix}`;
+      }
+      addIdentity({
+        id: identityId,
+        name: identityName,
+        keyElementTypes: [element.type],
+      });
+      updateTypeElement({
+        typeId: type.id,
+        elementId: element.elementId,
+        update: { identityRef: identityId },
+      });
+      return;
+    }
+    updateTypeElement({
+      typeId: type.id,
+      elementId: element.elementId,
+      update: {
+        identityRef:
+          selectedValue === NO_IDENTITY_VALUE ? undefined : selectedValue,
+      },
     });
   };
 
@@ -477,6 +560,28 @@ const TypeMainContent: React.FC = () => {
                         connectToLeftInput
                       />
                     </Tooltip>
+
+                    {enableStatusViews && (
+                      <Tooltip
+                        content={
+                          isDisabled
+                            ? UI_MESSAGES.READ_ONLY_MODE
+                            : "Identity whose key this attribute carries. Keyed tokens are tracked as instances by status views."
+                        }
+                      >
+                        <Select
+                          required
+                          value={element.identityRef ?? NO_IDENTITY_VALUE}
+                          onChange={(value) => {
+                            handleUpdateElementIdentity(element, value);
+                          }}
+                          items={getIdentityOptionsForElement(element)}
+                          disabled={isDisabled}
+                          size="sm"
+                          className={dimensionIdentitySelectStyle}
+                        />
+                      </Tooltip>
+                    )}
                   </div>
 
                   {/* Delete button */}

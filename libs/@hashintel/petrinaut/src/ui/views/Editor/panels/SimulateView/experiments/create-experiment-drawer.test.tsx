@@ -300,6 +300,7 @@ const TestProviders = ({
     setSnapToGrid: () => {},
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
+    setEnableStatusViews: () => {},
     setShowWalkthroughOnInit: () => {},
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
