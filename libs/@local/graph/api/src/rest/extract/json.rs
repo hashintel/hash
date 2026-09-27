@@ -164,15 +164,15 @@ impl Expose<JsonProblem> for JsonRejection {
             Self::BytesRejection(BytesRejection::FailedToBufferBody(
                 FailedToBufferBody::UnknownBodyError(_),
             )) => Answer::new(UnreadableBody { detail }),
-            // `JsonRejection` and the rejections it wraps are `#[non_exhaustive]`: these arms
-            // handle a rejection a later axum version adds until an arm above names it.
-            Self::BytesRejection(_) | _ if self.status().is_server_error() => {
-                tracing::error!(status = %self.status(), %detail, "axum rejected the JSON body in a way this extractor does not name");
-                Answer::new(InternalServerError)
-            }
+            // `JsonRejection` and the rejections it wraps are `#[non_exhaustive]`: this arm
+            // handles a rejection a later axum version adds until an arm above names it.
             Self::BytesRejection(_) | _ => {
                 tracing::warn!(status = %self.status(), %detail, "axum rejected the JSON body in a way this extractor does not name");
-                Answer::new(UnreadableBody { detail })
+                if self.status().is_server_error() {
+                    Answer::new(InternalServerError)
+                } else {
+                    Answer::new(UnreadableBody { detail })
+                }
             }
         }
     }
@@ -185,7 +185,15 @@ impl Problem for JsonResponseProblem {
     const VARIANTS: &'static [Variant] = &[Variant::of::<InternalServerError>()];
 }
 
-impl Expose<JsonResponseProblem> for serde_json::Error {
+/// The body of a response failed to serialize.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the response body `{body}` failed to serialize")]
+struct UnserializableBody {
+    body: &'static str,
+    source: serde_json::Error,
+}
+
+impl Expose<JsonResponseProblem> for UnserializableBody {
     fn expose(&self) -> Answer<'_, JsonResponseProblem> {
         Answer::new(InternalServerError)
     }
@@ -251,10 +259,11 @@ impl<T: Serialize, const STATUS: u16> IntoResponse for Json<T, STATUS> {
                 body,
             )
                 .into_response(),
-            Err(error) => {
-                tracing::error!(%error, body = core::any::type_name::<T>(), "the response body failed to serialize");
-                Rejection::<JsonResponseProblem>::from(error).into_response()
-            }
+            Err(source) => Rejection::<JsonResponseProblem>::from(UnserializableBody {
+                body: core::any::type_name::<T>(),
+                source,
+            })
+            .into_response(),
         }
     }
 }
