@@ -46,8 +46,10 @@ use futures::{TryFutureExt as _, future::Either};
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
+    trace::TraceContextExt as _,
 };
 use problematic::{Answer, Expose, Rejection};
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 use type_system::principal::actor::ActorId;
 
 #[cfg(feature = "aide")]
@@ -75,6 +77,24 @@ impl Degradation {
             Self::Anonymous => "anonymous",
             Self::Bootstrap => "bootstrap",
         }
+    }
+}
+
+/// Adds the report of a failed credential to the current span, for a request that proceeds
+/// without it.
+///
+/// No rejection answers the request, so the telemetry layer never sees the failure.
+fn trace_degradation(report: &Report<AuthenticationError>, degradation: Degradation) {
+    let span = tracing::Span::current();
+    // A span that is not recorded drops the event, so the report is not formatted.
+    if span.context().span().is_recording() {
+        span.add_event(
+            "request proceeds despite a failed credential",
+            vec![
+                KeyValue::new("mechanism", degradation.as_str()),
+                KeyValue::new("error", format!("{report:?}")),
+            ],
+        );
     }
 }
 
@@ -130,10 +150,9 @@ impl AuthenticationMetrics {
 
 /// The response a request that failed authentication is answered with.
 ///
-/// A rejection records itself when it drops, whether or not a response was rendered from it,
-/// so no holder logs or counts one. The log latches on the error — shared across the requests
-/// one verification answered — and the count on the request, so every rejected request counts
-/// once.
+/// A rejection counts itself when a response is rendered from it, or when it drops without one,
+/// so no holder counts one. The count latches on the request, so every rejected request counts
+/// once. The response carries the report to the telemetry layer.
 #[derive(Clone, derive_more::Debug, derive_more::Display)]
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
@@ -168,37 +187,37 @@ impl Expose<AuthenticationProblem> for AuthenticationRejection {
     }
 }
 
+impl AuthenticationRejection {
+    /// Counts the rejection, once.
+    fn record(&self) {
+        if let Self::Authentication {
+            report,
+            metrics,
+            recorded,
+        } = self
+        {
+            // `Relaxed` is permissible here, as it is only used to avoid double-counting.
+            if recorded
+                .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                .is_ok()
+            {
+                metrics.record_rejection(report.current_context());
+            }
+        }
+    }
+}
+
 impl IntoResponse for AuthenticationRejection {
     fn into_response(self) -> Response {
+        // The response keeps the rejection until it is dropped, after it has been sent.
+        self.record();
         Rejection::<AuthenticationProblem>::from(self).into_response()
     }
 }
 
 impl Drop for AuthenticationRejection {
     fn drop(&mut self) {
-        match self {
-            Self::Authentication {
-                report,
-                metrics,
-                recorded,
-            } => {
-                AuthenticationError::ensure_logged(report);
-                // `Relaxed` is permissible here, as it is only used to avoid double-counting.
-                if recorded
-                    .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
-                    .is_ok()
-                {
-                    metrics.record_rejection(report.current_context());
-                }
-            }
-            Self::Misconfigured { method, path } => {
-                tracing::error!(
-                    %method,
-                    %path,
-                    "`AuthenticatedActorId` extracted on a route without authentication middleware"
-                );
-            }
-        }
+        self.record();
     }
 }
 
@@ -518,6 +537,7 @@ where
                         ) =>
                 {
                     metrics.record_degradation(report.current_context(), Degradation::Bootstrap);
+                    trace_degradation(&report, Degradation::Bootstrap);
                     Err(report)
                 }
                 Err(report) => {
@@ -629,7 +649,7 @@ mod tests {
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
     use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
-    use problematic::Answer;
+    use problematic::{Answer, Rejected};
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -1069,6 +1089,13 @@ mod tests {
             .await
             .expect("the router should respond");
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(
+            response
+                .extensions()
+                .get::<Rejected>()
+                .is_some_and(|rejected| rejected.error().is::<AuthenticationRejection>()),
+            "the response should carry the rejection to the telemetry layer"
+        );
 
         assert_eq!(
             recorded.counter(
