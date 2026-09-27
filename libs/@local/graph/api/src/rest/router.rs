@@ -85,14 +85,16 @@ where
 
     let apis = super::apis().collect::<Vec<_>>();
     let documentation = documentation::routes(&apis);
+    // The tracing layer sits inside the Sentry layers: the errors it logs reach Sentry through the
+    // request's hub, which attaches the request to them.
     let mut router = middleware
         .assemble(legacy::routes::<S>(), apis, documentation)
+        .layer(telemetry::layer())
         .layer(
             ServiceBuilder::new()
                 .layer(NewSentryLayer::new_from_top())
                 .layer(SentryHttpLayer::default().enable_transaction()),
         )
-        .layer(telemetry::layer())
         .layer(Extension(dependencies.store))
         .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
