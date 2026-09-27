@@ -11016,7 +11016,6 @@ dependencies = [
  "serde",
  "serde_core",
  "serde_json",
- "tracing",
 ]
 
 [[package]]

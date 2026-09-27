@@ -27,7 +27,6 @@ axum-core = { workspace = true, public = true, optional = true }
 erased-serde = { workspace = true, features = ["alloc"] }
 serde        = { workspace = true, features = ["alloc", "derive"] }
 serde_json   = { workspace = true, features = ["alloc"] }
-tracing      = { workspace = true }
 
 [dev-dependencies]
 aide        = { workspace = true, features = ["axum"] }
