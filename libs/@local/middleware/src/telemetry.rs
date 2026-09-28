@@ -136,16 +136,13 @@ fn record_response_attributes<B>(span: &Span, response: &http::Response<B>) {
 
 /// Marks the span as failed for a server error, and sets no status for any other response.
 ///
-/// For a rejection, it sets the `detail` the client received as the description, or else the
-/// title. For a server error without a rejection, it sets an empty description.
+/// The description is the `detail` the client of a rejection received, and empty without one.
 fn record_status(span: &Span, status: StatusCode, rejected: Option<&Rejected>) {
     if status.is_server_error() {
-        let description = rejected.map_or_else(String::new, |rejected| {
-            rejected
-                .detail()
-                .unwrap_or(&rejected.problem_type().title)
-                .to_owned()
-        });
+        let description = rejected
+            .and_then(Rejected::detail)
+            .unwrap_or_default()
+            .to_owned();
         span.set_status(opentelemetry::trace::Status::error(description));
     }
 }
@@ -382,27 +379,11 @@ mod tests {
         };
     }
 
-    /// Its details fail to serialize, as its field is named like a standard member.
-    #[derive(serde::Serialize, schemars::JsonSchema, derive_more::Display)]
-    #[display("The entity store is locked.")]
-    struct StoreLocked {
-        status: &'static str,
-    }
-
-    impl ProblemVariant for StoreLocked {
-        const TYPE: ProblemType = ProblemType {
-            type_uri: Cow::Borrowed("https://example.com/problems/store-locked"),
-            title: Cow::Borrowed("Store locked"),
-            status: StatusCode::LOCKED,
-        };
-    }
-
     struct ListEntitiesProblem;
 
     impl Problem for ListEntitiesProblem {
         const VARIANTS: &'static [Variant] = &[
             Variant::of::<InvalidLimit>(),
-            Variant::of::<StoreLocked>(),
             Variant::of::<InternalServerError>(),
         ];
     }
@@ -411,8 +392,6 @@ mod tests {
     enum ListEntitiesError {
         #[display("the limit `many` is not a number")]
         Limit,
-        #[display("the entity store is locked")]
-        Locked,
         #[display("the entity store is unreachable")]
         Store,
     }
@@ -423,7 +402,6 @@ mod tests {
         fn expose(&self) -> Answer<'_, ListEntitiesProblem> {
             match self {
                 Self::Limit => Answer::new(InvalidLimit),
-                Self::Locked => Answer::new(StoreLocked { status: "locked" }),
                 Self::Store => Answer::new(InternalServerError),
             }
         }
@@ -522,18 +500,6 @@ mod tests {
         assert!(
             trace.traces_error("Limit"),
             "the trace should carry the error behind the rejection"
-        );
-    }
-
-    #[tokio::test]
-    async fn rejection_unserializable() {
-        let (_, span) = serve_failing(ListEntitiesError::Locked).await;
-
-        assert_eq!(
-            span.status,
-            Status::error("Internal Server Error"),
-            "a server error without a detail should mark the span as failed with the title the \
-             client received"
         );
     }
 
