@@ -14,9 +14,6 @@ export type {
   FlueAiSdkAdapter,
   FlueAiSdkAdapterConfig,
 } from "./client/flue-ai-sdk-adapter";
-export type {
-  MetadataProjection,
-  MetadataProjectionInput,
-} from "./client/shared/metadata-projection";
+export type { MetadataProjection } from "./client/shared/metadata-projection";
 export { createFlueUiStream } from "./client/ui-stream";
 export { liveToolRouteSegment } from "./shared/live-tool-event";
