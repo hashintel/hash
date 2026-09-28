@@ -19,10 +19,13 @@ type InputPreview = {
   discard: (id: string) => void;
 };
 
+const sentenceSegmenter = new Intl.Segmenter("en", { granularity: "sentence" });
+
 /**
  * Display grouping on Live's timeline, not a claim of response identity or
- * heard playback. Context-injection boundaries divide reply from wrap-up;
- * another input or session closure closes the group. No silence timeout.
+ * heard playback. Context delivery is only a hint: keep the sentence crossing
+ * that point together in the wrap-up, preserving the exact transcript. Another
+ * input or session closure closes the group. No silence timeout.
  */
 export class LiveSpeechCaptions {
   readonly #caption: (
@@ -157,19 +160,33 @@ export class LiveSpeechCaptions {
           fragment.startMs >= window.startMs &&
           (window.endMs === undefined || fragment.endMs <= window.endMs),
       );
-      for (const kind of ["reply", "wrapUp"] as const) {
-        const text = matching
-          .filter((fragment) =>
-            kind === "reply"
-              ? window.wrapUpMs === undefined ||
-                fragment.startMs < window.wrapUpMs
-              : window.wrapUpMs !== undefined &&
-                fragment.startMs >= window.wrapUpMs,
+      const text = matching.map((fragment) => fragment.text).join("");
+      let replyEnd = text.length;
+      if (window.wrapUpMs !== undefined) {
+        let boundary = 0;
+        for (const fragment of matching) {
+          // Timing belongs to the fragment, not its individual words. Treat
+          // overlapping fragments as possibly containing the result too.
+          if (
+            fragment.startMs >= window.wrapUpMs ||
+            fragment.endMs > window.wrapUpMs
           )
-          .map((fragment) => fragment.text)
-          .join("");
+            break;
+          boundary += fragment.text.length;
+        }
+        // Trailing whitespace belongs to the preceding sentence in Segmenter.
+        // Find the sentence containing the next content, including punctuation,
+        // and move its opening words with it even if those arrived earlier.
+        const contentOffset = text.slice(boundary).search(/\S/u);
+        if (contentOffset !== -1)
+          replyEnd =
+            sentenceSegmenter.segment(text).containing(boundary + contentOffset)
+              ?.index ?? text.length;
+      }
+      for (const kind of ["reply", "wrapUp"] as const) {
         this.#caption(window.id, kind, {
-          text,
+          text:
+            kind === "reply" ? text.slice(0, replyEnd) : text.slice(replyEnd),
           state:
             window.closed || (kind === "reply" && window.wrapUpMs !== undefined)
               ? "done"

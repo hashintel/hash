@@ -128,17 +128,122 @@ test("groups by provider time, preserves repeated words, and never uses append c
     id: "last",
     startMs: 1000,
     endMs: 1100,
-    text: "Draft ready.",
+    text: " Draft ready.",
   });
   // Arrives late but belongs before the result's context boundary.
   captions.output({ id: "late", startMs: 650, endMs: 700, text: " Checking." });
   expect(caption).toHaveBeenCalledWith("turn", "reply", {
-    text: "Yes, yes. Checking.",
+    text: "Yes, yes. Checking. ",
     state: "done",
   });
   expect(caption).toHaveBeenCalledWith("turn", "wrapUp", {
     text: "Draft ready.",
     state: "streaming",
+  });
+});
+
+test.each(["before output", "after output"])(
+  "keeps the whole battery question below Activity when context arrives %s",
+  (acceptance) => {
+    const lines = { reply: "", wrapUp: "" };
+    const captions = new LiveSpeechCaptions((_id, kind, line) => {
+      lines[kind] = line.text;
+    });
+    captions.input({
+      id: "input",
+      text: "Tracking available units.",
+      startMs: 100,
+      endMs: 200,
+    });
+    captions.begin("turn");
+    if (acceptance === "before output") captions.wrapUp("turn", 900);
+    captions.output({
+      id: "ack",
+      text: "Alright, yeah. How do",
+      startMs: 400,
+      endMs: 600,
+    });
+    captions.output({
+      id: "question",
+      text: " those battery units enter the system?",
+      startMs: 1000,
+      endMs: 1200,
+    });
+    if (acceptance === "after output") captions.wrapUp("turn", 900);
+    expect(lines).toEqual({
+      reply: "Alright, yeah. ",
+      wrapUp: "How do those battery units enter the system?",
+    });
+  },
+);
+
+test("a punctuation delta does not start the wrap-up card or erase a repeated acknowledgement", () => {
+  const lines = { reply: "", wrapUp: "" };
+  const captions = new LiveSpeechCaptions((_id, kind, line) => {
+    lines[kind] = line.text;
+  });
+  captions.input({
+    id: "input",
+    text: "Help me design a battery model",
+    startMs: 100,
+    endMs: 200,
+  });
+  captions.begin("turn");
+  captions.output({
+    id: "ack",
+    text: "Sure, happy to. Sure thing",
+    startMs: 300,
+    endMs: 600,
+  });
+  captions.wrapUp("turn", 900);
+  captions.output({ id: "punctuation", text: ".", startMs: 1000, endMs: 1050 });
+  captions.output({
+    id: "question",
+    text: " Just so I get it right. Are you modelling the battery or tracking available units?",
+    startMs: 1100,
+    endMs: 1500,
+  });
+  expect(lines).toEqual({
+    reply: "Sure, happy to. ",
+    wrapUp:
+      "Sure thing. Just so I get it right. Are you modelling the battery or tracking available units?",
+  });
+});
+
+test("a fragment overlapping context delivery stays intact rather than guessing word timing", () => {
+  const lines = { reply: "", wrapUp: "" };
+  const captions = new LiveSpeechCaptions((_id, kind, line) => {
+    lines[kind] = line.text;
+  });
+  captions.input({
+    id: "input",
+    text: "Use 2.5 hours",
+    startMs: 100,
+    endMs: 200,
+  });
+  captions.begin("turn");
+  captions.output({
+    id: "ack",
+    text: "I'll check. ",
+    startMs: 300,
+    endMs: 400,
+  });
+  captions.wrapUp("turn", 900);
+  captions.output({
+    id: "overlap",
+    text: "The duration is 2.",
+    startMs: 800,
+    endMs: 1000,
+  });
+  captions.output({
+    id: "rest",
+    text: "5 hours, not 25.",
+    startMs: 1100,
+    endMs: 1200,
+  });
+  expect(lines).toEqual({
+    reply: "I'll check. ",
+    wrapUp: "The duration is 2.5 hours, not 25.",
   });
 });
 

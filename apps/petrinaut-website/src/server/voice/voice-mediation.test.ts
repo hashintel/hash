@@ -88,6 +88,9 @@ test("wrap-up instructions use a direct conversational voice without weakening f
   expect(instructions).toContain(
     "Never invent results, actions or follow-up questions",
   );
+  expect(instructions).toContain(
+    "Acknowledgements are handled separately; start with the result or question itself",
+  );
 });
 
 test("rejects over-budget wrap-ups without silently truncating a claim", async () => {

@@ -49,6 +49,12 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
   expect(body.session.instructions).toContain(
     "Ask a supplied clarification directly",
   );
+  expect(body.session.instructions).toContain(
+    "If you already acknowledged this request, do not acknowledge it again",
+  );
+  expect(body.session.instructions).toContain(
+    "Start with the result or question itself",
+  );
 });
 
 describe("Live configuration and session creation", () => {

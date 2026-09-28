@@ -138,9 +138,12 @@ waiting updates. It does not read the full written answer.
 Acknowledgement timing and wording are best effort and can
 overlap Brunch's work. Blue voice cards show Live's output transcript, not a
 copy of Brunch's written answer or confirmation that you heard the audio.
-Captions update during the session; their grouping closes on the next turn
-or when the session ends. Speaking again suppresses pending older summaries
-but does not cancel work already admitted by Brunch.
+Captions update during the session. The acknowledgement and wrap-up are grouped
+at sentence boundaries rather than cutting a sentence between cards. A sentence
+can move to the wrap-up as later text arrives; this grouping is approximate,
+not a record of when the audio played. Repeated spoken words stay in the captions.
+Grouping closes on the next turn or when the session ends. Speaking again
+suppresses pending older summaries but does not cancel work already admitted by Brunch.
 
 The prepared brief and Brunch's answer are saved in the conversation. Original
 words and spoken captions are retained separately in this browser for the most

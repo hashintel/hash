@@ -1071,7 +1071,7 @@ test("the prepared brief enters the real admission helper and only its settled c
     });
     call[6]?.output({
       id: "ack",
-      text: "I'll pass that along.",
+      text: "I'll check. Do all",
       startMs: 300,
       endMs: 400,
     });
@@ -1153,7 +1153,7 @@ test("the prepared brief enters the real admission helper and only its settled c
     call[4]({ ...append, status: "accepted", startMs: 500 });
     call[6]?.output({
       id: "spoken",
-      text: "Do all seven need to review?",
+      text: " seven need to review?",
       startMs: 600,
       endMs: 900,
     });
@@ -1175,6 +1175,10 @@ test("the prepared brief enters the real admission helper and only its settled c
   expect(projected[0]?.parts[0]).toEqual({
     type: "text",
     text: "Seven reviewers, not four.",
+  });
+  expect(projected[1]?.parts[0]).toEqual({
+    type: "data-voiceAgentReply",
+    data: { text: "I'll check. ", state: "done" },
   });
   expect(projected.at(-1)?.parts[0]).toEqual({
     type: "data-voiceAgentWrapUp",
