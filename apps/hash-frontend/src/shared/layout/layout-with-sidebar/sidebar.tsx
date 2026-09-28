@@ -5,7 +5,12 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
-import { Fragment, type FunctionComponent, useMemo } from "react";
+import {
+  Fragment,
+  type FunctionComponent,
+  type ReactNode,
+  useMemo,
+} from "react";
 
 import {
   AsteriskRegularIcon,
@@ -35,14 +40,34 @@ import { AccountEntitiesList } from "./sidebar/account-entities-list";
 import { AccountEntityTypeList } from "./sidebar/account-entity-type-list";
 import { AccountPageList } from "./sidebar/account-page-list";
 import { FavoritesList } from "./sidebar/favorites-list";
-import {
-  getNavLinkDisplayState,
-  type NavLinkDefinition,
-} from "./sidebar/nav-link-state";
 import { TopNavLink } from "./sidebar/top-nav-link";
 import { WorkspaceSwitcher } from "./sidebar/workspace-switcher";
 
 export const SIDEBAR_WIDTH = 260;
+
+type NavLinkDefinition = {
+  title: string;
+  path: string;
+  activeIfPathMatches?: RegExp;
+  icon?: ReactNode;
+  tooltipTitle?: string;
+  count?: number;
+  children?: Omit<NavLinkDefinition, "children" | "icon">[];
+};
+
+const isNavLinkActive = ({
+  definition,
+  currentPath,
+}: {
+  definition: NavLinkDefinition;
+  currentPath: string;
+}): boolean =>
+  definition.path === currentPath ||
+  (definition.activeIfPathMatches &&
+    !!currentPath.match(definition.activeIfPathMatches)) ||
+  !!definition.children?.some((child) =>
+    isNavLinkActive({ definition: child, currentPath }),
+  );
 
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
@@ -253,7 +278,7 @@ export const PageSidebar: FunctionComponent = () => {
       {navLinks.map((navLink) => {
         const currentPath = router.asPath;
 
-        const navLinkState = getNavLinkDisplayState({
+        const isActive = isNavLinkActive({
           definition: navLink,
           currentPath,
         });
@@ -266,13 +291,13 @@ export const PageSidebar: FunctionComponent = () => {
               href={navLink.path}
               tooltipTitle={navLink.tooltipTitle ?? ""}
               count={navLink.count}
-              active={navLinkState.isHighlighted}
+              active={isActive}
             />
-            <Collapse in={navLinkState.isExpanded}>
+            <Collapse in={isActive}>
               {navLink.children?.map((definition) => {
                 const { path, title, tooltipTitle, count } = definition;
 
-                const childNavLinkState = getNavLinkDisplayState({
+                const isChildActive = isNavLinkActive({
                   definition,
                   currentPath,
                 });
@@ -284,14 +309,12 @@ export const PageSidebar: FunctionComponent = () => {
                     href={path}
                     tooltipTitle={tooltipTitle ?? ""}
                     count={count}
-                    active={childNavLinkState.isHighlighted}
+                    active={isChildActive}
                     sx={{
                       "&:hover": {
                         background: "transparent",
                       },
-                      ...(childNavLinkState.isHighlighted
-                        ? { background: "transparent" }
-                        : {}),
+                      ...(isChildActive ? { background: "transparent" } : {}),
                     }}
                   />
                 );
