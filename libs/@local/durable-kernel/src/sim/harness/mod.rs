@@ -50,7 +50,8 @@ enum SubmitKind {
 }
 
 /// Holds the expected state, rebuilt from journal bytes. Events are decoded, deduplicated, and
-/// applied to maps by code separate from the application’s [`Fold`] implementation.
+/// applied to maps by code separate from the application’s [`Fold`](crate::domain::Fold)
+/// implementation.
 #[derive(Debug, Default)]
 struct ReferenceState {
     totals: BTreeMap<String, u64>,
