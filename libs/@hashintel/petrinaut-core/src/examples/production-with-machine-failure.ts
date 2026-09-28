@@ -85,7 +85,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           id: "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
           name: "BrokenMachines",
           description:
-            "Machines that failed mid-run and are waiting for a technician to be dispatched.",
+            "Machines that failed mid-run, waiting for a technician at base to be free.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -118,7 +118,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           id: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
           name: "AvailableTechnicians",
           description:
-            "Technicians on site and ready to be paired with a machine that needs repair.",
+            "Technicians at base, free to be sent to the next broken machine.",
           colorId: "type__1762560159263",
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -129,12 +129,23 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           id: "place__9cb073fb-f1d7-4613-8b10-8d1b08796f24",
           name: "MachinesToRepair",
           description:
-            "Broken machines whose technician has been dispatched, queued until one is free to start the repair.",
+            "Broken machines whose technician is on the way; the repair starts when the technician arrives.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
           differentialEquationId: null,
           x: 74 * GRID_SIZE,
           y: 39 * GRID_SIZE,
+        },
+        {
+          id: "place__technicians-repairing",
+          name: "TechniciansRepairing",
+          description:
+            "Technicians working on a machine. They return to base when the repair finishes.",
+          colorId: "type__1762560159263",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: -39 * GRID_SIZE,
+          y: 45 * GRID_SIZE,
         },
       ],
       transitions: [
@@ -264,10 +275,15 @@ return {
           id: "transition__cc61df1f-00f3-456f-8a80-03e8b68f3007",
           name: "Finish Repair",
           description:
-            "Once the repair dynamics have driven a machine's damage to zero, it returns to the available pool fully repaired.",
+            "Once the repair dynamics have driven a machine's damage to zero, it returns to the available pool fully repaired and its technician goes back to base.",
           inputArcs: [
             {
               placeId: "place__17c65d6e-0c3e-48e6-a677-2914e28131ac",
+              weight: 1,
+              type: "standard",
+            },
+            {
+              placeId: "place__technicians-repairing",
               weight: 1,
               type: "standard",
             },
@@ -275,6 +291,10 @@ return {
           outputArcs: [
             {
               placeId: "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8",
+              weight: 1,
+            },
+            {
+              placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
               weight: 1,
             },
           ],
@@ -291,6 +311,12 @@ return {
       machine_damage_ratio: 0
     }
   ],
+  AvailableTechnicians: [
+    {
+      technician_id: input.TechniciansRepairing[0].technician_id,
+      distance_to_site: 0
+    }
+  ],
 };`,
           x: -22 * GRID_SIZE,
           y: 27 * GRID_SIZE,
@@ -299,10 +325,15 @@ return {
           id: "transition__11f0b21a-d0f2-4bd5-b4c1-d23627f921c5",
           name: "Call Technician",
           description:
-            "Dispatches a technician for a broken machine (starting 10 distance units away) and queues the machine for repair.",
+            "Sends a free technician from base to a broken machine (10 distance units away) and queues the machine for repair. With no technician free, the machine waits.",
           inputArcs: [
             {
               placeId: "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
+              weight: 1,
+              type: "standard",
+            },
+            {
+              placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
               weight: 1,
               type: "standard",
             },
@@ -318,16 +349,16 @@ return {
             },
           ],
           lambdaType: "predicate",
-          lambdaCode: `// Always enabled: as soon as a machine is broken we dispatch a technician.
+          lambdaCode: `// Enabled whenever a machine is broken and a technician is at base.
 return true;`,
           transitionKernelCode: `// Park the broken machine in MachinesToRepair (passing the token straight
-// through) and dispatch a technician who starts 10 units away; the Technician
+// through) and send the free technician, 10 units away; the Technician
 // Travel Dynamics then count that distance down to 0.
 return {
   MachinesToRepair: input.BrokenMachines,
   TechniciansComing: [
     {
-      technician_id: input.BrokenMachines[0].machine_id,
+      technician_id: input.AvailableTechnicians[0].technician_id,
       distance_to_site: 10
     }
   ],
@@ -336,47 +367,13 @@ return {
           y: 49 * GRID_SIZE,
         },
         {
-          id: "transition__514730c0-7ac5-47d5-8def-91446a248a83",
-          name: "Technician Ready",
-          description:
-            "A travelling technician arrives on site (remaining distance zero) and becomes available for repair work.",
-          inputArcs: [
-            {
-              placeId: "place__4b72cf19-907b-4fc0-ac0a-555453e95d4b",
-              weight: 1,
-              type: "standard",
-            },
-          ],
-          outputArcs: [
-            {
-              placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
-              weight: 1,
-            },
-          ],
-          lambdaType: "predicate",
-          lambdaCode: `// The technician has arrived once their remaining travel distance hits 0.
-return input.TechniciansComing[0].distance_to_site <= 0;`,
-          transitionKernelCode: `// The arrived technician joins the AvailableTechnicians pool, ready to be
-// paired with a machine in the Start Repair transition.
-return {
-  AvailableTechnicians: [
-    {
-      technician_id: input.TechniciansComing[0].technician_id,
-      distance_to_site: 0
-    }
-  ],
-};`,
-          x: 75 * GRID_SIZE,
-          y: 53 * GRID_SIZE,
-        },
-        {
           id: "transition__0efcd1bf-b1ff-466f-8a8f-c329ddce0ce8",
           name: "Start Repair",
           description:
-            "Pairs an available technician with a waiting machine and begins working its damage back down.",
+            "A technician arrives (remaining distance zero) and starts repairing a waiting machine.",
           inputArcs: [
             {
-              placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
+              placeId: "place__4b72cf19-907b-4fc0-ac0a-555453e95d4b",
               weight: 1,
               type: "standard",
             },
@@ -391,11 +388,14 @@ return {
               placeId: "place__17c65d6e-0c3e-48e6-a677-2914e28131ac",
               weight: 1,
             },
+            {
+              placeId: "place__technicians-repairing",
+              weight: 1,
+            },
           ],
           lambdaType: "predicate",
-          lambdaCode: `// Always enabled: repair begins as soon as both input arcs are satisfied,
-// i.e. an available technician AND a machine waiting to be repaired.
-return true;`,
+          lambdaCode: `// The repair starts once the technician has arrived.
+return input.TechniciansComing[0].distance_to_site <= 0;`,
           transitionKernelCode: `// Pair the technician with the waiting machine: move it into
 // MachinesBeingRepaired (carrying its current damage), where the Reparation
 // Dynamics will steadily reduce the damage until Finish Repair fires.
@@ -404,6 +404,12 @@ return {
     {
       machine_id: input.MachinesToRepair[0].machine_id,
       machine_damage_ratio: input.MachinesToRepair[0].machine_damage_ratio
+    }
+  ],
+  TechniciansRepairing: [
+    {
+      technician_id: input.TechniciansComing[0].technician_id,
+      distance_to_site: 0
     }
   ],
 };`,
@@ -594,9 +600,15 @@ return tokens.map(({ distance_to_site }) => {
           id: "status-view__technician",
           name: "Technician status",
           description:
-            "Each technician called out for a broken machine: travelling to the site, waiting on site, then gone once the repair starts. A technician is named after the machine they were called for.",
+            "Where each technician is: at base and free, travelling to a broken machine, or repairing it. Technicians return to base after each repair.",
           identityRef: "identity__technician",
           labels: [
+            {
+              id: "status-label__at-base",
+              name: "At base",
+              displayColor: "#64748b",
+              places: ["place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa"],
+            },
             {
               id: "status-label__travelling",
               name: "Travelling",
@@ -604,17 +616,10 @@ return tokens.map(({ distance_to_site }) => {
               places: ["place__4b72cf19-907b-4fc0-ac0a-555453e95d4b"],
             },
             {
-              id: "status-label__on-site",
-              name: "On site",
-              displayColor: "#16a34a",
-              places: ["place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa"],
-            },
-            {
               id: "status-label__repairing",
               name: "Repairing",
-              displayColor: "#64748b",
-              places: [],
-              isExit: true,
+              displayColor: "#16a34a",
+              places: ["place__technicians-repairing"],
             },
           ],
         },
@@ -671,10 +676,11 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
           id: "scenario__worn_machines",
           name: "Worn machines",
           description:
-            "Machines start 70% worn, so they reach high damage, break down and call technicians.",
+            "Machines start 60–76% worn, so they break down one after another and wait for the two technicians.",
           scenarioParameters: [
             { type: "integer", identifier: "raw_material", default: 20 },
             { type: "integer", identifier: "machines_count", default: 3 },
+            { type: "integer", identifier: "technicians_count", default: 2 },
             {
               type: "ratio",
               identifier: "initial_machine_damage",
@@ -701,9 +707,16 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                   optimize: null,
                 },
                 {
+                  name: "technicians_count",
+                  type: "integer",
+                  expression: "2",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
                   name: "initial_machine_damage",
                   type: "ratio",
-                  expression: "0.7",
+                  expression: "0.6",
                   exposed: true,
                   optimize: null,
                 },
@@ -716,6 +729,24 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                     expression: "scenario.raw_material",
                     optimize: null,
                   },
+                },
+                "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa": {
+                  kind: "coloured",
+                  variables: [],
+                  rows: [
+                    {
+                      kind: "template",
+                      count: {
+                        expression: "scenario.technicians_count",
+                        optimize: null,
+                      },
+                      cells: [
+                        { expression: "i + 1", optimize: null },
+                        { expression: "0", optimize: null },
+                      ],
+                    },
+                  ],
+                  sharedColumns: {},
                 },
                 "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8": {
                   kind: "coloured",
@@ -730,7 +761,8 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                       cells: [
                         { expression: "i + 1", optimize: null },
                         {
-                          expression: "scenario.initial_machine_damage",
+                          expression:
+                            "scenario.initial_machine_damage + i * 0.08",
                           optimize: null,
                         },
                       ],
@@ -750,6 +782,7 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
           scenarioParameters: [
             { type: "integer", identifier: "raw_material", default: 10 },
             { type: "integer", identifier: "machines_count", default: 3 },
+            { type: "integer", identifier: "technicians_count", default: 2 },
             { type: "ratio", identifier: "initial_machine_damage", default: 0 },
           ],
           parameterOverrides: {},
@@ -772,6 +805,13 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                   optimize: null,
                 },
                 {
+                  name: "technicians_count",
+                  type: "integer",
+                  expression: "2",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
                   name: "initial_machine_damage",
                   type: "ratio",
                   expression: "0",
@@ -787,6 +827,24 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                     expression: "scenario.raw_material",
                     optimize: null,
                   },
+                },
+                "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa": {
+                  kind: "coloured",
+                  variables: [],
+                  rows: [
+                    {
+                      kind: "template",
+                      count: {
+                        expression: "scenario.technicians_count",
+                        optimize: null,
+                      },
+                      cells: [
+                        { expression: "i + 1", optimize: null },
+                        { expression: "0", optimize: null },
+                      ],
+                    },
+                  ],
+                  sharedColumns: {},
                 },
                 "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8": {
                   kind: "coloured",
