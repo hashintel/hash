@@ -218,11 +218,11 @@ export const createLiveToolBroadcaster = (
       if (closed) return;
       const entry = entryFor(input.instanceId);
       if (entry === undefined) return;
-      const event = {
+      const event: LiveToolEvent = {
         ...input,
         sequence: entry.nextSequence++,
         v: 1,
-      } as LiveToolEvent;
+      };
       entry.retained.push(event);
       if (entry.retained.length > configured.maxRetainedEvents) {
         entry.retained.splice(
