@@ -46,7 +46,7 @@ test("streams one submission as SSE and closes after it finishes", async () => {
     kind: "tool-input-start",
     submissionId: "submission-1",
     toolCallId: "call-1",
-    toolName: "read_workpiece",
+    toolName: "lookup",
     turnId: "turn-1",
   });
   broadcaster.publish({
@@ -69,7 +69,7 @@ test("continues live delivery after replaying the full retained window", async (
       kind: "tool-input-start",
       submissionId: "submission-1",
       toolCallId: `catch-up-${index}`,
-      toolName: "read_workpiece",
+      toolName: "lookup",
       turnId: "turn-1",
     });
   }
@@ -84,7 +84,7 @@ test("continues live delivery after replaying the full retained window", async (
     kind: "tool-input-start",
     submissionId: "submission-1",
     toolCallId: "first-live-call",
-    toolName: "read_workpiece",
+    toolName: "lookup",
     turnId: "turn-1",
   });
 

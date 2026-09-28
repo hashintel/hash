@@ -150,7 +150,9 @@ describe("upstream: 'send handle a stop and an aborted response stream'", () => 
     expect(onFinish).toHaveBeenCalledWith(
       expect.objectContaining({ isAbort: true, isError: false }),
     );
-    await client.wait(admissions[0]!);
+    const [admission] = admissions;
+    if (admission === undefined) throw new Error("Expected one admission.");
+    await client.wait(admission);
     const history = await client.history();
     expect(history.settlements.at(-1)).toMatchObject({ outcome: "completed" });
   });
@@ -215,13 +217,14 @@ describe("upstream: 'sendAutomaticallyWhen'", () => {
     });
     for (const chunk of clientToolStepThenAbort) projector.accept(chunk);
     const { message } = await reduceUiMessageChunks(written);
-    const withoutProviderExecution = structuredClone(message!);
+    if (message === undefined) throw new Error("Expected a reduced message.");
+    const withoutProviderExecution = structuredClone(message);
     for (const part of withoutProviderExecution.parts) {
       if ("providerExecuted" in part) part.providerExecuted = undefined;
     }
 
     expect(
-      lastAssistantMessageIsCompleteWithToolCalls({ messages: [message!] }),
+      lastAssistantMessageIsCompleteWithToolCalls({ messages: [message] }),
     ).toBe(false);
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({

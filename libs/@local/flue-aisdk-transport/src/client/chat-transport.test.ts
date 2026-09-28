@@ -1,7 +1,7 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
-import { afterEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 
-import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
+import { useUiChunkRecorder } from "../shared/ai-sdk-oracle";
 import { createFlueChatTransport } from "./chat-transport";
 
 import type { FlueChatTransportOptions } from "./chat-transport";
@@ -13,7 +13,7 @@ import type {
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 const admission: AgentSendResult = {
-  streamUrl: "http://brunch.test/stream",
+  streamUrl: "http://agent.test/stream",
   offset: "offset-1",
   submissionId: "submission-1",
   uid: "uid-1",
@@ -71,22 +71,12 @@ const clientWith = (
   };
 };
 
-const recorded: UIMessageChunk[][] = [];
-
-afterEach(async () => {
-  const streams = recorded.splice(0);
-  for (const chunks of streams) {
-    // Each stream is reduced independently, in test order.
-    // eslint-disable-next-line no-await-in-loop
-    await reduceUiMessageChunks(chunks);
-  }
-});
+const recordChunks = useUiChunkRecorder();
 
 const readChunks = async (
   stream: ReadableStream<UIMessageChunk>,
 ): Promise<UIMessageChunk[]> => {
-  const chunks: UIMessageChunk[] = [];
-  recorded.push(chunks);
+  const chunks = recordChunks();
   const reader = stream.getReader();
   for (;;) {
     // A stream reader is necessarily consumed in sequence.
@@ -112,7 +102,7 @@ test("admits one user message and projects a finite per-turn stream", async () =
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({
     client,
-    clientToolNames: new Set(["readPetrinautDoc"]),
+    clientToolNames: new Set(["render_widget"]),
   });
 
   const stream = await transport.sendMessages(
