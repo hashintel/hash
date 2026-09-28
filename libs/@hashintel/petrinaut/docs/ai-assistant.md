@@ -33,7 +33,7 @@ The header text is not selectable. Its icons animate on hover and click, respect
 
 ## The conversation
 
-Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field grows with your message. In Brunch Chat, the microphone stays on the left below the field, with Send or Stop on the right. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
+Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field grows with your message. In Brunch Chat, one button on the right switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
 The primary tab reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each assistant turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead.
 
@@ -84,9 +84,9 @@ The document is mirrored to browser local storage automatically; there is no sep
 Wait for the status panel to report a settled bundle before reopening the same fixture in another
 tab. A refused status leaves the previous coherent bundle selected and names the failed history, workpiece, or document check instead of claiming that partial state settled.
 
-When the Brunch voice preview is enabled and available, the composer shows a separate waveform action
-titled **Start voice mode**. Typing keeps that action available beside **Send**. The first-run
-prompt swaps its trailing Voice action for Send when you type; if voice is unavailable, the empty
+When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
+titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
+action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty
 composer retains a disabled **Send** action. Starting Voice mode keeps the transcript in place and
 opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
 disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the

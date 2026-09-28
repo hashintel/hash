@@ -516,6 +516,10 @@ export const EmptyWithVoiceAvailable: Story = {
   render: () => <Frame messages={[]} voiceModeAvailable />,
 };
 
+export const BrunchWithVoiceAvailable: Story = {
+  render: () => <Frame primaryLabel="Chat" messages={[]} voiceModeAvailable />,
+};
+
 export const VoiceModeAwaitingConsent: Story = {
   render: () => (
     <Frame
@@ -1196,7 +1200,7 @@ export const StreamingMarkdown: Story = {
   ),
 };
 
-/** Brunch Chat keeps voice entry on the left and the text action on the right. */
+/** Brunch Chat keeps its single action on the right while experiments run. */
 export const BrunchComposerExperimentRunning: Story = {
   render: () => (
     <Frame

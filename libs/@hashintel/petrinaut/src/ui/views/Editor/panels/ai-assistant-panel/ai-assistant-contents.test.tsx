@@ -2966,7 +2966,7 @@ describe("AiAssistantContents", () => {
     expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
   });
 
-  test("puts the Brunch microphone left of the textarea and keeps Send on the right", () => {
+  test("keeps one trailing Brunch composer action", () => {
     const onInputModeChange = vi.fn();
     render(
       <AiAssistantContents
@@ -2987,11 +2987,11 @@ describe("AiAssistantContents", () => {
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
-    const send = screen.getByRole("button", { name: "Send message" });
-    expect(microphone.compareDocumentPosition(send)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
+    expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
+    expect(textarea.closest("form")?.querySelectorAll("button")).toHaveLength(
+      1,
     );
-    expect(textarea.nextElementSibling?.contains(send)).toBe(true);
+    expect(textarea.nextElementSibling?.contains(microphone)).toBe(true);
     fireEvent.click(microphone);
     expect(onInputModeChange).toHaveBeenCalledWith("voice");
   });
@@ -3083,86 +3083,95 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByText("Waiting for your decision")).toBeNull();
   });
 
-  test("switches the trailing action from Voice mode to Send for trimmed input", () => {
-    const onInputModeChange = vi.fn();
-    const onSubmit = vi.fn();
-    const props = {
-      messages: [] as PetrinautAiMessage[],
-      onClose: noop,
-      onInputChange: noop,
-      onInputModeChange,
-      onStop: noop,
-      onSubmit,
-      status: "ready" as const,
-      voiceModeAvailable: true,
-    };
-    const rendered = render(<AiAssistantContents {...props} input="" />);
+  test.each(["Chat", "AI assistant"])(
+    "switches the %s trailing action from Voice mode to Send for trimmed input",
+    (primaryLabel) => {
+      const onInputModeChange = vi.fn();
+      const onSubmit = vi.fn();
+      const props = {
+        messages: [] as PetrinautAiMessage[],
+        onClose: noop,
+        onInputChange: noop,
+        onInputModeChange,
+        onStop: noop,
+        onSubmit,
+        primaryLabel,
+        status: "ready" as const,
+        voiceModeAvailable: true,
+      };
+      const rendered = render(<AiAssistantContents {...props} input="" />);
 
-    const voiceButton = screen.getByRole("button", {
-      name: "Start voice mode",
-    });
-    expect(voiceButton.querySelector("svg")).not.toBeNull();
-    expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
-      "tooltip",
-    );
-    fireEvent.click(voiceButton);
+      const voiceButton = screen.getByRole("button", {
+        name: "Start voice mode",
+      });
+      expect(voiceButton.querySelector("svg")).not.toBeNull();
+      expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
+        "tooltip",
+      );
+      fireEvent.click(voiceButton);
 
-    expect(onInputModeChange).toHaveBeenCalledOnce();
-    expect(onInputModeChange).toHaveBeenCalledWith("voice");
-    expect(onSubmit).not.toHaveBeenCalled();
+      expect(onInputModeChange).toHaveBeenCalledOnce();
+      expect(onInputModeChange).toHaveBeenCalledWith("voice");
+      expect(onSubmit).not.toHaveBeenCalled();
 
-    rendered.rerender(<AiAssistantContents {...props} input="   " />);
-    expect(
-      screen.getByRole("button", { name: "Start voice mode" }),
-    ).not.toBeNull();
+      rendered.rerender(<AiAssistantContents {...props} input="   " />);
+      expect(
+        screen.getByRole("button", { name: "Start voice mode" }),
+      ).not.toBeNull();
 
-    rendered.rerender(
-      <AiAssistantContents {...props} input="  Create a queue  " />,
-    );
-    expect(
-      screen.queryByRole("button", { name: "Start voice mode" }),
-    ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+      rendered.rerender(
+        <AiAssistantContents {...props} input="  Create a queue  " />,
+      );
+      expect(
+        screen.queryByRole("button", { name: "Start voice mode" }),
+      ).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
-    expect(onSubmit).toHaveBeenCalledOnce();
-  });
+      expect(onSubmit).toHaveBeenCalledOnce();
+    },
+  );
 
-  test("prioritizes Stop and retains disabled Send without Voice mode", () => {
-    const onStop = vi.fn();
-    const props = {
-      input: "Draft",
-      messages: [] as PetrinautAiMessage[],
-      onClose: noop,
-      onInputChange: noop,
-      onStop,
-      onSubmit: vi.fn(),
-      status: "streaming" as const,
-      voiceModeAvailable: true,
-    };
-    const rendered = render(<AiAssistantContents {...props} />);
+  test.each(["Chat", "AI assistant"])(
+    "prioritizes %s Stop and retains disabled Send without Voice mode",
+    (primaryLabel) => {
+      const onStop = vi.fn();
+      const props = {
+        input: "Draft",
+        messages: [] as PetrinautAiMessage[],
+        onClose: noop,
+        onInputChange: noop,
+        onInputModeChange: noop,
+        onStop,
+        onSubmit: vi.fn(),
+        primaryLabel,
+        status: "streaming" as const,
+        voiceModeAvailable: true,
+      };
+      const rendered = render(<AiAssistantContents {...props} />);
 
-    expect(
-      screen.queryByRole("button", { name: "Start voice mode" }),
-    ).toBeNull();
-    expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
-    expect(onStop).toHaveBeenCalledOnce();
+      expect(
+        screen.queryByRole("button", { name: "Start voice mode" }),
+      ).toBeNull();
+      expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+      expect(onStop).toHaveBeenCalledOnce();
 
-    rendered.rerender(
-      <AiAssistantContents
-        {...props}
-        input=""
-        status="ready"
-        voiceModeAvailable={false}
-      />,
-    );
+      rendered.rerender(
+        <AiAssistantContents
+          {...props}
+          input=""
+          status="ready"
+          voiceModeAvailable={false}
+        />,
+      );
 
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", {
-        name: "Send message",
-      }).disabled,
-    ).toBe(true);
-  });
+      expect(
+        screen.getByRole<HTMLButtonElement>("button", {
+          name: "Send message",
+        }).disabled,
+      ).toBe(true);
+    },
+  );
 
   test("does not submit the draft when a host composer button omits its type", () => {
     const onSubmit = vi.fn();

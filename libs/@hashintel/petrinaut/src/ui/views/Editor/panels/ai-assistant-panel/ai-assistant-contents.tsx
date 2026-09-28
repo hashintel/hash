@@ -1016,7 +1016,7 @@ export const AiAssistantContents = ({
           type: "submit",
           variant: "solid",
         }
-      : !isBrunchChat && !hasInput && voiceModeAvailable && onInputModeChange
+      : !hasInput && voiceModeAvailable && onInputModeChange
         ? {
             disabled: false,
             glyph: "voice",
@@ -1650,20 +1650,6 @@ export const AiAssistantContents = ({
                       })}
                       data-brunch={isBrunchChat || undefined}
                     >
-                      {isBrunchChat &&
-                        voiceModeAvailable &&
-                        onInputModeChange && (
-                          <Button
-                            aria-label="Start voice mode"
-                            tooltip="Start voice mode"
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={voiceHandoffPending}
-                            onClick={() => onInputModeChange("voice")}
-                            prefix={<AiVoiceModeIcon size={16} />}
-                          />
-                        )}
                       {composerHint && (
                         <span className={composerHintStyle} role="status">
                           {composerHint}
