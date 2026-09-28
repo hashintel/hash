@@ -1,371 +1,19 @@
 /**
- * Ingest run hook: upload PDF → stream SSE progress → terminal state.
- *
- * Pure functions (isPdfFile, isTerminalStatus) are exported for testing.
- * The hook (useIngestRun) wires them to React state + SSE side effects.
+ * Ingest run hook: upload a PDF, then follow the run's SSE progress stream to
+ * a terminal state.
  */
+import { createParser, type EventSourceMessage } from "eventsource-parser";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import { getIngestRunApiPath } from "../shared/routing";
 
 import type {
   ActiveRunStatus,
   RunStatus,
-  SucceededRunStatus,
   TerminalRunStatus,
 } from "../shared/types";
 
-// ---------------------------------------------------------------------------
-// Pure functions (functional core)
-// ---------------------------------------------------------------------------
-
-export function isPdfFile(file: File): boolean {
-  return (
-    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
-  );
-}
-
-export function isTerminalStatus(
-  status: RunStatus["status"],
-): status is "succeeded" | "failed" {
-  return status === "succeeded" || status === "failed";
-}
-
-export function isTerminalRunStatus(
-  runStatus: RunStatus,
-): runStatus is TerminalRunStatus {
-  return isTerminalStatus(runStatus.status);
-}
-
-export function isActiveRunStatus(
-  runStatus: RunStatus,
-): runStatus is ActiveRunStatus {
-  return runStatus.status === "queued" || runStatus.status === "running";
-}
-
-export function shouldFetchResults(
-  state: IngestRunState,
-): state is DoneIngestRunState & { runStatus: SucceededRunStatus } {
-  return state.phase === "done" && state.runStatus.status === "succeeded";
-}
-
-export function getStateForRunStatus(
-  runStatus: RunStatus,
-): StreamingIngestRunState | DoneIngestRunState {
-  if (isTerminalRunStatus(runStatus)) {
-    return { phase: "done", runStatus };
-  }
-
-  if (isActiveRunStatus(runStatus)) {
-    return { phase: "streaming", runStatus };
-  }
-
-  throw new Error(`Unknown ingest run status: ${String(runStatus.status)}`);
-}
-
-export class IngestRunStatusError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-    this.name = "IngestRunStatusError";
-  }
-}
-
-export async function loadIngestRunStatus(
-  runId: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<RunStatus> {
-  const response = await fetchFn(
-    `/api/ingest/${encodeURIComponent(runId)}/status`,
-  );
-
-  if (!response.ok) {
-    throw new IngestRunStatusError(
-      `Failed to load run status: ${response.status}`,
-      response.status,
-    );
-  }
-
-  return (await response.json()) as RunStatus;
-}
-
-export function getIngestRunEventsPath(
-  runId: string,
-  options?: { after?: number },
-): string {
-  const path = `/api/ingest/${encodeURIComponent(runId)}/events`;
-
-  if (options?.after === undefined) {
-    return path;
-  }
-
-  const searchParams = new URLSearchParams({
-    after: String(options.after),
-  });
-
-  return `${path}?${searchParams.toString()}`;
-}
-
-export async function loadResumeTargetForRun(
-  runId: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<{
-  state: StreamingIngestRunState | DoneIngestRunState;
-  streamPath: string | null;
-}> {
-  const runStatus = await loadIngestRunStatus(runId, fetchFn);
-  const state = getStateForRunStatus(runStatus);
-
-  return {
-    state,
-    streamPath:
-      state.phase === "streaming"
-        ? getIngestRunEventsPath(runId, { after: 0 })
-        : null,
-  };
-}
-
-export async function recoverDoneStateFromStreamError(
-  runId: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<Extract<IngestRunState, { phase: "done" }> | null> {
-  const { state } = await loadResumeTargetForRun(runId, fetchFn);
-
-  return state.phase === "done" ? state : null;
-}
-
-export type IngestResumeOutcome =
-  | "loaded"
-  | "cleared-missing-run"
-  | "failed"
-  | "superseded";
-
-export function getResumeAttemptDisposition({
-  expectedRunId,
-  currentResumingRunId,
-  expectedSessionGeneration,
-  currentSessionGeneration,
-}: {
-  expectedRunId: string;
-  currentResumingRunId: string | null;
-  expectedSessionGeneration: number;
-  currentSessionGeneration: number;
-}): "apply" | "superseded" {
-  if (
-    currentResumingRunId !== expectedRunId ||
-    currentSessionGeneration !== expectedSessionGeneration
-  ) {
-    return "superseded";
-  }
-
-  return "apply";
-}
-
-export function getResumeFailureResolution(error: unknown): {
-  nextState: Extract<IngestRunState, { phase: "idle" | "error" }>;
-  clearRunId: boolean;
-} {
-  if (error instanceof IngestRunStatusError && error.status === 404) {
-    return {
-      nextState: { phase: "idle" },
-      clearRunId: true,
-    };
-  }
-
-  return {
-    nextState: {
-      phase: "error",
-      message: error instanceof Error ? error.message : String(error),
-    },
-    clearRunId: false,
-  };
-}
-
-const isRunStatus = (value: unknown): value is RunStatus["status"] =>
-  value === "queued" ||
-  value === "running" ||
-  value === "succeeded" ||
-  value === "failed";
-
-const getPayloadRunId = (payload: Record<string, unknown>): string | null => {
-  const payloadRunId = payload.runId;
-
-  return typeof payloadRunId === "string" ? payloadRunId : null;
-};
-
-const getEffectiveEventKind = (
-  eventKind: string,
-  payload: Record<string, unknown>,
-): string => {
-  if (eventKind !== "message") {
-    return eventKind;
-  }
-
-  const payloadEventKind = payload.event;
-
-  return typeof payloadEventKind === "string" ? payloadEventKind : eventKind;
-};
-
-export type IngestRunStreamMessage = {
-  event: string;
-  data: string;
-};
-
-const normalizeSseChunkText = (chunk: string): string =>
-  chunk.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
-
-const parseSseFrame = (frame: string): IngestRunStreamMessage | null => {
-  let event = "message";
-  const dataLines: string[] = [];
-
-  for (const line of frame.split("\n")) {
-    if (!line || line.startsWith(":")) {
-      continue;
-    }
-
-    const separatorIndex = line.indexOf(":");
-    const field = separatorIndex === -1 ? line : line.slice(0, separatorIndex);
-    const rawValue =
-      separatorIndex === -1 ? "" : line.slice(separatorIndex + 1);
-    const value = rawValue.startsWith(" ") ? rawValue.slice(1) : rawValue;
-
-    if (field === "event") {
-      event = value || "message";
-    }
-
-    if (field === "data") {
-      dataLines.push(value);
-    }
-  }
-
-  if (dataLines.length === 0) {
-    return null;
-  }
-
-  return {
-    event,
-    data: dataLines.join("\n"),
-  };
-};
-
-export function parseSseFrameBuffer(buffer: string): {
-  messages: IngestRunStreamMessage[];
-  remainder: string;
-} {
-  let remainder = normalizeSseChunkText(buffer);
-  const messages: IngestRunStreamMessage[] = [];
-
-  for (;;) {
-    const separatorIndex = remainder.indexOf("\n\n");
-
-    if (separatorIndex === -1) {
-      return { messages, remainder };
-    }
-
-    const frame = remainder.slice(0, separatorIndex);
-    remainder = remainder.slice(separatorIndex + 2);
-
-    const parsedFrame = parseSseFrame(frame);
-
-    if (parsedFrame) {
-      messages.push(parsedFrame);
-    }
-  }
-}
-
-/** Normalize an SSE browser event into the current run's visible status. */
-export function getRunStatusFromStreamEvent(
-  runId: string,
-  eventKind: string,
-  payload: Record<string, unknown>,
-): RunStatus | null {
-  const payloadRunId = getPayloadRunId(payload);
-
-  if (payloadRunId && payloadRunId !== runId) {
-    return null;
-  }
-
-  const effectiveEventKind = getEffectiveEventKind(eventKind, payload);
-  const status: RunStatus["status"] =
-    effectiveEventKind === "run-succeeded"
-      ? "succeeded"
-      : effectiveEventKind === "run-failed"
-        ? "failed"
-        : isRunStatus(payload.status)
-          ? payload.status
-          : "running";
-
-  return {
-    runId,
-    status,
-    phase: payload.phase as string | undefined,
-    step: payload.step as string | undefined,
-    counts: payload.counts as RunStatus["counts"],
-    error: payload.error ? (payload.error as string) : undefined,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-export async function consumeIngestRunEventStream({
-  runId,
-  stream,
-  onRunStatus,
-}: {
-  runId: string;
-  stream: ReadableStream<Uint8Array>;
-  onRunStatus: (runStatus: RunStatus) => "stop" | void;
-}): Promise<void> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-
-      buffer += done
-        ? decoder.decode()
-        : decoder.decode(value, { stream: true });
-
-      const { messages, remainder } = parseSseFrameBuffer(buffer);
-      buffer = remainder;
-
-      for (const message of messages) {
-        try {
-          const payload = JSON.parse(message.data) as Record<string, unknown>;
-          const runStatus = getRunStatusFromStreamEvent(
-            runId,
-            message.event,
-            payload,
-          );
-
-          if (!runStatus) {
-            continue;
-          }
-
-          if (onRunStatus(runStatus) === "stop") {
-            await reader.cancel().catch(() => {});
-            return;
-          }
-        } catch {
-          // Malformed payload — ignore
-        }
-      }
-
-      if (done) {
-        return;
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
-// ---------------------------------------------------------------------------
-// State machine
-// ---------------------------------------------------------------------------
-
-export type StreamingIngestRunState = {
+type StreamingIngestRunState = {
   phase: "streaming";
   runStatus: ActiveRunStatus;
 };
@@ -382,275 +30,324 @@ export type IngestRunState =
   | DoneIngestRunState
   | { phase: "error"; message: string };
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
+const runStatusValues: ReadonlySet<unknown> = new Set<RunStatus["status"]>([
+  "queued",
+  "running",
+  "succeeded",
+  "failed",
+]);
 
-export function useIngestRun() {
-  const [state, setState] = useState<IngestRunState>({ phase: "idle" });
-  const streamRef = useRef<{
-    controller: AbortController;
-    requestId: number;
-  } | null>(null);
-  const isRecoveringRef = useRef(false);
-  const currentRunIdRef = useRef<string | null>(null);
-  const resumingRunIdRef = useRef<string | null>(null);
-  const sessionGenerationRef = useRef(0);
-  const nextStreamRequestIdRef = useRef(0);
+const isRunStatusValue = (value: unknown): value is RunStatus["status"] =>
+  runStatusValues.has(value);
 
-  useEffect(() => {
-    currentRunIdRef.current =
-      "runStatus" in state ? state.runStatus.runId : null;
-  }, [state]);
+const isActiveRunStatus = (
+  runStatus: RunStatus,
+): runStatus is ActiveRunStatus =>
+  runStatus.status === "queued" || runStatus.status === "running";
 
-  useEffect(() => {
-    return () => {
-      streamRef.current?.controller.abort();
-    };
-  }, []);
+const isTerminalRunStatus = (
+  runStatus: RunStatus,
+): runStatus is TerminalRunStatus =>
+  runStatus.status === "succeeded" || runStatus.status === "failed";
 
-  const stopStream = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.controller.abort();
-      streamRef.current = null;
+const getStateForRunStatus = (
+  runStatus: RunStatus,
+): StreamingIngestRunState | DoneIngestRunState => {
+  if (isTerminalRunStatus(runStatus)) {
+    return { phase: "done", runStatus };
+  }
+
+  if (isActiveRunStatus(runStatus)) {
+    return { phase: "streaming", runStatus };
+  }
+
+  throw new Error(`Unknown ingest run status: ${String(runStatus.status)}`);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const optionalString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+const optionalNumber = (value: unknown): number | undefined =>
+  typeof value === "number" ? value : undefined;
+
+const getCounts = (value: unknown): RunStatus["counts"] =>
+  isRecord(value)
+    ? {
+        pages: optionalNumber(value.pages),
+        chunks: optionalNumber(value.chunks),
+        mentions: optionalNumber(value.mentions),
+        claims: optionalNumber(value.claims),
+      }
+    : undefined;
+
+const parsePayload = (data: string): Record<string, unknown> | null => {
+  try {
+    const payload: unknown = JSON.parse(data);
+    return isRecord(payload) ? payload : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Normalize an SSE event into the run's visible status. */
+export const getRunStatusFromStreamEvent = (
+  runId: string,
+  eventKind: string | undefined,
+  payload: Record<string, unknown>,
+): RunStatus | null => {
+  const payloadRunId = optionalString(payload.runId);
+
+  if (payloadRunId && payloadRunId !== runId) {
+    return null;
+  }
+
+  const effectiveEventKind =
+    eventKind === undefined || eventKind === "message"
+      ? optionalString(payload.event)
+      : eventKind;
+
+  const status: RunStatus["status"] =
+    effectiveEventKind === "run-succeeded"
+      ? "succeeded"
+      : effectiveEventKind === "run-failed"
+        ? "failed"
+        : isRunStatusValue(payload.status)
+          ? payload.status
+          : "running";
+
+  return {
+    runId,
+    status,
+    phase: optionalString(payload.phase),
+    step: optionalString(payload.step),
+    counts: getCounts(payload.counts),
+    error: optionalString(payload.error),
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+/**
+ * Read a run's event stream until `onRunStatus` returns "stop". A connection
+ * that drops after delivering events is reopened with `Last-Event-ID`, as
+ * `EventSource` would; one that delivers nothing is treated as lost.
+ */
+export const followRunEvents = async ({
+  runId,
+  path,
+  signal,
+  onRunStatus,
+}: {
+  runId: string;
+  path: string;
+  signal: AbortSignal;
+  onRunStatus: (runStatus: RunStatus) => "stop" | undefined;
+}): Promise<void> => {
+  let lastEventId: string | undefined;
+
+  for (;;) {
+    const response = await fetch(
+      lastEventId ? `${getIngestRunApiPath(runId)}/events` : path,
+      {
+        headers: {
+          Accept: "text/event-stream",
+          ...(lastEventId ? { "Last-Event-ID": lastEventId } : {}),
+        },
+        signal,
+      },
+    );
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Failed to open the progress stream: ${response.status}`);
     }
-  }, []);
 
-  const isCurrentStreamRequest = useCallback(
-    (requestId: number): boolean => streamRef.current?.requestId === requestId,
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const messages: EventSourceMessage[] = [];
+    const parser = createParser({
+      onEvent: (message) => {
+        messages.push(message);
+      },
+    });
+
+    let receivedEvent = false;
+
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        parser.feed(decoder.decode(value, { stream: true }));
+
+        for (const message of messages.splice(0)) {
+          receivedEvent = true;
+          lastEventId = message.id ?? lastEventId;
+
+          const payload = parsePayload(message.data);
+          const runStatus =
+            payload &&
+            getRunStatusFromStreamEvent(runId, message.event, payload);
+
+          if (runStatus && onRunStatus(runStatus) === "stop") {
+            await reader.cancel();
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      if (signal.aborted) {
+        throw error;
+      }
+    }
+
+    if (!receivedEvent) {
+      throw new Error("Lost connection to the progress stream");
+    }
+  }
+};
+
+/** What one upload or resume may do while it is still the current session. */
+type IngestSessionContext = {
+  signal: AbortSignal;
+  setState: (nextState: IngestRunState) => void;
+  claimRun: (runId: string) => void;
+};
+
+const followRun = async (
+  { signal, setState }: IngestSessionContext,
+  runStatus: RunStatus,
+  eventsPath: string,
+): Promise<void> => {
+  const initialState = getStateForRunStatus(runStatus);
+  setState(initialState);
+
+  if (initialState.phase !== "streaming") {
+    return;
+  }
+
+  await followRunEvents({
+    runId: runStatus.runId,
+    path: eventsPath,
+    signal,
+    onRunStatus: (nextRunStatus) => {
+      const nextState = getStateForRunStatus(nextRunStatus);
+      setState(nextState);
+      return nextState.phase === "done" ? "stop" : undefined;
+    },
+  });
+};
+
+export const useIngestRun = () => {
+  const [state, setState] = useState<IngestRunState>({ phase: "idle" });
+  const sessionRef = useRef<{
+    controller: AbortController;
+    runId: string | null;
+  } | null>(null);
+
+  useEffect(() => () => sessionRef.current?.controller.abort(), []);
+
+  const runSession = useCallback(
+    (
+      runId: string | null,
+      work: (context: IngestSessionContext) => Promise<void>,
+    ) => {
+      sessionRef.current?.controller.abort();
+      const session = { controller: new AbortController(), runId };
+      sessionRef.current = session;
+
+      const setSessionState = (nextState: IngestRunState) => {
+        if (sessionRef.current === session) {
+          setState(nextState);
+        }
+      };
+
+      void work({
+        signal: session.controller.signal,
+        setState: setSessionState,
+        claimRun: (claimedRunId) => {
+          session.runId = claimedRunId;
+        },
+      }).catch((error: unknown) => {
+        setSessionState({
+          phase: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+    },
     [],
   );
 
-  const supersedePendingResume = useCallback(() => {
-    sessionGenerationRef.current += 1;
-    resumingRunIdRef.current = null;
-  }, []);
-
-  const reconcileStreamError = useCallback(
-    async (runId: string, requestId: number) => {
-      if (
-        isRecoveringRef.current ||
-        streamRef.current?.requestId !== requestId
-      ) {
-        return;
-      }
-
-      isRecoveringRef.current = true;
-
-      try {
-        const recoveredState = await recoverDoneStateFromStreamError(runId);
-
-        if (!isCurrentStreamRequest(requestId)) {
-          return;
-        }
-
-        if (recoveredState) {
-          stopStream();
-          setState(recoveredState);
-          return;
-        }
-
-        stopStream();
-        setState({
-          phase: "error",
-          message: "Lost connection to progress stream",
-        });
-      } catch {
-        if (!isCurrentStreamRequest(requestId)) {
-          return;
-        }
-
-        stopStream();
-        setState({
-          phase: "error",
-          message: "Lost connection to progress stream",
-        });
-      } finally {
-        isRecoveringRef.current = false;
-      }
-    },
-    [isCurrentStreamRequest, stopStream],
-  );
-
-  const startStream = useCallback(
-    (runId: string, streamPath = getIngestRunEventsPath(runId)) => {
-      stopStream();
-
-      const controller = new AbortController();
-      const requestId = nextStreamRequestIdRef.current + 1;
-      nextStreamRequestIdRef.current = requestId;
-      streamRef.current = { controller, requestId };
-
-      void (async () => {
-        try {
-          const response = await fetch(streamPath, {
-            headers: {
-              Accept: "text/event-stream",
-            },
-            signal: controller.signal,
-          });
-
-          if (!response.ok || !response.body) {
-            throw new Error("Failed to open ingest event stream");
-          }
-
-          const contentType = response.headers.get("content-type");
-
-          if (!contentType?.includes("text/event-stream")) {
-            throw new Error("Unexpected ingest event stream content type");
-          }
-
-          await consumeIngestRunEventStream({
-            runId,
-            stream: response.body,
-            onRunStatus: (runStatus) => {
-              if (!isCurrentStreamRequest(requestId)) {
-                return "stop";
-              }
-
-              setState(getStateForRunStatus(runStatus));
-
-              if (isTerminalRunStatus(runStatus)) {
-                streamRef.current = null;
-                return "stop";
-              }
-            },
-          });
-
-          if (!isCurrentStreamRequest(requestId)) {
-            return;
-          }
-
-          await reconcileStreamError(runId, requestId);
-        } catch {
-          if (controller.signal.aborted || !isCurrentStreamRequest(requestId)) {
-            return;
-          }
-
-          await reconcileStreamError(runId, requestId);
-        }
-      })();
-    },
-    [isCurrentStreamRequest, reconcileStreamError, stopStream],
-  );
-
   const upload = useCallback(
-    async (file: File) => {
-      supersedePendingResume();
+    (file: File) => {
+      runSession(null, async (context) => {
+        context.setState({ phase: "uploading" });
 
-      if (!isPdfFile(file)) {
-        setState({ phase: "error", message: "Only PDF files are accepted" });
-        return;
-      }
-
-      setState({ phase: "uploading" });
-
-      try {
         const formData = new FormData();
         formData.append("file", file);
 
-        const res = await fetch("/api/ingest", {
+        const response = await fetch("/api/ingest", {
           method: "POST",
           body: formData,
+          signal: context.signal,
         });
 
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
+        if (!response.ok) {
+          const body: unknown = await response.json().catch(() => null);
           throw new Error(
-            (body as { error?: string }).error ??
-              `Upload failed with status ${res.status}`,
+            (isRecord(body) ? optionalString(body.error) : undefined) ??
+              `Upload failed with status ${response.status}`,
           );
         }
 
-        const status: RunStatus = (await res.json()) as RunStatus;
+        const runStatus = (await response.json()) as RunStatus;
+        context.claimRun(runStatus.runId);
 
-        const nextState = getStateForRunStatus(status);
-        setState(nextState);
-
-        if (nextState.phase === "streaming") {
-          startStream(status.runId);
-        }
-      } catch (err) {
-        setState({
-          phase: "error",
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
+        await followRun(
+          context,
+          runStatus,
+          `${getIngestRunApiPath(runStatus.runId)}/events`,
+        );
+      });
     },
-    [startStream, supersedePendingResume],
+    [runSession],
   );
 
   const resume = useCallback(
-    async (runId: string): Promise<IngestResumeOutcome> => {
-      const normalizedRunId = runId.trim();
-
-      if (!normalizedRunId) {
-        return "loaded";
+    (runId: string) => {
+      if (sessionRef.current?.runId === runId) {
+        return;
       }
 
-      if (
-        currentRunIdRef.current === normalizedRunId ||
-        resumingRunIdRef.current === normalizedRunId
-      ) {
-        return "loaded";
-      }
+      runSession(runId, async (context) => {
+        const runApiPath = getIngestRunApiPath(runId);
+        const response = await fetch(`${runApiPath}/status`, {
+          signal: context.signal,
+        });
 
-      resumingRunIdRef.current = normalizedRunId;
-      const sessionGeneration = sessionGenerationRef.current;
-
-      try {
-        const resumeTarget = await loadResumeTargetForRun(normalizedRunId);
-
-        if (
-          getResumeAttemptDisposition({
-            expectedRunId: normalizedRunId,
-            currentResumingRunId: resumingRunIdRef.current,
-            expectedSessionGeneration: sessionGeneration,
-            currentSessionGeneration: sessionGenerationRef.current,
-          }) === "superseded"
-        ) {
-          return "superseded";
+        if (!response.ok) {
+          throw new Error(`Failed to load run status: ${response.status}`);
         }
 
-        stopStream();
-        setState(resumeTarget.state);
-
-        if (resumeTarget.streamPath) {
-          startStream(normalizedRunId, resumeTarget.streamPath);
-        }
-
-        return "loaded";
-      } catch (err) {
-        if (
-          getResumeAttemptDisposition({
-            expectedRunId: normalizedRunId,
-            currentResumingRunId: resumingRunIdRef.current,
-            expectedSessionGeneration: sessionGeneration,
-            currentSessionGeneration: sessionGenerationRef.current,
-          }) === "superseded"
-        ) {
-          return "superseded";
-        }
-
-        const failure = getResumeFailureResolution(err);
-
-        stopStream();
-        setState(failure.nextState);
-        return failure.clearRunId ? "cleared-missing-run" : "failed";
-      } finally {
-        if (resumingRunIdRef.current === normalizedRunId) {
-          resumingRunIdRef.current = null;
-        }
-      }
+        await followRun(
+          context,
+          (await response.json()) as RunStatus,
+          `${runApiPath}/events?after=0`,
+        );
+      });
     },
-    [startStream, stopStream],
+    [runSession],
   );
 
   const reset = useCallback(() => {
-    supersedePendingResume();
-    stopStream();
+    sessionRef.current?.controller.abort();
+    sessionRef.current = null;
     setState({ phase: "idle" });
-  }, [stopStream, supersedePendingResume]);
+  }, []);
 
   return { state, upload, reset, resume };
-}
+};

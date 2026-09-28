@@ -7,10 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import IngestPage from "./index.page";
 
-import type {
-  IngestResumeOutcome,
-  IngestRunState,
-} from "./index.page/use-ingest-run";
+import type { IngestRunState } from "./index.page/use-ingest-run";
 
 const mockUseRouter = vi.fn();
 const mockUseIngestRun = vi.fn();
@@ -72,7 +69,7 @@ type HookMock = {
   state: IngestRunState;
   upload: ReturnType<typeof vi.fn>;
   reset: ReturnType<typeof vi.fn>;
-  resume: ReturnType<typeof vi.fn<(_: string) => Promise<IngestResumeOutcome>>>;
+  resume: ReturnType<typeof vi.fn<(runId: string) => void>>;
 };
 
 const createRouterMock = (overrides: Partial<RouterMock> = {}): RouterMock => ({
@@ -87,7 +84,7 @@ const createHookMock = (overrides: Partial<HookMock> = {}): HookMock => ({
   state: { phase: "idle" },
   upload: vi.fn(),
   reset: vi.fn(),
-  resume: vi.fn(() => Promise.resolve("loaded")),
+  resume: vi.fn(),
   ...overrides,
 });
 
@@ -136,89 +133,44 @@ describe("IngestPage navigation", () => {
     container = null;
   });
 
-  it("clears the URL when resume discovers a missing run", async () => {
-    const { router, hook } = renderPage({
-      router: createRouterMock({
-        isReady: true,
-        query: { runId: "missing-run" },
-      }),
-      hook: createHookMock({
-        resume: vi.fn(() => Promise.resolve("cleared-missing-run")),
-      }),
+  it("resumes the run named in the URL", async () => {
+    const { hook } = renderPage({
+      router: createRouterMock({ query: { runId: "run-123" } }),
     });
 
     await flushEffects();
 
-    expect(hook.resume).toHaveBeenCalledWith("missing-run");
-    expect(router.replace).toHaveBeenCalledWith("/ingest", undefined, {
-      shallow: true,
-    });
+    expect(hook.resume).toHaveBeenCalledWith("run-123");
   });
 
-  it("does not clear the URL when resume is superseded or fails", async () => {
-    const superseded = renderPage({
-      router: createRouterMock({
-        isReady: true,
-        query: { runId: "run-123" },
-      }),
+  it("records a streaming run's id in the URL", async () => {
+    const { router } = renderPage({
       hook: createHookMock({
-        resume: vi.fn(() => Promise.resolve("superseded")),
-      }),
-    });
-
-    await flushEffects();
-
-    expect(superseded.hook.resume).toHaveBeenCalledWith("run-123");
-    expect(superseded.router.replace).not.toHaveBeenCalled();
-    act(() => {
-      root?.unmount();
-    });
-    container?.remove();
-    root = null;
-    container = null;
-
-    const failed = renderPage({
-      router: createRouterMock({
-        isReady: true,
-        query: { runId: "run-456" },
-      }),
-      hook: createHookMock({
-        resume: vi.fn(() => Promise.resolve("failed")),
-      }),
-    });
-
-    await flushEffects();
-
-    expect(failed.hook.resume).toHaveBeenCalledWith("run-456");
-    expect(failed.router.replace).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    {
-      name: "failed run",
-      state: {
-        phase: "done",
-        runStatus: {
-          runId: "run-789",
-          status: "failed",
-          error: "pipeline failed",
+        state: {
+          phase: "streaming",
+          runStatus: { runId: "run-456", status: "running" },
         },
-      } as const satisfies IngestRunState,
-    },
-    {
-      name: "error state",
-      state: {
-        phase: "error",
-        message: "Lost connection to progress stream",
-      } as const satisfies IngestRunState,
-    },
-  ])("cleans a stale runId on reset from $name", async ({ state }) => {
+      }),
+    });
+
+    await flushEffects();
+
+    expect(router.replace).toHaveBeenCalledWith(
+      "/ingest?runId=run-456",
+      undefined,
+      { shallow: true },
+    );
+  });
+
+  it("clears the runId from the URL on reset", async () => {
     const { router, hook } = renderPage({
       router: createRouterMock({
         isReady: false,
         query: { runId: "run-789" },
       }),
-      hook: createHookMock({ state }),
+      hook: createHookMock({
+        state: { phase: "error", message: "Failed to load run status: 404" },
+      }),
     });
 
     const button = container?.querySelector("button");

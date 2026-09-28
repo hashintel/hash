@@ -1,21 +1,23 @@
-import { InfinityLightIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
-import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { InfinityLightIcon } from "@hashintel/design-system";
+
 import { isIngestEnabled } from "../../lib/public-env";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
-import type { Selection } from "./results.page/evidence-resolver";
 import { resolveEvidence } from "./results.page/evidence-resolver";
-import type { PageViewerHandle } from "./results.page/page-viewer";
 import { PageViewer } from "./results.page/page-viewer";
 import { ResultsPanel } from "./results.page/results-panel";
 import { getIngestResultsSource } from "./shared/routing";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { Selection } from "./results.page/evidence-resolver";
+import type { PageViewerHandle } from "./results.page/page-viewer";
 import type { IngestRunView } from "./shared/types";
+import type { GetServerSideProps } from "next";
 
 const normalizeQueryParam = (
   value: string | string[] | undefined,

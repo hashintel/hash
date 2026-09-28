@@ -1,4 +1,3 @@
-import { InfinityLightIcon } from "@hashintel/design-system";
 import {
   Box,
   Container,
@@ -8,17 +7,20 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useCallback, useEffect } from "react";
 
+import { InfinityLightIcon } from "@hashintel/design-system";
+
 import { isIngestEnabled } from "../../lib/public-env";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { WorkersHeader } from "../../shared/workers-header";
-import { getIngestPageNavigationAction } from "./index.page/navigation";
 import { UploadPanel } from "./index.page/upload-panel";
 import { useIngestRun } from "./index.page/use-ingest-run";
+import { getIngestPath, getIngestResultsPath } from "./shared/routing";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { GetServerSideProps } from "next";
 
 const normalizeQueryParam = (
   value: string | string[] | undefined,
@@ -33,60 +35,32 @@ const IngestPage: NextPageWithLayout = () => {
   const runId = normalizeQueryParam(router.query.runId);
 
   const handleReset = useCallback(() => {
-    const navigationAction = getIngestPageNavigationAction({
-      kind: "reset",
-      currentRunId: runId,
-      state,
-    });
-
     reset();
 
-    if (!navigationAction) {
-      return;
+    if (runId) {
+      void router.replace(getIngestPath(), undefined, { shallow: true });
     }
-
-    void router.replace(navigationAction.path, undefined, { shallow: true });
-  }, [reset, router, runId, state]);
+  }, [reset, router, runId]);
 
   useEffect(() => {
-    if (!router.isReady || !runId) {
-      return;
+    if (router.isReady && runId) {
+      resume(runId);
     }
+  }, [resume, router.isReady, runId]);
 
-    void (async () => {
-      const resumeOutcome = await resume(runId);
-
-      const navigationAction = getIngestPageNavigationAction({
-        kind: "resume",
-        currentRunId: runId,
-        resumeOutcome,
+  useEffect(() => {
+    if (state.phase === "streaming" && state.runStatus.runId !== runId) {
+      void router.replace(getIngestPath(state.runStatus.runId), undefined, {
+        shallow: true,
       });
-
-      if (!navigationAction) {
-        return;
-      }
-
-      void router.replace(navigationAction.path, undefined, { shallow: true });
-    })();
-  }, [resume, router, router.isReady, runId]);
-
-  useEffect(() => {
-    const navigationAction = getIngestPageNavigationAction({
-      kind: "state",
-      currentRunId: runId,
-      state,
-    });
-
-    if (!navigationAction) {
-      return;
+    } else if (
+      state.phase === "done" &&
+      state.runStatus.status === "succeeded"
+    ) {
+      void router.push(
+        getIngestResultsPath({ kind: "run", runId: state.runStatus.runId }),
+      );
     }
-
-    if (navigationAction.kind === "replace") {
-      void router.replace(navigationAction.path, undefined, { shallow: true });
-      return;
-    }
-
-    void router.push(navigationAction.path);
   }, [router, runId, state]);
 
   return (
