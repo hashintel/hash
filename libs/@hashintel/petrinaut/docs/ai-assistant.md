@@ -33,7 +33,7 @@ The header text is not selectable. Its icons animate on hover and click, respect
 
 ## The conversation
 
-Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field grows with your message. In Brunch Chat, one button on the right switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
+Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, that button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
 The primary tab reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each assistant turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead.
 

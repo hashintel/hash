@@ -518,6 +518,22 @@ export const EmptyWithVoiceAvailable: Story = {
 
 export const BrunchWithVoiceAvailable: Story = {
   render: () => <Frame primaryLabel="Chat" messages={[]} voiceModeAvailable />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const textarea = canvas.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    const voice = canvas.getByRole("button", { name: "Start voice mode" });
+    await expect(voice.getBoundingClientRect().top).toBeLessThan(
+      textarea.getBoundingClientRect().bottom,
+    );
+    await userEvent.type(textarea, "Create a queue");
+    const send = canvas.getByRole("button", { name: "Send message" });
+    await expect(send.getBoundingClientRect().top).toBeLessThan(
+      textarea.getBoundingClientRect().bottom,
+    );
+    await userEvent.clear(textarea);
+  },
 };
 
 export const VoiceModeAwaitingConsent: Story = {

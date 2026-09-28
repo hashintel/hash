@@ -488,7 +488,6 @@ const composerActionButtonStyle = css({
 const composerStyle = css({
   display: "flex",
   alignItems: "flex-end",
-  '&[data-brunch="true"]': { flexDirection: "column", alignItems: "stretch" },
   gap: "1",
   borderRadius: "lg",
   backgroundColor: "neutral.s10",
