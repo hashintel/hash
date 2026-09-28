@@ -17,10 +17,11 @@ import {
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
-import { createWorkpieceReadTool } from "@hashintel/brunch-agent";
+import { composeLedgerProfile } from "@hashintel/brunch-agent";
 import {
   canonicalContent,
   sdcpnInitialDataSchema,
+  sdcpnLedgerProfile,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -34,15 +35,15 @@ import {
 import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
 import { latestNetReadBefore } from "../../conversation/net-changes.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
-import { workpieceEvidenceSources } from "../../conversation/workpiece.ts";
+import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { projectBrunchContext } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
-import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
-
 const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
+const ledgerProfile = composeLedgerProfile(sdcpnLedgerProfile);
+const ledgerNoteShape = selectLedgerNoteShape();
 
 const testCompactionConfig = loadTestCompactionConfig();
 const chatModelOptions = {
@@ -69,56 +70,51 @@ export function ChatAgent({ id }: AgentProps) {
         ),
     }).history();
   };
-  const readSources = async () => workpieceEvidenceSources(await history());
   const coreSystemPrompt = useBrunchAgent(
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
-    (currentRevision) => {
-      useSdcpnPlugin(
-        initialData
-          ? {
-              authorizeDraft: async (draftCallId: string) => {
-                if (!latestNetReadBefore(await history(), draftCallId))
-                  throw new Error(
-                    "Experiment draft requires a prior canonical net read.",
-                  );
-              },
-              executeBrowserTool: async ({
-                toolName,
-                input,
-                toolCallId,
-                signal,
-              }) => {
-                const result = await issueBrowserCall({
-                  instanceId: id,
-                  toolCallId,
-                  toolName,
-                  canonicalInput: input,
-                  binding: canonicalContent(initialData.binding),
-                  signal,
-                });
-                return { output: result.output, metadata: result.metadata };
-              },
-            }
-          : {},
-      );
-      if (initialData) {
-        useTool(createWorkpieceReadTool({ currentRevision, readSources }));
-        useTool(
-          createQueryWorkpieceTool({
-            current: currentRevision,
-            browser: initialData,
-            history,
-          }),
-        );
-      }
+    {
+      profile: ledgerProfile,
+      noteShape: ledgerNoteShape,
+      readHistory: history,
     },
-    initialData
-      ? async (current: WorkpieceRevision | null) =>
-          workpieceEvidenceSources(await history(), current)
-      : undefined,
-    initialData !== undefined,
   );
+  useSdcpnPlugin(
+    initialData
+      ? {
+          authorizeDraft: async (draftCallId: string) => {
+            if (!latestNetReadBefore(await history(), draftCallId))
+              throw new Error(
+                "Experiment draft requires a prior canonical net read.",
+              );
+          },
+          executeBrowserTool: async ({
+            toolName,
+            input,
+            toolCallId,
+            signal,
+          }) => {
+            const result = await issueBrowserCall({
+              instanceId: id,
+              toolCallId,
+              toolName,
+              canonicalInput: input,
+              binding: canonicalContent(initialData.binding),
+              signal,
+            });
+            return { output: result.output, metadata: result.metadata };
+          },
+        }
+      : {},
+  );
+  if (initialData)
+    useTool(
+      createQueryWorkpieceTool({
+        current: null,
+        browser: initialData,
+        history,
+      }),
+    );
 
   useInstruction(
     `

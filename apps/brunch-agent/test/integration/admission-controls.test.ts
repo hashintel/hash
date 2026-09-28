@@ -129,20 +129,24 @@ test("every failed submission is attributable from the server output by stage, s
   }
 });
 
-test("production still settles server-side revisions without browser results", () => {
+test("production still records server-side Ledger commits without browser results", () => {
   const observation = result.observations.find(
-    (entry) => entry.caseId === brunchTools.mutateWorkpiece,
+    (entry) => entry.caseId === brunchTools.ledgerCommit,
   )!;
   expect(observation.seed.error).toBeNull();
-  const revision = observation.seeded.messages
+  const commit = observation.seeded.messages
     .flatMap((message) => message.parts)
     .find(
       (part) =>
         part.type === "dynamic-tool" &&
-        part.toolName === brunchTools.mutateWorkpiece,
+        part.toolName === brunchTools.ledgerCommit,
     );
-  expect(revision).toMatchObject({
-    output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
+  expect(commit).toMatchObject({
+    output: {
+      status: "recorded",
+      commitId: `${observation.caseId}-old-revision`,
+      revision: 1,
+    },
   });
   expect(observation.attempt.error).toBeNull();
   expect(observation.providerCallsBeforeClientResult).toBe(2);

@@ -138,8 +138,8 @@ const browserToolNames = inBandBrowserToolNames;
 const mixedToolNames = new Set([
   ...inBandBrowserToolNames,
   brunchTools.ping,
-  brunchTools.mutateWorkpiece,
-  brunchTools.readWorkpiece,
+  brunchTools.ledgerCommit,
+  brunchTools.ledgerCompile,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
   brunchTools.queryWorkpiece,
@@ -147,6 +147,7 @@ const mixedToolNames = new Set([
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
   [brunchTools.queryWorkpiece, [getLatestNetDefinitionToolName]],
+  [brunchTools.ledgerCompile, [brunchTools.ledgerCommit]],
   [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {

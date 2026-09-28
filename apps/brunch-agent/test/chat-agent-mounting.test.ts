@@ -66,16 +66,18 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("a document binding mounts the complete canonical catalogue plus Brunch workpiece and draft", async () => {
+test("a document binding mounts the complete canonical catalogue plus the Brunch Ledger and draft", async () => {
   mounted.initialData = bound;
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
   expect(renderChatAgent({ id: "bound" })).toContain("Ledger");
   expect(mounted.contextProjections).toBe(1);
+  expect(mounted.tools).not.toContain("mutate_workpiece");
+  expect(mounted.tools).not.toContain("read_workpiece");
   expect(mounted.tools).toEqual(
     expect.arrayContaining([
-      "mutate_workpiece",
-      "read_workpiece",
+      brunchTools.ledgerCommit,
+      brunchTools.ledgerCompile,
       "query_workpiece",
       brunchTools.draftPetrinautExperiment,
       ...Object.keys(petrinautAiTools),

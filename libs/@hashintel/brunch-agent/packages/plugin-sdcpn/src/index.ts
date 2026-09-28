@@ -4,6 +4,7 @@ export {
   type ClientToolResultMetadata,
 } from "./browser-metadata";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./construction-tool-names";
+export { sdcpnLedgerProfile } from "./ledger-profile";
 export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
