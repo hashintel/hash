@@ -1,27 +1,25 @@
-import type { ClientToolProjectionOptions } from "./ui-stream";
+import type { MetadataProjection } from "./shared/metadata-projection";
+import type { FlueUiProjectionOptions } from "./ui-stream";
 import type {
   FlueConversationMessage,
   FlueConversationPart,
+  FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
 import type { UIMessage } from "ai";
 
 type UiMessagePart = UIMessage["parts"][number];
 
-/** Agent-authored response metadata, plus the host's own stop marker. */
-type UiHistoryMessageMetadata = Readonly<Record<string, unknown>> & {
-  readonly stopped?: true;
-};
-
 /** A reopened transcript never carries `system` messages. */
-export type UiHistoryMessage = Omit<
-  UIMessage<UiHistoryMessageMetadata>,
+export type UiHistoryMessage<Metadata = unknown> = Omit<
+  UIMessage<Metadata>,
   "role"
 > & {
   role: Extract<UIMessage["role"], "assistant" | "user">;
 };
 
-export type SnapshotToUiMessagesOptions = ClientToolProjectionOptions;
+export type FlueHistory = Pick<FlueConversationState, "messages"> &
+  Partial<Pick<FlueConversationState, "settlements">>;
 
 const unhandledConversationPart = (part: never): never => {
   throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
@@ -34,7 +32,7 @@ const isFlueDataPart = (
 
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
-  options: SnapshotToUiMessagesOptions,
+  options: FlueUiProjectionOptions,
 ): UiMessagePart => {
   const toolIdentity =
     options.dynamicClientToolNames?.has(part.toolName) === true
@@ -49,41 +47,44 @@ const toolPartFrom = (
           toolCallId: part.toolCallId,
         })
       : part.input;
-  if (part.state === "output-error") {
-    return {
-      ...toolIdentity,
-      toolCallId: part.toolCallId,
-      state: "output-error",
-      input,
-      errorText: part.errorText,
-      providerExecuted: true,
-    };
+  switch (part.state) {
+    case "output-error":
+      return {
+        ...toolIdentity,
+        toolCallId: part.toolCallId,
+        state: "output-error",
+        input,
+        errorText: part.errorText,
+        providerExecuted: true,
+      };
+    case "output-available":
+      return {
+        ...toolIdentity,
+        toolCallId: part.toolCallId,
+        state: "output-available",
+        input,
+        output:
+          options.mapToolOutput === undefined
+            ? part.output
+            : options.mapToolOutput(part.output),
+        providerExecuted: true,
+      };
+    case "input-available":
+      return {
+        ...toolIdentity,
+        toolCallId: part.toolCallId,
+        state: "input-available",
+        input,
+        providerExecuted: true,
+      };
+    default:
+      return unhandledConversationPart(part);
   }
-  if (part.state === "output-available") {
-    return {
-      ...toolIdentity,
-      toolCallId: part.toolCallId,
-      state: "output-available",
-      input,
-      output:
-        options.mapToolOutput === undefined
-          ? part.output
-          : options.mapToolOutput(part.output),
-      providerExecuted: true,
-    };
-  }
-  return {
-    ...toolIdentity,
-    toolCallId: part.toolCallId,
-    state: "input-available",
-    input,
-    providerExecuted: true,
-  };
 };
 
 const partsFrom = (
   message: FlueConversationMessage,
-  options: SnapshotToUiMessagesOptions,
+  options: FlueUiProjectionOptions,
 ): UiMessagePart[] => {
   const parts: UiMessagePart[] = [];
   for (const part of message.parts) {
@@ -104,7 +105,7 @@ const partsFrom = (
         type: "file",
         mediaType: part.mediaType,
         url: part.url ?? "",
-        ...(part.filename === undefined ? {} : { filename: part.filename }),
+        filename: part.filename,
       });
       continue;
     }
@@ -117,40 +118,54 @@ const partsFrom = (
   return parts;
 };
 
-export const snapshotToUiMessages = (
-  snapshot: Pick<FlueConversationState, "messages"> &
-    Partial<Pick<FlueConversationState, "settlements">>,
-  options: SnapshotToUiMessagesOptions,
-): UiHistoryMessage[] => {
-  const messages: UiHistoryMessage[] = [];
-  const abortedSubmissions = new Set(
-    snapshot.settlements
-      ?.filter(({ outcome }) => outcome === "aborted")
-      .flatMap(({ submissionId, answeredBySubmissionId }) =>
-        answeredBySubmissionId === undefined
-          ? [submissionId]
-          : [submissionId, answeredBySubmissionId],
-      ),
-  );
+/**
+ * Each submission's outcome. An aborted submission also stops the response
+ * of the submission that answered it.
+ */
+const outcomesBySubmission = (
+  settlements: readonly FlueConversationSettlement[],
+): ReadonlyMap<string, FlueConversationSettlement["outcome"]> => {
+  const outcomes = new Map<string, FlueConversationSettlement["outcome"]>();
+  for (const { submissionId, outcome } of settlements) {
+    outcomes.set(submissionId, outcome);
+  }
+  for (const { answeredBySubmissionId, outcome } of settlements) {
+    if (outcome === "aborted" && answeredBySubmissionId !== undefined) {
+      outcomes.set(answeredBySubmissionId, outcome);
+    }
+  }
+  return outcomes;
+};
+
+export const snapshotToUiMessages = <Metadata>(
+  snapshot: FlueHistory,
+  options: FlueUiProjectionOptions<Metadata> & {
+    readonly projectMetadata: MetadataProjection<Metadata>;
+  },
+): UiHistoryMessage<Metadata>[] => {
+  const messages: UiHistoryMessage<Metadata>[] = [];
+  const outcomes = outcomesBySubmission(snapshot.settlements ?? []);
   for (const message of snapshot.messages) {
     if (message.display !== "visible") continue;
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
     const parts = partsFrom(message, options);
     if (parts.length === 0) continue;
-    const stopped =
-      message.role === "assistant" &&
-      message.submissionId !== undefined &&
-      abortedSubmissions.has(message.submissionId);
-    const metadata: UiHistoryMessageMetadata = {
-      ...message.metadata,
-      ...(stopped ? { stopped: true } : {}),
-    };
+    const outcome =
+      message.submissionId === undefined
+        ? undefined
+        : outcomes.get(message.submissionId);
     messages.push({
       id: message.id,
       role: message.role,
       parts,
-      ...(Object.keys(metadata).length === 0 ? {} : { metadata }),
+      metadata:
+        message.role === "assistant"
+          ? options.projectMetadata({
+              agentMetadata: message.metadata,
+              outcome,
+            })
+          : undefined,
     });
   }
   return messages;

@@ -13,18 +13,20 @@ import { createFlueClient, type FlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
 import {
-  createFlueChatTransport,
-  snapshotToUiMessages,
+  createFlueAiSdkAdapter,
+  type FlueAiSdkAdapterConfig,
   type FlueChatTransportOptions,
+  type MetadataProjection,
 } from "../client";
 import {
   createLiveToolBroadcaster,
   createLiveToolObserver,
   liveToolResponse,
+  liveToolRouteSegment,
 } from "../server";
 import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
 
-import type { UIMessageChunk } from "ai";
+import type { UIMessage, UIMessageChunk } from "ai";
 
 /** Tools of the in-process harness agent, named by the scenario they drive. */
 export const harnessTools = {
@@ -37,7 +39,7 @@ export const harnessTools = {
 } as const;
 
 /** The host envelope the widget tool wraps its browser-shaped result in. */
-export const unwrapHarnessEnvelope = (output: unknown): unknown =>
+const unwrapHarnessEnvelope = (output: unknown): unknown =>
   typeof output === "object" &&
   output !== null &&
   "hostEnvelope" in output &&
@@ -47,11 +49,22 @@ export const unwrapHarnessEnvelope = (output: unknown): unknown =>
 
 const agentName = "harness-agent";
 
-/** The projection a host with the widget tool configures. */
-export const harnessProjection = {
+/** Agent metadata, plus an `aborted` marker the host derives from Flue. */
+const projectHarnessMetadata: MetadataProjection<unknown> = ({
+  agentMetadata,
+  outcome,
+}) => {
+  const metadata: Record<string, unknown> = { ...agentMetadata };
+  if (outcome === "aborted") metadata.aborted = true;
+  return Object.keys(metadata).length === 0 ? undefined : metadata;
+};
+
+/** The adapter configuration of a host that renders the widget tool. */
+export const harnessAdapterConfig = {
   clientToolNames: new Set<string>([harnessTools.widget]),
   mapToolOutput: unwrapHarnessEnvelope,
-};
+  projectMetadata: projectHarnessMetadata,
+} satisfies FlueAiSdkAdapterConfig<UIMessage>;
 
 const readAll = async (
   stream: ReadableStream<UIMessageChunk>,
@@ -128,7 +141,7 @@ export const startFlueHarness = async () => {
     const [instanceId, route] = new URL(request.url).pathname
       .split("/")
       .filter((segment) => segment.length > 0);
-    return route === "live" && instanceId !== undefined
+    return route === liveToolRouteSegment && instanceId !== undefined
       ? liveToolResponse(broadcaster, { instanceId, request })
       : router.fetch(request);
   };
@@ -145,31 +158,39 @@ export const startFlueHarness = async () => {
    */
   const runTurn = async (
     text: string,
-    options: Partial<FlueChatTransportOptions> = {},
+    options: {
+      readonly adapter?: Partial<FlueAiSdkAdapterConfig<UIMessage>>;
+      readonly transport?: Partial<FlueChatTransportOptions>;
+      /** Runs once the turn is admitted, before its stream is read. */
+      readonly duringTurn?: (conversation: FlueClient) => Promise<void>;
+    } = {},
   ) => {
     const conversation = client();
-    const projection = { ...harnessProjection, ...options };
-    const transport = createFlueChatTransport({
-      client: conversation,
-      ...projection,
+    const adapter = createFlueAiSdkAdapter({
+      ...harnessAdapterConfig,
+      ...options.adapter,
     });
-    const chunks = await readAll(
-      await transport.sendMessages({
-        trigger: "submit-message",
-        chatId: "conversation",
-        messageId: undefined,
-        messages: [
-          { id: "user-1", role: "user", parts: [{ type: "text", text }] },
-        ],
-        abortSignal: undefined,
-      }),
-    );
+    const transport = adapter.chatTransport({
+      client: conversation,
+      ...options.transport,
+    });
+    const stream = await transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "conversation",
+      messageId: undefined,
+      messages: [
+        { id: "user-1", role: "user", parts: [{ type: "text", text }] },
+      ],
+      abortSignal: undefined,
+    });
+    await options.duringTurn?.(conversation);
+    const chunks = await readAll(stream);
     const history = await conversation.history();
     return {
       chunks,
       history,
       live: await reduceUiMessageChunks(chunks),
-      reopened: snapshotToUiMessages(history, projection),
+      reopened: adapter.reopen(history),
     };
   };
 

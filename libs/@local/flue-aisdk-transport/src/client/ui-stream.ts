@@ -1,11 +1,20 @@
 import { serializeErrorText } from "./error-text";
+import {
+  mergeAgentMetadata,
+  type MetadataProjection,
+  type MetadataProjectionInput,
+} from "./shared/metadata-projection";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";
-import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  ConversationStreamChunk,
+  FlueConversationSettlement,
+} from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
-/** How client-executed tools project into the AI SDK UI, live or from history. */
-export interface ClientToolProjectionOptions {
+/** How a Flue conversation projects into the AI SDK UI, live or from history. */
+export interface FlueUiProjectionOptions<Metadata = unknown> {
   readonly clientToolNames: ReadonlySet<string>;
   /** Host-defined tools that are not part of the AI SDK's static tool registry. */
   readonly dynamicClientToolNames?: ReadonlySet<string>;
@@ -17,6 +26,8 @@ export interface ClientToolProjectionOptions {
   ) => unknown;
   /** Unwrap a host envelope from a successful tool output before the UI sees it. */
   readonly mapToolOutput?: (output: unknown) => unknown;
+  /** Derive message metadata; without it, agent metadata passes through. */
+  readonly projectMetadata?: MetadataProjection<Metadata>;
 }
 
 /**
@@ -33,7 +44,7 @@ interface FlueUiToolOutputError {
   readonly errorText: string;
 }
 
-export interface FlueUiStreamOptions extends ClientToolProjectionOptions {
+export interface FlueUiStreamOptions extends FlueUiProjectionOptions {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly write: (chunk: UIMessageChunk) => void;
   readonly onToolOutputError?: (event: FlueUiToolOutputError) => void;
@@ -57,6 +68,8 @@ type StreamingPart = {
   >["kind"];
   readonly partId: string;
 };
+
+type MetadataProjectionAgentMetadata = MetadataProjectionInput["agentMetadata"];
 
 const unhandledConversationChunk = (chunk: never): never => {
   throw new Error(
@@ -85,6 +98,44 @@ export const createFlueUiStream = (
     { readonly toolName: string; readonly turnId: string }
   >();
   const bufferedLiveEvents = new Map<string, LiveToolEvent[]>();
+  let agentMetadata: MetadataProjectionAgentMetadata;
+  let emittedMetadata: string | undefined;
+
+  const projectMetadata = (
+    outcome: FlueConversationSettlement["outcome"] | undefined,
+  ): unknown =>
+    options.projectMetadata === undefined
+      ? agentMetadata
+      : options.projectMetadata({ agentMetadata, outcome });
+
+  const acceptAgentMetadata = (
+    metadata: MetadataProjectionAgentMetadata,
+  ): void => {
+    if (metadata !== undefined) {
+      agentMetadata = mergeAgentMetadata(agentMetadata, metadata);
+    }
+  };
+
+  /** The metadata for the start chunk, recorded as already emitted. */
+  const startMetadata = (): unknown => {
+    const metadata = projectMetadata(undefined);
+    emittedMetadata =
+      metadata === undefined ? undefined : JSON.stringify(metadata);
+    return metadata;
+  };
+
+  /** Emit the projected metadata when it differs from what the UI holds. */
+  const writeMetadata = (
+    outcome: FlueConversationSettlement["outcome"] | undefined,
+  ): void => {
+    const metadata = projectMetadata(outcome);
+    if (metadata === undefined) return;
+    const serialized = JSON.stringify(metadata);
+    if (serialized === emittedMetadata) return;
+    emittedMetadata = serialized;
+    options.write({ type: "message-metadata", messageMetadata: metadata });
+  };
+
   const finishPart = (): void => {
     if (!streamingPart) return;
     options.write({
@@ -282,23 +333,17 @@ export const createFlueUiStream = (
             liveStartTimer = undefined;
           }
 
+          acceptAgentMetadata(chunk.metadata);
           if (messageId === undefined) {
             messageId = chunk.messageId;
             canonicalMessageId = chunk.messageId;
             options.write({
               type: "start",
               messageId,
-              ...(chunk.metadata === undefined
-                ? {}
-                : { messageMetadata: chunk.metadata }),
+              messageMetadata: startMetadata(),
             });
           } else {
-            if (chunk.metadata !== undefined) {
-              options.write({
-                type: "message-metadata",
-                messageMetadata: chunk.metadata,
-              });
-            }
+            if (chunk.metadata !== undefined) writeMetadata(undefined);
             if (canonicalMessageId === undefined && chunk.turnId === turnId) {
               canonicalMessageId = chunk.messageId;
               return;
@@ -323,6 +368,7 @@ export const createFlueUiStream = (
             liveStartTimer = undefined;
           }
           finishTurn();
+          if (messageId !== undefined) writeMetadata(chunk.outcome);
           switch (chunk.outcome) {
             case "completed":
               options.write({
@@ -431,10 +477,8 @@ export const createFlueUiStream = (
         case "message-metadata": {
           if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== canonicalMessageId) return;
-          options.write({
-            type: "message-metadata",
-            messageMetadata: chunk.metadata,
-          });
+          acceptAgentMetadata(chunk.metadata);
+          writeMetadata(undefined);
           return;
         }
         case "data-part": {

@@ -58,6 +58,9 @@ const staleNetId = toPetrinautId("net-stale");
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
+const brunchFlueAdapterTools = vi.hoisted(() => ({
+  current: null as unknown,
+}));
 const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
@@ -130,6 +133,19 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
+vi.mock("../plugins/brunch/brunch-flue-adapter", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../plugins/brunch/brunch-flue-adapter")>();
+  return {
+    ...actual,
+    createBrunchFlueAdapter: (
+      tools: Parameters<typeof actual.createBrunchFlueAdapter>[0],
+    ) => {
+      brunchFlueAdapterTools.current = tools;
+      return actual.createBrunchFlueAdapter(tools);
+    },
+  };
+});
 vi.mock("../plugins/brunch/brunch-panel-transport", async (importOriginal) => {
   const actual =
     await importOriginal<
@@ -1184,13 +1200,10 @@ describe("local storage demo Brunch controls", () => {
       ?.aiAssistant as PetrinautAiAssistant;
     const transportOptions = brunchPanelTransportOptions.current as {
       readonly initialData?: { readonly binding?: unknown };
+    };
+    const adapterTools = brunchFlueAdapterTools.current as {
       readonly clientToolNames?: ReadonlySet<string>;
       readonly dynamicClientToolNames?: ReadonlySet<string>;
-      readonly mapClientToolInput?: (call: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
     };
 
     const conversationId = brunchEvaluationConversationIdFrom(
@@ -1223,7 +1236,7 @@ describe("local storage demo Brunch controls", () => {
       documentId: netOneId,
       incarnationId: netOneId,
     });
-    expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
+    expect([...(adapterTools.clientToolNames ?? [])].toSorted()).toEqual(
       [...brunchPetrinautClientToolNames].toSorted(),
     );
     expect(
@@ -1234,7 +1247,6 @@ describe("local storage demo Brunch controls", () => {
         "removePlace",
       ]),
     );
-    expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     // Every configured Brunch browser tool, the draft included, settles in band.
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(
       true,
@@ -1243,9 +1255,7 @@ describe("local storage demo Brunch controls", () => {
       aiAssistant.inBandBrowserTools?.has(brunchTools.draftPetrinautExperiment),
     ).toBe(false);
     // I captures the experiment source at the browser lane barrier, not while projecting transport input.
-    expect(
-      [...(transportOptions.dynamicClientToolNames ?? [])].toSorted(),
-    ).toEqual(
+    expect([...(adapterTools.dynamicClientToolNames ?? [])].toSorted()).toEqual(
       [
         ...canonicalPetrinautClientToolNames,
         brunchTools.draftPetrinautExperiment,

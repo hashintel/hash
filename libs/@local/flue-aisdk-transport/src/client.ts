@@ -1,5 +1,4 @@
 export {
-  createFlueChatTransport,
   finalUserMessage,
   FlueChatAdmissionError,
 } from "./client/chat-transport";
@@ -10,16 +9,14 @@ export type {
   FlueChatTransportOptions,
   SubmittedUserMessage,
 } from "./client/chat-transport";
-export type { LiveToolStreamOptions } from "./client/live-tool-stream";
-export { snapshotToUiMessages } from "./client/transcript";
+export { createFlueAiSdkAdapter } from "./client/flue-ai-sdk-adapter";
 export type {
-  SnapshotToUiMessagesOptions,
-  UiHistoryMessage,
-} from "./client/transcript";
+  FlueAiSdkAdapter,
+  FlueAiSdkAdapterConfig,
+} from "./client/flue-ai-sdk-adapter";
+export type {
+  MetadataProjection,
+  MetadataProjectionInput,
+} from "./client/shared/metadata-projection";
 export { createFlueUiStream } from "./client/ui-stream";
-export type {
-  ClientToolProjectionOptions,
-  FlueUiStream,
-  FlueUiStreamOptions,
-} from "./client/ui-stream";
-export type { LiveToolEvent } from "./shared/live-tool-event";
+export { liveToolRouteSegment } from "./shared/live-tool-event";

@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent/contextual-user-message";
 
-import { brunchDeliveredMessage } from "./delivered-message";
+import { brunchSubmittedUserMessage } from "./submitted-user-message";
 
 import type { UIMessage } from "ai";
 
@@ -12,9 +12,9 @@ const text = (id: string, value: string): UIMessage => ({
   parts: [{ type: "text", text: value }],
 });
 
-describe("brunchDeliveredMessage", () => {
+describe("brunchSubmittedUserMessage", () => {
   test("admits an ordinary turn unchanged", () => {
-    expect(brunchDeliveredMessage([text("user-1", "Hello.")])).toEqual({
+    expect(brunchSubmittedUserMessage([text("user-1", "Hello.")])).toEqual({
       messageId: "user-1",
       body: "Hello.",
     });
@@ -23,7 +23,7 @@ describe("brunchDeliveredMessage", () => {
   test("carries reserved diagnostics on the correlated user turn", () => {
     const context = "Petrinaut diagnostics context only; one current error.";
     expect(
-      brunchDeliveredMessage([
+      brunchSubmittedUserMessage([
         text("user-with-context", "Repair the model."),
         text("petrinaut-diagnostics-context", context),
       ]),
@@ -52,6 +52,6 @@ describe("brunchDeliveredMessage", () => {
       "The submission has invalid or stale diagnostics context.",
     ],
   ])("refuses %s diagnostics context", (_label, messages, error) => {
-    expect(() => brunchDeliveredMessage(messages)).toThrow(error);
+    expect(() => brunchSubmittedUserMessage(messages)).toThrow(error);
   });
 });

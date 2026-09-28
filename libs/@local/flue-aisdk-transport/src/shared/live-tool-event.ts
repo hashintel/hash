@@ -1,3 +1,10 @@
+/**
+ * The route segment of the live channel: the client reads
+ * `<conversation URL>/<segment>?submissionId=<id>`, and a host must serve
+ * `liveToolResponse` there, behind the conversation's own authorization.
+ */
+export const liveToolRouteSegment = "live";
+
 /** One frame of the live tool-input side channel, as the server sends it. */
 export type LiveToolEvent =
   | LiveToolCallEvent<"tool-input-start">

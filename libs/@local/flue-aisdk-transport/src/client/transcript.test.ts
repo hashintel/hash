@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 
 import { snapshotToUiMessages } from "./transcript";
 
+import type { MetadataProjectionInput } from "./shared/metadata-projection";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
 const snapshotWithPendingClientTool: FlueConversationSnapshot = {
@@ -18,10 +19,10 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
         {
           type: "dynamic-tool",
           toolCallId: "tool-doc-1",
-          toolName: "readPetrinautDoc",
+          toolName: "render_widget",
           state: "output-available",
-          input: { doc: "ai-assistant" },
-          output: { brunchBrowserResult: true, output: "Page text" },
+          input: { title: "t" },
+          output: { hostEnvelope: true, output: "Shown" },
         },
       ],
     },
@@ -30,17 +31,19 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
 };
 
 const projectionOptions = {
-  clientToolNames: new Set(["readPetrinautDoc"]),
+  clientToolNames: new Set(["render_widget"]),
   mapToolOutput: (output: unknown) =>
     typeof output === "object" &&
     output !== null &&
-    "brunchBrowserResult" in output &&
+    "hostEnvelope" in output &&
     "output" in output
       ? output.output
       : output,
+  projectMetadata: ({ agentMetadata }: MetadataProjectionInput) =>
+    agentMetadata,
 };
 
-test("marks only the durably aborted assistant response stopped after reopen", () => {
+test("projects each assistant response from its agent metadata and outcome", () => {
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,
     messages: [
@@ -50,6 +53,7 @@ test("marks only the durably aborted assistant response stopped after reopen", (
         purpose: "assistant",
         display: "visible",
         submissionId: "stopped-turn",
+        metadata: { model: "m" },
         parts: [{ type: "text", state: "done", text: "Partial reply" }],
       },
       {
@@ -57,7 +61,16 @@ test("marks only the durably aborted assistant response stopped after reopen", (
         role: "user",
         purpose: "user",
         display: "visible",
+        submissionId: "answering-turn",
         parts: [{ type: "text", state: "done", text: "Continue" }],
+      },
+      {
+        id: "answer",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "answering-turn",
+        parts: [{ type: "text", state: "done", text: "Answer" }],
       },
       {
         id: "complete",
@@ -70,26 +83,42 @@ test("marks only the durably aborted assistant response stopped after reopen", (
     ],
     settlements: [
       { submissionId: "stopped-turn", outcome: "aborted" },
+      {
+        submissionId: "stopped-answer",
+        outcome: "aborted",
+        answeredBySubmissionId: "answering-turn",
+      },
+      { submissionId: "answering-turn", outcome: "completed" },
       { submissionId: "next-turn", outcome: "completed" },
     ],
   };
-  const projected = snapshotToUiMessages(snapshot, projectionOptions);
-  expect(projected.find(({ id }) => id === "partial")?.metadata).toEqual({
-    stopped: true,
+  const inputs: MetadataProjectionInput[] = [];
+  const projected = snapshotToUiMessages(snapshot, {
+    ...projectionOptions,
+    projectMetadata: (input) => {
+      inputs.push(input);
+      return input.outcome;
+    },
   });
-  expect(
-    projected.find(({ id }) => id === "complete")?.metadata,
-  ).toBeUndefined();
-  expect(
-    projected.find(({ id }) => id === "next-user")?.metadata,
-  ).toBeUndefined();
+
+  expect(inputs).toEqual([
+    { agentMetadata: { model: "m" }, outcome: "aborted" },
+    { agentMetadata: undefined, outcome: "aborted" },
+    { agentMetadata: undefined, outcome: "completed" },
+  ]);
+  expect(projected.map(({ id, metadata }) => [id, metadata])).toEqual([
+    ["partial", "aborted"],
+    ["next-user", undefined],
+    ["answer", "aborted"],
+    ["complete", "completed"],
+  ]);
 });
 
 test("rehydrates host-defined client tools as dynamic", () => {
   expect(
     snapshotToUiMessages(snapshotWithPendingClientTool, {
       ...projectionOptions,
-      dynamicClientToolNames: new Set(["readPetrinautDoc"]),
+      dynamicClientToolNames: new Set(["render_widget"]),
     }),
   ).toEqual([
     {
@@ -98,11 +127,11 @@ test("rehydrates host-defined client tools as dynamic", () => {
       parts: [
         {
           type: "dynamic-tool",
-          toolName: "readPetrinautDoc",
+          toolName: "render_widget",
           toolCallId: "tool-doc-1",
           state: "output-available",
-          input: { doc: "ai-assistant" },
-          output: "Page text",
+          input: { title: "t" },
+          output: "Shown",
           providerExecuted: true,
         },
       ],
@@ -157,10 +186,10 @@ test("keeps a rehydrated server tool provider-executed while it still runs", () 
         parts: [
           {
             type: "dynamic-tool",
-            toolCallId: "tool-sweep-1",
-            toolName: "brunch_sweep",
+            toolCallId: "tool-lookup-1",
+            toolName: "lookup",
             state: "input-available",
-            input: { range: "all" },
+            input: { q: "x" },
           },
         ],
       },
@@ -169,10 +198,10 @@ test("keeps a rehydrated server tool provider-executed while it still runs", () 
 
   expect(snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts).toEqual([
     {
-      type: "tool-brunch_sweep",
-      toolCallId: "tool-sweep-1",
+      type: "tool-lookup",
+      toolCallId: "tool-lookup-1",
       state: "input-available",
-      input: { range: "all" },
+      input: { q: "x" },
       providerExecuted: true,
     },
   ]);

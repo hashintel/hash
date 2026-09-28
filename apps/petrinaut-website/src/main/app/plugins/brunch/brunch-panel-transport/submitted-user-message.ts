@@ -11,14 +11,13 @@ const diagnosticsContextMessageId = "petrinaut-diagnostics-context";
 const submittedDiagnosticsContext = (
   messages: readonly UIMessage[],
 ): string | undefined => {
-  const diagnosticsMessages = messages.filter(
+  const [message, ...duplicates] = messages.filter(
     ({ id }) => id === diagnosticsContextMessageId,
   );
-  if (diagnosticsMessages.length === 0) return undefined;
-  if (diagnosticsMessages.length !== 1) {
+  if (message === undefined) return undefined;
+  if (duplicates.length > 0) {
     throw new Error("The submission has duplicate diagnostics context.");
   }
-  const message = diagnosticsMessages[0]!;
   const part = message.parts[0];
   if (
     message !== messages.at(-1) ||
@@ -37,7 +36,7 @@ const submittedDiagnosticsContext = (
  * Admit the human's turn, framing any trailing diagnostics context into its
  * body so the server can separate human evidence from host diagnostics.
  */
-export const brunchDeliveredMessage = (
+export const brunchSubmittedUserMessage = (
   messages: readonly UIMessage[],
 ): SubmittedUserMessage => {
   const diagnosticsContext = submittedDiagnosticsContext(messages);

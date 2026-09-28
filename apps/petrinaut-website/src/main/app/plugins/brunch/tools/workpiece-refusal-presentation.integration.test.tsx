@@ -22,15 +22,13 @@ import {
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
-import { browserToolOutput } from "@hashintel/brunch-agent/client-tools";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent/conversation-identity";
-import { snapshotToUiMessages } from "@local/flue-aisdk-transport";
-
 import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
+import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -38,6 +36,8 @@ import {
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+
+const adapter = createBrunchFlueAdapter({ clientToolNames: new Set() });
 
 const noop = () => {};
 const originalFetch = globalThis.fetch;
@@ -176,7 +176,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     Promise.resolve(client),
     tracker,
     {
-      clientToolNames: new Set(),
+      adapter,
       initialData: {
         binding: {
           conversationId: identity.conversationId,
@@ -307,10 +307,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       );
     expect(thrownPart).toMatchObject({ state: "output-error" });
 
-    const reopened = snapshotToUiMessages(history, {
-      clientToolNames: new Set(),
-      mapToolOutput: browserToolOutput,
-    }) as PetrinautAiMessage[];
+    const reopened = adapter.reopen(history) as PetrinautAiMessage[];
     cleanup();
     renderAssistant(reopened);
     await expandSettledTools();

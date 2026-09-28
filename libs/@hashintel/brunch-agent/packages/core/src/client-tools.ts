@@ -16,5 +16,6 @@ export {
   type ClientToolHistoryMessage,
   type ClientToolHistoryResult,
 } from "./client-tools/client-tool-history";
+export { projectBrunchMessageMetadata } from "./client-tools/message-metadata";
 
 export const SWEEP_TOOL_NAME = toolName("sweep");

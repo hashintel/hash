@@ -1,11 +1,10 @@
 import {
+  liveToolRouteSegment,
   parseLiveToolEvent,
   type LiveToolEvent,
 } from "../shared/live-tool-event";
 
-type RequestHeaders =
-  | Record<string, string>
-  | (() => Promise<Record<string, string>> | Record<string, string>);
+import type { RequestHeaders } from "@flue/sdk";
 
 export type LiveToolStreamOptions = {
   readonly fetch?: typeof globalThis.fetch;
@@ -36,7 +35,7 @@ export const readLiveToolStream = async (input: {
     conversationUrlEnd -= 1;
   }
   const url = new URL(
-    `${input.conversationUrl.slice(0, conversationUrlEnd)}/live`,
+    `${input.conversationUrl.slice(0, conversationUrlEnd)}/${liveToolRouteSegment}`,
   );
   url.searchParams.set("submissionId", input.submissionId);
   const headers =
