@@ -38,7 +38,7 @@ import {
 import {
   resetEditorDrafts,
   editorDraftsFor,
-} from "./brunch-draft-experiment-interactive-tool/editor-drafts";
+} from "./shared/brunch-draft-experiment-drafts";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";

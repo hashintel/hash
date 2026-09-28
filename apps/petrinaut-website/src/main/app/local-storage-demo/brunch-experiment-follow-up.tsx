@@ -4,19 +4,19 @@ import { Button } from "@hashintel/ds-components";
 import { usePetrinautInstance } from "@hashintel/petrinaut/react";
 
 import {
-  sessionDraftsFor,
-  type SessionDraft,
-} from "../shared/brunch-draft-experiment-drafts";
+  editorDraftsFor,
+  type EditorDraft,
+} from "./shared/brunch-draft-experiment-drafts";
 
 import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
 
 const sendResults = (
-  drafts: ReturnType<typeof sessionDraftsFor>,
+  drafts: ReturnType<typeof editorDraftsFor>,
   submitText: PetrinautAiComposerControlContext["submitText"],
-  draft: SessionDraft,
+  draft: EditorDraft,
 ) => {
   if (draft.run.phase !== "finished") return;
-  // Claim synchronously in the session store, including across remounts.
+  // Claim synchronously in the editor's draft store, including across remounts.
   const current = drafts.get();
   const latest = current.drafts.get(draft.toolCallId);
   if (
@@ -42,7 +42,7 @@ export const BrunchExperimentFollowUp = ({
   context: PetrinautAiComposerControlContext;
 }) => {
   const instance = usePetrinautInstance();
-  const drafts = sessionDraftsFor(instance.definition);
+  const drafts = editorDraftsFor(instance.definition);
   const snapshot = useSyncExternalStore(drafts.subscribe, drafts.get);
   const running = [...snapshot.drafts.values()].some(
     (draft) =>

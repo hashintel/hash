@@ -1,4 +1,4 @@
-import type { PreparedExperiment } from "./describe-draft";
+import type { PreparedExperiment } from "../brunch-draft-experiment-interactive-tool/describe-draft";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   PetrinautExperimentProgress,
@@ -17,7 +17,7 @@ type EditorDraftRun =
   | { phase: "finished"; result: PetrinautExperimentResult }
   | { phase: "failed"; message: string };
 
-type EditorDraft = {
+export type EditorDraft = {
   toolCallId: string;
   input: DraftPetrinautExperimentInput;
   /** Frozen model the person reviewed, including simulation-only inputs. */
