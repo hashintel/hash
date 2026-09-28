@@ -98,6 +98,8 @@ export const createFlueUiStream = (
     { readonly toolName: string; readonly turnId: string }
   >();
   const bufferedLiveEvents = new Map<string, LiveToolEvent[]>();
+  const isDynamicTool = (toolName: string): true | undefined =>
+    options.dynamicClientToolNames?.has(toolName) === true ? true : undefined;
   let agentMetadata: MetadataProjectionAgentMetadata;
   let emittedMetadata: string | undefined;
 
@@ -163,9 +165,7 @@ export const createFlueUiStream = (
       toolName: call.toolName,
       input: undefined,
       errorText: "This tool proposal was not executed.",
-      ...(options.dynamicClientToolNames?.has(call.toolName) === true
-        ? { dynamic: true }
-        : {}),
+      dynamic: isDynamicTool(call.toolName),
     });
   };
 
@@ -224,9 +224,7 @@ export const createFlueUiStream = (
         type: "tool-input-start",
         toolCallId: event.toolCallId,
         toolName: event.toolName,
-        ...(options.dynamicClientToolNames?.has(event.toolName) === true
-          ? { dynamic: true }
-          : {}),
+        dynamic: isDynamicTool(event.toolName),
       });
       return;
     }
@@ -433,10 +431,8 @@ export const createFlueUiStream = (
                     toolCallId: chunk.toolCallId,
                   })
                 : chunk.input,
-            ...(isClientTool ? {} : { providerExecuted: true }),
-            ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
-              ? { dynamic: true }
-              : {}),
+            providerExecuted: isClientTool ? undefined : true,
+            dynamic: isDynamicTool(chunk.toolName),
           });
           return;
         }

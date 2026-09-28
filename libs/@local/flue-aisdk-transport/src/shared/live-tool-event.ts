@@ -1,3 +1,24 @@
+import type { FlueConversationSettlement } from "@flue/sdk";
+
+type SubmissionOutcome = FlueConversationSettlement["outcome"];
+
+/** Every Flue outcome, for runtime parsing; checked against Flue in both directions. */
+const submissionOutcomes = [
+  "aborted",
+  "completed",
+  "failed",
+] as const satisfies readonly SubmissionOutcome[];
+
+type UnparsedOutcome = Exclude<
+  SubmissionOutcome,
+  (typeof submissionOutcomes)[number]
+>;
+const _everyOutcomeParsed: [UnparsedOutcome] extends [never] ? true : never =
+  true;
+
+const isSubmissionOutcome = (value: unknown): value is SubmissionOutcome =>
+  submissionOutcomes.some((outcome) => outcome === value);
+
 /**
  * The route segment of the live channel: the client reads
  * `<conversation URL>/<segment>?submissionId=<id>`, and a host must serve
@@ -34,7 +55,7 @@ type LiveToolTurnFinishedEvent = LiveToolCorrelation & {
 
 type LiveToolSubmissionFinishedEvent = Omit<LiveToolCorrelation, "turnId"> & {
   readonly kind: "submission-finished";
-  readonly outcome: "aborted" | "completed" | "failed";
+  readonly outcome: SubmissionOutcome;
 };
 
 /** A live event before the broadcaster assigns its sequence and version. */
@@ -84,11 +105,7 @@ export const parseLiveToolEvent = (value: unknown): LiveToolEvent => {
 
   if (kind === "submission-finished") {
     const outcome = value.outcome;
-    if (
-      outcome !== "aborted" &&
-      outcome !== "completed" &&
-      outcome !== "failed"
-    ) {
+    if (!isSubmissionOutcome(outcome)) {
       throw new Error("The live tool stream terminal outcome is invalid.");
     }
     return { ...base, kind, outcome };

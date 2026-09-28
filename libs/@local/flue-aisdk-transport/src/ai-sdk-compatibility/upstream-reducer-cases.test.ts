@@ -127,7 +127,7 @@ describe("upstream: 'provider-executed static tools'", () => {
     const { chunks, live } = await harness.runTurn("Show");
 
     const input = chunks.find((chunk) => chunk.type === "tool-input-available");
-    expect(input).not.toHaveProperty("providerExecuted");
+    expect(input).toMatchObject({ providerExecuted: undefined });
     expect(live.message?.parts[1]).toMatchObject({
       state: "output-available",
       providerExecuted: true,

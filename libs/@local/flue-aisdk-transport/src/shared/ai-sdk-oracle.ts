@@ -57,7 +57,7 @@ export const reduceUiMessageChunks = async (
   let message: UIMessage | undefined;
   for await (const snapshot of readUIMessageStream({
     stream: streamOf(chunks),
-    ...(initialMessage === undefined ? {} : { message: initialMessage }),
+    message: initialMessage,
     onError: (error) => {
       if (UIMessageStreamError.isInstance(error)) {
         protocolError ??= error;
