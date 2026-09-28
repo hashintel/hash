@@ -3,10 +3,10 @@ import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import type { Model, Provider } from "@earendil-works/pi-ai";
 
 /**
- * pi-ai's OpenAI catalogue plus GPT-6 Luna, copied from the pi-ai 0.87.1 catalogue.
- * Flue 2.x resolves models through pi-ai ^0.83.0, which predates GPT-6. Delete
- * this module and register `openaiProvider()` once Flue resolves a pi-ai that
- * declares the model.
+ * pi-ai's OpenAI catalogue plus GPT-6 Luna and Sol, copied from the pi-ai 0.87.1
+ * catalogue. Flue 2.x resolves models through pi-ai ^0.83.0, which predates
+ * GPT-6. Delete this module and register `openaiProvider()` once Flue resolves a
+ * pi-ai that declares these models.
  */
 const gpt6Luna: Model<"openai-responses"> = {
   id: "gpt-6-luna",
@@ -50,11 +50,32 @@ const gpt6Luna: Model<"openai-responses"> = {
   },
 };
 
+const gpt6Sol: Model<"openai-responses"> = {
+  ...gpt6Luna,
+  id: "gpt-6-sol",
+  name: "GPT-6 Sol",
+  cost: {
+    input: 2,
+    output: 10,
+    cacheRead: 0.2,
+    cacheWrite: 2.5,
+    tiers: [
+      {
+        inputTokensAbove: 272000,
+        input: 4,
+        output: 15,
+        cacheRead: 0.4,
+        cacheWrite: 5,
+      },
+    ],
+  },
+};
+
 /** Streams stay the catalogue provider's own, so a faux catalogue under test keeps its responses. */
 export const openaiProviderWithGpt6 = (): Provider => {
   const catalogue = openaiProvider();
   return {
     ...catalogue,
-    getModels: () => [...catalogue.getModels(), gpt6Luna],
+    getModels: () => [...catalogue.getModels(), gpt6Luna, gpt6Sol],
   };
 };
