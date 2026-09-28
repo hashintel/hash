@@ -326,7 +326,10 @@ return true;`,
 return {
   MachinesToRepair: input.BrokenMachines,
   TechniciansComing: [
-    { distance_to_site: 10 }
+    {
+      technician_id: input.BrokenMachines[0].machine_id,
+      distance_to_site: 10
+    }
   ],
 };`,
           x: 38 * GRID_SIZE,
@@ -357,7 +360,10 @@ return input.TechniciansComing[0].distance_to_site <= 0;`,
 // paired with a machine in the Start Repair transition.
 return {
   AvailableTechnicians: [
-    { distance_to_site: 0 }
+    {
+      technician_id: input.TechniciansComing[0].technician_id,
+      distance_to_site: 0
+    }
   ],
 };`,
           x: 75 * GRID_SIZE,
@@ -462,6 +468,12 @@ return {
           displayColor: "#3bf689ff",
           elements: [
             {
+              elementId: "element__technician_id",
+              name: "technician_id",
+              type: "integer",
+              identityRef: "identity__technician",
+            },
+            {
               elementId: "element__1762560159263_2",
               name: "distance_to_site",
               type: "real",
@@ -535,6 +547,11 @@ return tokens.map(({ distance_to_site }) => {
           name: "Machine",
           keyElementTypes: ["integer"],
         },
+        {
+          id: "identity__technician",
+          name: "Technician",
+          keyElementTypes: ["integer"],
+        },
       ],
       statusViews: [
         {
@@ -570,6 +587,34 @@ return tokens.map(({ distance_to_site }) => {
               name: "Under repair",
               displayColor: "#f59e0b",
               places: ["place__17c65d6e-0c3e-48e6-a677-2914e28131ac"],
+            },
+          ],
+        },
+        {
+          id: "status-view__technician",
+          name: "Technician status",
+          description:
+            "Each technician called out for a broken machine: travelling to the site, waiting on site, then gone once the repair starts. A technician is named after the machine they were called for.",
+          identityRef: "identity__technician",
+          labels: [
+            {
+              id: "status-label__travelling",
+              name: "Travelling",
+              displayColor: "#0891b2",
+              places: ["place__4b72cf19-907b-4fc0-ac0a-555453e95d4b"],
+            },
+            {
+              id: "status-label__on-site",
+              name: "On site",
+              displayColor: "#16a34a",
+              places: ["place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa"],
+            },
+            {
+              id: "status-label__repairing",
+              name: "Repairing",
+              displayColor: "#64748b",
+              places: [],
+              isExit: true,
             },
           ],
         },
@@ -654,6 +699,81 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                   name: "initial_machine_damage",
                   type: "ratio",
                   expression: "0",
+                  exposed: true,
+                  optimize: null,
+                },
+              ],
+              netParameters: [],
+              places: {
+                "place__d662407f-c56d-4a96-bcbb-ead785a9c594": {
+                  kind: "uncoloured",
+                  count: {
+                    expression: "scenario.raw_material",
+                    optimize: null,
+                  },
+                },
+                "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8": {
+                  kind: "coloured",
+                  variables: [],
+                  rows: [
+                    {
+                      kind: "template",
+                      count: {
+                        expression: "scenario.machines_count",
+                        optimize: null,
+                      },
+                      cells: [
+                        { expression: "i + 1", optimize: null },
+                        {
+                          expression: "scenario.initial_machine_damage",
+                          optimize: null,
+                        },
+                      ],
+                    },
+                  ],
+                  sharedColumns: {},
+                },
+              },
+            },
+          },
+        },
+        {
+          id: "scenario__worn_machines",
+          name: "Worn machines",
+          description:
+            "Machines start 70% worn, so they reach high damage, break down and call technicians.",
+          scenarioParameters: [
+            { type: "integer", identifier: "raw_material", default: 20 },
+            { type: "integer", identifier: "machines_count", default: 3 },
+            {
+              type: "ratio",
+              identifier: "initial_machine_damage",
+              default: 0.7,
+            },
+          ],
+          parameterOverrides: {},
+          initialState: {
+            type: "adhoc",
+            content: {
+              variables: [
+                {
+                  name: "raw_material",
+                  type: "integer",
+                  expression: "20",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "machines_count",
+                  type: "integer",
+                  expression: "3",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "initial_machine_damage",
+                  type: "ratio",
+                  expression: "0.7",
                   exposed: true,
                   optimize: null,
                 },
