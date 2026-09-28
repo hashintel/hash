@@ -42,7 +42,22 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
     "Keep internal names and handoffs out of speech",
   );
   expect(body.session.instructions).not.toContain("I'll pass that to Brunch");
-  expect(body.session.instructions).toContain("Okay, I'll take a look.");
+  expect(body.session.instructions).toContain(
+    "Prefer silence while the person is speaking",
+  );
+  expect(body.session.instructions).not.toContain(
+    "Use brief, sparse backchannels",
+  );
+  expect(body.session.instructions).toContain(
+    'Do not use filler-only replies such as "Hmm", "Mm-hmm", "Mm", or "Uh-huh"',
+  );
+  expect(body.session.instructions).toContain("one short, complete sentence");
+  expect(body.session.instructions).toContain(
+    "I'll put together a starting point.",
+  );
+  expect(body.session.instructions).toContain(
+    "Do not guess what an unclear short answer refers to",
+  );
   expect(body.session.instructions).toContain(
     "Do not fill silence with status updates",
   );
@@ -291,7 +306,7 @@ describe("Live configuration and session creation", () => {
         delegation: { type: "client" },
         store: false,
         instructions: expect.stringMatching(
-          /Backchannel policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:[\s\S]*Backend tools:[\s\S]*Brunch:[\s\S]*Delegate to the backend when:[\s\S]*Do not delegate to the backend when:[\s\S]*Delegate before giving an answer that depends on backend work\. Do not guess the result while waiting\.[\s\S]*Brunch is the sole authority[\s\S]*You have no tools[\s\S]*supplied settled Brunch context[\s\S]*best-effort/i,
+          /Acknowledgement policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:[\s\S]*Backend tools:[\s\S]*Brunch:[\s\S]*Delegate to the backend when:[\s\S]*Do not delegate to the backend when:[\s\S]*Delegate before giving an answer that depends on backend work\. Do not guess the result while waiting\.[\s\S]*Brunch is the sole authority[\s\S]*You have no tools[\s\S]*supplied settled Brunch context[\s\S]*best-effort/i,
         ) as unknown,
         audio: { output: { voice: "marin" } },
       },

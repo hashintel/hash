@@ -134,7 +134,9 @@ open**; the brief is not editable before sending in this version.
 Live is asked to acknowledge each request briefly, then summarize Brunch's
 settled answer after its work and cards appear. Spoken replies are intended to
 feel like one natural conversation, without internal handoff names or unsolicited
-waiting updates. It does not read the full written answer.
+waiting updates. Live is asked to listen silently while you speak, then use one
+short, meaningful sentence rather than filler such as “Hmm” or “Mm-hmm”. It does
+not read the full written answer.
 Acknowledgement timing and wording are best effort and can
 overlap Brunch's work. Blue voice cards show Live's output transcript, not a
 copy of Brunch's written answer or confirmation that you heard the audio.
