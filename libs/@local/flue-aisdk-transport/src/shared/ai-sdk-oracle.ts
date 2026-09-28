@@ -7,6 +7,7 @@ import {
   type UIMessage,
   type UIMessageChunk,
 } from "ai";
+import { afterEach } from "vitest";
 
 const chunkSchema = asSchema(uiMessageChunkSchema);
 
@@ -73,4 +74,26 @@ export const reduceUiMessageChunks = async (
   if (protocolError !== undefined) throw protocolError;
   if (message !== undefined) await validateUIMessages({ messages: [message] });
   return { message, streamErrors };
+};
+
+/**
+ * For a test file: every chunk sequence recorded during a test must also
+ * reduce cleanly through the AI SDK, checked after the test. Returns the
+ * function that opens a new recording.
+ */
+export const useUiChunkRecorder = (): (() => UIMessageChunk[]) => {
+  const recorded: UIMessageChunk[][] = [];
+  afterEach(async () => {
+    const sequences = recorded.splice(0);
+    for (const chunks of sequences) {
+      // Each sequence is reduced independently, in recording order.
+      // eslint-disable-next-line no-await-in-loop
+      await reduceUiMessageChunks(chunks);
+    }
+  });
+  return () => {
+    const chunks: UIMessageChunk[] = [];
+    recorded.push(chunks);
+    return chunks;
+  };
 };

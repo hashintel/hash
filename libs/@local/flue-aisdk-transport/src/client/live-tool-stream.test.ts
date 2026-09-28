@@ -13,7 +13,7 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
           sequence: 0,
           submissionId: "submission-1",
           toolCallId: "call-1",
-          toolName: "read_workpiece",
+          toolName: "lookup",
           turnId: "turn-1",
           v: 1,
         },
@@ -24,7 +24,7 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
           sequence: 1,
           submissionId: "submission-1",
           toolCallId: "call-1",
-          toolName: "read_workpiece",
+          toolName: "lookup",
           turnId: "turn-1",
           v: 1,
         },
@@ -45,13 +45,13 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
   const events: unknown[] = [];
 
   await readLiveToolStream({
-    conversationUrl: "https://brunch.test/agents/chat/instance-1///",
+    conversationUrl: "https://agent.test/agents/chat/instance-1///",
     onEvent: (event) => events.push(event),
     options: {
       fetch: fetchImplementation,
       headers: {
-        "x-brunch-conversation": "conversation-1",
-        "x-brunch-principal": "principal-1",
+        "x-conversation": "conversation-1",
+        "x-principal": "principal-1",
       },
     },
     signal: new AbortController().signal,
@@ -65,12 +65,12 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
     throw new Error("Expected the live reader to fetch a URL.");
   }
   expect(requestUrl.href).toBe(
-    "https://brunch.test/agents/chat/instance-1/live?submissionId=submission-1",
+    "https://agent.test/agents/chat/instance-1/live?submissionId=submission-1",
   );
   expect(requestInit?.headers).toMatchObject({
     accept: "text/event-stream",
-    "x-brunch-conversation": "conversation-1",
-    "x-brunch-principal": "principal-1",
+    "x-conversation": "conversation-1",
+    "x-principal": "principal-1",
   });
   expect(events.map((event) => (event as { kind: string }).kind)).toEqual([
     "tool-input-start",
@@ -81,7 +81,7 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
 test("fails closed on malformed live events", async () => {
   await expect(
     readLiveToolStream({
-      conversationUrl: "https://brunch.test/agents/chat/instance-1",
+      conversationUrl: "https://agent.test/agents/chat/instance-1",
       onEvent: () => {},
       options: {
         fetch: async () =>

@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../../../../.config/oxlint/brunch/base.json"],
+  "extends": ["../../../../../.config/oxlint/base.json"],
   "categories": {
     "correctness": "error",
     "perf": "warn"
