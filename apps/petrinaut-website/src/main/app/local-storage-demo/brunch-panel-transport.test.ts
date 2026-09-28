@@ -2,6 +2,7 @@ import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
+import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -102,8 +103,10 @@ test("projects adapter names dynamically and untouched canonical names staticall
     > as FlueClient),
     new BrunchPanelConversationTracker(),
     {
-      clientToolNames: canonicalPetrinautClientToolNames,
-      dynamicClientToolNames: new Set(["getLatestNetDefinition"]),
+      adapter: createBrunchFlueAdapter({
+        clientToolNames: canonicalPetrinautClientToolNames,
+        dynamicClientToolNames: new Set(["getLatestNetDefinition"]),
+      }),
     },
   );
   const stream = await transport.sendMessages({

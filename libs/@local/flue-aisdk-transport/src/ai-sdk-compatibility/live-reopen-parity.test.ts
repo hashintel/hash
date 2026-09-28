@@ -4,7 +4,7 @@ import {
   fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { afterAll, describe, expect, test } from "vitest";
+import { afterAll, describe, expect, test, vi } from "vitest";
 
 import { harnessTools, startFlueHarness } from "./flue-harness";
 
@@ -101,7 +101,7 @@ describe("a live response reduces to the message its history reopens as", () => 
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
     const turn = await runTurn("Show it", {
-      dynamicClientToolNames: new Set([harnessTools.widget]),
+      adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
     });
     expect(turn.live.message?.parts).toContainEqual(
       expect.objectContaining({
@@ -137,7 +137,7 @@ describe("a live response reduces to the message its history reopens as", () => 
 });
 
 describe("with the live tool-input channel", () => {
-  const liveToolStream = { headers: {}, fetch: harness.fetch };
+  const transport = { liveToolStream: { headers: {}, fetch: harness.fetch } };
 
   test("a tool-only step keeps parity", async () => {
     harness.script([
@@ -149,7 +149,7 @@ describe("with the live tool-input channel", () => {
       ),
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
-    expectParity(await runTurn("Show it", { liveToolStream }));
+    expectParity(await runTurn("Show it", { transport }));
   });
 
   // The live channel can open the tool part before Flue delivers the text that
@@ -166,10 +166,40 @@ describe("with the live tool-input channel", () => {
       ),
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
-    const turn = await runTurn("Show it", { liveToolStream });
+    const turn = await runTurn("Show it", { transport });
     const liveParts = withoutLiveOnlyDetails(turn.live.message)?.parts;
     const reopenedParts = turn.reopened.at(-1)?.parts ?? [];
     expect(liveParts).toHaveLength(reopenedParts.length);
     expect(liveParts).toEqual(expect.arrayContaining(reopenedParts));
+  });
+});
+
+describe("host-derived metadata", () => {
+  test("an aborted response carries the host's abort marker live and after reopen", async () => {
+    const release = Promise.withResolvers<void>();
+    harness.script([
+      fauxAssistantMessage(
+        [fauxText("Started."), fauxToolCall(harnessTools.lookup, { q: "x" })],
+        { stopReason: "toolUse" },
+      ),
+      async () => {
+        await release.promise;
+        return fauxAssistantMessage([fauxText("Too late.")]);
+      },
+    ]);
+    const turn = await runTurn("Slow", {
+      duringTurn: async (conversation) => {
+        await vi.waitFor(async () => {
+          const { messages } = await conversation.history();
+          expect(messages.at(-1)?.role).toBe("assistant");
+        });
+        await conversation.abort();
+        release.resolve();
+      },
+    });
+
+    expect(turn.chunks.at(-1)).toMatchObject({ type: "abort" });
+    expect(turn.live.message?.metadata).toEqual({ aborted: true });
+    expectParity(turn);
   });
 });

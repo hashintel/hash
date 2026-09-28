@@ -22,6 +22,7 @@ import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
 } from "../../../../../brunch-agent/test/native-openai-provider";
+import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -102,7 +103,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     Promise.resolve(client),
     tracker,
     {
-      clientToolNames: new Set(),
+      adapter: createBrunchFlueAdapter({ clientToolNames: new Set() }),
       liveToolStream: {
         fetch: fetchApplication,
         headers,

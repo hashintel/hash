@@ -147,7 +147,7 @@ describe("upstream: 'dynamic tools'", () => {
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
     const { live } = await harness.runTurn("Show", {
-      dynamicClientToolNames: new Set([harnessTools.widget]),
+      adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
     });
 
     expect(live.message?.parts[1]).toMatchObject({
@@ -242,7 +242,7 @@ describe("upstream: 'tool call streaming'", () => {
       fauxAssistantMessage([fauxText("Done.")]),
     ]);
     const { chunks, live } = await harness.runTurn("Look", {
-      liveToolStream: { headers: {}, fetch: harness.fetch },
+      transport: { liveToolStream: { headers: {}, fetch: harness.fetch } },
     });
 
     const types = chunks.map((chunk) => chunk.type);

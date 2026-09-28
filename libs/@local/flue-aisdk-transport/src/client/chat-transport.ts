@@ -7,7 +7,7 @@ import {
 } from "./live-tool-stream";
 import {
   createFlueUiStream,
-  type ClientToolProjectionOptions,
+  type FlueUiProjectionOptions,
   type FlueUiStreamOptions,
 } from "./ui-stream";
 
@@ -45,13 +45,14 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
-export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
+/** Host settings for one chat transport; projection comes from the adapter. */
+export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   /**
    * Derive the admitted user turn from the submitted messages. Defaults to
    * {@link finalUserMessage}; throw to refuse the submission before admission.
    */
-  readonly deliveredMessage?: (
+  readonly submittedUserMessage?: (
     messages: readonly UIMessage[],
   ) => SubmittedUserMessage;
   /** Opaque host-owned initialization, sent on user submissions only. */
@@ -212,7 +213,7 @@ const streamFailureChunk = (
 };
 
 const streamSubmission = (
-  options: FlueChatTransportOptions,
+  options: FlueChatTransportOptions & FlueUiProjectionOptions,
   admission: AgentSendResult,
   abortSignal: AbortSignal | undefined,
 ): ReadableStream<UIMessageChunk> => {
@@ -260,6 +261,7 @@ const streamSubmission = (
         dynamicClientToolNames: options.dynamicClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
         mapToolOutput: options.mapToolOutput,
+        projectMetadata: options.projectMetadata,
         onToolOutputError: options.onToolOutputError,
         provisionalMessageId: (turnId) =>
           `live:${admission.submissionId}:${turnId}`,
@@ -332,18 +334,16 @@ const streamSubmission = (
   });
 };
 
-export const createFlueChatTransport = <
-  UiMessage extends UIMessage = UIMessage,
->(
-  options: FlueChatTransportOptions,
-): ChatTransport<UiMessage> => ({
+export const createFlueChatTransport = (
+  options: FlueChatTransportOptions & FlueUiProjectionOptions,
+): ChatTransport<UIMessage> => ({
   reconnectToStream: async () => null,
   sendMessages: async ({ trigger, messages, abortSignal }) => {
     if (trigger !== "submit-message") {
       throw new Error("Regenerating a Flue conversation is not supported.");
     }
 
-    const userMessage = (options.deliveredMessage ?? finalUserMessage)(
+    const userMessage = (options.submittedUserMessage ?? finalUserMessage)(
       messages,
     );
     const message: DeliveredMessage = { kind: "user", body: userMessage.body };
@@ -357,9 +357,7 @@ export const createFlueChatTransport = <
       admission = await options.client.send({
         idempotencyKey,
         message,
-        ...(options.initialData === undefined
-          ? {}
-          : { initialData: options.initialData }),
+        initialData: options.initialData,
         signal: abortSignal,
       });
     } catch (error) {
