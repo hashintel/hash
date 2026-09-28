@@ -6767,6 +6767,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations-definition"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [
