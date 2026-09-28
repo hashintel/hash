@@ -144,10 +144,7 @@ const mixedToolNames = new Set([
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
   [brunchTools.queryWorkpiece, [getLatestNetDefinitionToolName]],
-  [
-    brunchTools.draftPetrinautExperiment,
-    [getLatestNetDefinitionToolName, brunchTools.mutateWorkpiece],
-  ],
+  [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(
