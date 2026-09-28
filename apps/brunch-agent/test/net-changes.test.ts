@@ -1,24 +1,33 @@
-import { createHash } from "node:crypto";
-
 import { expect, test } from "vitest";
 
 import {
   isAppliedChange,
+  latestNetDefinition,
   latestNetReadBefore,
-  latestSettledWorkpieceBefore,
   netCalls,
 } from "../src/conversation/net-changes.ts";
-import { queryWorkpiece } from "../src/conversation/why.ts";
+import { queryBasis } from "../src/conversation/why.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
-const markdown = "# Queue\nA person described the waiting step.";
-const current = {
-  revisionId: "ledger-1",
-  sha256: createHash("sha256").update(markdown).digest("hex"),
-  ordinal: 1,
-  markdown,
-};
+const commit = (toolCallId: string, output: unknown) => ({
+  type: "dynamic-tool",
+  toolName: "ledger_commit",
+  toolCallId,
+  state: "output-available",
+  input: {
+    changes: [
+      {
+        op: "add",
+        address: "operational/resources",
+        content: "Cases wait in a queue.",
+        source: "person",
+        standing: "settled",
+      },
+    ],
+  },
+  output,
+});
 const definition = {
   places: [
     {
@@ -62,19 +71,12 @@ const snapshot = {
       purpose: "assistant",
       display: "visible",
       parts: [
-        {
-          type: "dynamic-tool",
-          toolName: "mutate_workpiece",
-          toolCallId: "ledger-1",
-          state: "output-available",
-          input: { markdown },
-          output: {
-            revisionId: "ledger-1",
-            sha256: current.sha256,
-            ordinal: 1,
-            disposition: "applied",
-          },
-        },
+        commit("ledger-1", {
+          status: "recorded",
+          commitId: "ledger-1",
+          revision: 1,
+          notes: [{ address: "operational/resources/n1" }],
+        }),
       ],
     },
     {
@@ -147,11 +149,10 @@ test("credits only canonical applied calls with a settled revision, in history o
   expect(latestNetReadBefore(snapshot, "draft")?.toolCallId).toBe("read-queue");
 });
 
-test("why locates the latest read element and relates the applied call to its current workpiece revision and user turn", () => {
+test("why locates the latest read element and relates the applied call to the Ledger revision and the Notes its turn recorded", () => {
   expect(
-    queryWorkpiece({
+    queryBasis({
       snapshot,
-      current,
       browser,
       query: { kind: "place", name: "Queue" },
     }),
@@ -163,20 +164,14 @@ test("why locates the latest read element and relates the applied call to its cu
       {
         toolCallId: "add-queue",
         petrinautRevisionId: "revision-2",
-        workpieceRevisionId: "ledger-1",
-        workpieceRevisionTurns: {
-          revisionId: "ledger-1",
-          startTurn: 1,
-          endTurn: 1,
-          userMessageIds: ["user-1"],
-        },
+        ledgerRevision: 1,
+        notesRecordedThisTurn: ["n1"],
       },
     ],
   });
   expect(
-    queryWorkpiece({
+    queryBasis({
       snapshot,
-      current,
       browser,
       query: { kind: "place", name: "Missing" },
     }).disposition,
@@ -207,12 +202,11 @@ test("why refuses to answer from a read that a later applied change made stale",
     ],
   };
   expect(
-    queryWorkpiece({
+    queryBasis({
       snapshot: {
         ...snapshot,
         messages: [...snapshot.messages, later],
       } as FlueConversationSnapshot,
-      current,
       browser,
       query: { kind: "place", name: "Queue" },
     }),
@@ -223,21 +217,20 @@ test("why refuses to answer from a read that a later applied change made stale",
   });
 });
 
-test("a refused workpiece write does not displace the latest settled revision for draft or attribution", () => {
+test("a refused Ledger commit adds nothing to the revision or Notes a call is attributed to", () => {
   const refused = {
     id: "assistant-refusal",
     role: "assistant",
     purpose: "assistant",
     display: "visible",
     parts: [
-      {
-        type: "dynamic-tool",
-        toolName: "mutate_workpiece",
-        toolCallId: "refused-ledger",
-        state: "output-available",
-        input: { markdown: "# Refused" },
-        output: { disposition: "refused", applied: false },
-      },
+      commit("refused-ledger", {
+        status: "refused",
+        applied: false,
+        code: "unknown-category",
+        message: "No category.",
+        revision: 1,
+      }),
     ],
   };
   const withRefusal = {
@@ -248,17 +241,13 @@ test("a refused workpiece write does not displace the latest settled revision fo
       ...snapshot.messages.slice(2),
     ],
   } as FlueConversationSnapshot;
-  expect(latestSettledWorkpieceBefore(withRefusal, "draft")?.revisionId).toBe(
-    "ledger-1",
-  );
   expect(
-    queryWorkpiece({
+    queryBasis({
       snapshot: withRefusal,
-      current,
       browser,
       query: { kind: "place", id: "queue" },
-    }).changes[0]?.workpieceRevisionId,
-  ).toBe("ledger-1");
+    }).changes[0],
+  ).toMatchObject({ ledgerRevision: 1, notesRecordedThisTurn: ["n1"] });
 });
 
 test("why matches a root arc to canonical addArc by transition, direction and place, and to a batch deletion by its generated ID", () => {
@@ -339,9 +328,8 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
     ],
   } as FlueConversationSnapshot;
   expect(
-    queryWorkpiece({
+    queryBasis({
       snapshot: arcSnapshot,
-      current,
       browser,
       query: {
         kind: "arc",
@@ -358,9 +346,37 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
         toolCallId: "add-arc",
         operation: "addArc",
         petrinautRevisionId: "revision-3",
-        workpieceRevisionId: "ledger-1",
-        workpieceRevisionTurns: { userMessageIds: ["user-1"] },
+        ledgerRevision: 1,
+        notesRecordedThisTurn: ["n1"],
       },
     ],
   });
+});
+
+test("a filtered net read counts as the latest net read", () => {
+  const outline = {
+    id: "assistant-outline",
+    role: "assistant",
+    purpose: "assistant",
+    display: "visible",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "readNetOutline",
+        toolCallId: "outline",
+        state: "output-available",
+        input: {},
+        output: {
+          brunchBrowserResult: true,
+          output: { title: "Queue", definition },
+          metadata: { documentRevision: { before: "revision-2" } },
+        },
+      },
+    ],
+  };
+  const withOutline = {
+    ...snapshot,
+    messages: [...snapshot.messages, outline],
+  } as FlueConversationSnapshot;
+  expect(latestNetDefinition(withOutline)?.call.toolCallId).toBe("outline");
 });

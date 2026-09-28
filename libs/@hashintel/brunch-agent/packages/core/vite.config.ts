@@ -6,5 +6,4 @@ export default defineBrunchLibraryConfig(import.meta.url, {
   flue: "src/flue.ts",
   index: "src/index.ts",
   ledger: "src/ledger.ts",
-  workpiece: "src/workpiece.ts",
 });

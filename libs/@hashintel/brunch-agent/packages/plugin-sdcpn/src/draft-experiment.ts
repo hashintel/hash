@@ -20,7 +20,7 @@ const declarationSchema = z.strictObject({
 
 /** Core's AI request schema has no constraints field. Preparation currently forwards
  * constraints: [] and constraintPolicy: null downstream; that is not AI constraint carriage.
- * A workpiece condition is disclosed rather than silently dropped. */
+ * A stated condition is disclosed rather than silently dropped. */
 const unsupportedConditionSchema = z.strictObject({
   condition: nonempty.describe(
     "The restriction, threshold or condition in the person's words.",

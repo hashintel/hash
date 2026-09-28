@@ -29,11 +29,9 @@ export const brunchTools = {
   draftPetrinautExperiment: "draft_petrinaut_experiment",
   ledgerCommit: "ledger_commit",
   ledgerCompile: "ledger_compile",
-  mutateWorkpiece: "mutate_workpiece",
   ping: "ping",
-  queryWorkpiece: "query_workpiece",
+  queryBasis: "query_basis",
   readSkillResource: "read_skill_resource",
-  readWorkpiece: "read_workpiece",
 } as const;
 
 /** Request headers that carry conversation identity. */
@@ -48,11 +46,6 @@ export const brunchRoutes = {
   chatAgent: "chat",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */
   health: "/health",
-} as const;
-
-/** Per-conversation persistent state keys. */
-export const brunchStateKeys = {
-  workpieceRevision: "brunch.workpiece.current.v1",
 } as const;
 
 /** Environment variable names read or written by Brunch source code. */
@@ -100,9 +93,6 @@ export const brunchEnv = {
    */
   viteChatEndpoint: "VITE_BRUNCH_CHAT_ENDPOINT",
 } as const;
-
-/** Info string of the fenced Runbook IR block in a workpiece. */
-export const runbookIrFence = "runbook-ir";
 
 /** Principal for the stock Flue UI at `/`. Not a second ownership rule. */
 export const localUiPrincipal = "local";

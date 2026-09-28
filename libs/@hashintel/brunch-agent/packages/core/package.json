@@ -31,11 +31,6 @@
       "@dev/source": "./src/ledger.ts",
       "import": "./dist/ledger.js"
     },
-    "./workpiece": {
-      "types": "./src/workpiece.ts",
-      "@dev/source": "./src/workpiece.ts",
-      "import": "./dist/workpiece.js"
-    },
     "./skills/elicitation/SKILL.md": "./src/skills/elicitation/SKILL.md"
   },
   "scripts": {

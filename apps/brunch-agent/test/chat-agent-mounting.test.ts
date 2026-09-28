@@ -73,13 +73,13 @@ test("a document binding mounts the complete canonical catalogue plus the Brunch
     await import("../src/agents/chat-agent/agent.ts");
   expect(renderChatAgent({ id: "bound" })).toContain("Ledger");
   expect(mounted.contextProjections).toBe(1);
-  expect(mounted.tools).not.toContain("mutate_workpiece");
-  expect(mounted.tools).not.toContain("read_workpiece");
   expect(mounted.tools).toEqual(
     expect.arrayContaining([
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
-      "query_workpiece",
+      brunchTools.queryBasis,
+      "readNetOutline",
+      "readNetStructure",
       brunchTools.draftPetrinautExperiment,
       ...Object.keys(petrinautAiTools),
     ]),

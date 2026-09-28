@@ -9,6 +9,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
+import { netReaderToolNames } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
@@ -139,11 +140,14 @@ const mixedToolNames = new Set([
   brunchTools.ledgerCompile,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
-  brunchTools.queryWorkpiece,
+  brunchTools.queryBasis,
 ]);
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
-  [brunchTools.queryWorkpiece, [getLatestNetDefinitionToolName]],
+  [
+    brunchTools.queryBasis,
+    [getLatestNetDefinitionToolName, ...Object.values(netReaderToolNames)],
+  ],
   [brunchTools.ledgerCompile, [brunchTools.ledgerCommit]],
   [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],
 ]);
