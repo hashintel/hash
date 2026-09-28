@@ -198,7 +198,7 @@ where
     ) -> Result<OntologyTypeMetadata, BoxedResponse> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
             let error = "Ontology type is not external".to_owned();
-            tracing::warn!(id = %reference.url(), "{error}");
+            tracing::warn!(id = %reference.url(), error);
             return Err(status_to_response(Status::<()>::new(
                 hash_status::StatusCode::InvalidArgument,
                 Some(error),
