@@ -97,6 +97,7 @@ export const createOutputEchoTrace = (sessionId: string) => {
     });
     stretch = undefined;
     liveOutputFragments = 0;
+    liveOutputSpan = undefined;
   };
 
   return {

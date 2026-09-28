@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { createLiveConversation } from "./live-conversation";
+import { createOutputEchoTrace } from "./live-conversation/echo-diagnostics";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 
 beforeEach(() => {
@@ -17,6 +18,36 @@ const traceRecords = (calls: readonly (readonly unknown[])[], event: string) =>
         ) as Record<string, unknown>,
     )
     .filter((record) => record.event === event);
+
+test("does not carry an output transcript span into the next audible stretch", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const echoTrace = createOutputEchoTrace("session");
+  const sample = (at: number, audible: boolean) =>
+    echoTrace.sample(at, {
+      audible,
+      microphoneLevel: 0,
+      echoReturnLoss: undefined,
+      echoReturnLossEnhancement: undefined,
+      microphoneMuted: false,
+      speakerMuted: false,
+      speakerVolume: 1,
+      selectedSpeaker: false,
+    });
+
+  sample(0, true);
+  echoTrace.liveOutputFragment(5_000, 5_400);
+  sample(1_000, false);
+
+  sample(2_000, true);
+  echoTrace.liveInputFragment(7_000);
+  sample(3_000, false);
+
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({ liveInputFragments: 0 }),
+    expect.objectContaining({ liveInputFragments: 0 }),
+  ]);
+});
 
 const setup = ({
   audioSettings,
