@@ -622,13 +622,14 @@ const launchPersona = async ({
               // Later admissions in the same turn are browser-tool continuations.
               if (logged) return;
               logged = true;
+              // Brunch has the utterance; a failed log write must not read as unadmitted.
+              turn.admitted();
               await appendAdmittedUtterance(
                 run,
                 "persona",
                 message,
                 receipt.submissionId,
               );
-              turn.admitted();
             },
           });
           await writeProofArtifacts(join(run, "evidence"), result.snapshot);
