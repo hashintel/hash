@@ -68,7 +68,10 @@ test("app registration scopes admission to ChatAgent execution, isolating concur
   expect(provider.getModels()).toEqual(faux.provider.getModels());
   const model = provider.getModels()[0]!;
   const response = fauxAssistantMessage(
-    [fauxToolCall("mutate_workpiece", {}), fauxToolCall("addType", {})],
+    [
+      fauxToolCall("getLatestNetDefinition", {}),
+      fauxToolCall("query_workpiece", {}),
+    ],
     { stopReason: "toolUse" },
   );
   faux.setResponses([response, response, response]);

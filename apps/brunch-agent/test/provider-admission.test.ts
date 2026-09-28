@@ -796,9 +796,8 @@ test("async browser mode admits allowlisted mixes but refuses a call beside the 
     );
   faux.setResponses([proposal("write", "query"), proposal("read", "query")]);
   const inScope = () =>
-    modelAdmissionScope.run(
-      { idleRetryAvailable: false, asyncBrowserTools: true },
-      () => collect(provider.streamSimple(model, { messages: [] })),
+    modelAdmissionScope.run({ idleRetryAvailable: false }, () =>
+      collect(provider.streamSimple(model, { messages: [] })),
     );
 
   expect((await inScope()).result.stopReason).toBe("toolUse");

@@ -35,7 +35,6 @@ import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts"
 import { latestNetReadBefore } from "../../conversation/net-changes.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import { workpieceEvidenceSources } from "../../conversation/workpiece.ts";
-import { modelAdmissionScope } from "../../provider-admission.ts";
 import { projectBrunchContext } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
@@ -57,8 +56,6 @@ const chatModelOptions = {
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
-  const admission = modelAdmissionScope.getStore();
-  if (admission) admission.asyncBrowserTools = initialData !== undefined;
   useContextProjection(projectBrunchContext);
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.

@@ -69,7 +69,6 @@ class ModelStreamCancellationUnacknowledgedError extends Error {
 
 export type ModelStreamIdleRetryScope = {
   idleRetryAvailable: boolean;
-  asyncBrowserTools?: boolean;
 };
 export const modelAdmissionScope = new AsyncLocalStorage<
   ModelStreamIdleRetryScope | false
@@ -132,7 +131,6 @@ class AdmittedStream extends EventStream<
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
-    allowMixed: boolean,
   ) {
     super(
       (event) => event.type === "done" || event.type === "error",
@@ -148,7 +146,6 @@ class AdmittedStream extends EventStream<
       parentSignal,
       browserToolNames,
       idleRecovery,
-      allowMixed,
     );
     // Providers start eagerly; a caller may not yet have attached its iterator.
     // Keep rejection observable through both read surfaces, without an unhandled
@@ -161,7 +158,6 @@ class AdmittedStream extends EventStream<
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
-    allowMixed: boolean,
   ) {
     const controller = new AbortController();
     const signal = parentSignal
@@ -325,8 +321,7 @@ class AdmittedStream extends EventStream<
       if (
         names.some((name) => browserToolNames.has(name)) &&
         names.some((name) => !browserToolNames.has(name)) &&
-        (!allowMixed ||
-          names.some((name) => !idleRecovery?.mixedToolNames?.has(name)))
+        names.some((name) => !idleRecovery?.mixedToolNames?.has(name))
       ) {
         throw new Error(
           "Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
@@ -418,11 +413,6 @@ class AdmittedStream extends EventStream<
   }
 }
 
-const asyncBrowserToolAdmission = () => {
-  const scope = modelAdmissionScope.getStore();
-  return scope !== false && scope?.asyncBrowserTools === true;
-};
-
 /** Decorate both provider entrypoints; unrelated execution keeps its original stream. */
 export const withBufferedToolAdmission = (
   provider: Provider,
@@ -439,7 +429,6 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
-          asyncBrowserToolAdmission(),
         )
       : provider.stream(model, context, options);
   },
@@ -451,7 +440,6 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
-          asyncBrowserToolAdmission(),
         )
       : provider.streamSimple(model, context, options);
   },
