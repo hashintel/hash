@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { browserToolOutput } from "@hashintel/brunch-agent/client-tools";
-import { snapshotToUiMessages } from "@local/flue-aisdk-transport";
+import { canonicalBrunchFlueAdapter } from "../brunch-flue-adapter";
 
-import { canonicalPetrinautClientToolNames } from "../tools/brunch-client-tools";
-
+import type { BrunchFlueAdapter } from "../brunch-flue-adapter";
 import type {
   AgentConversationObservation,
   AgentConversationObservationPhase,
@@ -27,22 +25,23 @@ export type FlueHistorySnapshot = FlueConversationState & {
 
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
-  clientToolNames: ReadonlySet<string>,
-  dynamicClientToolNames?: ReadonlySet<string>,
-): PetrinautAiMessage[] =>
-  // The host owns this narrowing: its configured client-tool catalog is the
-  // same catalog Petrinaut's message type exposes.
-  snapshotToUiMessages(conversation, {
-    clientToolNames,
-    dynamicClientToolNames,
-    mapToolOutput: browserToolOutput,
-  }) as PetrinautAiMessage[];
+  adapter: BrunchFlueAdapter,
+): { readonly messages: PetrinautAiMessage[] } | { readonly error: Error } => {
+  try {
+    // The adapter validates metadata; its client-tool catalog is the one
+    // Petrinaut's message type exposes, which narrows the tool parts.
+    return { messages: adapter.reopen(conversation) as PetrinautAiMessage[] };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+};
 
 export const useFlueChatHistory = (
   clientPromise: Promise<FlueClient> | null,
   conversationId: string,
-  clientToolNames: ReadonlySet<string> = canonicalPetrinautClientToolNames,
-  dynamicClientToolNames?: ReadonlySet<string>,
+  adapter: BrunchFlueAdapter = canonicalBrunchFlueAdapter,
 ): {
   readonly error: Error | undefined;
   readonly latestSettlement: FlueConversationSettlement | undefined;
@@ -127,19 +126,14 @@ export const useFlueChatHistory = (
   const conversation = observation?.conversation;
   const absent = observation?.phase === "absent";
   const ready = absent || conversation !== undefined;
+  const projected =
+    conversation === undefined
+      ? { messages: absent ? [] : undefined }
+      : projectPetrinautMessages(conversation, adapter);
   return {
-    error: observation?.error,
+    error: "error" in projected ? projected.error : observation?.error,
     latestSettlement: conversation?.settlements.at(-1),
-    messages:
-      conversation === undefined
-        ? absent
-          ? []
-          : undefined
-        : projectPetrinautMessages(
-            conversation,
-            clientToolNames,
-            dynamicClientToolNames,
-          ),
+    messages: "messages" in projected ? projected.messages : undefined,
     phase: observation?.phase,
     ready,
     refresh,

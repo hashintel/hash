@@ -1,14 +1,8 @@
-import {
-  browserToolOutput,
-  SWEEP_TOOL_NAME,
-} from "@hashintel/brunch-agent/client-tools";
-import {
-  createFlueChatTransport,
-  FlueChatAdmissionError,
-} from "@local/flue-aisdk-transport";
+import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
-import { brunchDeliveredMessage } from "./brunch-panel-transport/delivered-message";
-import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
+import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
+import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
 import type {
@@ -16,6 +10,7 @@ import type {
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "./tools/brunch-sweep-output";
+import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
   AgentSendResult,
   FlueClient,
@@ -331,11 +326,9 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   options?: {
+    /** The projection shared with this conversation's reopened history. */
+    readonly adapter?: BrunchFlueAdapter;
     readonly initialData?: FlueChatTransportOptions["initialData"];
-    /** Browser tools executed by Petrinaut's static panel registry. */
-    readonly clientToolNames?: ReadonlySet<string>;
-    readonly dynamicClientToolNames?: FlueChatTransportOptions["dynamicClientToolNames"];
-    readonly mapClientToolInput?: FlueChatTransportOptions["mapClientToolInput"];
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
@@ -346,17 +339,12 @@ export const createBrunchPanelTransport = (
     tracker.trackSubmission(
       (async () => {
         const client = await clientPromise;
-        const transport = createFlueChatTransport({
+        const transport = (
+          options?.adapter ?? canonicalBrunchFlueAdapter
+        ).chatTransport({
           client,
-          deliveredMessage: brunchDeliveredMessage,
-          mapToolOutput: browserToolOutput,
-          ...(options?.initialData === undefined
-            ? {}
-            : { initialData: options.initialData }),
-          clientToolNames:
-            options?.clientToolNames ?? canonicalPetrinautClientToolNames,
-          dynamicClientToolNames: options?.dynamicClientToolNames,
-          mapClientToolInput: options?.mapClientToolInput,
+          submittedUserMessage: brunchSubmittedUserMessage,
+          initialData: options?.initialData,
           liveToolStream: options?.liveToolStream,
           onAdmission: (event) => {
             tracker.recordAdmission(event);

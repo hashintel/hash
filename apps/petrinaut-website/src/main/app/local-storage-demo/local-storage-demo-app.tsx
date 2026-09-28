@@ -37,6 +37,10 @@ import {
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import {
+  canonicalBrunchFlueAdapter,
+  createBrunchFlueAdapter,
+} from "../plugins/brunch/brunch-flue-adapter";
+import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../plugins/brunch/brunch-panel-transport";
@@ -430,11 +434,20 @@ export const LocalStorageDemoApp = ({
   const constructionClientTools = brunchSelected
     ? brunchPetrinautClientToolNames
     : undefined;
+  const flueAdapter = useMemo(
+    () =>
+      constructionClientTools === undefined
+        ? canonicalBrunchFlueAdapter
+        : createBrunchFlueAdapter({
+            clientToolNames: constructionClientTools,
+            dynamicClientToolNames,
+          }),
+    [constructionClientTools, dynamicClientToolNames],
+  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionClientTools,
-    dynamicClientToolNames,
+    flueAdapter,
   );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
@@ -534,17 +547,7 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          ...(constructionClientTools === undefined
-            ? {}
-            : {
-                clientToolNames: constructionClientTools,
-                dynamicClientToolNames,
-                ...(canonicalHostTools === undefined
-                  ? {}
-                  : {
-                      mapClientToolInput: (call) => call.input,
-                    }),
-              }),
+          adapter: flueAdapter,
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
             reportBrunchFailure("server-tool", new Error(event.errorText), {
@@ -559,10 +562,8 @@ export const LocalStorageDemoApp = ({
   }, [
     conversationTracker,
     conversationId,
-    constructionClientTools,
     constructionBrowser,
-    canonicalHostTools,
-    dynamicClientToolNames,
+    flueAdapter,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,

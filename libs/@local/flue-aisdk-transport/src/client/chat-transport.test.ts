@@ -149,8 +149,8 @@ test("admits the host-derived user turn under its own message identity", async (
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),
-    deliveredMessage: (messages) => ({
-      messageId: messages[0]!.id,
+    submittedUserMessage: (messages) => ({
+      messageId: messages.at(0)?.id ?? "missing",
       body: `framed:${messages.length}`,
     }),
     onAdmission,

@@ -11,10 +11,10 @@ import {
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { afterAll, describe, expect, test, vi } from "vitest";
 
-import { createFlueChatTransport, createFlueUiStream } from "../client";
+import { createFlueAiSdkAdapter, createFlueUiStream } from "../client";
 import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
 import {
-  harnessProjection,
+  harnessAdapterConfig,
   harnessTools,
   startFlueHarness,
 } from "./flue-harness";
@@ -76,9 +76,8 @@ const createChat = (
 ) => {
   const client = harness.client();
   const admissions: AgentSendResult[] = [];
-  const transport = createFlueChatTransport({
+  const transport = createFlueAiSdkAdapter(harnessAdapterConfig).chatTransport({
     client,
-    ...harnessProjection,
     onAdmission: ({ admission }) => admissions.push(admission),
     ...options.transport,
   });
@@ -211,7 +210,7 @@ describe("upstream: 'sendAutomaticallyWhen'", () => {
     const written: UIMessageChunk[] = [];
     const projector = createFlueUiStream({
       submissionId: "submission-1",
-      ...harnessProjection,
+      ...harnessAdapterConfig,
       write: (chunk) => written.push(chunk),
     });
     for (const chunk of clientToolStepThenAbort) projector.accept(chunk);

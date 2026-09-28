@@ -235,7 +235,6 @@ test.each([
           transport: createBrunchPanelTransport(
             Promise.resolve(client),
             tracker,
-            { clientToolNames: canonicalPetrinautClientToolNames },
           ),
           renderVoiceMode: (current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
