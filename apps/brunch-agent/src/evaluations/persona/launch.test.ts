@@ -284,13 +284,10 @@ test("resume requires the bridge log that Pi-era runs lack", async () => {
           uid: "TEST-uid",
           url: `${panelOrigin}/agents/chat/${flueConversationIdFrom(identity)}`,
           initialData: {
-            mode: "integrated-brunch-canonical",
-            construction: {
-              binding: {
-                conversationId: identity.conversationId,
-                documentId: "TEST-document",
-                incarnationId: "TEST-incarnation",
-              },
+            binding: {
+              conversationId: identity.conversationId,
+              documentId: "TEST-document",
+              incarnationId: "TEST-incarnation",
             },
           },
         }),
