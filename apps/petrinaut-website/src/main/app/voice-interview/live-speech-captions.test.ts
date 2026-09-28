@@ -216,6 +216,68 @@ test.each(["before output", "after output"])(
   },
 );
 
+test("keeps an unpunctuated acknowledgement above Activity", () => {
+  const lines = { reply: "", wrapUp: "" };
+  const captions = new LiveSpeechCaptions((_id, kind, line) => {
+    lines[kind] = line.text;
+  });
+  captions.input({
+    id: "input",
+    text: "Design a supply chain",
+    startMs: 100,
+    endMs: 200,
+  });
+  captions.begin("turn");
+  captions.output({
+    id: "ack",
+    text: "Sure, I'll help with that",
+    startMs: 300,
+    endMs: 600,
+  });
+  captions.wrapUp("turn", 900);
+  captions.output({
+    id: "question",
+    text: " What’s the main decision?",
+    startMs: 1000,
+    endMs: 1200,
+  });
+  expect(lines).toEqual({
+    reply: "Sure, I'll help with that",
+    wrapUp: " What’s the main decision?",
+  });
+});
+
+test("keeps an overlapping acknowledgement in the reply card", () => {
+  const lines = { reply: "", wrapUp: "" };
+  const captions = new LiveSpeechCaptions((_id, kind, line) => {
+    lines[kind] = line.text;
+  });
+  captions.input({
+    id: "input",
+    text: "Design a supply chain",
+    startMs: 100,
+    endMs: 200,
+  });
+  captions.begin("turn");
+  captions.wrapUp("turn", 900);
+  captions.output({
+    id: "ack",
+    text: "Sure, I'll help with that",
+    startMs: 800,
+    endMs: 1000,
+  });
+  captions.output({
+    id: "question",
+    text: " What’s the main decision?",
+    startMs: 1100,
+    endMs: 1200,
+  });
+  expect(lines).toEqual({
+    reply: "Sure, I'll help with that",
+    wrapUp: " What’s the main decision?",
+  });
+});
+
 test("a decimal crossing the context boundary is not a completed sentence", () => {
   const lines = { reply: "", wrapUp: "" };
   const captions = new LiveSpeechCaptions((_id, kind, line) => {

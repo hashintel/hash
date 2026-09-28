@@ -93,6 +93,13 @@ export class VoiceMediationHistory {
     this.#pending.add(input.id);
     this.#publish();
   }
+  /** Keeps a finalized local command visible without inventing a Brunch brief. */
+  public retainLocalInput(input: { id: string; text: string }): void {
+    this.#turns.set(input.id, { ...input, responseIds: [] });
+    this.#streamingInputs.delete(input.id);
+    this.#pending.add(input.id);
+    this.#publish();
+  }
   public prepared(id: string, fields: VoiceBriefFields): void {
     const turn = this.#turns.get(id);
     if (turn) {

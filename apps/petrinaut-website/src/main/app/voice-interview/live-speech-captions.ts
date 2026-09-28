@@ -164,7 +164,10 @@ export class LiveSpeechCaptions {
       let replyEnd = text.length;
       if (window.wrapUpMs !== undefined) {
         let boundary = 0;
+        let timedReplyEnd = 0;
         for (const fragment of matching) {
+          if (fragment.startMs < window.wrapUpMs)
+            timedReplyEnd += fragment.text.length;
           // Timing belongs to the fragment, not its individual words. Treat
           // overlapping fragments as possibly containing the result too.
           if (
@@ -187,10 +190,19 @@ export class LiveSpeechCaptions {
           /^\p{Lu}/u.test(text.slice(boundary))
         )
           replyEnd = boundary;
-        else if (contentOffset !== -1)
-          replyEnd =
+        else if (contentOffset !== -1) {
+          const sentenceStart =
             sentenceSegmenter.segment(text).containing(boundary + contentOffset)
               ?.index ?? text.length;
+          // An unpunctuated acknowledgement, or one fragment overlapping the
+          // context timestamp, can make Segmenter return zero for everything.
+          // Keep whole fragments that began before the timestamp instead of
+          // erasing an already-visible reply card.
+          replyEnd =
+            sentenceStart === 0 && timedReplyEnd > 0
+              ? timedReplyEnd
+              : sentenceStart;
+        }
       }
       for (const kind of ["reply", "wrapUp"] as const) {
         this.#caption(window.id, kind, {

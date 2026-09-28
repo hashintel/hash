@@ -1073,6 +1073,32 @@ test.each(["button", "snapshot", "aborted"] as const)(
   },
 );
 
+test("clips interrupted request and answer context to one Live append", async () => {
+  const fixture = setup();
+  const request = `request-start ${"request ".repeat(800)}request-end`;
+  const partial = `answer-start ${"answer ".repeat(800)}answer-end`;
+  await fixture.bridge.accept({ id: "original", text: request });
+  fixture.bridge.responseStarted(started);
+  fixture.update({
+    status: "streaming",
+    messages: [
+      {
+        id: "answer",
+        role: "assistant",
+        parts: [{ type: "text", text: partial, state: "streaming" }],
+      },
+    ],
+  });
+
+  fixture.bridge.stopResponse();
+
+  const note = fixture.appendThinking.mock.calls[0]?.[0];
+  expect(note).toBeDefined();
+  expect(note!.length).toBeLessThanOrEqual(1_400);
+  expect(note).toContain("request-end");
+  expect(note).toContain("answer-end");
+});
+
 test("response-only Stop resolves attached and unclaimed delegations before a later utterance", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("attached");

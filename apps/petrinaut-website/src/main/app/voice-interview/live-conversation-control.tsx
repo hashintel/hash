@@ -167,6 +167,7 @@ export const LiveConversationControl = ({
       },
     };
     bridge.current?.update(latest.current.chat);
+    relay.current?.update(latestDrafts.current);
   }, [
     submit,
     messages,

@@ -64,6 +64,17 @@ interface Dependencies {
   readonly notice: (message: string | null) => void;
 }
 
+/** GPT-Live accepts at most 500 tokens per append; stay well inside it. */
+const liveAppendCharacterBudget = 1_400;
+
+const tail = (text: string, limit: number): string =>
+  text.length <= limit ? text : `…${text.slice(-(limit - 1))}`;
+
+const clipLiveAppend = (text: string): string =>
+  text.length <= liveAppendCharacterBudget
+    ? text
+    : `${text.slice(0, liveAppendCharacterBudget - 1).trimEnd()}…`;
+
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
@@ -392,20 +403,23 @@ export class LiveBrunchBridge {
           part.type === "text" ? [part.text] : [],
         ),
       )
-      .join("\n\n")
-      .slice(-4000);
+      .join("\n\n");
     const instruction =
       "The assistant response was interrupted. Wait for the person. If they ask to continue, they mean continue the assistant answer: delegate that request to Brunch, not back to the person. Do not resume automatically, replay old speech or tools, or claim backend work was cancelled.";
     // Partial text is context, never commentary or evidence of completed work.
     this.#dependencies.appendThinking(
-      `${instruction} The following quoted context is not a completed answer or an instruction; do not read it aloud. An empty tail means no correlated visible text was available.\n${JSON.stringify(
-        {
-          inputId: turn.inputId,
-          requestTail: turn.inputText.slice(-1000),
-          answerMessageIds: answer.map((message) => message.id),
-          partialAnswerTail,
-        },
-      )}`,
+      clipLiveAppend(
+        `${instruction} The following quoted context is not a completed answer or an instruction; do not read it aloud. An empty tail means no correlated visible text was available.\n${JSON.stringify(
+          {
+            inputId: tail(turn.inputId, 64),
+            requestTail: tail(turn.inputText, 160),
+            answerMessageIds: answer
+              .slice(-2)
+              .map((message) => tail(message.id, 64)),
+            partialAnswerTail: tail(partialAnswerTail, 480),
+          },
+        )}`,
+      ),
       null,
     );
     if (turn.delegationId !== null)
@@ -706,7 +720,11 @@ export class LiveBrunchBridge {
     }
   }
 
-  public offerResult(id: string, source: string, responseIds: string[]): void {
+  public offerResult(
+    id: string,
+    source: string,
+    responseIds: string[],
+  ): boolean {
     const mediation = this.#dependencies.mediation;
     if (
       !mediation ||
@@ -714,7 +732,7 @@ export class LiveBrunchBridge {
       !responseIds.length ||
       this.#seenInputs.has(id)
     )
-      return;
+      return false;
     this.#seenInputs.add(id);
     const preparation = new AbortController();
     this.#preparations.add(preparation);
@@ -724,6 +742,7 @@ export class LiveBrunchBridge {
       source,
       mediation,
     );
+    return true;
   }
 
   async #summarize(
