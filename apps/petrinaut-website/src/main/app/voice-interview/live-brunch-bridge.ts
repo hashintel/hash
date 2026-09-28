@@ -124,7 +124,8 @@ export class LiveBrunchBridge {
    * A delegation can only belong to speech that had started when it arrived.
    * Once no speech awaits its transcript, no later transcript can own an
    * unclaimed delegation, and holding it would pair the next answer with the
-   * wrong request.
+   * wrong request. The instruction can't claim that nobody spoke: a filter may
+   * have dropped real speech.
    */
   #closeStrayDelegations(): void {
     if (this.#dependencies.speechPending()) return;
@@ -134,7 +135,7 @@ export class LiveBrunchBridge {
         reason: "no-speech",
       });
       this.#dependencies.appendInstructions(
-        "No speech from the person matches this request, so there is nothing to answer. Do not respond to it; keep listening.",
+        "This request will not be answered. Do not respond to it; keep listening.",
         delegationId,
       );
     }
