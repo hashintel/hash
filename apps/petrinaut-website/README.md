@@ -276,7 +276,9 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   the speech doesn't count as started during output. The same line records the
   transcription's confidence from its per-token log probabilities:
   `logprobTokens`, and when any were returned, `meanLogprob` and `minLogprob`.
-  Nothing is dropped on confidence yet.
+  `peakMicrophoneLevel` is the loudest microphone sample from a second before
+  the speech start was reported until the speech stopped. Nothing is dropped on
+  confidence or loudness yet.
 - `input.ignored` with `reason: "short-during-output"` marks a short transcript
   that started during output and was not sent to Brunch.
 
@@ -286,6 +288,16 @@ each reply. Any speech start, input fragment or `startedDuringOutput: true`
 during a reply means echo reached the microphone path; also note whether Live
 stops itself mid-sentence. The traces are local development diagnostics and
 contain no audio or text.
+
+#### Noise check — 5 minutes
+
+The transcriber can turn a non-speech sound into a word, such as "Okay." or
+"Certainly.", while Live is silent. To see whether confidence or loudness tells
+those apart from real speech, wait until Live is silent, then make a few
+non-speech sounds (a cough, typing, a chair creak, a desk tap) and give a few
+short answers such as "Yes" and "Seven". Match each `input.finalized` line to
+the conversation by order, then compare `meanLogprob`, `minLogprob` and
+`peakMicrophoneLevel` between the invented words and the real answers.
 
 ### Brunch Voice mode
 

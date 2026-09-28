@@ -7,6 +7,7 @@ import {
   summarizeLogprobs,
   type TranscriptionConfidence,
 } from "./live-conversation/transcription-confidence";
+import { createUtteranceLevels } from "./live-conversation/utterance-levels";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { VoiceAudioSettings } from "./voice-audio-settings";
@@ -57,6 +58,7 @@ export const createLiveConversation = (
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
   const echoTrace = createOutputEchoTrace(sessionId);
+  const utteranceLevels = createUtteranceLevels();
   const seenDelegations = new Set<string>();
   const openDelegations = new Set<string>();
   const pendingAppends = new Map<string, LiveAppendResult>();
@@ -317,6 +319,7 @@ export const createLiveConversation = (
       speakerVolume,
       selectedSpeaker: Boolean(audio?.sinkId),
     });
+    utteranceLevels.sample(Date.now(), microphoneLevel);
     const activity = {
       microphoneLevel: microphoneMuted
         ? 0
@@ -363,6 +366,7 @@ export const createLiveConversation = (
           characters: input.text.length,
           startedDuringOutput,
           sinceOutputMs: echoTrace.sinceOutputMs(itemId),
+          peakMicrophoneLevel: utteranceLevels.peak(itemId),
           ...confidence.get(itemId),
         });
         confidence.delete(itemId);
@@ -405,6 +409,11 @@ export const createLiveConversation = (
     }
     if (data.type === "input_audio_buffer.speech_started") {
       echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
+      utteranceLevels.speechStarted(data.item_id, Date.now());
+      return;
+    }
+    if (data.type === "input_audio_buffer.speech_stopped") {
+      utteranceLevels.speechStopped(data.item_id);
       return;
     }
     if (data.type === "input_audio_buffer.committed") {
