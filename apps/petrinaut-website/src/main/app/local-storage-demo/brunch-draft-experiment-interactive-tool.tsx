@@ -279,11 +279,15 @@ export const BrunchDraftExperimentWidget = ({
   readTitle,
   readDraftAuthority,
   state,
-  submitAndWait,
+  claimAndSubmit,
   toolCallId,
 }: WidgetProps & {
   readTitle: () => string;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
+  /** Claim the issued call, then submit what `prepareOutput` resolves to, so the lease covers preparation. */
+  claimAndSubmit: (
+    prepareOutput: () => Promise<DraftPetrinautExperimentOutput>,
+  ) => Promise<void>;
 }) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
@@ -304,31 +308,23 @@ export const BrunchDraftExperimentWidget = ({
   } | null>(null);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  const [submissionAttempt, setSubmissionAttempt] = useState(0);
   const [preparationFailure, setPreparationFailure] = useState<{
     kind: "prepare" | "submit";
     message: string;
   } | null>(null);
   const [submissionPending, setSubmissionPending] = useState(
-    state === "awaiting" && submitAndWait !== undefined,
+    state === "awaiting",
   );
 
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
   // not reported through the tool result.
   useEffect(() => {
-    if (
-      state !== "awaiting" ||
-      preparedOnceRef.current ||
-      submitAndWait === undefined
-    )
-      return;
+    if (state !== "awaiting" || preparedOnceRef.current) return;
     preparedOnceRef.current = true;
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect starts the one live-model preparation and marks it pending
-    setPreparationFailure(null);
-    setSubmissionPending(true);
     const initialDefinition = instance.handle.doc();
     if (!initialDefinition) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
         kind: "prepare",
         message: "The bound browser document is unavailable.",
@@ -336,7 +332,8 @@ export const BrunchDraftExperimentWidget = ({
       setSubmissionPending(false);
       return;
     }
-    const submitAndRegister = async () => {
+    let candidate: Parameters<typeof editorDrafts.register>[0] | undefined;
+    const prepareOutput = async (): Promise<DraftPetrinautExperimentOutput> => {
       let definition: SDCPN = initialDefinition;
       let outcome: ReturnType<typeof prepareOrExplain>;
       try {
@@ -357,7 +354,7 @@ export const BrunchDraftExperimentWidget = ({
           error: caught instanceof Error ? caught.message : String(caught),
         };
       }
-      const candidate = {
+      candidate = {
         toolCallId,
         input,
         definition,
@@ -368,7 +365,7 @@ export const BrunchDraftExperimentWidget = ({
       };
       const submissionDraft =
         editorDrafts.get().drafts.get(toolCallId) ?? candidate;
-      const output: DraftPetrinautExperimentOutput = submissionDraft.prepared
+      return submissionDraft.prepared
         ? {
             status: "drafted",
             summary: `${summarizeForAgent(
@@ -396,8 +393,10 @@ export const BrunchDraftExperimentWidget = ({
             summary: `The browser could not prepare this experiment against the current model: ${submissionDraft.invalid}`,
             diagnostics: [submissionDraft.invalid ?? "Preparation failed"],
           };
+    };
+    const submitAndRegister = async () => {
       try {
-        await submitAndWait(output);
+        await claimAndSubmit(prepareOutput);
       } catch (caught) {
         setPreparationFailure({
           kind: "submit",
@@ -406,7 +405,7 @@ export const BrunchDraftExperimentWidget = ({
         setSubmissionPending(false);
         return;
       }
-      editorDrafts.register(candidate);
+      if (candidate) editorDrafts.register(candidate);
       setSubmissionPending(false);
     };
     void submitAndRegister();
@@ -418,8 +417,7 @@ export const BrunchDraftExperimentWidget = ({
     readDraftAuthority,
     editorDrafts,
     state,
-    submissionAttempt,
-    submitAndWait,
+    claimAndSubmit,
     toolCallId,
   ]);
 
@@ -728,35 +726,20 @@ export const BrunchDraftExperimentWidget = ({
           ) : null}
         </div>
       ) : null}
-      {!draft && preparationFailure && state === "awaiting" ? (
-        <div className={actionsStyle}>
-          <button
-            className={primaryButtonStyle}
-            onClick={() => {
-              preparedOnceRef.current = false;
-              setPreparationFailure(null);
-              setSubmissionPending(true);
-              setSubmissionAttempt((attempt) => attempt + 1);
-            }}
-            type="button"
-          >
-            Retry preparation
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 };
 
 /**
- * The server awaits the draft call in band: claim the issued call, then settle
- * it with the preparation result. A draft changes no document, so a failed
- * settlement is reported as failed, never as an unknown document effect.
+ * The server awaits the draft call in band: claim the issued call, prepare
+ * under its renewed lease, then settle it with the preparation result. A draft
+ * changes no document, so a failed settlement is reported as failed, never as
+ * an unknown document effect.
  */
 const settleIssuedDraft = async (
   browserCalls: ReturnType<typeof createInBandBrowserCalls>,
   call: { readonly toolCallId: string; readonly input: unknown },
-  output: DraftPetrinautExperimentOutput,
+  prepareOutput: () => Promise<DraftPetrinautExperimentOutput>,
 ) => {
   const issued = await browserCalls.claim({
     ...call,
@@ -764,7 +747,7 @@ const settleIssuedDraft = async (
     signal: new AbortController().signal,
   });
   try {
-    await issued.submit(output);
+    await issued.submit(await prepareOutput());
   } catch (error) {
     await issued.fail("failed").catch(() => {});
     throw error;
@@ -797,11 +780,11 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     component: (props) => (
       <BrunchDraftExperimentWidget
         {...props}
-        submitAndWait={(output) =>
+        claimAndSubmit={(prepareOutput) =>
           settleIssuedDraft(
             browserCalls,
             { toolCallId: props.toolCallId, input: props.input },
-            output,
+            prepareOutput,
           )
         }
         readTitle={readTitle}
