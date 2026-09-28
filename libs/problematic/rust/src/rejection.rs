@@ -195,13 +195,12 @@ impl Rejected {
 
     /// The `detail` the client received, if its problem details carried one.
     #[must_use]
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "`Option::as_deref` is const only for a const `Deref`, which `String` does not \
-                  implement"
-    )]
-    pub fn detail(&self) -> Option<&str> {
-        self.detail.as_deref()
+    pub const fn detail(&self) -> Option<&str> {
+        if let Some(detail) = &self.detail {
+            Some(detail.as_str())
+        } else {
+            None
+        }
     }
 
     /// The error the rejection was created from.
