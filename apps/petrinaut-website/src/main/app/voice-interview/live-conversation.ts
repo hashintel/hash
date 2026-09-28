@@ -299,7 +299,11 @@ export const createLiveConversation = (
     const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
     echoTrace.sample(Date.now(), {
-      audible: Boolean(playing) && outputLevel > 0.01,
+      audible:
+        Boolean(playing) &&
+        outputLevel > 0.01 &&
+        !speakerMuted &&
+        speakerVolume > 0,
       microphoneLevel,
       echoReturnLoss,
       echoReturnLossEnhancement,

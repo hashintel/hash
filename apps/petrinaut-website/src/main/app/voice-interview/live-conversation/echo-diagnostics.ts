@@ -39,6 +39,7 @@ export const logCaptureSettings = (
 };
 
 interface OutputSample {
+  /** Live audio is arriving and the speaker plays it: muted or silent output can't echo. */
   readonly audible: boolean;
   readonly microphoneLevel: number;
   readonly echoReturnLoss: number | undefined;
