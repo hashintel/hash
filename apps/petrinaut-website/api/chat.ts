@@ -206,10 +206,6 @@ const fetch = async (request: Request): Promise<Response> => {
     tools: petrinautAiTools,
     providerOptions: {
       openai: {
-        // @ai-sdk/openai 3.0.63 recognises reasoning models by ID prefix and predates
-        // GPT-6; without this it drops the reasoning effort. Remove once the
-        // project-wide version is 3.0.113 or later.
-        forceReasoning: true,
         reasoningEffort:
           process.env.PETRINAUT_AI_REASONING_EFFORT ??
           petrinautAiModel.reasoningEffort,
