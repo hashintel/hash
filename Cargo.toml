@@ -8,6 +8,7 @@ exclude = [
 ]
 members = [
     "apps/hash-graph",
+    "apps/hash-integrations",
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec/rust",
     "libs/@local/codegen",

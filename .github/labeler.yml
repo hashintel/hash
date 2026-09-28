@@ -22,6 +22,11 @@ area/apps > hash-graph:
   - changed-files:
       - any-glob-to-any-file: apps/hash-graph/**
 
+area/apps > hash-integrations:
+  - changed-files:
+      - any-glob-to-any-file: apps/hash-integrations/**
+      - any-glob-to-any-file: libs/@local/integrations/**
+
 area/blocks:
   - changed-files:
       - any-glob-to-any-file: blocks/**

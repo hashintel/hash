@@ -6763,6 +6763,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "clap_complete",
+ "hash-telemetry",
+ "mimalloc",
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [

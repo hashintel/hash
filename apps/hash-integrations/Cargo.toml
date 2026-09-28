@@ -1,0 +1,25 @@
+[package]
+name              = "hash-integrations"
+description       = "Loads data from external sources into the HASH graph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+hash-telemetry = { workspace = true, features = ["clap"] }
+
+# Private third-party dependencies
+clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete  = { workspace = true }
+mimalloc       = { workspace = true }
+simple-mermaid = { workspace = true }
+
+[lints]
+workspace = true
