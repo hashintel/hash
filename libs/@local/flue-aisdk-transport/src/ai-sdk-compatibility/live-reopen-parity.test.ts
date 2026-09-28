@@ -173,7 +173,7 @@ describe("a live response reduces to the message its history reopens as", () => 
     expectParity(turn);
   });
 
-  test.fails("agent-authored response metadata", async () => {
+  test("agent-authored response metadata", async () => {
     harness.setResponseMetadata({ model: "faux", tier: 1 });
     harness.script([fauxAssistantMessage([fauxText("Tagged.")])]);
     const turn = await runTurn("Tag it");

@@ -285,13 +285,24 @@ export const createFlueUiStream = (
           if (messageId === undefined) {
             messageId = chunk.messageId;
             canonicalMessageId = chunk.messageId;
-            options.write({ type: "start", messageId });
-          } else if (
-            canonicalMessageId === undefined &&
-            chunk.turnId === turnId
-          ) {
-            canonicalMessageId = chunk.messageId;
-            return;
+            options.write({
+              type: "start",
+              messageId,
+              ...(chunk.metadata === undefined
+                ? {}
+                : { messageMetadata: chunk.metadata }),
+            });
+          } else {
+            if (chunk.metadata !== undefined) {
+              options.write({
+                type: "message-metadata",
+                messageMetadata: chunk.metadata,
+              });
+            }
+            if (canonicalMessageId === undefined && chunk.turnId === turnId) {
+              canonicalMessageId = chunk.messageId;
+              return;
+            }
           }
           canonicalMessageId = chunk.messageId;
           finishTurn();

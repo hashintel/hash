@@ -8,9 +8,10 @@ import type { UIMessage } from "ai";
 
 type UiMessagePart = UIMessage["parts"][number];
 
-interface UiHistoryMessageMetadata {
+/** Agent-authored response metadata, plus the host's own stop marker. */
+type UiHistoryMessageMetadata = Readonly<Record<string, unknown>> & {
   readonly stopped?: true;
-}
+};
 
 /** A reopened transcript never carries `system` messages. */
 export type UiHistoryMessage = Omit<
@@ -141,11 +142,15 @@ export const snapshotToUiMessages = (
       message.role === "assistant" &&
       message.submissionId !== undefined &&
       abortedSubmissions.has(message.submissionId);
+    const metadata: UiHistoryMessageMetadata = {
+      ...message.metadata,
+      ...(stopped ? { stopped: true } : {}),
+    };
     messages.push({
       id: message.id,
       role: message.role,
       parts,
-      ...(stopped ? { metadata: { stopped: true } } : {}),
+      ...(Object.keys(metadata).length === 0 ? {} : { metadata }),
     });
   }
   return messages;
