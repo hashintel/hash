@@ -16,6 +16,8 @@ import {
 } from "@earendil-works/pi-ai";
 import { afterAll, describe, expect, test } from "vitest";
 
+import { createFlueUiStream } from "../client";
+import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
 import { harnessTools, startFlueHarness } from "./flue-harness";
 
 import type { UIMessageChunk } from "ai";
@@ -96,7 +98,7 @@ describe("upstream: 'server-side tool roundtrip with output-error'", () => {
 });
 
 describe("upstream: 'provider-executed static tools'", () => {
-  test("decision: every Flue-executed tool is provider-executed, so the client never runs or continues it", async () => {
+  test("decision: every Flue-executed tool is provider-executed", async () => {
     harness.script([
       fauxAssistantMessage([fauxToolCall(harnessTools.lookup, { q: "x" })], {
         stopReason: "toolUse",
@@ -207,7 +209,7 @@ describe("upstream: 'data ui parts (single part)'", () => {
 });
 
 describe("upstream: 'start with message id'", () => {
-  test("guarantee: the assistant message takes Flue's response message id", async () => {
+  test("decision: the assistant message takes Flue's response message id", async () => {
     harness.script([fauxAssistantMessage([fauxText("Hi.")])]);
     const { history, live } = await harness.runTurn("Hi");
 
@@ -216,7 +218,7 @@ describe("upstream: 'start with message id'", () => {
 });
 
 describe("upstream: 'errors'", () => {
-  test("guarantee: a failed submission ends the stream with one error chunk", async () => {
+  test("decision: a failed submission ends the stream with one error chunk", async () => {
     harness.script([
       fauxAssistantMessage([], {
         stopReason: "error",
@@ -253,9 +255,124 @@ describe("upstream: 'tool call streaming'", () => {
     expect(types.indexOf("tool-input-available")).toBeGreaterThan(
       types.lastIndexOf("tool-input-delta"),
     );
+    expect(
+      live.snapshots.some((snapshot) =>
+        snapshot.parts.some(
+          (part) =>
+            "state" in part &&
+            part.state === "input-streaming" &&
+            part.input !== undefined,
+        ),
+      ),
+    ).toBe(true);
     expect(live.message?.parts[1]).toMatchObject({
       state: "output-available",
       input: { q: "streamed" },
     });
+  });
+});
+
+describe("upstream: 'provider-executed static tools' (two calls in one step)", () => {
+  test("guarantee: each call in a step settles its own part, one output and one error", async () => {
+    harness.script([
+      fauxAssistantMessage(
+        [
+          fauxToolCall(harnessTools.lookup, { q: "a" }),
+          fauxToolCall(harnessTools.failing, { q: "b" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText("Both settled.")]),
+    ]);
+    const { live } = await harness.runTurn("Both");
+
+    expect(live.message?.parts).toMatchObject([
+      { type: "step-start" },
+      { type: `tool-${harnessTools.lookup}`, state: "output-available" },
+      { type: `tool-${harnessTools.failing}`, state: "output-error" },
+      { type: "data-progress" },
+      { type: "step-start" },
+      { type: "text", text: "Both settled." },
+    ]);
+  });
+});
+
+describe("upstream: 'dynamic tools' (two calls in one step)", () => {
+  test("guarantee: two host-defined calls in one step reduce to two dynamic parts", async () => {
+    harness.script([
+      fauxAssistantMessage(
+        [
+          fauxToolCall(harnessTools.widget, { title: "first" }),
+          fauxToolCall(harnessTools.widget, { title: "second" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText("Shown.")]),
+    ]);
+    const { live } = await harness.runTurn("Show both", {
+      adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
+    });
+
+    expect(
+      live.message?.parts.filter((part) => part.type === "dynamic-tool"),
+    ).toMatchObject([
+      { toolName: harnessTools.widget, output: { shown: "first" } },
+      { toolName: harnessTools.widget, output: { shown: "second" } },
+    ]);
+  });
+});
+
+describe("upstream: 'tool input error'", () => {
+  // A live call Flue never admits cannot be produced generically: Flue keeps
+  // a partial input even when the provider fails. The projector's own
+  // cancellation is driven directly instead.
+  test("observed: a live call cancelled before admission ends in output-error with no input", async () => {
+    const written: UIMessageChunk[] = [];
+    const projector = createFlueUiStream({
+      submissionId: "submission-1",
+      clientToolNames: new Set(),
+      write: (chunk) => written.push(chunk),
+    });
+    projector.accept({
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      submissionId: "submission-1",
+      turnId: "turn-1",
+      position: { batch: 1, index: 0 },
+    });
+    for (const [sequence, event] of [
+      { kind: "tool-input-start" },
+      { kind: "tool-input-delta", inputTextDelta: '{ "q": "partial' },
+    ].entries()) {
+      projector.acceptLive({
+        instanceId: "instance-1",
+        sequence,
+        submissionId: "submission-1",
+        turnId: "turn-1",
+        toolCallId: "call-1",
+        toolName: harnessTools.lookup,
+        v: 1,
+        ...event,
+      } as Parameters<typeof projector.acceptLive>[0]);
+    }
+    projector.accept({
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: "submission-1",
+      outcome: "failed",
+      position: { batch: 1, index: 1 },
+    });
+    const { message } = await reduceUiMessageChunks(written);
+
+    expect(message?.parts).toMatchObject([
+      { type: "step-start" },
+      {
+        type: `tool-${harnessTools.lookup}`,
+        state: "output-error",
+        input: undefined,
+        errorText: "This tool proposal was not executed.",
+      },
+    ]);
   });
 });

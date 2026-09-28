@@ -39,6 +39,8 @@ export const assertWireChunks = async (
 export interface ReducedUiMessage {
   /** The message the AI SDK reducer builds, if any chunk wrote one. */
   readonly message: UIMessage | undefined;
+  /** Every intermediate message the reducer wrote, in order. */
+  readonly snapshots: readonly UIMessage[];
   /** Texts of `error` chunks, which the reducer reports rather than throws. */
   readonly streamErrors: readonly string[];
 }
@@ -55,7 +57,7 @@ export const reduceUiMessageChunks = async (
   await assertWireChunks(chunks);
   const streamErrors: string[] = [];
   let protocolError: unknown;
-  let message: UIMessage | undefined;
+  const snapshots: UIMessage[] = [];
   for await (const snapshot of readUIMessageStream({
     stream: streamOf(chunks),
     message: initialMessage,
@@ -69,11 +71,12 @@ export const reduceUiMessageChunks = async (
       }
     },
   })) {
-    message = snapshot;
+    snapshots.push(snapshot);
   }
+  const message = snapshots.at(-1);
   if (protocolError !== undefined) throw protocolError;
   if (message !== undefined) await validateUIMessages({ messages: [message] });
-  return { message, streamErrors };
+  return { message, snapshots, streamErrors };
 };
 
 /**
