@@ -9,8 +9,7 @@
     "@local/eslint",
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
-    "@local/hash-isomorphic-utils",
-    "@local/status"
+    "@local/hash-isomorphic-utils"
   ],
   "tasks": {
     "build": {
@@ -22,7 +21,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "affectedBy": [
@@ -50,7 +48,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "affectedBy": [
@@ -78,7 +75,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "affectedBy": [
@@ -126,7 +122,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "cache": false,
@@ -156,7 +151,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "affectedBy": [
@@ -184,7 +178,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "env": [
@@ -215,7 +208,6 @@
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
-        "@local/status#build",
         "codegen"
       ],
       "affectedBy": [
