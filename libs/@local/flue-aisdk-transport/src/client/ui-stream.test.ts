@@ -496,3 +496,41 @@ test("lets canonical admission win the live turn-terminal race", () => {
     vi.useRealTimers();
   }
 });
+
+test("carries response metadata onto a provisionally started message", () => {
+  vi.useFakeTimers();
+  try {
+    const written = recordChunks();
+    const projector = createFlueUiStream({
+      submissionId: "submission-1",
+      clientToolNames: new Set(),
+      provisionalMessageId: (turnId) => `live:${turnId}`,
+      write: (chunk) => written.push(chunk),
+    });
+    projector.acceptLive(
+      liveEvent(0, {
+        kind: "tool-input-start",
+        toolCallId: "early-call",
+        toolName: "read_workpiece",
+      }),
+    );
+    vi.runAllTimers();
+    projector.accept({
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      metadata: { model: "m" },
+      submissionId: "submission-1",
+      turnId: "turn-1",
+      position: position(0),
+    });
+
+    expect(written.at(0)).toEqual({ type: "start", messageId: "live:turn-1" });
+    expect(written).toContainEqual({
+      type: "message-metadata",
+      messageMetadata: { model: "m" },
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});
