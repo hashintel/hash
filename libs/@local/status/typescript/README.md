@@ -62,22 +62,7 @@ They can do this by doing the following:
   }
   ```
 
-- Then, depending on the language the service is implemented in, they should use the payloads within their codebase
-  - For JS/TS, this can be done through simply importing the TypeScript definitions via relative paths
-  - For Rust this can be done through:
-    - Adding a `"codegen"` script in `package.json` which calls the `codegen.ts` utility exposed by this package.
-    - The `codegen` script should be called with the two following arguments:
-      - `<PATH_TO_TYPE_DEFS>` (should almost always be `./type-defs` unless package structure varies)
-      - `<PATH_TO_GEN_FOLDER>` (e.g. `./libs/graph/src/api/gen`)
-
-#### Warnings
-
-This process works through code-generation using the [`quicktype`](https://github.com/quicktype/quicktype) utility, and as such, there are limitations.
-
-- Type definition files should only define _simple_ objects that are easily representable in other schema formats such as JSON-Schema and Protobuf.
-  This includes avoiding language features like generics and advanced types.
-- `import` statements should be avoided (opting to only use `exports`), the utility walks the import tree and will create duplicate, confusing definitions.
-- The usage of `type` in the `export { type foo } from ...` syntax seems to be unsupported at the moment.
+- JS/TS services then use the payloads by importing the TypeScript definitions via relative paths.
 
 ## Package Layout
 
@@ -86,8 +71,6 @@ This package is structured into two main areas:
 - [`rust`](./rust) contains the Rust crate that defines the `Status` and `StatusCode` types.
 - [`typescript`](./src) contains the TypeScript package that exports the `Status`, `StatusCode` types, and helper functions.
 - [`typescript/type-defs`](./type-defs) contains the plain type definitions for `Status`, `StatusCode`, and associated status payloads. These types are defined in TypeScript at the moment but could easily be represented in another schema format.
-
-Note: despite the `type-defs` being in TypeScript, we define them separately to keep a better separation of concerns, and to avoid `quicktype` breaking when it encounters non-type code (e.g. `const` definitions).
 
 ## Attributions
 
