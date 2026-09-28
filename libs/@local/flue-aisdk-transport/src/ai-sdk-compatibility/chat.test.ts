@@ -1,18 +1,24 @@
 /**
  * The transport under the AI SDK's own `AbstractChat` (ai@6.0.286), against a
- * real in-process Flue conversation. Case names follow the `describe` blocks
- * of `packages/ai/src/ui/chat.test.ts` they correspond to.
+ * real in-process Flue conversation. Each `describe` names the case of
+ * `packages/ai/src/ui/chat.test.ts` (or `process-ui-message-stream.test.ts`)
+ * it corresponds to; each test is labelled a guarantee, an observed behaviour
+ * or a decision, as in `upstream-reducer-cases.test.ts`.
  */
 import {
   fauxAssistantMessage,
   fauxText,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
+import { createFlueClient } from "@flue/sdk";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { afterAll, describe, expect, test, vi } from "vitest";
 
 import { createFlueAiSdkAdapter, createFlueUiStream } from "../client";
-import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
+import {
+  reduceUiMessageChunks,
+  useUiChunkRecorder,
+} from "../shared/ai-sdk-oracle";
 import {
   harnessAdapterConfig,
   harnessTools,
@@ -21,8 +27,12 @@ import {
 import { TestChat } from "./test-chat";
 
 import type { FlueChatTransportOptions } from "../client";
-import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
-import type { ChatInit, UIMessage, UIMessageChunk } from "ai";
+import type {
+  AgentSendResult,
+  ConversationStreamChunk,
+  FlueClient,
+} from "@flue/sdk";
+import type { ChatInit, ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 const position = (index: number) => ({ batch: 1, index });
 
@@ -69,18 +79,41 @@ const clientToolStepThenAbort: readonly ConversationStreamChunk[] = [
 const harness = await startFlueHarness();
 afterAll(() => harness.stop());
 
+const recordChunks = useUiChunkRecorder();
+
+/** Every stream the chat consumes is also checked against the AI SDK. */
+const recorded = (
+  transport: ChatTransport<UIMessage>,
+): ChatTransport<UIMessage> => ({
+  ...transport,
+  sendMessages: async (options) => {
+    const chunks = recordChunks();
+    return (await transport.sendMessages(options)).pipeThrough(
+      new TransformStream<UIMessageChunk, UIMessageChunk>({
+        transform(chunk, controller) {
+          chunks.push(chunk);
+          controller.enqueue(chunk);
+        },
+      }),
+    );
+  },
+});
+
 const createChat = (
   options: {
+    readonly client?: FlueClient;
     readonly transport?: Partial<FlueChatTransportOptions>;
   } & Omit<ChatInit<UIMessage>, "transport"> = {},
 ) => {
-  const client = harness.client();
+  const client = options.client ?? harness.client();
   const admissions: AgentSendResult[] = [];
-  const transport = createFlueAiSdkAdapter(harnessAdapterConfig).chatTransport({
-    client,
-    onAdmission: ({ admission }) => admissions.push(admission),
-    ...options.transport,
-  });
+  const transport = recorded(
+    createFlueAiSdkAdapter(harnessAdapterConfig).chatTransport({
+      client,
+      onAdmission: ({ admission }) => admissions.push(admission),
+      ...options.transport,
+    }),
+  );
   const sendMessages = vi.spyOn(transport, "sendMessages");
   const onFinish = vi.fn<NonNullable<ChatInit<UIMessage>["onFinish"]>>();
   const onError = vi.fn<NonNullable<ChatInit<UIMessage>["onError"]>>();
@@ -89,7 +122,7 @@ const createChat = (
 };
 
 describe("upstream: 'send a simple message'", () => {
-  test("a completed turn leaves the chat ready with one assistant message", async () => {
+  test("guarantee: a completed turn leaves the chat ready with one assistant message", async () => {
     harness.script([fauxAssistantMessage([fauxText("Hello.")])]);
     const { chat, onFinish } = createChat();
 
@@ -111,8 +144,8 @@ describe("upstream: 'send a simple message'", () => {
   });
 });
 
-describe("upstream: 'send handle a disconnected response stream'", () => {
-  test("a failed submission puts the chat in error with the server's text", async () => {
+describe("upstream: 'should handle error parts'", () => {
+  test("guarantee: a failed submission's error chunk puts the chat in error with the server's text", async () => {
     harness.script([
       fauxAssistantMessage([], {
         stopReason: "error",
@@ -129,8 +162,43 @@ describe("upstream: 'send handle a disconnected response stream'", () => {
   });
 });
 
+describe("upstream: 'send handle a disconnected response stream'", () => {
+  // Upstream's disconnect errors the HTTP stream. Flue's SDK retries a dropped
+  // update stream instead, so the transport never reports a disconnect.
+  test("observed: a dropped Flue update stream is retried, and the turn still completes", async () => {
+    harness.script([fauxAssistantMessage([fauxText("Recovered.")])]);
+    let admitted = false;
+    let failures = 0;
+    const client = createFlueClient({
+      url: `http://flue.test/${crypto.randomUUID()}`,
+      fetch: async (input, init) => {
+        const request = new Request(input, init);
+        if (admitted && request.method === "GET" && failures < 2) {
+          failures += 1;
+          throw new TypeError("fetch failed");
+        }
+        const response = await harness.fetch(request);
+        if (request.method === "POST") admitted = true;
+        return response;
+      },
+    });
+    const { chat, onFinish } = createChat({ client });
+
+    await chat.sendMessage({ text: "Hi" });
+
+    expect(failures).toBe(2);
+    expect(chat.status).toBe("ready");
+    expect(chat.messages.at(-1)?.parts).toContainEqual(
+      expect.objectContaining({ type: "text", text: "Recovered." }),
+    );
+    expect(onFinish).toHaveBeenCalledWith(
+      expect.objectContaining({ isDisconnect: false, isError: false }),
+    );
+  });
+});
+
 describe("upstream: 'send handle a stop and an aborted response stream'", () => {
-  test("stopping the chat ends only the local observer; the Flue turn completes", async () => {
+  test("decision: stopping the chat ends only the local observer; the Flue turn completes", async () => {
     const release = Promise.withResolvers<void>();
     harness.script([
       async () => {
@@ -157,7 +225,7 @@ describe("upstream: 'send handle a stop and an aborted response stream'", () => 
     expect(history.settlements.at(-1)).toMatchObject({ outcome: "completed" });
   });
 
-  test("observed: a durable Flue abort ends the turn, but the AI SDK does not report it as an abort", async () => {
+  test("decision: a durable Flue abort ends the turn with an abort chunk, which the AI SDK does not report as an abort", async () => {
     const release = Promise.withResolvers<void>();
     harness.script([
       async () => {
@@ -193,7 +261,7 @@ describe("upstream: 'sendAutomaticallyWhen'", () => {
       fauxAssistantMessage([fauxText("Unexpected follow-up.")]),
     ]);
 
-  test("an in-band client tool result does not trigger an automatic follow-up", async () => {
+  test("observed: an in-band client tool result does not trigger an automatic follow-up", async () => {
     scriptClientTool();
     const { chat, sendMessages } = createChat({
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
@@ -208,7 +276,7 @@ describe("upstream: 'sendAutomaticallyWhen'", () => {
   // Flue always opens another step after a tool result, so only a turn that
   // ends on a settled client-tool step (such as a durable stop right after a
   // browser result) reaches the predicate with that step last.
-  test("a turn ending on a settled client-tool step does not satisfy the continuation predicate", async () => {
+  test("observed: a turn ending on a settled client-tool step does not satisfy the continuation predicate", async () => {
     const written: UIMessageChunk[] = [];
     const projector = createFlueUiStream({
       submissionId: "submission-1",
@@ -234,6 +302,29 @@ describe("upstream: 'sendAutomaticallyWhen'", () => {
   });
 });
 
+describe("upstream: 'onToolCall is executed' (process-ui-message-stream)", () => {
+  test("observed: onToolCall runs for a client tool but not for a Flue-executed server tool", async () => {
+    harness.script([
+      fauxAssistantMessage(
+        [
+          fauxToolCall(harnessTools.lookup, { q: "x" }),
+          fauxToolCall(harnessTools.widget, { title: "t" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText("Done.")]),
+    ]);
+    const onToolCall = vi.fn<NonNullable<ChatInit<UIMessage>["onToolCall"]>>();
+    const { chat } = createChat({ onToolCall });
+
+    await chat.sendMessage({ text: "Both" });
+
+    expect(
+      onToolCall.mock.calls.map(([{ toolCall }]) => toolCall.toolName),
+    ).toEqual([harnessTools.widget]);
+  });
+});
+
 describe("upstream: 'regenerate'", () => {
   test("decision: regenerating a Flue conversation is refused", async () => {
     harness.script([fauxAssistantMessage([fauxText("Once.")])]);
@@ -249,12 +340,14 @@ describe("upstream: 'regenerate'", () => {
   });
 });
 
-test("decision: resuming finds no stream, so reopened history is the only recovery", async () => {
-  const { chat, sendMessages } = createChat();
+describe("upstream: 'resumeStream'", () => {
+  test("decision: resuming finds no stream, so reopened history is the only recovery", async () => {
+    const { chat, sendMessages } = createChat();
 
-  await chat.resumeStream();
+    await chat.resumeStream();
 
-  expect(chat.status).toBe("ready");
-  expect(chat.statuses).toEqual([]);
-  expect(sendMessages).not.toHaveBeenCalled();
+    expect(chat.status).toBe("ready");
+    expect(chat.statuses).toEqual([]);
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
 });

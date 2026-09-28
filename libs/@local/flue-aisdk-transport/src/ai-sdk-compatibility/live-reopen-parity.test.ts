@@ -63,6 +63,20 @@ describe("a live response reduces to the message its history reopens as", () => 
     expectParity(turn);
   });
 
+  test("two tool calls in one step", async () => {
+    harness.script([
+      fauxAssistantMessage(
+        [
+          fauxToolCall(harnessTools.lookup, { q: "a" }),
+          fauxToolCall(harnessTools.failing, { q: "b" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText("Both settled.")]),
+    ]);
+    expectParity(await runTurn("Both"));
+  });
+
   test("reasoning before text", async () => {
     harness.script([
       fauxAssistantMessage([fauxThinking("Considering."), fauxText("Answer.")]),
