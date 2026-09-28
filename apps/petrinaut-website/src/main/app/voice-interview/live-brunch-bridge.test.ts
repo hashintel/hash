@@ -409,6 +409,22 @@ test("empty finalized input resolves its delegation before a later turn", async 
   );
 });
 
+test("punctuation-only finalized input is ignored like empty input", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("punctuation-delegation");
+  await fixture.bridge.accept({ id: "punctuation", text: " . " });
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("No usable speech"),
+    "punctuation-delegation",
+  );
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining('"reason":"empty"'),
+  );
+});
+
 test("uncertain admission is visible and never automatically replayed", async () => {
   const fixture = setup();
   fixture.submit.mockRejectedValueOnce(new Error("Unknown admission"));

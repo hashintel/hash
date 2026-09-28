@@ -242,6 +242,9 @@ acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 
+A finalized transcript with no letters or digits, such as ".", is handled like
+empty input and never reaches Brunch.
+
 #### Speaker echo check — 10 minutes
 
 The transcription session requests English and far-field noise reduction.
