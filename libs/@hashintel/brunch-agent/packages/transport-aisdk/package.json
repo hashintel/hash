@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@flue/sdk": "2.0.3",
-    "ai": "6.0.182"
+    "ai": "6.0.286"
   },
   "devDependencies": {
     "@types/node": "22.18.13",
