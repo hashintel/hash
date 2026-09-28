@@ -13,10 +13,18 @@ import { createFlueClient, type FlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
 import {
+  createFlueChatTransport,
+  snapshotToUiMessages,
+  type FlueChatTransportOptions,
+} from "../client";
+import {
   createLiveToolBroadcaster,
   createLiveToolObserver,
   liveToolResponse,
 } from "../server";
+import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
+
+import type { UIMessageChunk } from "ai";
 
 /** Tools of the in-process harness agent, named by the scenario they drive. */
 export const harnessTools = {
@@ -38,6 +46,20 @@ export const unwrapHarnessEnvelope = (output: unknown): unknown =>
     : output;
 
 const agentName = "harness-agent";
+
+/** The projection a host with the widget tool configures. */
+export const harnessProjection = {
+  clientToolNames: new Set<string>([harnessTools.widget]),
+  mapToolOutput: unwrapHarnessEnvelope,
+};
+
+const readAll = async (
+  stream: ReadableStream<UIMessageChunk>,
+): Promise<UIMessageChunk[]> => {
+  const chunks: UIMessageChunk[] = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return chunks;
+};
 
 /**
  * One in-process Flue runtime with a scripted model, served through Flue's
@@ -111,14 +133,51 @@ export const startFlueHarness = async () => {
       : router.fetch(request);
   };
 
+  const client = (): FlueClient =>
+    createFlueClient({
+      url: `http://flue.test/${crypto.randomUUID()}`,
+      fetch: fetchHarness,
+    });
+
+  /**
+   * Send one real user turn through the transport, reduce its chunks with the
+   * AI SDK, then reopen the same conversation from stored history.
+   */
+  const runTurn = async (
+    text: string,
+    options: Partial<FlueChatTransportOptions> = {},
+  ) => {
+    const conversation = client();
+    const projection = { ...harnessProjection, ...options };
+    const transport = createFlueChatTransport({
+      client: conversation,
+      ...projection,
+    });
+    const chunks = await readAll(
+      await transport.sendMessages({
+        trigger: "submit-message",
+        chatId: "conversation",
+        messageId: undefined,
+        messages: [
+          { id: "user-1", role: "user", parts: [{ type: "text", text }] },
+        ],
+        abortSignal: undefined,
+      }),
+    );
+    const history = await conversation.history();
+    return {
+      chunks,
+      history,
+      live: await reduceUiMessageChunks(chunks),
+      reopened: snapshotToUiMessages(history, projection),
+    };
+  };
+
   return {
     /** A client for a fresh conversation. */
-    client: (): FlueClient =>
-      createFlueClient({
-        url: `http://flue.test/${crypto.randomUUID()}`,
-        fetch: fetchHarness,
-      }),
+    client,
     fetch: fetchHarness,
+    runTurn,
     /** Script the model's next responses, one per model call. */
     script: (responses: FauxResponseStep[]) => faux.setResponses(responses),
     /** Metadata the agent attaches when its next responses start. */
