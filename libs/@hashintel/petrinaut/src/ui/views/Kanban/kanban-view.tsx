@@ -457,6 +457,16 @@ export const KanbanView = ({
 
   const rootClassName = `${rootStyle} ${rootAnimatingStyle({ animating: isPanelAnimating })}`;
 
+  // A net element selected in another view would keep its properties panel
+  // open over the board; entering the board starts with nothing selected.
+  const clearedOnEnter = useRef(false);
+  useEffect(() => {
+    if (!clearedOnEnter.current) {
+      clearedOnEnter.current = true;
+      clearSelection();
+    }
+  }, [clearSelection]);
+
   /**
    * Clicking empty board background deselects, as clicking the empty net
    * canvas does; cards and the view selector are marked interactive and keep

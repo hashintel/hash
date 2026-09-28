@@ -12,8 +12,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../react";
+import { EditorContext } from "../../../../react/state/editor-context";
 import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../react/state/panel-defaults";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { usePanelTarget } from "../../../../react/state/use-selection";
 import { GlassPanel } from "../../../components/glass-panel";
 import {
   MAX_PROPERTIES_PANEL_WIDTH,
@@ -117,17 +119,20 @@ const scrollStyle = css({
   gap: "3",
   overflowY: "auto",
 });
+/**
+ * Docked at the right edge like the editor's properties panel: full height,
+ * a left border, over the board rather than beside it. The negative offsets
+ * cancel the Kanban root's padding.
+ */
 const floatingPanelStyle = css({
   position: "absolute",
   boxSizing: "border-box",
   top: "[0]",
-  right: "[0]",
-  // Clears the floating editor toolbar at the bottom of the canvas.
-  bottom: "[72px]",
+  right: "[-16px]",
+  bottom: "[-16px]",
   zIndex: "[2]",
-  borderWidth: "[1px]",
-  borderRadius: "lg",
-  boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)]",
+  borderWidth: "[0]",
+  borderLeftWidth: "thin",
 });
 const floatingPanelContentStyle = css({
   display: "flex",
@@ -1056,16 +1061,19 @@ export const BoardSetup = ({
     statusView.labels.find((label) => !label.isExit)?.id,
   );
   const [cardsOpen, setCardsOpen] = useState(false);
+  const { clearSelection } = use(EditorContext);
   /** Opening a status closes "What cards show"; one panel at a time. */
   const setSelectedId = (id: string | undefined) => {
     setSelectedIdState(id);
     if (id) {
       setCardsOpen(false);
+      clearSelection();
     }
   };
   const openCardsPanel = () => {
     setSelectedIdState(undefined);
     setCardsOpen(true);
+    clearSelection();
   };
   const closePanels = () => {
     setSelectedIdState(undefined);
@@ -1304,6 +1312,12 @@ export const BoardSetup = ({
       JSON.stringify(statusView.highlights ?? []) ||
     JSON.stringify(cardFields) !== JSON.stringify(baselineCardFields);
   const panelOpen = selectedLabel !== undefined || cardsOpen;
+
+  // One right panel at a time: opening a setup panel clears the net
+  // selection (see `setSelectedId`), and a net selection hides it.
+  const netSelection = usePanelTarget().kind;
+  /** The setup panel steps aside while a net element's panel is open. */
+  const panelShown = panelOpen && netSelection === "none";
 
   useEffect(() => {
     if (!panelOpen) {
@@ -1709,7 +1723,7 @@ export const BoardSetup = ({
             <div
               className={runBannerStyle}
               role="status"
-              style={{ marginRight: panelOpen ? panelWidth : 0 }}
+              style={{ marginRight: panelShown ? panelWidth : 0 }}
             >
               <span>
                 <b>No run yet.</b> This board is set up from the model. Run the
@@ -1754,7 +1768,7 @@ export const BoardSetup = ({
           <section className={panelStyle}>
             <div
               className={panelHeadStyle}
-              style={{ paddingRight: panelOpen ? panelWidth : 0 }}
+              style={{ paddingRight: panelShown ? panelWidth : 0 }}
             >
               <div>
                 <div className={panelTitleStyle}>Board</div>
@@ -2148,7 +2162,7 @@ export const BoardSetup = ({
               })}
               <div
                 aria-hidden="true"
-                style={{ flex: `0 0 ${panelOpen ? panelWidth : 0}px` }}
+                style={{ flex: `0 0 ${panelShown ? panelWidth : 0}px` }}
               />
             </div>
           </section>
@@ -2156,7 +2170,7 @@ export const BoardSetup = ({
           <div className={toolbarClearanceStyle} aria-hidden="true" />
         </div>
 
-        {panelOpen && (
+        {panelShown && (
           <GlassPanel
             className={floatingPanelStyle}
             style={{ width: panelWidth }}
