@@ -61,6 +61,8 @@ interface Dependencies {
     delegationId: string | null,
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
+  /** Quiet interruption context, never spoken or bound to a delegation. */
+  readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
 }
 

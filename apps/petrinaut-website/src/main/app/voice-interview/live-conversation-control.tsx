@@ -167,7 +167,6 @@ export const LiveConversationControl = ({
       },
     };
     bridge.current?.update(latest.current.chat);
-    relay.current?.update(latestDrafts.current);
   }, [
     submit,
     messages,
@@ -280,6 +279,8 @@ export const LiveConversationControl = ({
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
         if (result.status === "unknown" || result.status === "accepted") return;
+        // Quiet interruption context is best effort, not an audible answer.
+        if (result.kind === "thinking") return;
         const label =
           result.kind === "commentary" ? "answer" : "continuation instruction";
         const outcome =
@@ -331,6 +332,7 @@ export const LiveConversationControl = ({
       },
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
+      appendThinking: next.appendThinking,
       notice: setWarningMessage,
     });
     bridge.current.update(latest.current.chat);
@@ -338,13 +340,7 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [
-    audioSettingsStore,
-    connectionTimeoutMs,
-    history,
-    phase,
-    setVoiceActive,
-  ]);
+  }, [audioSettingsStore, connectionTimeoutMs, history, phase, setVoiceActive]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;

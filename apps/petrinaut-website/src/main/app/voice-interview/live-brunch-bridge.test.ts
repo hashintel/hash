@@ -24,6 +24,9 @@ const setup = (
   const appendInstructions = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendInstructions"]
   >(() => true);
+  const appendThinking = vi.fn<(text: string, delegationId: null) => boolean>(
+    () => true,
+  );
   const notice = vi.fn();
   const submit = vi.fn(
     async (
@@ -42,6 +45,7 @@ const setup = (
   const bridge = new LiveBrunchBridge({
     appendCommentary,
     appendInstructions,
+    appendThinking,
     notice,
     submit,
     mediation,
@@ -61,6 +65,7 @@ const setup = (
     bridge,
     appendCommentary,
     appendInstructions,
+    appendThinking,
     notice,
     submit,
     update,
@@ -493,6 +498,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
   const bridge = new LiveBrunchBridge({
     appendCommentary: fixture.appendCommentary,
     appendInstructions: fixture.appendInstructions,
+    appendThinking: fixture.appendThinking,
     notice: fixture.notice,
     submit: async (input) => {
       signal = input.signal;
