@@ -214,7 +214,7 @@ export class LiveBrunchBridge {
         );
         turn.preparation.signal.throwIfAborted();
         mediation.history.prepared(input.id, fields);
-        text = serializeVoiceBrief(fields);
+        text = serializeVoiceBrief(input.text, fields);
       }
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       const result = await this.#dependencies.submit({

@@ -196,7 +196,9 @@ test("streams a display-only user bubble, then prepares and admits only correcte
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
   const submitted = vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0];
   expect(submitted?.id).toBe("final");
-  expect(submitted?.text).toContain('"runs":"Still open"');
+  expect(submitted?.text).toContain('"utterance":"Compare seven agents"');
+  expect(submitted?.text).not.toContain("Compare four");
+  expect(submitted?.text).not.toContain("Still open");
   act(() =>
     call[6]?.input({ id: "late", text: "wrong", startMs: 300, endMs: 400 }),
   );
@@ -301,6 +303,28 @@ test("does not reuse the Realtime voice disclosure acknowledgement", () => {
 
   expect(
     screen.getByRole("region", { name: "Voice mode consent" }),
+  ).toBeTruthy();
+  expect(createLiveConversation).not.toHaveBeenCalled();
+});
+
+test("requires renewed consent to save finalized spoken words beyond the browser", () => {
+  window.localStorage.setItem(
+    "petrinaut:live-voice-interview-disclosure:v2",
+    "acknowledged",
+  );
+  render(<VoiceInterviewControl {...context()} config={config} />);
+  expect(
+    screen.getByRole("region", { name: "Voice mode consent" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(
+      /Brunch saves your finalized spoken words, the brief and its answer/,
+    ),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("checkbox", {
+      name: "I understand how voice data is handled.",
+    }),
   ).toBeTruthy();
   expect(createLiveConversation).not.toHaveBeenCalled();
 });
@@ -1082,8 +1106,11 @@ test("the prepared brief enters the real admission helper and only its settled c
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
   expect(vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0].text).toContain(
-    '"arrivals":"Still open"',
+    '"utterance":"Seven reviewers, not four."',
   );
+  expect(
+    vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0].text,
+  ).not.toContain("Still open");
   const response = {
     messageId: "answer",
     submissionId: "root",

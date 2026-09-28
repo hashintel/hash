@@ -140,7 +140,7 @@ export interface OpenAIVoiceConfig {
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
   "petrinaut:voice-interview-disclosure:v1";
 export const LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
-  "petrinaut:live-voice-interview-disclosure:v2";
+  "petrinaut:live-voice-interview-disclosure:v3";
 const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
 
 const getVoiceInterviewDisclosureStorage = (): Storage | null => {

@@ -126,10 +126,13 @@ browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 Some hosts offer a Brunch-backed GPT-Live voice interview. It uses one Live
 session for conversational audio and a separate transcription session for
 finalized user messages. Brunch remains responsible for domain answers, chat
-history, and changes to the net. In the website's Live mode, a prepared brief
-goes to Brunch while your original words remain in the visible conversation.
-Expand **Sent to Brunch** to inspect the brief. Missing details remain **Still
-open**; the brief is not editable before sending in this version.
+history, and changes to the net. In the website's Live mode, your complete
+finalized words go to Brunch alongside excerpts from a prepared brief, so short
+replies, corrections and requests to use defaults are not lost during preparation.
+Brunch uses the prior conversation to interpret them. Expand **Sent to Brunch**
+to inspect the brief. **Still open** means a detail was not extracted from this
+turn, not that a previous answer has been forgotten. Those placeholders are not
+sent to Brunch. The brief is not editable before sending in this version.
 
 Live is asked to acknowledge each request briefly, then summarize Brunch's
 settled answer after its work and cards appear. Spoken replies are intended to
@@ -147,12 +150,13 @@ not a record of when the audio played. Repeated spoken words stay in the caption
 Grouping closes on the next turn or when the session ends. Speaking again
 suppresses pending older summaries but does not cancel work already admitted by Brunch.
 
-The prepared brief and Brunch's answer are saved in the conversation. Original
-words and spoken captions are retained separately in this browser for the most
-recent 100 voice turns; they are not synchronized to another device. Clearing
-browser storage removes those local annotations without deleting Brunch's
-history. Reopening never replays speech. Realtime-based Voice retains its
-existing transcript-and-readback behaviour.
+Your finalized words, extracted brief and Brunch's answer are saved in the
+conversation. Spoken captions and the original-word display are also retained
+as local annotations in this browser for the most recent 100 voice turns; those
+annotations are not synchronized to another device. Clearing browser storage
+removes the annotations without deleting the words saved in Brunch's history.
+Reopening never replays speech. Realtime-based Voice retains its existing
+transcript-and-readback behaviour.
 
 Before the first Live session, the permission
 panel explains both OpenAI audio streams and text retention, with a permission

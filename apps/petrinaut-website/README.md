@@ -123,6 +123,12 @@ Brunch prose is offered to Live as delegation-correlated commentary; Live has no
 tools and must not answer domain questions independently. These instructions are
 best effort, not an enforced speech boundary.
 
+Each admitted Live turn includes the complete finalized transcript and optional
+verbatim brief excerpts. Missing-field placeholders are not submitted as facts
+or unresolved questions. Brunch interprets short replies and instructions in the
+existing conversation; the extractor does not resolve their meaning. Finalized
+words are saved in Brunch history, while spoken captions remain browser-local.
+
 From the repository root, with `OPENAI_VOICE_API_KEY` already exported (or in
 this worktree's `apps/petrinaut-website/.env.local`):
 
@@ -138,8 +144,8 @@ PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunc
 
 Open [http://localhost:4915/new](http://localhost:4915/new), dismiss the tour if shown, open the AI panel,
 and select the waveform **Start voice mode** action in the empty composer.
-Read the short audio-processing disclosure, allow microphone audio for voice and
-transcription, then choose **Start voice**. **Cancel** returns to text without starting a session.
+Read the audio-processing and text-retention disclosure, acknowledge how voice
+data is handled, then choose **Start voice**. **Cancel** returns to text without starting a session.
 Only that last action requests microphone access and a billable Live session.
 Use headphones for the first trial. HTTPS or localhost and an OpenAI project
 with GPT-Live-1 access are required.

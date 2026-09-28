@@ -23,9 +23,37 @@ test("keeps absent modelling details open and uses only verbatim evidence", () =
     queue: "Still open",
     stillOpen: "handling, queue",
   });
-  expect(serializeVoiceBrief(brief)).not.toContain("5 minutes");
-  expect(serializeVoiceBrief(brief)).not.toContain(transcript);
+  const serialized = serializeVoiceBrief(transcript, brief);
+  expect(serialized).not.toContain("5 minutes");
+  expect(JSON.parse(serialized.slice(serialized.indexOf("\n") + 1))).toEqual({
+    utterance: transcript,
+    excerpts: {
+      goal: "support tickets",
+      arrivals: "Arrivals vary through the day",
+    },
+  });
 });
+
+test.each([
+  "Continue.",
+  "The first one.",
+  "Just do something, default to something, yeah.",
+  'No, not "10 per hour".\nUse defaults only for handling.',
+])(
+  "preserves the complete request when no brief field captures it: %s",
+  (transcript) => {
+    const brief = prepareVoiceBrief(transcript, { kind: "modelling" });
+    const serialized = serializeVoiceBrief(transcript, brief);
+    expect(JSON.parse(serialized.slice(serialized.indexOf("\n") + 1))).toEqual({
+      utterance: transcript,
+      excerpts: {},
+    });
+    expect(serialized).not.toContain("Still open");
+    expect(serialized).not.toContain("stillOpen");
+    expect(serialized).toContain("prior conversation");
+    expect(serialized).toContain("do not reset previously established facts");
+  },
+);
 
 test("preserves decision ranges and negation without inventing a run budget", () => {
   expect(

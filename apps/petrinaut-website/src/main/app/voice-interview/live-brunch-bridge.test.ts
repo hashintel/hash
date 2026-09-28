@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { prepareVoiceBrief } from "../../../shared/voice-mediation";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
@@ -118,12 +119,12 @@ test("prepares a brief before admission and summarizes only a settled rendered a
     expect.any(AbortSignal),
   );
   expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
-    '"runs":"Still open"',
+    '"utterance":"Um, compare two to eight"',
   );
-  expect(fixture.submit.mock.calls[0]?.[0]).not.toHaveProperty(
-    "text",
-    "Um, compare two to eight",
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    '"excerpts":{"decide":"two to eight"}',
   );
+  expect(fixture.submit.mock.calls[0]?.[0].text).not.toContain("Still open");
   expect(history.project([])[0]?.parts[0]).toEqual({
     type: "text",
     text: "Um, compare two to eight",
@@ -148,6 +149,34 @@ test("prepares a brief before admission and summarizes only a settled rendered a
   );
   expect(offered).toHaveBeenCalledWith("one");
 });
+
+test.each([
+  "Continue.",
+  "The first one.",
+  "Just do something, default to something, yeah.",
+])(
+  "admits the exact follow-up even when extraction has no facts: %s",
+  async (text) => {
+    const fixture = setup({
+      history: new VoiceMediationHistory("test"),
+      prepare: async (transcript) =>
+        prepareVoiceBrief(transcript, { kind: "modelling" }),
+      summarize: vi.fn(),
+      offered: vi.fn(),
+    });
+    await fixture.bridge.accept({ id: "follow-up", text });
+    expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: "follow-up",
+        admissionTarget: { kind: "user", messageId: "follow-up" },
+      }),
+    );
+    expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+      JSON.stringify({ utterance: text, excerpts: {} }),
+    );
+    expect(fixture.submit.mock.calls[0]?.[0].text).not.toContain("Still open");
+  },
+);
 
 test("brief stays streaming through extraction and transport, and becomes done only at admission", async () => {
   const brief = Promise.withResolvers<Record<string, string>>();
