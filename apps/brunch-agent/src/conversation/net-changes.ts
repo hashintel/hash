@@ -1,5 +1,7 @@
-import { brunchTools } from "@hashintel/brunch-agent";
+import { reconstructLedger } from "@hashintel/brunch-agent";
 import {
+  isNetObservationTool,
+  netReaderLevelOf,
   parseClientToolResultMetadata,
   petrinautToolTargets,
   type NetElementKind,
@@ -12,8 +14,6 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
-
-import { retainedSettledRevision } from "./workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -48,7 +48,10 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
       ? message.parts.flatMap((part, partIndex) => {
           if (
             part.type !== "dynamic-tool" ||
-            !(part.toolName in petrinautAiTools) ||
+            !(
+              part.toolName in petrinautAiTools ||
+              netReaderLevelOf(part.toolName) !== undefined
+            ) ||
             part.state !== "output-available"
           )
             return [];
@@ -177,42 +180,31 @@ const toolCallPosition = (
     )
     .at(0);
 
-export const latestSettledWorkpieceBefore = (
-  snapshot: FlueConversationSnapshot,
-  toolCallId: string,
-) => {
-  const position = toolCallPosition(snapshot, toolCallId);
-  const message = position && snapshot.messages[position.messageIndex];
-  if (!position || !message) return undefined;
-  const prefix = {
-    ...snapshot,
-    messages: [
-      ...snapshot.messages.slice(0, position.messageIndex),
-      { ...message, parts: message.parts.slice(0, position.partIndex) },
-    ],
-  };
-  const parts = prefix.messages.flatMap((entry) =>
-    entry.role === "assistant" && entry.purpose === "assistant"
-      ? entry.parts
-      : [],
-  );
-  for (const part of parts.toReversed()) {
-    if (
-      part.type !== "dynamic-tool" ||
-      part.toolName !== brunchTools.mutateWorkpiece ||
-      part.state !== "output-available"
-    )
-      continue;
-    const revision = retainedSettledRevision(prefix, part.toolCallId);
-    if (revision) return revision;
-  }
-  return undefined;
-};
-
-export const workpieceRevisionAtCall = (
+/** The Ledger as it stood when a call was made, and the Notes its turn had recorded so far. */
+export const ledgerAtCall = (
   snapshot: FlueConversationSnapshot,
   call: NetCall,
-) => latestSettledWorkpieceBefore(snapshot, call.toolCallId);
+) => {
+  const message = snapshot.messages[call.messageIndex];
+  if (!message) return undefined;
+  const prefix = {
+    messages: [
+      ...snapshot.messages.slice(0, call.messageIndex),
+      { ...message, parts: message.parts.slice(0, call.partIndex) },
+    ],
+  };
+  const commits = reconstructLedger(prefix);
+  const latest = commits.at(-1);
+  const userMessageId = prefix.messages.findLast(
+    (entry) => entry.role === "user" && entry.purpose === "user",
+  )?.id;
+  return {
+    revision: latest?.revision ?? 0,
+    notesThisTurn: commits
+      .filter(({ afterMessageId }) => afterMessageId === userMessageId)
+      .flatMap(({ notes }) => notes.map(({ id }) => id)),
+  };
+};
 
 export const latestNetReadBefore = (
   snapshot: FlueConversationSnapshot,
@@ -223,7 +215,7 @@ export const latestNetReadBefore = (
   if (!position) return undefined;
   return calls.findLast(
     (call) =>
-      call.toolName === "getLatestNetDefinition" &&
+      isNetObservationTool(call.toolName) &&
       (call.messageIndex < position.messageIndex ||
         (call.messageIndex === position.messageIndex &&
           call.partIndex < position.partIndex)),
@@ -233,8 +225,8 @@ export const latestNetReadBefore = (
 export const latestNetDefinition = (
   snapshot: FlueConversationSnapshot,
 ): { readonly definition: SDCPN; readonly call: NetCall } | undefined => {
-  const call = netCalls(snapshot).findLast(
-    (entry) => entry.toolName === "getLatestNetDefinition",
+  const call = netCalls(snapshot).findLast((entry) =>
+    isNetObservationTool(entry.toolName),
   );
   if (
     !call ||

@@ -1,6 +1,6 @@
 # Browser-visible persona testing
 
-A coding agent plays a simulated person who talks with Brunch through the real browser composer. Brunch chooses tools; the panel executes them and shows the growing net and workpiece. The agent never touches the browser: it runs a small command, the launcher types the message into the panel, waits for Brunch to finish, and prints the reply. You watch the whole conversation in Chrome.
+A coding agent plays a simulated person who talks with Brunch through the real browser composer. Brunch chooses tools; the panel executes them and shows the growing net and Ledger. The agent never touches the browser: it runs a small command, the launcher types the message into the panel, waits for Brunch to finish, and prints the reply. You watch the whole conversation in Chrome.
 
 From the HASH root on macOS:
 
@@ -109,11 +109,11 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 
 - `run.json`: case and configuration paths, effective Brunch model settings, the selected persona agent, the bridge socket path and owned process/pane identifiers; no credentials.
 - `configuration-preflight.json`: request-free Brunch configuration checks.
-- `conversation.db`: this run's local Flue database, including conversation history, persistent workpiece state and provider usage records.
+- `conversation.db`: this run's local Flue database, including conversation history, including the Ledger's commits, and provider usage records.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
 - `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume.
-- `evidence/`: canonical snapshot and derived transcript, tool trace, workpiece and bound `net.json`; refreshed after completed turns and on shutdown.
+- `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and bound `net.json`; refreshed after completed turns and on shutdown.
 - Service logs, only for services this launch started.
 
 The persistent Chrome profile lives outside the checkout; its path is in `run.json`. Older runs may also contain `pi/`, `persona-input.md`, `usage-ledger.json` or `attempt-ledger.md`; leave them untouched as historical evidence.
