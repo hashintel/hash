@@ -144,7 +144,9 @@ Acknowledgement timing and wording are best effort and can
 overlap Brunch's work. Blue voice cards show Live's output transcript, not a
 copy of Brunch's written answer or confirmation that you heard the audio.
 Captions update during the session. The acknowledgement and wrap-up are grouped
-at sentence boundaries rather than cutting a sentence between cards. A sentence
+at sentence boundaries rather than cutting a sentence between cards. A completed
+acknowledgement stays above the activity when the next sentence starts at the
+handoff, even if the transcript omits the separating space. An unfinished sentence
 can move to the wrap-up as later text arrives; this grouping is approximate,
 not a record of when the audio played. Repeated spoken words stay in the captions.
 Grouping closes on the next turn or when the session ends. Speaking again

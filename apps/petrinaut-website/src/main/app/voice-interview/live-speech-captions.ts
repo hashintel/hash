@@ -178,7 +178,16 @@ export class LiveSpeechCaptions {
         // Find the sentence containing the next content, including punctuation,
         // and move its opening words with it even if those arrived earlier.
         const contentOffset = text.slice(boundary).search(/\S/u);
-        if (contentOffset !== -1)
+        // Live can omit the separator between a finished acknowledgement and
+        // the next sentence ("that.What"). Segmenter joins those sentences;
+        // retain the timed boundary without rewriting the provider's text.
+        // A numeric continuation ("2." + "5") is not a new sentence.
+        if (
+          /[.!?]$/u.test(text.slice(0, boundary)) &&
+          /^\p{Lu}/u.test(text.slice(boundary))
+        )
+          replyEnd = boundary;
+        else if (contentOffset !== -1)
           replyEnd =
             sentenceSegmenter.segment(text).containing(boundary + contentOffset)
               ?.index ?? text.length;

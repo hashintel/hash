@@ -177,6 +177,76 @@ test.each(["before output", "after output"])(
   },
 );
 
+test.each(["before output", "after output"])(
+  "keeps a completed acknowledgement above Activity without a separating space when context arrives %s",
+  (acceptance) => {
+    const lines = { reply: "", wrapUp: "" };
+    const captions = new LiveSpeechCaptions((_id, kind, line) => {
+      lines[kind] = line.text;
+    });
+    captions.input({
+      id: "input",
+      text: "Design a supply chain",
+      startMs: 100,
+      endMs: 200,
+    });
+    captions.begin("turn");
+    captions.output({
+      id: "ack",
+      text: "Sure, I'll help with that.",
+      startMs: 300,
+      endMs: 600,
+    });
+    expect(lines).toEqual({ reply: "Sure, I'll help with that.", wrapUp: "" });
+    if (acceptance === "before output") captions.wrapUp("turn", 900);
+    captions.output({
+      id: "question",
+      text: "What’s the main decision you want this model to help answer?",
+      startMs: 1000,
+      endMs: 1200,
+    });
+    if (acceptance === "after output") captions.wrapUp("turn", 900);
+    expect(lines).toEqual({
+      reply: "Sure, I'll help with that.",
+      wrapUp: "What’s the main decision you want this model to help answer?",
+    });
+    expect(lines.reply + lines.wrapUp).toBe(
+      "Sure, I'll help with that.What’s the main decision you want this model to help answer?",
+    );
+  },
+);
+
+test("a decimal crossing the context boundary is not a completed sentence", () => {
+  const lines = { reply: "", wrapUp: "" };
+  const captions = new LiveSpeechCaptions((_id, kind, line) => {
+    lines[kind] = line.text;
+  });
+  captions.input({
+    id: "input",
+    text: "Use 2.5 hours",
+    startMs: 100,
+    endMs: 200,
+  });
+  captions.begin("turn");
+  captions.output({
+    id: "first",
+    text: "I'll check. The duration is 2.",
+    startMs: 300,
+    endMs: 600,
+  });
+  captions.wrapUp("turn", 900);
+  captions.output({
+    id: "last",
+    text: "5 hours, not 25.",
+    startMs: 1000,
+    endMs: 1200,
+  });
+  expect(lines).toEqual({
+    reply: "I'll check. ",
+    wrapUp: "The duration is 2.5 hours, not 25.",
+  });
+});
+
 test("a punctuation delta does not start the wrap-up card or erase a repeated acknowledgement", () => {
   const lines = { reply: "", wrapUp: "" };
   const captions = new LiveSpeechCaptions((_id, kind, line) => {
