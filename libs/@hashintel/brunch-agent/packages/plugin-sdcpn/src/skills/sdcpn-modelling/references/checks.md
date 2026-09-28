@@ -1,8 +1,8 @@
-# Workpiece, Construction, and Delivery Checks
+# Ledger, Construction, and Delivery Checks
 
-Read this when preparing to construct, after construction changes, and before delivering a net. For workpiece-only delivery, apply the universal and plugin Verification registers without loading this construction resource.
+Read this when preparing to construct, after construction changes, and before delivering a net. For Ledger-only delivery, apply the universal and plugin Verification registers without loading this construction resource.
 
-A failed check triggers the smallest relevant repair available in the current runtime branch: amend the workpiece, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.
+A failed check triggers the smallest relevant repair available in the current runtime branch: commit a correcting Note, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.
 
 ## Evidence levels
 
@@ -24,7 +24,7 @@ If no behavioral execution or stronger analysis occurred, say so. Do not convert
 
 ## Before construction
 
-Apply these checks to the fragment being added or changed. Unresolved material elsewhere remains a workpiece gap, not a prerequisite for this fragment.
+Apply these checks to the fragment being added or changed. Unresolved material elsewhere remains an open Note, not a prerequisite for this fragment.
 
 - The intended question, comparison, or decision is stated in the person's terms.
 - The fragment's boundary and a meaningful concrete case are established.
@@ -35,7 +35,7 @@ Apply these checks to the fragment being added or changed. Unresolved material e
 - Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.
 - Assumptions, unresolved matters, omissions, and anticipated losses are visible.
 
-If missing material admits materially different structures for the proposed fragment, formulate the smallest resolving question before constructing that portion. If the person has stopped, deliver the partial workpiece and already-checked net instead of opening a new topic.
+If missing material admits materially different structures for the proposed fragment, formulate the smallest resolving question before constructing that portion. If the person has stopped, deliver the partial account and already-checked net instead of opening a new topic.
 
 ## Tool-schema acceptance checks
 
@@ -83,12 +83,12 @@ No behavioral tool or result means no behavioral claim.
 - No hedge has been hardened solely to satisfy a schema.
 - No conflict has been averaged and no contextual value has been made universal without an accepted simplification.
 - Assumptions state why they were introduced, what they affect, and how they could be checked.
-- Material retained only in the workpiece is named as a target or tooling loss rather than omitted silently.
+- Material retained only in the Ledger is named as a target or tooling loss rather than omitted silently.
 - The delivery distinguishes accepted structure, agent review, observed behavior, and universal guarantees.
 
 ## Revision checks
 
-When revising an existing workpiece or analyzing a requested net change:
+When revising an existing account or analyzing a requested net change:
 
 - the changed or disputed material is explicit;
 - the prior and current account are distinguishable as correction, conflict, or contextual coexistence;
@@ -100,12 +100,12 @@ When revising an existing workpiece or analyzing a requested net change:
 
 ## Delivery
 
-Always deliver the current recoverable workpiece. Deliver a net only if construction occurred through available tools and the resulting definition was inspected.
+Always deliver from the current Ledger. Deliver a net only if construction occurred through available tools and the resulting definition was inspected.
 
 State plainly:
 
 - what question or decision the result is intended to support;
-- whether the workpiece is sufficient for that purpose or partial with named gaps;
+- whether the account is sufficient for that purpose or partial with named gaps;
 - whether construction was not attempted, blocked, partial, or tool-schema accepted;
 - whether an agent-reviewed structural comparison occurred and what discrepancies remain;
 - whether behavior was untested, observed in named simulations, or established to the stated scope by stronger analysis;

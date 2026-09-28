@@ -52,7 +52,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     provider: "openai",
   });
   const requests: Record<string, unknown>[] = [];
-  const stall = createNativeOpenaiToolStall("mutate_workpiece");
+  const stall = createNativeOpenaiToolStall("ledger_commit");
   faux.setResponses([
     fauxAssistantMessage(
       [fauxToolCall("ping", {}, { id: "call_completed|fc_completed" })],
@@ -151,7 +151,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
         const pendingPart = message.parts.find(
           (part) =>
             isToolUIPart(part) &&
-            getToolName(part) === "mutate_workpiece" &&
+            getToolName(part) === "ledger_commit" &&
             part.state === "input-streaming",
         );
         if (pendingPart === undefined || !isToolUIPart(pendingPart)) continue;
@@ -238,7 +238,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     expect(
       terminalMessage?.parts
         .filter(isToolUIPart)
-        .filter((part) => getToolName(part) === "mutate_workpiece")
+        .filter((part) => getToolName(part) === "ledger_commit")
         .map((part) => part.state),
     ).toEqual(["output-error", "output-error"]);
     expect(stall.chronology()).toEqual([
@@ -259,7 +259,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
       canonicalTools.filter((part) => part.toolName === "ping"),
     ).toHaveLength(1);
     expect(
-      canonicalTools.some((part) => part.toolName === "mutate_workpiece"),
+      canonicalTools.some((part) => part.toolName === "ledger_commit"),
     ).toBe(false);
   } finally {
     await client.abort().catch(() => undefined);

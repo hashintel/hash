@@ -224,7 +224,7 @@ describe("the emitted server bundle", () => {
       "references/experiment-configuration.md",
       "references/pn-construction.md",
       "references/profile.md",
-      "templates/workpiece.md",
+      "references/ledger-filing.md",
     ])
       expect(bundle).toContain(`"${resource}"`);
   });

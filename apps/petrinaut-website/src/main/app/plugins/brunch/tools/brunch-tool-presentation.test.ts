@@ -52,35 +52,26 @@ describe("Brunch tool presentation", () => {
     });
   });
 
-  test.each([
-    [
-      { includeContent: false, sourceIds: ["m1"], locateTexts: ["claim"] },
-      "Read confirmed passages and conversation sources",
-    ],
-    [
-      { includeContent: false, locateTexts: ["claim"] },
-      "Read confirmed passages",
-    ],
-    [{ includeContent: false, sourceIds: ["m1"] }, "Read conversation sources"],
-    [{ includeContent: false, sourceIds: [] }, "Checked for Ledger updates"],
-    [{ includeContent: false }, "Checked for Ledger updates"],
-    [{ includeContent: true, sourceIds: ["m1"] }, "Read conversation sources"],
-    [{}, "Read ledger"],
-    [undefined, "Read ledger"],
-  ])(
-    "distinguishes a production-shaped read_workpiece purpose",
-    (input, title) => {
-      expect(
-        resolveBrunchToolPresentation({
-          toolName: "read_workpiece",
-          state: "success",
-          input,
-          output: undefined,
-          error: undefined,
-        })?.title,
-      ).toBe(title);
-    },
-  );
+  test("names the Ledger scope a compile reads", () => {
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "ledger_compile",
+        state: "success",
+        input: { address: "operational/resources" },
+        output: undefined,
+        error: undefined,
+      }),
+    ).toEqual({ title: "Read the Ledger: operational/resources" });
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "ledger_compile",
+        state: "pending",
+        input: {},
+        output: undefined,
+        error: undefined,
+      }),
+    ).toEqual({ title: "Reading the Ledger", tone: "pending" });
+  });
 
   test("fails safe when a skill resource path is malformed", () => {
     expect(() =>
@@ -107,65 +98,63 @@ describe("Brunch tool presentation", () => {
   });
 
   test("marks ordinary pending rows gold and typed refusals compact neutral", () => {
+    const changes = [
+      {
+        op: "add",
+        address: "purpose",
+        content: "Size the crew.",
+        source: "person",
+        standing: "settled",
+      },
+    ];
     expect(
       resolveBrunchToolPresentation({
-        toolName: "mutate_workpiece",
+        toolName: "ledger_commit",
         state: "pending",
-        input: { markdown: "# Ledger", baseRevisionId: null },
+        input: { changes },
         output: undefined,
         error: undefined,
       }),
-    ).toEqual({ title: "Updating ledger", tone: "pending" });
+    ).toEqual({ title: "Recording in the Ledger", tone: "pending" });
+    const message =
+      "No category invented; nothing was recorded. add takes a category path.";
     expect(
       resolveBrunchToolPresentation({
-        toolName: "mutate_workpiece",
+        toolName: "ledger_commit",
         state: "success",
-        input: { markdown: "# Ledger", baseRevisionId: "rev-1" },
+        input: { changes },
         output: {
-          disposition: "refused",
+          status: "refused",
           applied: false,
-          correctable: true,
-          code: "silent-shrink",
-          message:
-            "Workpiece removes more than 25% of the prior body. Nothing was written.",
-          currentRevision: {
-            revisionId: "rev-1",
-            sha256: "a".repeat(64),
-            ordinal: 1,
-          },
+          code: "unknown-category",
+          message,
+          revision: 0,
         },
         error: undefined,
       }),
     ).toEqual({
-      title: "Ledger update needs correction",
+      title: "Ledger commit needs correction",
       tone: "neutral",
-      items: [
-        "Workpiece removes more than 25% of the prior body. Nothing was written.",
-      ],
+      items: [message],
     });
     expect(
       resolveBrunchToolPresentation({
-        toolName: "mutate_workpiece",
+        toolName: "ledger_commit",
         state: "success",
         input: {},
-        output: {
-          disposition: "refused",
-          applied: false,
-          correctable: true,
-          message: "Missing canonical code and current revision.",
-        },
+        output: { status: "refused", message: "Missing code and revision." },
         error: undefined,
       }),
-    ).toEqual({ title: "Updated ledger" });
+    ).toEqual({ title: "Recorded in the Ledger" });
     expect(
       resolveBrunchToolPresentation({
-        toolName: "mutate_workpiece",
+        toolName: "ledger_commit",
         state: "error",
         input: {},
         output: undefined,
-        error: "Current state missing",
+        error: "History unavailable",
       }),
-    ).toEqual({ title: "Could not update ledger" });
+    ).toEqual({ title: "Could not record in the Ledger" });
   });
 
   test("does not present unknown tools", () => {

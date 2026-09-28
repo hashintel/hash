@@ -43,19 +43,14 @@ const adapter = createBrunchFlueAdapter({ clientToolNames: new Set() });
 const noop = () => {};
 const originalFetch = globalThis.fetch;
 
-const firstMarkdown = [
-  "# Account",
-  "",
-  "## Purpose",
-  "",
-  "Explain the system.",
-  "",
-  "## Evidence",
-  "",
-  `${"Source detail. ".repeat(20)}`,
-].join("\n");
-const refusedMarkdown = "# Account\n\n## Purpose\n\nExplain the system.";
-const correctedMarkdown = `${firstMarkdown}\n\nRetained conclusion.`;
+const note = (address: string, content: string) => ({
+  op: "add",
+  address,
+  content,
+  source: "person",
+  standing: "settled",
+});
+const commitName = "ledger_commit";
 
 beforeAll(() => {
   globalThis.ResizeObserver = class {
@@ -113,8 +108,8 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     fauxAssistantMessage(
       [
         fauxToolCall(
-          "mutate_workpiece",
-          { markdown: firstMarkdown, baseRevisionId: null },
+          commitName,
+          { changes: [note("purpose", "Explain the system.")] },
           { id: "applied-first" },
         ),
       ],
@@ -123,9 +118,9 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     fauxAssistantMessage(
       [
         fauxToolCall(
-          "mutate_workpiece",
-          { markdown: refusedMarkdown, baseRevisionId: "applied-first" },
-          { id: "refused-shrink" },
+          commitName,
+          { changes: [note("invented", "Filed nowhere.")] },
+          { id: "refused-category" },
         ),
       ],
       { stopReason: "toolUse" },
@@ -133,21 +128,15 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     fauxAssistantMessage(
       [
         fauxToolCall(
-          "mutate_workpiece",
-          { markdown: correctedMarkdown, baseRevisionId: "applied-first" },
+          commitName,
+          { changes: [note("delivery", "Retained conclusion.")] },
           { id: "applied-second" },
         ),
       ],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage(
-      [
-        fauxToolCall(
-          "mutate_workpiece",
-          { markdown: " \n\t", baseRevisionId: "applied-second" },
-          { id: "thrown-empty" },
-        ),
-      ],
+      [fauxToolCall(commitName, { changes: [] }, { id: "thrown-empty" })],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage([
@@ -158,8 +147,8 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
   const application = await loadBuiltBrunchApplication();
   setProvider(faux.provider);
   const identity = {
-    conversationId: `workpiece-refusal-${crypto.randomUUID()}`,
-    principalKey: "workpiece-refusal-principal",
+    conversationId: `ledger-refusal-${crypto.randomUUID()}`,
+    principalKey: "ledger-refusal-principal",
   };
   const headers = agentOwnershipHeaders(identity);
   const instanceId = await flueConversationIdWeb(identity);
@@ -194,9 +183,9 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       messageId: undefined,
       messages: [
         {
-          id: "user-workpiece-refusal",
+          id: "user-ledger-refusal",
           parts: [
-            { type: "text", text: "Settle, refuse, correct, then fail." },
+            { type: "text", text: "Record, refuse, correct, then fail." },
           ],
           role: "user",
         },
@@ -212,7 +201,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       for (const part of message.parts) {
         if (
           !isToolUIPart(part) ||
-          getToolName(part) !== "mutate_workpiece" ||
+          getToolName(part) !== commitName ||
           (part.state !== "input-streaming" && part.state !== "input-available")
         ) {
           continue;
@@ -228,7 +217,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
 
     for (const toolCallId of [
       "applied-first",
-      "refused-shrink",
+      "refused-category",
       "applied-second",
     ]) {
       const pending = pendingById.get(toolCallId);
@@ -248,7 +237,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     renderAssistant([terminalMessage]);
     await expandSettledTools();
     const appliedRows = screen.getAllByRole("button", {
-      name: /Updated ledger/u,
+      name: /Recorded in the Ledger/u,
     });
     expect(appliedRows).toHaveLength(2);
     expect(
@@ -261,32 +250,32 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     ).toBe(true);
 
     const refusedRow = screen.getByRole("button", {
-      name: /Ledger update needs correction/u,
+      name: /Ledger commit needs correction/u,
     });
     expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
     expect(refusedRow.querySelector('[data-tool-status="ok"]')).not.toBeNull();
     expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
     fireEvent.click(refusedRow);
-    expect(screen.getAllByText(/Nothing was written/u).length).toBeGreaterThan(
+    expect(screen.getAllByText(/nothing was recorded/u).length).toBeGreaterThan(
       0,
     );
 
     const thrownRow = screen.getByRole("button", {
-      name: /Could not update ledger/u,
+      name: /Could not record in the Ledger/u,
     });
     expect(thrownRow.getAttribute("data-tone")).toBe("danger");
 
     const history = await client.history();
     const canonicalIds = history.messages.flatMap((message) =>
       message.parts.flatMap((part) =>
-        part.type === "dynamic-tool" && part.toolName === "mutate_workpiece"
+        part.type === "dynamic-tool" && part.toolName === commitName
           ? [part.toolCallId]
           : [],
       ),
     );
     expect(canonicalIds).toEqual([
       "applied-first",
-      "refused-shrink",
+      "refused-category",
       "applied-second",
       "thrown-empty",
     ]);
@@ -294,11 +283,12 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       .flatMap((message) => message.parts)
       .find(
         (part) =>
-          part.type === "dynamic-tool" && part.toolCallId === "refused-shrink",
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "refused-category",
       );
     expect(refusedPart).toMatchObject({
       state: "output-available",
-      output: { disposition: "refused", applied: false, code: "silent-shrink" },
+      output: { status: "refused", code: "unknown-category" },
     });
     const thrownPart = history.messages
       .flatMap((message) => message.parts)
@@ -313,13 +303,13 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     renderAssistant(reopened);
     await expandSettledTools();
     expect(
-      screen.getAllByRole("button", { name: /Updated ledger/u }),
+      screen.getAllByRole("button", { name: /Recorded in the Ledger/u }),
     ).toHaveLength(2);
     expect(
-      screen.getByRole("button", { name: /Ledger update needs correction/u }),
+      screen.getByRole("button", { name: /Ledger commit needs correction/u }),
     ).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: /Could not update ledger/u }),
+      screen.getByRole("button", { name: /Could not record in the Ledger/u }),
     ).not.toBeNull();
   } finally {
     await client.abort().catch(() => undefined);
