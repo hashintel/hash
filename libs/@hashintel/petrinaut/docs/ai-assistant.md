@@ -345,7 +345,7 @@ disappears and the result remains under **Simulate → Experiments**.
 
 **Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
 draft is replaced in place by execution progress: **Validating**, simulation
-or optimization steps and runs, then **Finished** with metric cells. While an optimization candidate is computing, the step also shows its parameter values, such as `agent_count = 3`; no candidate is shown when it is unknown or between runs. **Cancel**
+or optimization steps and runs, then **Finished** with metric cells. **Cancel**
 leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
 still require review before retrying. Drafting and starting a run keep your
 current tab selected; choose **View experiment** to open its results while the

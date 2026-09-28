@@ -1988,7 +1988,6 @@ const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
             runsTarget: 12,
             step: 3,
             steps: 8,
-            candidate: { agents: 4 },
           },
         },
       }}

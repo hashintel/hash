@@ -125,8 +125,6 @@ export type PetrinautExperimentProgress = {
   runsTarget: number;
   step?: number;
   steps?: number;
-  /** Parameter values being evaluated by the active optimization trial. */
-  candidate?: Readonly<Record<string, number | boolean>>;
 };
 
 export const petrinautExperimentResultSchema = z.strictObject({

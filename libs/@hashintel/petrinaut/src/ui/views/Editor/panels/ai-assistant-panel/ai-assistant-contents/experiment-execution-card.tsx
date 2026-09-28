@@ -211,11 +211,6 @@ export const ExperimentExecutionCard = ({
       ? (progressValue / progress.runsTarget) * 100
       : 0;
   const available = onViewExperiment !== undefined;
-  const candidate = progress?.candidate
-    ? Object.entries(progress.candidate)
-        .map(([parameterId, value]) => `${parameterId} = ${String(value)}`)
-        .join(", ")
-    : undefined;
 
   return (
     <section
@@ -297,7 +292,6 @@ export const ExperimentExecutionCard = ({
             progress.steps !== undefined && (
               <span className={detailStyle}>
                 Step {progress.step} of {progress.steps}
-                {candidate ? ` · ${candidate}` : ""}
               </span>
             )}
           {progress.phase === "refining" && (
