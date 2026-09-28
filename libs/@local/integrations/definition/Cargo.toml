@@ -9,6 +9,7 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 

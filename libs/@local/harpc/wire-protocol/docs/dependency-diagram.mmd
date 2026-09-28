@@ -37,16 +37,17 @@ graph TD
     25[<a href="../hashql_hir/index.html">hashql-hir</a>]
     26[<a href="../hashql_mir/index.html">hashql-mir</a>]
     27[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    28[<a href="../hash_middleware/index.html">hash-middleware</a>]
-    29[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    30[<a href="../error_stack/index.html">error-stack</a>]
-    31[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    32[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    33[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    28[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
+    29[<a href="../hash_middleware/index.html">hash-middleware</a>]
+    30[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    31[<a href="../error_stack/index.html">error-stack</a>]
+    32[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    33[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    34[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 3
     0 --> 4
     1 --> 10
-    1 -.-> 33
+    1 -.-> 34
     2 --> 20
     3 -.-> 5
     3 --> 5
@@ -56,10 +57,10 @@ graph TD
     3 --> 27
     4 --> 8
     4 --> 23
-    4 --> 28
+    4 --> 29
     5 --> 9
-    5 -.-> 28
-    5 --> 28
+    5 -.-> 29
+    5 --> 29
     6 --> 1
     7 --> 12
     8 --> 7
@@ -67,11 +68,11 @@ graph TD
     8 --> 13
     9 --> 6
     9 --> 12
-    9 --> 29
+    9 --> 30
     10 --> 2
     11 --> 9
-    12 -.-> 33
-    13 -.-> 33
+    12 -.-> 34
+    13 -.-> 34
     14 --> 17
     15 --> 2
     16 -.-> 1
@@ -81,7 +82,7 @@ graph TD
     18 --> 15
     20 -.-> 19
     20 --> 19
-    20 --> 30
+    20 --> 31
     21 -.-> 22
     22 --> 24
     22 --> 27
@@ -94,6 +95,7 @@ graph TD
     27 --> 23
     28 --> 1
     29 --> 1
-    31 -.-> 3
-    32 -.-> 8
-    33 --> 9
+    30 --> 1
+    32 -.-> 3
+    33 -.-> 8
+    34 --> 9
