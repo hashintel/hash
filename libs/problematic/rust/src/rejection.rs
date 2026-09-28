@@ -72,13 +72,14 @@ where
 {
     fn from(source: S) -> Self {
         // The answer borrows from `source`, so it goes out of scope before `source` is moved.
-        let (response, problem_type, unserializable) = {
+        let (response, problem_type, detail, unserializable) = {
             let answer = source.expose();
             match render(&answer) {
-                Ok(response) => (response, answer.problem_type(), None),
+                Ok((response, detail)) => (response, answer.problem_type(), detail, None),
                 Err(error) => (
                     internal(),
                     UNSERIALIZABLE,
+                    None,
                     Some(Arc::new(Unserializable {
                         problem_type: answer.problem_type(),
                         error,
@@ -93,6 +94,7 @@ where
                 response,
                 rejected: Rejected {
                     problem_type,
+                    detail,
                     error: Arc::from(error),
                     unserializable,
                 },
@@ -115,9 +117,9 @@ impl<K> From<Rejection<K>> for Response<Vec<u8>> {
 
 /// A [`Rejection`] that became a response, kept in the extensions of that response.
 ///
-/// It holds the problem type the client received and the error the rejection was created from, so
-/// a middleware can log the error together with the request it answered. If the details of the
-/// variant failed to serialize, it holds that failure as well.
+/// It holds the problem type and the `detail` the client received, and the error the rejection
+/// was created from, so a middleware can log the error together with the request it answered. If
+/// the details of the variant failed to serialize, it holds that failure as well.
 ///
 /// # Examples
 ///
@@ -179,6 +181,7 @@ impl<K> From<Rejection<K>> for Response<Vec<u8>> {
 #[derive(Debug, Clone)]
 pub struct Rejected {
     problem_type: ProblemType,
+    detail: Option<String>,
     error: Arc<dyn Error + Send + Sync>,
     unserializable: Option<Arc<Unserializable>>,
 }
@@ -188,6 +191,17 @@ impl Rejected {
     #[must_use]
     pub const fn problem_type(&self) -> &ProblemType {
         &self.problem_type
+    }
+
+    /// The `detail` the client received, if its problem details carried one.
+    #[must_use]
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "`Option::as_deref` is const only for a const `Deref`, which `String` does not \
+                  implement"
+    )]
+    pub fn detail(&self) -> Option<&str> {
+        self.detail.as_deref()
     }
 
     /// The error the rejection was created from.
@@ -231,14 +245,17 @@ impl fmt::Display for Unserializable {
 
 impl Error for Unserializable {}
 
-/// The response answering with `answer`.
-fn render<K>(answer: &Answer<'_, K>) -> Result<Response<Vec<u8>>, serde_json::Error> {
+/// The response answering with `answer`, and the `detail` it carries.
+fn render<K>(
+    answer: &Answer<'_, K>,
+) -> Result<(Response<Vec<u8>>, Option<String>), serde_json::Error> {
     let details = answer.details();
     let body = serde_json::to_vec(&details)?;
 
     let mut headers = HeaderMap::new();
     answer.headers(&mut headers);
-    Ok(problem_response(details.status, headers, body))
+    let response = problem_response(details.status, headers, body);
+    Ok((response, details.detail.map(Cow::into_owned)))
 }
 
 /// The bare `500 Internal Server Error` a client receives when the details of its variant fail to
@@ -452,6 +469,11 @@ mod tests {
             StoreBusy::TYPE,
             "the rejection should keep the problem type the client received"
         );
+        assert_eq!(
+            rejected.detail(),
+            Some("The user store is busy."),
+            "the rejection should keep the detail the client received"
+        );
         assert_matches!(
             rejected.error().downcast_ref(),
             Some(UpdateUserError::Busy),
@@ -490,6 +512,11 @@ mod tests {
             *rejected.problem_type(),
             UNSERIALIZABLE,
             "the rejection should keep the problem type the client received instead"
+        );
+        assert_eq!(
+            rejected.detail(),
+            None,
+            "the rejection should keep no detail, as the client received none"
         );
         let failure = rejected
             .serialization_error()

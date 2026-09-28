@@ -111,8 +111,8 @@ where
             }
         });
 
-    // TODO: Currently, this mostly duplicates the error printed below, when more information is
-    //       added to the `Report` event consider commenting in this line again.
+    // TODO: Capture a server error with `capture_report` once the `Report` event carries more
+    //       than the `ERROR` log below.
     // hash_telemetry::sentry::capture_report(&report);
 
     let message = report.to_string();
@@ -120,12 +120,26 @@ where
         .downcast_mut::<HashMap<usize, EntityValidationReport>>()
         .map(mem::take)
     {
-        tracing::error!(error = ?report, ?validation, tags.code = ?status_code.to_http_code());
         let status_code = if !validation.is_empty() && status_code == StatusCode::Unknown {
             StatusCode::InvalidArgument
         } else {
             status_code
         };
+        if status_code.to_http_code() >= 500 {
+            tracing::error!(
+                error = ?report,
+                ?validation,
+                tags.code = ?status_code.to_http_code(),
+                "request failed with a server error"
+            );
+        } else {
+            tracing::warn!(
+                error = ?report,
+                ?validation,
+                tags.code = ?status_code.to_http_code(),
+                "request rejected with a client error"
+            );
+        }
 
         status_to_response(HashStatus::new(
             status_code,
@@ -133,7 +147,19 @@ where
             vec![ValidationContent { validation, report }],
         ))
     } else {
-        tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
+        if status_code.to_http_code() >= 500 {
+            tracing::error!(
+                error = ?report,
+                tags.code = ?status_code.to_http_code(),
+                "request failed with a server error"
+            );
+        } else {
+            tracing::warn!(
+                error = ?report,
+                tags.code = ?status_code.to_http_code(),
+                "request rejected with a client error"
+            );
+        }
         status_to_response(HashStatus::new(status_code, Some(message), vec![report]))
     }
 }

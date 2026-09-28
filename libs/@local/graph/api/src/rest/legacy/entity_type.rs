@@ -243,7 +243,7 @@ where
     let mut params = Vec::new();
     for schema in schema {
         domain_validator.validate(&schema).map_err(|report| {
-            tracing::error!(error=?report, id=%schema.id, "Entity Type ID failed to validate");
+            tracing::warn!(error = ?report, id = %schema.id, "Entity Type ID failed to validate");
             status_to_response(Status::new(
                 hash_status::StatusCode::InvalidArgument,
                 Some(
@@ -300,9 +300,8 @@ where
         .create_entity_types(actor_id, params)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not create entity types");
-
             if report.contains::<BaseUrlAlreadyExists>() {
+                tracing::warn!(error = ?report, "entity type already exists");
                 let metadata =
                     report
                         .request_ref::<BaseUrl>()
@@ -335,6 +334,7 @@ where
             }
 
             // Insertion/update errors are considered internal server errors.
+            tracing::error!(error = ?report, "Could not create entity types");
             status_to_response(Status::new(
                 hash_status::StatusCode::Internal,
                 Some(
@@ -446,7 +446,7 @@ where
         LoadExternalEntityTypeRequest::Create { schema, provenance } => {
             if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id, error);
+                tracing::warn!(id = %schema.id, "{error}");
                 return Err(status_to_response(Status::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),
