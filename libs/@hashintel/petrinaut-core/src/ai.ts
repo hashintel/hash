@@ -183,6 +183,21 @@ export const readPetrinautDocToolInputSchema = z
     "Read one page of the Petrinaut user guide. Use this when the user asks how a UI workflow works (panels, simulation controls, settings, examples), or when you need to confirm a UI detail before instructing them.",
   );
 
+/** Message provenance and terminal presentation projected by the host. */
+export const petrinautAiMessageMetadataSchema = z.object({
+  source: z.literal("voice").optional(),
+  /** This assistant response was stopped, rather than completed normally. */
+  stopped: z.literal(true).optional(),
+  /** Identifies every interactive tool output carrying a spoken answer. */
+  voiceToolCallIds: z.array(z.string()).optional(),
+  /** Legacy single-answer provenance retained for persisted preview messages. */
+  toolCallId: z.string().optional(),
+});
+
+export type PetrinautAiMessageMetadata = z.infer<
+  typeof petrinautAiMessageMetadataSchema
+>;
+
 export const petrinautAiToolInputSchemas = {
   ...mutationActionInputSchemas,
   ...aiCommandActionInputSchemas,
