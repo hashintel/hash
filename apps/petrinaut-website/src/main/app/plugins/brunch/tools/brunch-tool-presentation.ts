@@ -16,7 +16,7 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.readSkillResource,
   brunchTools.ledgerCommit,
   brunchTools.ledgerCompile,
-  brunchTools.queryWorkpiece,
+  brunchTools.queryBasis,
   brunchTools.ping,
   netReaderToolNames.outline,
   netReaderToolNames.structure,
@@ -65,7 +65,7 @@ const lifecycleTitles = {
     success: "Read the net structure",
     error: "Could not read the net structure",
   },
-  [brunchTools.queryWorkpiece]: {
+  [brunchTools.queryBasis]: {
     pending: "Checking recorded basis",
     success: "Checked recorded basis",
     error: "Could not check recorded basis",

@@ -70,7 +70,7 @@ test("app registration scopes admission to ChatAgent execution, isolating concur
   const response = fauxAssistantMessage(
     [
       fauxToolCall("getLatestNetDefinition", {}),
-      fauxToolCall("query_workpiece", {}),
+      fauxToolCall("query_basis", {}),
     ],
     { stopReason: "toolUse" },
   );

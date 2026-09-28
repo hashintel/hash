@@ -74,18 +74,36 @@ const snapshot: FlueConversationSnapshot = {
         },
         {
           type: "dynamic-tool",
-          toolCallId: "read-template",
+          toolCallId: "read-filing",
           toolName: "read_skill_resource",
           state: "output-available",
           input: {
-            path: "/.flue/packaged-skills/skill%3Asdcpn-modelling%3Aabc/templates/workpiece.md",
+            path: "/.flue/packaged-skills/skill%3Asdcpn-modelling%3Aabc/references/ledger-filing.md",
           },
-          output: "template",
+          output: "filing",
         },
         {
-          type: "text",
-          text: "```runbook-ir\n# Current workpiece\n```",
-          state: "done",
+          type: "dynamic-tool",
+          toolCallId: "commit-1",
+          toolName: "ledger_commit",
+          state: "output-available",
+          input: {
+            changes: [
+              {
+                op: "add",
+                address: "purpose",
+                content: "Model what happens when the alarm fires.",
+                source: "person",
+                standing: "settled",
+              },
+            ],
+          },
+          output: {
+            status: "recorded",
+            commitId: "commit-1",
+            revision: 1,
+            notes: [{ address: "purpose/n1" }],
+          },
         },
         {
           type: "dynamic-tool",
@@ -153,24 +171,25 @@ test("derives canonical proof events in message and part order", () => {
         turn: 1,
         messageId: "assistant-1",
         text: "What happens when the alarm fires?",
-        hasWorkpiece: false,
       },
       {
         sequence: 6,
         type: "read",
         turn: 1,
         messageId: "assistant-1",
-        toolCallId: "read-template",
-        path: "sdcpn-modelling/templates/workpiece.md",
+        toolCallId: "read-filing",
+        path: "sdcpn-modelling/references/ledger-filing.md",
         outcome: "ok",
       },
       {
         sequence: 7,
-        type: "text",
+        type: "tool",
         turn: 1,
         messageId: "assistant-1",
-        text: "```runbook-ir\n# Current workpiece\n```",
-        hasWorkpiece: true,
+        toolCallId: "commit-1",
+        name: "ledger_commit",
+        executor: "server",
+        outcome: "ok",
       },
       {
         sequence: 8,
@@ -193,10 +212,6 @@ test("derives canonical proof events in message and part order", () => {
         outcome: "error",
       },
     ],
-    firstWorkpiece: {
-      messageId: "assistant-1",
-      sequence: 7,
-    },
   });
 });
 
@@ -250,16 +265,16 @@ test("atomically writes the canonical snapshot and its derived projections", asy
     transcript,
     traceJson,
     traceMarkdown,
-    workpiece,
-    workpieceSourceJson,
+    ledger,
+    ledgerJson,
     manifestJson,
   ] = await Promise.all([
     readFile(join(directory, "snapshot.json"), "utf8"),
     readFile(join(directory, "transcript.md"), "utf8"),
     readFile(join(directory, "trace.json"), "utf8"),
     readFile(join(directory, "trace.md"), "utf8"),
-    readFile(join(directory, "workpiece.md"), "utf8"),
-    readFile(join(directory, "workpiece-source.json"), "utf8"),
+    readFile(join(directory, "ledger.md"), "utf8"),
+    readFile(join(directory, "ledger.json"), "utf8"),
     readFile(join(directory, "manifest.json"), "utf8"),
   ]);
 
@@ -269,24 +284,25 @@ test("atomically writes the canonical snapshot and its derived projections", asy
   expect(JSON.parse(traceJson)).toEqual(deriveProofTrace(snapshot));
   expect(traceMarkdown).toContain("2. turn 1: `activate(sdcpn-modelling, ok)`");
   expect(traceMarkdown).toContain(
-    "7. turn 1: `text(hasWorkpiece=true)` — message `assistant-1`",
+    "7. turn 1: `tool(ledger_commit, server, ok)` — call `commit-1`",
   );
-  expect(workpiece).toBe("# Current workpiece\n");
-  expect(JSON.parse(workpieceSourceJson)).toMatchObject({
-    sourceMessageId: "assistant-1",
-  });
+  expect(ledger).toContain("[n1 — person; settled] `purpose/n1`");
+  expect(ledger).toContain("Model what happens when the alarm fires.");
+  expect(JSON.parse(ledgerJson)).toMatchObject([
+    { commitId: "commit-1", revision: 1, afterMessageId: "user-1" },
+  ]);
 
   const manifest = JSON.parse(manifestJson) as {
     files: { path: string; sha256: string }[];
   };
   expect(manifest.files.map(({ path }) => path)).toEqual([
+    "ledger.json",
+    "ledger.md",
     "run.json",
     "snapshot.json",
     "trace.json",
     "trace.md",
     "transcript.md",
-    "workpiece-source.json",
-    "workpiece.md",
   ]);
   const snapshotEntry = manifest.files.find(
     ({ path }) => path === "snapshot.json",

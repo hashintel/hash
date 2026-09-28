@@ -42,14 +42,14 @@ test("one delta then silence reports the silence as last-delta to terminal and n
       type: "toolcall_delta",
       turnId: "t1",
       toolCallId: "call-a",
-      toolName: "mutate_workpiece",
+      toolName: "ledger_commit",
       argumentTextDelta: `{"markdown":"${SENTINEL}`,
     }),
     event(1_700, {
       type: "toolcall_delta",
       turnId: "t1",
       toolCallId: "call-a",
-      toolName: "mutate_workpiece",
+      toolName: "ledger_commit",
       argumentTextDelta: ` more"}`,
     }),
     // Silence: 20 s until the turn closes.
@@ -68,7 +68,7 @@ test("one delta then silence reports the silence as last-delta to terminal and n
       type: "toolcall_delta",
       turnId: "t2",
       toolCallId: "call-b",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
       argumentTextDelta: "{",
     }),
     // A different agent's event must be ignored.
@@ -115,7 +115,7 @@ test("one delta then silence reports the silence as last-delta to terminal and n
         toolCalls: [
           {
             toolCallId: "call-a",
-            toolName: "mutate_workpiece",
+            toolName: "ledger_commit",
             firstDeltaMs: 1_500,
             lastDeltaMs: 1_700,
             deltaCount: 2,
@@ -140,7 +140,7 @@ test("one delta then silence reports the silence as last-delta to terminal and n
         toolCalls: [
           {
             toolCallId: "call-b",
-            toolName: "read_workpiece",
+            toolName: "ledger_compile",
             firstDeltaMs: 100,
             lastDeltaMs: 100,
             deltaCount: 1,

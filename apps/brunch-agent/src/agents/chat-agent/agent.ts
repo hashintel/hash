@@ -17,7 +17,7 @@ import {
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
-import { composeLedgerProfile } from "@hashintel/brunch-agent";
+import { brunchTools, composeLedgerProfile } from "@hashintel/brunch-agent";
 import {
   browserToolMutatesDocument,
   canonicalContent,
@@ -27,7 +27,6 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import {
   selectChatModelSpecifier,
@@ -39,7 +38,7 @@ import {
   expectedNetRevision,
   netViewTracker,
 } from "../../conversation/net-freshness.ts";
-import { createQueryWorkpieceTool } from "../../conversation/why.ts";
+import { createQueryBasisTool } from "../../conversation/why.ts";
 import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { createBrunchContextProjection } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
@@ -129,13 +128,7 @@ export function ChatAgent({ id }: AgentProps) {
       : {},
   );
   if (initialData)
-    useTool(
-      createQueryWorkpieceTool({
-        current: null,
-        browser: initialData,
-        history,
-      }),
-    );
+    useTool(createQueryBasisTool({ browser: initialData, history }));
 
   useInstruction(
     `
@@ -150,7 +143,7 @@ ${
   if (initialData)
     useInstruction(
       `
-When the user asks why a visible element exists, do not answer from memory. If no current ${getLatestNetDefinitionToolName} read exists or the net may have changed since it, read the net first, then call query_workpiece with the element's kind and recorded name or ID (for an arc, the transition ID, direction and place ID). The answer lists associated applied calls and the workpiece revision current at each call; chronological association is not semantic justification. If no call is associated, say so plainly.
+When the user asks why a visible element exists, do not answer from memory. If no current net read exists or the net may have changed since it, read the net first, then call ${brunchTools.queryBasis} with the element's kind and recorded name or ID (for an arc, the transition ID, direction and place ID). The answer lists the calls that changed it, the Ledger revision current at each, and the Notes recorded earlier in the same turn; compile those Notes when you need their content. Chronological association is not semantic justification. If no call is associated, say so plainly.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);

@@ -114,7 +114,7 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
     capability: "ledger",
   },
   {
-    name: brunchTools.queryWorkpiece,
+    name: brunchTools.queryBasis,
     definitionOwner: "brunch-app",
     executionOwner: "brunch-app",
     capability: "explanation",
