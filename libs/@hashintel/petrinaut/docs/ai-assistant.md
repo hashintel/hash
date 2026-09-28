@@ -216,6 +216,15 @@ available for the next turn. **End voice mode** tears down Voice but does not
 cancel canonical Brunch work already in progress, so select Stop first when
 you also need to cancel that work.
 
+If you stop a written answer mid-response, Live receives quiet context identifying
+the request and the available partial answer, rather than treating it as a failed
+or unaccepted request. Say **Continue** to request the rest of that answer through
+Brunch. This starts a new turn in the same conversation; it does not automatically
+resubmit the stopped turn or replay its tools or speech. Live is instructed not to
+read the partial answer aloud or finish it itself. Delivery and interpretation of
+this context are best effort; an interrupted answer is not proof that unfinished
+backend work was cancelled.
+
 Open **Audio options** for session-local speaker controls. Both Live and
 Realtime Voice provide **Mute speaker** / **Unmute speaker** and **Volume**.
 These controls affect assistant playback only: they do not affect

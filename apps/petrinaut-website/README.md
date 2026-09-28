@@ -241,6 +241,12 @@ Flue history is the source used when the same net is reopened. Automated
 coverage guards a locally submitted turn from an older hydration snapshot and
 does not resubmit turns or replay settled audio. The real hard-reload witness is
 still pending, so reload parity is not yet claimed for this preview.
+Stopping an admitted response supplies Live with quiet, bounded context identifying
+the request and its correlated visible partial answer. Failed responses and
+unconfirmed admissions receive separate status instructions. **Continue** enters
+Brunch as a new request in the existing conversation, not a replay of the stopped
+submission or its tools. Partial-answer context never enters the completed-answer
+speech path. Delivery and provider interpretation remain best effort.
 Voice-origin client-tool results retain their markers in Flue history. Direct
 spoken user turns remain canonical text, but Flue 2.0.3 does not yet expose the
 caller delivery metadata needed to restore their Voice chip after reopening.

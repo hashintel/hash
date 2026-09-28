@@ -1217,6 +1217,183 @@ test("the prepared brief enters the real admission helper and only its settled c
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
 });
 
+test("Stop sends the partial answer to Live quietly and Continue admits one new turn", async () => {
+  const fetch = mockMediation();
+  const tracker = new BrunchPanelConversationTracker();
+  const props = context();
+  props.submitVoiceInput = vi.fn<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(async ({ id }) => {
+    if (!id) throw new Error("Missing stable input identity");
+    tracker.recordAdmission({
+      kind: "user",
+      messageId: id,
+      admission: {
+        submissionId: `submission-${id}`,
+        uid: "test",
+        offset: "opaque",
+        streamUrl: "http://local/stream",
+      },
+    });
+    return { kind: "message", messageId: id };
+  });
+  const wiring = {
+    resolveInputSubmission: tracker.submissionForInput.bind(tracker),
+    resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
+    subscribeToAdmission: (
+      target: Parameters<typeof tracker.subscribeToAdmission>[0],
+      listener: (id: string) => void,
+    ) =>
+      tracker.subscribeToAdmission(target, (event) =>
+        listener(event.admission.submissionId),
+      ),
+    subscribeToResponseMessageStarted:
+      tracker.subscribeToResponseMessageStarted.bind(tracker),
+    subscribeToResponseMessageCompleted:
+      tracker.subscribeToResponseMessageCompleted.bind(tracker),
+    subscribeToStopRequested: tracker.subscribeToStopRequested.bind(tracker),
+  };
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} {...wiring} config={config} />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+    .value as ReturnType<typeof createLiveConversation>;
+  act(() => call[0]({ phase: "connected", message: null }));
+  act(() => call[3]("original-delegation"));
+  await act(async () =>
+    call[2]({ id: "original", text: "Use sensible defaults" }),
+  );
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+  const response = {
+    messageId: "partial-answer",
+    submissionId: "submission-original",
+    position: { batch: 1, index: 0 },
+  };
+  act(() => tracker.recordResponse(response));
+  const messages: PetrinautAiVoiceModeContext["messages"] = [
+    {
+      id: "partial-answer",
+      role: "assistant",
+      parts: [
+        {
+          type: "text",
+          text: "Orders queue until a handler is available. Then",
+          state: "streaming",
+        },
+      ],
+    },
+  ];
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      status="streaming"
+      config={config}
+    />,
+  );
+  act(() => tracker.recordStopRequested());
+  expect(session.appendThinking).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining(
+      '"partialAnswerTail":"Orders queue until a handler is available. Then"',
+    ),
+    null,
+  );
+  expect(session.appendCommentary).not.toHaveBeenCalled();
+  expect(session.stop).not.toHaveBeenCalled();
+
+  const settlements = [
+    { submissionId: "submission-original", outcome: "aborted" as const },
+  ];
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      settlements={settlements}
+      config={config}
+    />,
+  );
+  act(() => {
+    call[6]?.started();
+    call[3]("resume-delegation");
+  });
+  await act(async () => call[2]({ id: "resume", text: "Continue" }));
+  await act(async () => call[2]({ id: "resume", text: "Continue" }));
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(props.submitVoiceInput).mock.calls[1]?.[0].text).toContain(
+    '"utterance":"Continue"',
+  );
+
+  // Late completion from the stopped response cannot offer it or submit its tools again.
+  act(() =>
+    tracker.recordResponseMessageCompleted({
+      ...response,
+      position: { batch: 2, index: 0 },
+    }),
+  );
+  expect(session.appendCommentary).not.toHaveBeenCalled();
+  const resumed = {
+    messageId: "resumed-answer",
+    submissionId: "submission-resume",
+    position: { batch: 3, index: 0 },
+  };
+  act(() => {
+    tracker.recordResponse(resumed);
+    tracker.recordResponseMessageCompleted({
+      ...resumed,
+      position: { batch: 4, index: 0 },
+    });
+  });
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={[
+        ...messages,
+        {
+          id: "resumed-answer",
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Then handling starts and holds that handler until completion.",
+              state: "done",
+            },
+          ],
+        },
+      ]}
+      settlements={[
+        ...settlements,
+        { submissionId: "submission-resume", outcome: "completed" },
+      ]}
+      config={config}
+    />,
+  );
+  await waitFor(() =>
+    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Brunch has a question for you.",
+      "resume-delegation",
+    ),
+  );
+  const wrapUps = fetch.mock.calls.flatMap(([, options]) => {
+    if (typeof options?.body !== "string")
+      throw new Error("Expected JSON body");
+    const body = JSON.parse(options.body) as {
+      kind: string;
+      text?: string;
+    };
+    return body.kind === "wrap-up" ? [body.text] : [];
+  });
+  expect(wrapUps).toEqual([
+    "Then handling starts and holds that handler until completion.",
+  ]);
+  expect(props.submitVoiceInput).toHaveBeenCalledTimes(2);
+  expect(session.appendThinking).toHaveBeenCalledOnce();
+});
+
 test.each(["answer", "folded-answer"])(
   "the real transport's unobserved answered-by response reaches Live with rendered ID %s",
   async (renderedId) => {

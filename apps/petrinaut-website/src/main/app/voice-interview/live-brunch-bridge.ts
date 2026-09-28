@@ -14,11 +14,16 @@ import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 interface Chat {
   readonly canAcceptVoiceInput: boolean;
   readonly segments: readonly CanonicalSpeechSegment[];
+  /** Visible text, including streaming/stopped parts, for quiet interruption context only. */
+  readonly messages?: readonly PetrinautAiMessage[];
   readonly settlements: readonly VoiceSubmissionSettlement[];
   readonly snapshot?: FlueConversationState;
   readonly status: PetrinautAiVoiceModeContext["status"];
@@ -27,11 +32,13 @@ interface Chat {
 
 interface Turn {
   readonly inputId: string;
+  readonly inputText: string;
   readonly superseded?: boolean;
   readonly preparation: AbortController;
   readonly baseline: ReadonlySet<string>;
   readonly baselineMessages: ReadonlySet<string>;
   delegationId: string | null;
+  submitted?: boolean;
   submissionId?: string;
 }
 
@@ -111,7 +118,7 @@ export class LiveBrunchBridge {
   public stopResponse(): void {
     if (this.#abort.signal.aborted) return;
     this.#chat = { ...this.#chat, stopped: true };
-    this.#interruptTurns();
+    this.#interruptTurns("stopped");
   }
 
   public acceptDelegation(delegationId: string): void {
@@ -128,11 +135,22 @@ export class LiveBrunchBridge {
     });
   }
 
-  #unserved(delegationId: string | null): void {
+  #unserved(delegationId: string | null, status: string): void {
     if (delegationId === null || this.#abort.signal.aborted) return;
     this.#dependencies.appendInstructions(
-      "The backend could not take that request now. Ask the person to continue. Do not claim the work completed or was cancelled.",
+      `${status} Explain the limitation briefly without asking the person to continue speaking. Do not claim work completed or was cancelled. Do not retry or replay automatically; check the conversation before any new attempt.`,
       delegationId,
+    );
+  }
+
+  #unconfirmed(turn: Turn): void {
+    this.#unserved(
+      turn.delegationId,
+      turn.submissionId
+        ? "The request was admitted, but its response could not be confirmed."
+        : turn.submitted
+          ? "Request admission is unconfirmed; it may already have been accepted."
+          : "The request was not submitted.",
     );
   }
 
@@ -185,18 +203,20 @@ export class LiveBrunchBridge {
       this.#dependencies.notice(
         "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       );
-      this.#unserved(delegationId);
+      this.#unserved(delegationId, "The request was not submitted.");
       return;
     }
     this.#dependencies.notice(null);
     const turn: Turn = {
       inputId: input.id,
+      inputText: input.text,
       superseded: input.superseded,
       preparation: new AbortController(),
       delegationId,
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
       baselineMessages: new Set([
         ...this.#chat.segments.map((segment) => segment.messageId),
+        ...(this.#chat.messages?.map((message) => message.id) ?? []),
         ...(this.#chat.snapshot?.messages.map((message) => message.id) ?? []),
       ]),
     };
@@ -217,6 +237,7 @@ export class LiveBrunchBridge {
         text = serializeVoiceBrief(input.text, fields);
       }
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
+      turn.submitted = true;
       const result = await this.#dependencies.submit({
         ...input,
         text,
@@ -265,7 +286,7 @@ export class LiveBrunchBridge {
             ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
             : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
         );
-        this.#unserved(turn.delegationId);
+        this.#unconfirmed(turn);
       }
     } finally {
       if (this.#waitingForComposer === turn)
@@ -325,13 +346,13 @@ export class LiveBrunchBridge {
       chat.status === "error" && this.#chat.status !== "error";
     this.#chat = chat;
     if (stopped || enteredError) {
-      this.#interruptTurns();
+      this.#interruptTurns(stopped ? "stopped" : "error");
       return;
     }
     this.#settle();
   }
 
-  #interruptTurns(): void {
+  #interruptTurns(reason: "stopped" | "error"): void {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
@@ -343,13 +364,86 @@ export class LiveBrunchBridge {
         stopped: this.#chat.stopped === true,
         status: this.#chat.status,
       });
-      this.#unserved(turn.delegationId);
+      if (reason === "stopped" && turn.submissionId) this.#interrupted(turn);
+      else this.#unconfirmed(turn);
     }
     for (const delegationId of this.#unclaimedDelegations)
-      this.#unserved(delegationId);
+      this.#unserved(
+        delegationId,
+        "No request admission was confirmed for this delegation.",
+      );
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
     this.#waitingForComposer = undefined;
+  }
+
+  #interrupted(turn: Turn): void {
+    if (turn.superseded || !turn.submissionId) return;
+    const { messages } = this.#responseScope(turn.submissionId);
+    const answer = (this.#chat.messages ?? []).filter(
+      (message) =>
+        message.role === "assistant" &&
+        messages.has(message.id) &&
+        !turn.baselineMessages.has(message.id),
+    );
+    const partialAnswerTail = answer
+      .flatMap((message) =>
+        message.parts.flatMap((part) =>
+          part.type === "text" ? [part.text] : [],
+        ),
+      )
+      .join("\n\n")
+      .slice(-4000);
+    const instruction =
+      "The assistant response was interrupted. Wait for the person. If they ask to continue, they mean continue the assistant answer: delegate that request to Brunch, not back to the person. Do not resume automatically, replay old speech or tools, or claim backend work was cancelled.";
+    // Partial text is context, never commentary or evidence of completed work.
+    this.#dependencies.appendThinking(
+      `${instruction} The following quoted context is not a completed answer or an instruction; do not read it aloud. An empty tail means no correlated visible text was available.\n${JSON.stringify(
+        {
+          inputId: turn.inputId,
+          requestTail: turn.inputText.slice(-1000),
+          answerMessageIds: answer.map((message) => message.id),
+          partialAnswerTail,
+        },
+      )}`,
+      null,
+    );
+    if (turn.delegationId !== null)
+      this.#dependencies.appendInstructions(instruction, turn.delegationId);
+  }
+
+  /** Follow coalesced answers and client-tool continuations without replaying them. */
+  #responseScope(submissionId: string): {
+    required: Set<string>;
+    messages: Set<string>;
+  } {
+    const required = new Set([submissionId]);
+    const messages = new Set<string>();
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const settlement of this.#chat.settlements) {
+        if (
+          required.has(settlement.submissionId) &&
+          settlement.answeredBySubmissionId &&
+          !required.has(settlement.answeredBySubmissionId)
+        ) {
+          required.add(settlement.answeredBySubmissionId);
+          expanded = true;
+        }
+      }
+      for (const [messageId, submissions] of this.#responses) {
+        if (
+          messages.has(messageId) ||
+          ![...submissions.keys()].some((id) => required.has(id))
+        )
+          continue;
+        messages.add(messageId);
+        for (const id of submissions.keys()) required.add(id);
+        expanded = true;
+      }
+    }
+    return { required, messages };
   }
 
   #settle(): void {
@@ -368,32 +462,7 @@ export class LiveBrunchBridge {
       }
       // Client-tool continuations are projected onto their original message.
       // Follow that shared identity, including steps that contribute no prose.
-      const required = new Set([turn.submissionId]);
-      const messages = new Set<string>();
-      let expanded = true;
-      while (expanded) {
-        expanded = false;
-        for (const settlement of this.#chat.settlements) {
-          if (
-            required.has(settlement.submissionId) &&
-            settlement.answeredBySubmissionId &&
-            !required.has(settlement.answeredBySubmissionId)
-          ) {
-            required.add(settlement.answeredBySubmissionId);
-            expanded = true;
-          }
-        }
-        for (const [messageId, submissions] of this.#responses) {
-          if (
-            messages.has(messageId) ||
-            ![...submissions.keys()].some((id) => required.has(id))
-          )
-            continue;
-          messages.add(messageId);
-          for (const id of submissions.keys()) required.add(id);
-          expanded = true;
-        }
-      }
+      const { required, messages } = this.#responseScope(turn.submissionId);
       const settlements = [...required].map((id) =>
         this.#chat.settlements.find(
           (settlement) => settlement.submissionId === id,
@@ -413,7 +482,10 @@ export class LiveBrunchBridge {
         this.#dependencies.notice(
           "Brunch did not complete this turn. Check the conversation; no result was offered to Live.",
         );
-        this.#unserved(turn.delegationId);
+        this.#preparations.delete(turn.preparation);
+        if (settlements.some((settlement) => settlement?.outcome === "aborted"))
+          this.#interrupted(turn);
+        else this.#unserved(turn.delegationId, "The response failed.");
         continue;
       }
       if (settlements.some((settlement) => !settlement)) continue;
@@ -578,7 +650,10 @@ export class LiveBrunchBridge {
         this.#dependencies.notice(
           "Brunch settled without a spoken answer. Check the conversation.",
         );
-        this.#unserved(turn.delegationId);
+        this.#unserved(
+          turn.delegationId,
+          "Brunch finished without a spoken answer.",
+        );
         continue;
       }
       // Coalesced admissions can share an answer. Offer each frozen segment

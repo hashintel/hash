@@ -70,6 +70,15 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
   expect(body.session.instructions).toContain(
     "Start with the result or question itself",
   );
+  expect(body.session.instructions).toContain(
+    'After an interrupted assistant answer, "Continue" means continue that answer',
+  );
+  expect(body.session.instructions).toContain(
+    "Delegate that request to Brunch; do not ask the person to continue speaking",
+  );
+  expect(body.session.instructions).toContain(
+    "Partial-answer context is not a completed result",
+  );
 });
 
 describe("Live configuration and session creation", () => {

@@ -925,7 +925,7 @@ test("a finalized textless unobserved answer cannot fall through to an observed 
     "Brunch settled without a spoken answer. Check the conversation.",
   );
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining("Ask the person to continue"),
+    expect.stringContaining("finished without a spoken answer"),
     "delegation",
   );
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
@@ -948,6 +948,131 @@ test("Stop withdraws only unsubmitted input and suppresses late settlements and 
   expect(fixture.submit).toHaveBeenCalledOnce();
 });
 
+test.each(["button", "snapshot", "aborted"] as const)(
+  "%s preserves interrupted partial-answer context and resumes only through one new admission",
+  async (stopKind) => {
+    const fixture = setup();
+    fixture.bridge.acceptDelegation("original-delegation");
+    await fixture.bridge.accept({
+      id: "original",
+      text: "Build a supply chain with defaults",
+    });
+    fixture.bridge.responseStarted(started);
+    const partial = "Orders arrive, queue, then a handler starts picking. Next";
+    const messages = [
+      {
+        id: "unrelated",
+        role: "assistant" as const,
+        parts: [
+          {
+            type: "text" as const,
+            text: "Unrelated private answer",
+            state: "streaming" as const,
+          },
+        ],
+      },
+      {
+        id: "answer",
+        role: "assistant" as const,
+        parts: [
+          {
+            type: "reasoning" as const,
+            text: "Hidden reasoning",
+            state: "streaming" as const,
+          },
+          { type: "text" as const, text: partial, state: "streaming" as const },
+        ],
+      },
+    ];
+    fixture.update({ status: "streaming", messages });
+    if (stopKind === "button") fixture.bridge.stopResponse();
+    else if (stopKind === "snapshot")
+      fixture.update({ stopped: true, messages });
+    else
+      fixture.update({
+        messages,
+        settlements: [{ submissionId: "root", outcome: "aborted" }],
+      });
+
+    expect(fixture.appendThinking).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining(partial),
+      null,
+    );
+    const note = fixture.appendThinking.mock.calls[0]?.[0];
+    expect(note).toContain("Build a supply chain with defaults");
+    expect(note).toContain('"answerMessageIds":["answer"]');
+    expect(note).toContain("not a completed answer");
+    expect(note).not.toContain("Hidden reasoning");
+    expect(note).not.toContain("Unrelated private answer");
+    expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining("The assistant response was interrupted"),
+      "original-delegation",
+    );
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
+    expect(fixture.submit).toHaveBeenCalledOnce();
+
+    // Neither late completion nor a cancelled tool continuation resurrects the old turn.
+    const continuation = {
+      ...started,
+      submissionId: "cancelled-tool-continuation",
+      position: { batch: 3, index: 0 },
+    };
+    fixture.bridge.responseStarted(continuation);
+    fixture.bridge.responseCompleted({
+      ...continuation,
+      position: { batch: 4, index: 0 },
+    });
+    fixture.update({
+      segments: [segment("Stale success")],
+      settlements: completed,
+    });
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    expect(fixture.appendThinking).toHaveBeenCalledOnce();
+
+    fixture.bridge.speechStarted();
+    fixture.bridge.acceptDelegation("resume-delegation");
+    fixture.submit.mockImplementationOnce(async (input) => {
+      input.onAdmission("resume");
+      return {
+        kind: "message",
+        messageId: "resume-input",
+        submissionId: "resume",
+      };
+    });
+    await fixture.bridge.accept({ id: "resume-input", text: "Continue" });
+    await fixture.bridge.accept({ id: "resume-input", text: "Continue" });
+    expect(fixture.submit).toHaveBeenCalledTimes(2);
+    expect(fixture.submit.mock.calls[1]?.[0].text).toBe("Continue");
+    const resumed = {
+      ...started,
+      messageId: "resumed-answer",
+      submissionId: "resume",
+    };
+    fixture.bridge.responseStarted(resumed);
+    fixture.bridge.responseCompleted({
+      ...resumed,
+      position: { batch: 2, index: 0 },
+    });
+    const result = {
+      ...segment("Next, completed orders release the handler."),
+      messageId: "resumed-answer",
+      submissionIds: ["resume"],
+    };
+    fixture.update({
+      segments: [segment("Stale success"), result],
+      settlements: [
+        ...completed,
+        { submissionId: "resume", outcome: "completed" },
+      ],
+    });
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      result.text,
+      "resume-delegation",
+    );
+  },
+);
+
 test("response-only Stop resolves attached and unclaimed delegations before a later utterance", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("attached");
@@ -958,15 +1083,11 @@ test("response-only Stop resolves attached and unclaimed delegations before a la
 
   expect(fixture.appendInstructions.mock.calls).toEqual([
     [
-      expect.stringContaining(
-        "Ask the person to continue. Do not claim the work completed",
-      ),
+      expect.stringContaining("The assistant response was interrupted"),
       "attached",
     ],
     [
-      expect.stringContaining(
-        "Ask the person to continue. Do not claim the work completed",
-      ),
+      expect.stringContaining("No request admission was confirmed"),
       "unclaimed",
     ],
   ]);
@@ -1066,8 +1187,11 @@ test("entering error interrupts pending work once and suppresses its late result
 
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions.mock.calls).toEqual([
-    [expect.stringContaining("Ask the person to continue"), "pending"],
-    [expect.stringContaining("Ask the person to continue"), "unclaimed"],
+    [expect.stringContaining("Request admission is unconfirmed"), "pending"],
+    [
+      expect.stringContaining("No request admission was confirmed"),
+      "unclaimed",
+    ],
   ]);
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).toHaveBeenCalledTimes(2);
@@ -1091,7 +1215,9 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
   await fixture.bridge.accept({ id: "one", text: "First" });
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining("Ask the person to continue"),
+    expect.stringContaining(
+      "request was admitted, but its response could not be confirmed",
+    ),
     "original",
   );
   fixture.appendInstructions.mockClear();
@@ -1147,7 +1273,9 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
   await fixture.bridge.accept({ id: "three", text: "Next question" });
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining("Ask the person to continue"),
+    expect.stringContaining(
+      "request was admitted, but its response could not be confirmed",
+    ),
     "next",
   );
 });
@@ -1251,7 +1379,7 @@ test("dropped input resolves only its claimed delegation, once, without changing
   await fixture.bridge.accept({ id: "second", text: "Second" });
   await fixture.bridge.accept({ id: "second", text: "Second" });
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
-    "The backend could not take that request now. Ask the person to continue. Do not claim the work completed or was cancelled.",
+    expect.stringContaining("The request was not submitted"),
     "dropped",
   );
   expect(fixture.submit).toHaveBeenCalledOnce();
@@ -1299,16 +1427,25 @@ test.each([
     fixture.update({ settlements });
     fixture.update({ settlements });
     await fixture.bridge.accept({ id: "one", text: "Describe the process" });
+    const expectedStatus = {
+      admission: "Request admission is unconfirmed",
+      response: "request was admitted, but its response could not be confirmed",
+      failed: "The response failed",
+      "failed-without-busy": "The response failed",
+      textless: "finished without a spoken answer",
+      "chat-error":
+        "request was admitted, but its response could not be confirmed",
+      stop: "",
+    }[failure];
     expect(fixture.appendInstructions.mock.calls).toEqual(
       failure === "stop"
         ? []
-        : [
-            [
-              "The backend could not take that request now. Ask the person to continue. Do not claim the work completed or was cancelled.",
-              "request",
-            ],
-          ],
+        : [[expect.stringContaining(expectedStatus), "request"]],
     );
+    expect(fixture.appendThinking).not.toHaveBeenCalled();
+    expect(
+      fixture.appendInstructions.mock.calls.flat().join(" "),
+    ).not.toContain("Ask the person to continue");
     expect(fixture.appendCommentary).not.toHaveBeenCalled();
     expect(fixture.submit).toHaveBeenCalledOnce();
   },
