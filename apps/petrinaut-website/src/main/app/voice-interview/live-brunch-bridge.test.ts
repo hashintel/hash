@@ -21,6 +21,7 @@ const setup = () => {
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendInstructions"]
   >(() => true);
   const notice = vi.fn();
+  const speechPending = vi.fn(() => true);
   const submit = vi.fn(async (input: { onAdmission: (id: string) => void }) => {
     input.onAdmission("root");
     return {
@@ -33,6 +34,7 @@ const setup = () => {
     appendCommentary,
     appendInstructions,
     notice,
+    speechPending,
     submit,
   });
   const update = (
@@ -51,10 +53,21 @@ const setup = () => {
     appendCommentary,
     appendInstructions,
     notice,
+    speechPending,
     submit,
     update,
   };
 };
+
+const traceRecords = (calls: readonly (readonly unknown[])[], event: string) =>
+  calls
+    .map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === event);
 
 const segment = (
   text = "There are 7 reviewers, not 4. Is approval optional?",
@@ -308,6 +321,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
     appendCommentary: fixture.appendCommentary,
     appendInstructions: fixture.appendInstructions,
     notice: fixture.notice,
+    speechPending: fixture.speechPending,
     submit: async (input) => {
       signal = input.signal;
       await new Promise<void>((resolve) => {
@@ -613,6 +627,118 @@ test("an input repeating Live's overlapping words is traced by the echo stage in
   const traced = JSON.stringify(debug.mock.calls);
   expect(traced).not.toContain("PRIVATE");
   expect(traced).not.toContain("Okay");
+});
+
+test("a delegation arriving when no speech awaits its transcript is closed, not left for the next answer", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "phantom",
+    text: "PRIVATE Okay.",
+    startedDuringOutput: true,
+  });
+  fixture.bridge.acceptDelegation("phantom-delegation");
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Do not respond"),
+    "phantom-delegation",
+  );
+
+  fixture.speechPending.mockReturnValue(true);
+  fixture.bridge.acceptDelegation("answer-delegation");
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  expect(fixture.appendInstructions).toHaveBeenCalledOnce();
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":"answer-delegation"',
+    ),
+  );
+  const closed = traceRecords(debug.mock.calls, "delegation.closed");
+  expect(closed).toMatchObject([
+    { delegationId: "phantom-delegation", reason: "no-speech" },
+  ]);
+  expect(Object.keys(closed[0] ?? {}).sort()).toEqual([
+    "at",
+    "delegationId",
+    "event",
+    "reason",
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+});
+
+test("a delegation that arrived while its phantom was transcribed is closed when the phantom is skipped", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("phantom-delegation");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "phantom",
+    text: "Okay.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Do not respond"),
+    "phantom-delegation",
+  );
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":null',
+    ),
+  );
+});
+
+test("an answer claims the newest delegation, and older ones close once no speech awaits", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("older");
+  fixture.bridge.acceptDelegation("newer");
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":"newer"',
+    ),
+  );
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Do not respond"),
+    "older",
+  );
+});
+
+test("a turn waiting for its delegation still takes one that arrives when no speech is pending", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  fixture.bridge.acceptDelegation("late");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(traceRecords(debug.mock.calls, "delegation.matched")).toMatchObject([
+    { delegationId: "late", inputId: "answer" },
+  ]);
+  expect(traceRecords(debug.mock.calls, "delegation.closed")).toEqual([]);
 });
 
 test("uncertain admission is visible and never automatically replayed", async () => {

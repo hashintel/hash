@@ -59,6 +59,8 @@ interface Dependencies {
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
   readonly notice: (message: string | null) => void;
+  /** Transcription speech has started and its transcript isn't finalized yet. */
+  readonly speechPending: () => boolean;
 }
 
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
@@ -115,6 +117,28 @@ export class LiveBrunchBridge {
       inputId: turn?.inputId,
       submissionId: turn?.submissionId,
     });
+    this.#closeStrayDelegations();
+  }
+
+  /**
+   * A delegation can only belong to speech that had started when it arrived.
+   * Once no speech awaits its transcript, no later transcript can own an
+   * unclaimed delegation, and holding it would pair the next answer with the
+   * wrong request.
+   */
+  #closeStrayDelegations(): void {
+    if (this.#dependencies.speechPending()) return;
+    for (const delegationId of this.#unclaimedDelegations) {
+      logLiveDiagnostic("delegation.closed", {
+        delegationId,
+        reason: "no-speech",
+      });
+      this.#dependencies.appendInstructions(
+        "No speech from the person matches this request, so there is nothing to answer. Do not respond to it; keep listening.",
+        delegationId,
+      );
+    }
+    this.#unclaimedDelegations.clear();
   }
 
   #unserved(delegationId: string | null): void {
@@ -141,10 +165,12 @@ export class LiveBrunchBridge {
         inputId: input.id,
         reason: skipReason,
       });
+      this.#closeStrayDelegations();
       return;
     }
     const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
+    this.#closeStrayDelegations();
     if (skipReason !== null) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
