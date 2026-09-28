@@ -552,6 +552,64 @@ test("a pending delegation neither exempts a short input during Live speech nor 
   );
 });
 
+test("an input repeating Live's overlapping words is traced by the echo stage in shadow and handled as before", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("pending");
+  await fixture.bridge.accept({
+    id: "echo",
+    text: "PRIVATE how many staff work the morning shift",
+    startedDuringOutput: true,
+    liveOutputText:
+      "PRIVATE how many staff work the morning shift on weekdays?",
+  });
+  await fixture.bridge.accept({
+    id: "short-echo",
+    text: "Okay.",
+    startedDuringOutput: true,
+    liveOutputText: "Okay, seven.",
+  });
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven.",
+    startedDuringOutput: false,
+    liveOutputText: "How many?",
+  });
+
+  expect(fixture.submit.mock.calls.map(([input]) => input.id)).toEqual([
+    "echo",
+    "answer",
+  ]);
+  expect(
+    fixture.submit.mock.calls.some(([input]) => "liveOutputText" in input),
+  ).toBe(false);
+  const records = debug.mock.calls.map(
+    ([line]) =>
+      JSON.parse(String(line).replace("[Petrinaut Live trace] ", "")) as Record<
+        string,
+        unknown
+      >,
+  );
+  expect(
+    records.filter((record) => record.event === "filter.shadow"),
+  ).toMatchObject([
+    { inputId: "echo", stage: "echo", reason: "echo" },
+    { inputId: "short-echo", stage: "echo", reason: "echo" },
+  ]);
+  expect(
+    records.filter((record) => record.event === "input.ignored"),
+  ).toMatchObject([{ inputId: "short-echo", reason: "short-during-output" }]);
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"echo","delegationId":"pending"',
+    ),
+  );
+  const traced = JSON.stringify(debug.mock.calls);
+  expect(traced).not.toContain("PRIVATE");
+  expect(traced).not.toContain("Okay");
+});
+
 test("uncertain admission is visible and never automatically replayed", async () => {
   const fixture = setup();
   fixture.submit.mockRejectedValueOnce(new Error("Unknown admission"));

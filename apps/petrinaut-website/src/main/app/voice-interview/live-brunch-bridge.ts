@@ -46,6 +46,7 @@ type Submit = ConstructorParameters<
  * it was created for. Other skips claim the delegation and decline it.
  */
 const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
+  echo: "leave",
   "short-during-output": "leave",
   empty: "decline",
 };
