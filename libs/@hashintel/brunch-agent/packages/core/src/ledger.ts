@@ -20,6 +20,7 @@ export {
 export {
   deriveNotes,
   findNote,
+  isRefusedLedgerCommit,
   ledgerBases,
   ledgerCommitInputSchemas,
   ledgerCommitOutputSchema,

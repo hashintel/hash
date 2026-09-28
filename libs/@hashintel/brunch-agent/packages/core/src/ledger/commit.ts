@@ -35,6 +35,7 @@ export const prepareLedgerCommit = ({
   if (own.followsUnsettledCall)
     return {
       status: "refused",
+      applied: false,
       code: "concurrent-commit",
       message:
         "An earlier ledger_commit proposed alongside this one had not finished, so nothing was recorded. Resubmit these changes in a later call; one ledger_commit per proposal avoids this.",
@@ -47,6 +48,7 @@ export const prepareLedgerCommit = ({
   if (unknown)
     return {
       status: "refused",
+      applied: false,
       code: "unknown-category",
       message: `No category ${unknown.address}; nothing was recorded. add takes a category path; supersede takes an existing Note. Categories: ${categories.join(", ")}.`,
       revision,
@@ -58,6 +60,7 @@ export const prepareLedgerCommit = ({
   if ("missingTarget" in derived)
     return {
       status: "refused",
+      applied: false,
       code: "unknown-note",
       message: `No recorded Note ${derived.missingTarget}; nothing was recorded. Supersede a Note by the id or address from an earlier receipt or compilation.`,
       revision,

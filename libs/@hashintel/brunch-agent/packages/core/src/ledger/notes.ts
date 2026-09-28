@@ -145,6 +145,8 @@ export const ledgerCommitOutputSchema = v.variant("status", [
   }),
   v.object({
     status: v.literal("refused"),
+    /** Hosts mark a result with `applied: false` as having written nothing. */
+    applied: v.literal(false),
     code: v.picklist(ledgerCommitRefusalCodes),
     message: v.string(),
     revision: v.number(),
@@ -152,6 +154,14 @@ export const ledgerCommitOutputSchema = v.variant("status", [
 ]);
 
 export type LedgerCommitOutput = v.InferOutput<typeof ledgerCommitOutputSchema>;
+
+/** Recognize only a complete refusal; partial lookalikes fail closed. */
+export const isRefusedLedgerCommit = (
+  output: unknown,
+): output is Extract<LedgerCommitOutput, { status: "refused" }> => {
+  const parsed = v.safeParse(ledgerCommitOutputSchema, output);
+  return parsed.success && parsed.output.status === "refused";
+};
 
 export interface LedgerNote {
   readonly id: string;

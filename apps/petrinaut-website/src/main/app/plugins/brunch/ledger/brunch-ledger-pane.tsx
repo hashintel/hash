@@ -4,9 +4,9 @@ import remarkGfm from "remark-gfm";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  foldBrunchWorkpieceHistory,
-  type BrunchWorkpieceHistoryMessage,
-} from "./brunch-workpiece-history";
+  foldBrunchLedgerHistory,
+  type BrunchLedgerHistoryMessage,
+} from "./brunch-ledger-history";
 
 const documentStyle = css({
   fontSize: "sm",
@@ -42,20 +42,13 @@ const noticeStyle = css({
   marginBottom: "3",
 });
 
-/** A readable view of the saved Ledger, never a second current-state authority. */
-export const BrunchWorkpiecePane = ({
+/** The Ledger compiled from conversation history, as the model reads it. */
+export const BrunchLedgerPane = ({
   messages,
-  binding,
 }: {
-  messages: readonly BrunchWorkpieceHistoryMessage[];
-  binding: {
-    conversationId: string;
-    documentId: string;
-  };
+  messages: readonly BrunchLedgerHistoryMessage[];
 }) => {
-  const { report, stateChangedSinceReport, whyPredatesSettlement } =
-    foldBrunchWorkpieceHistory(messages, binding);
-  const workpiece = report?.workpiece;
+  const { markdown } = foldBrunchLedgerHistory(messages);
   return (
     <section
       aria-label="Ledger"
@@ -67,27 +60,16 @@ export const BrunchWorkpiecePane = ({
         paddingBottom: "3",
       })}
     >
-      {stateChangedSinceReport && (
-        <p role="status" className={noticeStyle}>
-          This view is out of date. Ask the AI assistant to refresh it.
-        </p>
-      )}
-      {whyPredatesSettlement && (
-        <p role="status" className={noticeStyle}>
-          This explanation is out of date. Ask why again for the latest.
-        </p>
-      )}
-      {workpiece && typeof workpiece.markdown === "string" && (
-        <article
-          className={documentStyle}
-          data-testid="brunch-workpiece-document"
-        >
+      {markdown === undefined ? (
+        <p className={noticeStyle}>Nothing is recorded in the Ledger yet.</p>
+      ) : (
+        <article className={documentStyle} data-testid="brunch-ledger-document">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             skipHtml
             disallowedElements={["img"]}
           >
-            {workpiece.markdown}
+            {markdown}
           </ReactMarkdown>
         </article>
       )}

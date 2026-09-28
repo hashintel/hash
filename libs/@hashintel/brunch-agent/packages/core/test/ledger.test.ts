@@ -366,6 +366,7 @@ describe("reconstructLedger", () => {
       {
         output: {
           status: "refused",
+          applied: false,
           code: "unknown-note",
           message: "x",
           revision: 0,

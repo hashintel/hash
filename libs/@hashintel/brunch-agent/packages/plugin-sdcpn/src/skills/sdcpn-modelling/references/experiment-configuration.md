@@ -6,7 +6,7 @@ An experiment is an ordinary thing a model has, like a scenario or a metric: the
 
 ## Two sources, one readiness judgment
 
-The person's account supplies meaning, under the concerns these workpiece sections name; nothing else decides readiness:
+The person's account supplies meaning, under the concerns these Ledger categories name; nothing else decides readiness:
 
 - **What the model must answer, compare, or support** — the decision or question.
 - **Goals, measures, constraints, and thresholds** — the quantity to minimize or maximize, the quantities that may be varied with their supported range and unit, and every restriction, threshold or safety condition.
@@ -29,7 +29,7 @@ When a stated condition is present and its net counterpart is missing, that is o
 
 Each stated condition class maps to one destination in `PetrinautExperimentRequest`, or to `unsupported`.
 
-| Stated condition (workpiece section) | Request destination | Fidelity and mandatory disclosure |
+| Stated condition (Ledger category) | Request destination | Fidelity and mandatory disclosure |
 | --- | --- | --- |
 | Tunable quantity with a stated range ("vary the tunable count from 3 to 9 units") — Goals/constraints; Activities | `scenarioParameterValues[identifier] = { mode: "range", min, max }` on a saved scenario parameter | Exact for an integer or real quantity; the sweep domain derives from the parameter's declared `type`, so a count needs an `integer` parameter, never rounding in code. A `boolean` parameter rejects ranges: unsupported. A `ratio` range must stay within 0–1. Units are carried nowhere: declare the unit and any conversion. |
 | Quantity to minimize or maximize ("minimize the last-frame delay measure") — Goals/measures; Objective dependencies | `execution = { mode: "optimize", objectiveMetricId, direction, steps, runsPerStep }`; the metric must also appear in `metricIds` | The optimizer reads the metric's last-frame mean over the runs in a step. A total over the horizon or a peak needs an accumulating place or attribute in the net; declare whether the metric is last-frame, accumulated or peak. |

@@ -142,7 +142,7 @@ export function ChatAgent({ id }: AgentProps) {
 Call ping when you need to confirm the server tool path.
 ${
   initialData
-    ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown. A net change starts only when a current view of the net is in your context and the document has not changed by other means since; the latest change's result carries netAfterChanges, the net's structure after that proposal's changes."
+    ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger commit. Independent server and browser calls may share a proposal, but a concurrent Ledger commit is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown. A net change starts only when a current view of the net is in your context and the document has not changed by other means since; the latest change's result carries netAfterChanges, the net's structure after that proposal's changes."
     : "This conversation has no browser tools; use the available server tools and modelling skill."
 }
 `.replace(/^\s+|\s+$/gu, ""),

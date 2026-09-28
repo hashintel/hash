@@ -2,7 +2,7 @@
 
 This reference adds operational-process and SDCPN-specific guidance to the universal guidance in the `elicitation` skill. Apply both under the same registers. The additions below do not restate or replace universal elicitation guidance.
 
-The registers are not a questionnaire or phase sequence. **Recognition** suggests what may be present. **Operations** select ways to investigate an active gap. **Coverage** says what the operational account may need to explain. **Verification** checks the current interview and workpiece. Petri-net construction mechanics remain in `pn-construction.md` and are not interview vocabulary.
+The registers are not a questionnaire or phase sequence. **Recognition** suggests what may be present. **Operations** select ways to investigate an active gap. **Coverage** says what the operational account may need to explain. **Verification** checks the current interview and the Ledger. Petri-net construction mechanics remain in `pn-construction.md` and are not interview vocabulary.
 
 ## Directives
 
@@ -14,7 +14,7 @@ Every objective needs a traceable dependency on process material. Do not collect
 
 ### Keep target structure backstage
 
-Ask about work, things, people, resources, conditions, decisions, time, failures, and outcomes in the person's vocabulary. Places, transitions, arcs, colours, tokens, firing, target schemas, and workpiece headings may guide attention but must not become the language or order of ordinary questions.
+Ask about work, things, people, resources, conditions, decisions, time, failures, and outcomes in the person's vocabulary. Places, transitions, arcs, colours, tokens, firing, target schemas, and Ledger categories may guide attention but must not become the language or order of ordinary questions.
 
 ### Preserve operational context
 
@@ -146,7 +146,7 @@ Ask what observation, replay, historical comparison, or expert judgment would ma
 
 ## Coverage
 
-Coverage identifies what the process-model workpiece may need for the stated purpose and downstream SDCPN construction. It is neither question order nor a demand to populate irrelevant categories.
+Coverage identifies what the process-model Ledger may need for the stated purpose and downstream SDCPN construction. It is neither question order nor a demand to populate irrelevant categories.
 
 ### Purpose, goals, measures, constraints, and thresholds
 
@@ -189,7 +189,7 @@ Preserve how the person would know the model is credible, what observations or h
 
 ## Verification
 
-Apply these checks while eliciting and maintaining the workpiece. Construction and delivery checks live in `checks.md`.
+Apply these checks while eliciting and keeping the Ledger. Construction and delivery checks live in `checks.md`.
 
 ### Purpose and process
 
@@ -219,4 +219,4 @@ Apply these checks while eliciting and maintaining the workpiece. Construction a
 - **Practice laundering:** a document's rule is recorded as practice without an operational case. Use a borderline or last-occurrence operation.
 - **Context collapse:** values differing by item, direction, mode, location, load, or source regime become one unconditional value. Restore the selecting context.
 - **Pattern-generated fact:** a situation pattern supplied structure the person did not establish. Remove or mark the assumption, then ask whether the pattern applies.
-- **Target leakage:** questions are framed as places, transitions, arcs, or workpiece fields. Translate back to operational events, conditions, things, and consequences.
+- **Target leakage:** questions are framed as places, transitions, arcs, or Ledger categories. Translate back to operational events, conditions, things, and consequences.
