@@ -577,10 +577,15 @@ test("an input repeating Live's overlapping words is traced by the echo stage in
     liveOutputText: "How many?",
   });
 
-  expect(fixture.submit.mock.calls.map(([input]) => input.id)).toEqual([
-    "echo",
-    "answer",
-  ]);
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ id: "echo" }),
+  );
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({ id: "answer" }),
+  );
   expect(
     fixture.submit.mock.calls.some(([input]) => "liveOutputText" in input),
   ).toBe(false);

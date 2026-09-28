@@ -637,7 +637,10 @@ export const createLiveConversation = (
         "start_ms" in data ? data.start_ms : undefined,
         "end_ms" in data ? data.end_ms : undefined,
       );
-      outputOverlap.liveOutput(Date.now(), data.delta);
+      outputOverlap.liveOutput(
+        Date.now(),
+        "delta" in data ? data.delta : undefined,
+      );
     } else if (data.type === "session.input_transcript.delta") {
       echoTrace.liveInputFragment(
         "start_ms" in data ? data.start_ms : undefined,
