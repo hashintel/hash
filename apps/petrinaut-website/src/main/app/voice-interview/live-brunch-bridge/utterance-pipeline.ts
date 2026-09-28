@@ -3,7 +3,11 @@ import { repeatsLiveOutput } from "./utterance-pipeline/repeats-live-output";
 
 import type { FinalizedInput } from "../live-conversation";
 
-export type SkipReason = "echo" | "short-during-output" | "empty";
+export type SkipReason =
+  | "echo"
+  | "doubtful-short-during-output"
+  | "short-during-output"
+  | "empty";
 
 export interface Utterance {
   readonly inputId: string;
@@ -13,6 +17,8 @@ export interface Utterance {
   readonly startedDuringOutput: boolean;
   /** Live's words around the speech, only when it overlapped audible output. Never traced. */
   readonly liveOutputText: string | undefined;
+  /** The transcript's lowest per-token log probability, when any were returned. */
+  readonly minLogprob: number | undefined;
 }
 
 export interface UtteranceStage {
@@ -22,25 +28,41 @@ export interface UtteranceStage {
   readonly skip: (utterance: Utterance) => SkipReason | null;
 }
 
+const doubtfulMinLogprob = -1.9;
+
+const repeatsOverlappingOutput = ({ text, liveOutputText }: Utterance) =>
+  liveOutputText !== undefined && repeatsLiveOutput(text, liveOutputText);
+
+const isShortDuringOutput = ({ startedDuringOutput, words }: Utterance) =>
+  startedDuringOutput && words > 0 && words <= 3;
+
 /** Shadow stages come before active ones: a stage after a skip never runs. */
 export const liveUtteranceStages: readonly UtteranceStage[] = [
   // Leaked Live audio can finalize as a longer repeat of Live's own words.
   {
     name: "echo",
     mode: "shadow",
-    skip: ({ text, liveOutputText }) =>
-      liveOutputText !== undefined && repeatsLiveOutput(text, liveOutputText)
-        ? "echo"
+    skip: (utterance) => (repeatsOverlappingOutput(utterance) ? "echo" : null),
+  },
+  // Only short speech during output that also looks invented or repeats Live;
+  // a shadow stage must run before the on stage that skips the same input.
+  {
+    name: "doubtful-short-during-output",
+    mode: "shadow",
+    skip: (utterance) =>
+      isShortDuringOutput(utterance) &&
+      ((utterance.minLogprob !== undefined &&
+        utterance.minLogprob < doubtfulMinLogprob) ||
+        repeatsOverlappingOutput(utterance))
+        ? "doubtful-short-during-output"
         : null,
   },
   // Leaked Live audio finalizes as phantoms of a few words.
   {
     name: "short-during-output",
     mode: "on",
-    skip: ({ startedDuringOutput, words }) =>
-      startedDuringOutput && words > 0 && words <= 3
-        ? "short-during-output"
-        : null,
+    skip: (utterance) =>
+      isShortDuringOutput(utterance) ? "short-during-output" : null,
   },
   // Transcription can finalize noise as punctuation alone, such as ".".
   {
@@ -66,6 +88,7 @@ export const routeUtterance = (
     words: wordCount(input.text),
     startedDuringOutput: input.startedDuringOutput,
     liveOutputText: input.liveOutputText,
+    minLogprob: input.minLogprob,
   };
   for (const stage of stages) {
     if (stage.mode === "off") continue;

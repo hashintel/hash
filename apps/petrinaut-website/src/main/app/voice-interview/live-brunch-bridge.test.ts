@@ -615,6 +615,11 @@ test("an input repeating Live's overlapping words is traced by the echo stage in
   ).toMatchObject([
     { inputId: "echo", stage: "echo", reason: "echo" },
     { inputId: "short-echo", stage: "echo", reason: "echo" },
+    {
+      inputId: "short-echo",
+      stage: "doubtful-short-during-output",
+      reason: "doubtful-short-during-output",
+    },
   ]);
   expect(
     records.filter((record) => record.event === "input.ignored"),

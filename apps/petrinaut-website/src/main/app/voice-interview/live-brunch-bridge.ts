@@ -47,6 +47,7 @@ type Submit = ConstructorParameters<
  */
 const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
   echo: "leave",
+  "doubtful-short-during-output": "leave",
   "short-during-output": "leave",
   empty: "decline",
 };

@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { routeUtterance } from "./utterance-pipeline";
+import { liveUtteranceStages, routeUtterance } from "./utterance-pipeline";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -117,3 +117,66 @@ test.each([
     });
   },
 );
+
+test("stages see the transcript's lowest token log probability", () => {
+  const skip = vi.fn(() => null);
+  routeUtterance({ id: "one", text: "Okay", minLogprob: -2.5 }, [
+    { name: "probe", mode: "on", skip },
+  ]);
+  expect(skip).toHaveBeenCalledWith({
+    inputId: "one",
+    text: "Okay",
+    words: 1,
+    startedDuringOutput: false,
+    minLogprob: -2.5,
+  });
+});
+
+const doubtfulShadows = (calls: readonly (readonly unknown[])[]) =>
+  traceRecords(calls).filter(
+    (record) =>
+      record.event === "filter.shadow" &&
+      record.stage === "doubtful-short-during-output",
+  );
+
+test.each([
+  ["a least likely token below -1.9 is doubtful", { minLogprob: -2 }, true],
+  [
+    "a repeat of Live's words is doubtful",
+    { minLogprob: -0.1, liveOutputText: "Okay, seven." },
+    true,
+  ],
+  ["confident new words is not doubtful", { minLogprob: -1.1 }, false],
+  ["no confidence is not doubtful", {}, false],
+])("short speech during output with %s", (_case, extra, doubtful) => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  expect(
+    routeUtterance(
+      { id: "one", text: "Okay.", startedDuringOutput: true, ...extra },
+      liveUtteranceStages,
+    ),
+  ).toBe("short-during-output");
+  expect(doubtfulShadows(debug.mock.calls)).toHaveLength(doubtful ? 1 : 0);
+});
+
+test.each([
+  [
+    "four words during output",
+    { text: "Seven reviewers, not four.", startedDuringOutput: true },
+  ],
+  [
+    "short speech while Live was quiet",
+    { text: "Okay.", startedDuringOutput: false },
+  ],
+])("%s is never doubtful short speech", (_case, utterance) => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  expect(
+    routeUtterance(
+      { id: "one", minLogprob: -3, ...utterance },
+      liveUtteranceStages,
+    ),
+  ).toBeNull();
+  expect(doubtfulShadows(debug.mock.calls)).toHaveLength(0);
+});
