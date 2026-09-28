@@ -14,6 +14,7 @@ import {
   createLiveToolBroadcaster,
   createLiveToolObserver,
   liveToolResponse,
+  liveToolRouteSegment,
 } from "@local/flue-aisdk-transport/server";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
@@ -186,7 +187,7 @@ app.use(
   `${chatAgentMount}/*`,
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
-app.get(`${chatAgentMount}/:id/live`, (context) =>
+app.get(`${chatAgentMount}/:id/${liveToolRouteSegment}`, (context) =>
   liveToolResponse(liveToolBroadcaster, {
     instanceId: context.req.param("id"),
     request: context.req.raw,

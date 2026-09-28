@@ -4,6 +4,7 @@ import { expect, test } from "vitest";
 import {
   createLiveToolBroadcaster,
   liveToolResponse,
+  liveToolRouteSegment,
 } from "@local/flue-aisdk-transport/server";
 
 import {
@@ -18,13 +19,13 @@ const identity = {
   principalKey: "live-route-principal",
 };
 const instanceId = flueConversationIdFrom(identity);
-const url = `http://brunch.test${mount}/${instanceId}/live?submissionId=submission-1`;
+const url = `http://brunch.test${mount}/${instanceId}/${liveToolRouteSegment}?submissionId=submission-1`;
 
 test("guards the live SSE route with the existing conversation ownership", async () => {
   const broadcaster = createLiveToolBroadcaster();
   const app = new Hono();
   app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "chat-agent"));
-  app.get(`${mount}/:id/live`, (context) =>
+  app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
     liveToolResponse(broadcaster, {
       instanceId: context.req.param("id"),
       request: context.req.raw,

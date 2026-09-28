@@ -1,6 +1,9 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 
-import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
+import {
+  reduceUiMessageChunks,
+  useUiChunkRecorder,
+} from "../shared/ai-sdk-oracle";
 import { createFlueUiStream } from "./ui-stream";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";
@@ -9,22 +12,7 @@ import type { UIMessageChunk } from "ai";
 
 const position = (index: number) => ({ batch: 1, index });
 
-const recorded: UIMessageChunk[][] = [];
-/** Collect a projection that must also reduce cleanly through the AI SDK. */
-const recordChunks = (): UIMessageChunk[] => {
-  const chunks: UIMessageChunk[] = [];
-  recorded.push(chunks);
-  return chunks;
-};
-
-afterEach(async () => {
-  const projections = recorded.splice(0);
-  for (const chunks of projections) {
-    // Each projection is reduced independently, in test order.
-    // eslint-disable-next-line no-await-in-loop
-    await reduceUiMessageChunks(chunks);
-  }
-});
+const recordChunks = useUiChunkRecorder();
 
 const project = (
   chunks: readonly ConversationStreamChunk[],
@@ -32,7 +20,7 @@ const project = (
   const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
-    clientToolNames: new Set(["readPetrinautDoc"]),
+    clientToolNames: new Set(["render_widget"]),
     write: (chunk) => written.push(chunk),
   });
   for (const chunk of chunks) projector.accept(chunk);
@@ -142,7 +130,7 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
   const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
-    clientToolNames: new Set(["addArc"]),
+    clientToolNames: new Set(["add_item"]),
     mapClientToolInput: ({ input }) => ({ ...(input as object), weight: 1 }),
     write: (chunk) => written.push(chunk),
   });
@@ -159,7 +147,7 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "call-1",
-    toolName: "addArc",
+    toolName: "add_item",
     input: { weight: "1" },
     position: position(1),
   });
@@ -167,7 +155,7 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
   expect(written).toContainEqual({
     type: "tool-input-available",
     toolCallId: "call-1",
-    toolName: "addArc",
+    toolName: "add_item",
     input: { weight: 1 },
   });
 });
@@ -176,8 +164,8 @@ test("marks host-defined client tools as dynamic for the AI SDK", () => {
   const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
-    clientToolNames: new Set(["mutate_petrinet"]),
-    dynamicClientToolNames: new Set(["mutate_petrinet"]),
+    clientToolNames: new Set(["edit_document"]),
+    dynamicClientToolNames: new Set(["edit_document"]),
     write: (chunk) => written.push(chunk),
   });
   projector.accept({
@@ -193,7 +181,7 @@ test("marks host-defined client tools as dynamic for the AI SDK", () => {
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "call-1",
-    toolName: "mutate_petrinet",
+    toolName: "edit_document",
     input: { operations: [] },
     position: position(1),
   });
@@ -201,7 +189,7 @@ test("marks host-defined client tools as dynamic for the AI SDK", () => {
   expect(written).toContainEqual({
     type: "tool-input-available",
     toolCallId: "call-1",
-    toolName: "mutate_petrinet",
+    toolName: "edit_document",
     input: { operations: [] },
     dynamic: true,
   });
@@ -235,7 +223,7 @@ test("reports server tool failures to the diagnostic callback before projection"
   >[0][] = [];
   const projector = createFlueUiStream({
     submissionId: "submission-1",
-    clientToolNames: new Set(["readPetrinautDoc"]),
+    clientToolNames: new Set(["render_widget"]),
     onToolOutputError: (event) => reported.push(event),
     write: (chunk) => written.push(chunk),
   });
@@ -252,7 +240,7 @@ test("reports server tool failures to the diagnostic callback before projection"
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "visible-1",
-    toolName: "query_workpiece",
+    toolName: "search",
     input: {},
     position: position(1),
   });
@@ -268,7 +256,7 @@ test("reports server tool failures to the diagnostic callback before projection"
     {
       submissionId: "submission-1",
       toolCallId: "visible-1",
-      toolName: "query_workpiece",
+      toolName: "search",
       errorText: "Unknown governing revision",
     },
   ]);
@@ -354,7 +342,7 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "canonical-call",
-    toolName: "read_workpiece",
+    toolName: "lookup",
     input: {},
     position: position(1),
   });
@@ -363,7 +351,7 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
     liveEvent(3, {
       kind: "tool-input-start",
       toolCallId: "canonical-call",
-      toolName: "read_workpiece",
+      toolName: "lookup",
     }),
   );
   projector.acceptLive(
@@ -371,14 +359,14 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
       kind: "tool-input-delta",
       inputTextDelta: "{}",
       toolCallId: "canonical-call",
-      toolName: "read_workpiece",
+      toolName: "lookup",
     }),
   );
   projector.acceptLive(
     liveEvent(2, {
       kind: "tool-input-start",
       toolCallId: "late-call",
-      toolName: "read_workpiece",
+      toolName: "lookup",
     }),
   );
   projector.acceptLive({
@@ -413,7 +401,7 @@ test.each(["turn", "disconnect"] as const)(
       liveEvent(0, {
         kind: "tool-input-start",
         toolCallId: "abandoned-call",
-        toolName: "read_workpiece",
+        toolName: "lookup",
       }),
     );
     if (terminal === "turn") {
@@ -431,7 +419,7 @@ test.each(["turn", "disconnect"] as const)(
     expect(written).toContainEqual({
       type: "tool-input-error",
       toolCallId: "abandoned-call",
-      toolName: "read_workpiece",
+      toolName: "lookup",
       input: undefined,
       errorText: "This tool proposal was not executed.",
     });
@@ -460,7 +448,7 @@ test("lets canonical admission win the live turn-terminal race", () => {
       liveEvent(0, {
         kind: "tool-input-start",
         toolCallId: "racing-call",
-        toolName: "read_workpiece",
+        toolName: "lookup",
       }),
     );
     projector.acceptLive({
@@ -478,7 +466,7 @@ test("lets canonical admission win the live turn-terminal race", () => {
       messageId: "message-1",
       position: position(1),
       toolCallId: "racing-call",
-      toolName: "read_workpiece",
+      toolName: "lookup",
     });
     vi.runAllTimers();
 
@@ -490,7 +478,7 @@ test("lets canonical admission win the live turn-terminal race", () => {
       input: {},
       providerExecuted: true,
       toolCallId: "racing-call",
-      toolName: "read_workpiece",
+      toolName: "lookup",
     });
   } finally {
     vi.useRealTimers();
@@ -511,7 +499,7 @@ test("carries response metadata onto a provisionally started message", () => {
       liveEvent(0, {
         kind: "tool-input-start",
         toolCallId: "early-call",
-        toolName: "read_workpiece",
+        toolName: "lookup",
       }),
     );
     vi.runAllTimers();
@@ -557,7 +545,7 @@ test("observed: a live tool call can precede the canonical text that preceded it
     liveEvent(0, {
       kind: "tool-input-start",
       toolCallId: "call-1",
-      toolName: "read_workpiece",
+      toolName: "lookup",
     }),
   );
   projector.accept({
@@ -575,13 +563,13 @@ test("observed: a live tool call can precede the canonical text that preceded it
     messageId: "message-1",
     position: position(2),
     toolCallId: "call-1",
-    toolName: "read_workpiece",
+    toolName: "lookup",
   });
 
   const { message } = await reduceUiMessageChunks(written);
   expect(message?.parts.map((part) => part.type)).toEqual([
     "step-start",
-    "tool-read_workpiece",
+    "tool-lookup",
     "text",
   ]);
 });
