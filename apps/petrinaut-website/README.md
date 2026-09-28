@@ -244,7 +244,7 @@ do not expose this local experiment publicly without addressing that boundary.
 
 Two kinds of finalized transcript never reach Brunch. A transcript with no
 letters or digits, such as ".", is handled like empty input. A transcript of
-up to three words whose speech started while Live was audible, or within a
+up to three words whose speech started while Live was audible, or within half a
 second after, is dropped: these are almost always Live's own audio leaking back
 and misheard as speech. Live isn't audible while the speaker is muted or at
 zero volume. A GPT-Live delegation doesn't exempt the transcript, because
@@ -269,7 +269,10 @@ the **Verbose** console level and filter by `[Petrinaut Live trace]`:
   began after its output did. `liveOutputFragments` shows whether output
   transcripts arrived; without them `liveInputFragments` stays at zero.
 - `input.finalized` marks speech that started during output with
-  `startedDuringOutput`.
+  `startedDuringOutput`. `sinceOutputMs`, present when Live was audible in the
+  second before, is the time from its last audible moment until the speech
+  start was reported. Below about 100 means Live was still audible; from 500,
+  the speech doesn't count as started during output.
 - `input.ignored` with `reason: "short-during-output"` marks a short transcript
   that started during output and was not sent to Brunch.
 

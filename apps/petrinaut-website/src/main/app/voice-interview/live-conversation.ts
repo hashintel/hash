@@ -27,7 +27,7 @@ export interface LiveConversationState {
 interface FinalizedInput {
   readonly id: string;
   readonly text: string;
-  /** Speech began while Live was audible or within its one-second echo tail. */
+  /** Speech start was reported while Live was audible or within half a second after. */
   readonly startedDuringOutput: boolean;
 }
 
@@ -357,6 +357,7 @@ export const createLiveConversation = (
           inputId: input.id,
           characters: input.text.length,
           startedDuringOutput,
+          sinceOutputMs: echoTrace.sinceOutputMs(itemId),
         });
         onFinalizedInput({ ...input, startedDuringOutput });
       }
@@ -396,7 +397,7 @@ export const createLiveConversation = (
       return;
     }
     if (data.type === "input_audio_buffer.speech_started") {
-      echoTrace.transcriptionSpeechStarted(data.item_id);
+      echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
       return;
     }
     if (data.type === "input_audio_buffer.committed") {

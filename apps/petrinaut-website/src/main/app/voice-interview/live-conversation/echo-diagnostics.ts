@@ -1,11 +1,17 @@
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 
 /**
- * Speech starting up to this long after the last audible output sample still
- * overlaps it: room reverberation plus provider event delivery. Output
- * transcript fragments further apart than this start a new output span.
+ * An output stretch stays open this long after its last audible sample, for
+ * room reverberation and provider event delivery. Output transcript fragments
+ * further apart than this start a new output span.
  */
 const echoTailMs = 1_000;
+
+/**
+ * Speech starts are reported after the speech began, so one reported this soon
+ * after audible output can still be echo. A longer window drops quick answers.
+ */
+const speechOverlapMs = 500;
 
 const settingValue = (value: unknown) =>
   typeof value === "boolean" || typeof value === "string" ? value : undefined;
@@ -70,7 +76,7 @@ export const createOutputEchoTrace = (sessionId: string) => {
   let stretch: OutputStretch | undefined;
   let liveOutputFragments = 0;
   let liveOutputSpan: { startMs: number; endMs: number } | undefined;
-  const startedDuringOutput = new Set<string>();
+  const sinceOutputMsByItem = new Map<string, number>();
 
   const report = (sessionEnded: boolean) => {
     if (!stretch) return;
@@ -143,10 +149,11 @@ export const createOutputEchoTrace = (sessionId: string) => {
       stretch.speakerVolume = sample.speakerVolume;
       stretch.selectedSpeaker = sample.selectedSpeaker;
     },
-    transcriptionSpeechStarted: (itemId: unknown): void => {
+    transcriptionSpeechStarted: (itemId: unknown, at: number): void => {
       if (!stretch) return;
       stretch.transcriptionSpeechStarts++;
-      if (typeof itemId === "string") startedDuringOutput.add(itemId);
+      if (typeof itemId === "string")
+        sinceOutputMsByItem.set(itemId, at - stretch.lastAudibleAt);
     },
     liveOutputFragment: (startMs: unknown, endMs: unknown): void => {
       liveOutputFragments++;
@@ -165,8 +172,13 @@ export const createOutputEchoTrace = (sessionId: string) => {
       )
         stretch.liveInputFragments++;
     },
-    startedDuringOutput: (itemId: string): boolean =>
-      startedDuringOutput.has(itemId),
+    startedDuringOutput: (itemId: string): boolean => {
+      const sinceOutputMs = sinceOutputMsByItem.get(itemId);
+      return sinceOutputMs !== undefined && sinceOutputMs < speechOverlapMs;
+    },
+    /** Set only for speech starts reported while an output stretch was open. */
+    sinceOutputMs: (itemId: string): number | undefined =>
+      sinceOutputMsByItem.get(itemId),
     end: (): void => report(true),
   };
 };

@@ -49,6 +49,45 @@ test("does not carry an output transcript span into the next audible stretch", (
   ]);
 });
 
+test("counts speech as started during output only when its start is reported within half a second", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const echoTrace = createOutputEchoTrace("session");
+  const sample = (at: number, audible: boolean) =>
+    echoTrace.sample(at, {
+      audible,
+      microphoneLevel: 0,
+      echoReturnLoss: undefined,
+      echoReturnLossEnhancement: undefined,
+      microphoneMuted: false,
+      speakerMuted: false,
+      speakerVolume: 1,
+      selectedSpeaker: false,
+    });
+
+  sample(0, true);
+  echoTrace.transcriptionSpeechStarted("during", 50);
+  sample(100, false);
+  echoTrace.transcriptionSpeechStarted("inside", 499);
+  echoTrace.transcriptionSpeechStarted("outside", 500);
+  sample(1_000, false);
+  echoTrace.transcriptionSpeechStarted("quiet", 1_100);
+
+  const itemIds = ["during", "inside", "outside", "quiet"];
+  expect(
+    itemIds.map((itemId) => echoTrace.startedDuringOutput(itemId)),
+  ).toEqual([true, true, false, false]);
+  expect(itemIds.map((itemId) => echoTrace.sinceOutputMs(itemId))).toEqual([
+    50,
+    499,
+    500,
+    undefined,
+  ]);
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({ transcriptionSpeechStarts: 3 }),
+  ]);
+});
+
 const setup = ({
   audioSettings,
   audioMuted = false,
@@ -1505,16 +1544,19 @@ test("summarises echo evidence for each stretch of audible Live output without p
       transcript: "PRIVATE TRANSCRIPT",
     });
   }
-  expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([
+  const finalized = traceRecords(debug.mock.calls, "input.finalized");
+  expect(finalized).toEqual([
     expect.objectContaining({
       itemId: "during-output",
       startedDuringOutput: true,
+      sinceOutputMs: 0,
     }),
     expect.objectContaining({
       itemId: "after-output",
       startedDuringOutput: false,
     }),
   ]);
+  expect(finalized[1]).not.toHaveProperty("sinceOutputMs");
   expect(
     fixture.onFinalizedInput.mock.calls.map(
       ([input]) => input.startedDuringOutput,
