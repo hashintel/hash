@@ -666,15 +666,20 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
         },
       ],
       scenarios: [
+        // Prototype only: first, so a run shows breakdowns and technicians.
         {
-          id: "scenario__default_production",
-          name: "Default Production",
+          id: "scenario__worn_machines",
+          name: "Worn machines",
           description:
-            "Configurable raw material, machine count, and initial machine damage.",
+            "Machines start 70% worn, so they reach high damage, break down and call technicians.",
           scenarioParameters: [
-            { type: "integer", identifier: "raw_material", default: 10 },
+            { type: "integer", identifier: "raw_material", default: 20 },
             { type: "integer", identifier: "machines_count", default: 3 },
-            { type: "ratio", identifier: "initial_machine_damage", default: 0 },
+            {
+              type: "ratio",
+              identifier: "initial_machine_damage",
+              default: 0.7,
+            },
           ],
           parameterOverrides: {},
           initialState: {
@@ -684,7 +689,7 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                 {
                   name: "raw_material",
                   type: "integer",
-                  expression: "10",
+                  expression: "20",
                   exposed: true,
                   optimize: null,
                 },
@@ -698,7 +703,7 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                 {
                   name: "initial_machine_damage",
                   type: "ratio",
-                  expression: "0",
+                  expression: "0.7",
                   exposed: true,
                   optimize: null,
                 },
@@ -738,18 +743,14 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
           },
         },
         {
-          id: "scenario__worn_machines",
-          name: "Worn machines",
+          id: "scenario__default_production",
+          name: "Default Production",
           description:
-            "Machines start 70% worn, so they reach high damage, break down and call technicians.",
+            "Configurable raw material, machine count, and initial machine damage.",
           scenarioParameters: [
-            { type: "integer", identifier: "raw_material", default: 20 },
+            { type: "integer", identifier: "raw_material", default: 10 },
             { type: "integer", identifier: "machines_count", default: 3 },
-            {
-              type: "ratio",
-              identifier: "initial_machine_damage",
-              default: 0.7,
-            },
+            { type: "ratio", identifier: "initial_machine_damage", default: 0 },
           ],
           parameterOverrides: {},
           initialState: {
@@ -759,7 +760,7 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                 {
                   name: "raw_material",
                   type: "integer",
-                  expression: "20",
+                  expression: "10",
                   exposed: true,
                   optimize: null,
                 },
@@ -773,7 +774,7 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                 {
                   name: "initial_machine_damage",
                   type: "ratio",
-                  expression: "0.7",
+                  expression: "0",
                   exposed: true,
                   optimize: null,
                 },
