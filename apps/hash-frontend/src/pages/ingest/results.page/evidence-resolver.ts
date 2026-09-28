@@ -28,14 +28,15 @@ export interface EvidenceResult {
   targetPage: number | null;
 }
 
-export function getAssertionWindowKey(win: AssertionWindow): string {
-  return `${win.blockId}:${win.windowStart}:${win.windowEnd}:${win.mentionStart}:${win.mentionEnd}`;
-}
+export const getAssertionWindowKey = (
+  assertionWindow: AssertionWindow,
+): string =>
+  `${assertionWindow.blockId}:${assertionWindow.windowStart}:${assertionWindow.windowEnd}:${assertionWindow.mentionStart}:${assertionWindow.mentionEnd}`;
 
-export function resolveEvidence(
+export const resolveEvidence = (
   selection: Selection,
   blocks: Block[],
-): EvidenceResult {
+): EvidenceResult => {
   if (!selection) {
     return { blockIds: [], targetPage: null };
   }
@@ -65,7 +66,7 @@ export function resolveEvidence(
   }
 
   return { blockIds, targetPage };
-}
+};
 
 // ---------------------------------------------------------------------------
 // Assertion window collection per entity
@@ -74,22 +75,22 @@ export function resolveEvidence(
 /**
  * Pre-compute a map of rosterEntryId → AssertionWindow[] for all entities.
  */
-export function buildEntityAssertionMap(
+export const buildEntityAssertionMap = (
   mentionContexts: MentionContextPlan[],
-): Map<string, AssertionWindow[]> {
+): Map<string, AssertionWindow[]> => {
   const map = new Map<string, Map<string, AssertionWindow>>();
 
   for (const context of mentionContexts) {
     if (context.mode !== "assertion_windows") {
       continue;
     }
-    for (const win of context.assertionWindows) {
-      const windowKey = getAssertionWindowKey(win);
-      for (const participant of win.participants) {
+    for (const assertionWindow of context.assertionWindows) {
+      const windowKey = getAssertionWindowKey(assertionWindow);
+      for (const participant of assertionWindow.participants) {
         const existing =
           map.get(participant.rosterEntryId) ??
           new Map<string, AssertionWindow>();
-        existing.set(windowKey, win);
+        existing.set(windowKey, assertionWindow);
         map.set(participant.rosterEntryId, existing);
       }
     }
@@ -101,4 +102,4 @@ export function buildEntityAssertionMap(
       [...windows.values()],
     ]),
   );
-}
+};

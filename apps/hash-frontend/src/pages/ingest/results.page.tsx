@@ -1,4 +1,4 @@
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -11,17 +11,18 @@ import { WorkersHeader } from "../../shared/workers-header";
 import { resolveEvidence } from "./results.page/evidence-resolver";
 import { PageViewer } from "./results.page/page-viewer";
 import { ResultsPanel } from "./results.page/results-panel";
-import { getIngestResultsSource } from "./shared/routing";
+import {
+  getFirstQueryValue,
+  getIngestPath,
+  getIngestResultsSource,
+  getIngestRunApiPath,
+} from "./shared/routing";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { Selection } from "./results.page/evidence-resolver";
 import type { PageViewerHandle } from "./results.page/page-viewer";
 import type { IngestRunView } from "./shared/types";
 import type { GetServerSideProps } from "next";
-
-const normalizeQueryParam = (
-  value: string | string[] | undefined,
-): string | undefined => (typeof value === "string" ? value : value?.[0]);
 
 export const getServerSideProps: GetServerSideProps = () =>
   Promise.resolve(isIngestEnabled ? { props: {} } : { notFound: true });
@@ -31,8 +32,8 @@ const IngestResultsPage: NextPageWithLayout = () => {
   const source = useMemo(
     () =>
       getIngestResultsSource({
-        runId: normalizeQueryParam(router.query.runId),
-        fixture: normalizeQueryParam(router.query.fixture),
+        runId: getFirstQueryValue(router.query.runId),
+        fixture: getFirstQueryValue(router.query.fixture),
       }),
     [router.query.runId, router.query.fixture],
   );
@@ -54,7 +55,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
     const endpoint =
       source.kind === "fixture"
         ? `/api/ingest-fixtures/${encodeURIComponent(source.fixtureId)}/view`
-        : `/api/ingest/${encodeURIComponent(source.runId)}/view`;
+        : `${getIngestRunApiPath(source.runId)}/view`;
 
     void (async () => {
       try {
@@ -104,21 +105,14 @@ const IngestResultsPage: NextPageWithLayout = () => {
   }, [evidence]);
 
   const handleNewUpload = () => {
-    void router.push("/ingest");
+    void router.push(getIngestPath());
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        position: "absolute",
-        inset: 0,
-      }}
-    >
+    <Stack sx={{ position: "absolute", inset: 0 }}>
       <WorkersHeader
         crumbs={[
-          { title: "Ingest", href: "/ingest", id: "ingest" },
+          { title: "Ingest", href: getIngestPath(), id: "ingest" },
           { title: "Results", href: "#", id: "results" },
         ]}
         title={{
@@ -153,8 +147,9 @@ const IngestResultsPage: NextPageWithLayout = () => {
       )}
 
       {view && (
-        <Box
-          sx={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}
+        <Stack
+          direction="row"
+          sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
         >
           <ResultsPanel
             rosterEntries={view.roster.entries}
@@ -163,15 +158,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
             selection={selection}
             onSelect={setSelection}
           />
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
-              overflow: "hidden",
-            }}
-          >
+          <Stack sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
             {/* Evidence header — matches ENTITIES header on the left */}
             <Box
               sx={{
@@ -217,19 +204,19 @@ const IngestResultsPage: NextPageWithLayout = () => {
                 highlightedBlockIds={evidence.blockIds}
               />
             </Box>
-          </Box>
-        </Box>
+          </Stack>
+        </Stack>
       )}
 
       {view && (
-        <Box
+        <Stack
+          direction="row"
+          alignItems="center"
           sx={{
             flexShrink: 0,
             borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
             px: 2,
             py: 1,
-            display: "flex",
-            alignItems: "center",
           }}
         >
           <Button
@@ -240,9 +227,9 @@ const IngestResultsPage: NextPageWithLayout = () => {
           >
             ← New Upload
           </Button>
-        </Box>
+        </Stack>
       )}
-    </Box>
+    </Stack>
   );
 };
 

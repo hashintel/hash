@@ -4,7 +4,7 @@
  * Renders all pages in a vertically scrolling container. Exposes a
  * `scrollToPage` imperative handle for programmatic navigation.
  */
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import {
   forwardRef,
   useCallback,
@@ -43,7 +43,7 @@ const PageWithOverlays: FunctionComponent<{
   pageImage: PageImageManifest;
   totalPages: number;
   highlightedOverlays: HighlightedOverlay[];
-  setRef: (el: HTMLDivElement | null) => void;
+  setRef: (element: HTMLDivElement | null) => void;
 }> = ({ pageImage, totalPages, highlightedOverlays, setRef }) => (
   <Box ref={setRef} sx={{ width: "100%", maxWidth: 900 }}>
     <Typography
@@ -70,7 +70,7 @@ const PageWithOverlays: FunctionComponent<{
       />
 
       {highlightedOverlays.map(({ key, block, anchor }) => {
-        const pct = bboxToPercentage(
+        const position = bboxToPercentage(
           anchor.bbox,
           pageImage.pdfPageWidth,
           pageImage.pdfPageHeight,
@@ -83,10 +83,10 @@ const PageWithOverlays: FunctionComponent<{
             title={`[${block.kind}] ${block.text.substring(0, 80)}`}
             sx={{
               position: "absolute",
-              left: `${pct.left}%`,
-              top: `${pct.top}%`,
-              width: `${pct.width}%`,
-              height: `${pct.height}%`,
+              left: `${position.left}%`,
+              top: `${position.top}%`,
+              width: `${position.width}%`,
+              height: `${position.height}%`,
               border: `2px solid ${highlightColors.bboxBorder}`,
               backgroundColor: highlightColors.bboxFill,
               pointerEvents: "none",
@@ -109,9 +109,9 @@ export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
     const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
     const setPageRef = useCallback(
-      (pageNumber: number, el: HTMLDivElement | null) => {
-        if (el) {
-          pageRefs.current.set(pageNumber, el);
+      (pageNumber: number, element: HTMLDivElement | null) => {
+        if (element) {
+          pageRefs.current.set(pageNumber, element);
         } else {
           pageRefs.current.delete(pageNumber);
         }
@@ -123,15 +123,19 @@ export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
       ref,
       () => ({
         scrollToPage(pageNumber: number) {
-          const el = pageRefs.current.get(pageNumber);
-          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+          pageRefs.current
+            .get(pageNumber)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
         },
       }),
       [],
     );
 
     const sortedPages = useMemo(
-      () => [...pageImages].sort((a, b) => a.pageNumber - b.pageNumber),
+      () =>
+        [...pageImages].sort(
+          (left, right) => left.pageNumber - right.pageNumber,
+        ),
       [pageImages],
     );
 
@@ -168,14 +172,7 @@ export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
     }, [blocks, highlightedBlockIds]);
 
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          alignItems: "center",
-        }}
-      >
+      <Stack gap={2} alignItems="center">
         {sortedPages.map((pageImage) => (
           <PageWithOverlays
             key={pageImage.pageNumber}
@@ -184,10 +181,10 @@ export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
             highlightedOverlays={
               highlightedBlocksByPage.get(pageImage.pageNumber) ?? []
             }
-            setRef={(el) => setPageRef(pageImage.pageNumber, el)}
+            setRef={(element) => setPageRef(pageImage.pageNumber, element)}
           />
         ))}
-      </Box>
+      </Stack>
     );
   },
 );

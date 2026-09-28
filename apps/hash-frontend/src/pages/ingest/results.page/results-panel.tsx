@@ -11,6 +11,7 @@ import {
   ButtonBase,
   Collapse,
   ListSubheader,
+  Stack,
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
@@ -25,6 +26,7 @@ import { highlightColors } from "./shared/highlight-styles";
 import type {
   AssertionWindow,
   ExtractedClaim,
+  MentionCategory,
   MentionContextPlan,
   RosterEntry,
 } from "../shared/types";
@@ -39,7 +41,7 @@ interface ResultsPanelProps {
   onSelect: (selection: Selection) => void;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
+const categoryIcons: Record<MentionCategory, string> = {
   person: "👤",
   organization: "🏢",
   place: "📍",
@@ -48,61 +50,12 @@ const CATEGORY_ICONS: Record<string, string> = {
   other: "◽",
 };
 
-const ClaimItem: FunctionComponent<{
-  claim: ExtractedClaim;
+const EvidenceItem: FunctionComponent<{
+  text: string;
+  quote: string | undefined;
   isSelected: boolean;
   onSelect: () => void;
-}> = ({ claim, isSelected, onSelect }) => {
-  const firstEvidenceRef = claim.evidenceRefs.at(0);
-  const quote = firstEvidenceRef
-    ? firstEvidenceRef.quote.substring(0, 80)
-    : undefined;
-
-  return (
-    <ButtonBase
-      onClick={onSelect}
-      sx={{
-        display: "block",
-        width: "100%",
-        px: 2,
-        py: 1,
-        pl: 4,
-        textAlign: "left",
-        borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        bgcolor: isSelected ? highlightColors.selectedBg : "transparent",
-        "&:hover": { bgcolor: highlightColors.hoverBg },
-      }}
-    >
-      <Typography
-        variant="microText"
-        sx={{
-          color: "gray.80",
-          lineHeight: 1.5,
-          display: "-webkit-box",
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-        }}
-      >
-        {claim.claimText}
-      </Typography>
-      {quote && (
-        <Typography
-          variant="microText"
-          sx={{ color: "gray.50", mt: 0.5, fontStyle: "italic" }}
-        >
-          &quot;{quote}…&quot;
-        </Typography>
-      )}
-    </ButtonBase>
-  );
-};
-
-const AssertionWindowItem: FunctionComponent<{
-  window: AssertionWindow;
-  isSelected: boolean;
-  onSelect: () => void;
-}> = ({ window: win, isSelected, onSelect }) => (
+}> = ({ text, quote, isSelected, onSelect }) => (
   <ButtonBase
     onClick={onSelect}
     sx={{
@@ -128,14 +81,16 @@ const AssertionWindowItem: FunctionComponent<{
         overflow: "hidden",
       }}
     >
-      {win.text}
+      {text}
     </Typography>
-    <Typography
-      variant="microText"
-      sx={{ color: "gray.50", mt: 0.5, fontStyle: "italic" }}
-    >
-      &quot;{win.mentionSurface}&quot;
-    </Typography>
+    {quote && (
+      <Typography
+        variant="microText"
+        sx={{ color: "gray.50", mt: 0.5, fontStyle: "italic" }}
+      >
+        &quot;{quote}&quot;
+      </Typography>
+    )}
   </ButtonBase>
 );
 
@@ -161,7 +116,7 @@ const EntityCard: FunctionComponent<{
   return (
     <Box>
       <ButtonBase
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => setExpanded((wasExpanded) => !wasExpanded)}
         sx={{
           display: "flex",
           width: "100%",
@@ -174,11 +129,9 @@ const EntityCard: FunctionComponent<{
           "&:hover": { bgcolor: highlightColors.hoverBg },
         }}
       >
-        <Box
-          sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}
-        >
+        <Stack direction="row" alignItems="center" gap={1} minWidth={0}>
           <Typography component="span" sx={{ flexShrink: 0 }}>
-            {CATEGORY_ICONS[entry.category ?? "other"] ?? "◽"}
+            {categoryIcons[entry.category ?? "other"]}
           </Typography>
           <Typography
             variant="smallTextLabels"
@@ -191,10 +144,8 @@ const EntityCard: FunctionComponent<{
           >
             {entry.canonicalName}
           </Typography>
-        </Box>
-        <Box
-          sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}
-        >
+        </Stack>
+        <Stack direction="row" alignItems="center" gap={1} flexShrink={0}>
           {itemCount > 0 && (
             <Typography variant="microText" sx={{ color: "gray.50" }}>
               {itemCount}
@@ -211,22 +162,25 @@ const EntityCard: FunctionComponent<{
           >
             ▶
           </Typography>
-        </Box>
+        </Stack>
       </ButtonBase>
 
       <Collapse in={expanded}>
         {assertionWindows.length > 0 ? (
-          assertionWindows.map((win) => {
-            const winKey = getAssertionWindowKey(win);
-            const isWinSelected = selectedAssertionKey === winKey;
+          assertionWindows.map((assertionWindow) => {
+            const windowKey = getAssertionWindowKey(assertionWindow);
+            const isSelected = selectedAssertionKey === windowKey;
             return (
-              <AssertionWindowItem
-                key={winKey}
-                window={win}
-                isSelected={isWinSelected}
+              <EvidenceItem
+                key={windowKey}
+                text={assertionWindow.text}
+                quote={assertionWindow.mentionSurface}
+                isSelected={isSelected}
                 onSelect={() =>
                   onSelect(
-                    isWinSelected ? null : { kind: "assertion", window: win },
+                    isSelected
+                      ? null
+                      : { kind: "assertion", window: assertionWindow },
                   )
                 }
               />
@@ -234,14 +188,16 @@ const EntityCard: FunctionComponent<{
           })
         ) : claims.length > 0 ? (
           claims.map((claim) => {
-            const isClaimSelected = selectedClaimId === claim.claimId;
+            const isSelected = selectedClaimId === claim.claimId;
+            const firstQuote = claim.evidenceRefs.at(0)?.quote;
             return (
-              <ClaimItem
+              <EvidenceItem
                 key={claim.claimId}
-                claim={claim}
-                isSelected={isClaimSelected}
+                text={claim.claimText}
+                quote={firstQuote && `${firstQuote.substring(0, 80)}…`}
+                isSelected={isSelected}
                 onSelect={() =>
-                  onSelect(isClaimSelected ? null : { kind: "claim", claim })
+                  onSelect(isSelected ? null : { kind: "claim", claim })
                 }
               />
             );
@@ -276,14 +232,12 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
   const claimsByEntity = useMemo(() => groupClaimsByEntity(claims), [claims]);
 
   return (
-    <Box
+    <Stack
       sx={{
         width: 360,
         minWidth: 360,
         borderRight: ({ palette }) => `1px solid ${palette.gray[30]}`,
         overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
       }}
     >
       <ListSubheader
@@ -313,6 +267,6 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
           />
         ))}
       </Box>
-    </Box>
+    </Stack>
   );
 };

@@ -4,6 +4,7 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
+  Stack,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -17,14 +18,14 @@ import { getLayoutWithSidebar } from "../../shared/layout";
 import { WorkersHeader } from "../../shared/workers-header";
 import { UploadPanel } from "./index.page/upload-panel";
 import { useIngestRun } from "./index.page/use-ingest-run";
-import { getIngestPath, getIngestResultsPath } from "./shared/routing";
+import {
+  getFirstQueryValue,
+  getIngestPath,
+  getIngestResultsPath,
+} from "./shared/routing";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { GetServerSideProps } from "next";
-
-const normalizeQueryParam = (
-  value: string | string[] | undefined,
-): string | undefined => (typeof value === "string" ? value : value?.[0]);
 
 export const getServerSideProps: GetServerSideProps = () =>
   Promise.resolve(isIngestEnabled ? { props: {} } : { notFound: true });
@@ -32,7 +33,7 @@ export const getServerSideProps: GetServerSideProps = () =>
 const IngestPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { state, upload, reset, resume } = useIngestRun();
-  const runId = normalizeQueryParam(router.query.runId);
+  const runId = getFirstQueryValue(router.query.runId);
 
   const handleReset = useCallback(() => {
     reset();
@@ -69,7 +70,7 @@ const IngestPage: NextPageWithLayout = () => {
         crumbs={[
           {
             title: "Ingest",
-            href: "/ingest",
+            href: getIngestPath(),
             id: "ingest",
           },
         ]}
@@ -80,14 +81,7 @@ const IngestPage: NextPageWithLayout = () => {
         subtitle="Upload a PDF to extract entities, claims, and evidence."
       />
       <Container>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 4,
-            py: 4,
-            minHeight: 400,
-          }}
-        >
+        <Stack direction="row" gap={4} py={4} minHeight={400}>
           {/* Left panel: upload */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <UploadPanel
@@ -145,7 +139,7 @@ const IngestPage: NextPageWithLayout = () => {
               to extract.
             </Typography>
           </Box>
-        </Box>
+        </Stack>
       </Container>
     </>
   );

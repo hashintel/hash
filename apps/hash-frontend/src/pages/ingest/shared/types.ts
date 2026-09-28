@@ -157,26 +157,18 @@ export interface RunStatus {
 }
 
 export type ActiveRunStatus = RunStatus & {
-  status: "queued" | "running";
+  status: Extract<RunStatus["status"], "queued" | "running">;
 };
 
 export type TerminalRunStatus = RunStatus & {
-  status: "succeeded" | "failed";
-};
-
-export type SucceededRunStatus = TerminalRunStatus & {
-  status: "succeeded";
-};
-
-export type FailedRunStatus = TerminalRunStatus & {
-  status: "failed";
+  status: Extract<RunStatus["status"], "succeeded" | "failed">;
 };
 
 // ---------------------------------------------------------------------------
 //  Mention context plans (assertion windows / fallback)
 // ---------------------------------------------------------------------------
 
-export interface AssertionWindow {
+export interface FallbackWindow {
   text: string;
   chunkId: string;
   blockId: string;
@@ -185,6 +177,9 @@ export interface AssertionWindow {
   mentionStart: number;
   mentionEnd: number;
   mentionSurface: string;
+}
+
+export interface AssertionWindow extends FallbackWindow {
   discourseResolutions: {
     surface: string;
     resolvedName: string;
@@ -197,17 +192,6 @@ export interface AssertionWindow {
     canonicalName: string;
     role: string;
   }[];
-}
-
-export interface FallbackWindow {
-  text: string;
-  chunkId: string;
-  blockId: string;
-  windowStart: number;
-  windowEnd: number;
-  mentionStart: number;
-  mentionEnd: number;
-  mentionSurface: string;
 }
 
 export interface ContextDiagnostics {

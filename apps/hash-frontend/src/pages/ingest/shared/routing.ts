@@ -1,7 +1,9 @@
-export const ingestFixtures = [
-  { id: "uk-practice-direction-51zh", label: "UK Practice Direction" },
-  { id: "gao-25-107546", label: "GAO Report" },
-] as const;
+const defaultFixtureId = "uk-practice-direction-51zh";
+
+/** Next.js gives repeated query params as arrays; the ingest pages use the first. */
+export const getFirstQueryValue = (
+  value: string | string[] | undefined,
+): string | undefined => (typeof value === "string" ? value : value?.[0]);
 
 export type IngestResultsSource =
   | { kind: "fixture"; fixtureId: string }
@@ -26,7 +28,7 @@ export const getIngestResultsSource = (query: {
 
   return {
     kind: "fixture",
-    fixtureId: query.fixture ?? ingestFixtures[0].id,
+    fixtureId: query.fixture ?? defaultFixtureId,
   };
 };
 

@@ -32,6 +32,7 @@ vi.mock("@mui/material", () => ({
   ),
   Radio: () => <input type="radio" readOnly />,
   RadioGroup: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Stack: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   Tooltip: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   Typography: ({ children }: { children?: ReactNode }) => (
     <span>{children}</span>

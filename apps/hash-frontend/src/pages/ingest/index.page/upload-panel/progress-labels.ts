@@ -4,10 +4,10 @@
  * Maps coarse phase/step combinations to user-facing copy.
  * See: internal/apps/agent-workflows/src/temporal/workflow-step-labels.ts
  */
-import type { RunStatus } from "../../shared/types";
+import type { ActiveRunStatus, RunStatus } from "../../shared/types";
 
 /** Phase/step → human-readable status line. */
-const PHASE_STEP_LABELS: Record<string, Record<string, string>> = {
+const phaseStepLabels: Record<string, Record<string, string>> = {
   upload: {
     received: "Upload received",
   },
@@ -35,19 +35,10 @@ const PHASE_STEP_LABELS: Record<string, Record<string, string>> = {
 };
 
 /**
- * Derive a human-readable status label from the current RunStatus.
+ * Derive a human-readable status label for a run in progress.
  */
-export function getProgressLabel(status: RunStatus): string {
-  if (status.status === "succeeded") {
-    return "Done";
-  }
-  if (status.status === "failed") {
-    return status.error ?? "Run failed";
-  }
-
-  const phaseLabels = status.phase
-    ? PHASE_STEP_LABELS[status.phase]
-    : undefined;
+export const getProgressLabel = (status: ActiveRunStatus): string => {
+  const phaseLabels = status.phase ? phaseStepLabels[status.phase] : undefined;
   if (phaseLabels && status.step) {
     const label = phaseLabels[status.step];
     if (label) {
@@ -64,12 +55,14 @@ export function getProgressLabel(status: RunStatus): string {
   }
 
   return "Processing";
-}
+};
 
 /**
  * Format counts into a compact summary string.
  */
-export function getCountsSummary(counts: RunStatus["counts"]): string | null {
+export const getCountsSummary = (
+  counts: RunStatus["counts"],
+): string | null => {
   if (!counts) {
     return null;
   }
@@ -80,4 +73,4 @@ export function getCountsSummary(counts: RunStatus["counts"]): string | null {
     counts.claims && `${counts.claims} claims`,
   ].filter(Boolean);
   return items.length > 0 ? items.join(" · ") : null;
-}
+};
