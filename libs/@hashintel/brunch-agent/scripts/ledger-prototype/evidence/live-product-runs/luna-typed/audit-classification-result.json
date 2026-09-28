@@ -1,0 +1,331 @@
+{
+  "items": [
+    {
+      "id": "n1",
+      "source": "correct",
+      "basis": "wrong",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": "A stated goal is not an observed record or event."
+    },
+    {
+      "id": "n3",
+      "source": "correct",
+      "basis": "wrong",
+      "standing": "defensible",
+      "precision": "absent-ok",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Standing requirement is not observed; appends open gap (comparison, success criterion) to settled claim."
+    },
+    {
+      "id": "n6",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "missing-but-needed",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "'Around 2,600', 'roughly four weeks', 'few days' need approximate; bundles not-yet-stated gaps with settled case."
+    },
+    {
+      "id": "n8",
+      "source": "correct",
+      "basis": "defensible",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n11",
+      "source": "correct",
+      "basis": "defensible",
+      "standing": "defensible",
+      "precision": "absent-ok",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Settled goal bundled with open 'adequate' criterion; narrows her general reorder settings to Sonaflozin."
+    },
+    {
+      "id": "n14",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n16",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "defensible",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n19",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n22",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "plausibly-earlier",
+      "reason": ""
+    },
+    {
+      "id": "n24",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "correct",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n27",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "correct",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n29",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "defensible",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n32",
+      "source": "correct",
+      "basis": "defensible",
+      "standing": "correct",
+      "precision": "correct",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n35",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "plausibly-earlier",
+      "reason": "Gap-list note carries no quantity; qualitative precision does not apply."
+    },
+    {
+      "id": "n37",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "defensible",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n40",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "absent-ok",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Firm operational quarantine exclusion bundled with open SAP-report configuration question."
+    },
+    {
+      "id": "n43",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "plausibly-earlier",
+      "reason": "Gap-list note carries no quantity; qualitative precision does not apply."
+    },
+    {
+      "id": "n45",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n48",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "absent-ok",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Stated principle bundled with open configured-report treatment; supersedes n16 already superseded by n40."
+    },
+    {
+      "id": "n51",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "defensible",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": "Policy statement has no quantity; qualitative precision does not apply."
+    },
+    {
+      "id": "n53",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "plausibly-earlier",
+      "reason": "Gap-list note carries no quantity; qualitative precision does not apply."
+    },
+    {
+      "id": "n56",
+      "source": "correct",
+      "basis": "defensible",
+      "standing": "defensible",
+      "precision": "correct",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n58",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n61",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "plausibly-earlier",
+      "reason": "Qualitative precision on gap note; cites n15/n51, both superseded that turn."
+    },
+    {
+      "id": "n64",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "plausibly-earlier",
+      "reason": "Gap-list note carries no quantity; qualitative precision does not apply."
+    },
+    {
+      "id": "n66",
+      "source": "correct",
+      "basis": "defensible",
+      "standing": "defensible",
+      "precision": "defensible",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Settled shelf-life mechanics bundled with open 'duration not stated' gap."
+    },
+    {
+      "id": "n69",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": "Gap note carries no quantity; qualitative precision does not apply."
+    },
+    {
+      "id": "n72",
+      "source": "defensible",
+      "basis": "defensible",
+      "standing": "defensible",
+      "precision": "wrong",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Agent gap note embeds person-reported settled facts; 88/140/156 weeks are approximate, not qualitative."
+    },
+    {
+      "id": "n74",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "absent-ok",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n77",
+      "source": "correct",
+      "basis": "correct",
+      "standing": "correct",
+      "precision": "wrong",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": "Oldest-first practice has no quantity; qualitative precision does not apply."
+    }
+  ],
+  "summary": {
+    "source": { "correct": 29, "defensible": 1, "wrong": 0 },
+    "basis": {
+      "correct": 22,
+      "defensible": 6,
+      "wrong": 2,
+      "missing-but-needed": 0,
+      "absent-ok": 0
+    },
+    "standing": { "correct": 17, "defensible": 13, "wrong": 0 },
+    "precision": {
+      "correct": 4,
+      "defensible": 4,
+      "wrong": 9,
+      "missing-but-needed": 1,
+      "absent-ok": 12
+    },
+    "mixedStanding": { "true": 7, "false": 23 },
+    "grounded": { "supported": 24, "plausibly-earlier": 6, "unsupported": 0 }
+  },
+  "patterns": [
+    "`precision: qualitative` attached to gap lists and non-quantity notes (n35, n43, n53, n61, n64, n69, n51, n77).",
+    "`observed` used as basis for goals and standing requirements (n1, n3; n11 partly).",
+    "Gap-list notes reissued several times in one turn, with stale references (n53 to n61 to n64; n61 cites superseded n15/n51); n16 superseded twice (n40, n48).",
+    "A firmly stated operational rule is downgraded to tentative because an SAP-configuration question is bundled in (n40, n48).",
+    "Settled facts carry trailing 'not yet stated' gaps (n3, n6, n11, n66); agent gap note n72 embeds person-reported lot lives."
+  ]
+}

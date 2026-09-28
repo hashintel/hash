@@ -1,0 +1,329 @@
+{
+  "items": [
+    {
+      "id": "n3",
+      "isGap": true,
+      "kind": "elicitation-gap",
+      "pursued": "asked",
+      "pursuedAtTurn": 1,
+      "resolved": "yes-successor",
+      "appropriate": "yes",
+      "reason": "Same-turn request for a concrete purchase case; n4 records it."
+    },
+    {
+      "id": "n8",
+      "isGap": true,
+      "kind": "elicitation-gap",
+      "pursued": "asked",
+      "pursuedAtTurn": 2,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Usable-vs-uncertain supply asked t2, quantity t4-5; n24 partly resolves, timing criterion open."
+    },
+    {
+      "id": "n12",
+      "isGap": true,
+      "kind": "elicitation-gap",
+      "pursued": "asked",
+      "pursuedAtTurn": 3,
+      "resolved": "yes-successor",
+      "appropriate": "yes",
+      "reason": "Release/reject condition asked directly; n14 settles lot outcome."
+    },
+    {
+      "id": "n27",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 6,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "On-hand definition asked t6, open-order accounting t7; n30 narrows, rounding still open."
+    },
+    {
+      "id": "n30",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 7,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Open-order counting asked t7; n33 tentative; vendor minimum deferred until t37."
+    },
+    {
+      "id": "n37",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 9,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Asked what observable signals prompted early order; no successor recorded."
+    },
+    {
+      "id": "n41",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "partly",
+      "pursuedAtTurn": 10,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "t10 explores early-order trade-off, not numeric signal relation; likely unanswerable, kept external."
+    },
+    {
+      "id": "n44",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "partly",
+      "pursuedAtTurn": 11,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Expiry behaviour asked t11-12; objective weights not pursued in window."
+    },
+    {
+      "id": "n47",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 12,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Expiry date source asked t12; n50 resolves source, simulation clock still missing."
+    },
+    {
+      "id": "n50",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "partly",
+      "pursuedAtTurn": 13,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Horizon question touches simulation window; time origin is a modelling choice."
+    },
+    {
+      "id": "n54",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "partly",
+      "pursuedAtTurn": 14,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Recall case sought t14; initial inventory and arrival pattern not asked in window."
+    },
+    {
+      "id": "n58",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "not-pursued",
+      "pursuedAtTurn": null,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Elena had no recall case; interviewer pivoted to delay case sensibly."
+    },
+    {
+      "id": "n62",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 17,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Lead-time records asked t17 and answered; no successor note recorded."
+    },
+    {
+      "id": "n66",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "partly",
+      "pursuedAtTurn": 17,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Lead times asked; contingency priorities and quantities for supplier selection not."
+    },
+    {
+      "id": "n69",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 18,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Timing scope asked t18; n72 resolves scope, distribution still deferred."
+    },
+    {
+      "id": "n72",
+      "isGap": true,
+      "kind": "data-gap",
+      "pursued": "not-pursued",
+      "pursuedAtTurn": null,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Variability/tail distribution unavailable per Elena; moving to quarantine timing reasonable."
+    },
+    {
+      "id": "n76",
+      "isGap": true,
+      "kind": "data-gap",
+      "pursued": "partly",
+      "pursuedAtTurn": 20,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Quality capacity asked t20; distribution needs Quality evidence Elena lacks."
+    },
+    {
+      "id": "n82",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 22,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Reorder point and trigger basis asked t22, production gating t23-24."
+    },
+    {
+      "id": "n90",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 24,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Multi-lot allocation asked t24, line count t25; n93 narrows."
+    },
+    {
+      "id": "n93",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 25,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Line availability asked t25-26; allocation design is modelling work."
+    },
+    {
+      "id": "n96",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 26,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Line-free moment asked t26; n99 resolves structure, durations open."
+    },
+    {
+      "id": "n99",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 27,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Line duration t27 and schedule source t28 asked; no successor."
+    },
+    {
+      "id": "n104",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "not-pursued",
+      "pursuedAtTurn": null,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Schedule snapshot not requested; moved to outcome metrics, a reasonable priority."
+    },
+    {
+      "id": "n107",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 30,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Order-line unit asked t30; n110 narrows."
+    },
+    {
+      "id": "n110",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 31,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Due date t31, denominator t32, idle t33 asked in sequence."
+    },
+    {
+      "id": "n113",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 32,
+      "resolved": "partial",
+      "appropriate": "yes",
+      "reason": "Denominator asked t32; n115 resolves it, net still lacks order path."
+    },
+    {
+      "id": "n115",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "not-pursued",
+      "pursuedAtTurn": null,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Remaining items are model construction; starting outstanding orders never asked."
+    },
+    {
+      "id": "n118",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "partly",
+      "pursuedAtTurn": 34,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Attribution with busy line asked t34; net-structure gaps unaddressed."
+    },
+    {
+      "id": "n120",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "not-pursued",
+      "pursuedAtTurn": null,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Elena allowed labelled simplification; pivot to reorder range acceptable."
+    },
+    {
+      "id": "n122",
+      "isGap": true,
+      "kind": "construction-blocker",
+      "pursued": "asked",
+      "pursuedAtTurn": 36,
+      "resolved": "no",
+      "appropriate": "yes",
+      "reason": "Initial snapshot asked t36, order rounding t37; Elena declined figures."
+    }
+  ],
+  "summary": {
+    "isGap": { "true": 30, "false": 0 },
+    "kind": {
+      "elicitation-gap": 3,
+      "construction-blocker": 25,
+      "data-gap": 2,
+      "status": 0,
+      "other": 0
+    },
+    "pursued": {
+      "asked": 18,
+      "partly": 7,
+      "deferred-explicitly": 0,
+      "not-pursued": 5
+    },
+    "resolved": { "yes-successor": 2, "partial": 10, "no": 18 },
+    "appropriate": { "yes": 30, "no": 0 }
+  },
+  "patterns": [
+    "Person-facing 'Not yet asked' gaps are asked in the same turn and closed by person-sourced settled successors (n3, n8, n12).",
+    "Construction blockers dominate (25/30); the next question usually targets the first elicitable item in the newest blocker (n27->t6, n47->t12, n90->t24).",
+    "Supersession chains narrow blockers without closing them (n27->n30->n33, n107->n110->n113->n115); many answered gaps get no successor (n62, n93, n122).",
+    "Secondary items in multi-part blockers slip: vendor minimum from n27/n30 not asked until t37; initial orders in n115 never asked.",
+    "Unanswerable data or modelling-choice gaps are sensibly left (n58, n72, n76, n104, n120)."
+  ]
+}

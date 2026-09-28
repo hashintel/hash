@@ -1,0 +1,341 @@
+{
+  "items": [
+    {
+      "id": "n1",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Labelled person, yet the appended gaps are agent-authored and unmarked."
+    },
+    {
+      "id": "n5",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n9",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n13",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "agent",
+      "inferredStanding": "tentative",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": "Standing 'proposal' is off-vocabulary; maps to tentative."
+    },
+    {
+      "id": "n17",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n22",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Agent-labelled blocker carries new person facts on backlog and spot attrition."
+    },
+    {
+      "id": "n26",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n30",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Omits 'arrive as placed, not scheduled' from the same answer."
+    },
+    {
+      "id": "n34",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "'Refined' is off-vocabulary; out-of-scope transfer (inapplicable) not labelled as such."
+    },
+    {
+      "id": "n38",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n43",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n47",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Correctly distinguishes records described from material consulted."
+    },
+    {
+      "id": "n51",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "'Purpose refined' is off-vocabulary for settled."
+    },
+    {
+      "id": "n55",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n59",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n64",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n68",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": "Exclusion of downstream delivery is inapplicable-type content labelled settled."
+    },
+    {
+      "id": "n72",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n76",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n80",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": false,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n85",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "New person fact (two-year horizon) recorded only inside agent-labelled construction note."
+    },
+    {
+      "id": "n89",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Disposition has no standing field; 'precision' stands in. Omits inventory-position definition."
+    },
+    {
+      "id": "n93",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "person",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "plausibly-earlier",
+      "reason": "'Cannot wait for Indian' and sole-source claim come from earlier turns."
+    },
+    {
+      "id": "n97",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "plausibly-earlier",
+      "reason": "Treats observed 2,500 lot size as order multiple/MOQ; she cited records only."
+    },
+    {
+      "id": "n101",
+      "sourceRecoverable": "inferable",
+      "standingRecoverable": "inferable",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Labelled agent but restates person supplier facts; disposition records edit history ('corrected reference')."
+    },
+    {
+      "id": "n106",
+      "sourceRecoverable": "inferable",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "open",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Person's new German trigger rule sits under 'source: agent', only implied by 'supported'."
+    },
+    {
+      "id": "n110",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "person",
+      "inferredStanding": "tentative",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "'Source reported, suitability unverified' is off-vocabulary; omits the lead-time values themselves."
+    },
+    {
+      "id": "n114",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "settled",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": "Person's lead-time figures first appear in this agent-labelled delivery note."
+    },
+    {
+      "id": "n118",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "explicit",
+      "inferredSource": "agent",
+      "inferredStanding": "tentative",
+      "mixedStanding": true,
+      "grounded": "supported",
+      "reason": ""
+    },
+    {
+      "id": "n122",
+      "sourceRecoverable": "explicit",
+      "standingRecoverable": "inferable",
+      "inferredSource": "person",
+      "inferredStanding": "tentative",
+      "mixedStanding": true,
+      "grounded": "plausibly-earlier",
+      "reason": "'Standard-deviation estimates' more precise than 'mean and spread' here; perhaps stated earlier."
+    }
+  ],
+  "summary": {
+    "sourceRecoverable": {
+      "explicit": 28,
+      "inferable": 2,
+      "ambiguous": 0,
+      "absent": 0
+    },
+    "standingRecoverable": {
+      "explicit": 21,
+      "inferable": 9,
+      "ambiguous": 0,
+      "absent": 0
+    },
+    "inferredSource": {
+      "person": 18,
+      "material": 0,
+      "agent": 12,
+      "unclear": 0
+    },
+    "inferredStanding": {
+      "settled": 17,
+      "tentative": 4,
+      "contested": 0,
+      "open": 9,
+      "inapplicable": 0,
+      "unclear": 0
+    },
+    "mixedStanding": { "true": 27, "false": 3 },
+    "grounded": { "supported": 27, "plausibly-earlier": 3, "unsupported": 0 }
+  },
+  "patterns": [
+    "Labels make source and standing mostly explicit, but standing values drift off-vocabulary ('proposal', 'refined', 'clarified', 'corrected reference', 'source reported') or go missing (n13, n34, n97, n101, n110, n89).",
+    "Agent-labelled construction or gap notes carry new person-supplied facts, so the note-level source label misattributes them (n85 horizon, n106 German trigger, n114 lead times; n110 omits the values).",
+    "Source splitting is inconsistent: some dispositions split person and agent (n26, n43, n59, n118), while person-labelled notes append agent-authored gaps unmarked (n1, n5, n30, n38).",
+    "Material is handled carefully as 'records described but not consulted' (n47, n97, n110, n122); no note claims material source.",
+    "Almost every note bundles standings in compound dispositions like 'X settled, Y open' (n9, n64, n76). Contested is unused, and inapplicable boundary claims are labelled settled (n34, n68, n80)."
+  ]
+}
