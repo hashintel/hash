@@ -433,8 +433,9 @@ mod tests {
     /// Serves one request whose handler fails with `error`, and returns what it traced and logged
     /// together with the span of the request.
     async fn serve_failing(error: ListEntitiesError) -> (RecordedTrace, SpanData) {
-        let handler =
-            move || async move { Err::<(), _>(Rejection::<ListEntitiesProblem>::from(error)) };
+        let handler = move || {
+            core::future::ready(Err::<(), _>(Rejection::<ListEntitiesProblem>::from(error)))
+        };
         serve(Router::new().route("/entities", get(handler)), "/entities").await
     }
 
