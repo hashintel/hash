@@ -1,6 +1,7 @@
 {
   "package": "hash-integrations-definition",
   "dependencies": [
+    "error-stack",
     "type-system"
   ],
   "tasks": {

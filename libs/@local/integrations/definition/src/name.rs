@@ -43,7 +43,7 @@ const fn check_length(value: &str, maximum: usize) -> Result<(), InvalidName> {
 /// Returns whether `value` is ASCII letters, digits, `-` and `_`, starting with a letter or digit.
 ///
 /// A name is safe as a single storage path component and as a quoted SQL identifier.
-fn is_name(value: &str) -> bool {
+pub(crate) fn is_name(value: &str) -> bool {
     value.as_ascii().is_some_and(|chars| {
         chars.first().is_some_and(|first| first.is_alphanumeric())
             && chars.iter().all(|char| {
