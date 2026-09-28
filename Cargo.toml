@@ -238,7 +238,7 @@ napi-derive                        = { version = "3.5.6", default-features = fal
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
-opendata_common                    = { package = "opendata-common", version = "0.1.17" }
+opendata_common                    = { package = "opendata-common", version = ">=0.1.17, <0.1.18" }                                                                                                # 0.1.18 requires `slatedb` 0.14, but `opendata-log` 1.0.0 requires 0.13
 opendata_log                       = { package = "opendata-log", version = "1.0.0" }
 opentelemetry                      = { version = "0.32.0", default-features = false }
 opentelemetry-appender-tracing     = { version = "0.32.0", default-features = false }
