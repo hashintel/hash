@@ -4284,6 +4284,7 @@ dependencies = [
  "serde_core",
  "serde_json",
  "sha2 0.11.0",
+ "simple-mermaid",
  "slatedb",
  "tempfile",
  "tokio",

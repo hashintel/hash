@@ -7,29 +7,36 @@ authors.workspace = true
 publish.workspace = true
 
 [features]
-# Exposes the fault-injection harness and unleased test constructors
+# Exposes the simulation tools for tests
 test-util = []
 
 [dependencies]
-bytes        = { workspace = true, public = true }
-chrono       = { workspace = true, public = true, default-features = false, features = ["clock", "serde", "std"] }
-derive_more  = { workspace = true, features = ["display", "error"] }
-error-stack  = { workspace = true, public = true, features = ["std"] }
-futures-core = { workspace = true, public = true }
-futures-util = { workspace = true }
-serde        = { workspace = true, public = true, features = ["derive", "std"] }
-serde_core   = { workspace = true, public = true }
-serde_json   = { workspace = true, public = true, features = ["preserve_order", "raw_value"] }
-sha2         = { workspace = true }
-tokio        = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
-tokio-util   = { workspace = true, features = ["rt"] }
-tracing      = { workspace = true, features = ["attributes", "std"] }
+# Public workspace dependencies
+error-stack = { workspace = true, public = true, features = ["std"] }
 
-hex = { workspace = true, features = ["std"] }
-# Aliases distinguish the upstream opendata libraries named `common` and `log`.
+# Public third-party dependencies
+# `opendata_common` and `opendata_log` rename the upstream libraries named `common` and `log`.
+bytes           = { workspace = true, public = true }
+chrono          = { workspace = true, public = true, default-features = false, features = ["clock", "serde", "std"] }
+futures-core    = { workspace = true, public = true }
 opendata_common = { workspace = true, public = true }
-opendata_log    = { workspace = true }
-slatedb         = { workspace = true }
+serde           = { workspace = true, public = true, features = ["derive", "std"] }
+serde_core      = { workspace = true, public = true }
+serde_json      = { workspace = true, public = true, features = ["preserve_order", "raw_value"] }
+tokio           = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+derive_more    = { workspace = true, features = ["display", "error"] }
+futures-util   = { workspace = true }
+hex            = { workspace = true, features = ["std"] }
+opendata_log   = { workspace = true }
+sha2           = { workspace = true }
+simple-mermaid = { workspace = true }
+slatedb        = { workspace = true }
+tokio-util     = { workspace = true, features = ["rt"] }
+tracing        = { workspace = true, features = ["attributes", "std"] }
 
 [dev-dependencies]
 proptest = { workspace = true, features = ["fork", "timeout", "bit-set"] }

@@ -16,6 +16,9 @@
 //! ```
 //!
 //! The `test-util` feature exposes the simulation tools for tests.
+//!
+//! ## Workspace dependencies
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(ascii_char, ascii_char_variants, never_type)]
 
 extern crate alloc;

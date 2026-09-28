@@ -1,9 +1,20 @@
 {
-  "package": "@rust/durable-kernel",
+  "package": "durable-kernel",
   "dependencies": [
-    "@rust/error-stack"
+    "error-stack"
   ],
   "tasks": {
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "hash-repo-chores#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
+      ]
+    },
     "fix:clippy": {
       "dependsOn": []
     },
@@ -11,12 +22,18 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }
