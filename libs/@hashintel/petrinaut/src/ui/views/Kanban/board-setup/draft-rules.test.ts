@@ -12,7 +12,9 @@ import {
   buildConditionExpression,
   buildDraftDefinition,
   buildHighlightView,
+  defaultHighlightIcon,
   describeCondition,
+  getPromotionHint,
   formatFieldValue,
   getCardFieldOptions,
   getDefaultCardFields,
@@ -325,5 +327,47 @@ describe("card fields", () => {
     expect(formatFieldValue(0.8612)).toBe("0.86");
     expect(formatFieldValue(3)).toBe("3");
     expect(formatFieldValue(undefined)).toBe("—");
+  });
+});
+
+describe("sensible defaults", () => {
+  it("uses a clock for time-like fields and a warning otherwise", () => {
+    expect(defaultHighlightIcon("wait_time")).toBe("clock");
+    expect(defaultHighlightIcon("age_days")).toBe("clock");
+    expect(defaultHighlightIcon("waitTime")).toBe("clock");
+    expect(defaultHighlightIcon("machine_damage_ratio")).toBe("warning");
+  });
+
+  const hint = (patch: Partial<DraftRule>, extra: object = {}) =>
+    getPromotionHint({
+      rule: rule(patch),
+      fieldType: "real",
+      matches: 1,
+      statusTotal: 4,
+      statusName: "Producing",
+      ...extra,
+    });
+
+  it("keeps a number threshold a plain highlight", () => {
+    expect(hint({})).toBeNull();
+  });
+
+  it("suggests a status for a named value", () => {
+    expect(
+      hint(
+        { field: "phase", operator: "===", value: "Review" },
+        { fieldType: "string" },
+      ),
+    ).toMatch(/usually mark a stage/);
+  });
+
+  it("suggests a status when the rule catches most of the status", () => {
+    expect(hint({}, { matches: 3, statusTotal: 4 })).toMatch(/Catches 3 of 4/);
+    expect(hint({}, { matches: 2, statusTotal: 2 })).toBeNull();
+  });
+
+  it("never suggests one for an Anywhere rule or an unfinished rule", () => {
+    expect(hint({ checks: "anywhere" }, { matches: 4 })).toBeNull();
+    expect(hint({ value: "" }, { matches: 4 })).toBeNull();
   });
 });

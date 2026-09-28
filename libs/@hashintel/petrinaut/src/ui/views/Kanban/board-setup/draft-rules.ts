@@ -492,3 +492,60 @@ export const formatFieldValue = (
   }
   return value === undefined ? "—" : String(value);
 };
+
+const TIME_WORDS = new Set([
+  "time",
+  "age",
+  "wait",
+  "waiting",
+  "duration",
+  "elapsed",
+  "delay",
+  "late",
+  "since",
+  "deadline",
+  "days",
+  "hours",
+  "minutes",
+  "seconds",
+]);
+
+/** Clock for time-like fields, warning for everything else. */
+export const defaultHighlightIcon = (field: string): HighlightIcon =>
+  field
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .some((word) => TIME_WORDS.has(word))
+    ? "clock"
+    : "warning";
+
+/**
+ * Why a rule might read better as its own status, or null. A rule starts as
+ * a highlight; this only nudges. Named values (`phase = "Review"`) usually
+ * name a stage, and a highlight on most of a status's cards stops standing
+ * out.
+ */
+export const getPromotionHint = (args: {
+  rule: DraftRule;
+  fieldType: string | undefined;
+  matches: number;
+  statusTotal: number;
+  statusName: string;
+}): string | null => {
+  const { rule, fieldType, matches, statusTotal, statusName } = args;
+  if (rule.checks === "anywhere" || buildConditionExpression(rule) === null) {
+    return null;
+  }
+  if (
+    rule.expression === null &&
+    fieldType === "string" &&
+    rule.operator === "==="
+  ) {
+    return "Named values like this usually mark a stage. It may read better as its own status.";
+  }
+  if (statusTotal >= 3 && matches / statusTotal >= 0.75) {
+    return `Catches ${matches} of ${statusTotal} cards in ${statusName}. A highlight on most cards stands out less than its own status.`;
+  }
+  return null;
+};

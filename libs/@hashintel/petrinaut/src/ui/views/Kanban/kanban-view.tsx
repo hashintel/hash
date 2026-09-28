@@ -85,6 +85,11 @@ const viewSelectStyle = css({
   width: "[220px]",
 });
 
+const viewNameStyle = css({
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s110",
+});
 const viewSelectControlStyle = css({
   height: "[var(--edit-view-selector-height)]",
 });
@@ -485,19 +490,23 @@ export const KanbanView = ({
     >
       <div className={toolbarStyle} data-kanban-interactive="">
         {toolbarStart}
-        <div className={viewSelectStyle}>
-          <Select
-            className={viewSelectControlStyle}
-            required
-            size="xs"
-            value={statusView.id}
-            onChange={setSelectedStatusViewId}
-            items={statusViews.map((view) => ({
-              value: view.id,
-              text: view.name,
-            }))}
-          />
-        </div>
+        {statusViews.length > 1 ? (
+          <div className={viewSelectStyle}>
+            <Select
+              className={viewSelectControlStyle}
+              required
+              size="xs"
+              value={statusView.id}
+              onChange={setSelectedStatusViewId}
+              items={statusViews.map((view) => ({
+                value: view.id,
+                text: view.name,
+              }))}
+            />
+          </div>
+        ) : (
+          <span className={viewNameStyle}>{statusView.name}</span>
+        )}
         {!settingUp && (
           <Button
             variant="subtle"

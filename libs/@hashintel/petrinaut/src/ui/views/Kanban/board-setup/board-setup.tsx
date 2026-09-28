@@ -29,10 +29,12 @@ import {
   buildHighlightView,
   buildRuleView,
   describeCondition,
+  defaultHighlightIcon,
   describeRule,
   formatFieldValue,
   getCardFieldOptions,
   getDefaultCardFields,
+  getPromotionHint,
   getSharedAttributes,
   HIGHLIGHT_COLORS,
   HIGHLIGHT_VIEW_ID,
@@ -1463,16 +1465,28 @@ export const BoardSetup = ({
           HIGHLIGHT_COLORS.find(
             (color) => !current.some((rule) => rule.color === color),
           ) ?? HIGHLIGHT_COLORS[0],
-        icon: "warning",
+        icon: defaultHighlightIcon(field?.name ?? ""),
       },
     ]);
   };
 
   const updateRule = (ruleId: string, patch: Partial<DraftRule>) =>
     setRules((current) =>
-      current.map((rule) =>
-        rule.id === ruleId ? { ...rule, ...patch } : rule,
-      ),
+      current.map((rule) => {
+        if (rule.id !== ruleId) {
+          return rule;
+        }
+        // The glyph follows the field until someone picks one.
+        const followsField =
+          patch.field !== undefined &&
+          patch.icon === undefined &&
+          rule.icon === defaultHighlightIcon(rule.field);
+        return {
+          ...rule,
+          ...patch,
+          ...(followsField ? { icon: defaultHighlightIcon(patch.field!) } : {}),
+        };
+      }),
     );
 
   const removeRule = (ruleId: string) =>
@@ -2413,6 +2427,18 @@ export const BoardSetup = ({
                               onPromote={() => promoteRule(rule)}
                               onOpenStyle={openCardsPanel}
                               conflict={conflictFor(rule)}
+                              suggestion={getPromotionHint({
+                                rule,
+                                fieldType: getSharedAttributes(
+                                  petriNetDefinition,
+                                  selectedLabel.places,
+                                ).find(
+                                  (attribute) => attribute.name === rule.field,
+                                )?.type,
+                                matches: ruleMatches(rule).size,
+                                statusTotal: cardsFor(selectedLabel.id).length,
+                                statusName: selectedLabel.name || "this status",
+                              })}
                               setPreviewRuleId={setPreviewRuleId}
                             />
                           ))}

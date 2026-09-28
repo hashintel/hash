@@ -61,6 +61,10 @@ const nameInputStyle = css(controlBase, {
   width: "[96px]",
   fontWeight: "semibold",
 });
+const suggestionStyle = css({
+  fontSize: "xs",
+  color: "neutral.s120",
+});
 const conflictStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -133,6 +137,7 @@ export const RuleEditor = ({
   onPromote,
   onOpenStyle,
   conflict,
+  suggestion,
   setPreviewRuleId,
 }: {
   rule: DraftRule;
@@ -152,6 +157,8 @@ export const RuleEditor = ({
   onOpenStyle: () => void;
   /** Cards this rule catches that an earlier rule shows instead. */
   conflict: { text: string; onResolve: () => void } | null;
+  /** Why this rule may read better as its own status; null for none. */
+  suggestion: string | null;
   /** Set to this rule's id while the Checks control has hover or focus. */
   setPreviewRuleId: Dispatch<SetStateAction<string | null>>;
 }) => {
@@ -356,9 +363,14 @@ export const RuleEditor = ({
         </div>
       )}
 
+      {suggestion && (
+        <span className={suggestionStyle} role="note">
+          {suggestion}
+        </span>
+      )}
       <div>
         <Button
-          variant="subtle"
+          variant={suggestion ? "solid" : "subtle"}
           tone="neutral"
           size="sm"
           disabled={!finished}
