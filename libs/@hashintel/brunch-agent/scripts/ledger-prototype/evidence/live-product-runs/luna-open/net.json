@@ -1,0 +1,74 @@
+{
+  "id": "net-1",
+  "title": "Site 1000 Materials Planning",
+  "sdcpn": {
+    "places": [
+      {
+        "id": "place__quarantined_sonaflozin_lots",
+        "name": "QuarantinedLots",
+        "description": "Sonaflozin lots awaiting formal Quality sign-off; each uncoloured token is one lot.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 206
+      },
+      {
+        "id": "place__quality_release_signoffs",
+        "name": "QualitySignoffs",
+        "description": "External, lot-specific formal Quality sign-offs. The model treats one token as a single-use approval event for one lot; how a sign-off is generated is outside this fragment.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 82
+      },
+      {
+        "id": "place__production_ready_sonaflozin_lots",
+        "name": "ProductionReadyLots",
+        "description": "Sonaflozin lots formally released from quarantine and available to move to production; each token is one lot.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 92
+      }
+    ],
+    "transitions": [
+      {
+        "id": "transition__formal_quality_release",
+        "name": "Formal Quality Release",
+        "description": "Moves one Sonaflozin lot from quarantine to production-ready stock using one external lot-specific Quality sign-off. This static fragment does not model review duration or how Quality creates the sign-off.",
+        "inputArcs": [
+          {
+            "placeId": "place__quarantined_sonaflozin_lots",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "place__quality_release_signoffs",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "place__production_ready_sonaflozin_lots",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "",
+        "x": 400,
+        "y": 92
+      }
+    ],
+    "types": [],
+    "differentialEquations": [],
+    "parameters": []
+  },
+  "lastUpdated": "2026-09-28T14:09:01.197Z",
+  "incarnationId": "0c31d121-b595-4825-9e2a-b501c6ee4ad2",
+  "revisionId": "1887f588-89e4-45e2-a8de-fae0a245bc89"
+}

@@ -1,0 +1,154 @@
+{
+  "id": "net-1",
+  "title": "Site 1000 Sonic Flow material planning",
+  "sdcpn": {
+    "places": [
+      {
+        "id": "place_sonaflozin_available",
+        "name": "SonaflozinAvailable",
+        "description": "Sonaflozin units available to start production. Incoming receipts and movement from quarantine into availability are not modeled here.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 120,
+        "y": 578
+      },
+      {
+        "id": "place_flowbind_available",
+        "name": "FlowbindAvailable",
+        "description": "Flowbind Material units available to start production.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 120,
+        "y": 454
+      },
+      {
+        "id": "place_batch_due",
+        "name": "BatchDue",
+        "description": "External schedule opportunity to start one Sonic Flow batch; the roughly two-week schedule is not generated in this fragment.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 120,
+        "y": 330
+      },
+      {
+        "id": "place_batch_started",
+        "name": "BatchStarted",
+        "description": "One marker for each batch start; completion timing and finished Sonic Flow inventory are outside this fragment.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": false,
+        "x": 680,
+        "y": 454
+      },
+      {
+        "id": "place_sonaflozin_quarantined",
+        "name": "SonaflozinQuarantined",
+        "description": "Physically received Sonaflozin held for quality release; separate from production-available. Rejected quantities can move to disposal using an external rejection count, but receipt, inspection, and release to usable stock are not represented.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 120,
+        "y": 82
+      },
+      {
+        "id": "place_rejected_sonaflozin_units",
+        "name": "RejectedSonaflozinUnits",
+        "description": "Unit count marked for disposal by an external quality decision; the quality inspection/decision is outside this fragment.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 120,
+        "y": 206
+      },
+      {
+        "id": "place_sonaflozin_disposed",
+        "name": "SonaflozinDisposed",
+        "description": "Sonaflozin units removed after quality rejection; this terminal accounting state is not usable for production.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": false,
+        "x": 680,
+        "y": 92
+      }
+    ],
+    "transitions": [
+      {
+        "id": "transition_start_sonic_flow_batch",
+        "name": "Start Sonic Flow Batch",
+        "description": "A scheduled batch starts only if about 699 units each of Sonaflozin and Flowbind Material are available; both inputs are consumed at start. The 699-unit arc weights approximate the reported batch size. The schedule and batch completion are outside this fragment.",
+        "inputArcs": [
+          {
+            "placeId": "place_sonaflozin_available",
+            "weight": 699,
+            "type": "standard"
+          },
+          {
+            "placeId": "place_flowbind_available",
+            "weight": 699,
+            "type": "standard"
+          },
+          {
+            "placeId": "place_batch_due",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "place_batch_started",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "",
+        "x": 400,
+        "y": 454
+      },
+      {
+        "id": "transition_dispose_rejected_sonaflozin",
+        "name": "Dispose Rejected Sonaflozin",
+        "description": "Moves one quarantined Sonaflozin unit marked rejected by an external quality decision into disposal accounting. Lot grouping, inspection, and any replacement order are outside this fragment.",
+        "inputArcs": [
+          {
+            "placeId": "place_sonaflozin_quarantined",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "place_rejected_sonaflozin_units",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "place_sonaflozin_disposed",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "",
+        "x": 400,
+        "y": 92
+      }
+    ],
+    "types": [],
+    "differentialEquations": [],
+    "parameters": []
+  },
+  "lastUpdated": "2026-09-28T14:17:58.331Z",
+  "incarnationId": "a23df534-2f35-49e0-b9f6-6a7aa279073b",
+  "revisionId": "3fee6c81-d48e-41d3-acae-01f36582fc02"
+}
