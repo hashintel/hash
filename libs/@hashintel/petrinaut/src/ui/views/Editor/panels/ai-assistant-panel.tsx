@@ -1220,20 +1220,18 @@ const ConversationAiAssistantPanel = ({
     if (!host?.has(toolCall.toolName)) return;
     const controller = new AbortController();
     automaticToolAbortsRef.current.add(controller);
-    // Claim each issued input now, before it waits behind another document call.
-    // Its host-side experiment source is still captured only at the lane barrier.
-    const claim = host.claim({
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-      signal: controller.signal,
-    });
-    void claim.catch(() => {});
+    // Claim at the start of this call's document-lane turn, so a claimed call
+    // has started: a Stop while it waits behind another call leaves it unstarted.
     const execute = async () => {
-      let issued: Awaited<typeof claim> | undefined;
+      let issued: Awaited<ReturnType<typeof host.claim>> | undefined;
       let started = false;
       try {
-        issued = await claim;
+        issued = await host.claim({
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          signal: controller.signal,
+        });
         if (controller.signal.aborted) return;
         issued.prepare();
         started = true;

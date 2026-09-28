@@ -3727,6 +3727,60 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).toHaveBeenCalledOnce();
   });
 
+  test("claims an issued browser call only at its document-lane turn, so Stop leaves a queued call unclaimed", async () => {
+    const abortedAtClaim = new Map<string, boolean>();
+    const claim = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["claim"]
+    >(
+      ({ toolCallId, signal }) =>
+        new Promise((_resolve, reject) => {
+          abortedAtClaim.set(toolCallId, signal.aborted);
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    );
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async ({ abortSignal }) =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            for (const toolCallId of ["running-read", "queued-read"]) {
+              controller.enqueue({
+                type: "tool-input-available",
+                toolCallId,
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              });
+            }
+            abortSignal?.addEventListener("abort", () =>
+              controller.error(new DOMException("Aborted", "AbortError")),
+            );
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) => toolName === getLatestNetDefinitionToolName,
+          claim,
+        },
+      },
+      initialMessage: "Read the net twice",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(claim).toHaveBeenCalledOnce());
+    expect(claim.mock.calls[0]?.[0].toolCallId).toBe("running-read");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    await waitFor(() => expect(claim).toHaveBeenCalledTimes(2));
+    expect(abortedAtClaim.get("queued-read")).toBe(true);
+  });
+
   test("does not execute tools from a durably stopped reopened response", async () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
       streamChunks([]),
