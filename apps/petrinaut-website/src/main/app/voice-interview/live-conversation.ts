@@ -3,6 +3,7 @@ import {
   createOutputEchoTrace,
   logCaptureSettings,
 } from "./live-conversation/echo-diagnostics";
+import { createOutputOverlap } from "./live-conversation/output-overlap";
 import {
   summarizeLogprobs,
   type TranscriptionConfidence,
@@ -34,6 +35,8 @@ export interface FinalizedInput {
   readonly text: string;
   /** Speech start was reported while Live was audible or within half a second after. */
   readonly startedDuringOutput: boolean;
+  /** Live's words around the speech, only when it overlapped audible output. Never traced. */
+  readonly liveOutputText?: string;
 }
 
 type ConnectionKind = "live" | "transcription";
@@ -58,6 +61,7 @@ export const createLiveConversation = (
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
   const echoTrace = createOutputEchoTrace(sessionId);
+  const outputOverlap = createOutputOverlap();
   const utteranceLevels = createUtteranceLevels();
   const seenDelegations = new Set<string>();
   const openDelegations = new Set<string>();
@@ -80,7 +84,7 @@ export const createLiveConversation = (
   const committedPrevious = new Map<string, string | null>();
   const completed = new Map<
     string,
-    Omit<FinalizedInput, "startedDuringOutput">
+    Omit<FinalizedInput, "startedDuringOutput" | "liveOutputText">
   >();
   const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
@@ -127,6 +131,7 @@ export const createLiveConversation = (
 
   const stopMedia = () => {
     echoTrace.end();
+    outputOverlap.clear();
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
@@ -305,12 +310,14 @@ export const createLiveConversation = (
     if (recoveryTimers.size > 0) return;
     const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
+    const audible =
+      Boolean(playing) &&
+      outputLevel > 0.01 &&
+      !speakerMuted &&
+      speakerVolume > 0;
+    outputOverlap.sample(Date.now(), audible);
     echoTrace.sample(Date.now(), {
-      audible:
-        Boolean(playing) &&
-        outputLevel > 0.01 &&
-        !speakerMuted &&
-        speakerVolume > 0,
+      audible,
       microphoneLevel,
       echoReturnLoss,
       echoReturnLossEnhancement,
@@ -357,6 +364,7 @@ export const createLiveConversation = (
       if (!emitted.has(input.id)) {
         emitted.add(input.id);
         const startedDuringOutput = echoTrace.startedDuringOutput(itemId);
+        const liveOutputText = outputOverlap.finalize(itemId, Date.now());
         logLiveDiagnostic("input.finalized", {
           sessionId,
           itemId,
@@ -364,13 +372,18 @@ export const createLiveConversation = (
           characters: input.text.length,
           startedDuringOutput,
           sinceOutputMs: echoTrace.sinceOutputMs(itemId),
+          overlappedOutput: liveOutputText !== undefined,
           peakMicrophoneLevel: utteranceLevels.peak(itemId),
           ...confidence.get(itemId),
         });
         confidence.delete(itemId);
         echoTrace.forget(itemId);
         utteranceLevels.forget(itemId);
-        onFinalizedInput({ ...input, startedDuringOutput });
+        onFinalizedInput({
+          ...input,
+          startedDuringOutput,
+          ...(liveOutputText === undefined ? {} : { liveOutputText }),
+        });
       }
       itemId = committedAfter(itemId);
     }
@@ -409,10 +422,12 @@ export const createLiveConversation = (
     }
     if (data.type === "input_audio_buffer.speech_started") {
       echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
+      outputOverlap.speechStarted(data.item_id, Date.now());
       utteranceLevels.speechStarted(data.item_id, Date.now());
       return;
     }
     if (data.type === "input_audio_buffer.speech_stopped") {
+      outputOverlap.speechStopped(data.item_id, Date.now());
       utteranceLevels.speechStopped(data.item_id);
       return;
     }
@@ -622,6 +637,7 @@ export const createLiveConversation = (
         "start_ms" in data ? data.start_ms : undefined,
         "end_ms" in data ? data.end_ms : undefined,
       );
+      outputOverlap.liveOutput(Date.now(), data.delta);
     } else if (data.type === "session.input_transcript.delta") {
       echoTrace.liveInputFragment(
         "start_ms" in data ? data.start_ms : undefined,

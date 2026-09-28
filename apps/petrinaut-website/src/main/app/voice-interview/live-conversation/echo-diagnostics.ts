@@ -5,7 +5,7 @@ import { logLiveDiagnostic } from "../shared/live-diagnostic";
  * room reverberation and provider event delivery. Output transcript fragments
  * further apart than this start a new output span.
  */
-const echoTailMs = 1_000;
+export const echoTailMs = 1_000;
 
 /**
  * Speech starts are reported after the speech began, so one reported this soon
