@@ -5,7 +5,7 @@ import { afterAll, expect, test } from "vitest";
 import { createFlueAiSdkAdapter } from "../client";
 import { harnessAdapterConfig, startFlueHarness } from "./flue-harness";
 
-import type { UIMessage } from "ai";
+import type { UIMessage, UIMessageChunk } from "ai";
 
 const harness = await startFlueHarness();
 afterAll(() => harness.stop());
