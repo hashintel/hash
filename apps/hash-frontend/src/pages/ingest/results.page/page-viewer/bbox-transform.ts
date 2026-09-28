@@ -4,7 +4,7 @@
  * Overlays are absolutely-positioned <div>s inside a container wrapping the
  * page <img>. Percentage-based positioning keeps them responsive.
  */
-import type { PageImageManifest, PdfBbox } from "../shared/types";
+import type { PageImageManifest, PdfBbox } from "../../shared/types";
 
 export interface BboxPercentage {
   left: number;

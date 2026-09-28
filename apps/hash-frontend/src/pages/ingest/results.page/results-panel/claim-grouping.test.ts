@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { groupClaimsByEntity } from "./claim-grouping";
-import type { ExtractedClaim } from "./types";
+
+import type { ExtractedClaim } from "../../shared/types";
 
 const createClaim = (
   overrides: Partial<ExtractedClaim> = {},

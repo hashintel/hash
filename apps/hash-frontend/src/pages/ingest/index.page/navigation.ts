@@ -1,4 +1,5 @@
-import { getIngestResultsPath } from "./routing";
+import { getIngestResultsPath } from "../shared/routing";
+
 import type {
   DoneIngestRunState,
   IngestResumeOutcome,

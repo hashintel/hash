@@ -13,22 +13,23 @@ import {
   ListSubheader,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import { groupClaimsByEntity } from "./claim-grouping";
-import type { Selection } from "./evidence-resolver";
 import {
   buildEntityAssertionMap,
   getAssertionWindowKey,
 } from "./evidence-resolver";
-import { highlightColors } from "./highlight-styles";
+import { groupClaimsByEntity } from "./results-panel/claim-grouping";
+import { highlightColors } from "./shared/highlight-styles";
+
 import type {
   AssertionWindow,
   ExtractedClaim,
   MentionContextPlan,
   RosterEntry,
 } from "../shared/types";
+import type { Selection } from "./evidence-resolver";
+import type { FunctionComponent } from "react";
 
 interface ResultsPanelProps {
   rosterEntries: RosterEntry[];

@@ -5,11 +5,12 @@ import { act, createElement, Fragment, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import IngestPage from "./ingest.page";
+import IngestPage from "./index.page";
+
 import type {
   IngestResumeOutcome,
   IngestRunState,
-} from "./ingest.page/use-ingest-run";
+} from "./index.page/use-ingest-run";
 
 const mockUseRouter = vi.fn();
 const mockUseIngestRun = vi.fn();
@@ -40,15 +41,15 @@ vi.mock("@mui/material", () => ({
   ),
 }));
 
-vi.mock("../shared/layout", () => ({
+vi.mock("../../shared/layout", () => ({
   getLayoutWithSidebar: vi.fn((page: ReactNode) => page),
 }));
 
-vi.mock("../shared/workers-header", () => ({
+vi.mock("../../shared/workers-header", () => ({
   WorkersHeader: () => null,
 }));
 
-vi.mock("./ingest.page/upload-panel", () => ({
+vi.mock("./index.page/upload-panel", () => ({
   UploadPanel: ({ onReset }: { onReset: () => void }) => (
     <button type="button" onClick={onReset}>
       Reset ingest
@@ -56,7 +57,7 @@ vi.mock("./ingest.page/upload-panel", () => ({
   ),
 }));
 
-vi.mock("./ingest.page/use-ingest-run", () => ({
+vi.mock("./index.page/use-ingest-run", () => ({
   useIngestRun: () => mockUseIngestRun(),
 }));
 

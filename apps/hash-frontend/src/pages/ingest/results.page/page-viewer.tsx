@@ -5,7 +5,6 @@
  * `scrollToPage` imperative handle for programmatic navigation.
  */
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import {
   forwardRef,
   useCallback,
@@ -14,9 +13,11 @@ import {
   useRef,
 } from "react";
 
-import { bboxToPercentage } from "./bbox-transform";
-import { highlightColors } from "./highlight-styles";
+import { bboxToPercentage } from "./page-viewer/bbox-transform";
+import { highlightColors } from "./shared/highlight-styles";
+
 import type { Anchor, Block, PageImageManifest } from "../shared/types";
+import type { FunctionComponent } from "react";
 
 export interface PageViewerHandle {
   scrollToPage: (pageNumber: number) => void;

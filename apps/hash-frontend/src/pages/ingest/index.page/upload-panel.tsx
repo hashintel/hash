@@ -5,12 +5,16 @@
  */
 import { FileUpload } from "@ark-ui/react";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { Button } from "../../../shared/ui/button";
-import { getCountsSummary, getProgressLabel } from "./progress-labels";
+import {
+  getCountsSummary,
+  getProgressLabel,
+} from "./upload-panel/progress-labels";
+
 import type { ActiveRunStatus } from "../shared/types";
 import type { DoneIngestRunState, IngestRunState } from "./use-ingest-run";
+import type { FunctionComponent } from "react";
 
 // ---------------------------------------------------------------------------
 // Sub-components (defined first to satisfy no-use-before-define)

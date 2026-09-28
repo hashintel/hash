@@ -1,4 +1,4 @@
-import type { ExtractedClaim } from "./types";
+import type { ExtractedClaim } from "../../shared/types";
 
 export const groupClaimsByEntity = (
   claims: ExtractedClaim[],

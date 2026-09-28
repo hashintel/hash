@@ -4,7 +4,7 @@
  * Maps coarse phase/step combinations to user-facing copy.
  * See: internal/apps/agent-workflows/src/temporal/workflow-step-labels.ts
  */
-import type { RunStatus } from "./types";
+import type { RunStatus } from "../../shared/types";
 
 /** Phase/step → human-readable status line. */
 const PHASE_STEP_LABELS: Record<string, Record<string, string>> = {
