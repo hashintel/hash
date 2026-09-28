@@ -10,7 +10,6 @@ import {
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
-import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
@@ -61,7 +60,7 @@ const containerStyle = css({
 });
 
 const statusStyle = css({
-  color: "neutral.s90",
+  color: "neutral.s80",
   fontSize: "xs",
   fontWeight: "medium",
   letterSpacing: "wide",
@@ -131,6 +130,34 @@ const actionsStyle = css({
   gap: "2",
   justifyContent: "flex-end",
   marginTop: "1",
+});
+
+const primaryButtonStyle = css({
+  paddingX: "3",
+  paddingY: "2",
+  borderRadius: "md",
+  backgroundColor: "blue.a85",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "sm",
+  fontWeight: "medium",
+  _hover: { backgroundColor: "blue.a100" },
+  _disabled: { cursor: "not-allowed", opacity: 0.45 },
+});
+
+const secondaryButtonStyle = css({
+  paddingX: "3",
+  paddingY: "2",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a30",
+  borderRadius: "md",
+  backgroundColor: "neutral.s00",
+  color: "neutral.s90",
+  cursor: "pointer",
+  fontSize: "sm",
+  fontWeight: "medium",
+  _hover: { backgroundColor: "neutral.a10" },
 });
 
 /** Forget every draft, as a reload would. For tests that share the module. */
@@ -514,45 +541,6 @@ export const BrunchDraftExperimentWidget = ({
     experimentId &&
     experiments.some((experiment) => experiment.id === experimentId);
 
-  if (
-    run &&
-    run.phase !== "idle" &&
-    draft.prepared &&
-    !draft.dismissed &&
-    !(run.phase === "failed" && (reviewed || runError))
-  ) {
-    return (
-      <ExperimentExecutionCard
-        request={draft.prepared.request}
-        active={run.phase === "running"}
-        progress={
-          run.phase === "running" ? (run.progress ?? undefined) : undefined
-        }
-        result={run.phase === "finished" ? run.result : undefined}
-        error={run.phase === "failed" ? run.message : undefined}
-        onCancel={
-          run.phase === "running" ? () => run.controller.abort() : undefined
-        }
-        onRetry={
-          run.phase === "failed" && canRun ? () => void onRun() : undefined
-        }
-        onViewExperiment={
-          canViewExperiment
-            ? () => {
-                navigate(
-                  openPetrinautSimulationResource({
-                    type: "experiment",
-                    id: experimentId,
-                  }),
-                  { cause: "user", action: "simulation-resource" },
-                );
-              }
-            : undefined
-        }
-      />
-    );
-  }
-
   return (
     <section
       className={containerStyle}
@@ -673,31 +661,55 @@ export const BrunchDraftExperimentWidget = ({
           </details>
         </div>
       ) : null}
+      {run && run.phase !== "idle" && draft.prepared ? (
+        <ExperimentExecutionCard
+          request={draft.prepared.request}
+          active={run.phase === "running"}
+          progress={
+            run.phase === "running" ? (run.progress ?? undefined) : undefined
+          }
+          result={run.phase === "finished" ? run.result : undefined}
+          error={run.phase === "failed" ? run.message : undefined}
+          onCancel={
+            run.phase === "running" ? () => run.controller.abort() : undefined
+          }
+          onViewExperiment={
+            canViewExperiment
+              ? () => {
+                  navigate(
+                    openPetrinautSimulationResource({
+                      type: "experiment",
+                      id: experimentId,
+                    }),
+                    { cause: "user", action: "simulation-resource" },
+                  );
+                }
+              : undefined
+          }
+        />
+      ) : null}
       {canAct ? (
         <div className={actionsStyle}>
-          <Button
-            size="sm"
-            variant="ghost"
+          <button
+            className={secondaryButtonStyle}
             onClick={() => editorDrafts.update(toolCallId, { dismissed: true })}
             type="button"
           >
             Dismiss
-          </Button>
+          </button>
           {canRun ? (
             reviewed && !reviewAccepted ? (
-              <Button
-                size="sm"
-                tone="brand"
+              <button
+                className={primaryButtonStyle}
                 disabled={blocksRun}
                 onClick={() => setReviewAccepted(true)}
                 type="button"
               >
                 Accept current model
-              </Button>
+              </button>
             ) : (
-              <Button
-                size="sm"
-                tone="brand"
+              <button
+                className={primaryButtonStyle}
                 disabled={blocksRun}
                 onClick={() => void onRun()}
                 type="button"
@@ -709,7 +721,7 @@ export const BrunchDraftExperimentWidget = ({
                   : reviewed
                     ? "Run against current model"
                     : "Run"}
-              </Button>
+              </button>
             )
           ) : null}
         </div>

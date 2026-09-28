@@ -24,24 +24,6 @@ const hostTool = definePetrinautAiInteractiveTool({
 });
 
 describe("interactive tool registry", () => {
-  test("renders host confirmation only for inputs selected by its validated predicate", () => {
-    const conditional = definePetrinautAiInteractiveTool({
-      toolName: "mutate",
-      inputSchema: {
-        parse: (input: unknown) => input as { destructive: boolean },
-      },
-      outputSchema: { parse: (output: unknown) => output },
-      shouldHandle: (input) => input.destructive,
-      component: () => null,
-    });
-    expect(
-      getInteractiveTool("mutate", { destructive: false }, [conditional]),
-    ).toBeUndefined();
-    expect(
-      getInteractiveTool("mutate", { destructive: true }, [conditional]),
-    ).toBeDefined();
-  });
-
   test("resolves and validates a registered dynamic host tool", () => {
     const definition = resolveDynamicInteractiveTool(
       "confirmRelease",

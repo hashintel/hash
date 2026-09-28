@@ -28,8 +28,6 @@ type EditorDraft = {
   invalid: string | null;
   dismissed: boolean;
   run: EditorDraftRun;
-  /** One completion turn per local run, independent of the original tool output. */
-  followUp?: "pending" | "sent" | "failed";
 };
 
 type EditorDraftsState = {

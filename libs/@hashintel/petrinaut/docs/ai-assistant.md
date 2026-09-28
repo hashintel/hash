@@ -41,8 +41,6 @@ Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps the
 
 The activity disclosure opens while **Working…**, when **Approval required**, or when **Stopped**. Completed work collapses under **Activity · Ns**, even while the answer is still streaming; history without timing says **Activity**. Expand it to inspect **Thought for Ns** and **Used N tools**. Brunch Chat opens streaming reasoning automatically; you can collapse it while it continues. Other hosts retain their collapsed reasoning default. **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the disclosure. Disclosure icons are neutral; status dots distinguish pending, completed, and failed tools.
 
-Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies this batch; **Deny** prevents the entire batch, including any additions or updates it contains. **Always allow** permits later destructive batches only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. A model changed while approval was open must be read again before the batch can apply. Stock auto-layout approval is unchanged.
-
 When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
 Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
@@ -260,7 +258,7 @@ Voice ends when the panel closes. If Realtime Voice is interrupted, allow
 microphone access or check the connection, then select **Reconnect voice
 mode**. **Clear AI chat** is unavailable while a Voice session is active.
 
-The delete button appears in the top right once the conversation contains messages. When Voice is inactive, **Clear AI chat** in ordinary Brunch starts a fresh conversation and resets conversation-only approvals. It preserves the model and the old saved history; it is not a history-deletion action. Reopening the page returns to the new conversation. Fixed prepared fixtures may still disable clearing. Other hosts can clear local messages or disable this control.
+The delete button appears in the top right of the panel once the conversation contains messages. When no interview is active and the host permits clearing, **Clear AI chat** wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
 
 An interrupted Voice session shows a gentle red waveform without a visible status label. Recovery controls remain available and screen readers still announce the interruption. Open **Voice issues** for a short title and explanation. **Copy details** becomes **Copied** after success; **Dismiss** clears the displayed issues without ending Voice.
 
@@ -302,8 +300,9 @@ For example: "Run 100 simulations of this scenario and show the completed
 orders metric." The assistant can also search numeric scenario parameter
 ranges to minimize or maximize a metric.
 
-The experiment appears in a neutral card with a blue progress bar, its status, run count, and
-results. Select **View
+The experiment appears in a compact card with its status, run count, and
+results. Simulation cards use blue; optimization cards use purple and glow
+while running. Select **View
 experiment** to inspect metric distributions in the Experiments panel. The
 heatmap shows how values spread across runs; click a time step to see its
 histogram. Select **Cancel**
@@ -343,20 +342,13 @@ active indicator. Choosing **Run** starts execution and uses the normal
 **1 active** indicator; when it completes, that indicator
 disappears and the result remains under **Simulate → Experiments**.
 
-**Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
-draft is replaced in place by execution progress: **Validating**, simulation
-or optimization steps and runs, then **Finished** with metric cells. **Cancel**
-leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
-still require review before retrying. Drafting and starting a run keep your
-current tab selected; choose **View experiment** to open its results while the
-experiment is still available.
-
-Completed local results are sent to Brunch as a new message in the originating
-conversation when it is ready, without clearing your unsent draft. Brunch can
-then interpret them in a new answer. A stopped response is not automatically
-resumed. If submitting the result fails, choose **Retry result summary**.
-The local run is not retained after reloading the session; the submitted result
-message follows the host's conversation-history policy.
+After **Run**, the chat card shows the same blue simulation or purple
+optimization progress, **Cancel** action, final metrics and errors as the
+built-in assistant. Optimization reports search steps and refinement. Drafting
+and starting a run keep your current tab selected; choose **View experiment**
+to open its results while the experiment is still available. The proposal's
+disclosures remain visible. Run results are shown to you, not sent back to
+Brunch for interpretation, and are not retained after reloading the session.
 
 ## Read-only behaviour
 
