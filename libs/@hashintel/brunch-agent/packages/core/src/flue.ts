@@ -4,6 +4,7 @@
  */
 import {
   type CompactionConfig,
+  useInstruction,
   useModel,
   useSkill,
   useTool,
@@ -16,6 +17,7 @@ import {
   createLedgerCompileTool,
   type LedgerServices,
 } from "./ledger-tools";
+import ledgerFieldsGuidance from "./prompts/LEDGER_FIELDS.md?raw";
 import systemPrompt from "./prompts/SYSTEM.md?raw";
 
 type BrunchModelOptions = {
@@ -26,7 +28,9 @@ type BrunchModelOptions = {
 /**
  * Mount the contributions owned by Brunch core and return its system prompt:
  * the universal prompt, the `elicitation` capability skill, and the Ledger
- * tools, whose only state is the conversation's own history.
+ * tools, whose only state is the conversation's own history. Guidance for the
+ * typed epistemic fields is mounted only when the commit tool takes them, so
+ * the `open` Note shape stays an uncoached comparison.
  */
 export function useBrunchAgent(
   model: string,
@@ -37,5 +41,6 @@ export function useBrunchAgent(
   useSkill(elicitationSkill);
   useTool(createLedgerCommitTool(ledger));
   useTool(createLedgerCompileTool(ledger));
+  if (ledger.noteShape === "typed") useInstruction(ledgerFieldsGuidance.trim());
   return systemPrompt.replace(/^\s+|\s+$/gu, "");
 }
