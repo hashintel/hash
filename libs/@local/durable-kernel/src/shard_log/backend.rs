@@ -68,9 +68,14 @@ pub trait JournalReader: Send + Sync + 'static {
     fn close(self) -> impl Future<Output = Result<(), Report<DurableError>>> + Send;
 }
 
-/// Appends through one writer epoch. Opening a replacement must invalidate older writers.
+/// Appends through one writer epoch. Opening a replacement must invalidate older writers. An
+/// append from an older writer is then either below the replacement's durable end or never
+/// becomes durable.
 pub trait JournalWriter: JournalReader {
     /// Returns the exclusive end of the durable journal sequences visible to this writer.
+    ///
+    /// For a newly opened writer, this end covers every record an earlier writer made durable.
+    /// Recovery reads the journal only up to it.
     fn durable_end_exclusive(&self) -> JournalSequence;
 
     /// Stores a record under the bytes remaining in `key`. Returns its journal sequence once the
@@ -79,10 +84,11 @@ pub trait JournalWriter: JournalReader {
     ///
     /// # Errors
     ///
-    /// Returns a [`ShardAppendError`] whose kind is
-    /// [`DefinitelyNotCommitted`](super::AppendFailureKind::DefinitelyNotCommitted),
-    /// [`CommitUnknown`](super::AppendFailureKind::CommitUnknown), or
-    /// [`Fenced`](super::AppendFailureKind::Fenced).
+    /// Returns a [`ShardAppendError`] of kind
+    /// [`DefinitelyNotCommitted`](super::AppendFailureKind::DefinitelyNotCommitted) only when the
+    /// record is not stored and never will be. Returns
+    /// [`Fenced`](super::AppendFailureKind::Fenced) when a replacement writer owns the journal,
+    /// and [`CommitUnknown`](super::AppendFailureKind::CommitUnknown) for every other failure.
     fn append(
         &self,
         key: impl Buf + Send,

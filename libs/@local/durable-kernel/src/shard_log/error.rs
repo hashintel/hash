@@ -9,7 +9,7 @@ use crate::{DurableError, routing::Shard};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
 /// Determines whether an append can be retried or its writer must be replaced.
 pub enum AppendFailureKind {
-    /// Storage was not changed. Retrying the append is safe.
+    /// The record is not stored and never will be. Retrying the append is safe.
     #[display("record was not committed")]
     DefinitelyNotCommitted,
     /// The record may be stored. Recover before deciding whether to retry it.
