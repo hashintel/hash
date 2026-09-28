@@ -6,8 +6,12 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+// PROTOTYPE ONLY — remove with ./kanban-prototype-defaults before any PR.
+import { applyKanbanPrototypeDefaults } from "./kanban-prototype-defaults";
 import { router } from "./router";
 import { SentryErrorTrackerProvider } from "./sentry/sentry-error-tracker-provider";
+
+applyKanbanPrototypeDefaults();
 
 const root = createRoot(document.getElementById("root")!, {
   // Callback called when an error is thrown and not caught by an ErrorBoundary.
