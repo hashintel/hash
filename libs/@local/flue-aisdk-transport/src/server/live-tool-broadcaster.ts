@@ -43,7 +43,7 @@ export type LiveToolBroadcasterOptions = {
 
 const defaultOptions = {
   maxInstances: 64,
-  maxQueuedEvents: 64,
+  maxQueuedEvents: 128,
   maxRetainedEvents: 64,
   retentionMs: 30_000,
 } as const;
@@ -123,9 +123,11 @@ export const createLiveToolBroadcaster = (
   options: LiveToolBroadcasterOptions = {},
 ): LiveToolBroadcaster => {
   const configured = { ...defaultOptions, ...options };
-  if (configured.maxRetainedEvents > configured.maxQueuedEvents) {
+  // A subscriber replays the retained window into its queue before reading,
+  // so the queue must keep room for at least one live event after replay.
+  if (configured.maxRetainedEvents >= configured.maxQueuedEvents) {
     throw new Error(
-      "The live tool broadcaster cannot retain more events than a subscriber can queue.",
+      "The live tool broadcaster must retain fewer events than a subscriber can queue.",
     );
   }
   const instances = new Map<string, InstanceEntry>();

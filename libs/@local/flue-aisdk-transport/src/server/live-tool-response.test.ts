@@ -79,7 +79,6 @@ test("continues live delivery after replaying the full retained window", async (
     request: request(),
   });
   expect(response.status).toBe(200);
-  await new Promise((resolve) => setTimeout(resolve, 0));
   broadcaster.publish({
     instanceId,
     kind: "tool-input-start",

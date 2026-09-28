@@ -86,19 +86,47 @@ test("catches up an initial subscriber without retaining unbounded listeners", a
   emptyBroadcaster.close();
 });
 
-test("rejects a retained-event limit larger than the subscriber queue", () => {
-  expect(() =>
-    createLiveToolBroadcaster({
-      maxQueuedEvents: 1,
-      maxRetainedEvents: 2,
-    }),
-  ).toThrow("cannot retain more events");
+test.each([
+  [1, 2],
+  [2, 2],
+])(
+  "rejects %i queued events for %i retained, leaving no room after replay",
+  (maxQueuedEvents, maxRetainedEvents) => {
+    expect(() =>
+      createLiveToolBroadcaster({ maxQueuedEvents, maxRetainedEvents }),
+    ).toThrow("must retain fewer events than a subscriber can queue");
+  },
+);
+
+test("keeps a subscriber that joins after a full retained window", async () => {
+  const broadcaster = createLiveToolBroadcaster();
+  for (let index = 0; index < 64; index += 1) {
+    broadcaster.publish(
+      startEvent("instance-a", "submission-a", `old-${index}`),
+    );
+  }
+  const subscription = broadcaster.subscribe("instance-a", "submission-a");
+  broadcaster.publish(startEvent("instance-a", "submission-a", "first-live"));
+
+  expect(broadcaster.stats().subscribers).toBe(1);
+  const received: string[] = [];
+  const iterator = subscription.events[Symbol.asyncIterator]();
+  for (let index = 0; index < 65; index += 1) {
+    // Replay and live delivery are read in order.
+    // eslint-disable-next-line no-await-in-loop
+    const next = await iterator.next();
+    if (!next.done && "toolCallId" in next.value) {
+      received.push(next.value.toolCallId);
+    }
+  }
+  expect(received.at(-1)).toBe("first-live");
+  broadcaster.close();
 });
 
 test("drops a slow subscriber instead of backpressuring publication", async () => {
   const broadcaster = createLiveToolBroadcaster({
     maxQueuedEvents: 1,
-    maxRetainedEvents: 1,
+    maxRetainedEvents: 0,
   });
   const subscription = broadcaster.subscribe("instance-a", "submission-a");
   const iterator = subscription.events[Symbol.asyncIterator]();
