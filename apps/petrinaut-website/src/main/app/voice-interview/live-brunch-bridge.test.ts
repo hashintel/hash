@@ -444,6 +444,16 @@ test("input of up to three words that started while Live was audible is not sent
     text: "That sounds good.",
     startedDuringOutput: true,
   });
+  await fixture.bridge.accept({
+    id: "contraction",
+    text: "I’ll be back.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "ascii-contraction",
+    text: "I'll be back.",
+    startedDuringOutput: true,
+  });
   expect(fixture.submit).not.toHaveBeenCalled();
   expect(fixture.notice).not.toHaveBeenCalled();
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
@@ -466,6 +476,14 @@ test("input of up to three words that started while Live was audible is not sent
     }),
     expect.objectContaining({
       inputId: "three-words",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "contraction",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "ascii-contraction",
       reason: "short-during-output",
     }),
   ]);

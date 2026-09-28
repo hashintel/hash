@@ -35,7 +35,9 @@ type Submit = ConstructorParameters<
 >[0]["submitInterviewAnswer"];
 
 const wordCount = (text: string) =>
-  text.normalize("NFKC").match(/[\p{L}\p{M}\p{N}]+/gu)?.length ?? 0;
+  text
+    .normalize("NFKC")
+    .match(/[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu)?.length ?? 0;
 
 interface Dependencies {
   readonly submit: Submit;
