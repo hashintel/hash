@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import {
+  browserToolMutatesDocument,
+  isNetObservationTool,
+  parseClientToolResultMetadata,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
@@ -141,28 +146,70 @@ const contentKey = (
   content: Pick<SettlementAuthority | ReadAuthority, "revisionId" | "sha256">,
 ) => `${content.revisionId}\u0000${content.sha256}`;
 
-/** Flue retains the verified sidecar, but the provider sees only Petrinaut's exact canonical result. */
-const projectInBandBrowserResult = (
-  entry: ContextProjectionEntry,
-): ContextProjectionEntry => {
-  const { message } = entry;
+const browserEnvelope = (
+  message: ContextProjectionMessage,
+): Record<string, unknown> | undefined => {
   if (
     message.role !== "toolResult" ||
     message.isError ||
     !inBandBrowserToolNames.has(message.toolName)
   )
-    return entry;
+    return undefined;
   const envelope = parseTextJson(message);
-  if (
-    envelope?.brunchBrowserResult !== true ||
-    !Object.hasOwn(envelope, "output")
-  )
-    return entry;
+  return envelope?.brunchBrowserResult === true &&
+    Object.hasOwn(envelope, "output")
+    ? envelope
+    : undefined;
+};
+
+/**
+ * The latest document change carrying the browser's read-back, unless a later
+ * net read already shows the model the net. Earlier read-backs stay host-only.
+ */
+const readBackEntryIndex = (
+  entries: readonly ContextProjectionEntry[],
+): number | undefined => {
+  let candidate: number | undefined;
+  for (const [index, { message }] of entries.entries()) {
+    if (message.role !== "toolResult" || !browserEnvelope(message)) continue;
+    if (isNetObservationTool(message.toolName)) candidate = undefined;
+    else if (
+      browserToolMutatesDocument(message.toolName) &&
+      parseClientToolResultMetadata(browserEnvelope(message)?.metadata)
+        ?.readBack !== undefined
+    )
+      candidate = index;
+  }
+  return candidate;
+};
+
+/**
+ * Flue retains the verified sidecar, but the provider sees only Petrinaut's
+ * exact canonical result, plus the net's structure after the latest change.
+ */
+const projectInBandBrowserResult = (
+  entry: ContextProjectionEntry,
+  withReadBack: boolean,
+): ContextProjectionEntry => {
+  const envelope = browserEnvelope(entry.message);
+  if (!envelope || entry.message.role !== "toolResult") return entry;
+  const readBack = withReadBack
+    ? parseClientToolResultMetadata(envelope.metadata)?.readBack
+    : undefined;
   return {
     ...entry,
     message: {
-      ...message,
-      content: [{ type: "text", text: JSON.stringify(envelope.output) }],
+      ...entry.message,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            readBack === undefined
+              ? envelope.output
+              : { output: envelope.output, netAfterChanges: readBack },
+          ),
+        },
+      ],
     },
   };
 };
@@ -328,6 +375,8 @@ export type BrunchContextProjectionOptions = {
    * unchanged regardless of this model-context-only option.
    */
   projectSupersededWorkpieceArguments?: boolean;
+  /** Receives exactly the canonical entries of the model's next request. */
+  observe?: (entries: readonly ContextProjectionEntry[]) => void;
 };
 
 /**
@@ -338,6 +387,8 @@ export const createBrunchContextProjection = (
   options: BrunchContextProjectionOptions = {},
 ): ContextProjection => {
   return (entries) => {
+    options.observe?.(entries);
+    const readBackIndex = readBackEntryIndex(entries);
     const settlements = settlementAuthorities(entries);
     const reads = entries.flatMap((entry, entryIndex) => {
       const content = readAuthority(entry, entryIndex);
@@ -380,6 +431,7 @@ export const createBrunchContextProjection = (
       const settlement = settlements.find(
         (candidate) => candidate.resultEntryIndex === entryIndex,
       );
+      const withReadBack = entryIndex === readBackIndex;
       if (settlement)
         return projectInBandBrowserResult(
           projectMutationResult(
@@ -387,6 +439,7 @@ export const createBrunchContextProjection = (
             settlement,
             retainedEntryIds.get(contentKey(settlement)),
           ),
+          withReadBack,
         );
       const read = reads.find(
         (candidate) => candidate.entryIndex === entryIndex,
@@ -398,6 +451,7 @@ export const createBrunchContextProjection = (
         read && retainedEntryId
           ? projectReadResult(withProjectedArguments, read, retainedEntryId)
           : withProjectedArguments,
+        withReadBack,
       );
     });
   };

@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
+  BROWSER_CALL_STALE_ERROR,
   BROWSER_CALL_UNSTARTED_ERROR,
   claimBrowserCall,
   failBrowserCall,
@@ -354,4 +355,27 @@ it("classifies a claimed call that cannot change the document as unchanged when 
   claimBrowserCall(write.instanceId, write.toolCallId, write.binding);
   await vi.advanceTimersByTimeAsync(25_001);
   await expiredRejection;
+});
+
+it("hands the browser the expected revision and reports a stale document without starting the call", async () => {
+  const binding = JSON.stringify({ conversationId: "c", documentId: "d" });
+  const call = {
+    instanceId: "owner",
+    toolCallId: crypto.randomUUID(),
+    toolName: "addPlace",
+    canonicalInput: { name: "Queue" },
+    binding,
+    expectedRevision: "r7",
+  };
+  const result = issueBrowserCall(call);
+  const issued = claimBrowserCall(call.instanceId, call.toolCallId, binding);
+  expect(issued?.expectedRevision).toBe("r7");
+  expect(
+    failBrowserCall({
+      ...call,
+      capability: issued!.capability,
+      disposition: "stale",
+    }),
+  ).toBe(true);
+  await expect(result).rejects.toThrow(BROWSER_CALL_STALE_ERROR);
 });

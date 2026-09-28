@@ -830,6 +830,8 @@ export const LocalStorageDemoApp = ({
             prepareInput: (call) => {
               canonicalHostTools?.mapClientToolInput(call);
             },
+            acceptsRevision: (expected) =>
+              canonicalHostTools?.acceptsRevision(expected) ?? false,
           })
         : undefined,
     [constructionBrowser, flueClientPromise, canonicalHostTools],

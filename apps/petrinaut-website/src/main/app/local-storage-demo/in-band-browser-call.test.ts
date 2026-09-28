@@ -56,6 +56,7 @@ test("an unknown mutation record is submitted without failing the call", async (
         Parameters<typeof createInBandBrowserCalls>[0]["metadataFor"]
       >,
     prepareInput: () => {},
+    acceptsRevision: () => true,
   });
 
   await expect(
@@ -101,6 +102,7 @@ test("the binding matches the issued call whatever its key order", async () => {
     binding: reordered,
     metadataFor: async () => undefined,
     prepareInput: () => {},
+    acceptsRevision: () => true,
   });
 
   await calls.run(
@@ -159,6 +161,7 @@ const createCalls = (
     binding,
     metadataFor: async () => undefined,
     prepareInput,
+    acceptsRevision: () => true,
   });
 
 test("a call that throws once executed is reported failed", async () => {
@@ -226,4 +229,53 @@ test("a call stopped during its claim neither executes nor reports", async () =>
   await running.catch(() => {});
   expect(execute).not.toHaveBeenCalled();
   expect(posted).toEqual([]);
+});
+
+test("a change whose expected revision the document has left is reported stale and never prepared", async () => {
+  const posted: unknown[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (_url, init) => {
+      if (init?.method === "POST") {
+        posted.push(
+          typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+        );
+        return new Response(null, { status: 200 });
+      }
+      return Response.json({
+        capability: "capability",
+        binding: canonicalContent(binding),
+        toolName: "addPlace",
+        input,
+        expectedRevision: "r1",
+      });
+    }),
+  );
+  const prepareInput = vi.fn<() => void>();
+  const accepted: string[] = [];
+  const calls = createInBandBrowserCalls({
+    client: Promise.resolve({
+      url: "http://brunch.local/agents/chat/instance",
+    } as FlueClient),
+    principalKey: "principal",
+    binding,
+    metadataFor: async () => undefined,
+    prepareInput,
+    acceptsRevision: (expected) => {
+      accepted.push(expected);
+      return false;
+    },
+  });
+
+  const issued = await calls.claim({
+    toolCallId: "call",
+    toolName: "addPlace",
+    input,
+    signal: new AbortController().signal,
+  });
+  expect(() => issued.prepare()).toThrow(/changed by other means/u);
+  expect(accepted).toEqual(["r1"]);
+  expect(prepareInput).not.toHaveBeenCalled();
+  await issued.fail("unstarted");
+  expect(posted).toEqual([expect.objectContaining({ disposition: "stale" })]);
 });
