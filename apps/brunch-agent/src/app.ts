@@ -132,7 +132,7 @@ if (accounting) {
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = inBandBrowserToolNames;
-const integratedMixedToolNames = new Set([
+const mixedToolNames = new Set([
   ...inBandBrowserToolNames,
   brunchTools.ping,
   brunchTools.mutateWorkpiece,
@@ -142,7 +142,7 @@ const integratedMixedToolNames = new Set([
   brunchTools.queryWorkpiece,
 ]);
 // Running these beside their dependency would answer from the previous result.
-const integratedDependentToolNames = new Map([
+const dependentToolNames = new Map([
   [brunchTools.queryWorkpiece, [getLatestNetDefinitionToolName]],
   [
     brunchTools.draftPetrinautExperiment,
@@ -160,8 +160,8 @@ const registerAdmittedProvider = (provider: Provider) => {
       browserToolNames,
       {
         cancellationTimeoutMs: modelStreamCancellationTimeoutMs,
-        mixedToolNames: integratedMixedToolNames,
-        dependentToolNames: integratedDependentToolNames,
+        mixedToolNames,
+        dependentToolNames,
         claimRetry: () => claimModelStreamIdleRetry(admissionScope.getStore()),
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,

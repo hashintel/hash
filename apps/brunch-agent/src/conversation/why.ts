@@ -181,7 +181,7 @@ export const queryWorkpiece = (input: {
     currentWorkpiece: input.current,
     disposition: target ? ("basis-absent" as const) : ("not-found" as const),
     reason: target
-      ? "No declared basis exists in integrated mode; these are chronological call associations, not semantic justification."
+      ? "No declared basis exists; these are chronological call associations, not semantic justification."
       : "The named element is absent or ambiguous in the latest net read.",
     target,
     readToolCallId: latest?.call.toolCallId,

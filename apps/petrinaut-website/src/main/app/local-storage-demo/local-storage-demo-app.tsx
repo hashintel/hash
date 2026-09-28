@@ -22,7 +22,6 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { brunchModes } from "@hashintel/brunch-agent/constants";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -71,7 +70,7 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
-import { integratedPetrinautClientToolNames } from "./brunch-client-tools";
+import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -474,7 +473,6 @@ export const LocalStorageDemoApp = ({
   }, [navigation]);
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
-  const productConstructionSelected = brunchSelected;
   const { controller } = useDocumentController({
     onOpenDocument: clearSharedLocation,
   });
@@ -672,15 +670,12 @@ export const LocalStorageDemoApp = ({
       return undefined;
     return brunchSelected ? { binding: processAgentBinding } : undefined;
   }, [activeHandle, brunchSelected, processAgentBinding]);
-  const integratedConstructionBrowser = productConstructionSelected
-    ? constructionBrowser
-    : undefined;
   const dynamicClientToolNames =
-    integratedConstructionBrowser === undefined
+    constructionBrowser === undefined
       ? undefined
-      : integratedPetrinautClientToolNames;
+      : brunchPetrinautClientToolNames;
   const constructionClientTools = brunchSelected
-    ? integratedPetrinautClientToolNames
+    ? brunchPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
@@ -688,16 +683,16 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
   );
-  const replayBindingKey = integratedConstructionBrowser
-    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
+  const replayBindingKey = constructionBrowser
+    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
     : undefined;
   const deriveCanonicalReplay = useCallback(
     async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
-      if (integratedConstructionBrowser === undefined)
+      if (constructionBrowser === undefined)
         return EMPTY_CANONICAL_PETRINAUT_REPLAY;
       return issuedCanonicalCallsFromHistory({ snapshot });
     },
-    [integratedConstructionBrowser],
+    [constructionBrowser],
   );
   const canonicalReplayReadiness = useImmutableReplayBaseline<
     NonNullable<typeof flueHistory.snapshot>,
@@ -717,10 +712,10 @@ export const LocalStorageDemoApp = ({
     repository.settleRevision,
   );
   const canonicalHostTools = useMemo(() => {
-    if (!integratedConstructionBrowser || !activeHandle) return undefined;
+    if (!constructionBrowser || !activeHandle) return undefined;
     return createCanonicalPetrinautHostTools({
       handle: activeHandle.handle,
-      binding: integratedConstructionBrowser.binding,
+      binding: constructionBrowser.binding,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
       settleRevision: settleConstructionRevision,
@@ -728,7 +723,7 @@ export const LocalStorageDemoApp = ({
   }, [
     activeHandle,
     canonicalReplayReadiness,
-    integratedConstructionBrowser,
+    constructionBrowser,
     settleConstructionRevision,
   ]);
   useEffect(() => {
@@ -773,12 +768,9 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
-          initialData: {
-            mode: brunchModes.integrated,
-            ...(constructionBrowser
-              ? { construction: { binding: constructionBrowser.binding } }
-              : {}),
-          },
+          ...(constructionBrowser
+            ? { initialData: { binding: constructionBrowser.binding } }
+            : {}),
           ...(transportClientPromise === flueClientPromise &&
           conversationId !== null
             ? {
@@ -827,11 +819,11 @@ export const LocalStorageDemoApp = ({
 
   const inBandBrowserTools = useMemo(
     () =>
-      integratedConstructionBrowser && flueClientPromise
+      constructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
             client: flueClientPromise,
             principalKey: brunchPrincipal,
-            binding: integratedConstructionBrowser.binding,
+            binding: constructionBrowser.binding,
             metadataFor: async (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(
                 toolCallId,
@@ -842,12 +834,12 @@ export const LocalStorageDemoApp = ({
             },
           })
         : undefined,
-    [integratedConstructionBrowser, flueClientPromise, canonicalHostTools],
+    [constructionBrowser, flueClientPromise, canonicalHostTools],
   );
 
   const draftInteractiveTool = useMemo(
     () =>
-      integratedConstructionBrowser &&
+      constructionBrowser &&
       activeHandle &&
       flueClientPromise &&
       inBandBrowserTools
@@ -863,34 +855,29 @@ export const LocalStorageDemoApp = ({
             },
           })
         : undefined,
-    [
-      activeHandle,
-      flueClientPromise,
-      inBandBrowserTools,
-      integratedConstructionBrowser,
-    ],
+    [activeHandle, flueClientPromise, inBandBrowserTools, constructionBrowser],
   );
   const aiAssistant = useMemo(() => {
     const activityIdentities =
-      integratedConstructionBrowser && flueHistory.ready
+      constructionBrowser && flueHistory.ready
         ? flueHistory.phase === "absent"
           ? []
           : flueHistory.snapshot === undefined
             ? undefined
             : foldBrunchWorkpieceHistory(
                 flueHistory.snapshot.messages,
-                integratedConstructionBrowser.binding,
+                constructionBrowser.binding,
               ).activityIdentities
         : undefined;
     return {
-      additionalTab: integratedConstructionBrowser
+      additionalTab: constructionBrowser
         ? {
             label: "Ledger",
             activityIdentities,
             content: (
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
-                binding={integratedConstructionBrowser.binding}
+                binding={constructionBrowser.binding}
               />
             ),
           }
@@ -904,8 +891,9 @@ export const LocalStorageDemoApp = ({
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      // These exact-name tools override the static registry only in integrated
-      // mode. Every other canonical capability remains on Petrinaut's registry.
+      // These exact-name tools override the static registry only while a
+      // document binding is attached. Every other canonical capability remains
+      // on Petrinaut's registry.
       inBandBrowserTools,
       automaticTools: [...(canonicalHostTools?.tools ?? [])],
       interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],
@@ -962,7 +950,7 @@ export const LocalStorageDemoApp = ({
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
-    integratedConstructionBrowser,
+    constructionBrowser,
     conversationTracker,
     conversationId,
     currentNetId,

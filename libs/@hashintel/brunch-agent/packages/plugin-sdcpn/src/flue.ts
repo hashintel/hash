@@ -12,7 +12,6 @@ import {
 } from "@flue/runtime";
 
 import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md";
-import { brunchModes } from "@hashintel/brunch-agent/constants";
 import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
 
 import { type SdcpnInitialData } from "./initial-data";
@@ -30,16 +29,18 @@ export const useSdcpnPlugin = (options?: {
   >[0]["authorizeDraft"];
 }): void => {
   const initialData = useInitialData<SdcpnInitialData>();
-  if (initialData?.mode === brunchModes.integrated) {
+  if (initialData) {
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
     useSkill(sdcpnModellingSkill);
     if (!options?.authorizeDraft)
       throw new Error(
-        "Integrated Brunch requires draft history authorization.",
+        "A document-bound conversation requires draft history authorization.",
       );
     if (!options.executeBrowserTool)
-      throw new Error("Integrated Brunch requires browser tool execution.");
+      throw new Error(
+        "A document-bound conversation requires browser tool execution.",
+      );
     useTool(
       createDraftExperimentTool({
         authorizeDraft: options.authorizeDraft,
@@ -52,7 +53,7 @@ export const useSdcpnPlugin = (options?: {
     for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
       useTool(tool);
   } else {
-    // A conversation with no initial mode offers the instruction and skill only.
+    // A conversation with no document binding offers the instruction and skill only.
     useInstruction(sdcpnAppend.trim());
     useSkill(sdcpnModellingSkill);
   }

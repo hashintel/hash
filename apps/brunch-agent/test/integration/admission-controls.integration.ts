@@ -19,7 +19,7 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
@@ -99,13 +99,10 @@ const run = async () => {
       conversationId: `${crypto.randomUUID()}-${caseId}`,
     };
     const initialData = {
-      mode: brunchModes.integrated,
-      construction: {
-        binding: {
-          conversationId: identity.conversationId,
-          documentId: `document-${caseId}`,
-          incarnationId: `incarnation-${caseId}`,
-        },
+      binding: {
+        conversationId: identity.conversationId,
+        documentId: `document-${caseId}`,
+        incarnationId: `incarnation-${caseId}`,
       },
     };
     const client = createFlueClient({
@@ -163,7 +160,7 @@ const run = async () => {
   const observations = [];
   const refusals = [];
   try {
-    // I admits allowlisted mixes; `task` (Flue's built-in server tool) and an
+    // Admission allows allowlisted mixes; `task` (Flue's built-in server tool) and an
     // unmounted name are outside that allowlist beside a browser tool.
     for (const names of [
       ["task", "addType"],
@@ -213,7 +210,7 @@ const run = async () => {
       attempt,
       providerCallsBeforeClientResult: requests.length - requestStart,
     });
-    // Voice runs on I, the product baseline, which also mounts the Ledger.
+    // Voice runs in a document-bound conversation, which also mounts the Ledger.
     const buffering = [];
     for (const abort of [false, true]) {
       caseId = abort ? "buffered-cancelled" : "buffered-valid";

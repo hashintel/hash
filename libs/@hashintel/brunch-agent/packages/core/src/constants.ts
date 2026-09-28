@@ -1,5 +1,5 @@
 /**
- * Brunch's named constants: the tool, mode, signal, header, route, state-key
+ * Brunch's named constants: the tool, signal, header, route, state-key
  * and environment-variable names that packages, apps and the website share.
  *
  * This module imports nothing, so the browser, plain Node and Flue builds can
@@ -32,12 +32,6 @@ export const brunchTools = {
   queryWorkpiece: "query_workpiece",
   readSkillResource: "read_skill_resource",
   readWorkpiece: "read_workpiece",
-} as const;
-
-/** Conversation modes admitted as `initialData.mode`. */
-export const brunchModes = {
-  /** Product baseline: Brunch composition with Petrinaut's canonical catalogue. */
-  integrated: "integrated-brunch-canonical",
 } as const;
 
 /** Request headers that carry conversation identity. */

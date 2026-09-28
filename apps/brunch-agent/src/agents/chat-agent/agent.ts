@@ -17,11 +17,10 @@ import {
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
-import { brunchModes, createWorkpieceReadTool } from "@hashintel/brunch-agent";
+import { createWorkpieceReadTool } from "@hashintel/brunch-agent";
 import {
   canonicalContent,
   sdcpnInitialDataSchema,
-  type BrowserContext,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -59,12 +58,8 @@ const chatModelOptions = {
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   const admission = modelAdmissionScope.getStore();
-  if (admission)
-    admission.asyncBrowserTools = initialData?.mode === brunchModes.integrated;
+  if (admission) admission.asyncBrowserTools = initialData !== undefined;
   useContextProjection(projectBrunchContext);
-  const browserContext: BrowserContext | undefined = initialData?.construction
-    ? { binding: initialData.construction.binding }
-    : undefined;
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {
@@ -82,8 +77,8 @@ export function ChatAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     (currentRevision) => {
-      useSdcpnPlugin({
-        ...(browserContext
+      useSdcpnPlugin(
+        initialData
           ? {
               authorizeDraft: async (draftCallId: string) => {
                 if (!latestNetReadBefore(await history(), draftCallId))
@@ -91,10 +86,6 @@ export function ChatAgent({ id }: AgentProps) {
                     "Experiment draft requires a prior canonical net read.",
                   );
               },
-            }
-          : {}),
-        ...(initialData?.mode === brunchModes.integrated && browserContext
-          ? {
               executeBrowserTool: async ({
                 toolName,
                 input,
@@ -106,43 +97,43 @@ export function ChatAgent({ id }: AgentProps) {
                   toolCallId,
                   toolName,
                   canonicalInput: input,
-                  binding: canonicalContent(browserContext.binding),
+                  binding: canonicalContent(initialData.binding),
                   signal,
                 });
                 return { output: result.output, metadata: result.metadata };
               },
             }
-          : {}),
-      });
-      if (browserContext) {
+          : {},
+      );
+      if (initialData) {
         useTool(createWorkpieceReadTool({ currentRevision, readSources }));
         useTool(
           createQueryWorkpieceTool({
             current: currentRevision,
-            browser: browserContext,
+            browser: initialData,
             history,
           }),
         );
       }
     },
-    browserContext
+    initialData
       ? async (current: WorkpieceRevision | null) =>
           workpieceEvidenceSources(await history(), current)
       : undefined,
-    initialData?.mode === brunchModes.integrated,
+    initialData !== undefined,
   );
 
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
 ${
-  initialData?.mode === brunchModes.integrated
+  initialData
     ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown."
     : "This conversation has no browser tools; use the available server tools and modelling skill."
 }
 `.replace(/^\s+|\s+$/gu, ""),
   );
-  if (browserContext)
+  if (initialData)
     useInstruction(
       `
 When the user asks why a visible element exists, do not answer from memory. If no current ${getLatestNetDefinitionToolName} read exists or the net may have changed since it, read the net first, then call query_workpiece with the element's kind and recorded name or ID (for an arc, the transition ID, direction and place ID). The answer lists associated applied calls and the workpiece revision current at each call; chronological association is not semantic justification. If no call is associated, say so plainly.

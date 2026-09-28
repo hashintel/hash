@@ -79,10 +79,7 @@ type BrowserBinding = {
 
 type BrowserDelivery = {
   readonly kind?: string;
-  readonly initialData?: {
-    readonly mode?: string;
-    readonly construction?: { readonly binding?: BrowserBinding };
-  };
+  readonly initialData?: { readonly binding?: BrowserBinding };
 };
 
 const closeServer = (server: Server) =>
@@ -254,7 +251,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
 
   /** The Flue client for the conversation the delivery's binding names. */
   const conversationOf = async (page: Page, delivery: BrowserDelivery) => {
-    const binding = delivery.initialData?.construction?.binding;
+    const binding = delivery.initialData?.binding;
     assert(binding, "Missing browser conversation binding");
     const identity = {
       principalKey: await principalOf(page),

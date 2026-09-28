@@ -75,8 +75,7 @@ export const readPersonaResume = async (directory: string) => {
     session.url,
     `${config.panelOrigin}/agents/chat/${flueConversationIdFrom(session)}`,
   );
-  const binding = session.initialData.construction?.binding;
-  assert(binding, "Resume requires the original construction binding");
+  const binding = session.initialData.binding;
   assert.equal(binding.conversationId, session.conversationId);
   assert((await stat(config.databasePath)).isFile());
   assert((await stat(config.browserProfile)).isDirectory());
@@ -133,8 +132,8 @@ export const openRetainedPersonaBrowser = async (
     ) as unknown,
   }));
   const data = v.parse(sdcpnInitialDataSchema, session.initialData);
-  const binding = data?.construction?.binding;
-  assert(binding);
+  assert(data);
+  const binding = data.binding;
   assert.equal(
     saved.principal,
     session.principalKey,

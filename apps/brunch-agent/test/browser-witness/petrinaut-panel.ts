@@ -1,5 +1,5 @@
 /**
- * Manual witness: the built integrated-mode website in real Chrome against the
+ * Manual witness: the built website's Brunch panel in real Chrome against the
  * built Brunch app, with scripted OpenAI responses only. Each case runs its own
  * conversation in a fresh browser context.
  */
@@ -11,7 +11,6 @@ import {
   type Context,
 } from "@earendil-works/pi-ai";
 
-import { brunchModes } from "@hashintel/brunch-agent";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
@@ -29,7 +28,7 @@ import {
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-prepareWitnessProcess("integrated-browser-witness");
+prepareWitnessProcess("browser-witness");
 const faux = installFauxOpenai();
 
 const app = await loadBuiltBrunchApplication();
@@ -144,7 +143,6 @@ const canonicalConstruction = async () => {
     60_000,
   );
   assert.equal(delivery.kind, "user");
-  assert.equal(delivery.initialData?.mode, brunchModes.integrated);
   const { binding, client } = await fixture.conversationOf(page, delivery);
   const calls = netCalls(await client.history());
   assert.deepEqual(
@@ -222,7 +220,6 @@ const directExperiment = async () => {
     "Direct experiment finished.",
     40_000,
   );
-  assert.equal(delivery.initialData?.mode, brunchModes.integrated);
   const { binding, client } = await fixture.conversationOf(page, delivery);
   const calls = netCalls(await client.history());
   const read = calls.find(
@@ -296,7 +293,6 @@ const draftedExperiment = async () => {
     .getByText("Drafted — not run · not saved with the document")
     .waitFor({ timeout: 30_000 });
   assert.equal(delivery.kind, "user");
-  assert.equal(delivery.initialData?.mode, brunchModes.integrated);
   const { binding, client } = await fixture.conversationOf(page, delivery);
   assert.equal(binding.documentId, "draft-net");
   assert.equal(binding.incarnationId, "draft-net-incarnation");
@@ -346,7 +342,7 @@ try {
   }
   assert.deepEqual(fixture.errors, []);
   assert.deepEqual(fixture.blocked, []);
-  process.stdout.write("INTEGRATED_BROWSER_WITNESS_PASS\n");
+  process.stdout.write("BROWSER_WITNESS_PASS\n");
 } catch (error) {
   process.stderr.write(
     `${JSON.stringify({

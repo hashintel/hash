@@ -14,8 +14,6 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { brunchModes } from "@hashintel/brunch-agent";
-
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -201,13 +199,10 @@ try {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: brunchModes.integrated,
-        construction: {
-          binding: {
-            conversationId: identity.conversationId,
-            documentId: "a4-no-browser-crash-diagnostic",
-            incarnationId: basename(directory),
-          },
+        binding: {
+          conversationId: identity.conversationId,
+          documentId: "a4-no-browser-crash-diagnostic",
+          incarnationId: basename(directory),
         },
       },
       message: {

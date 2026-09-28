@@ -1,14 +1,13 @@
 import * as v from "valibot";
 import { describe, expect, test } from "vitest";
 
-import { brunchModes } from "@hashintel/brunch-agent/constants";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../src/construction-tool-names";
 import { sdcpnInitialDataSchema } from "../src/initial-data";
 import { asyncCanonicalPetrinautTools } from "../src/tools/petrinaut-construction";
 
-const construction = {
+const bound = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
@@ -17,23 +16,12 @@ const construction = {
 };
 
 describe("Petrinaut catalogue", () => {
-  test("retains the optional no-mode conversation and binds integrated mode to a document", () => {
+  test("admits no initial data or initial data carrying a document binding", () => {
     expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
-    expect(
-      v.parse(sdcpnInitialDataSchema, {
-        mode: brunchModes.integrated,
-        construction,
-      }),
-    ).toEqual({
-      mode: brunchModes.integrated,
-      construction,
-    });
-    expect(
-      v.safeParse(sdcpnInitialDataSchema, { mode: brunchModes.integrated })
-        .success,
-    ).toBe(false);
+    expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
+    expect(v.safeParse(sdcpnInitialDataSchema, {}).success).toBe(false);
   });
-  test("mounts the complete async canonical catalogue in integrated mode", () => {
+  test("mounts the complete async canonical catalogue for a bound conversation", () => {
     expect(CANONICAL_PETRINAUT_TOOL_NAMES).toEqual(
       Object.keys(petrinautAiTools),
     );

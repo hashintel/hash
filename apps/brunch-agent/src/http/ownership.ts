@@ -33,26 +33,15 @@ export const agentOwnershipGuard =
         .catch(() => undefined);
       if (typeof body === "object" && body !== null && "initialData" in body) {
         const data = body.initialData;
-        if (
-          typeof data === "object" &&
-          data !== null &&
-          "construction" in data
-        ) {
-          const construction = data.construction;
+        if (typeof data === "object" && data !== null && "binding" in data) {
+          const binding = data.binding;
           if (
-            typeof construction === "object" &&
-            construction !== null &&
-            "binding" in construction
-          ) {
-            const binding = construction.binding;
-            if (
-              typeof binding === "object" &&
-              binding !== null &&
-              "conversationId" in binding &&
-              binding.conversationId !== conversationId
-            )
-              return context.json({ error: "forbidden" }, 403);
-          }
+            typeof binding === "object" &&
+            binding !== null &&
+            "conversationId" in binding &&
+            binding.conversationId !== conversationId
+          )
+            return context.json({ error: "forbidden" }, 403);
         }
       }
     }

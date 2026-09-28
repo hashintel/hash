@@ -7,7 +7,7 @@ export const ordinaryConstructionConversationIdFrom = (
   incarnationId: string,
 ): string => `${ordinaryConstructionConversationIdPrefix}:${incarnationId}`;
 
-/** Preserve the integrated conversation namespace for existing local history. */
+/** Preserve the `evaluation-I` conversation namespace for existing local history. */
 export const brunchEvaluationConversationIdFrom = (
   conversationId: string,
 ): string => `${conversationId}:evaluation-I`;

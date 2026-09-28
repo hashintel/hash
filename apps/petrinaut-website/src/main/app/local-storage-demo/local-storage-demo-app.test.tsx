@@ -13,7 +13,7 @@ import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
-import { brunchModes, brunchTools } from "@hashintel/brunch-agent/constants";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
@@ -27,7 +27,7 @@ import {
 } from "./assistant-selection";
 import {
   canonicalPetrinautClientToolNames,
-  integratedPetrinautClientToolNames,
+  brunchPetrinautClientToolNames,
 } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
@@ -1173,7 +1173,7 @@ describe("local storage demo Brunch controls", () => {
     },
   );
 
-  test("mounts integrated Brunch with canonical overrides and the complete static catalogue", async () => {
+  test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
     const incarnationId = "ordinary-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -1199,10 +1199,7 @@ describe("local storage demo Brunch controls", () => {
     const aiAssistant = editorProps.current
       ?.aiAssistant as PetrinautAiAssistant;
     const transportOptions = brunchPanelTransportOptions.current as {
-      readonly initialData?: {
-        readonly mode?: string;
-        readonly construction?: { readonly binding?: unknown };
-      };
+      readonly initialData?: { readonly binding?: unknown };
       readonly clientToolNames?: ReadonlySet<string>;
       readonly dynamicClientToolNames?: ReadonlySet<string>;
       readonly mapClientToolInput?: (call: {
@@ -1237,14 +1234,13 @@ describe("local storage demo Brunch controls", () => {
         error: undefined,
       }),
     ).toBeUndefined();
-    expect(transportOptions.initialData?.mode).toBe(brunchModes.integrated);
-    expect(transportOptions.initialData?.construction?.binding).toEqual({
+    expect(transportOptions.initialData?.binding).toEqual({
       conversationId,
       documentId: "net-1",
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
-      [...integratedPetrinautClientToolNames].toSorted(),
+      [...brunchPetrinautClientToolNames].toSorted(),
     );
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
@@ -1946,7 +1942,7 @@ describe("assistant selection", () => {
     expect(handle.doc()?.places).toEqual([]);
   });
 
-  test("a pending I mutation in history is not executed again after reload", async () => {
+  test("a pending bound mutation in history is not executed again after reload", async () => {
     seedStoredNet("pending-incarnation");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     const pendingPlace = {

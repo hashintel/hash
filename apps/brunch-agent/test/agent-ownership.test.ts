@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
-import { brunchModes, brunchRoutes } from "@hashintel/brunch-agent";
+import { brunchRoutes } from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,
@@ -42,7 +42,7 @@ test("the mounted route requires the exact owner", async () => {
   ).toBe(200);
 });
 
-test("an I document binding cannot name another conversation", async () => {
+test("a document binding cannot name another conversation", async () => {
   const response = await app.fetch(
     new Request(url, {
       method: "POST",
@@ -52,13 +52,10 @@ test("an I document binding cannot name another conversation", async () => {
       },
       body: JSON.stringify({
         initialData: {
-          mode: brunchModes.integrated,
-          construction: {
-            binding: {
-              conversationId: "another",
-              documentId: "document",
-              incarnationId: "incarnation",
-            },
+          binding: {
+            conversationId: "another",
+            documentId: "document",
+            incarnationId: "incarnation",
           },
         },
         message: { kind: "user", body: "test" },

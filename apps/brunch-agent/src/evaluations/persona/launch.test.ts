@@ -91,30 +91,16 @@ test("launcher Stop bounds an unobserved settlement", async () => {
   });
 });
 
-test("locates the bound Petrinaut document in I", () => {
+test("locates the bound Petrinaut document", () => {
   expect(
     documentIdFromInitialData({
-      mode: "integrated-brunch-canonical",
-      construction: {
-        binding: {
-          conversationId: "conversation",
-          documentId: "document-construction",
-          incarnationId: "incarnation",
-        },
+      binding: {
+        conversationId: "conversation",
+        documentId: "document-bound",
+        incarnationId: "incarnation",
       },
     }),
-  ).toBe("document-construction");
-  expect(
-    documentIdFromInitialData({
-      browser: {
-        binding: {
-          conversationId: "conversation",
-          documentId: "document-browser",
-          incarnationId: "incarnation",
-        },
-      },
-    }),
-  ).toBe("document-browser");
+  ).toBe("document-bound");
   expect(documentIdFromInitialData({})).toBeUndefined();
 });
 
@@ -262,13 +248,10 @@ test.each([false, true])(
             uid: "TEST-uid",
             url: `${config.panelOrigin}/agents/chat/${flueConversationIdFrom(identity)}`,
             initialData: {
-              mode: "integrated-brunch-canonical",
-              construction: {
-                binding: {
-                  conversationId: identity.conversationId,
-                  documentId: "TEST-document",
-                  incarnationId: "TEST-incarnation",
-                },
+              binding: {
+                conversationId: identity.conversationId,
+                documentId: "TEST-document",
+                incarnationId: "TEST-incarnation",
               },
             },
           }),

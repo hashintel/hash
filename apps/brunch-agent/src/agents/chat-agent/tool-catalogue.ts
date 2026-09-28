@@ -1,4 +1,4 @@
-import { brunchModes, brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 import {
   petrinautToolEffects,
   type PetrinautToolCapability,
@@ -68,7 +68,11 @@ const draftBrunchTool: BrunchToolCatalogueEntry = {
   capability: "petrinaut-experiment-draft",
 };
 
-const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
+/**
+ * Expected provider-visible names and ownership for a document-bound Brunch conversation.
+ * Schemas stay with Petrinaut; this list deliberately classifies names only.
+ */
+export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   {
     name: "task",
     definitionOwner: "flue",
@@ -115,19 +119,9 @@ const integratedBrunchTools: readonly BrunchToolCatalogueEntry[] = [
   draftBrunchTool,
 ];
 
-/** Integrated tools the bound browser executes; the server awaits each result in band. */
+/** Tools the bound browser executes; the server awaits each result in band. */
 export const inBandBrowserToolNames: ReadonlySet<string> = new Set(
-  integratedBrunchTools
+  brunchToolCatalogue
     .filter(({ executionOwner }) => executionOwner === "petrinaut-website")
     .map(({ name }) => name),
 );
-
-/**
- * Expected provider-visible names and ownership for integrated Brunch.
- * Schemas stay with Petrinaut; this map deliberately classifies names only.
- */
-export const toolCatalogueByMode: Readonly<
-  Record<typeof brunchModes.integrated, readonly BrunchToolCatalogueEntry[]>
-> = {
-  [brunchModes.integrated]: integratedBrunchTools,
-};

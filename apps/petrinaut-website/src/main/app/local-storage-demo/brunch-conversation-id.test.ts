@@ -32,7 +32,7 @@ test("scopes ordinary construction conversations to the net incarnation", () => 
   );
 });
 
-test("preserves the integrated conversation namespace", () => {
+test("preserves the evaluation-I conversation namespace", () => {
   const base = ordinaryConstructionConversationIdFrom("incarnation-1");
   expect(brunchEvaluationConversationIdFrom(base)).toBe(`${base}:evaluation-I`);
 });

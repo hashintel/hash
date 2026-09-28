@@ -19,8 +19,6 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { brunchModes } from "@hashintel/brunch-agent";
-
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -56,13 +54,10 @@ const speak = async (body: string) => {
     ? {}
     : {
         initialData: {
-          mode: brunchModes.integrated,
-          construction: {
-            binding: {
-              conversationId: identity.conversationId,
-              documentId: "evidence-document",
-              incarnationId: "evidence-incarnation",
-            },
+          binding: {
+            conversationId: identity.conversationId,
+            documentId: "evidence-document",
+            incarnationId: "evidence-incarnation",
           },
         },
       };

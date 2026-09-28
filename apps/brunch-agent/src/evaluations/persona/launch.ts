@@ -288,13 +288,7 @@ export const documentIdFromInitialData = (
   initialData: unknown,
 ): string | undefined => {
   if (!record(initialData)) return undefined;
-  const browser = record(initialData.construction)
-    ? initialData.construction
-    : record(initialData.browser)
-      ? initialData.browser
-      : undefined;
-  const binding =
-    browser && record(browser.binding) ? browser.binding : undefined;
+  const binding = record(initialData.binding) ? initialData.binding : undefined;
   return typeof binding?.documentId === "string"
     ? binding.documentId
     : undefined;

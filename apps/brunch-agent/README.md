@@ -8,9 +8,9 @@ Brunch and the stock chat route both run `petrinautAiModel` from `@hashintel/pet
 yarn dev:brunch
 ```
 
-The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. Local development loads `apps/brunch-agent/.env.development`, selecting `openai/gpt-5.6-sol` with low reasoning by default, like the persona launcher. An explicit process environment or app-local `.env.local` can override these values; deployment model settings are separate and not established by this dev default. A configured credential does not authorize a paid run. When Brunch is selected, the typed panel and Voice mode use integrated Brunch by default: Brunch composes its prompt, SDCPN skill, elicitation, Ledger, document-revision attribution, and explanation with Petrinaut-owned capability guidance and the complete canonical `petrinautAiTools` catalogue. Petrinaut retains canonical schemas, execution, and model-visible outputs.
+The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. Local development loads `apps/brunch-agent/.env.development`, selecting `openai/gpt-5.6-sol` with low reasoning by default, like the persona launcher. An explicit process environment or app-local `.env.local` can override these values; deployment model settings are separate and not established by this dev default. A configured credential does not authorize a paid run. When Brunch is selected, the typed panel and Voice mode bind the conversation to the open document: Brunch composes its prompt, SDCPN skill, elicitation, Ledger, document-revision attribution, and explanation with Petrinaut-owned capability guidance and the complete canonical `petrinautAiTools` catalogue. Petrinaut retains canonical schemas, execution, and model-visible outputs.
 
-Native Stock remains a separate assistant choice. Brunch conversations use integrated mode (`I`); `VITE_PETRINAUT_DEFAULT_ASSISTANT` selects native Stock or Brunch.
+Native Stock remains a separate assistant choice; `VITE_PETRINAUT_DEFAULT_ASSISTANT` selects native Stock or Brunch.
 
 For browser-visible persona testing, use the [persona launcher and operator guide](.pi/extensions/brunch-persona-testing/README.md):
 
@@ -37,7 +37,7 @@ yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversa
 
 Neither `test:unit` nor `test:integration` needs anything running. `test:integration` checks the built app, starting it as a server and loading it in process with scripted OpenAI responses on the default model.
 
-The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:integrated-browser` builds the website and drives it in the local macOS Chrome against the built app.
+The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:browser` builds the website and drives it in the local macOS Chrome against the built app.
 
 ## Local Postgres
 
@@ -138,7 +138,7 @@ Petrinaut `/api/chat` stays on the website; the accepted later website path is `
 Releasing `/agents/*` to production browser ingress requires separate authentication,
 authorization, ingress, and rate/spend gates. CORS, caller-supplied principals, and conversation
 hashes are not authentication. Desired count remains one until same-conversation ownership
-across replicas is separately proven. I-mode's direct browser-result handoff is ephemeral in that single owner: its one-use issued-call capability and existing conversation ownership headers do not authenticate a user or route callbacks across replicas. A lost result after a possible document effect is unknown; Stop aborts an active wait, while silent browser disappearance is detected only after the renewable 25-second lease expires. Production release still requires the external ingress authentication, authorization, routing and spend gates described above.
+across replicas is separately proven. The direct browser-result handoff is ephemeral in that single owner: its one-use issued-call capability and existing conversation ownership headers do not authenticate a user or route callbacks across replicas. A lost result after a possible document effect is unknown; Stop aborts an active wait, while silent browser disappearance is detected only after the renewable 25-second lease expires. Production release still requires the external ingress authentication, authorization, routing and spend gates described above.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
 claims, leases, and settlement state in Postgres.
@@ -168,7 +168,7 @@ Voice is a second input modality over the panel's conversation. It is not a Voic
 | URL           | `/agents/chat/:instanceId`, called through the public Flue browser client and the same-origin local proxy                         |
 | Identity      | `x-brunch-principal` plus `x-brunch-conversation`; the server verifies that their hash matches the mounted instance id            |
 | Initial turn  | One `FlueClient.send()` carrying `{ kind: "user", body }`                                                                         |
-| Browser tools | Integrated mode awaits browser results over HTTP within the server tool call; no follow-up submission is sent                     |
+| Browser tools | A document-bound conversation awaits browser results over HTTP within the server tool call; no follow-up submission is sent       |
 | Response      | `FlueClient.wait()` chunks projected into one finite AI SDK UI-message stream; observation/history provides canonical rehydration |
 
 Typed and finalized spoken turns use this same route. The panel's explicit **Stop** requests a conversation-wide Flue abort before cancelling its local stream. Local Voice interruption stops playback only and leaves canonical history unchanged.

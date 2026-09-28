@@ -102,7 +102,7 @@ export const claimModelStreamIdleRetry = (
 };
 
 type StreamIdleRecovery = {
-  /** Only these independent I-mode calls may share a browser/server proposal. */
+  /** Only these independent calls may share a browser/server proposal. */
   readonly mixedToolNames?: ReadonlySet<string>;
   /** Tool name to the tools whose results it reads; none may share its proposal. */
   readonly dependentToolNames?: ReadonlyMap<string, readonly string[]>;

@@ -4,7 +4,7 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
 import {
   canonicalPetrinautClientToolNames,
-  integratedPetrinautClientToolNames,
+  brunchPetrinautClientToolNames,
 } from "./brunch-client-tools";
 
 test("keeps literal parity with the stock Petrinaut tool catalogue", () => {
@@ -13,17 +13,17 @@ test("keeps literal parity with the stock Petrinaut tool catalogue", () => {
   );
 });
 
-test("keeps canonical execution beside the distinct draft only in integrated modes", () => {
+test("keeps canonical execution beside the distinct draft for Brunch", () => {
   const canonicalNames = Object.keys(petrinautAiTools);
   expect(canonicalNames).toContain("createExperiment");
   expect(canonicalNames).not.toContain("draft_petrinaut_experiment");
   expect(
     canonicalPetrinautClientToolNames.has("draft_petrinaut_experiment"),
   ).toBe(false);
-  expect(integratedPetrinautClientToolNames.has("createExperiment")).toBe(true);
-  expect(
-    integratedPetrinautClientToolNames.has("draft_petrinaut_experiment"),
-  ).toBe(true);
+  expect(brunchPetrinautClientToolNames.has("createExperiment")).toBe(true);
+  expect(brunchPetrinautClientToolNames.has("draft_petrinaut_experiment")).toBe(
+    true,
+  );
 });
 
 test("includes the full stock capability surface required by the tracer", () => {

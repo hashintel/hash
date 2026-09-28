@@ -6,8 +6,8 @@ export const canonicalPetrinautClientToolNames: ReadonlySet<string> = new Set(
   Object.keys(petrinautAiTools),
 );
 
-/** Integrated Brunch adds a distinct reviewed draft without replacing stock tools. */
-export const integratedPetrinautClientToolNames: ReadonlySet<string> = new Set([
+/** Brunch adds a distinct reviewed draft without replacing stock tools. */
+export const brunchPetrinautClientToolNames: ReadonlySet<string> = new Set([
   ...canonicalPetrinautClientToolNames,
   brunchTools.draftPetrinautExperiment,
 ]);

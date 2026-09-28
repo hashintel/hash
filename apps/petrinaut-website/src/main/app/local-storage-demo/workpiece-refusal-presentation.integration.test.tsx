@@ -26,7 +26,6 @@ import {
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { brunchModes } from "@hashintel/brunch-agent/constants";
 import { petrinautAiModel } from "@hashintel/petrinaut-core";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
@@ -163,13 +162,10 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     {
       clientToolNames: new Set(),
       initialData: {
-        mode: brunchModes.integrated,
-        construction: {
-          binding: {
-            conversationId: identity.conversationId,
-            documentId: "TEST-document",
-            incarnationId: "TEST-incarnation",
-          },
+        binding: {
+          conversationId: identity.conversationId,
+          documentId: "TEST-document",
+          incarnationId: "TEST-incarnation",
         },
       },
     },
