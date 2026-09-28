@@ -1,6 +1,6 @@
 import { voiceTranscriptionPrompt } from "../../../../shared/voice-transcription";
 
-const tokensOf = (text: string): string[] =>
+export const tokensOf = (text: string): string[] =>
   text
     .normalize("NFKC")
     .toLowerCase()
