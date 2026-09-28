@@ -9465,6 +9465,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/flue-aisdk-transport@workspace:libs/@local/flue-aisdk-transport"
   dependencies:
+    "@earendil-works/pi-ai": "npm:0.83.0"
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
@@ -9472,6 +9473,7 @@ __metadata:
     ai: "npm:6.0.286"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    valibot: "npm:1.4.2"
     vite: "npm:8.2.2"
     vitest: "npm:4.1.11"
   languageName: unknown

@@ -1,5 +1,6 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
+import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
 import { createFlueUiStream } from "./ui-stream";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";
@@ -8,10 +9,27 @@ import type { UIMessageChunk } from "ai";
 
 const position = (index: number) => ({ batch: 1, index });
 
+const recorded: UIMessageChunk[][] = [];
+/** Collect a projection that must also reduce cleanly through the AI SDK. */
+const recordChunks = (): UIMessageChunk[] => {
+  const chunks: UIMessageChunk[] = [];
+  recorded.push(chunks);
+  return chunks;
+};
+
+afterEach(async () => {
+  const projections = recorded.splice(0);
+  for (const chunks of projections) {
+    // Each projection is reduced independently, in test order.
+    // eslint-disable-next-line no-await-in-loop
+    await reduceUiMessageChunks(chunks);
+  }
+});
+
 const project = (
   chunks: readonly ConversationStreamChunk[],
 ): UIMessageChunk[] => {
-  const written: UIMessageChunk[] = [];
+  const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(["readPetrinautDoc"]),
@@ -121,7 +139,7 @@ test("ignores observation catch-up chunks in a submission stream", () => {
 });
 
 test("maps client-tool input before exposing it to the AI SDK", () => {
-  const written: UIMessageChunk[] = [];
+  const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(["addArc"]),
@@ -155,7 +173,7 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
 });
 
 test("marks host-defined client tools as dynamic for the AI SDK", () => {
-  const written: UIMessageChunk[] = [];
+  const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(["mutate_petrinet"]),
@@ -211,7 +229,7 @@ test("bounds cyclic failed-submission objects", () => {
 });
 
 test("reports server tool failures to the diagnostic callback before projection", () => {
-  const written: UIMessageChunk[] = [];
+  const written = recordChunks();
   const reported: Parameters<
     NonNullable<Parameters<typeof createFlueUiStream>[0]["onToolOutputError"]>
   >[0][] = [];
@@ -317,7 +335,7 @@ const liveEvent = (
 });
 
 test("does not regress admitted calls on duplicate, out-of-order, or terminal live events", () => {
-  const written: UIMessageChunk[] = [];
+  const written = recordChunks();
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(),
@@ -377,7 +395,7 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
 test.each(["turn", "disconnect"] as const)(
   "terminates an abandoned live proposal on %s",
   (terminal) => {
-    const written: UIMessageChunk[] = [];
+    const written = recordChunks();
     const projector = createFlueUiStream({
       submissionId: "submission-1",
       clientToolNames: new Set(),
@@ -423,7 +441,7 @@ test.each(["turn", "disconnect"] as const)(
 test("lets canonical admission win the live turn-terminal race", () => {
   vi.useFakeTimers();
   try {
-    const written: UIMessageChunk[] = [];
+    const written = recordChunks();
     const projector = createFlueUiStream({
       submissionId: "submission-1",
       clientToolNames: new Set(),
