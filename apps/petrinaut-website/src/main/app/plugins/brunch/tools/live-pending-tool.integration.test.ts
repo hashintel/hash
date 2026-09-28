@@ -11,7 +11,7 @@ import { afterAll, beforeAll, expect, test } from "vitest";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent/conversation-identity";
 
 import {
   claimModelStreamIdleRetry,

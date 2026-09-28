@@ -9,7 +9,7 @@ import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { selectCanonicalSpeech } from "./canonical-speech";
 
 import type { AdmissionVoiceEvidence } from "../../../../../../../brunch-agent/test/admission-voice-evidence";
-import type { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+import type { snapshotToUiMessages } from "@local/flue-aisdk-transport";
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 let result: AdmissionVoiceEvidence;

@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../../.config/oxlint/brunch/base.json"],
+  "categories": {
+    "correctness": "error",
+    "perf": "warn"
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true,
+    "node": true
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["@hashintel/*", "@apps/*"],
+            "message": "The Flue AI SDK transport must stay independent of the products that use it."
+          },
+          {
+            "group": ["@flue/!(sdk|runtime)", "@earendil-works/*"],
+            "message": "The transport may depend on the public Flue SDK and runtime types, not a provider substrate."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/client.ts", "src/client/**", "src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@hashintel/*", "@apps/*"],
+                "message": "The Flue AI SDK transport must stay independent of the products that use it."
+              },
+              {
+                "group": ["@flue/!(sdk)", "@earendil-works/*", "node:*"],
+                "message": "The browser client may depend only on the public Flue SDK."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "*.gen.*",
+    "*.tsbuildinfo",
+    ".turbo/**"
+  ]
+}

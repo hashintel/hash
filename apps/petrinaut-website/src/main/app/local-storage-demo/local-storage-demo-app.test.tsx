@@ -18,6 +18,7 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
 import {
