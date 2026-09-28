@@ -425,6 +425,83 @@ test("punctuation-only finalized input is ignored like empty input", async () =>
   );
 });
 
+test("one- or two-word input that started while Live was audible is not sent to Brunch", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  await fixture.bridge.accept({
+    id: "one-word",
+    text: "Kristof.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "two-words",
+    text: "Got it.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.notice).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  const ignored = debug.mock.calls
+    .map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === "input.ignored");
+  expect(ignored).toEqual([
+    expect.objectContaining({
+      inputId: "one-word",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "two-words",
+      reason: "short-during-output",
+    }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("Kristof");
+});
+
+test("short input while Live was quiet and three words during Live speech still reach Brunch", async () => {
+  const fixture = setup();
+  await fixture.bridge.accept({
+    id: "quiet",
+    text: "Yes.",
+    startedDuringOutput: false,
+  });
+  await fixture.bridge.accept({
+    id: "correction",
+    text: "No, fifty calls.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ id: "quiet", text: "Yes." }),
+  );
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({ id: "correction", text: "No, fifty calls." }),
+  );
+  expect(
+    fixture.submit.mock.calls.some(([input]) => "startedDuringOutput" in input),
+  ).toBe(false);
+});
+
+test("a short input during Live speech still reaches Brunch when GPT-Live delegated it", async () => {
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("delegated");
+  await fixture.bridge.accept({
+    id: "short",
+    text: "Yes.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ id: "short", text: "Yes." }),
+  );
+});
+
 test("uncertain admission is visible and never automatically replayed", async () => {
   const fixture = setup();
   fixture.submit.mockRejectedValueOnce(new Error("Unknown admission"));

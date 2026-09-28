@@ -27,6 +27,8 @@ export interface LiveConversationState {
 interface FinalizedInput {
   readonly id: string;
   readonly text: string;
+  /** Speech began while Live was audible or within its one-second echo tail. */
+  readonly startedDuringOutput: boolean;
 }
 
 type ConnectionKind = "live" | "transcription";
@@ -70,7 +72,10 @@ export const createLiveConversation = (
           .map(([kind, stage]) => `${kind}: ${stage}`)
           .join("; ");
   const committedPrevious = new Map<string, string | null>();
-  const completed = new Map<string, FinalizedInput>();
+  const completed = new Map<
+    string,
+    Omit<FinalizedInput, "startedDuringOutput">
+  >();
   const emitted = new Set<string>();
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
@@ -341,14 +346,15 @@ export const createLiveConversation = (
       if (!input) return;
       if (!emitted.has(input.id)) {
         emitted.add(input.id);
+        const startedDuringOutput = echoTrace.startedDuringOutput(itemId);
         logLiveDiagnostic("input.finalized", {
           sessionId,
           itemId,
           inputId: input.id,
           characters: input.text.length,
-          startedDuringOutput: echoTrace.startedDuringOutput(itemId),
+          startedDuringOutput,
         });
-        onFinalizedInput(input);
+        onFinalizedInput({ ...input, startedDuringOutput });
       }
       itemId = committedAfter(itemId);
     }

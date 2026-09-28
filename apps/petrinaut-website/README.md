@@ -242,8 +242,12 @@ acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 
-A finalized transcript with no letters or digits, such as ".", is handled like
-empty input and never reaches Brunch.
+Two kinds of finalized transcript never reach Brunch. A transcript with no
+letters or digits, such as ".", is handled like empty input. A one- or two-word
+transcript whose speech started while Live was audible, or within a second
+after, is dropped unless GPT-Live delegated it: these are almost always Live's
+own audio leaking back and misheard as speech. A real one-word interruption
+still stops Live, but its words don't reach Brunch. Neither case shows a notice.
 
 #### Speaker echo check — 10 minutes
 
@@ -263,6 +267,8 @@ the **Verbose** console level and filter by `[Petrinaut Live trace]`:
   transcripts arrived; without them `liveInputFragments` stays at zero.
 - `input.finalized` marks speech that started during output with
   `startedDuringOutput`.
+- `input.ignored` with `reason: "short-during-output"` marks a short transcript
+  that started during output and was not sent to Brunch.
 
 On laptop speakers, on a speaker chosen in the audio settings, and on
 headphones, answer three Brunch questions and stay silent while Live speaks

@@ -33,6 +33,10 @@ interface Turn {
 type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
+
+const wordCount = (text: string) =>
+  text.normalize("NFKC").match(/[\p{L}\p{M}\p{N}]+/gu)?.length ?? 0;
+
 interface Dependencies {
   readonly submit: Submit;
   readonly appendCommentary: (
@@ -110,6 +114,7 @@ export class LiveBrunchBridge {
   public async accept(input: {
     readonly id: string;
     readonly text: string;
+    readonly startedDuringOutput?: boolean;
   }): Promise<void> {
     if (this.#abort.signal.aborted) return;
     if (this.#seenInputs.has(input.id)) {
@@ -135,6 +140,19 @@ export class LiveBrunchBridge {
           delegationId,
         );
       }
+      return;
+    }
+    // Live audio leaking into the microphone finalizes as one- or two-word
+    // phantoms. A delegation means GPT-Live itself heard a turn.
+    if (
+      delegationId === null &&
+      input.startedDuringOutput &&
+      wordCount(input.text) <= 2
+    ) {
+      logLiveDiagnostic("input.ignored", {
+        inputId: input.id,
+        reason: "short-during-output",
+      });
       return;
     }
     if (
@@ -170,7 +188,8 @@ export class LiveBrunchBridge {
     try {
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       const result = await this.#dependencies.submit({
-        ...input,
+        id: input.id,
+        text: input.text,
         admissionTarget: { kind: "user", messageId: input.id },
         signal: this.#abort.signal,
         onAdmission: (submissionId) => {

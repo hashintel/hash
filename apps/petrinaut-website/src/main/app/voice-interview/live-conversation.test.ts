@@ -1515,6 +1515,11 @@ test("summarises echo evidence for each stretch of audible Live output without p
       startedDuringOutput: false,
     }),
   ]);
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(
+      ([input]) => input.startedDuringOutput,
+    ),
+  ).toEqual([true, false]);
   expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
   const stopped = fixture.conversation.stop();
   fixture.emit(0, { type: "session.closed" });
