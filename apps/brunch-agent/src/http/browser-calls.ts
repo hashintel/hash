@@ -21,7 +21,7 @@ const resultBody = v.object({
 });
 const failureBody = v.object({
   ...outcomeEntries,
-  disposition: v.picklist(["unstarted", "failed"]),
+  disposition: v.picklist(["unstarted", "stale", "failed"]),
 });
 
 const readBody = async <Schema extends v.GenericSchema>(

@@ -1,6 +1,8 @@
 import {
   canonicalContent,
   draftPetrinautExperimentInputSchema,
+  netReaderToolNames,
+  parseNetReaderInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { agentOwnershipHeaders } from "@hashintel/brunch-agent/conversation-identity";
@@ -20,6 +22,12 @@ const issuedInputSchemas: Readonly<
       tool.inputSchema,
     ]),
   ),
+  ...Object.fromEntries(
+    Object.values(netReaderToolNames).map((name) => [
+      name,
+      { parse: parseNetReaderInput },
+    ]),
+  ),
   [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
 };
 
@@ -37,6 +45,9 @@ export type InBandBrowserCallAdmission = (call: {
   | { readonly admitted: false; readonly output: unknown }
 >;
 
+export const BROWSER_CALL_STALE_MESSAGE =
+  "The document changed by other means after the agent's last view of the net; the call was not started.";
+
 /** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
 export const createInBandBrowserCalls = (input: {
   readonly client: Promise<FlueClient>;
@@ -52,6 +63,8 @@ export const createInBandBrowserCalls = (input: {
     input: unknown;
   }) => void;
   readonly admit?: InBandBrowserCallAdmission;
+  /** Whether a change issued against `expected` may still run on the bound document. */
+  readonly acceptsRevision: (expected: string) => boolean;
 }) => {
   const claim = async (call: {
     readonly toolCallId: string;
@@ -76,6 +89,7 @@ export const createInBandBrowserCalls = (input: {
           binding: string;
           toolName: string;
           input: unknown;
+          expectedRevision?: string;
         }
       | undefined;
     while (!claimSignal.aborted) {
@@ -133,8 +147,25 @@ export const createInBandBrowserCalls = (input: {
     call.signal.addEventListener("abort", () => clearInterval(lease), {
       once: true,
     });
+    let stale = false;
     return {
       input: claimed.input,
+      prepare: () => {
+        // Checked at the start of this call's document-lane turn, after the
+        // same proposal's earlier changes have settled.
+        if (
+          claimed.expectedRevision !== undefined &&
+          !input.acceptsRevision(claimed.expectedRevision)
+        ) {
+          stale = true;
+          throw new Error(BROWSER_CALL_STALE_MESSAGE);
+        }
+        input.prepareInput({
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          input: claimed.input,
+        });
+      },
       release: () => clearInterval(lease),
       fail: async (disposition: "unstarted" | "failed" = "failed") => {
         clearInterval(lease);
@@ -147,7 +178,7 @@ export const createInBandBrowserCalls = (input: {
             binding: claimed.binding,
             toolName: call.toolName,
             canonicalInput: claimed.input,
-            disposition,
+            disposition: stale ? "stale" : disposition,
           }),
           signal: call.signal,
         });
@@ -181,7 +212,9 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    has: (toolName: string) => toolName in petrinautAiTools,
+    has: (toolName: string) =>
+      toolName in petrinautAiTools ||
+      Object.values<string>(netReaderToolNames).includes(toolName),
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
@@ -205,11 +238,7 @@ export const createInBandBrowserCalls = (input: {
           await issued.submit(admission.output);
           return;
         }
-        input.prepareInput({
-          toolCallId: call.toolCallId,
-          toolName: call.toolName,
-          input: issued.input,
-        });
+        issued.prepare();
         started = true;
         await issued.submit(await execute(issued.input));
       } catch (error) {

@@ -3,6 +3,12 @@ import { defineTool } from "@flue/runtime";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { CANONICAL_PETRINAUT_TOOL_NAMES } from "../construction-tool-names";
+import {
+  netReaderDescriptions,
+  netReaderInputSchema,
+  netReaderToolNames,
+  type NetReaderLevel,
+} from "../net-readers";
 
 type CanonicalJson =
   | string
@@ -32,6 +38,25 @@ export const browserResultEnvelope = (result: {
       ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
     }),
   ) as CanonicalJson;
+
+/** The browser runs `getLatestNetDefinition` and returns only the requested view. */
+export const netReaderTools = (execute: BrowserToolExecutor) =>
+  (Object.keys(netReaderToolNames) as NetReaderLevel[]).map((level) =>
+    defineTool({
+      name: netReaderToolNames[level],
+      description: netReaderDescriptions[level],
+      input: netReaderInputSchema,
+      async run({ data, toolCallId, signal }) {
+        const result = await execute({
+          toolName: netReaderToolNames[level],
+          input: data,
+          toolCallId,
+          signal,
+        });
+        return { output: browserResultEnvelope(result), terminate: false };
+      },
+    }),
+  );
 
 export const asyncCanonicalPetrinautTools = (execute: BrowserToolExecutor) =>
   CANONICAL_PETRINAUT_TOOL_NAMES.map((toolName) => {

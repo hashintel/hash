@@ -340,6 +340,8 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
+        "readNetOutline",
+        "readNetStructure",
         "getNetCompilationErrors",
         "addPlace",
         "addTransition",
@@ -1336,6 +1338,8 @@ describe("local storage demo Brunch controls", () => {
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
+        "readNetOutline",
+        "readNetStructure",
         "getNetCompilationErrors",
         "addPlace",
         "addTransition",
@@ -1380,9 +1384,12 @@ describe("local storage demo Brunch controls", () => {
     expect([...(adapterTools.dynamicClientToolNames ?? [])].toSorted()).toEqual(
       [
         ...canonicalPetrinautClientToolNames,
+        "readNetOutline",
+        "readNetStructure",
         brunchTools.draftPetrinautExperiment,
       ].toSorted(),
     );
+    expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
   });
 });
 

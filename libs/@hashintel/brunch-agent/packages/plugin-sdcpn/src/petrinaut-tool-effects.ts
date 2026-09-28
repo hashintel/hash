@@ -1,5 +1,7 @@
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 
+import { netReaderLevelOf } from "./net-readers";
+
 import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
 
 /** The net elements a Brunch explanation can name, and a canonical change can target. */
@@ -100,11 +102,12 @@ const canonicalEffectOf = (toolName: string): PetrinautToolEffect | undefined =>
 
 /**
  * Whether a settled browser call may have changed the bound document. The
- * experiment draft prepares in editor memory only. An unknown tool's effect is
- * unknown, so it counts as a possible change.
+ * experiment draft prepares in editor memory only, and the net readers only
+ * read. An unknown tool's effect is unknown, so it counts as a possible change.
  */
 export const browserToolMutatesDocument = (toolName: string): boolean => {
   if (toolName === brunchTools.draftPetrinautExperiment) return false;
+  if (netReaderLevelOf(toolName) !== undefined) return false;
   const capability = canonicalEffectOf(toolName)?.capability;
   return (
     capability !== "petrinaut-read" && capability !== "petrinaut-experiment"

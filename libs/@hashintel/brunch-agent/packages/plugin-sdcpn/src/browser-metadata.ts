@@ -22,6 +22,8 @@ export interface ClientToolResultMetadata {
     readonly before?: string;
     readonly after?: string;
   };
+  /** The net's structure after a settled document change, for the model's read-back. */
+  readonly readBack?: object;
 }
 
 export const parseClientToolResultMetadata = (
@@ -36,10 +38,12 @@ export const parseClientToolResultMetadata = (
   const revision = value.documentRevision;
   if (typeof revision !== "object" || revision === null) return undefined;
   const fields = revision as Record<string, unknown>;
+  const readBack = "readBack" in value ? value.readBack : undefined;
   return {
     documentRevision: {
       ...(typeof fields.before === "string" ? { before: fields.before } : {}),
       ...(typeof fields.after === "string" ? { after: fields.after } : {}),
     },
+    ...(typeof readBack === "object" && readBack !== null ? { readBack } : {}),
   };
 };

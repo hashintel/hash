@@ -8,11 +8,15 @@ import type { ClientToolResult } from "@hashintel/brunch-agent/client-tools";
 const leaseMs = 25_000;
 export const BROWSER_CALL_UNSTARTED_ERROR =
   "Browser call was not started; no document operation was invoked.";
+export const BROWSER_CALL_STALE_ERROR =
+  "Not started: the document changed by other means after your last view of the net. Read the net again, then make the change.";
 interface IssuedCall {
   readonly binding: string;
   readonly input: string;
   readonly toolName: string;
   readonly capability: string;
+  /** The document revision the model last saw; the browser refuses a change from any other. */
+  readonly expectedRevision?: string;
   readonly result: PromiseWithResolvers<ClientToolResult>;
   readonly signal?: AbortSignal;
   deadline: number;
@@ -25,8 +29,9 @@ const calls = new Map<string, IssuedCall>();
 /** The one model-facing error for a call that ends without a result: unstarted, unchanged, or unknown. */
 const outcomeError = (
   entry: IssuedCall,
-  cause: "unstarted" | "failed" | "expired" | "stopped",
+  cause: "unstarted" | "stale" | "failed" | "expired" | "stopped",
 ): Error => {
+  if (cause === "stale") return new Error(BROWSER_CALL_STALE_ERROR);
   if (!entry.claimed || cause === "unstarted")
     return new Error(BROWSER_CALL_UNSTARTED_ERROR);
   const unchanged = !browserToolMutatesDocument(entry.toolName);
@@ -104,6 +109,7 @@ export const issueBrowserCall = (input: {
   readonly toolName: string;
   readonly binding: string;
   readonly canonicalInput: unknown;
+  readonly expectedRevision?: string;
   readonly signal?: AbortSignal;
 }): Promise<ClientToolResult> => {
   const key = keyFor(input.instanceId, input.toolCallId);
@@ -115,6 +121,9 @@ export const issueBrowserCall = (input: {
     input: JSON.stringify(input.canonicalInput),
     toolName: input.toolName,
     capability: randomBytes(32).toString("base64url"),
+    ...(input.expectedRevision === undefined
+      ? {}
+      : { expectedRevision: input.expectedRevision }),
     result,
     signal: input.signal,
     deadline: Date.now() + leaseMs,
@@ -168,6 +177,9 @@ export const claimBrowserCall = (
     toolName: entry.toolName,
     input: JSON.parse(entry.input) as unknown,
     binding: entry.binding,
+    ...(entry.expectedRevision === undefined
+      ? {}
+      : { expectedRevision: entry.expectedRevision }),
   };
 };
 
@@ -190,7 +202,7 @@ export const failBrowserCall = (input: {
   readonly binding: string;
   readonly toolName: string;
   readonly canonicalInput: unknown;
-  readonly disposition: "unstarted" | "failed";
+  readonly disposition: "unstarted" | "stale" | "failed";
 }): boolean => {
   const key = keyFor(input.instanceId, input.toolCallId);
   const entry = deliverableCall(input);

@@ -19,6 +19,7 @@ import { createFlueClient } from "@flue/sdk";
 
 import { composeLedgerProfile } from "@hashintel/brunch-agent";
 import {
+  browserToolMutatesDocument,
   canonicalContent,
   sdcpnInitialDataSchema,
   sdcpnLedgerProfile,
@@ -34,9 +35,13 @@ import {
 } from "../../chat-model.ts";
 import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
 import { latestNetReadBefore } from "../../conversation/net-changes.ts";
+import {
+  expectedNetRevision,
+  netViewTracker,
+} from "../../conversation/net-freshness.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
-import { projectBrunchContext } from "./context-projection.ts";
+import { createBrunchContextProjection } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
@@ -57,7 +62,11 @@ const chatModelOptions = {
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
-  useContextProjection(projectBrunchContext);
+  useContextProjection(
+    createBrunchContextProjection({
+      observe: (entries) => netViewTracker.observe(id, entries),
+    }),
+  );
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {
@@ -94,12 +103,24 @@ export function ChatAgent({ id }: AgentProps) {
             toolCallId,
             signal,
           }) => {
+            const expected = browserToolMutatesDocument(toolName)
+              ? expectedNetRevision(
+                  await history(),
+                  toolCallId,
+                  netViewTracker.view(id),
+                )
+              : undefined;
+            if (expected && "refusal" in expected)
+              throw new Error(expected.refusal);
             const result = await issueBrowserCall({
               instanceId: id,
               toolCallId,
               toolName,
               canonicalInput: input,
               binding: canonicalContent(initialData.binding),
+              ...(expected === undefined
+                ? {}
+                : { expectedRevision: expected.revision }),
               signal,
             });
             return { output: result.output, metadata: result.metadata };
@@ -121,7 +142,7 @@ export function ChatAgent({ id }: AgentProps) {
 Call ping when you need to confirm the server tool path.
 ${
   initialData
-    ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown."
+    ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger revision. Independent server and browser calls may share a proposal, but a concurrent Ledger write is not evidence of a settled browser effect; make a dependent call only after the result it depends on has returned. Never repeat an attempted write whose outcome is unknown. A net change starts only when a current view of the net is in your context and the document has not changed by other means since; the latest change's result carries netAfterChanges, the net's structure after that proposal's changes."
     : "This conversation has no browser tools; use the available server tools and modelling skill."
 }
 `.replace(/^\s+|\s+$/gu, ""),

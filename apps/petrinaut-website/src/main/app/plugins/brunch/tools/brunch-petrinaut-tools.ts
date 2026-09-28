@@ -1,4 +1,11 @@
-import { browserToolMutatesDocument } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  browserToolMutatesDocument,
+  type ClientToolResultMetadata,
+  netReaderToolNames,
+  type NetReaderLevel,
+  parseNetReaderInput,
+  projectNetDefinition,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -19,12 +26,7 @@ import {
 
 import type { FlueConversationState } from "@flue/sdk";
 
-interface DocumentRevisionMetadata {
-  readonly documentRevision: {
-    readonly before?: string;
-    readonly after?: string;
-  };
-}
+type DocumentRevisionMetadata = ClientToolResultMetadata;
 
 type RetainedCall = {
   readonly toolName: string;
@@ -120,6 +122,14 @@ export const createCanonicalPetrinautHostTools = (
     }
   >();
   const metadata = new Map<string, DocumentRevisionMetadata>();
+  /** The revision each settled Brunch change started from, keyed by the one it produced. */
+  const producedFrom = new Map<string, string>();
+  for (const call of replay.values()) {
+    const { before: revisionBefore, after: revisionAfter } =
+      call.metadata?.documentRevision ?? {};
+    if (revisionBefore !== undefined && revisionAfter !== undefined)
+      producedFrom.set(revisionAfter, revisionBefore);
+  }
   const passthrough = { parse: (value: unknown) => value };
 
   const priorOutput = (
@@ -136,34 +146,56 @@ export const createCanonicalPetrinautHostTools = (
     return { found: true, output: previous.output };
   };
 
+  const readNet = (
+    toolName: string,
+    view: (definition: unknown) => unknown,
+    toolCallId: string,
+    handle: PetrinautDocHandle,
+  ) => {
+    const prior = priorOutput(toolCallId);
+    if (prior.found) return prior.output;
+    if (input.replayReadiness.status === "pending")
+      throw new Error("Conversation history is not ready.");
+    const definition = handle.doc();
+    if (!definition)
+      throw new Error("The bound browser document is unavailable.");
+    const output = {
+      title: input.readTitle(),
+      definition: view(structuredClone(definition)),
+      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+        .extensions,
+    };
+    stampBefore(toolCallId, handle);
+    toolNames.set(toolCallId, toolName);
+    started.set(toolCallId, { toolName, input: {}, output });
+    return output;
+  };
   const readNetTool: PetrinautAiAutomaticTool = {
     toolName: getLatestNetDefinitionToolName,
     inputSchema: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
     outputSchema: passthrough,
-    execute: ({ toolCallId, handle }) => {
-      const prior = priorOutput(toolCallId);
-      if (prior.found) return prior.output;
-      if (input.replayReadiness.status === "pending")
-        throw new Error("Conversation history is not ready.");
-      const definition = handle.doc();
-      if (!definition)
-        throw new Error("The bound browser document is unavailable.");
-      const output = {
-        title: input.readTitle(),
-        definition: structuredClone(definition),
-        extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-          .extensions,
-      };
-      stampBefore(toolCallId, handle);
-      toolNames.set(toolCallId, getLatestNetDefinitionToolName);
-      started.set(toolCallId, {
-        toolName: getLatestNetDefinitionToolName,
-        input: {},
-        output,
-      });
-      return output;
-    },
+    execute: ({ toolCallId, handle }) =>
+      readNet(
+        getLatestNetDefinitionToolName,
+        (definition) => definition,
+        toolCallId,
+        handle,
+      ),
   };
+  const readerTools: PetrinautAiAutomaticTool[] = (
+    Object.keys(netReaderToolNames) as NetReaderLevel[]
+  ).map((level) => ({
+    toolName: netReaderToolNames[level],
+    inputSchema: { parse: parseNetReaderInput },
+    outputSchema: passthrough,
+    execute: ({ toolCallId, handle }) =>
+      readNet(
+        netReaderToolNames[level],
+        (definition) => projectNetDefinition(definition, level),
+        toolCallId,
+        handle,
+      ),
+  }));
   const diagnosticsTool: PetrinautAiAutomaticTool = {
     toolName: getNetCompilationErrorsToolName,
     inputSchema: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
@@ -225,7 +257,22 @@ export const createCanonicalPetrinautHostTools = (
     },
   }));
   return {
-    tools: [readNetTool, diagnosticsTool, ...mutationTools],
+    tools: [readNetTool, ...readerTools, diagnosticsTool, ...mutationTools],
+    /**
+     * Whether the document has moved since `expected` only through settled
+     * Brunch changes. A hand edit, or a change whose revisions were never
+     * recorded, breaks the chain.
+     */
+    acceptsRevision: (expected: string): boolean => {
+      const visited = new Set<string>();
+      let revision: string | undefined = currentRevision(input.handle);
+      while (revision !== undefined && !visited.has(revision)) {
+        if (revision === expected) return true;
+        visited.add(revision);
+        revision = producedFrom.get(revision);
+      }
+      return false;
+    },
     mapClientToolInput: ({
       input: rawInput,
       toolCallId,
@@ -271,11 +318,21 @@ export const createCanonicalPetrinautHostTools = (
         revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
         (toolName === undefined || browserToolMutatesDocument(toolName));
+      if (changed) producedFrom.set(revisionAfter, revisionBefore);
+      const definition = changed ? input.handle.doc() : undefined;
       const result: DocumentRevisionMetadata = {
         documentRevision: {
           ...(revisionBefore === undefined ? {} : { before: revisionBefore }),
           ...(changed ? { after: revisionAfter } : {}),
         },
+        ...(definition
+          ? {
+              readBack: projectNetDefinition(
+                structuredClone(definition),
+                "structure",
+              ) as object,
+            }
+          : {}),
       };
       metadata.set(toolCallId, result);
       return result;
