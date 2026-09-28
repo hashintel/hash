@@ -54,9 +54,9 @@ import { useDraftConditionArtifacts, useDraftReplays } from "./use-draft-board";
 
 // Prototype: board setup for a status view. Places map, board of statuses
 // holding place chips, a tray for places without a status, and a status
-// panel floating over the board. Edits a draft of the view's labels;
-// "Use this board" saves it through the same `updateStatusView` mutation the
-// Status views drawer uses. Highlight rules live in draft state only.
+// panel docked at the right edge. Edits a draft of the view's labels,
+// highlights and card fields; "Use this board" saves them through the same
+// `updateStatusView` mutation the Status views drawer uses.
 
 const PALETTE = [
   "#94a3b8",
@@ -954,10 +954,25 @@ const PlacesMap = ({
           <g key={`${place.id}:tag`}>
             {layout?.moved && (
               <line
-                x1={place.x}
-                y1={place.y - radius}
-                x2={tagX}
-                y2={tagY + tagHeight}
+                {...(() => {
+                  // From the circle's edge toward the nearest point of the tag.
+                  const nearX = Math.min(
+                    Math.max(place.x, tagX - tagWidth / 2),
+                    tagX + tagWidth / 2,
+                  );
+                  const nearY = Math.min(
+                    Math.max(place.y, tagY),
+                    tagY + tagHeight,
+                  );
+                  const length =
+                    Math.hypot(nearX - place.x, nearY - place.y) || 1;
+                  return {
+                    x1: place.x + ((nearX - place.x) / length) * radius,
+                    y1: place.y + ((nearY - place.y) / length) * radius,
+                    x2: nearX,
+                    y2: nearY,
+                  };
+                })()}
                 stroke="var(--colors-neutral-s90)"
                 strokeWidth={unit}
               />
@@ -1708,6 +1723,7 @@ export const BoardSetup = ({
       <div ref={bodyRef} className={bodyStyle}>
         <div
           className={scrollStyle}
+          style={{ paddingRight: panelShown ? panelWidth : 0 }}
           data-setup-empty=""
           role="presentation"
           onClick={(event) => {
@@ -1720,11 +1736,7 @@ export const BoardSetup = ({
           }}
         >
           {liveBoard !== null && liveBoard.instances.length === 0 && (
-            <div
-              className={runBannerStyle}
-              role="status"
-              style={{ marginRight: panelShown ? panelWidth : 0 }}
-            >
+            <div className={runBannerStyle} role="status">
               <span>
                 <b>No {noun}s in this run yet.</b> Cards appear once the model
                 creates a {noun} token. Try a longer run or another scenario.
@@ -1732,11 +1744,7 @@ export const BoardSetup = ({
             </div>
           )}
           {liveBoard === null && (
-            <div
-              className={runBannerStyle}
-              role="status"
-              style={{ marginRight: panelShown ? panelWidth : 0 }}
-            >
+            <div className={runBannerStyle} role="status">
               <span>
                 <b>No run yet.</b> This board is set up from the model. Run the
                 simulation (▶ in the toolbar below) to see {noun}s move through
@@ -1778,10 +1786,7 @@ export const BoardSetup = ({
           </section>
 
           <section className={panelStyle}>
-            <div
-              className={panelHeadStyle}
-              style={{ paddingRight: panelShown ? panelWidth : 0 }}
-            >
+            <div className={panelHeadStyle}>
               <div>
                 <div className={panelTitleStyle}>Board</div>
                 <div className={captionStyle}>
@@ -1849,7 +1854,7 @@ export const BoardSetup = ({
                   </span>
                   <span className={faintStyle}>
                     Identities are set on token types in Definitions. Change the
-                    identity in the Status views drawer.
+                    identity in Simulate → Status views.
                   </span>
                 </div>
                 <div className={fieldStyle}>
@@ -2172,10 +2177,7 @@ export const BoardSetup = ({
                   </div>
                 );
               })}
-              <div
-                aria-hidden="true"
-                style={{ flex: `0 0 ${panelShown ? panelWidth : 0}px` }}
-              />
+              <div aria-hidden="true" style={{ flex: "0 0 8px" }} />
             </div>
           </section>
           {/* Clears the floating editor toolbar at the bottom of the canvas. */}
