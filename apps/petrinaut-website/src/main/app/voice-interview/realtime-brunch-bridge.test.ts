@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import {
   createRealtimeSubmissionId,
@@ -1900,7 +1900,7 @@ describe("RealtimeBrunchBridge", () => {
     {
       code: "admission-rejected",
       failure: { kind: "rejected", status: 403 } as const,
-      message: "Brunch rejected the message before admission (HTTP 403).",
+      message: "The agent rejected the message before admission (HTTP 403).",
     },
     {
       code: "admission-conflict",
@@ -1916,7 +1916,7 @@ describe("RealtimeBrunchBridge", () => {
       code: "admission-ambiguous",
       failure: { kind: "ambiguous" } as const,
       message:
-        "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+        "The agent may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
     },
     {
       code: "admission-aborted",

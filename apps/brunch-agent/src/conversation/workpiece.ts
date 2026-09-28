@@ -9,7 +9,7 @@ import {
   updateWorkpieceInputSchema,
   updateWorkpieceOutputSchema,
 } from "@hashintel/brunch-agent";
-import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent/contextual-user-message";
 import {
   selectRunbookWorkpiece,
   type SelectedRunbookWorkpiece,

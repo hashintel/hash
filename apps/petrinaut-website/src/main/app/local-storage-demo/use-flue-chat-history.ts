@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+import { browserToolOutput } from "@hashintel/brunch-agent/client-tools";
+import { snapshotToUiMessages } from "@local/flue-aisdk-transport";
 
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
@@ -34,6 +35,7 @@ const projectPetrinautMessages = (
   snapshotToUiMessages(conversation, {
     clientToolNames,
     dynamicClientToolNames,
+    mapToolOutput: browserToolOutput,
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (

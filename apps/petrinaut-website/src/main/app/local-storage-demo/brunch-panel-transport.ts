@@ -1,11 +1,15 @@
 import {
+  browserToolOutput,
+  SWEEP_TOOL_NAME,
+} from "@hashintel/brunch-agent/client-tools";
+import {
   createFlueChatTransport,
   FlueChatAdmissionError,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+} from "@local/flue-aisdk-transport";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
+import { brunchDeliveredMessage } from "./brunch-panel-transport/delivered-message";
 
 import type {
   SweepCapture,
@@ -17,12 +21,12 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
+import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
+} from "@local/flue-aisdk-transport";
 import type { UIMessageChunk } from "ai";
 
 export type BrunchPanelAdmission = Parameters<
@@ -344,6 +348,8 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
+          deliveredMessage: brunchDeliveredMessage,
+          mapToolOutput: browserToolOutput,
           ...(options?.initialData === undefined
             ? {}
             : { initialData: options.initialData }),

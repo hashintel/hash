@@ -2,8 +2,8 @@ import {
   canonicalContent,
   draftPetrinautExperimentInputSchema,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent-transport-aisdk";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { agentOwnershipHeaders } from "@hashintel/brunch-agent/conversation-identity";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { ProcessAgentBinding } from "./assistants/brunch/use-process-agent-binding";
