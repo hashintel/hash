@@ -12,7 +12,7 @@ import {
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { OpenAIRealtimeSession } from "../realtime/openai-realtime-session";
 import {

@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   petrinautContextualUserMessageBody,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent/contextual-user-message";
 
 import {
   recoverRunbookWorkpiece,

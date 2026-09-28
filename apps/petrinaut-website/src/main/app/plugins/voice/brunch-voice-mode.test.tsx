@@ -1,7 +1,7 @@
 import { isValidElement } from "react";
 import { describe, expect, test, vi } from "vitest";
 
-import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { BrunchPanelConversationTracker } from "../brunch/brunch-panel-transport";
 import { getBrunchVoiceMode } from "./brunch-voice-mode";

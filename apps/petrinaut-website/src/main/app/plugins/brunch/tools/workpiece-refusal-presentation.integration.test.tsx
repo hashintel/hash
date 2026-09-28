@@ -22,11 +22,12 @@ import {
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
+import { browserToolOutput } from "@hashintel/brunch-agent/client-tools";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-  snapshotToUiMessages,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent/conversation-identity";
+import { snapshotToUiMessages } from "@local/flue-aisdk-transport";
 
 import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
@@ -308,6 +309,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
 
     const reopened = snapshotToUiMessages(history, {
       clientToolNames: new Set(),
+      mapToolOutput: browserToolOutput,
     }) as PetrinautAiMessage[];
     cleanup();
     renderAssistant(reopened);

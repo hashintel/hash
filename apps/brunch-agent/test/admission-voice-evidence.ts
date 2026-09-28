@@ -1,4 +1,4 @@
-import type { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+import type { snapshotToUiMessages } from "@local/flue-aisdk-transport";
 
 /** Serialized Voice-facing evidence, shared without importing the Node probe. */
 export interface AdmissionVoiceEvidence {
