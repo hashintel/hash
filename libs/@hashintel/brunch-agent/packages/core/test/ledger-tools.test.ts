@@ -1,4 +1,4 @@
-import { useTool } from "@flue/runtime";
+import { useInstruction, useTool } from "@flue/runtime";
 import { expect, test, vi } from "vitest";
 
 import { brunchTools } from "../src/constants";
@@ -15,6 +15,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useModel: vi.fn<typeof import("@flue/runtime").useModel>(),
   useSkill: vi.fn<typeof import("@flue/runtime").useSkill>(),
   useTool: vi.fn<typeof useTool>(),
+  useInstruction: vi.fn<typeof useInstruction>(),
 }));
 
 const profile = composeLedgerProfile({
@@ -59,6 +60,7 @@ const context = {
 
 const mounted = (noteShape: "typed" | "open") => {
   vi.mocked(useTool).mockClear();
+  vi.mocked(useInstruction).mockClear();
   useBrunchAgent("anthropic/faux", undefined, {
     profile,
     noteShape,
@@ -97,6 +99,19 @@ test("mounts the Ledger tools, which read the conversation's history when they r
     },
     terminate: false,
   });
+});
+
+test("only the typed shape receives guidance naming the epistemic vocabulary", () => {
+  const vocabulary = /standing|contested|tentative/u;
+  const seen = (shape: "typed" | "open") => {
+    const tools = mounted(shape);
+    return [
+      ...vi.mocked(useInstruction).mock.calls.map(([text]) => text),
+      tools[1]?.description ?? "",
+    ].join("\n");
+  };
+  expect(seen("typed")).toMatch(vocabulary);
+  expect(seen("open")).not.toMatch(vocabulary);
 });
 
 test("the Note shape selects the commit input schema", () => {

@@ -2,7 +2,7 @@
 
 The `ledger_commit` catalogue lists this model's categories. They are filing homes, not interview order: follow the person's thread and do not read categories aloud as a questionnaire. A category being available does not make it mandatory; a consequential omission becomes an open Note where it matters.
 
-File each Note once, under the most specific category that fits, and refer to related Notes by id instead of restating them. Keep the person's wording, your normalization, uncertainty, conditions and contextual variation inside the Note or its epistemic fields. If a load-bearing fact is recoverable only from the transcript, the Ledger is incomplete at that point.
+File each Note once, under the most specific category that fits, and refer to related Notes by id instead of restating them. Keep the person's wording, your normalization, uncertainty, conditions and contextual variation inside the Note. If a load-bearing fact is recoverable only from the transcript, the Ledger is incomplete at that point.
 
 ## What goes where
 
