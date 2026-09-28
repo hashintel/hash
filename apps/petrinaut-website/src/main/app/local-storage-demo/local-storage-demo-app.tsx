@@ -501,7 +501,7 @@ export const LocalStorageDemoApp = ({
   }, [brunchSelected]);
 
   // Live editable document handle for the selected net only.
-  const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(null);
+  const [storedHandle, setStoredHandle] = useState<ActiveHandle | null>(null);
   // The most recent change the repository refused to persist, if any. It is
   // about the open document: cleared once a later change to that document
   // lands, or when another document is opened in its place.
@@ -510,24 +510,27 @@ export const LocalStorageDemoApp = ({
   );
 
   // The handle follows the repository: it is recreated from the repository's
-  // record whenever the two diverge — the record shows a revision this handle
-  // never emitted (another tab wrote it), or the repository refused one of
-  // this handle's changes, after which every further change from it would be
-  // refused too, because each names the rejected revision as predecessor.
+  // record whenever the two diverge — another document is open, the record
+  // shows a revision this handle never emitted (another tab wrote it), or the
+  // repository refused one of this handle's changes, after which every further
+  // change from it would be refused too, because each names the rejected
+  // revision as predecessor. It is decided during render, not in an effect, so
+  // no render pairs the open document with another document's handle.
+  const activeHandle =
+    currentDocument === null
+      ? null
+      : storedHandle?.document.documentId === currentDocument.documentId &&
+          storedHandle.document.incarnationId ===
+            currentDocument.incarnationId &&
+          storedHandle.emittedRevisionIds.has(currentDocument.revisionId) &&
+          persistFailure?.handle !== storedHandle.handle
+        ? storedHandle
+        : createActiveHandle(currentDocument);
+  if (activeHandle !== storedHandle) setStoredHandle(activeHandle);
+
   useEffect(() => {
-    if (currentDocument === null) {
-      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- repository selection synchronizes the selected document handle
-      setActiveHandle(null);
-      return;
-    }
-    setActiveHandle((previous) =>
-      previous?.document.documentId === currentDocument.documentId &&
-      previous.document.incarnationId === currentDocument.incarnationId &&
-      previous.emittedRevisionIds.has(currentDocument.revisionId) &&
-      persistFailure?.handle !== previous.handle
-        ? previous
-        : createActiveHandle(currentDocument),
-    );
+    if (currentDocument === null) return;
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- opening another document clears the previous document's save failure
     setPersistFailure((failure) =>
       failure !== null &&
       (failure.documentId !== currentDocument.documentId ||
@@ -535,7 +538,7 @@ export const LocalStorageDemoApp = ({
         ? null
         : failure,
     );
-  }, [currentDocument, persistFailure]);
+  }, [currentDocument]);
 
   useEffect(() => {
     if (!activeHandle) {
@@ -660,16 +663,13 @@ export const LocalStorageDemoApp = ({
       }),
     [captureException],
   );
-  const constructionBrowser = useMemo(() => {
-    if (
-      !activeHandle ||
-      processAgentBinding === null ||
-      activeHandle.document.documentId !== processAgentBinding.documentId ||
-      activeHandle.document.incarnationId !== processAgentBinding.incarnationId
-    )
-      return undefined;
-    return brunchSelected ? { binding: processAgentBinding } : undefined;
-  }, [activeHandle, brunchSelected, processAgentBinding]);
+  const constructionBrowser = useMemo(
+    () =>
+      brunchSelected && processAgentBinding !== null
+        ? { binding: processAgentBinding }
+        : undefined,
+    [brunchSelected, processAgentBinding],
+  );
   const dynamicClientToolNames =
     constructionBrowser === undefined
       ? undefined
