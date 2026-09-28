@@ -9,7 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import { useEffect, useState } from "react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
@@ -40,7 +40,48 @@ vi.hoisted(() => {
     removeEventListener() {},
     dispatchEvent: () => true,
   });
+  // Monaco probes legacy clipboard support at import time; jsdom has no
+  // implementation. This fixture does not exercise clipboard operations.
+  Object.defineProperty(document, "queryCommandSupported", {
+    configurable: true,
+    value: () => false,
+  });
+  class ClipboardItem {
+    constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
+  }
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      // Monaco's macOS gesture handler supplies deferred data. Adopt it so
+      // cancellation propagates to the handler rather than becoming unhandled.
+      write: (items: ClipboardItem[]) =>
+        Promise.all(
+          items.flatMap((item) =>
+            Object.values(item.items).map((value) => Promise.resolve(value)),
+          ),
+        ).then(() => undefined),
+    },
+  });
+  Object.defineProperty(window, "ClipboardItem", {
+    configurable: true,
+    value: ClipboardItem,
+  });
+  // Monaco's theme service escapes icon class names when it initializes.
+  Object.defineProperty(window, "CSS", {
+    configurable: true,
+    value: {
+      ...window.CSS,
+      escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
+    },
+  });
 });
+
+beforeAll(async () => {
+  // Settle the real editor's import and theme setup before mounting so errors
+  // cannot race the history assertions or escape after the test finishes.
+  const monaco = await import("monaco-editor");
+  monaco.editor.setTheme("vs");
+}, 30_000);
 
 const conversationId = "voice-continuity";
 const voiceAnswerToolName = "answerQuestion";
