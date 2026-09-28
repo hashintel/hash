@@ -89,12 +89,13 @@ it.each(["simulate", "optimize"] as const)(
     expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe(
       "6",
     );
-    expect(screen.getByRole("progressbar").className).toContain("h_[3px]");
-    expect(card.className).toContain("bg-c_neutral.s00");
-    expect(card.className).toContain("bd-c_neutral.a30");
-    expect(
-      screen.getByRole("progressbar").firstElementChild?.className,
-    ).toContain("bg-c_blue.s90");
+    expect(screen.getByRole("progressbar").className).toContain("h_[5px]");
+    const kind = screen.getByText(
+      mode === "simulate" ? "Simulation" : "Optimization",
+    );
+    expect(screen.getByText("Staffing").nextElementSibling).toBe(
+      kind.parentElement,
+    );
     if (mode === "optimize") {
       expect(screen.getByText("Step 3 of 4")).toBeTruthy();
       view.rerender(

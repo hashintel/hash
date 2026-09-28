@@ -2242,7 +2242,13 @@ export const VoiceStopped: Story = {
   ),
 };
 
-const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
+const ExperimentExample = ({
+  finished = false,
+  optimization = true,
+}: {
+  finished?: boolean;
+  optimization?: boolean;
+}) => {
   const [cancelled, setCancelled] = useState(false);
   return (
     <Frame
@@ -2268,13 +2274,15 @@ const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
                 dt: 1,
                 maxTime: 60,
                 metricIds: ["wait"],
-                execution: {
-                  mode: "optimize",
-                  objectiveMetricId: "wait",
-                  direction: "minimize",
-                  steps: 8,
-                  runsPerStep: 12,
-                },
+                execution: optimization
+                  ? {
+                      mode: "optimize",
+                      objectiveMetricId: "wait",
+                      direction: "minimize",
+                      steps: 8,
+                      runsPerStep: 12,
+                    }
+                  : { mode: "simulate" },
               },
             },
           ],
@@ -2301,7 +2309,7 @@ const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
           progress: {
             name: "Compare staffing",
             experimentId: "staffing",
-            phase: "optimizing",
+            phase: optimization ? "optimizing" : "running",
             runsCompleted: 5,
             runsTarget: 12,
             step: 3,
@@ -2315,8 +2323,43 @@ const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
 
 export const RunningExperiment: Story = {
   render: () => <ExperimentExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const card = canvas.getByRole("region", {
+      name: "Experiment: Compare staffing",
+    });
+    const progress = within(card).getByRole("progressbar");
+    await expect(getComputedStyle(card).backgroundImage).toContain(
+      "linear-gradient",
+    );
+    await expect(getComputedStyle(progress).height).toBe("5px");
+    await expect(
+      card.querySelector("strong")?.nextElementSibling?.textContent,
+    ).toContain("5 of 12 runs");
+  },
+};
+
+export const RunningSimulation: Story = {
+  ...RunningExperiment,
+  render: () => <ExperimentExample optimization={false} />,
 };
 
 export const FinishedExperiment: Story = {
   render: () => <ExperimentExample finished />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const card = canvas.getByRole("region", {
+      name: "Experiment: Compare staffing",
+    });
+    const metrics = card.querySelector("dl")!;
+    await expect(getComputedStyle(metrics).display).toBe("flex");
+    for (const metric of metrics.children) {
+      await expect(getComputedStyle(metric).borderTopWidth).toBe("0px");
+      await expect(getComputedStyle(metric).padding).toBe("0px");
+    }
+    await expect(within(card).queryByRole("progressbar")).toBeNull();
+    await expect(within(card).getByRole("status")).toHaveTextContent(
+      "Finished",
+    );
+  },
 };

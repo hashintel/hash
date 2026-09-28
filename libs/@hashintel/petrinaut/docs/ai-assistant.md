@@ -331,8 +331,8 @@ For example: "Run 100 simulations of this scenario and show the completed
 orders metric." The assistant can also search numeric scenario parameter
 ranges to minimize or maximize a metric.
 
-The experiment appears in a neutral card with a blue progress bar, its status, run count, and
-results. Select **View
+The experiment appears in a blue simulation card or a purple optimization card,
+with its status, run count, progress and results. Select **View
 experiment** to inspect metric distributions in the Experiments panel. The
 heatmap shows how values spread across runs; click a time step to see its
 histogram. Select **Cancel**
@@ -373,8 +373,9 @@ active indicator. Choosing **Run** starts execution and uses the normal
 disappears and the result remains under **Simulate → Experiments**.
 
 **Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
-draft is replaced in place by execution progress: **Validating**, simulation
-or optimization steps and runs, then **Finished** with metric cells. **Cancel**
+draft is replaced in place by the same blue simulation or purple optimization
+card used by the built-in assistant: **Validating**, steps and runs, then
+**Finished** with metrics. **Cancel**
 leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
 still require review before retrying. Drafting and starting a run keep your
 current tab selected; choose **View experiment** to open its results while the

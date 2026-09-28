@@ -1112,6 +1112,16 @@ describe("BrunchDraftExperimentWidget", () => {
       expect(screen.getByRole("status").textContent).toBe(
         mode === "simulate" ? "Running" : "Refining",
       );
+      expect(screen.getByRole("progressbar").className).toContain("h_[5px]");
+      const kind = screen.getByText(
+        mode === "simulate" ? "Simulation" : "Optimization",
+      );
+      expect(
+        screen.getByText("Staffing under peak demand").nextElementSibling,
+      ).toBe(kind.parentElement);
+      expect(
+        screen.queryByRole("region", { name: "Drafted experiment" }),
+      ).toBeNull();
       expect(
         screen.getByRole("progressbar").getAttribute("aria-valuenow"),
       ).toBe("7");
