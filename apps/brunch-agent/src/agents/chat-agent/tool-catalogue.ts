@@ -92,13 +92,13 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
     capability: "substrate",
   },
   {
-    name: brunchTools.mutateWorkpiece,
+    name: brunchTools.ledgerCommit,
     definitionOwner: "brunch-core",
     executionOwner: "brunch-app",
     capability: "ledger",
   },
   {
-    name: brunchTools.readWorkpiece,
+    name: brunchTools.ledgerCompile,
     definitionOwner: "brunch-core",
     executionOwner: "brunch-app",
     capability: "ledger",

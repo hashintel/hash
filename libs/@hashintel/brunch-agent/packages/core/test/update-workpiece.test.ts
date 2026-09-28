@@ -1,11 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { usePersistentState, useTool, type StateSetter } from "@flue/runtime";
+import { type StateSetter } from "@flue/runtime";
 import * as v from "valibot";
 import { beforeEach, expect, test, vi } from "vitest";
 
-import { brunchStateKeys, brunchTools } from "../src/constants";
-import { useBrunchAgent } from "../src/flue";
 import {
   deriveWorkpieceMutation,
   updateWorkpieceInputSchema,
@@ -17,20 +15,6 @@ import {
   createMutateWorkpieceTool,
   createWorkpieceReadTool,
 } from "../src/workpiece-tools";
-
-// Only the Flue build packages skills; these tests exercise the hook around it.
-vi.mock("@hashintel/brunch-agent/skills/elicitation/SKILL.md", () => ({
-  default: { name: "elicitation" },
-}));
-
-vi.mock("@flue/runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@flue/runtime")>()),
-  useModel: vi.fn<typeof import("@flue/runtime").useModel>(),
-  useSkill: vi.fn<typeof import("@flue/runtime").useSkill>(),
-  useDataWriter: () => () => {},
-  usePersistentState: vi.fn<typeof usePersistentState>(),
-  useTool: vi.fn<typeof useTool>(),
-}));
 
 let current: WorkpieceRevision | null;
 const setRevision: StateSetter<WorkpieceRevision | null> = (next) => {
@@ -643,52 +627,6 @@ test("refuses lone surrogates instead of hashing replacement characters", async 
 
 test("declares a non-terminating result", async () => {
   expect((await run("# Current")).terminate).toBe(false);
-});
-
-test("captures the persistent-state setter at render and writes from run", async () => {
-  vi.mocked(usePersistentState).mockReturnValue([
-    null,
-    setRevision as StateSetter<unknown>,
-  ]);
-  const prompt = useBrunchAgent("anthropic/faux");
-  expect(usePersistentState).toHaveBeenCalledWith(
-    brunchStateKeys.workpieceRevision,
-    null,
-  );
-  expect(current).toBeNull();
-  const mounted = vi
-    .mocked(useTool)
-    .mock.calls.map(([definition]) => definition);
-  const revisionTool = mounted.find(
-    (definition) => definition.name === brunchTools.mutateWorkpiece,
-  );
-  expect(revisionTool).toBeDefined();
-  vi.mocked(usePersistentState).mockImplementation(() => {
-    throw new Error("Hook invoked outside render");
-  });
-  await revisionTool!.run({
-    data: { markdown: "# Captured setter", baseRevisionId: null },
-    toolCallId: "from-run",
-    log: { info: () => {}, warn: () => {}, error: () => {} },
-  });
-  expect(current).toMatchObject({
-    revisionId: "from-run",
-    markdown: "# Captured setter",
-  });
-  expect(prompt).not.toContain("# Captured setter");
-});
-
-test("exposes the one render's settled revision without registering another state authority", async () => {
-  await run("# Settled", "settled");
-  vi.mocked(usePersistentState).mockReturnValue([
-    current,
-    setRevision as StateSetter<unknown>,
-  ]);
-  const consume = vi.fn<NonNullable<Parameters<typeof useBrunchAgent>[2]>>();
-  const prompt = useBrunchAgent("anthropic/faux", undefined, consume);
-  expect(consume).toHaveBeenCalledExactlyOnceWith(current);
-  expect(usePersistentState).toHaveBeenCalledTimes(1);
-  expect(prompt).not.toContain("# Settled");
 });
 
 test("rejects unstructured or unauthorized evidence before writing state", async () => {
