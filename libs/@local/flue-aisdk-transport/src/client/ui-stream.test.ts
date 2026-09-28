@@ -534,3 +534,54 @@ test("carries response metadata onto a provisionally started message", () => {
     vi.useRealTimers();
   }
 });
+
+// Open decision: the live channel opens a tool part as soon as the model
+// starts the call, but Flue delivers the text the model wrote before it later,
+// and the AI SDK reducer only appends parts. History keeps the model's order.
+test("observed: a live tool call can precede the canonical text that preceded it", async () => {
+  const written = recordChunks();
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.acceptLive(
+    liveEvent(0, {
+      kind: "tool-input-start",
+      toolCallId: "call-1",
+      toolName: "read_workpiece",
+    }),
+  );
+  projector.accept({
+    type: "message-delta",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    kind: "text",
+    delta: "Reading it now.",
+    position: position(1),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    input: {},
+    messageId: "message-1",
+    position: position(2),
+    toolCallId: "call-1",
+    toolName: "read_workpiece",
+  });
+
+  const { message } = await reduceUiMessageChunks(written);
+  expect(message?.parts.map((part) => part.type)).toEqual([
+    "step-start",
+    "tool-read_workpiece",
+    "text",
+  ]);
+});
