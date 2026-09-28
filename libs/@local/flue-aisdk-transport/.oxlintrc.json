@@ -33,6 +33,22 @@
   },
   "overrides": [
     {
+      "files": ["src/ai-sdk-compatibility/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@hashintel/*", "@apps/*"],
+                "message": "The Flue AI SDK transport must stay independent of the products that use it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["src/client.ts", "src/client/**", "src/shared/**"],
       "rules": {
         "no-restricted-imports": [
