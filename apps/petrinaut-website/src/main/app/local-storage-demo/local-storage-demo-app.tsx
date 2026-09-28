@@ -527,19 +527,17 @@ export const LocalStorageDemoApp = ({
         ? storedHandle
         : createActiveHandle(currentDocument);
   if (activeHandle !== storedHandle) setStoredHandle(activeHandle);
+  if (
+    persistFailure !== null &&
+    currentDocument !== null &&
+    (persistFailure.documentId !== currentDocument.documentId ||
+      persistFailure.incarnationId !== currentDocument.incarnationId)
+  )
+    setPersistFailure(null);
 
-  useEffect(() => {
-    if (currentDocument === null) return;
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- opening another document clears the previous document's save failure
-    setPersistFailure((failure) =>
-      failure !== null &&
-      (failure.documentId !== currentDocument.documentId ||
-        failure.incarnationId !== currentDocument.incarnationId)
-        ? null
-        : failure,
-    );
-  }, [currentDocument]);
-
+  // Saving the handle's changes subscribes to it, so it stays an effect: the
+  // subscription must end with its handle, and render may create handles that
+  // React discards.
   useEffect(() => {
     if (!activeHandle) {
       return;
