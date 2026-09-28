@@ -85,11 +85,6 @@ const viewSelectStyle = css({
   width: "[220px]",
 });
 
-const viewNameStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s110",
-});
 const viewSelectControlStyle = css({
   height: "[var(--edit-view-selector-height)]",
 });
@@ -514,9 +509,7 @@ export const KanbanView = ({
               }))}
             />
           </div>
-        ) : (
-          <span className={viewNameStyle}>{statusView.name}</span>
-        )}
+        ) : null}
         {!settingUp && (
           <Button
             variant="subtle"
