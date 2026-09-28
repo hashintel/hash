@@ -18,7 +18,7 @@ export interface PdfBbox {
   unit: "pt";
 }
 
-export interface FilePageBboxAnchor {
+interface FilePageBboxAnchor {
   kind: "file_page_bbox";
   page: number;
   bbox: PdfBbox;
@@ -40,13 +40,13 @@ export interface Block {
 //  Evidence refs
 // ---------------------------------------------------------------------------
 
-export interface BlockSpan {
+interface BlockSpan {
   blockId: string;
   start: number;
   end: number;
 }
 
-export interface EvidenceRef {
+interface EvidenceRef {
   sourceId: string;
   blockIds: string[];
   blockSpans: BlockSpan[];
@@ -57,7 +57,7 @@ export interface EvidenceRef {
 //  Corpus
 // ---------------------------------------------------------------------------
 
-export interface Source {
+interface Source {
   sourceId: string;
   kind: "file" | "web" | "audio" | "video";
   mimeType: string;
@@ -68,7 +68,7 @@ export interface Source {
   };
 }
 
-export interface ExtractedCorpus {
+interface ExtractedCorpus {
   version: "v0";
   parser: string;
   sources: Source[];
@@ -91,7 +91,7 @@ export type MentionCategory =
   | "event"
   | "other";
 
-export interface EntityMention {
+interface EntityMention {
   chunkId: string;
   blockId: string;
   start: number;
@@ -168,7 +168,7 @@ export type TerminalRunStatus = RunStatus & {
 //  Mention context plans (assertion windows / fallback)
 // ---------------------------------------------------------------------------
 
-export interface FallbackWindow {
+interface FallbackWindow {
   text: string;
   chunkId: string;
   blockId: string;
@@ -194,7 +194,7 @@ export interface AssertionWindow extends FallbackWindow {
   }[];
 }
 
-export interface ContextDiagnostics {
+interface ContextDiagnostics {
   relevantChunkCount: number;
   mentionCount: number;
   relevantMentionCount: number;
