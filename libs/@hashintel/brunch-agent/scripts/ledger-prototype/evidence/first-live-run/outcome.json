@@ -1,0 +1,8 @@
+{
+  "state": "completed",
+  "kind": "live-observation-not-grade",
+  "requests": 29,
+  "toolCalls": 10,
+  "estimatedUsd": 0.36907370000000006,
+  "unknownUsage": false
+}

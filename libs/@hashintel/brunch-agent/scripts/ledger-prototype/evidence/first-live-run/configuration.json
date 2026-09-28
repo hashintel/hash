@@ -1,0 +1,12 @@
+{
+  "live": true,
+  "case": "inventory-purchasing",
+  "elicitor": "openai/gpt-5.6-sol",
+  "persona": "anthropic/claude-sonnet-4-6",
+  "turns": 10,
+  "max-usd": "10",
+  "max-requests": "80",
+  "timeout-seconds": "120",
+  "synthetic": false,
+  "note": "Adapted Ledger-only prompts, not production Brunch parity. Recovered from the originating Pi transcript."
+}
