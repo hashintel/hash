@@ -88,6 +88,8 @@ export const createLiveConversation = (
   >();
   const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
+  /** Transcription items whose speech started and whose transcript isn't finalized. */
+  const unfinalizedSpeech = new Set<string>();
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
   let microphoneMuted = false;
@@ -132,6 +134,7 @@ export const createLiveConversation = (
   const stopMedia = () => {
     echoTrace.end();
     outputOverlap.clear();
+    unfinalizedSpeech.clear();
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
@@ -363,6 +366,7 @@ export const createLiveConversation = (
       if (!input) return;
       if (!emitted.has(input.id)) {
         emitted.add(input.id);
+        unfinalizedSpeech.delete(itemId);
         const startedDuringOutput = echoTrace.startedDuringOutput(itemId);
         const liveOutputText = outputOverlap.finalize(itemId, Date.now());
         logLiveDiagnostic("input.finalized", {
@@ -421,6 +425,7 @@ export const createLiveConversation = (
       return;
     }
     if (data.type === "input_audio_buffer.speech_started") {
+      if (typeof data.item_id === "string") unfinalizedSpeech.add(data.item_id);
       echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
       outputOverlap.speechStarted(data.item_id, Date.now());
       utteranceLevels.speechStarted(data.item_id, Date.now());
@@ -935,6 +940,7 @@ export const createLiveConversation = (
     setSpeakerMuted,
     setSpeakerVolume,
     openDelegations: openDelegations as ReadonlySet<string>,
+    speechPending: (): boolean => unfinalizedSpeech.size > 0,
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
     appendInstructions: (text: string, delegationId: string | null) =>
