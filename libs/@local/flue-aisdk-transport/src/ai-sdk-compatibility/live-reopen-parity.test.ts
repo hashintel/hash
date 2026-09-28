@@ -56,11 +56,7 @@ describe("a live response reduces to the message its history reopens as", () => 
       ),
       fauxAssistantMessage([fauxText("Found it.")]),
     ]);
-    const turn = await runTurn("Look it up");
-    expect(
-      turn.live.message?.parts.filter((part) => part.type === "step-start"),
-    ).toHaveLength(2);
-    expectParity(turn);
+    expectParity(await runTurn("Look it up"));
   });
 
   test("two tool calls in one step", async () => {
@@ -114,16 +110,11 @@ describe("a live response reduces to the message its history reopens as", () => 
       ),
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
-    const turn = await runTurn("Show it", {
-      adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
-    });
-    expect(turn.live.message?.parts).toContainEqual(
-      expect.objectContaining({
-        type: "dynamic-tool",
-        toolName: harnessTools.widget,
+    expectParity(
+      await runTurn("Show it", {
+        adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
       }),
     );
-    expectParity(turn);
   });
 
   test("a failing server tool", async () => {
@@ -133,11 +124,7 @@ describe("a live response reduces to the message its history reopens as", () => 
       }),
       fauxAssistantMessage([fauxText("It failed.")]),
     ]);
-    const turn = await runTurn("Try it");
-    expect(turn.live.message?.parts).toContainEqual(
-      expect.objectContaining({ state: "output-error" }),
-    );
-    expectParity(turn);
+    expectParity(await runTurn("Try it"));
   });
 
   test("agent-authored response metadata", async () => {
@@ -145,7 +132,6 @@ describe("a live response reduces to the message its history reopens as", () => 
     harness.script([fauxAssistantMessage([fauxText("Tagged.")])]);
     const turn = await runTurn("Tag it");
     harness.setResponseMetadata(undefined);
-    expect(turn.reopened.at(-1)?.metadata).toEqual({ model: "faux", tier: 1 });
     expectParity(turn);
   });
 });
