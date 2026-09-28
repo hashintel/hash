@@ -111,8 +111,10 @@ sessions start directly. **Test microphone** checks access to the selected micro
 and immediately releases it; it does not start a provider session or send audio.
 A failed or ended acknowledged session offers
 **Retry voice** without showing the consent prompt again. Browser microphone
-permission remains separate.
-**Cancel** returns to text without starting one. If the browser blocks remote
+permission remains separate. The compact recovery card offers **Back to chat**
+and keeps the full connection diagnostic under **Technical details**. While the
+previous session is stopping, Retry remains disabled.
+In the consent panel, **Cancel** returns to text without starting a session. If the browser blocks remote
 playback, the dock keeps the warning visible and offers **Play voice audio**;
 selecting it retries playback from that user gesture. Closing the panel or
 selecting **End voice mode** ends Live audio, transcription, microphone
@@ -144,6 +146,8 @@ Brunch has a submitted or streaming response, while **Speaking** means audio is
 currently playing. Neither state announces progress aloud or changes the
 microphone setting. The microphone action remains visible but disabled while
 Voice is connecting, paused, or interrupted by an error.
+An interrupted connection shows a slowly moving red waveform, not microphone
+activity. The waveform stays still when reduced motion is enabled.
 The latest microphone-mute choice is reapplied when a handoff settles.
 
 The right-hand controls appear in this order: **Stop AI response**, **Audio

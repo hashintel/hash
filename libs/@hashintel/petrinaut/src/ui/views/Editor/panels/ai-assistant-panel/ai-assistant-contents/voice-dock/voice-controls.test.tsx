@@ -116,7 +116,7 @@ test("renders an interrupted session as an unlabeled scoped ribbon with recovery
   );
 
   const dock = screen.getByTestId("ai-voice-dock");
-  expect(dock.querySelector("[data-interrupted-ribbon]")).not.toBeNull();
+  expect(dock.querySelector('canvas[data-phase="error"]')).not.toBeNull();
   expect(dock.querySelector('[data-part="visible-status"]')).toBeNull();
   expect(screen.getByRole("status").textContent).toContain("Voice interrupted");
   expect(

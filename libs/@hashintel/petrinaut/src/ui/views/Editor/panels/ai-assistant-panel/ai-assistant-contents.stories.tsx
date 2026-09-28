@@ -1400,6 +1400,21 @@ export const MultipleVoiceIssues: Story = {
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const ribbon = within(canvasElement).getByTestId("voice-session-indicator");
+    await expect(ribbon).toHaveAttribute("data-phase", "error");
+    if (!(ribbon instanceof HTMLCanvasElement)) {
+      throw new Error("The error ribbon must use the animated waveform");
+    }
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Let the first paint finish so a single static draw cannot pass.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      const initialFrame = ribbon.toDataURL();
+      await waitFor(() => expect(ribbon.toDataURL()).not.toBe(initialFrame));
+    }
+  },
 };
 
 export const CollapsedVoiceIssues: Story = {

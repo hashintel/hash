@@ -3,33 +3,6 @@ import { useEffect, useRef } from "react";
 import { Button, Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-const VoiceModeIcon = () => (
-  <svg
-    aria-hidden="true"
-    fill="none"
-    height="16"
-    viewBox="0 0 20 20"
-    width="16"
-  >
-    <path
-      d="M3 8.5v3M6.5 5.5v9M10 3v14M13.5 6v8M17 8.5v3"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeWidth="1.8"
-    />
-  </svg>
-);
-
-const disclosureFrameStyle = css({
-  width: "full",
-  padding: "2",
-  borderTopWidth: "thin",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.a20",
-  backgroundColor: "neutral.bg.subtle",
-  color: "neutral.s100",
-  _focus: { outline: "none" },
-});
 const consentCardStyle = css({
   width: "full",
   padding: "4",
@@ -40,41 +13,6 @@ const consentCardStyle = css({
   boxShadow:
     "[0 0 0 1px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.09)]",
   _focus: { outline: "none" },
-});
-const disclosureCardStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  padding: "3",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a20",
-  borderRadius: "xl",
-  backgroundColor: "neutral.s00",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0,0,0,0.03), 0px 8px 16px -12px rgba(0,0,0,0.18)]",
-});
-const disclosureHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-});
-const disclosureIconStyle = css({
-  display: "inline-flex",
-  width: "7",
-  height: "7",
-  flexShrink: "0",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "lg",
-  backgroundColor: "blue.a20",
-  color: "blue.s90",
-});
-const disclosureTitleStyle = css({
-  display: "flex",
-  minWidth: "[0]",
-  flexDirection: "column",
-  gap: "0.5",
 });
 const disclosureHeadingStyle = css({
   fontSize: "sm",
@@ -101,6 +39,7 @@ const disclosureActionsStyle = css({
   flexWrap: "wrap",
   alignItems: "center",
   gap: "2",
+  marginTop: "3",
 });
 const disclosureStatusStyle = css({
   minHeight: "[18px]",
@@ -251,38 +190,50 @@ export const VoiceInterviewRetry = ({
   return (
     <section
       aria-label="Voice mode retry"
-      className={disclosureFrameStyle}
+      className={consentCardStyle}
       ref={retryRef}
       tabIndex={-1}
     >
-      <div className={disclosureCardStyle}>
-        <div className={disclosureHeaderStyle}>
-          <span className={disclosureIconStyle}>
-            <VoiceModeIcon />
-          </span>
-          <div className={disclosureTitleStyle}>
-            <strong className={disclosureHeadingStyle}>
-              Restart voice conversation
-            </strong>
-          </div>
-        </div>
-        <p aria-live="polite" className={disclosureCopyStyle}>
+      <div aria-live="polite">
+        <h3 className={disclosureHeadingStyle}>
+          {retryDisabled ? "Stopping voice…" : "Voice disconnected"}
+        </h3>
+        <p className={disclosureCopyStyle}>
+          {retryDisabled
+            ? "Wait a moment before trying again."
+            : "Try again, or continue in chat."}
+        </p>
+      </div>
+      <details className={css({ marginTop: "2", fontSize: "xs" })}>
+        <summary className={css({ cursor: "pointer", color: "neutral.s90" })}>
+          Technical details
+        </summary>
+        <p
+          className={`${disclosureCopyStyle} ${css({ marginTop: "1", overflowWrap: "anywhere" })}`}
+        >
           {message}
         </p>
-        <div className={disclosureActionsStyle}>
-          <Button
-            disabled={retryDisabled}
-            onClick={onRetry}
-            size="xs"
-            tone="brand"
-            type="button"
-          >
-            Retry voice
-          </Button>
-          <Button onClick={onExit} size="xs" type="button" variant="subtle">
-            Cancel
-          </Button>
-        </div>
+      </details>
+      <div className={disclosureActionsStyle}>
+        <Button
+          className={consentActionStyle}
+          disabled={retryDisabled}
+          onClick={onRetry}
+          size="xs"
+          tone="neutral"
+          type="button"
+        >
+          Retry voice
+        </Button>
+        <Button
+          className={consentActionStyle}
+          onClick={onExit}
+          size="xs"
+          type="button"
+          variant="ghost"
+        >
+          Back to chat
+        </Button>
       </div>
     </section>
   );

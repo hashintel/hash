@@ -173,6 +173,13 @@ test("starts acknowledged Live after the previous session finishes stopping", ()
 
   rerender(<VoiceInterviewControl {...props} config={config} />);
 
+  expect(screen.getByText("Stopping voice…")).toBeTruthy();
+  expect(screen.queryByText("Voice disconnected")).toBeNull();
+  expect(
+    screen
+      .getByRole("button", { name: "Retry voice" })
+      .hasAttribute("disabled"),
+  ).toBe(true);
   expect(createLiveConversation).toHaveBeenCalledOnce();
   act(() =>
     onState({
@@ -215,6 +222,15 @@ test("retries an acknowledged Live failure without requesting consent again", as
   ).toBeNull();
   expect(screen.getByRole("region", { name: "Voice mode retry" })).toBeTruthy();
   expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(screen.getByText("Voice disconnected")).toBeTruthy();
+  expect(screen.getByText("Try again, or continue in chat.")).toBeTruthy();
+  const details = screen
+    .getByText("Live media connection ended.")
+    .closest("details");
+  expect(details).not.toBeNull();
+  expect(details?.open).toBe(false);
+  expect(screen.getByText("Technical details")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Back to chat" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Retry voice" }));
 

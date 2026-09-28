@@ -17,7 +17,10 @@ import {
   useVoiceSessionSpeakerMuted,
   useVoiceSessionSpeakerVolume,
 } from "../../../../../../react/voice-session/use-voice-session";
-import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
+import {
+  LiveVoiceSessionIndicator,
+  VoiceSessionIndicator,
+} from "../../../components/voice-session-indicator";
 import {
   voiceSessionActionLabels,
   voiceSessionStatusLabel,
@@ -52,12 +55,6 @@ const dockStyle = css({
   "@media (prefers-reduced-motion: reduce)": {
     animationName: "[none]",
   },
-});
-
-const interruptedDockStyle = css({
-  color: "red.s90",
-  animation: "[pulse 3s ease-in-out infinite]",
-  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 });
 
 const sideStyle = css({
@@ -248,29 +245,7 @@ export const VoiceDock = ({
       <div className={centerStyle} data-part="shrinkable-status">
         <span className={indicatorStyle} data-part="fixed-indicator">
           {phase === "error" ? (
-            <svg
-              aria-hidden="true"
-              data-interrupted-ribbon
-              width="104"
-              height="32"
-              viewBox="0 0 104 32"
-              className={interruptedDockStyle}
-            >
-              <path
-                d="M2 16 C14 11 22 11 34 16 S54 21 66 16 S86 11 102 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M2 17 C16 14 26 13 38 17 S58 19 72 16 S92 14 102 17"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1"
-                opacity="0.3"
-              />
-            </svg>
+            <VoiceSessionIndicator getMicrophoneLevel={() => 0} phase="error" />
           ) : (
             (indicator ?? <LiveVoiceSessionIndicator />)
           )}
