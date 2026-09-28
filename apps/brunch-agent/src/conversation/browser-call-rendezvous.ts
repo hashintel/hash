@@ -174,7 +174,12 @@ export const claimBrowserCall = (
 export const renewBrowserCall = (input: LeaseProof): boolean => {
   const entry = leasedCall(input);
   if (!entry) return false;
-  entry.deadline = Date.now() + leaseMs;
+  const deadline = Date.now() + leaseMs;
+  entry.deadline = deadline;
+  // A renewing browser is still working through this document's lane, so calls queued behind this one stay claimable.
+  for (const queued of calls.values())
+    if (!queued.claimed && queued.binding === entry.binding)
+      queued.deadline = deadline;
   return true;
 };
 

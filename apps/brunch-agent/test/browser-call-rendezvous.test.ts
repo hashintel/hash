@@ -271,6 +271,54 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
   ).toBe("not-issued");
 });
 
+it("a renewal keeps calls queued behind it on the same document claimable", async () => {
+  vi.useFakeTimers();
+  const running = {
+    instanceId: "owner",
+    toolCallId: crypto.randomUUID(),
+    toolName: "applyAutoLayout",
+    canonicalInput: {},
+    binding: "document-incarnation",
+    verify,
+  };
+  const queued = { ...running, toolCallId: crypto.randomUUID() };
+  const otherDocument = {
+    ...running,
+    toolCallId: crypto.randomUUID(),
+    binding: "other-document-incarnation",
+  };
+  void issueBrowserCall(running);
+  const queuedResult = issueBrowserCall(queued);
+  const otherDocumentRejection = expect(
+    issueBrowserCall(otherDocument),
+  ).rejects.toThrow(BROWSER_CALL_UNSTARTED_ERROR);
+  const issued = claimBrowserCall(
+    running.instanceId,
+    running.toolCallId,
+    running.binding,
+  );
+  await vi.advanceTimersByTimeAsync(20_000);
+  expect(renewBrowserCall({ ...running, capability: issued!.capability })).toBe(
+    true,
+  );
+  await vi.advanceTimersByTimeAsync(20_000);
+  await otherDocumentRejection;
+  const queuedIssued = claimBrowserCall(
+    queued.instanceId,
+    queued.toolCallId,
+    queued.binding,
+  );
+  expect(queuedIssued?.input).toEqual({});
+  expect(
+    settleBrowserCall({
+      ...queued,
+      capability: queuedIssued!.capability,
+      output: {},
+    }),
+  ).toBe("settled");
+  await expect(queuedResult).resolves.toBeDefined();
+});
+
 it("classifies a claimed call that cannot change the document as unchanged when stopped or expired, and a claimed write as unknown", async () => {
   const controller = new AbortController();
   const base = {
