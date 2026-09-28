@@ -425,7 +425,7 @@ test("punctuation-only finalized input is ignored like empty input", async () =>
   );
 });
 
-test("one- or two-word input that started while Live was audible is not sent to Brunch", async () => {
+test("input of up to three words that started while Live was audible is not sent to Brunch", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   const fixture = setup();
@@ -437,6 +437,11 @@ test("one- or two-word input that started while Live was audible is not sent to 
   await fixture.bridge.accept({
     id: "two-words",
     text: "Got it.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "three-words",
+    text: "That sounds good.",
     startedDuringOutput: true,
   });
   expect(fixture.submit).not.toHaveBeenCalled();
@@ -459,11 +464,15 @@ test("one- or two-word input that started while Live was audible is not sent to 
       inputId: "two-words",
       reason: "short-during-output",
     }),
+    expect.objectContaining({
+      inputId: "three-words",
+      reason: "short-during-output",
+    }),
   ]);
   expect(JSON.stringify(debug.mock.calls)).not.toContain("Kristof");
 });
 
-test("short input while Live was quiet and three words during Live speech still reach Brunch", async () => {
+test("short input while Live was quiet and four words during Live speech still reach Brunch", async () => {
   const fixture = setup();
   await fixture.bridge.accept({
     id: "quiet",
@@ -472,7 +481,7 @@ test("short input while Live was quiet and three words during Live speech still 
   });
   await fixture.bridge.accept({
     id: "correction",
-    text: "No, fifty calls.",
+    text: "Seven reviewers, not four.",
     startedDuringOutput: true,
   });
   expect(fixture.submit).toHaveBeenCalledTimes(2);
@@ -482,23 +491,40 @@ test("short input while Live was quiet and three words during Live speech still 
   );
   expect(fixture.submit).toHaveBeenNthCalledWith(
     2,
-    expect.objectContaining({ id: "correction", text: "No, fifty calls." }),
+    expect.objectContaining({
+      id: "correction",
+      text: "Seven reviewers, not four.",
+    }),
   );
   expect(
     fixture.submit.mock.calls.some(([input]) => "startedDuringOutput" in input),
   ).toBe(false);
 });
 
-test("a short input during Live speech still reaches Brunch when GPT-Live delegated it", async () => {
+test("a pending delegation neither exempts a short input during Live speech nor is used up by it", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   const fixture = setup();
-  fixture.bridge.acceptDelegation("delegated");
+  fixture.bridge.acceptDelegation("pending");
   await fixture.bridge.accept({
-    id: "short",
+    id: "echo",
     text: "Yes.",
     startedDuringOutput: true,
   });
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers, not four.",
+    startedDuringOutput: false,
+  });
   expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
-    expect.objectContaining({ id: "short", text: "Yes." }),
+    expect.objectContaining({ id: "answer" }),
+  );
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":"pending"',
+    ),
   );
 });
 

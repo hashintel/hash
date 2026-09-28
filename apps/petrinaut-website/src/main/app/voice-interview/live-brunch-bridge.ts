@@ -125,6 +125,17 @@ export class LiveBrunchBridge {
       return;
     }
     this.#seenInputs.add(input.id);
+    const words = wordCount(input.text);
+    // Leaked Live audio finalizes as phantoms of a few words. Check before a
+    // delegation is claimed: GPT-Live can delegate its own echo, and an
+    // unclaimed delegation can outlast the utterance it was created for.
+    if (input.startedDuringOutput && words > 0 && words <= 3) {
+      logLiveDiagnostic("input.ignored", {
+        inputId: input.id,
+        reason: "short-during-output",
+      });
+      return;
+    }
     const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
     // Transcription can finalize noise as punctuation alone, such as ".".
@@ -140,19 +151,6 @@ export class LiveBrunchBridge {
           delegationId,
         );
       }
-      return;
-    }
-    // Live audio leaking into the microphone finalizes as one- or two-word
-    // phantoms. A delegation means GPT-Live itself heard a turn.
-    if (
-      delegationId === null &&
-      input.startedDuringOutput &&
-      wordCount(input.text) <= 2
-    ) {
-      logLiveDiagnostic("input.ignored", {
-        inputId: input.id,
-        reason: "short-during-output",
-      });
       return;
     }
     if (

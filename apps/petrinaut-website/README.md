@@ -243,11 +243,13 @@ The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 
 Two kinds of finalized transcript never reach Brunch. A transcript with no
-letters or digits, such as ".", is handled like empty input. A one- or two-word
-transcript whose speech started while Live was audible, or within a second
-after, is dropped unless GPT-Live delegated it: these are almost always Live's
-own audio leaking back and misheard as speech. A real one-word interruption
-still stops Live, but its words don't reach Brunch. Neither case shows a notice.
+letters or digits, such as ".", is handled like empty input. A transcript of
+up to three words whose speech started while Live was audible, or within a
+second after, is dropped: these are almost always Live's own audio leaking back
+and misheard as speech. A GPT-Live delegation doesn't exempt it, because
+GPT-Live can delegate its own echo. A real interruption of three words or fewer
+still stops Live, but its words don't reach Brunch. Neither case shows a
+notice.
 
 #### Speaker echo check — 10 minutes
 
