@@ -3,11 +3,11 @@ import fs from "node:fs/promises";
 import { Readable } from "node:stream";
 import stream from "node:stream/promises";
 
-import { PDFReader } from "@llamaindex/readers/pdf";
 import { VectorStoreIndex } from "llamaindex";
 import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
+import { loadPdfDocuments } from "./index-pdf-file/load-pdf-documents.js";
 import {
   createStorageContext,
   persistStorageContext,
@@ -71,7 +71,7 @@ export const indexPdfFile = async (params: {
 
     logger.info("PDF File downloaded successfully");
 
-    const documents = await new PDFReader().loadData(filePath);
+    const documents = await loadPdfDocuments(filePath);
 
     logger.info(`Loaded PDF File as ${documents.length} documents`);
 
