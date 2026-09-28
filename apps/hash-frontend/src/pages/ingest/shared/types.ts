@@ -1,0 +1,234 @@
+/**
+ * Contract types for the ingest pipeline UI.
+ *
+ * These mirror the Zod schemas in the internal repo's pipeline contracts
+ * but as plain TypeScript types — the Mastra API validates; the frontend
+ * just consumes the JSON.
+ */
+
+// ---------------------------------------------------------------------------
+//  Anchors & blocks
+// ---------------------------------------------------------------------------
+
+export interface PdfBbox {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  unit: "pt";
+}
+
+interface FilePageBboxAnchor {
+  kind: "file_page_bbox";
+  page: number;
+  bbox: PdfBbox;
+}
+
+export type Anchor = FilePageBboxAnchor;
+
+export interface Block {
+  blockId: string;
+  sourceId: string;
+  kind: string;
+  text: string;
+  anchors: Anchor[];
+  confidence?: number;
+  attributes?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+//  Evidence refs
+// ---------------------------------------------------------------------------
+
+interface BlockSpan {
+  blockId: string;
+  start: number;
+  end: number;
+}
+
+interface EvidenceRef {
+  sourceId: string;
+  blockIds: string[];
+  blockSpans: BlockSpan[];
+  quote: string;
+}
+
+// ---------------------------------------------------------------------------
+//  Corpus
+// ---------------------------------------------------------------------------
+
+interface Source {
+  sourceId: string;
+  kind: "file" | "web" | "audio" | "video";
+  mimeType: string;
+  stableRef: {
+    contentHash: string;
+    fileEntityId?: string;
+    snapshotId?: string;
+  };
+}
+
+interface ExtractedCorpus {
+  version: "v0";
+  parser: string;
+  sources: Source[];
+  blocks: Block[];
+  metadata: {
+    language?: string;
+    createdAt?: string;
+  };
+}
+
+// ---------------------------------------------------------------------------
+//  Discovery domain
+// ---------------------------------------------------------------------------
+
+export type MentionCategory =
+  | "person"
+  | "organization"
+  | "place"
+  | "artifact"
+  | "event"
+  | "other";
+
+interface EntityMention {
+  chunkId: string;
+  blockId: string;
+  start: number;
+  end: number;
+  surface: string;
+}
+
+export interface RosterEntry {
+  rosterEntryId: string;
+  canonicalName: string;
+  category?: MentionCategory;
+  discoveredTypeId: string;
+  resolvedTypeId: string;
+  summary: string;
+  mentions: EntityMention[];
+  chunkIds: string[];
+  mergedLocalIds: string[];
+}
+
+export interface ExtractedClaim {
+  claimId: string;
+  rosterEntryId: string;
+  linkedRosterEntryIds?: string[];
+  claimText: string;
+  subject: string;
+  predicate: string;
+  object: string;
+  evidenceRefs: EvidenceRef[];
+}
+
+// ---------------------------------------------------------------------------
+//  Page images
+// ---------------------------------------------------------------------------
+
+export interface PageImageManifest {
+  contentHash: string;
+  pageNumber: number;
+  imageUrl: string;
+  pdfPageWidth: number;
+  pdfPageHeight: number;
+  bboxOrigin: "BOTTOMLEFT" | "TOPLEFT";
+}
+
+// ---------------------------------------------------------------------------
+//  Run status & view
+// ---------------------------------------------------------------------------
+
+export interface RunStatus {
+  runId: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  phase?: string;
+  step?: string;
+  contentHash?: string;
+  counts?: {
+    pages?: number;
+    chunks?: number;
+    mentions?: number;
+    claims?: number;
+  };
+  startedAt?: string;
+  updatedAt?: string;
+  error?: string;
+}
+
+export type ActiveRunStatus = RunStatus & {
+  status: Extract<RunStatus["status"], "queued" | "running">;
+};
+
+export type TerminalRunStatus = RunStatus & {
+  status: Extract<RunStatus["status"], "succeeded" | "failed">;
+};
+
+// ---------------------------------------------------------------------------
+//  Mention context plans (assertion windows / fallback)
+// ---------------------------------------------------------------------------
+
+interface FallbackWindow {
+  text: string;
+  chunkId: string;
+  blockId: string;
+  windowStart: number;
+  windowEnd: number;
+  mentionStart: number;
+  mentionEnd: number;
+  mentionSurface: string;
+}
+
+export interface AssertionWindow extends FallbackWindow {
+  discourseResolutions: {
+    surface: string;
+    resolvedName: string;
+    kind: "direct" | "pronoun" | "description" | "alias";
+  }[];
+  evidenceRole: "identificational" | "attributive";
+  identityEvidenceKind?: string;
+  participants: {
+    rosterEntryId: string;
+    canonicalName: string;
+    role: string;
+  }[];
+}
+
+interface ContextDiagnostics {
+  relevantChunkCount: number;
+  mentionCount: number;
+  relevantMentionCount: number;
+  resolvedWindowCount: number;
+  mentionChunkCoverage: number;
+}
+
+export type MentionContextPlan =
+  | {
+      localId: string;
+      rosterEntryId?: string;
+      mode: "assertion_windows";
+      assertionWindows: AssertionWindow[];
+      diagnostics: ContextDiagnostics;
+    }
+  | {
+      localId: string;
+      rosterEntryId?: string;
+      mode: "mechanical_fallback";
+      fallbackWindows: FallbackWindow[];
+      fallbackReason: string;
+      diagnostics: ContextDiagnostics;
+    };
+
+export interface IngestRunView {
+  runId: string;
+  sourceMetadata: {
+    filename: string;
+    contentHash: string;
+    mimeType: string;
+  };
+  pageImages: PageImageManifest[];
+  roster: { entries: RosterEntry[] };
+  claims: ExtractedClaim[];
+  mentionContexts: MentionContextPlan[];
+  corpus: ExtractedCorpus;
+}

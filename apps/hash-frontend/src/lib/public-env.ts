@@ -13,3 +13,6 @@ export const ENVIRONMENT =
 export const SENTRY_ENVIRONMENT =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || ENVIRONMENT;
+
+export const isIngestEnabled =
+  process.env.NEXT_PUBLIC_INGEST_ENABLED === "true";

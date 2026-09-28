@@ -1,0 +1,190 @@
+/**
+ * Page viewer: continuous-scroll PDF page images with bbox overlay highlights.
+ *
+ * Renders all pages in a vertically scrolling container. Exposes a
+ * `scrollToPage` imperative handle for programmatic navigation.
+ */
+import { Box, Stack, Typography } from "@mui/material";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
+
+import { bboxToPercentage } from "./page-viewer/bbox-transform";
+import { highlightColors } from "./shared/highlight-styles";
+
+import type { Anchor, Block, PageImageManifest } from "../shared/types";
+import type { FunctionComponent } from "react";
+
+export interface PageViewerHandle {
+  scrollToPage: (pageNumber: number) => void;
+}
+
+interface PageViewerProps {
+  pageImages: PageImageManifest[];
+  blocks: Block[];
+  highlightedBlockIds: string[];
+}
+
+interface HighlightedOverlay {
+  key: string;
+  block: Block;
+  anchor: Anchor;
+}
+
+// ---------------------------------------------------------------------------
+// Single page with bbox overlays (defined first for no-use-before-define)
+// ---------------------------------------------------------------------------
+
+const PageWithOverlays: FunctionComponent<{
+  pageImage: PageImageManifest;
+  totalPages: number;
+  highlightedOverlays: HighlightedOverlay[];
+  setRef: (element: HTMLDivElement | null) => void;
+}> = ({ pageImage, totalPages, highlightedOverlays, setRef }) => (
+  <Box ref={setRef} sx={{ width: "100%", maxWidth: 900 }}>
+    <Typography
+      variant="microText"
+      sx={{
+        color: "gray.50",
+        mb: 0.5,
+        textAlign: "center",
+      }}
+    >
+      Page {pageImage.pageNumber} of {totalPages}
+    </Typography>
+    <Box sx={{ position: "relative", lineHeight: 0 }}>
+      <img
+        src={pageImage.imageUrl}
+        alt={`Page ${pageImage.pageNumber}`}
+        style={{
+          width: "100%",
+          height: "auto",
+          border: "1px solid",
+          borderColor: "rgba(0, 0, 0, 0.12)",
+          borderRadius: "4px",
+        }}
+      />
+
+      {highlightedOverlays.map(({ key, block, anchor }) => {
+        const position = bboxToPercentage(
+          anchor.bbox,
+          pageImage.pdfPageWidth,
+          pageImage.pdfPageHeight,
+          pageImage.bboxOrigin,
+        );
+
+        return (
+          <Box
+            key={key}
+            title={`[${block.kind}] ${block.text.substring(0, 80)}`}
+            sx={{
+              position: "absolute",
+              left: `${position.left}%`,
+              top: `${position.top}%`,
+              width: `${position.width}%`,
+              height: `${position.height}%`,
+              border: `2px solid ${highlightColors.bboxBorder}`,
+              backgroundColor: highlightColors.bboxFill,
+              pointerEvents: "none",
+              boxSizing: "border-box",
+              borderRadius: "2px",
+            }}
+          />
+        );
+      })}
+    </Box>
+  </Box>
+);
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
+  ({ pageImages, blocks, highlightedBlockIds }, ref) => {
+    const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+    const setPageRef = useCallback(
+      (pageNumber: number, element: HTMLDivElement | null) => {
+        if (element) {
+          pageRefs.current.set(pageNumber, element);
+        } else {
+          pageRefs.current.delete(pageNumber);
+        }
+      },
+      [],
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        scrollToPage(pageNumber: number) {
+          pageRefs.current
+            .get(pageNumber)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        },
+      }),
+      [],
+    );
+
+    const sortedPages = useMemo(
+      () =>
+        [...pageImages].sort(
+          (left, right) => left.pageNumber - right.pageNumber,
+        ),
+      [pageImages],
+    );
+
+    const highlightedBlocksByPage = useMemo(() => {
+      if (highlightedBlockIds.length === 0) {
+        return new Map<number, HighlightedOverlay[]>();
+      }
+      const highlightedBlockIdSet = new Set(highlightedBlockIds);
+      const map = new Map<number, HighlightedOverlay[]>();
+      const seenOverlayKeysByPage = new Map<number, Set<string>>();
+      for (const block of blocks) {
+        if (!highlightedBlockIdSet.has(block.blockId)) {
+          continue;
+        }
+        for (const anchor of block.anchors) {
+          const overlay: HighlightedOverlay = {
+            key: `${block.blockId}:${anchor.page}:${anchor.bbox.x1}:${anchor.bbox.y1}:${anchor.bbox.x2}:${anchor.bbox.y2}`,
+            block,
+            anchor,
+          };
+          const seenOverlayKeys =
+            seenOverlayKeysByPage.get(anchor.page) ?? new Set<string>();
+          if (seenOverlayKeys.has(overlay.key)) {
+            continue;
+          }
+          seenOverlayKeys.add(overlay.key);
+          seenOverlayKeysByPage.set(anchor.page, seenOverlayKeys);
+          const existing = map.get(anchor.page) ?? [];
+          existing.push(overlay);
+          map.set(anchor.page, existing);
+        }
+      }
+      return map;
+    }, [blocks, highlightedBlockIds]);
+
+    return (
+      <Stack gap={2} alignItems="center">
+        {sortedPages.map((pageImage) => (
+          <PageWithOverlays
+            key={pageImage.pageNumber}
+            pageImage={pageImage}
+            totalPages={sortedPages.length}
+            highlightedOverlays={
+              highlightedBlocksByPage.get(pageImage.pageNumber) ?? []
+            }
+            setRef={(element) => setPageRef(pageImage.pageNumber, element)}
+          />
+        ))}
+      </Stack>
+    );
+  },
+);
