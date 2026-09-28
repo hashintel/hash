@@ -15,6 +15,8 @@ export type ExperimentExecutionCardProps = {
   result?: PetrinautExperimentResult;
   error?: string;
   onCancel?: () => void;
+  /** Supply for a failed execution that can be attempted again. */
+  onRetry?: () => void;
   /** Supply only while the caller can open the experiment's record. */
   onViewExperiment?: () => void;
 };
@@ -27,45 +29,10 @@ const cardStyle = css({
   padding: "2.5",
   borderRadius: "xl",
   border: "[1px solid]",
-  borderColor: "blue.a30",
-  backgroundColor: "blue.s10",
-  backgroundImage:
-    "[linear-gradient(135deg, var(--colors-blue-a10), transparent 70%)]",
+  borderColor: "neutral.a30",
+  backgroundColor: "neutral.s00",
   fontSize: "sm",
   color: "neutral.s90",
-  transition: "[border-color 200ms ease, box-shadow 200ms ease]",
-  "&[data-pending=true]": {
-    boxShadow:
-      "[0 0 0 1px var(--colors-blue-a15), 0 0 14px var(--colors-blue-a20)]",
-  },
-  "&[data-tone=optimization]": {
-    borderColor: "purple.a30",
-    backgroundColor: "purple.s10",
-    backgroundImage:
-      "[linear-gradient(135deg, var(--colors-purple-a10), transparent 70%)]",
-    boxShadow: "[0 2px 12px var(--colors-purple-a10)]",
-  },
-  "&[data-tone=optimization][data-pending=true]::after": {
-    content: '""',
-    position: "absolute",
-    inset: "[0]",
-    borderRadius: "[inherit]",
-    pointerEvents: "none",
-    boxShadow:
-      "[0 0 0 1px var(--colors-purple-a30), 0 0 14px var(--colors-purple-a20)]",
-    animationName: "[petrinautOptimizingGlow]",
-    animationDuration: "[2.8s]",
-    animationTimingFunction: "ease-in-out",
-    animationIterationCount: "[infinite]",
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
-    "&[data-tone=optimization][data-pending=true]::after": {
-      animationName: "[none]",
-      boxShadow:
-        "[0 0 0 1px var(--colors-purple-a15), 0 0 14px var(--colors-purple-a20)]",
-    },
-  },
 });
 
 const headerStyle = css({
@@ -81,19 +48,16 @@ const iconStyle = css({
   marginTop: "0.5",
   flexShrink: "0",
   borderRadius: "lg",
-  color: "blue.s100",
-  backgroundColor: "blue.a15",
-  "[data-tone=optimization] &": {
-    color: "purple.s100",
-    backgroundColor: "purple.a15",
-  },
+  color: "neutral.s90",
+  backgroundColor: "neutral.a10",
 });
 const kindStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "blue.s100",
+  textTransform: "uppercase",
+  letterSpacing: "wide",
+  color: "neutral.s90",
   lineHeight: "[16px]",
-  "[data-tone=optimization] &": { color: "purple.s100" },
 });
 const titleStyle = css({
   display: "block",
@@ -126,14 +90,8 @@ const statusStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   lineHeight: "[14px]",
-  color: "blue.s110",
-  backgroundColor: "blue.a10",
-  "&[data-status=pending]": {
-    "[data-tone=optimization] &": {
-      color: "purple.s110",
-      backgroundColor: "purple.a10",
-    },
-  },
+  color: "neutral.s90",
+  backgroundColor: "neutral.a10",
   "&[data-status=complete]": {
     color: "green.s110",
     backgroundColor: "green.a10",
@@ -162,26 +120,23 @@ const detailStyle = css({
   overflowWrap: "anywhere",
 });
 const progressTrackStyle = css({
-  height: "[5px]",
+  height: "[3px]",
   borderRadius: "full",
   overflow: "hidden",
-  backgroundColor: "blue.a15",
-  "[data-tone=optimization] &": { backgroundColor: "purple.a15" },
+  backgroundColor: "neutral.a20",
 });
 const progressFillStyle = css({
   height: "[100%]",
   borderRadius: "full",
   backgroundColor: "blue.s90",
   transition: "[width 280ms ease-out]",
-  "[data-tone=optimization] &": { backgroundColor: "purple.s90" },
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
 const metricsStyle = css({
-  display: "flex",
-  flexWrap: "wrap",
-  columnGap: "4",
-  rowGap: "2",
-  flex: "[1 1 100px]",
+  display: "grid",
+  gridTemplateColumns: "[repeat(auto-fit, minmax(88px, 1fr))]",
+  gap: "1.5",
+  width: "full",
   minWidth: "[0]",
   margin: "0",
 });
@@ -189,6 +144,9 @@ const metricStyle = css({
   display: "flex",
   flexDirection: "column",
   minWidth: "[0]",
+  padding: "2",
+  border: "[1px solid {colors.neutral.a30}]",
+  borderRadius: "lg",
   overflowWrap: "anywhere",
   "& > dt": { fontSize: "xs", color: "neutral.s90", lineHeight: "[16px]" },
   "& > dd": {
@@ -217,6 +175,7 @@ export const ExperimentExecutionCard = ({
   result,
   error: errorText,
   onCancel,
+  onRetry,
   onViewExperiment,
 }: ExperimentExecutionCardProps) => {
   const name = result?.name ?? progress?.name ?? request?.name ?? "Experiment";
@@ -266,11 +225,11 @@ export const ExperimentExecutionCard = ({
           <Icon name={optimization ? "sparkles" : "flask"} size="sm" />
         </span>
         <div className={css({ minWidth: "[0]", flex: "1" })}>
+          <span className={kindStyle}>
+            {optimization ? "Optimization" : "Simulation"}
+          </span>
           <strong className={titleStyle}>{name}</strong>
           <div className={metadataStyle}>
-            <span className={kindStyle}>
-              {optimization ? "Optimization" : "Simulation"}
-            </span>
             {(result || pending) && (
               <span className={detailStyle}>
                 {result
@@ -360,6 +319,7 @@ export const ExperimentExecutionCard = ({
       )}
       {result?.metrics.length ||
       available ||
+      (errorText && onRetry) ||
       (pending && onCancel) ||
       result?.experimentId ? (
         <div
@@ -386,21 +346,26 @@ export const ExperimentExecutionCard = ({
               ))}
             </dl>
           )}
-          {(available || (pending && onCancel) || result?.experimentId) && (
+          {(available ||
+            (errorText && onRetry) ||
+            (pending && onCancel) ||
+            result?.experimentId) && (
             <div className={actionsStyle}>
+              {errorText && onRetry && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  tone="neutral"
+                  onClick={onRetry}
+                >
+                  Retry run
+                </Button>
+              )}
               {available && (
                 <Button
                   size="xs"
                   variant="ghost"
                   tone="neutral"
-                  className={css({
-                    color: "blue.s100",
-                    _hover: { backgroundColor: "blue.a10" },
-                    "[data-tone=optimization] &": {
-                      color: "purple.s100",
-                      _hover: { backgroundColor: "purple.a10" },
-                    },
-                  })}
                   iconName="arrowUpRight"
                   iconPosition="right"
                   onClick={onViewExperiment}

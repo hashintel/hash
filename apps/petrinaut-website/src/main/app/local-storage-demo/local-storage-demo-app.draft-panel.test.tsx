@@ -455,14 +455,14 @@ test.each(["Dismiss", "Run"] as const)(
           name: /active Monte Carlo simulation/u,
         }),
       ).toBeNull();
+      expect(send).toHaveBeenCalledTimes(1);
     } else {
-      await waitFor(() =>
-        expect(card.getAttribute("data-draft-status")).toBe("Run complete"),
-      );
-      expect(card.textContent).toContain("Finished");
-      expect(card.textContent).toContain("20 runs");
+      await screen.findByText("Finished");
+      expect(card.isConnected).toBe(false);
+      expect(screen.getByText("20 runs")).not.toBeNull();
+      // Only the finished run's result follow-up starts another turn.
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
     }
-    expect(send).toHaveBeenCalledTimes(1);
   },
   30_000,
 );

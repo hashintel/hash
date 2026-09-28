@@ -331,9 +331,8 @@ For example: "Run 100 simulations of this scenario and show the completed
 orders metric." The assistant can also search numeric scenario parameter
 ranges to minimize or maximize a metric.
 
-The experiment appears in a compact card with its status, run count, and
-results. Simulation cards use blue; optimization cards use purple and glow
-while running. Select **View
+The experiment appears in a neutral card with a blue progress bar, its status, run count, and
+results. Select **View
 experiment** to inspect metric distributions in the Experiments panel. The
 heatmap shows how values spread across runs; click a time step to see its
 histogram. Select **Cancel**
@@ -373,13 +372,20 @@ active indicator. Choosing **Run** starts execution and uses the normal
 **1 active** indicator; when it completes, that indicator
 disappears and the result remains under **Simulate → Experiments**.
 
-After **Run**, the chat card shows the same blue simulation or purple
-optimization progress, **Cancel** action, final metrics and errors as the
-built-in assistant. Optimization reports search steps and refinement. Drafting
-and starting a run keep your current tab selected; choose **View experiment**
-to open its results while the experiment is still available. The proposal's
-disclosures remain visible. Run results are shown to you, not sent back to
-Brunch for interpretation, and are not retained after reloading the session.
+**Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
+draft is replaced in place by execution progress: **Validating**, simulation
+or optimization steps and runs, then **Finished** with metric cells. **Cancel**
+leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
+still require review before retrying. Drafting and starting a run keep your
+current tab selected; choose **View experiment** to open its results while the
+experiment is still available.
+
+Completed local results are sent to Brunch as a new message in the originating
+conversation when it is ready, without clearing your unsent draft. Brunch can
+then interpret them in a new answer. A stopped response is not automatically
+resumed. If submitting the result fails, choose **Retry result summary**.
+The local run is not retained after reloading the session; the submitted result
+message follows the host's conversation-history policy.
 
 ## Read-only behaviour
 

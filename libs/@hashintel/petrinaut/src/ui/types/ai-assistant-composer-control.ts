@@ -50,6 +50,8 @@ export type PetrinautAiComposerControlContext = {
   stop: () => Promise<void>;
   /** Call from an event handler or effect, never while rendering. */
   submitText: PetrinautAiComposerSubmitText;
+  /** Report a host-owned experiment's activity from an effect; clear it on unmount. */
+  reportExperimentRunning?: (running: boolean) => void;
 };
 
 /** Render callback for a host-owned control inside the assistant composer. */
