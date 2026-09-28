@@ -1,146 +1,73 @@
 /**
  * SSE proxy for ingest run events.
  *
- * Next.js rewrites buffer responses, breaking SSE streaming. This API route
- * manually proxies the EventSource connection to the Mastra API with proper
- * streaming headers.
+ * Next.js rewrites buffer responses, which breaks SSE streaming, so this
+ * route streams the Mastra API's event stream through instead.
  */
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
-const MASTRA_API_ORIGIN =
-  process.env.MASTRA_API_ORIGIN ?? "http://localhost:4111";
+const isPrematureClose = (error: unknown): boolean =>
+  error instanceof Error &&
+  "code" in error &&
+  error.code === "ERR_STREAM_PREMATURE_CLOSE";
 
-const getMastraApiOrigin = (): URL | null => {
-  try {
-    const url = new URL(MASTRA_API_ORIGIN);
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return null;
-    }
-    return url;
-  } catch {
-    return null;
-  }
-};
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  const mastraApiOrigin = process.env.MASTRA_API_ORIGIN;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  const { runId } = req.query;
-  const upstreamOrigin = getMastraApiOrigin();
-
-  if (!upstreamOrigin) {
-    res.status(500).json({ error: "Invalid MASTRA_API_ORIGIN" });
-    return;
-  }
-
-  if (typeof runId !== "string" || runId.trim().length === 0) {
-    res.status(400).json({ error: "Missing runId" });
+  if (!mastraApiOrigin) {
+    res.status(404).end();
     return;
   }
 
   const upstreamUrl = new URL(
-    `/ingest-runs/${encodeURIComponent(runId)}/events`,
-    upstreamOrigin,
+    `/ingest-runs/${encodeURIComponent(String(req.query.runId))}/events`,
+    mastraApiOrigin,
   );
 
-  const headers: Record<string, string> = {
-    Accept: "text/event-stream",
-  };
+  if (typeof req.query.after === "string") {
+    upstreamUrl.searchParams.set("after", req.query.after);
+  }
 
   const lastEventId = req.headers["last-event-id"];
-  if (typeof lastEventId === "string") {
-    headers["Last-Event-ID"] = lastEventId;
+
+  const upstream = await fetch(upstreamUrl, {
+    headers: {
+      Accept: "text/event-stream",
+      ...(typeof lastEventId === "string"
+        ? { "Last-Event-ID": lastEventId }
+        : {}),
+    },
+  });
+
+  if (!upstream.ok || !upstream.body) {
+    res
+      .status(upstream.status)
+      .json({ error: `Upstream responded with ${upstream.status}` });
+    return;
   }
 
-  const after = req.query.after;
-  if (typeof after === "string") {
-    upstreamUrl.searchParams.set("after", after);
-  }
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Content-Type-Options": "nosniff",
+  });
 
-  const abortController = new AbortController();
+  // `fetch` is typed with the DOM's ReadableStream; at runtime it is Node's
+  const upstreamBody = upstream.body as NodeReadableStream<Uint8Array>;
 
-  try {
-    const upstream = await fetch(upstreamUrl, {
-      headers,
-      signal: abortController.signal,
-    });
-
-    if (!upstream.ok || !upstream.body) {
-      res.status(upstream.status).json({ error: "Upstream error" });
-      return;
-    }
-
-    const contentType = upstream.headers.get("content-type");
-    if (!contentType?.includes("text/event-stream")) {
-      await upstream.body.cancel();
-      res.status(502).json({ error: "Unexpected upstream content type" });
-      return;
-    }
-
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Content-Type-Options": "nosniff",
-      "X-Accel-Buffering": "no",
-    });
-    res.flushHeaders();
-
-    const reader = upstream.body.getReader();
-    const abortUpstream = () => {
-      if (abortController.signal.aborted) {
-        return;
+  await pipeline(Readable.fromWeb(upstreamBody), res).catch(
+    (error: unknown) => {
+      // A client that leaves the page closes the response before the run ends
+      if (!isPrematureClose(error)) {
+        throw error;
       }
+    },
+  );
+};
 
-      abortController.abort();
-      reader.cancel().catch(() => {});
-    };
-
-    const pump = async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- loop until stream ends
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        res.write(value);
-      }
-      res.end();
-    };
-
-    req.on("aborted", () => {
-      abortUpstream();
-    });
-
-    res.on("close", () => {
-      if (!res.writableEnded) {
-        abortUpstream();
-      }
-    });
-
-    await pump();
-  } catch {
-    if (abortController.signal.aborted) {
-      if (!res.writableEnded) {
-        res.end();
-      }
-      return;
-    }
-
-    if (!res.headersSent) {
-      res.status(502).json({ error: "Failed to connect to upstream" });
-      return;
-    }
-
-    if (!res.writableEnded) {
-      res.end();
-    }
-  }
-}
+export default handler;
