@@ -1,0 +1,23 @@
+{
+  "run": "run-DHz2T9",
+  "turns": 22,
+  "firstBuiltTurn": 12,
+  "turnsBuilt": 3,
+  "turnsBlocked": 19,
+  "turnsNeither": 0,
+  "outcomeByTurn": "xxxxxxxxxxxBxxxxxxxBBx",
+  "netElementsByTurn": "0,0,0,0,0,0,0,0,0,0,0,10,10,10,10,10,10,10,10,20,20,20",
+  "finalNet": {
+    "places": 7,
+    "transitions": 2,
+    "arcs": 11,
+    "readOrInhibitorArcs": 3,
+    "tokenTypes": 2,
+    "colouredPlaces": 6,
+    "transitionsWithCode": 2,
+    "parameters": 3,
+    "differentialEquations": 1,
+    "metrics": 2,
+    "scenarios": 0
+  }
+}
