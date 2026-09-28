@@ -1,0 +1,52 @@
+import { logLiveDiagnostic } from "../shared/live-diagnostic";
+
+export type SkipReason = "short-during-output" | "empty";
+
+export interface Utterance {
+  readonly inputId: string;
+  readonly text: string;
+  /** Contractions such as "I'll" count as one word. */
+  readonly words: number;
+  readonly startedDuringOutput: boolean;
+}
+
+export interface UtteranceStage {
+  readonly name: string;
+  /** A shadow stage traces what it would skip and never decides. */
+  readonly mode: "on" | "shadow" | "off";
+  readonly skip: (utterance: Utterance) => SkipReason | null;
+}
+
+const wordCount = (text: string) =>
+  text
+    .normalize("NFKC")
+    .match(/[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu)?.length ?? 0;
+
+/** The first stage that is on and skips decides; otherwise the input is sent. */
+export const routeUtterance = (
+  input: {
+    readonly id: string;
+    readonly text: string;
+    readonly startedDuringOutput?: boolean;
+  },
+  stages: readonly UtteranceStage[],
+): SkipReason | null => {
+  const utterance: Utterance = {
+    inputId: input.id,
+    text: input.text,
+    words: wordCount(input.text),
+    startedDuringOutput: input.startedDuringOutput ?? false,
+  };
+  for (const stage of stages) {
+    if (stage.mode === "off") continue;
+    const reason = stage.skip(utterance);
+    if (reason === null) continue;
+    if (stage.mode === "on") return reason;
+    logLiveDiagnostic("filter.shadow", {
+      inputId: utterance.inputId,
+      stage: stage.name,
+      reason,
+    });
+  }
+  return null;
+};
