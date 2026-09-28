@@ -23,7 +23,7 @@ For a new account, follow one concrete case and re-evaluate the active gap after
 
 ### Keep the Ledger
 
-The Ledger is the recoverable operational account. Follow core's `elicitation` guidance for commit cadence, Note granularity and epistemic fields; `references/ledger-filing.md` says what belongs under each operational category.
+The Ledger is the recoverable operational account. Follow core's `elicitation` guidance for commit cadence and Note granularity; `references/ledger-filing.md` says what belongs under each operational category.
 
 ### Construct
 
