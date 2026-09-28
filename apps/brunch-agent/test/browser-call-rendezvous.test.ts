@@ -241,9 +241,12 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
   const result = issueBrowserCall(call);
   const sibling = { ...call, toolCallId: crypto.randomUUID() };
   const siblingResult = issueBrowserCall(sibling);
-  const rejection = expect(result).rejects.toThrow(/lease expired/);
-  const siblingRejection =
-    expect(siblingResult).rejects.toThrow(/lease expired/);
+  const rejection = expect(result).rejects.toThrow(
+    "Browser call lease expired; the document is unchanged.",
+  );
+  const siblingRejection = expect(siblingResult).rejects.toThrow(
+    "Browser call lease expired; the document is unchanged.",
+  );
   const issued = claimBrowserCall(
     call.instanceId,
     call.toolCallId,
@@ -266,4 +269,41 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
       output: {},
     }),
   ).toBe("not-issued");
+});
+
+it("classifies a claimed call that cannot change the document as unchanged when stopped or expired, and a claimed write as unknown", async () => {
+  const controller = new AbortController();
+  const base = {
+    instanceId: "owner",
+    canonicalInput: {},
+    binding: "document-incarnation",
+    verify,
+  };
+  const draft = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    toolName: "draft_petrinaut_experiment",
+    signal: controller.signal,
+  };
+  const stoppedDraft = issueBrowserCall(draft);
+  const stoppedRejection = expect(stoppedDraft).rejects.toThrow(
+    "Browser call stopped; the document is unchanged.",
+  );
+  claimBrowserCall(draft.instanceId, draft.toolCallId, draft.binding);
+  controller.abort();
+  await stoppedRejection;
+
+  vi.useFakeTimers();
+  const write = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    toolName: "addPlace",
+  };
+  const expiredWrite = issueBrowserCall(write);
+  const expiredRejection = expect(expiredWrite).rejects.toThrow(
+    "Browser call lease expired; an attempted document effect is unknown.",
+  );
+  claimBrowserCall(write.instanceId, write.toolCallId, write.binding);
+  await vi.advanceTimersByTimeAsync(25_001);
+  await expiredRejection;
 });

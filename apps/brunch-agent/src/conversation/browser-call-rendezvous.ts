@@ -22,6 +22,35 @@ interface IssuedCall {
   timer: ReturnType<typeof setTimeout>;
 }
 const calls = new Map<string, IssuedCall>();
+/** The one model-facing error for a call that ends without a result: unstarted, unchanged, or unknown. */
+const outcomeError = (
+  entry: IssuedCall,
+  cause: "unstarted" | "failed" | "expired" | "stopped",
+): Error => {
+  if (!entry.claimed || cause === "unstarted")
+    return new Error(BROWSER_CALL_UNSTARTED_ERROR);
+  const unchanged = !browserToolMutatesDocument(entry.toolName);
+  switch (cause) {
+    case "failed":
+      return new Error(
+        unchanged
+          ? "The non-mutating browser call failed; the document is unchanged."
+          : "The browser result failed; an attempted document effect is unknown.",
+      );
+    case "expired":
+      return new Error(
+        unchanged
+          ? "Browser call lease expired; the document is unchanged."
+          : "Browser call lease expired; an attempted document effect is unknown.",
+      );
+    case "stopped":
+      return new Error(
+        unchanged
+          ? "Browser call stopped; the document is unchanged."
+          : "Browser call stopped; an attempted document effect is unknown.",
+      );
+  }
+};
 const keyFor = (instanceId: string, toolCallId: string) =>
   JSON.stringify([instanceId, toolCallId]);
 
@@ -100,13 +129,7 @@ export const issueBrowserCall = (input: {
       entry.timer = setTimeout(expire, entry.deadline - Date.now());
       return;
     }
-    finish(
-      entry.claimed
-        ? new Error(
-            "Browser call lease expired; an attempted document effect is unknown.",
-          )
-        : new Error(BROWSER_CALL_UNSTARTED_ERROR),
-    );
+    finish(outcomeError(entry, "expired"));
   };
   const finish = (error: Error) => {
     if (entry.finished) return;
@@ -116,14 +139,7 @@ export const issueBrowserCall = (input: {
   entry.timer = setTimeout(expire, leaseMs);
   calls.set(key, entry);
   if (input.signal) {
-    const onAbort = () =>
-      finish(
-        entry.claimed
-          ? new Error(
-              "Browser call stopped; an attempted document effect is unknown.",
-            )
-          : new Error(BROWSER_CALL_UNSTARTED_ERROR),
-      );
+    const onAbort = () => finish(outcomeError(entry, "stopped"));
     input.signal.addEventListener("abort", onAbort, { once: true });
     entry.releaseAbort = () =>
       input.signal?.removeEventListener("abort", onAbort);
@@ -175,16 +191,7 @@ export const failBrowserCall = (input: {
   const entry = deliverableCall(input);
   if (!entry) return false;
   retire(key);
-  const readOnly = !browserToolMutatesDocument(entry.toolName);
-  entry.result.reject(
-    new Error(
-      input.disposition === "unstarted"
-        ? BROWSER_CALL_UNSTARTED_ERROR
-        : readOnly
-          ? "The non-mutating browser call failed; the document is unchanged."
-          : "The browser result failed; an attempted document effect is unknown.",
-    ),
-  );
+  entry.result.reject(outcomeError(entry, input.disposition));
   return true;
 };
 
