@@ -564,6 +564,11 @@ export const VoiceModeAwaitingConsentCompact: Story = {
     const shell = dock.closest("aside")!;
     const initialShellHeight = shell.getBoundingClientRect().height;
     const initialDockTop = dock.getBoundingClientRect().top;
+    await expect(initialShellHeight).toBe(dock.getBoundingClientRect().height);
+    await expect(shell.getBoundingClientRect().bottom).toBe(
+      canvas.getByTestId("ai-assistant-story-frame").getBoundingClientRect()
+        .bottom - 12,
+    );
 
     // Host content can grow or disappear; neither should move the controls
     // whose position is derived from the compact shell's reported height.
@@ -575,6 +580,20 @@ export const VoiceModeAwaitingConsentCompact: Story = {
     consent.style.removeProperty("min-height");
     consent.style.removeProperty("display");
   },
+};
+
+export const FloatingVoiceModeAwaitingConsentCompact: Story = {
+  render: () => (
+    <Frame
+      initialPlacement="floating"
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+    />
+  ),
+  play: VoiceModeAwaitingConsentCompact.play,
 };
 
 export const VoiceSessionListening: Story = {
@@ -1083,6 +1102,51 @@ export const VoiceSessionSpeaking: Story = {
       })}
     />
   ),
+};
+
+export const FloatingVoiceSessionCollapsed: Story = {
+  render: () => (
+    <Frame
+      initialPlacement="floating"
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ microphoneLevel: 0.6 })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    const shell = dock.closest("aside")!;
+    const frame = canvas.getByTestId("ai-assistant-story-frame");
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Move AI assistant" }),
+    );
+    await userEvent.keyboard("{ArrowDown}{ArrowLeft}");
+    const expanded = shell.getBoundingClientRect();
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Hide conversation" }),
+    );
+    await waitFor(() =>
+      expect(shell.getBoundingClientRect().height).toBe(
+        dock.getBoundingClientRect().height,
+      ),
+    );
+    await expect(shell.getBoundingClientRect().bottom).toBe(
+      frame.getBoundingClientRect().bottom - 12,
+    );
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Show conversation" }),
+    );
+    await waitFor(() =>
+      expect(shell.getBoundingClientRect().height).toBe(expanded.height),
+    );
+    await expect(shell.getBoundingClientRect().top).toBe(expanded.top);
+    await expect(shell.getBoundingClientRect().right).toBe(expanded.right);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Hide conversation" }),
+    );
+  },
 };
 
 export const MicrophoneMutedWhileSpeaking: Story = {

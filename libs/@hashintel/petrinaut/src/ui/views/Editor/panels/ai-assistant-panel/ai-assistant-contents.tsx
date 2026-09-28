@@ -1290,7 +1290,7 @@ export const AiAssistantContents = ({
         className={shellStyle({
           collapsed: isVoiceDockCollapsed,
           open: isOpen,
-          floating: isFloating,
+          floating: isFloating && !isVoiceDockCollapsed,
         })}
         data-placement={aiAssistantPlacement}
         data-animating={isPanelAnimating && !isInteracting}

@@ -89,7 +89,8 @@ composer retains a disabled **Send** action. Starting Voice mode keeps the trans
 opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
 disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the
 AI header, transcript, and composer stay hidden. The card opens without shifting the dock or viewport
-controls, and scrolls within the available screen height. Setup does not show **Connecting** before
+controls, and scrolls within the available screen height. It uses one bordered surface, with **Start voice**
+and **Test microphone** together and **Cancel** on the right. Setup does not show **Connecting** before
 you start. Select **Expand voice setup** to restore the full
 panel. Voice started from the composer keeps that full panel visible. Review that OpenAI processes
 live audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the
@@ -123,7 +124,8 @@ panel. It shows one short state -- **Connecting**, **Listening**, **Muted**,
 the controls available without covering the transcript. Select **Hide
 conversation** to leave only the dock visible, and **Show conversation** to
 restore the AI header, transcript, and host Voice region. These controls change
-visibility only: they do not pause, stop, or end Voice. Ending Voice while the
+visibility only: they do not pause, stop, or end Voice. A floating panel also minimizes to the
+bottom-right dock; expanding restores its previous position and size. Ending Voice while the
 conversation is hidden also closes the AI panel; ending it while the
 conversation is visible returns to the text composer.
 When space is tight, the dock keeps the waveform and action buttons usable and

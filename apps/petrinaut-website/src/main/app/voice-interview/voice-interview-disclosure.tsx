@@ -30,6 +30,17 @@ const disclosureFrameStyle = css({
   color: "neutral.s100",
   _focus: { outline: "none" },
 });
+const consentCardStyle = css({
+  width: "full",
+  padding: "4",
+  border: "[1px solid {colors.neutral.a40}]",
+  borderRadius: "[12px]",
+  backgroundColor: "neutral.s00",
+  color: "neutral.s115",
+  boxShadow:
+    "[0 0 0 1px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.09)]",
+  _focus: { outline: "none" },
+});
 const disclosureCardStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -70,7 +81,6 @@ const disclosureHeadingStyle = css({
   fontWeight: "semibold",
   lineHeight: "tight",
 });
-const disclosureSubtitleStyle = css({ color: "neutral.s80", fontSize: "xs" });
 const disclosureCopyStyle = css({
   color: "neutral.s90",
   fontSize: "xs",
@@ -78,10 +88,13 @@ const disclosureCopyStyle = css({
 });
 const disclosureConsentStyle = css({
   width: "full",
-  padding: "2",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a10",
-  color: "neutral.s100",
+  fontSize: "[13px]",
+  color: "neutral.s115",
+});
+const consentActionStyle = css({
+  height: "[28px]",
+  paddingX: "2.5",
+  fontSize: "[13px]",
 });
 const disclosureActionsStyle = css({
   display: "flex",
@@ -125,82 +138,96 @@ export const VoiceInterviewDisclosure = ({
   return (
     <section
       aria-label="Voice mode consent"
-      className={disclosureFrameStyle}
+      className={consentCardStyle}
       ref={disclosureRef}
       tabIndex={-1}
     >
-      <div className={disclosureCardStyle}>
-        <div className={disclosureHeaderStyle}>
-          <span className={disclosureIconStyle}>
-            <VoiceModeIcon />
-          </span>
-          <div className={disclosureTitleStyle}>
-            <strong className={disclosureHeadingStyle}>
-              Start a voice conversation
-            </strong>
-            {!experimental && (
-              <span className={disclosureSubtitleStyle}>
-                Talk through your process with AI
-              </span>
-            )}
-          </div>
-        </div>
-        <p className={disclosureCopyStyle}>
-          {experimental
-            ? "OpenAI processes microphone audio for voice and transcription. Petrinaut saves text, not audio."
-            : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
-        </p>
-        <Checkbox
-          className={disclosureConsentStyle}
-          label={
-            experimental
-              ? "Allow microphone audio for voice and transcription."
-              : "I understand how voice data is handled."
-          }
-          onChange={onConsentChange}
+      <h3
+        className={css({
+          fontSize: "sm",
+          fontWeight: "semibold",
+          marginBottom: "1.5",
+        })}
+      >
+        Start a voice conversation
+      </h3>
+      <p
+        className={css({
+          color: "neutral.s90",
+          fontSize: "[13px]",
+          marginBottom: "3",
+        })}
+      >
+        {experimental
+          ? "OpenAI processes microphone audio for voice and transcription. Petrinaut saves text, not audio."
+          : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
+      </p>
+      <Checkbox
+        className={disclosureConsentStyle}
+        label={
+          experimental
+            ? "Allow microphone audio for voice and transcription."
+            : "I understand how voice data is handled."
+        }
+        onChange={onConsentChange}
+        size="xs"
+        tone="neutral"
+        value={consented}
+      />
+      <div
+        className={css({
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: "2",
+          marginTop: "[14px]",
+        })}
+      >
+        <Button
+          className={consentActionStyle}
+          disabled={!consented || startDisabled}
+          onClick={onStart}
           size="xs"
-          tone="brand"
-          value={consented}
-        />
-        <div className={disclosureActionsStyle}>
+          tone="neutral"
+          type="button"
+        >
+          Start voice
+        </Button>
+        {onCheckMicrophone && (
           <Button
-            disabled={!consented || startDisabled}
-            onClick={onStart}
+            aria-describedby="voice-microphone-check-status"
+            className={consentActionStyle}
+            loading={checkingMicrophone}
+            onClick={onCheckMicrophone}
             size="xs"
-            tone="brand"
             type="button"
+            variant="subtle"
           >
-            Start voice
+            Test microphone
           </Button>
-          {onCheckMicrophone && (
-            <Button
-              aria-describedby="voice-microphone-check-status"
-              loading={checkingMicrophone}
-              onClick={onCheckMicrophone}
-              size="xs"
-              type="button"
-              variant="subtle"
-            >
-              Test microphone
-            </Button>
-          )}
-          {onExit && (
-            <Button onClick={onExit} size="xs" type="button" variant="subtle">
-              Cancel
-            </Button>
-          )}
-        </div>
-        {(!experimental || microphoneCheck) && (
-          <div
-            aria-atomic="true"
-            aria-live="polite"
-            className={disclosureStatusStyle}
-            id="voice-microphone-check-status"
+        )}
+        {onExit && (
+          <Button
+            className={`${consentActionStyle} ${css({ marginLeft: "auto" })}`}
+            onClick={onExit}
+            size="xs"
+            type="button"
+            variant="ghost"
           >
-            {microphoneCheck}
-          </div>
+            Cancel
+          </Button>
         )}
       </div>
+      {(!experimental || microphoneCheck) && (
+        <div
+          aria-atomic="true"
+          aria-live="polite"
+          className={disclosureStatusStyle}
+          id="voice-microphone-check-status"
+        >
+          {microphoneCheck}
+        </div>
+      )}
     </section>
   );
 };
