@@ -824,6 +824,59 @@ describe("BrunchDraftExperimentWidget", () => {
     );
   });
 
+  it("reports active runs only to their conversation and clears the hint on unmount", async () => {
+    const result = Promise.withResolvers<typeof finishedResult>();
+    const { submit, wrap } = renderWidget({
+      input: makeInput(),
+      toolCallId: "running-hint",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn().mockReturnValue(result.promise),
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    const reportExperimentRunning = vi.fn();
+    const context: PetrinautAiComposerControlContext = {
+      conversationId: "original",
+      messages: [
+        {
+          id: "draft",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "draft_petrinaut_experiment",
+              toolCallId: "running-hint",
+              state: "output-available",
+              input: {},
+              output: {},
+            },
+          ],
+        },
+      ],
+      status: "streaming",
+      submitText: vi.fn(),
+      stop: async () => {},
+      reportExperimentRunning,
+    };
+    const followUp = render(
+      wrap(<BrunchExperimentFollowUp context={context} />),
+    );
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await waitFor(() =>
+      expect(reportExperimentRunning).toHaveBeenLastCalledWith(true),
+    );
+    followUp.rerender(
+      wrap(<BrunchExperimentFollowUp context={{ ...context, messages: [] }} />),
+    );
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
+    followUp.rerender(wrap(<BrunchExperimentFollowUp context={context} />));
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(true);
+    followUp.unmount();
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
+    await act(async () => result.resolve(finishedResult));
+  });
+
   it("sends completed results once, only to the originating idle conversation", async () => {
     const definition = createReadableStore(makeDefinition());
     const { submit, wrap } = renderWidget({

@@ -33,23 +33,25 @@ The header text is not selectable. Its icons animate on hover and click, respect
 
 ## The conversation
 
-Type in **Continue iterating...** and press **Enter** or choose the **Send message** button with the upward arrow at its right edge. **Shift+Enter** adds a line. The field grows with your message while the send button stays at the bottom right. Before the first message, suggestion chips wrap so all remain visible.
+Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field grows with your message. In Brunch Chat, the microphone stays on the left below the field, with Send or Stop on the right. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
 The primary tab reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each assistant turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead.
 
-Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
+Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 
-The activity disclosure opens while **Working…**, when **Approval required**, or when **Stopped**. Completed work collapses under **Activity · Ns**, even while the answer is still streaming; history without timing says **Activity**. Expand it to inspect **Thought for Ns** and **Used N tools**. Reasoning starts collapsed; **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the disclosure; **Allow** or **Deny** lets the assistant continue. Disclosure icons are neutral; status dots distinguish pending, completed, and failed tools.
+The activity disclosure opens while **Working…**, when **Approval required**, or when **Stopped**. Completed work collapses under **Activity · Ns**, even while the answer is still streaming; history without timing says **Activity**. Expand it to inspect **Thought for Ns** and **Used N tools**. Brunch Chat opens streaming reasoning automatically; you can collapse it while it continues. Other hosts retain their collapsed reasoning default. **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the disclosure. Disclosure icons are neutral; status dots distinguish pending, completed, and failed tools.
+
+Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies this batch; **Deny** prevents the entire batch, including any additions or updates it contains. **Always allow** permits later destructive batches only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. A model changed while approval was open must be read again before the batch can apply. Stock auto-layout approval is unchanged.
 
 When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
-Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts.
+Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
 
 Work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. Keyboard focus uses Petrinaut's blue outline.
 
 While a response is streaming you can:
 
-- Expand the work disclosure to watch reasoning and tool operations. The working label shimmers while active. Reasoning stays collapsed until you choose to inspect it.
+- Expand the work disclosure to watch reasoning and tool operations. The working label shimmers while active. Brunch Chat opens streaming reasoning; you can close it without interrupting the response.
 - Expand **Used N tools** to inspect chronological tool rows, each with its name, duration and status dot: amber pending, green completed, or red error. Expand a row to read its arguments and result. **Preparing…** means streamed arguments are arriving; **Running…** means execution is pending. Interactive questions remain available for your answer.
 - Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. Stop also withholds browser tools that have not started. Brunch's integrated assistant returns browser results within the active reply rather than requiring a second message; other hosts may still use an automatic follow-up. Already-applied changes are not rolled back. If a browser result is lost after a change may have happened, its outcome is unknown and the assistant does not automatically retry it. A silently disconnected browser is detected after a bounded liveness wait, not immediately.
 - Type your next message in the composer -- it is queued for after the current response ends.
@@ -82,9 +84,9 @@ The document is mirrored to browser local storage automatically; there is no sep
 Wait for the status panel to report a settled bundle before reopening the same fixture in another
 tab. A refused status leaves the previous coherent bundle selected and names the failed history, workpiece, or document check instead of claiming that partial state settled.
 
-When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
-titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
-action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty
+When the Brunch voice preview is enabled and available, the composer shows a separate waveform action
+titled **Start voice mode**. Typing keeps that action available beside **Send**. The first-run
+prompt swaps its trailing Voice action for Send when you type; if voice is unavailable, the empty
 composer retains a disabled **Send** action. Starting Voice mode keeps the transcript in place and
 opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
 disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the
@@ -106,7 +108,9 @@ best-effort spoken delivery. Before the first Live session, the permission
 panel explains both OpenAI audio streams and text retention, with a permission
 checkbox, **Start voice**, and **Cancel**. Petrinaut remembers this
 Live-specific versioned acknowledgement in browser storage, so later Live
-sessions start directly. A failed or ended acknowledged session offers
+sessions start directly. **Test microphone** checks access to the selected microphone locally
+and immediately releases it; it does not start a provider session or send audio.
+A failed or ended acknowledged session offers
 **Retry voice** without showing the consent prompt again. Browser microphone
 permission remains separate.
 **Cancel** returns to text without starting one. If the browser blocks remote
@@ -168,14 +172,14 @@ change it with the switch beside the hand icon.
 When the host provides extended audio settings, Audio options also contains
 **Voice** when supported. **Devices** starts collapsed; expand it to choose a
 microphone or speaker. Providers with numeric speed control also show a
-collapsed **Real-time** section immediately below **Devices**. The panel fits
+visible **Speed** slider immediately below **Devices**. The panel fits
 its content and scrolls when it exceeds the available screen height. Opening
 Audio options refreshes the device list. Voice warnings appear after Audio
 options in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
-  The information icon at the right explains when changes apply and how to preview.
+  The guidance **Applies next session. Mute your mic to preview.** stays visible below the selector.
   You can select a voice at any time, including before connecting. In Brunch,
   selection also previews a short sample when the session is connected, your
   microphone is muted, and the agent is idle. Otherwise, it saves silently for
@@ -191,10 +195,10 @@ options in the dock.
 - **Show status text** is on by default. Turn it off to hide ordinary Listening,
   Thinking, and Speaking labels beside the voice indicator. The waveform, controls,
   microphone mute and connection notices, and screen-reader announcements remain.
-- Expand **Real-time** to use **Speed**. Its compact horizontal slider follows
+- **Speed** stays visible when the provider supports it. Its compact horizontal slider follows
   the volume control's layout, with the multiplier at the right. It changes the
   next response, not speech already playing.
-  Realtime offers 0.25×–1.5× and resets to 1× for a new session. Live does not
+  Realtime offers 0.25×–1.5× in 0.05 steps and resets to 1× for a new session. Live does not
   offer numeric speed control.
 - **Microphone** and **Speaker** choose devices for the current session. They
   start at **System default**. If a selected device disconnects, Voice attempts
@@ -256,7 +260,9 @@ Voice ends when the panel closes. If Realtime Voice is interrupted, allow
 microphone access or check the connection, then select **Reconnect voice
 mode**. **Clear AI chat** is unavailable while a Voice session is active.
 
-The delete button appears in the top right of the panel once the conversation contains messages. When no interview is active and the host permits clearing, **Clear AI chat** wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
+The delete button appears in the top right once the conversation contains messages. When Voice is inactive, **Clear AI chat** in ordinary Brunch starts a fresh conversation and resets conversation-only approvals. It preserves the model and the old saved history; it is not a history-deletion action. Reopening the page returns to the new conversation. Fixed prepared fixtures may still disable clearing. Other hosts can clear local messages or disable this control.
+
+An interrupted Voice session shows a gentle red waveform without a visible status label. Recovery controls remain available and screen readers still announce the interruption. Open **Voice issues** for a short title and explanation. **Copy details** becomes **Copied** after success; **Dismiss** clears the displayed issues without ending Voice.
 
 ## What the assistant can do
 
@@ -339,7 +345,7 @@ disappears and the result remains under **Simulate → Experiments**.
 
 **Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
 draft is replaced in place by execution progress: **Validating**, simulation
-or optimization steps and runs, then **Finished** with metric cells. **Cancel**
+or optimization steps and runs, then **Finished** with metric cells. While an optimization candidate is computing, the step also shows its parameter values, such as `agent_count = 3`; no candidate is shown when it is unknown or between runs. **Cancel**
 leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
 still require review before retrying. Drafting and starting a run keep your
 current tab selected; choose **View experiment** to open its results while the

@@ -86,6 +86,34 @@ const config = {
   provider: "live" as const,
   connectionTimeoutMs: 15_000,
 };
+test("checks the Live microphone locally, releases tracks and never starts a session", async () => {
+  const stopTrack = vi.fn();
+  const getUserMedia = vi.fn(async () => ({
+    getTracks: () => [{ stop: stopTrack }],
+  }));
+  const previous = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia },
+  });
+  try {
+    render(<VoiceInterviewControl {...context()} config={config} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Test microphone" }),
+    );
+    await screen.findByText("Microphone ready. No audio was sent.");
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+    expect(stopTrack).toHaveBeenCalledOnce();
+    expect(createLiveConversation).not.toHaveBeenCalled();
+    expect(screen.getByRole("checkbox").getAttribute("aria-checked")).not.toBe(
+      "true",
+    );
+  } finally {
+    if (previous) Object.defineProperty(navigator, "mediaDevices", previous);
+    else Reflect.deleteProperty(navigator, "mediaDevices");
+  }
+});
+
 const start = async () => {
   fireEvent.click(screen.getByRole("checkbox"));
   await waitFor(() =>

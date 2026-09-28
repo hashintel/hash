@@ -205,9 +205,11 @@ const getReasoningTiming = (
 
 export const AiAssistantReasoning = ({
   isStreaming,
+  expandWhileStreaming = false,
   part,
 }: {
   isStreaming: boolean;
+  expandWhileStreaming?: boolean;
   part: ReasoningMessagePart;
 }) => {
   const { startedAt, finishedAt } = getReasoningTiming(part);
@@ -218,7 +220,9 @@ export const AiAssistantReasoning = ({
   });
   const renderedText = part.text.trim();
   const { heading, body } = extractReasoningHeading(renderedText, isStreaming);
-  const [open, setOpen] = useState(false);
+  // Streaming thought should be visible immediately, while remaining a normal
+  // controlled disclosure so a reader can close it and keep it closed.
+  const [open, setOpen] = useState(expandWhileStreaming && isStreaming);
 
   if (!isStreaming && !renderedText) {
     return null;

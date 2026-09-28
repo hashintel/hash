@@ -54,6 +54,12 @@ const dockStyle = css({
   },
 });
 
+const interruptedDockStyle = css({
+  color: "red.s90",
+  animation: "[pulse 3s ease-in-out infinite]",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+});
+
 const sideStyle = css({
   display: "flex",
   flexShrink: "0",
@@ -86,6 +92,11 @@ const statusStyle = cva({
     textTransform: "uppercase",
     whiteSpace: "nowrap",
     transition: "[color 260ms ease]",
+    animation: "[petrinautComposerActionSwap 180ms ease-out]",
+    "@media (prefers-reduced-motion: reduce)": {
+      animation: "none",
+      transition: "[none]",
+    },
   },
   variants: {
     phase: {
@@ -236,19 +247,49 @@ export const VoiceDock = ({
 
       <div className={centerStyle} data-part="shrinkable-status">
         <span className={indicatorStyle} data-part="fixed-indicator">
-          {indicator ?? <LiveVoiceSessionIndicator />}
+          {phase === "error" ? (
+            <svg
+              aria-hidden="true"
+              data-interrupted-ribbon
+              width="104"
+              height="32"
+              viewBox="0 0 104 32"
+              className={interruptedDockStyle}
+            >
+              <path
+                d="M2 16 C14 11 22 11 34 16 S54 21 66 16 S86 11 102 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M2 17 C16 14 26 13 38 17 S58 19 72 16 S92 14 102 17"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1"
+                opacity="0.3"
+              />
+            </svg>
+          ) : (
+            (indicator ?? <LiveVoiceSessionIndicator />)
+          )}
         </span>
-        {(showStatusText ||
-          notice ||
-          purpose === "setup" ||
-          phase === "error" ||
-          phase === "muted" ||
-          phase === "paused" ||
-          phase === "connecting") && (
-          <span className={statusStyle({ phase })} data-part="visible-status">
-            {statusLabel}
-          </span>
-        )}
+        {phase !== "error" &&
+          (showStatusText ||
+            notice ||
+            purpose === "setup" ||
+            phase === "muted" ||
+            phase === "paused" ||
+            phase === "connecting") && (
+            <span
+              key={statusLabel}
+              className={statusStyle({ phase })}
+              data-part="visible-status"
+            >
+              {statusLabel}
+            </span>
+          )}
       </div>
 
       <span

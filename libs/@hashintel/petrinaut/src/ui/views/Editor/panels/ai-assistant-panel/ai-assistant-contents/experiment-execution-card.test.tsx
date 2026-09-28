@@ -78,6 +78,7 @@ it.each(["simulate", "optimize"] as const)(
       runsTarget: 6,
       step: 3,
       steps: 4,
+      ...(mode === "optimize" ? { candidate: { agent_count: 3 } } : {}),
     };
     view.rerender(<ExperimentExecutionCard {...props} progress={progress} />);
     expect(screen.getByRole("status").textContent).toBe(
@@ -96,7 +97,15 @@ it.each(["simulate", "optimize"] as const)(
       screen.getByRole("progressbar").firstElementChild?.className,
     ).toContain("bg-c_blue.s90");
     if (mode === "optimize") {
+      expect(screen.getByText("Step 3 of 4 · agent_count = 3")).toBeTruthy();
+      view.rerender(
+        <ExperimentExecutionCard
+          {...props}
+          progress={{ ...progress, candidate: undefined }}
+        />,
+      );
       expect(screen.getByText("Step 3 of 4")).toBeTruthy();
+      expect(screen.queryByText(/agent_count/u)).toBeNull();
       view.rerender(
         <ExperimentExecutionCard
           {...props}

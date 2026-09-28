@@ -130,6 +130,27 @@ export const runExperiment = async (
       const study = dependencies.optimizations
         .get()
         .find((record) => record.id === optimizationId);
+      const candidateEntries =
+        phase === "optimizing" &&
+        study?.status === "running" &&
+        experiment.sweep?.computing
+          ? experiment.parameterAxes.flatMap((axis) => {
+              const selection = experiment.sweep?.selection[axis.identifier];
+              return selection && selection.from === selection.to
+                ? [
+                    [
+                      axis.identifier,
+                      axisValueAt(axis, selection.from),
+                    ] as const,
+                  ]
+                : [];
+            })
+          : [];
+      const candidate =
+        candidateEntries.length > 0 &&
+        candidateEntries.length === experiment.parameterAxes.length
+          ? Object.fromEntries(candidateEntries)
+          : undefined;
       const progress: PetrinautExperimentProgress = {
         experimentId: experiment.id,
         name: experiment.name,
@@ -149,6 +170,7 @@ export const runExperiment = async (
                   1,
               ),
               steps: study.requestedTrials,
+              ...(candidate ? { candidate } : {}),
             }
           : {}),
       };
@@ -159,7 +181,9 @@ export const runExperiment = async (
         lastProgress.runsCompleted === progress.runsCompleted &&
         lastProgress.runsTarget === progress.runsTarget &&
         lastProgress.step === progress.step &&
-        lastProgress.steps === progress.steps
+        lastProgress.steps === progress.steps &&
+        JSON.stringify(lastProgress.candidate) ===
+          JSON.stringify(progress.candidate)
       ) {
         return;
       }

@@ -1,10 +1,9 @@
-import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useState } from "react";
 
 import {
   Button,
   Icon,
   LoadingSpinner,
-  Popover,
   Select,
   Slider,
 } from "@hashintel/ds-components";
@@ -95,9 +94,6 @@ export const AudioSettings = ({
   previewDisabledReason: string | null;
 }) => {
   const [devicesExpanded, setDevicesExpanded] = useState(false);
-  const [realTimeExpanded, setRealTimeExpanded] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
-  const infoRef = useRef<HTMLButtonElement>(null);
   const id = useId();
   const devices = settings.devices;
   const microphoneName = devices.microphoneId
@@ -123,45 +119,6 @@ export const AudioSettings = ({
             <span id={`${id}-voice-label`} className={labelStyle}>
               Voice
             </span>
-            <Button
-              ref={infoRef}
-              aria-label="About voice selection"
-              aria-expanded={infoOpen}
-              aria-haspopup="dialog"
-              iconName="info"
-              size="xs"
-              variant="ghost"
-              onClick={() => setInfoOpen((open) => !open)}
-            />
-            {infoOpen && (
-              <Popover
-                triggerRef={infoRef}
-                position="top-end"
-                onClose={() => setInfoOpen(false)}
-              >
-                <Popover.Container
-                  className={css({
-                    backgroundColor: "neutral.s00",
-                    width: "[220px]",
-                    maxWidth: "[calc(100vw - 24px)]",
-                  })}
-                >
-                  <Popover.Body
-                    className={css({
-                      margin: "[0 !important]",
-                      padding: "[8px !important]",
-                      boxShadow: "[none !important]",
-                    })}
-                  >
-                    <span className={helpStyle}>
-                      The voice applies next time the agent is connected.
-                      <br />
-                      Preview when your mic is muted and the agent is idle.
-                    </span>
-                  </Popover.Body>
-                </Popover.Container>
-              </Popover>
-            )}
           </div>
           <Select
             aria-labelledby={`${id}-voice-label`}
@@ -221,6 +178,9 @@ export const AudioSettings = ({
             size="sm"
             width="fullWidth"
           />
+          <span className={helpStyle}>
+            Applies next session. Mute your mic to preview.
+          </span>
           {previewDisabledReason && (
             <span id={`${id}-voice-blocked`} className={helpStyle}>
               {previewDisabledReason}
@@ -355,44 +315,25 @@ export const AudioSettings = ({
       </div>
       {settings.speed !== undefined && actions.setSpeed && (
         <div className={sectionStyle}>
-          <Button
-            className={headingStyle}
-            aria-label="Real-time"
-            aria-expanded={realTimeExpanded}
-            aria-controls={`${id}-real-time`}
-            suffix={
-              <Icon
-                name={realTimeExpanded ? "chevronDown" : "chevronRight"}
-                size="sm"
+          <div className={fieldsStyle}>
+            <span className={labelStyle}>Speed</span>
+            <div className={sliderRowStyle}>
+              <Slider
+                className={speedStyle}
+                label="Speed"
+                disabled={disabled}
+                min={0.25}
+                max={1.5}
+                step={0.05}
+                value={settings.speed}
+                onChange={actions.setSpeed}
+                variant="plain"
               />
-            }
-            onClick={() => setRealTimeExpanded((expanded) => !expanded)}
-            size="sm"
-            variant="ghost"
-          >
-            Real-time
-          </Button>
-          {realTimeExpanded && (
-            <div id={`${id}-real-time`} className={fieldsStyle}>
-              <span className={labelStyle}>Speed</span>
-              <div className={sliderRowStyle}>
-                <Slider
-                  className={speedStyle}
-                  label="Speed"
-                  disabled={disabled}
-                  min={0.25}
-                  max={1.5}
-                  step={0.25}
-                  value={settings.speed}
-                  onChange={actions.setSpeed}
-                  variant="plain"
-                />
-                <span aria-hidden="true" className={speedTextStyle}>
-                  {settings.speed}×
-                </span>
-              </div>
+              <span aria-hidden="true" className={speedTextStyle}>
+                {settings.speed.toFixed(2)}×
+              </span>
             </div>
-          )}
+          </div>
         </div>
       )}
     </>

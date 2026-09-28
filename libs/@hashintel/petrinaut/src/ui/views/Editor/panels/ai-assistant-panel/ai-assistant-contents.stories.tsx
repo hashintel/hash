@@ -364,6 +364,7 @@ const createStoryVoiceSessionStore = (
 
 const Frame = ({
   additionalTab,
+  composerControl,
   error,
   experimentStates,
   onCancelExperiment,
@@ -384,6 +385,9 @@ const Frame = ({
   workingLabel,
 }: {
   additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
+  composerControl?: ComponentProps<
+    typeof AiAssistantContents
+  >["composerControl"];
   error?: Error;
   experimentStates?: ComponentProps<
     typeof AiAssistantContents
@@ -436,6 +440,7 @@ const Frame = ({
         >
           <AiAssistantContents
             additionalTab={additionalTab}
+            composerControl={composerControl}
             error={error}
             experimentStates={experimentStates}
             onCancelExperiment={onCancelExperiment}
@@ -799,9 +804,6 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toHaveAccessibleDescription("Wait for the agent to finish.");
-    const realTimeToggle = canvas.getByRole("button", { name: "Real-time" });
-    await userEvent.click(realTimeToggle);
-    await expect(realTimeToggle).toHaveAttribute("aria-expanded", "true");
     const speed = canvas.getByRole("slider", { name: "Speed" });
     await expect(speed).toBeInTheDocument();
     await new Promise<void>((resolve) =>
@@ -815,7 +817,7 @@ export const ExtendedAudioSettings: Story = {
     ).toEqual(["Hide conversation", "Show 1 Voice issue"]);
     speed.focus();
     await userEvent.keyboard("{ArrowLeft}");
-    await expect(speed).toHaveAttribute("aria-valuenow", "1");
+    await expect(speed).toHaveAttribute("aria-valuenow", "1.2");
     await expect(getComputedStyle(speed).cursor).toBe("pointer");
     await expect(
       getComputedStyle(canvas.getByRole("slider", { name: "Speaker volume" }))
@@ -1194,6 +1196,22 @@ export const StreamingMarkdown: Story = {
   ),
 };
 
+/** Brunch Chat keeps voice entry on the left and the text action on the right. */
+export const BrunchComposerExperimentRunning: Story = {
+  render: () => (
+    <Frame
+      experimentStates={{ running: { active: true } }}
+      messages={[userMessage, assistantMarkdownMessage]}
+      primaryLabel="Chat"
+      promptChips={[
+        { id: "review", label: "Review this net", prompt: "Review this net" },
+      ]}
+      status="streaming"
+      voiceModeAvailable
+    />
+  ),
+};
+
 export const ReasoningCollapsed: Story = {
   render: () => <Frame messages={[userMessage, reasoningMessage]} />,
 };
@@ -1201,6 +1219,7 @@ export const ReasoningCollapsed: Story = {
 export const StreamingReasoning: Story = {
   render: () => (
     <Frame
+      primaryLabel="Chat"
       messages={[userMessage, streamingReasoningMessage]}
       status="streaming"
     />
@@ -1214,6 +1233,14 @@ export const StreamingReasoning: Story = {
     await expect(
       parseFloat(getComputedStyle(stop).borderRadius),
     ).toBeGreaterThanOrEqual(14);
+    const composer = within(canvasElement)
+      .getByRole("textbox", {
+        name: "Message AI assistant",
+      })
+      .getBoundingClientRect();
+    await expect(stop.getBoundingClientRect().left).toBeGreaterThan(
+      composer.left + composer.width / 2,
+    );
   },
 };
 
@@ -1961,6 +1988,7 @@ const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
             runsTarget: 12,
             step: 3,
             steps: 8,
+            candidate: { agents: 4 },
           },
         },
       }}
