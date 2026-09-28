@@ -109,6 +109,18 @@ describe("canonical browser revision attribution", () => {
     expect(after).not.toBe(before);
     expect(adapter.clientToolResultMetadataFor("create", applied)).toEqual({
       documentRevision: { before, after },
+      readBack: {
+        ...emptyNet,
+        places: [
+          {
+            id: "queue",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+          },
+        ],
+      },
     });
     adapter.mapClientToolInput({
       toolName: "addPlace",
@@ -181,5 +193,66 @@ describe("canonical browser revision attribution", () => {
       }),
     ).toBe("Recorded diagnostics");
     expect(readDiagnosticsContext).not.toHaveBeenCalled();
+  });
+});
+
+describe("net freshness", () => {
+  test("the readers return filtered views and record the revision they observed", () => {
+    const { adapter, instance, tool, params, revision } = setup();
+    instance.mutations.addPlace(place);
+    const before = revision();
+    const outline = tool("readNetOutline").execute(params({}, "outline"));
+    expect(outline).toMatchObject({
+      title: "Untitled",
+      definition: { places: [expect.not.objectContaining({ x: 0 })] },
+    });
+    expect(adapter.clientToolResultMetadataFor("outline", outline)).toEqual({
+      documentRevision: { before },
+    });
+    expect(() =>
+      tool("readNetStructure").inputSchema.parse({ extra: 1 }),
+    ).toThrow();
+  });
+
+  test("a change is accepted after the model's revision only through Brunch's own settled changes", () => {
+    const { adapter, instance, tool, params, revision } = setup();
+    const seen = revision();
+    expect(adapter.acceptsRevision(seen)).toBe(true);
+    adapter.mapClientToolInput({
+      toolName: "addPlace",
+      toolCallId: "create",
+      input: place,
+    });
+    const applied = tool("addPlace").execute(params(place, "create"));
+    adapter.clientToolResultMetadataFor("create", applied);
+    // A later call in the same proposal still names the revision the model saw.
+    expect(adapter.acceptsRevision(seen)).toBe(true);
+    instance.mutations.addPlace({ ...place, id: "hand", name: "Hand" });
+    expect(adapter.acceptsRevision(seen)).toBe(false);
+    expect(adapter.acceptsRevision(revision())).toBe(true);
+  });
+
+  test("the chain survives a reload through the settled revisions in history", () => {
+    const replay = {
+      calls: new Map([
+        [
+          "create",
+          {
+            toolName: "addPlace",
+            input: place,
+            output: {},
+            metadata: {
+              documentRevision: {
+                before: "r-seen",
+                after: documentRevisionOf(emptyNet),
+              },
+            },
+          },
+        ],
+      ]),
+    };
+    const { adapter } = setup(replay);
+    expect(adapter.acceptsRevision("r-seen")).toBe(true);
+    expect(adapter.acceptsRevision("r-other")).toBe(false);
   });
 });

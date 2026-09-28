@@ -1,5 +1,6 @@
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
+  netReaderToolNames,
   petrinautToolEffects,
   type PetrinautToolCapability,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -61,6 +62,15 @@ export const canonicalPetrinautToolCatalogue = Object.keys(
   }),
 );
 
+const netReaderTools: readonly BrunchToolCatalogueEntry[] = Object.values(
+  netReaderToolNames,
+).map((name) => ({
+  name,
+  definitionOwner: "sdcpn-plugin",
+  executionOwner: "petrinaut-website",
+  capability: "petrinaut-read",
+}));
+
 const draftBrunchTool: BrunchToolCatalogueEntry = {
   name: brunchTools.draftPetrinautExperiment,
   definitionOwner: "sdcpn-plugin",
@@ -116,6 +126,7 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
     capability: "diagnostic",
   },
   ...canonicalPetrinautToolCatalogue,
+  ...netReaderTools,
   draftBrunchTool,
 ];
 

@@ -598,6 +598,8 @@ export const LocalStorageDemoApp = ({
               canonicalHostTools?.mapClientToolInput(call);
             },
             admit: createBrunchMutationAdmission(mutationApproval.coordinator),
+            acceptsRevision: (expected) =>
+              canonicalHostTools?.acceptsRevision(expected) ?? false,
           })
         : undefined,
     [
