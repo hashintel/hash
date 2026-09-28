@@ -20,6 +20,7 @@ import {
 } from "@hashintel/design-system";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { isIngestEnabled } from "../../../lib/public-env";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntitiesCount } from "../../draft-entities-count-context";
@@ -116,11 +117,15 @@ export const PageSidebar: FunctionComponent = () => {
                   path: "/workers",
                   activeIfPathMatches: /^\/@([^/]+)\/workers\//,
                 },
-                {
-                  title: "Ingest",
-                  path: "/ingest",
-                  activeIfPathMatches: /^\/ingest/,
-                },
+                ...(isIngestEnabled
+                  ? [
+                      {
+                        title: "Ingest",
+                        path: "/ingest",
+                        activeIfPathMatches: /^\/ingest/,
+                      },
+                    ]
+                  : []),
               ],
             },
           ]

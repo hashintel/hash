@@ -10,10 +10,10 @@ import {
   ListSubheader,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 
+import type { ExtractedClaim, RosterEntry } from "../shared/types";
 import type { Selection } from "./evidence-resolver";
-import type { ExtractedClaim, RosterEntry } from "./types";
+import type { FunctionComponent } from "react";
 
 interface ResultsPanelProps {
   rosterEntries: RosterEntry[];

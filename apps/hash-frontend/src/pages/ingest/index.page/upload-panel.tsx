@@ -5,11 +5,12 @@
  */
 import { FileUpload } from "@ark-ui/react";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
-import { Button } from "../../shared/ui/button";
-import type { RunStatus } from "./types";
+import { Button } from "../../../shared/ui/button";
+
+import type { RunStatus } from "../shared/types";
 import type { IngestRunState } from "./use-ingest-run";
+import type { FunctionComponent } from "react";
 
 // ---------------------------------------------------------------------------
 // Sub-components (defined first to satisfy no-use-before-define)

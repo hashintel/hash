@@ -3,7 +3,7 @@
  *
  * Pure function. No I/O, no React.
  */
-import type { Block, ExtractedClaim, RosterEntry } from "./types";
+import type { Block, ExtractedClaim, RosterEntry } from "../shared/types";
 
 export type Selection =
   | { kind: "roster"; entry: RosterEntry }

@@ -2,11 +2,12 @@
  * Page viewer: PDF page image with bbox overlay highlights.
  */
 import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
-import { Button } from "../../shared/ui/button";
+import { Button } from "../../../shared/ui/button";
 import { bboxToPercentage } from "./bbox-transform";
-import type { Block, PageImageManifest } from "./types";
+
+import type { Block, PageImageManifest } from "../shared/types";
+import type { FunctionComponent } from "react";
 
 interface PageViewerProps {
   pageImages: PageImageManifest[];

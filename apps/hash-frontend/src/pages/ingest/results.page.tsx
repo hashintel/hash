@@ -1,26 +1,33 @@
-import { InfinityLightIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 
-import type { NextPageWithLayout } from "../../shared/layout";
+import { InfinityLightIcon } from "@hashintel/design-system";
+
+import { isIngestEnabled } from "../../lib/public-env";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
-import type { Selection } from "../ingest.page/evidence-resolver";
-import { resolveEvidence } from "../ingest.page/evidence-resolver";
-import { PageViewer } from "../ingest.page/page-viewer";
-import { ResultsPanel } from "../ingest.page/results-panel";
+import { resolveEvidence } from "./results.page/evidence-resolver";
+import { PageViewer } from "./results.page/page-viewer";
+import { ResultsPanel } from "./results.page/results-panel";
 import {
   getIngestResultsPath,
   getIngestResultsSource,
-  INGEST_FIXTURES,
-} from "../ingest.page/routing";
-import type { IngestRunView } from "../ingest.page/types";
+  ingestFixtures,
+} from "./shared/routing";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { Selection } from "./results.page/evidence-resolver";
+import type { IngestRunView } from "./shared/types";
+import type { GetServerSideProps } from "next";
 
 const normalizeQueryParam = (
   value: string | string[] | undefined,
 ): string | undefined => (typeof value === "string" ? value : value?.[0]);
+
+export const getServerSideProps: GetServerSideProps = () =>
+  Promise.resolve(isIngestEnabled ? { props: {} } : { notFound: true });
 
 const IngestResultsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -134,7 +141,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
                   fontSize: "0.8125rem",
                 }}
               >
-                {INGEST_FIXTURES.map((fixture) => (
+                {ingestFixtures.map((fixture) => (
                   <option key={fixture.id} value={fixture.id}>
                     {fixture.label}
                   </option>

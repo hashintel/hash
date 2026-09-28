@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { RunStatus } from "./types";
+import type { RunStatus } from "../shared/types";
 
 // ---------------------------------------------------------------------------
 // Pure functions (functional core)

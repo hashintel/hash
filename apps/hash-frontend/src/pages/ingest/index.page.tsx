@@ -1,14 +1,21 @@
-import { InfinityLightIcon } from "@hashintel/design-system";
 import { Box, Container } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
-import { WorkersHeader } from "../shared/workers-header";
-import { getIngestResultsPath } from "./ingest.page/routing";
-import { UploadPanel } from "./ingest.page/upload-panel";
-import { shouldFetchResults, useIngestRun } from "./ingest.page/use-ingest-run";
+import { InfinityLightIcon } from "@hashintel/design-system";
+
+import { isIngestEnabled } from "../../lib/public-env";
+import { getLayoutWithSidebar } from "../../shared/layout";
+import { WorkersHeader } from "../../shared/workers-header";
+import { UploadPanel } from "./index.page/upload-panel";
+import { shouldFetchResults, useIngestRun } from "./index.page/use-ingest-run";
+import { getIngestResultsPath } from "./shared/routing";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { GetServerSideProps } from "next";
+
+export const getServerSideProps: GetServerSideProps = () =>
+  Promise.resolve(isIngestEnabled ? { props: {} } : { notFound: true });
 
 const IngestPage: NextPageWithLayout = () => {
   const router = useRouter();
