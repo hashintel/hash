@@ -1721,10 +1721,11 @@ test("records transcription confidence on input.finalized from numbers only", as
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
-    ["id", "text", "startedDuringOutput"],
+    ["id", "text", "startedDuringOutput", "minLogprob"],
     ["id", "text", "startedDuringOutput"],
     ["id", "text", "startedDuringOutput"],
   ]);
+  expect(fixture.onFinalizedInput.mock.calls[0]?.[0].minLogprob).toBe(-2.25);
   const traced = JSON.stringify(debug.mock.calls);
   expect(traced).not.toContain("PRIVATE");
   expect(traced).not.toContain("hmm");
