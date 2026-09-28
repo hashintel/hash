@@ -11,7 +11,7 @@ import { afterEach } from "vitest";
 
 const chunkSchema = asSchema(uiMessageChunkSchema);
 
-export const streamOf = <T>(items: readonly T[]): ReadableStream<T> =>
+const streamOf = <T>(items: readonly T[]): ReadableStream<T> =>
   new ReadableStream<T>({
     start(controller) {
       for (const item of items) controller.enqueue(item);
@@ -20,7 +20,7 @@ export const streamOf = <T>(items: readonly T[]): ReadableStream<T> =>
   });
 
 /** Every chunk must survive the AI SDK's HTTP wire schema. */
-export const assertWireChunks = async (
+const assertWireChunks = async (
   chunks: readonly UIMessageChunk[],
 ): Promise<void> => {
   for (const chunk of chunks) {
