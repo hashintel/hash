@@ -1,0 +1,243 @@
+{
+  "id": "net-1",
+  "title": "Site 1000 Flowbind purchasing policy",
+  "sdcpn": {
+    "places": [
+      {
+        "id": "released_flowbind",
+        "name": "ReleasedFlowbind",
+        "description": "One aggregate quantity of quality-released usable Flowbind in standard units; needed as an externally initialized accounting balance.",
+        "colorId": "flowbind_balance_type",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 330
+      },
+      {
+        "id": "open_indian_flowbind",
+        "name": "OpenIndianFlowbind",
+        "description": "One aggregate quantity of open Indian Supplier Flowbind POs; contributes to inventory position until receipt.",
+        "colorId": "flowbind_balance_type",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 89.66666666666666
+      },
+      {
+        "id": "open_german_flowbind",
+        "name": "OpenGermanFlowbind",
+        "description": "One aggregate quantity of open German Supplier Flowbind POs, including urgent orders; contributes to inventory position until receipt. German ordering logic not yet represented.",
+        "colorId": "flowbind_balance_type",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 206
+      },
+      {
+        "id": "indian_accepting_flowbind",
+        "name": "IndianSupplierAcceptingOrders",
+        "description": "External availability gate: marked only when Indian Supplier can accept a Flowbind order. No outage or recovery process is asserted here.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "capacity": 1,
+        "x": 120,
+        "y": 82
+      },
+      {
+        "id": "released_sonaflozin",
+        "name": "ReleasedSonaflozin",
+        "description": "One externally initialized aggregate of quality-released usable Sonaflozin in standard units; replenishment and quality process not yet specified.",
+        "colorId": "flowbind_balance_type",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 338.66666666666663
+      },
+      {
+        "id": "due_sonic_flow_orders",
+        "name": "DueSonicFlowOrders",
+        "description": "Externally admitted production orders at their planned start time; each carries planned units and wait_days, which advances in days while the full material requirement is unavailable.",
+        "colorId": "sonic_flow_batch_type",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "due_sonic_flow_wait_clock",
+        "x": 120,
+        "y": 454
+      },
+      {
+        "id": "sonic_flow_in_production",
+        "name": "SonicFlowInProduction",
+        "description": "A Sonic Flow order that passed the complete two-material check and has consumed both material amounts at run start. Completion is not yet modeled.",
+        "colorId": "sonic_flow_batch_type",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 462.66666666666663
+      }
+    ],
+    "transitions": [
+      {
+        "id": "place_indian_flowbind_order",
+        "name": "Place Indian Flowbind replenishment order",
+        "description": "If Indian Supplier accepts orders and released stock plus all open Flowbind orders is below the approximate reorder point, increase open Indian POs by the gap to the approximate target rounded up to a 2,500-unit multiple. External state and balances must be initialized separately.",
+        "inputArcs": [
+          {
+            "placeId": "released_flowbind",
+            "weight": 1,
+            "type": "read"
+          },
+          {
+            "placeId": "open_indian_flowbind",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "open_german_flowbind",
+            "weight": 1,
+            "type": "read"
+          },
+          {
+            "placeId": "indian_accepting_flowbind",
+            "weight": 1,
+            "type": "read"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "open_indian_flowbind",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const position = input.ReleasedFlowbind[0].units + input.OpenIndianFlowbind[0].units + input.OpenGermanFlowbind[0].units;\nreturn position < parameters.flowbind_reorder_point && parameters.indian_flowbind_moq > 0 && parameters.flowbind_target_level > position;",
+        "transitionKernelCode": "const indianOpen = input.OpenIndianFlowbind[0].units;\nconst position = input.ReleasedFlowbind[0].units + indianOpen + input.OpenGermanFlowbind[0].units;\nconst gap = parameters.flowbind_target_level - position;\nconst order = Math.ceil(gap / parameters.indian_flowbind_moq) * parameters.indian_flowbind_moq;\nreturn { OpenIndianFlowbind: [{ units: indianOpen + order }] };",
+        "x": 400,
+        "y": 97
+      },
+      {
+        "id": "start_sonic_flow_batch",
+        "name": "Start full Sonic Flow batch",
+        "description": "A due production order starts once both released materials suffice for its full planned size; it consumes both at start and preserves the elapsed wait since the planned start. Completion is not yet modeled.",
+        "inputArcs": [
+          {
+            "placeId": "due_sonic_flow_orders",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "released_flowbind",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "released_sonaflozin",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "released_flowbind",
+            "weight": 1
+          },
+          {
+            "placeId": "released_sonaflozin",
+            "weight": 1
+          },
+          {
+            "placeId": "sonic_flow_in_production",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const needed = input.DueSonicFlowOrders[0].units;\nreturn needed > 0 && input.ReleasedFlowbind[0].units >= needed && input.ReleasedSonaflozin[0].units >= needed;",
+        "transitionKernelCode": "const order = input.DueSonicFlowOrders[0];\nconst needed = order.units;\nreturn {\n  ReleasedFlowbind: [{ units: input.ReleasedFlowbind[0].units - needed }],\n  ReleasedSonaflozin: [{ units: input.ReleasedSonaflozin[0].units - needed }],\n  SonicFlowInProduction: [{ units: needed, wait_days: order.wait_days }]\n};",
+        "x": 400,
+        "y": 356
+      }
+    ],
+    "types": [
+      {
+        "id": "flowbind_balance_type",
+        "name": "Material balance",
+        "description": "An aggregate material quantity in the site's shared standard unit; each place denotes a distinct material or vendor status. Aggregation does not retain lot age or PO identity.",
+        "iconSlug": "circle",
+        "displayColor": "#4B8E93",
+        "elements": [
+          {
+            "elementId": "flowbind_balance_units",
+            "name": "units",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "sonic_flow_batch_type",
+        "name": "Sonic Flow production order",
+        "description": "Planned Sonic Flow batch size in site standard units; due orders enter from the production plan, whose scheduling rule has not been supplied.",
+        "iconSlug": "square",
+        "displayColor": "#8367AD",
+        "elements": [
+          {
+            "elementId": "sonic_batch_units",
+            "name": "units",
+            "type": "real"
+          },
+          {
+            "elementId": "sonic_batch_wait_days",
+            "name": "wait_days",
+            "type": "real"
+          }
+        ]
+      }
+    ],
+    "differentialEquations": [
+      {
+        "id": "due_sonic_flow_wait_clock",
+        "name": "Elapsed delay for due Sonic Flow orders",
+        "colorId": "sonic_flow_batch_type",
+        "code": "return tokens.map(() => ({ wait_days: 1 }));"
+      }
+    ],
+    "parameters": [
+      {
+        "id": "flowbind_reorder_level",
+        "name": "Flowbind reorder point (approximate)",
+        "variableName": "flowbind_reorder_point",
+        "type": "real",
+        "defaultValue": "1500"
+      },
+      {
+        "id": "flowbind_target_level",
+        "name": "Flowbind target inventory position (approximate)",
+        "variableName": "flowbind_target_level",
+        "type": "real",
+        "defaultValue": "5000"
+      },
+      {
+        "id": "indian_flowbind_moq",
+        "name": "Indian Supplier Flowbind order increment",
+        "variableName": "indian_flowbind_moq",
+        "type": "real",
+        "defaultValue": "2500"
+      }
+    ],
+    "metrics": [
+      {
+        "id": "metric_flowbind_inventory_position",
+        "name": "Flowbind inventory position (standard units)",
+        "description": "Released usable Flowbind plus Indian and German open PO quantities; zero if an aggregate balance has not yet been initialized.",
+        "code": "const sum = place => place.tokens.reduce((total, item) => total + item.units, 0);\nreturn sum(state.places.ReleasedFlowbind) + sum(state.places.OpenIndianFlowbind) + sum(state.places.OpenGermanFlowbind);"
+      },
+      {
+        "id": "metric_sonic_flow_start_delay_days",
+        "name": "Production-start delay (total days)",
+        "description": "Sum of days elapsed since planned start for all still-waiting due orders, plus preserved delay at actual start for all orders in production. Reporting measure, not fill rate or monetary cost; only meaningful if orders enter due state at scheduled start.",
+        "code": "const waiting = state.places.DueSonicFlowOrders.tokens.reduce((sum, order) => sum + order.wait_days, 0);\nconst started = state.places.SonicFlowInProduction.tokens.reduce((sum, order) => sum + order.wait_days, 0);\nreturn waiting + started;"
+      }
+    ]
+  },
+  "lastUpdated": "2026-09-28T16:55:36.537Z",
+  "incarnationId": "26012af8-876e-449d-8a24-093efbad065a",
+  "revisionId": "0edc6437-00fe-49c3-b6d5-987f9ddd458a"
+}

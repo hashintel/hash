@@ -1,7 +1,23 @@
 {
   "run": "run-jY8UW4",
   "turns": 14,
-  "turnsWithNetChanges": 3,
-  "turnsRecordingBlockedConstruction": 10,
-  "netElementsByTurn": "0,0,0,0,0,0,9,10,10,16,16,16,16,16"
+  "firstBuiltTurn": 7,
+  "turnsBuilt": 3,
+  "turnsBlocked": 11,
+  "turnsNeither": 0,
+  "outcomeByTurn": "xxxxxxBBxBxxxx",
+  "netElementsByTurn": "0,0,0,0,0,0,9,10,10,16,16,16,16,16",
+  "finalNet": {
+    "places": 7,
+    "transitions": 2,
+    "arcs": 7,
+    "readOrInhibitorArcs": 0,
+    "tokenTypes": 0,
+    "colouredPlaces": 0,
+    "transitionsWithCode": 0,
+    "parameters": 0,
+    "differentialEquations": 0,
+    "metrics": 0,
+    "scenarios": 0
+  }
 }

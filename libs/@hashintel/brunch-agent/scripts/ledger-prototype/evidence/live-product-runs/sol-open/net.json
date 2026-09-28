@@ -1,0 +1,556 @@
+{
+  "id": "net-1",
+  "title": "Site 1000 Flowbind purchasing policy",
+  "sdcpn": {
+    "places": [
+      {
+        "id": "flowbind-balance-place-v1",
+        "name": "FlowbindBalance",
+        "description": "One accounting snapshot of quality-released usable units and still-open PO units. Indian receipt subtracts open units, matched quality clearance adds released units, and production start consumes released units. Quarantine is excluded; German receipt and expiry remain unmodelled.",
+        "colorId": "flowbind-balance-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 1800,
+        "y": 548.2727272727273
+      },
+      {
+        "id": "flowbind-review-due-v1",
+        "name": "FlowbindReviewDue",
+        "description": "External review event; schedule is not yet known. One event permits one purchasing decision.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 615
+      },
+      {
+        "id": "indian-accepting-v1",
+        "name": "IndianAcceptingOrders",
+        "description": "Externally set supplier availability. One token means Indian Supplier can accept an order; its outage and restoration are not generated here.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "capacity": 1,
+        "x": 120,
+        "y": 739
+      },
+      {
+        "id": "indian-open-flowbind-v1",
+        "name": "IndianOpenFlowbindOrders",
+        "description": "Indian Supplier Flowbind POs whose full quantity remains open until a matched external arrival event closes the order and sends its lot to quarantine.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 548
+      },
+      {
+        "id": "german-urgent-event-v1",
+        "name": "GermanUrgentThresholdEvent",
+        "description": "Externally supplied event from ongoing monitoring of released stock; no review meeting needed. Generation/deduplication is outside the partial net.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 703
+      },
+      {
+        "id": "german-bridge-request-v1",
+        "name": "GermanFlowbindTopupRequests",
+        "description": "Requests for an approximately 250-unit German bridge; not treated as accepted orders or usable supply.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2360,
+        "y": 703
+      },
+      {
+        "id": "indian-flowbind-arrival-v1",
+        "name": "IndianFlowbindArrival",
+        "description": "External physical arrival signal carrying the matching order identity and full ordered quantity; timing is not yet generated.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 424
+      },
+      {
+        "id": "flowbind-quarantine-v1",
+        "name": "FlowbindInQuarantine",
+        "description": "Full received Flowbind lots excluded from usable stock and from inventory position until quality disposition.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 228
+      },
+      {
+        "id": "flowbind-quality-cleared-v1",
+        "name": "FlowbindQualityCleared",
+        "description": "Externally supplied matching signal that quality cleared the entire quarantined lot; no completion timing is generated.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 476
+      },
+      {
+        "id": "flowbind-quality-failed-v1",
+        "name": "FlowbindQualityRejected",
+        "description": "Externally supplied matching signal that quality rejected the entire quarantined lot; no failure probability or duration is inferred.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 93
+      },
+      {
+        "id": "flowbind-disposed-v1",
+        "name": "FlowbindDisposed",
+        "description": "Rejected full Flowbind lots sent to disposal, preserving standard-unit amounts; monetary loss not measured.",
+        "colorId": "flowbind-order-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 103
+      },
+      {
+        "id": "sonaflozin-usable-stock-v1",
+        "name": "SonaflozinUsableStock",
+        "description": "Usable Sonaflozin units available for batch start; its replenishment and quality processes are outside this partial net.",
+        "colorId": "sonaflozin-stock-type-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "showAsInitialState": true,
+        "x": 1800,
+        "y": 228
+      },
+      {
+        "id": "sonic-flow-planned-v1",
+        "name": "SonicFlowPlannedBatches",
+        "description": "Externally supplied batches entered at their original due start, with wait_seconds initially zero. Waiting age grows until enough of both materials permits immediate full start; planning schedule is not generated.",
+        "colorId": "sonic-flow-batch-type-v1",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "sonic-flow-wait-dynamics-v1",
+        "x": 1240,
+        "y": 352
+      },
+      {
+        "id": "sonic-flow-in-progress-v1",
+        "name": "SonicFlowInProgress",
+        "description": "Batches started after consuming both full material quantities; completion duration and finished output are not yet represented.",
+        "colorId": "sonic-flow-batch-type-v1",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 352
+      }
+    ],
+    "transitions": [
+      {
+        "id": "place-indian-flowbind-order-v1",
+        "name": "Place Indian Flowbind replenishment order",
+        "description": "On external review when Indian Supplier accepts orders, create a PO to the approximate target at Indian MOQ multiples if inventory position is below approximate reorder point. Later physical receipt requires a matching external arrival event; lead time is not generated.",
+        "inputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-review-due-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "indian-accepting-v1",
+            "weight": 1,
+            "type": "read"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1
+          },
+          {
+            "placeId": "indian-open-flowbind-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const balance = input.FlowbindBalance[0];\nconst position = balance.released_units + balance.open_units;\nreturn position < parameters.flowbind_reorder_point && parameters.indian_moq > 0 && parameters.flowbind_target > position;",
+        "transitionKernelCode": "const balance = input.FlowbindBalance[0];\nconst position = balance.released_units + balance.open_units;\nconst amount = Math.ceil((parameters.flowbind_target - position) / parameters.indian_moq) * parameters.indian_moq;\nreturn {\n  FlowbindBalance: [{ released_units: balance.released_units, open_units: balance.open_units + amount }],\n  IndianOpenFlowbindOrders: [{ units: amount }]\n};",
+        "x": 400,
+        "y": 651
+      },
+      {
+        "id": "flowbind-review-no-order-v1",
+        "name": "Complete Flowbind review without replenishment",
+        "description": "Consumes a review event when the inventory position is at or above the reorder point; leaves balances untouched.",
+        "inputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-review-due-v1",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const balance = input.FlowbindBalance[0];\nreturn balance.released_units + balance.open_units >= parameters.flowbind_reorder_point;",
+        "transitionKernelCode": "const balance = input.FlowbindBalance[0];\nreturn { FlowbindBalance: [{ released_units: balance.released_units, open_units: balance.open_units }] };",
+        "x": 1520,
+        "y": 610
+      },
+      {
+        "id": "flowbind-indian-unavailable-v1",
+        "name": "Indian Supplier cannot accept Flowbind order",
+        "description": "On a due review below reorder point, if Indian Supplier cannot accept orders the review ends without an Indian PO. The distinct urgent German request may occur separately on a below-500 monitoring event; acceptance and delivery are unmodelled.",
+        "inputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-review-due-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "indian-accepting-v1",
+            "weight": 1,
+            "type": "inhibitor"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const balance = input.FlowbindBalance[0];\nreturn balance.released_units + balance.open_units < parameters.flowbind_reorder_point;",
+        "transitionKernelCode": "const balance = input.FlowbindBalance[0];\nreturn { FlowbindBalance: [{ released_units: balance.released_units, open_units: balance.open_units }] };",
+        "x": 2080,
+        "y": 516.2727272727273
+      },
+      {
+        "id": "request-german-bridge-v1",
+        "name": "Request urgent German Flowbind bridge",
+        "description": "Consumes externally supplied urgent monitoring event when released stock is below 500 and Indian Supplier cannot accept an order. Emits a request only; acceptance and supply are unmodelled.",
+        "inputArcs": [
+          {
+            "placeId": "german-urgent-event-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "read"
+          },
+          {
+            "placeId": "indian-accepting-v1",
+            "weight": 1,
+            "type": "inhibitor"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "german-bridge-request-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindBalance[0].released_units < parameters.german_bridge_threshold && parameters.german_bridge_units > 0;",
+        "transitionKernelCode": "return { GermanFlowbindTopupRequests: [{ units: parameters.german_bridge_units }] };",
+        "x": 2080,
+        "y": 703
+      },
+      {
+        "id": "receive-indian-flowbind-v1",
+        "name": "Receive full Indian Flowbind order into quarantine",
+        "description": "On matched external physical-arrival event, closes one full Indian PO and removes its quantity from inventory position; preserves full lot in quarantine without increasing usable stock.",
+        "inputArcs": [
+          {
+            "placeId": "indian-open-flowbind-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "indian-flowbind-arrival-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1
+          },
+          {
+            "placeId": "flowbind-quarantine-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const po = input.IndianOpenFlowbindOrders[0];\nconst arrival = input.IndianFlowbindArrival[0];\nconst balance = input.FlowbindBalance[0];\nreturn po.order_id === arrival.order_id && po.units === arrival.units && balance.open_units >= po.units;",
+        "transitionKernelCode": "const po = input.IndianOpenFlowbindOrders[0];\nconst balance = input.FlowbindBalance[0];\nreturn {\n  FlowbindBalance: [{ released_units: balance.released_units, open_units: balance.open_units - po.units }],\n  FlowbindInQuarantine: [{ units: po.units, order_id: po.order_id }]\n};",
+        "x": 960,
+        "y": 538
+      },
+      {
+        "id": "release-flowbind-quality-v1",
+        "name": "Release full Flowbind lot after quality clearance",
+        "description": "On matching external quality-clearance result, consumes the entire quarantined lot and adds all its units to released usable stock in the planning balance.",
+        "inputArcs": [
+          {
+            "placeId": "flowbind-quarantine-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-quality-cleared-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.FlowbindInQuarantine[0];\nconst result = input.FlowbindQualityCleared[0];\nreturn lot.order_id === result.order_id && lot.units === result.units;",
+        "transitionKernelCode": "const lot = input.FlowbindInQuarantine[0];\nconst balance = input.FlowbindBalance[0];\nreturn { FlowbindBalance: [{ released_units: balance.released_units + lot.units, open_units: balance.open_units }] };",
+        "x": 1520,
+        "y": 466
+      },
+      {
+        "id": "reject-flowbind-quality-v1",
+        "name": "Reject and dispose of full Flowbind lot",
+        "description": "On matching external failed quality result, consumes the whole quarantined lot and records its quantity as disposed, not released or returned to supplier.",
+        "inputArcs": [
+          {
+            "placeId": "flowbind-quarantine-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "flowbind-quality-failed-v1",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-disposed-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.FlowbindInQuarantine[0];\nconst result = input.FlowbindQualityRejected[0];\nreturn lot.order_id === result.order_id && lot.units === result.units;",
+        "transitionKernelCode": "const lot = input.FlowbindInQuarantine[0];\nreturn { FlowbindDisposed: [{ units: lot.units, order_id: lot.order_id }] };",
+        "x": 1520,
+        "y": 103
+      },
+      {
+        "id": "start-sonic-flow-v1",
+        "name": "Start full Sonic Flow production batch",
+        "description": "As soon as both full usable material quantities are available, starts an externally due batch, consumes one unit of each per Sonic Flow unit, and carries its planned-to-actual-start waiting age into in-progress state. Step resolution, production completion and output remain unmodelled.",
+        "inputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "sonaflozin-usable-stock-v1",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "sonic-flow-planned-v1",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flowbind-balance-place-v1",
+            "weight": 1
+          },
+          {
+            "placeId": "sonaflozin-usable-stock-v1",
+            "weight": 1
+          },
+          {
+            "placeId": "sonic-flow-in-progress-v1",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const batch = input.SonicFlowPlannedBatches[0];\nconst flowbind = input.FlowbindBalance[0];\nconst sonaflozin = input.SonaflozinUsableStock[0];\nreturn batch.units > 0 && flowbind.released_units >= batch.units && sonaflozin.usable_units >= batch.units;",
+        "transitionKernelCode": "const batch = input.SonicFlowPlannedBatches[0];\nconst flowbind = input.FlowbindBalance[0];\nconst sonaflozin = input.SonaflozinUsableStock[0];\nreturn {\n  FlowbindBalance: [{ released_units: flowbind.released_units - batch.units, open_units: flowbind.open_units }],\n  SonaflozinUsableStock: [{ usable_units: sonaflozin.usable_units - batch.units }],\n  SonicFlowInProgress: [{ units: batch.units, wait_seconds: batch.wait_seconds }]\n};",
+        "x": 1520,
+        "y": 352
+      }
+    ],
+    "types": [
+      {
+        "id": "flowbind-balance-v1",
+        "name": "Flowbind planning balance",
+        "description": "Released usable stock and open-order quantity in consistent standard units; quarantine is excluded.",
+        "iconSlug": "circle",
+        "displayColor": "#3278A8",
+        "elements": [
+          {
+            "elementId": "released-units-v1",
+            "name": "released_units",
+            "type": "integer"
+          },
+          {
+            "elementId": "open-units-v1",
+            "name": "open_units",
+            "type": "integer"
+          }
+        ]
+      },
+      {
+        "id": "flowbind-order-v1",
+        "name": "Flowbind purchase order",
+        "description": "One Flowbind order or received lot in standard units, with an identity for matching order, arrival and quarantine; German request is not yet an accepted order.",
+        "iconSlug": "square",
+        "displayColor": "#D88635",
+        "elements": [
+          {
+            "elementId": "ordered-units-v1",
+            "name": "units",
+            "type": "integer"
+          },
+          {
+            "elementId": "flowbind-order-identity-v1",
+            "name": "order_id",
+            "type": "uuid"
+          }
+        ]
+      },
+      {
+        "id": "sonaflozin-stock-type-v1",
+        "name": "Sonaflozin usable stock",
+        "iconSlug": "circle",
+        "displayColor": "#6E72BB",
+        "elements": [
+          {
+            "elementId": "sonaflozin-available-units-v1",
+            "name": "usable_units",
+            "type": "integer"
+          }
+        ]
+      },
+      {
+        "id": "sonic-flow-batch-type-v1",
+        "name": "Planned Sonic Flow batch",
+        "iconSlug": "square",
+        "displayColor": "#40A178",
+        "elements": [
+          {
+            "elementId": "sonic-flow-batch-units-v1",
+            "name": "units",
+            "type": "integer"
+          },
+          {
+            "elementId": "sonic-flow-wait-seconds-v1",
+            "name": "wait_seconds",
+            "type": "real"
+          }
+        ]
+      }
+    ],
+    "differentialEquations": [
+      {
+        "id": "sonic-flow-wait-dynamics-v1",
+        "name": "Planned batch waiting age",
+        "colorId": "sonic-flow-batch-type-v1",
+        "code": "return tokens.map(() => ({ wait_seconds: 1 }));"
+      }
+    ],
+    "parameters": [
+      {
+        "id": "flowbind-reorder-v1",
+        "name": "Flowbind reorder point (approximate current)",
+        "variableName": "flowbind_reorder_point",
+        "type": "integer",
+        "defaultValue": "1500"
+      },
+      {
+        "id": "flowbind-target-v1",
+        "name": "Flowbind target (approximate current)",
+        "variableName": "flowbind_target",
+        "type": "integer",
+        "defaultValue": "5000"
+      },
+      {
+        "id": "indian-moq-v1",
+        "name": "Indian Supplier Flowbind MOQ",
+        "variableName": "indian_moq",
+        "type": "integer",
+        "defaultValue": "2500"
+      },
+      {
+        "id": "german-bridge-threshold-v1",
+        "name": "German bridge released-stock threshold",
+        "variableName": "german_bridge_threshold",
+        "type": "integer",
+        "defaultValue": "500"
+      },
+      {
+        "id": "german-bridge-size-v1",
+        "name": "German Flowbind top-up (approximate)",
+        "variableName": "german_bridge_units",
+        "type": "integer",
+        "defaultValue": "250"
+      }
+    ],
+    "metrics": [
+      {
+        "id": "metric-flowbind-released-units-v1",
+        "name": "Usable Flowbind units",
+        "description": "Current quality-released Flowbind stock in standard units; a reported state measure, not fill rate or production service.",
+        "code": "const balance = state.places.FlowbindBalance.tokens;\nreturn balance.length === 0 ? 0 : balance[0].released_units;"
+      },
+      {
+        "id": "metric-started-batch-delay-days-v1",
+        "name": "Started-batch total start delay (days)",
+        "description": "Sum of planned-to-actual-start waiting days for batches currently in progress; excludes still-waiting and completed batches, so it is not total service delay.",
+        "code": "return state.places.SonicFlowInProgress.tokens.reduce((total, batch) => total + batch.wait_seconds, 0) / 86400;"
+      }
+    ]
+  },
+  "lastUpdated": "2026-09-28T14:54:04.789Z",
+  "incarnationId": "45c09d0c-8952-4636-9276-e3ffee56f0ca",
+  "revisionId": "3601eb16-b8c0-431e-8ca1-6dec88427714"
+}

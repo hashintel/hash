@@ -1,7 +1,23 @@
 {
   "run": "run-VbYdnp",
   "turns": 37,
-  "turnsWithNetChanges": 5,
-  "turnsRecordingBlockedConstruction": 27,
-  "netElementsByTurn": "0,0,0,9,9,9,9,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11"
+  "firstBuiltTurn": 4,
+  "turnsBuilt": 5,
+  "turnsBlocked": 27,
+  "turnsNeither": 5,
+  "outcomeByTurn": "---BBxxBxxxxxxxxxxxx-xBxxxx-xxxxxxxxB",
+  "netElementsByTurn": "0,0,0,9,9,9,9,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11",
+  "finalNet": {
+    "places": 5,
+    "transitions": 2,
+    "arcs": 4,
+    "readOrInhibitorArcs": 0,
+    "tokenTypes": 2,
+    "colouredPlaces": 5,
+    "transitionsWithCode": 2,
+    "parameters": 2,
+    "differentialEquations": 0,
+    "metrics": 3,
+    "scenarios": 1
+  }
 }
