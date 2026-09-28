@@ -1719,6 +1719,18 @@ export const BoardSetup = ({
             }
           }}
         >
+          {liveBoard !== null && liveBoard.instances.length === 0 && (
+            <div
+              className={runBannerStyle}
+              role="status"
+              style={{ marginRight: panelShown ? panelWidth : 0 }}
+            >
+              <span>
+                <b>No {noun}s in this run yet.</b> Cards appear once the model
+                creates a {noun} token. Try a longer run or another scenario.
+              </span>
+            </div>
+          )}
           {liveBoard === null && (
             <div
               className={runBannerStyle}
