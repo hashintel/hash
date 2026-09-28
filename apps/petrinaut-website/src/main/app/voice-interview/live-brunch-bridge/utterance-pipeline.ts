@@ -17,6 +17,24 @@ export interface UtteranceStage {
   readonly skip: (utterance: Utterance) => SkipReason | null;
 }
 
+export const liveUtteranceStages: readonly UtteranceStage[] = [
+  // Leaked Live audio finalizes as phantoms of a few words.
+  {
+    name: "short-during-output",
+    mode: "on",
+    skip: ({ startedDuringOutput, words }) =>
+      startedDuringOutput && words > 0 && words <= 3
+        ? "short-during-output"
+        : null,
+  },
+  // Transcription can finalize noise as punctuation alone, such as ".".
+  {
+    name: "empty",
+    mode: "on",
+    skip: ({ words }) => (words === 0 ? "empty" : null),
+  },
+];
+
 const wordCount = (text: string) =>
   text
     .normalize("NFKC")
