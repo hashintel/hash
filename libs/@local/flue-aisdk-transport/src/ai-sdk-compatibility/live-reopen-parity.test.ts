@@ -6,61 +6,14 @@ import {
 } from "@earendil-works/pi-ai";
 import { afterAll, describe, expect, test } from "vitest";
 
-import { createFlueChatTransport } from "../client/chat-transport";
-import { snapshotToUiMessages } from "../client/transcript";
-import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
-import {
-  harnessTools,
-  startFlueHarness,
-  unwrapHarnessEnvelope,
-} from "./flue-harness";
+import { harnessTools, startFlueHarness } from "./flue-harness";
 
-import type { FlueChatTransportOptions } from "../client/chat-transport";
-import type { UIMessage, UIMessageChunk } from "ai";
+import type { UIMessage } from "ai";
 
 const harness = await startFlueHarness();
 afterAll(() => harness.stop());
 
-const projection = {
-  clientToolNames: new Set([harnessTools.widget]),
-  mapToolOutput: unwrapHarnessEnvelope,
-};
-
-const readAll = async (
-  stream: ReadableStream<UIMessageChunk>,
-): Promise<UIMessageChunk[]> => {
-  const chunks: UIMessageChunk[] = [];
-  for await (const chunk of stream) chunks.push(chunk);
-  return chunks;
-};
-
-/** Send one real user turn, then reopen the same conversation from history. */
-const runTurn = async (
-  text: string,
-  options: Partial<FlueChatTransportOptions> = {},
-) => {
-  const client = harness.client();
-  const turnProjection = { ...projection, ...options };
-  const transport = createFlueChatTransport({ client, ...turnProjection });
-  const chunks = await readAll(
-    await transport.sendMessages({
-      trigger: "submit-message",
-      chatId: "conversation",
-      messageId: undefined,
-      messages: [
-        { id: "user-1", role: "user", parts: [{ type: "text", text }] },
-      ],
-      abortSignal: undefined,
-    }),
-  );
-  const live = await reduceUiMessageChunks(chunks);
-  const history = await client.history();
-  return {
-    chunks,
-    live,
-    reopened: snapshotToUiMessages(history, turnProjection),
-  };
-};
+const { runTurn } = harness;
 
 /**
  * The accepted live-only details: Flue history keeps no step boundary, and
@@ -78,7 +31,7 @@ const withoutLiveOnlyDetails = (message: UIMessage | undefined) => {
   return comparable;
 };
 
-const expectParity = (turn: Awaited<ReturnType<typeof runTurn>>) => {
+const expectParity = (turn: Awaited<ReturnType<typeof harness.runTurn>>) => {
   const reopened = turn.reopened.at(-1);
   expect(reopened?.role).toBe("assistant");
   expect(withoutLiveOnlyDetails(turn.live.message)).toEqual(reopened);
@@ -180,5 +133,43 @@ describe("a live response reduces to the message its history reopens as", () => 
     harness.setResponseMetadata(undefined);
     expect(turn.reopened.at(-1)?.metadata).toEqual({ model: "faux", tier: 1 });
     expectParity(turn);
+  });
+});
+
+describe("with the live tool-input channel", () => {
+  const liveToolStream = { headers: {}, fetch: harness.fetch };
+
+  test("a tool-only step keeps parity", async () => {
+    harness.script([
+      fauxAssistantMessage(
+        [fauxToolCall(harnessTools.widget, { title: "t" })],
+        {
+          stopReason: "toolUse",
+        },
+      ),
+      fauxAssistantMessage([fauxText("Shown.")]),
+    ]);
+    expectParity(await runTurn("Show it", { liveToolStream }));
+  });
+
+  // The live channel can open the tool part before Flue delivers the text that
+  // precedes it, and the AI SDK reducer cannot reorder parts, so only the set
+  // of parts is stable; ui-stream.test.ts pins the ordering divergence.
+  test("text before a tool call in one step keeps every part", async () => {
+    harness.script([
+      fauxAssistantMessage(
+        [
+          fauxText("Showing it now."),
+          fauxToolCall(harnessTools.widget, { title: "t" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([fauxText("Shown.")]),
+    ]);
+    const turn = await runTurn("Show it", { liveToolStream });
+    const liveParts = withoutLiveOnlyDetails(turn.live.message)?.parts;
+    const reopenedParts = turn.reopened.at(-1)?.parts ?? [];
+    expect(liveParts).toHaveLength(reopenedParts.length);
+    expect(liveParts).toEqual(expect.arrayContaining(reopenedParts));
   });
 });
