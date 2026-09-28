@@ -260,6 +260,14 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       target: { value: "Create a baseline scenario and throughput metric." },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    // The first removal asks once; Always allow covers the second in this conversation.
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: "Always allow" },
+        { timeout: 15_000 },
+      ),
+    );
     expect(
       await screen.findByText(
         "All six scenario and metric tools returned.",

@@ -63,6 +63,8 @@ Timing is shown when supplied or observed during this session; unavailable tool
 durations show a dash. Disclosure icons are neutral; status dots distinguish
 pending, completed, and failed tools.
 
+Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies that removal; **Deny** skips it and tells Brunch nothing was changed. Brunch's later edits wait until you answer. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Stock auto-layout approval is unchanged.
+
 When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
 Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
@@ -287,7 +289,7 @@ Voice ends when the panel closes. If Realtime Voice is interrupted, allow
 microphone access or check the connection, then select **Reconnect voice
 mode**. **Clear AI chat** is unavailable while a Voice session is active.
 
-The delete button appears in the top right of the panel once the conversation contains messages. When no interview is active and the host permits clearing, **Clear AI chat** wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
+The delete button appears in the top right once the conversation contains messages. When Voice is inactive, **Clear AI chat** in ordinary Brunch starts a fresh conversation and resets conversation-only approvals. It preserves the model and the old saved history; it is not a history-deletion action. Reopening the page returns to the new conversation. Other hosts can clear local messages or disable this control.
 
 An interrupted Voice session shows a gentle red waveform without a visible status label. Recovery controls remain available and screen readers still announce the interruption. Open **Voice issues** for a short title and explanation. **Copy details** becomes **Copied** after success; **Dismiss** clears the displayed issues without ending Voice.
 

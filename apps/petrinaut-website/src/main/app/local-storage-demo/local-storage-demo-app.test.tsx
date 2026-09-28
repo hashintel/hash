@@ -55,6 +55,21 @@ import type {
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
 
+const destructiveApprovalToolNames = [
+  "removePlace",
+  "removeTransition",
+  "removeArc",
+  "removeType",
+  "removeTypeElement",
+  "removeDifferentialEquation",
+  "removeParameter",
+  "removeScenario",
+  "removeMetric",
+  "removeSubnet",
+  "removeComponentInstance",
+  "deleteItemsByIds",
+];
+
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
@@ -401,9 +416,14 @@ describe("local storage demo Brunch voice integration", () => {
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect(aiAssistant.executeMutation).toBeUndefined();
+    // Destructive approval and the experiment draft are available; the
+    // voice-only brunch_ask widget is never mounted here.
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([brunchTools.draftPetrinautExperiment]);
+    ).toEqual([
+      ...destructiveApprovalToolNames,
+      brunchTools.draftPetrinautExperiment,
+    ]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1157,6 +1177,48 @@ describe("local storage demo Brunch controls", () => {
     brunchPreviewConfig.isBrunchConfigured = true;
   });
 
+  test("clearing ordinary Brunch starts a persisted fresh conversation without replacing the model", async () => {
+    seedStoredNet("clear-incarnation");
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    flueClientMock.current = {
+      history: async () => ({
+        conversation: { settlements: [], messages: [] },
+        offset: "0",
+      }),
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => {},
+      }),
+    };
+    const view = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
+    const first = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    const originalId = first.conversationId;
+    const handle = editorProps.current?.handle;
+    expect(first.canClearMessages).toBe(true);
+    act(() => first.onClearMessages?.());
+    const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    expect(next.conversationId).not.toBe(originalId);
+    expect(next.conversationId).toContain(
+      "brunch-construction-v1:clear-incarnation:",
+    );
+    expect(next.automaticTools).not.toBe(first.automaticTools);
+    expect(editorProps.current?.handle).toBe(handle);
+    const nextId = next.conversationId;
+    view.unmount();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(
+        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+          ?.conversationId,
+      ).toBe(nextId),
+    );
+  });
+
   test.each(["metaKey", "ctrlKey"])(
     "reserves %s + Shift + K for the assistant and keeps plain K for the palette",
     (modifier) => {
@@ -1244,7 +1306,10 @@ describe("local storage demo Brunch controls", () => {
     );
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([brunchTools.draftPetrinautExperiment]);
+    ).toEqual([
+      ...destructiveApprovalToolNames,
+      brunchTools.draftPetrinautExperiment,
+    ]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     // Every configured Brunch browser tool, the draft included, settles in band.
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(

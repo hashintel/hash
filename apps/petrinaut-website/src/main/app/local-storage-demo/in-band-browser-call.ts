@@ -37,6 +37,18 @@ export const createInBandBrowserCalls = (input: {
     toolName: string;
     input: unknown;
   }) => void;
+  /**
+   * Decides, after the claim and before `prepareInput`, whether the call may
+   * start. A refused call settles with the given output and never starts.
+   */
+  readonly admit?: (call: {
+    readonly toolCallId: string;
+    readonly toolName: string;
+    readonly signal: AbortSignal;
+  }) => Promise<
+    | { readonly admitted: true }
+    | { readonly admitted: false; readonly output: unknown }
+  >;
 }) => {
   const claim = async (call: {
     readonly toolCallId: string;
@@ -183,6 +195,11 @@ export const createInBandBrowserCalls = (input: {
       let started = false;
       try {
         if (call.signal.aborted) return;
+        const admission = (await input.admit?.(call)) ?? { admitted: true };
+        if (!admission.admitted) {
+          await issued.submit(admission.output);
+          return;
+        }
         input.prepareInput({
           toolCallId: call.toolCallId,
           toolName: call.toolName,
