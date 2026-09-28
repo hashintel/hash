@@ -1,8 +1,7 @@
-/** Revision recovery safety through the built mount and original local store.
+/** Ledger commit recovery safety through the built mount and original local store.
  * Spawned by `test/integration/history-retention-crash.test.ts`. Fault injection is process-local only.
  */
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -85,23 +84,35 @@ installFauxProvider({
     return faux.provider.streamSimple(model, context, options);
   },
 });
-const markdown =
-  "# A4 synthetic revision\n\nCrash-boundary diagnostic, not elicited testimony. Preserve exact source.\n";
-const nextMarkdown = `${markdown}\n## Recovery continuation\n\nNext synthetic diagnostic revision.\n`;
-const response = (id: string, content: string, baseRevisionId: string | null) =>
+const changes = [
+  {
+    op: "add",
+    address: "purpose",
+    content:
+      "Crash-boundary diagnostic, not elicited testimony. Preserve exact source.",
+    source: "agent",
+    standing: "settled",
+  },
+];
+const nextChanges = [
+  {
+    op: "supersede",
+    address: "n1",
+    content: "Next synthetic diagnostic commit after recovery.",
+    source: "agent",
+    standing: "settled",
+  },
+];
+const response = (id: string, commitChanges: readonly unknown[]) =>
   fauxAssistantMessage(
-    fauxToolCall(
-      "mutate_workpiece",
-      { markdown: content, baseRevisionId },
-      { id },
-    ),
+    fauxToolCall("ledger_commit", { changes: commitChanges }, { id }),
     { stopReason: "toolUse" },
   );
 faux.setResponses(
   phase === "create"
     ? [
-        response("a4-crash-revision", markdown, null),
-        fauxAssistantMessage("Synthetic revision acknowledged."),
+        response("a4-crash-revision", changes),
+        fauxAssistantMessage("Synthetic commit acknowledged."),
       ]
     : Array.from({ length: 6 }, () =>
         fauxAssistantMessage("Recovered diagnostic continuation only."),
@@ -120,78 +131,23 @@ const tools = (snapshot: FlueConversationSnapshot) =>
   snapshot.messages
     .flatMap((message) => message.parts)
     .filter((part) => part.type === "dynamic-tool");
-const assertRevision = (
+const assertCommit = (
   snapshot: FlueConversationSnapshot,
-  revisionId: string,
-  content: string,
-  ordinal: number,
-  previous: {
-    readonly revisionId: string;
-    readonly markdown: string;
-  } | null,
+  commitId: string,
+  commitChanges: readonly unknown[],
+  output: Record<string, unknown>,
 ) => {
-  const pointer = {
-    revisionId,
-    sha256: createHash("sha256").update(content).digest("hex"),
-    ordinal,
-  };
-  const before = previous?.markdown ?? "";
-  let commonPrefixUtf16 = 0;
-  while (
-    commonPrefixUtf16 < before.length &&
-    commonPrefixUtf16 < content.length &&
-    before[commonPrefixUtf16] === content[commonPrefixUtf16]
-  )
-    commonPrefixUtf16 += 1;
-  let commonSuffixUtf16 = 0;
-  while (
-    commonSuffixUtf16 < before.length - commonPrefixUtf16 &&
-    commonSuffixUtf16 < content.length - commonPrefixUtf16 &&
-    before[before.length - commonSuffixUtf16 - 1] ===
-      content[content.length - commonSuffixUtf16 - 1]
-  )
-    commonSuffixUtf16 += 1;
-  const removedEnd = before.length - commonSuffixUtf16;
-  const insertedEnd = content.length - commonSuffixUtf16;
-  const removed = before.slice(commonPrefixUtf16, removedEnd);
-  const inserted = content.slice(commonPrefixUtf16, insertedEnd);
-  const tool = tools(snapshot).find((part) => part.toolCallId === revisionId);
+  const tool = tools(snapshot).find((part) => part.toolCallId === commitId);
   assert(tool?.state === "output-available");
   assert.deepEqual(
     tool.input,
-    { markdown: content, baseRevisionId: previous?.revisionId ?? null },
+    { changes: commitChanges },
     "Raw call input survives",
   );
   assert.deepEqual(
     tool.output,
-    {
-      disposition: "applied",
-      applied: true,
-      ...pointer,
-      mutation: {
-        baseRevisionId: previous?.revisionId ?? null,
-        beforeSha256:
-          previous === null
-            ? null
-            : createHash("sha256").update(previous.markdown).digest("hex"),
-        afterSha256: pointer.sha256,
-        commonPrefixUtf16,
-        commonSuffixUtf16,
-        removed: {
-          start: commonPrefixUtf16,
-          end: removedEnd,
-          utf16Length: removed.length,
-          sha256: createHash("sha256").update(removed).digest("hex"),
-        },
-        inserted: {
-          start: commonPrefixUtf16,
-          end: insertedEnd,
-          utf16Length: inserted.length,
-          sha256: createHash("sha256").update(inserted).digest("hex"),
-        },
-      },
-    },
-    "Stable call/result identity, ordinal, and pointer-only receipt",
+    { status: "recorded", commitId, ...output },
+    "Stable call identity and host-assigned Note addresses",
   );
 };
 try {
@@ -206,13 +162,13 @@ try {
       },
       message: {
         kind: "user",
-        body: "Record the explicitly synthetic crash diagnostic revision.",
+        body: "Record the explicitly synthetic crash diagnostic commit.",
       },
     });
     writeFileSync(
       join(directory, "receipt.json"),
       `${JSON.stringify(
-        { receipt, pid: process.pid, identity, markdown },
+        { receipt, pid: process.pid, identity, changes },
         null,
         2,
       )}\n`,
@@ -232,20 +188,20 @@ try {
     assert.notEqual(process.pid, original.pid);
     await client.read(original.receipt, { signal: AbortSignal.timeout(60000) });
     save("store-after-recovery", inspect());
-    // The recovered state is observed at the product boundary: the next
-    // settlement must carry ordinal 2 and the recovered revision as previous.
+    // The recovered Ledger is observed at the product boundary: the next
+    // commit must supersede the recovered Note under the next address.
     const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
-      response("a4-next-revision", nextMarkdown, "a4-crash-revision"),
-      fauxAssistantMessage("Next revision acknowledged."),
+      response("a4-next-revision", nextChanges),
+      fauxAssistantMessage("Next commit acknowledged."),
     ]);
     await client.read(
       await client.send({
         uid: original.receipt.uid,
         message: {
           kind: "user",
-          body: "Record the next synthetic revision to expose the recovered ordinal.",
+          body: "Record the next synthetic commit to expose the recovered Ledger.",
         },
       }),
       { signal: AbortSignal.timeout(30000) },
@@ -260,18 +216,21 @@ try {
       nextTools: tools(next),
       providerCalls: faux.state.callCount,
     });
-    // Persist both observations before asserting, so failures retain the next ordinal too.
-    assertRevision(recovered, "a4-crash-revision", markdown, 1, null);
-    assertRevision(next, "a4-next-revision", nextMarkdown, 2, {
-      revisionId: "a4-crash-revision",
-      markdown,
+    // Persist both observations before asserting, so failures retain the next commit too.
+    assertCommit(recovered, "a4-crash-revision", changes, {
+      revision: 1,
+      notes: [{ address: "purpose/n1" }],
+    });
+    assertCommit(next, "a4-next-revision", nextChanges, {
+      revision: 2,
+      notes: [{ address: "purpose/n2", supersedes: "purpose/n1" }],
     });
     assert.deepEqual(
       tools(next).map((part) => part.toolCallId),
       ["a4-crash-revision", "a4-next-revision"],
-      "Recovery must not reissue the completed call or reuse a revision ID",
+      "Recovery must not reissue the completed call or reuse a commit ID",
     );
-    save("safety", { verdict: "Pass", exactState: true, nextOrdinal: 2 });
+    save("safety", { verdict: "Pass", exactLedger: true, nextRevision: 2 });
   }
 } finally {
   await application.stop();
