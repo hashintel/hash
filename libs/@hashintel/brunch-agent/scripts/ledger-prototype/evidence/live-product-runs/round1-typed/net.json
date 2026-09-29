@@ -1,0 +1,1716 @@
+{
+  "id": "net-1",
+  "title": "Sonic Flow purchasing and batch planning",
+  "sdcpn": {
+    "places": [
+      {
+        "id": "son_position_readings",
+        "name": "SonaflozinPositionReadings",
+        "description": "External Sonaflozin inventory position (on-hand plus open orders); SAP treatment of quarantine and reading cadence unverified.",
+        "colorId": "inventory_position_observation",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 330
+      },
+      {
+        "id": "son_orders_placed",
+        "name": "SonaflozinOrdersPlaced",
+        "description": "Sonaflozin order-up-to quantity derived from supplied inventory position; linked to approximate Chinese preparation, transit and quarantine.",
+        "colorId": "purchase_order_amount",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 330
+      },
+      {
+        "id": "flow_position_readings",
+        "name": "FlowbindPositionReadings",
+        "description": "External Flowbind inventory position (on-hand plus open orders); SAP treatment of quarantine and reading cadence unverified.",
+        "colorId": "inventory_position_observation",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 874.6666666666667
+      },
+      {
+        "id": "flow_orders_placed",
+        "name": "FlowbindOrdersPlaced",
+        "description": "Flowbind top-up order from supplied inventory position; externally assigned to India or Germany, followed by approximate supply timing, pending lot-level release data.",
+        "colorId": "purchase_order_amount",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 874.6666666666667
+      },
+      {
+        "id": "supplier_preparing",
+        "name": "SupplierPreparing",
+        "description": "Sonaflozin order quantity not yet dispatched; approximately one-week supplier preparation plus conditional outage, followed by possible multiple certified-lot dispatches.",
+        "colorId": "chinese_supply_batch",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "countdown_supply_stage",
+        "x": 1240,
+        "y": 356
+      },
+      {
+        "id": "chinese_in_transit",
+        "name": "ChineseSupplyInTransit",
+        "description": "Certified Sonaflozin shipment; both transit time and remaining shelf life count down, customs delay unspecified.",
+        "colorId": "certified_son_shipment",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "certified_shipment_clock",
+        "x": 1240,
+        "y": 480
+      },
+      {
+        "id": "chinese_quarantine",
+        "name": "ChineseSupplyInQuarantine",
+        "description": "Certified Sonaflozin lot in quarantine; both days until release and days until expiry count down; 3-day duration is agent placeholder.",
+        "colorId": "certified_son_shipment",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "certified_shipment_clock",
+        "x": 1800,
+        "y": 462.6666666666667
+      },
+      {
+        "id": "route_flow_india",
+        "name": "ChooseIndianFlowbindSupply",
+        "description": "External routing instruction for normal Indian supply; no automatic urgency/outage rule yet.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 998.6666666666667
+      },
+      {
+        "id": "route_flow_germany",
+        "name": "ChooseGermanFlowbindSupply",
+        "description": "External routing instruction for urgent top-up or Indian outage; criteria not automated.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 750.6666666666667
+      },
+      {
+        "id": "flow_indian_orders",
+        "name": "FlowbindIndianOrders",
+        "description": "Flowbind orders assigned to India, followed by approximate preparation/transit/quarantine; lot identity and expiry still unresolved.",
+        "colorId": "purchase_order_amount",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 902.0000000000001
+      },
+      {
+        "id": "flow_german_orders",
+        "name": "FlowbindGermanOrders",
+        "description": "Small urgent Flowbind top-up orders assigned to Germany; use approximate 15-day recorded lead time without an invented extra priority or queue rule.",
+        "colorId": "purchase_order_amount",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 760.6666666666667
+      },
+      {
+        "id": "planned_sonic_batches",
+        "name": "PlannedSonicFlowBatches",
+        "description": "Planned batch units accrue material-wait days until an externally validated FEFO allocation is supplied; split-lot eligibility and lot debits are not enforced internally.",
+        "colorId": "production_batch_wait",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "production_wait_clock",
+        "x": 2400,
+        "y": 99.33333333333333
+      },
+      {
+        "id": "forecast_batch_releases_external",
+        "name": "ForecastBatchReleasesExternal",
+        "description": "Scheduled forecast batch quantity calculated from supplied order-rate snapshot, plan period and average order size; countdown to release. Values also remain directly supplyable for historical replay.",
+        "colorId": "scheduled_production_batch",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "scheduled_batch_countdown",
+        "x": 1840,
+        "y": 206
+      },
+      {
+        "id": "static_batch_releases_external",
+        "name": "StaticPlanBatchReleasesExternal",
+        "description": "Externally supplied recorded static-plan batch sizes and days until release, with countdown; plan values not yet provided.",
+        "colorId": "scheduled_production_batch",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "scheduled_batch_countdown",
+        "x": 1840,
+        "y": 82
+      },
+      {
+        "id": "forecast_sizing_inputs_external",
+        "name": "ForecastSizingInputsExternal",
+        "description": "Externally supplied order-rate snapshot at each batch's planning time, plan period, average order size, and planned release offset; units and planning-to-release lag unverified.",
+        "colorId": "forecast_sizing_snapshot",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1280,
+        "y": 206
+      },
+      {
+        "id": "son_usable_lots",
+        "name": "SonaflozinUsableLots",
+        "description": "Individual quarantine-released certified Sonaflozin lots; remain usable only before fixed expiry; production allocation still missing.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "lot_expiry_countdown",
+        "x": 2360,
+        "y": 445.33333333333337
+      },
+      {
+        "id": "flow_usable_lots",
+        "name": "FlowbindUsableLots",
+        "description": "Individual quarantine-released Flowbind lots with quantity and remaining shelf life supplied by records; India/Germany receipt not yet linked.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "lot_expiry_countdown",
+        "x": 520,
+        "y": 82
+      },
+      {
+        "id": "son_written_off_lots",
+        "name": "SonaflozinWrittenOffLots",
+        "description": "Sonaflozin lots expired after quarantine release into usable warehouse stock; numerator candidate for provisional warehouse-only expiry rate.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2920,
+        "y": 445.33333333333337
+      },
+      {
+        "id": "flow_written_off_lots",
+        "name": "FlowbindWrittenOffLots",
+        "description": "Expired Flowbind lots removed from production eligibility; write-off quantity preserved.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1080,
+        "y": 82
+      },
+      {
+        "id": "son_certified_lots_pre_dispatch",
+        "name": "SonaflozinCertifiedLotsPreDispatch",
+        "description": "Externally supplied manufacturer's certified lots and expiry remaining; shelf life runs down before dispatch once certificate is issued.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "lot_expiry_countdown",
+        "x": 680,
+        "y": 454
+      },
+      {
+        "id": "customer_orders_open",
+        "name": "CustomerOrdersAwaitingFill",
+        "description": "Customer orders with externally supplied promise dates; full-order shipment from agent-assumed aggregate released-goods balance is a draft, not SAP-confirmed.",
+        "colorId": "customer_order_promise",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "customer_promise_countdown",
+        "x": 120,
+        "y": 82
+      },
+      {
+        "id": "customer_orders_past_promise",
+        "name": "CustomerOrdersPastPromise",
+        "description": "Orders not filled by promised date; they may later be filled or cancelled, but those paths are not yet established.",
+        "colorId": "customer_order_promise",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 320,
+        "y": 82
+      },
+      {
+        "id": "son_transit_expired_lots",
+        "name": "SonaflozinExpiredInTransit",
+        "description": "Expired certified Sonaflozin lots lost during transit; separately reported, outside provisional warehouse expiry rate.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 586.6666666666667
+      },
+      {
+        "id": "son_other_pre_release_expired_lots",
+        "name": "SonaflozinExpiredBeforeRelease",
+        "description": "Lots expired after certificate issuance but before usable release (before dispatch or in quarantine); distinct from transit and warehouse expiry.",
+        "colorId": "material_lot",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2360,
+        "y": 569.3333333333334
+      },
+      {
+        "id": "flow_supplier_preparing",
+        "name": "FlowbindSupplierPreparing",
+        "description": "Indian or German Flowbind order in approximate seven-day supplier preparation; no separate urgency queue or priority mechanism beyond source choice and reported lead time.",
+        "colorId": "flow_supplier_order_stage",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "flow_supply_stage_clock",
+        "x": 1800,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "flow_supply_transit",
+        "name": "FlowbindSupplyInTransit",
+        "description": "Flowbind order from India or Germany in approximate source-specific transit; expiry not tracked before lot data provided.",
+        "colorId": "flow_supplier_order_stage",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "flow_supply_stage_clock",
+        "x": 2360,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "flow_supply_quarantine",
+        "name": "FlowbindSupplyInQuarantine",
+        "description": "India or Germany Flowbind supply undergoing few-day quarantine represented with agent three-day placeholder; lot expiry not yet linked.",
+        "colorId": "flow_supplier_order_stage",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "flow_supply_stage_clock",
+        "x": 2920,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "flow_released_quantity_unmatched",
+        "name": "FlowbindReleasedQuantityNeedsLotData",
+        "description": "Flowbind quantity after supplier prep, transit and quarantine; cannot become usable lot stock until lot IDs, dates and released quantities are supplied.",
+        "colorId": "flow_supplier_order_stage",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 3480,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "fg_completed_external",
+        "name": "CompletedSonicFlowBatchesExternal",
+        "description": "Completed Sonic Flow batches produced by approximate one-week production path, or externally supplied for replay; FEFO allocation prior to run is external stand-in.",
+        "colorId": "finished_goods_batch",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2700,
+        "y": 90
+      },
+      {
+        "id": "fg_in_quarantine",
+        "name": "FinishedGoodsInQuarantine",
+        "description": "Finished Sonic Flow awaiting batch-matched quality clearance; elapsed days recorded, no inferred exact hold or automatic release.",
+        "colorId": "finished_goods_batch",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "fg_quarantine_elapsed",
+        "x": 3100,
+        "y": 90
+      },
+      {
+        "id": "fg_clearance_external",
+        "name": "FinishedGoodsQualityClearancesExternal",
+        "description": "Externally supplied batch-matched positive quality release; timing and negative outcomes await quality records.",
+        "colorId": "fg_quality_clearance",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 3100,
+        "y": 250
+      },
+      {
+        "id": "fg_released",
+        "name": "FinishedGoodsReleasedForShipping",
+        "description": "Quality-released finished Sonic Flow batch awaiting transfer to an agent-assumed aggregate shippable balance for full-order shipment.",
+        "colorId": "finished_goods_batch",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 3500,
+        "y": 90
+      },
+      {
+        "id": "allocation_external",
+        "name": "FEFOAllocationsExternal",
+        "description": "Agent stand-in: external allocator certifies one batch can consume its full units of each material from eligible released lots in FEFO order; neither computation nor lot debit is enforced here.",
+        "colorId": "fefo_allocation_certificate",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2460,
+        "y": 230
+      },
+      {
+        "id": "production_running",
+        "name": "SonicFlowInProduction",
+        "description": "Started batch running roughly seven days after external FEFO allocation; no plant-capacity constraint established.",
+        "colorId": "production_run",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "production_run_clock",
+        "x": 2800,
+        "y": 230
+      },
+      {
+        "id": "started_wait_history",
+        "name": "StartedBatchWaitHistory",
+        "description": "Records batch size and scheduled-to-actual-start wait for unit-weighted production-delay reporting.",
+        "colorId": "batch_wait_record",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2800,
+        "y": 400
+      },
+      {
+        "id": "fg_stock_pool",
+        "name": "ReleasedFinishedGoodsBalance",
+        "description": "Agent aggregate approximation for shippable Sonic Flow units; needs one dated opening balance token from the same SAP snapshot in both cases.",
+        "colorId": "released_goods_balance",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 3850,
+        "y": 120
+      },
+      {
+        "id": "orders_on_time",
+        "name": "CustomerOrdersShippedOnTime",
+        "description": "Customer orders wholly shipped no later than promised date; immediate shipment event approximation, no transit.",
+        "colorId": "customer_order_promise",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 4350,
+        "y": 120
+      },
+      {
+        "id": "orders_late",
+        "name": "CustomerOrdersShippedLate",
+        "description": "Customer orders wholly shipped after promised date; partials and cancellations still unspecified.",
+        "colorId": "customer_order_promise",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 4350,
+        "y": 350
+      }
+    ],
+    "transitions": [
+      {
+        "id": "son_place_order",
+        "name": "Place Sonaflozin order",
+        "description": "Place top-up order in Sonaflozin units when externally supplied inventory position is strictly below 2,500; SAP quarantine inclusion unverified.",
+        "inputArcs": [
+          {
+            "placeId": "son_position_readings",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "son_orders_placed",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SonaflozinPositionReadings[0].inventory_position < parameters.son_reorder_point;",
+        "transitionKernelCode": "return { SonaflozinOrdersPlaced: [{ quantity: parameters.son_order_up_to - input.SonaflozinPositionReadings[0].inventory_position }] };",
+        "x": 400,
+        "y": 330
+      },
+      {
+        "id": "flow_place_order",
+        "name": "Place Flowbind order",
+        "description": "Place top-up order in Flowbind units when externally supplied inventory position is strictly below 1,500; SAP quarantine inclusion unverified.",
+        "inputArcs": [
+          {
+            "placeId": "flow_position_readings",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_orders_placed",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindPositionReadings[0].inventory_position < parameters.flow_reorder_point;",
+        "transitionKernelCode": "return { FlowbindOrdersPlaced: [{ quantity: parameters.flow_order_up_to - input.FlowbindPositionReadings[0].inventory_position }] };",
+        "x": 400,
+        "y": 874.6666666666667
+      },
+      {
+        "id": "begin_supplier_prep",
+        "name": "Start Chinese supplier preparation",
+        "description": "Placed Sonaflozin order begins Chinese supplier preparation; approximate one-week preparation plus scenario outage delay.",
+        "inputArcs": [
+          {
+            "weight": 1,
+            "type": "standard",
+            "placeId": "son_orders_placed"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "supplier_preparing",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "const order = input.SonaflozinOrdersPlaced[0]; return { SupplierPreparing: [{ quantity: order.quantity, days_remaining: parameters.supplier_prep_days + parameters.outage_delay_days }] };",
+        "x": 960,
+        "y": 330
+      },
+      {
+        "id": "dispatch_chinese_supply",
+        "name": "Dispatch certified Sonaflozin lot against order balance",
+        "description": "After preparation, dispatch a certified lot no larger than remaining order quantity, retaining unshipped balance for further lots; lot-to-order identity matching not yet implemented.",
+        "inputArcs": [
+          {
+            "placeId": "supplier_preparing",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "type": "standard",
+            "placeId": "son_certified_lots_pre_dispatch",
+            "weight": 1
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "chinese_in_transit",
+            "weight": 1
+          },
+          {
+            "placeId": "supplier_preparing",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const order = input.SupplierPreparing[0]; const lot = input.SonaflozinCertifiedLotsPreDispatch[0]; return order.days_remaining <= 0 && order.quantity > 0 && lot.quantity > 0 && lot.days_until_expiry > 0 && lot.quantity <= order.quantity;",
+        "transitionKernelCode": "const order = input.SupplierPreparing[0]; const lot = input.SonaflozinCertifiedLotsPreDispatch[0]; return { ChineseSupplyInTransit: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_remaining: parameters.transit_days, days_until_expiry: lot.days_until_expiry }], SupplierPreparing: [{ quantity: order.quantity - lot.quantity, days_remaining: order.days_remaining }] };",
+        "x": 960,
+        "y": 436.6666666666667
+      },
+      {
+        "id": "arrive_chinese_supply",
+        "name": "Arrive and enter quarantine",
+        "description": "On completed transit, pass certified lot into quarantine with its remaining shelf life; customs delay still unspecified.",
+        "inputArcs": [
+          {
+            "placeId": "chinese_in_transit",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "chinese_quarantine",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.ChineseSupplyInTransit[0].days_remaining <= 0 && input.ChineseSupplyInTransit[0].days_until_expiry > 0;",
+        "transitionKernelCode": "const lot = input.ChineseSupplyInTransit[0]; return { ChineseSupplyInQuarantine: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_remaining: parameters.quarantine_days_placeholder, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 1520,
+        "y": 462.6666666666667
+      },
+      {
+        "id": "release_chinese_quarantine",
+        "name": "Release Chinese supplier material",
+        "description": "After quarantine, release only still-unexpired certified Sonaflozin lot to usable lot inventory; quarantine duration remains an agent placeholder.",
+        "inputArcs": [
+          {
+            "placeId": "chinese_quarantine",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "son_usable_lots"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.ChineseSupplyInQuarantine[0]; return lot.days_remaining <= 0 && lot.days_until_expiry > 0;",
+        "transitionKernelCode": "const lot = input.ChineseSupplyInQuarantine[0]; return { SonaflozinUsableLots: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 2080,
+        "y": 445.33333333333337
+      },
+      {
+        "id": "send_flow_india",
+        "name": "Assign Flowbind order to India",
+        "description": "Explicit external choice for normal Indian source; routing criteria not yet represented automatically.",
+        "inputArcs": [
+          {
+            "placeId": "flow_orders_placed",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "route_flow_india",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_indian_orders",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "return { FlowbindIndianOrders: [{ quantity: input.FlowbindOrdersPlaced[0].quantity }] };",
+        "x": 960,
+        "y": 902.0000000000001
+      },
+      {
+        "id": "send_flow_germany",
+        "name": "Assign Flowbind order to Germany",
+        "description": "Explicit external choice for urgent top-up or India outage; urgency and outage selection criteria unestablished.",
+        "inputArcs": [
+          {
+            "placeId": "flow_orders_placed",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "route_flow_germany",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_german_orders",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "return { FlowbindGermanOrders: [{ quantity: input.FlowbindOrdersPlaced[0].quantity }] };",
+        "x": 960,
+        "y": 760.6666666666667
+      },
+      {
+        "id": "release_forecast_batch",
+        "name": "Release live-forecast batch",
+        "description": "Release externally scheduled live-forecast batch when due and forecast policy is selected.",
+        "inputArcs": [
+          {
+            "placeId": "forecast_batch_releases_external",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "planned_sonic_batches",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return !parameters.use_static_plan && input.ForecastBatchReleasesExternal[0].days_until_release <= 0;",
+        "transitionKernelCode": "return { PlannedSonicFlowBatches: [{ quantity: input.ForecastBatchReleasesExternal[0].quantity, wait_days: 0 }] };",
+        "x": 2120,
+        "y": 206
+      },
+      {
+        "id": "release_static_batch",
+        "name": "Release recorded static-plan batch",
+        "description": "Release externally scheduled recorded static-plan batch when due and static plan selected.",
+        "inputArcs": [
+          {
+            "placeId": "static_batch_releases_external",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "planned_sonic_batches",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return parameters.use_static_plan && input.StaticPlanBatchReleasesExternal[0].days_until_release <= 0;",
+        "transitionKernelCode": "return { PlannedSonicFlowBatches: [{ quantity: input.StaticPlanBatchReleasesExternal[0].quantity, wait_days: 0 }] };",
+        "x": 2120,
+        "y": 82
+      },
+      {
+        "id": "calculate_forecast_batch",
+        "name": "Calculate batch from live forecast inputs",
+        "description": "Multiply externally supplied current order rate, plan period and average order size; preserve specified release offset. Input units, timing and rounding unverified.",
+        "inputArcs": [
+          {
+            "placeId": "forecast_sizing_inputs_external",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "forecast_batch_releases_external",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "const f = input.ForecastSizingInputsExternal[0]; return { ForecastBatchReleasesExternal: [{ quantity: f.order_rate * f.plan_period * f.average_order_size, days_until_release: f.days_until_release }] };",
+        "x": 1560,
+        "y": 206
+      },
+      {
+        "id": "writeoff_expired_son",
+        "name": "Write off expired Sonaflozin lot",
+        "description": "Remove lot when its remaining shelf life reaches zero; remains available for neither production nor stock totals.",
+        "inputArcs": [
+          {
+            "placeId": "son_usable_lots",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "son_written_off_lots",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SonaflozinUsableLots[0].days_until_expiry <= 0;",
+        "transitionKernelCode": "const lot = input.SonaflozinUsableLots[0]; return { SonaflozinWrittenOffLots: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 2640,
+        "y": 445.33333333333337
+      },
+      {
+        "id": "writeoff_expired_flow",
+        "name": "Write off expired Flowbind lot",
+        "description": "Remove expired Flowbind lot and preserve written-off quantity.",
+        "inputArcs": [
+          {
+            "placeId": "flow_usable_lots",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_written_off_lots",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindUsableLots[0].days_until_expiry <= 0;",
+        "transitionKernelCode": "const lot = input.FlowbindUsableLots[0]; return { FlowbindWrittenOffLots: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 800,
+        "y": 82
+      },
+      {
+        "id": "writeoff_certified_son_before_dispatch",
+        "name": "Record Sonaflozin expiry before dispatch",
+        "description": "Keep lot expiry before dispatch separate from warehouse expiry; replacement/financial fate of order unconfirmed.",
+        "inputArcs": [
+          {
+            "placeId": "son_certified_lots_pre_dispatch",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "son_other_pre_release_expired_lots"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SonaflozinCertifiedLotsPreDispatch[0].days_until_expiry <= 0;",
+        "transitionKernelCode": "const lot = input.SonaflozinCertifiedLotsPreDispatch[0]; return { SonaflozinExpiredBeforeRelease: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 1240,
+        "y": 648.6666666666667
+      },
+      {
+        "id": "writeoff_son_in_transit",
+        "name": "Record Sonaflozin lot expired in transit",
+        "description": "Keep in-transit lot expiry separate from provisional warehouse expiry target; financial ownership remains unknown.",
+        "inputArcs": [
+          {
+            "placeId": "chinese_in_transit",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "son_transit_expired_lots"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.ChineseSupplyInTransit[0].days_until_expiry <= 0;",
+        "transitionKernelCode": "const lot = input.ChineseSupplyInTransit[0]; return { SonaflozinExpiredInTransit: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 1520,
+        "y": 586.6666666666667
+      },
+      {
+        "id": "writeoff_son_in_quarantine",
+        "name": "Record Sonaflozin expiry before release",
+        "description": "Quarantined lot expiry retained separately from warehouse-use expiry; treatment in team's rate unverified.",
+        "inputArcs": [
+          {
+            "placeId": "chinese_quarantine",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "son_other_pre_release_expired_lots"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.ChineseSupplyInQuarantine[0].days_until_expiry <= 0;",
+        "transitionKernelCode": "const lot = input.ChineseSupplyInQuarantine[0]; return { SonaflozinExpiredBeforeRelease: [{ lot_ref: lot.lot_ref, quantity: lot.quantity, days_until_expiry: lot.days_until_expiry }] };",
+        "x": 2080,
+        "y": 552
+      },
+      {
+        "id": "complete_son_order_after_lots",
+        "name": "Close fully dispatched Sonaflozin order",
+        "description": "Clear zero remaining order balance after all certified lots have dispatched; no order-level completion history retained.",
+        "inputArcs": [
+          {
+            "placeId": "supplier_preparing",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SupplierPreparing[0].quantity <= 0;",
+        "transitionKernelCode": "",
+        "x": 1520,
+        "y": 356
+      },
+      {
+        "id": "begin_flow_india_prep",
+        "name": "Start Indian Flowbind preparation",
+        "description": "Approximate seven days supplier preparation; Indian order quantity becomes an un-lotted supply stage.",
+        "inputArcs": [
+          {
+            "placeId": "flow_indian_orders",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_supplier_preparing",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "return { FlowbindSupplierPreparing: [{ quantity: input.FlowbindIndianOrders[0].quantity, supplier_code: 0, days_remaining: parameters.flow_prep_days_approx }] };",
+        "x": 1520,
+        "y": 902.0000000000001
+      },
+      {
+        "id": "begin_flow_germany_prep",
+        "name": "Start German Flowbind preparation",
+        "description": "German Flowbind urgent top-up enters approximate seven-day supplier preparation; recorded total lead time is about 15 days, with no extra priority mechanism.",
+        "inputArcs": [
+          {
+            "placeId": "flow_german_orders",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_supplier_preparing",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "return { FlowbindSupplierPreparing: [{ quantity: input.FlowbindGermanOrders[0].quantity, supplier_code: 1, days_remaining: parameters.flow_prep_days_approx }] };",
+        "x": 1520,
+        "y": 760.6666666666667
+      },
+      {
+        "id": "dispatch_flow_supply",
+        "name": "Dispatch Flowbind supply",
+        "description": "After approximate seven-day preparation, source-specific transit lasts about seven days India or eight Germany; no priority queue or expiry yet.",
+        "inputArcs": [
+          {
+            "placeId": "flow_supplier_preparing",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_supply_transit",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindSupplierPreparing[0].days_remaining <= 0;",
+        "transitionKernelCode": "const order = input.FlowbindSupplierPreparing[0]; return { FlowbindSupplyInTransit: [{ quantity: order.quantity, supplier_code: order.supplier_code, days_remaining: order.supplier_code === 0 ? parameters.flow_india_transit_days_approx : parameters.flow_germany_transit_days_approx }] };",
+        "x": 2080,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "arrive_flow_quarantine",
+        "name": "Receive Flowbind into quarantine",
+        "description": "After source-specific transit, Flowbind enters a few-day quarantine using an agent three-day placeholder.",
+        "inputArcs": [
+          {
+            "placeId": "flow_supply_transit",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_supply_quarantine",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindSupplyInTransit[0].days_remaining <= 0;",
+        "transitionKernelCode": "const order = input.FlowbindSupplyInTransit[0]; return { FlowbindSupplyInQuarantine: [{ quantity: order.quantity, supplier_code: order.supplier_code, days_remaining: parameters.flow_quarantine_days_placeholder }] };",
+        "x": 2640,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "release_flow_after_quarantine",
+        "name": "Finish Flowbind quarantine pending lot records",
+        "description": "After few-day placeholder quarantine, carry supplier source and quantity to boundary requiring individual lot IDs, expiry and release records before usable stock.",
+        "inputArcs": [
+          {
+            "placeId": "flow_supply_quarantine",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "flow_released_quantity_unmatched",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindSupplyInQuarantine[0].days_remaining <= 0;",
+        "transitionKernelCode": "const order = input.FlowbindSupplyInQuarantine[0]; return { FlowbindReleasedQuantityNeedsLotData: [{ quantity: order.quantity, supplier_code: order.supplier_code, days_remaining: 0 }] };",
+        "x": 3200,
+        "y": 778.0000000000001
+      },
+      {
+        "id": "fg_enter_quarantine",
+        "name": "Place completed Sonic Flow in finished-goods quarantine",
+        "description": "External completed batch enters finished-goods quarantine; stand-in until material-compliant production completion is connected.",
+        "inputArcs": [
+          {
+            "placeId": "fg_completed_external",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "fg_in_quarantine",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.CompletedSonicFlowBatchesExternal[0].quantity > 0;",
+        "transitionKernelCode": "const batch = input.CompletedSonicFlowBatchesExternal[0]; return { FinishedGoodsInQuarantine: [{ batch_ref: batch.batch_ref, quantity: batch.quantity, days_in_quarantine: 0 }] };",
+        "x": 2900,
+        "y": 90
+      },
+      {
+        "id": "fg_quality_release",
+        "name": "Release cleared finished goods for shipping",
+        "description": "Only a matching externally supplied positive quality clearance can release a batch; no automatic release on an inferred hold time, no rejection path yet.",
+        "inputArcs": [
+          {
+            "placeId": "fg_in_quarantine",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "fg_clearance_external",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "fg_released",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FinishedGoodsInQuarantine[0].batch_ref === input.FinishedGoodsQualityClearancesExternal[0].batch_ref;",
+        "transitionKernelCode": "const batch = input.FinishedGoodsInQuarantine[0]; return { FinishedGoodsReleasedForShipping: [{ batch_ref: batch.batch_ref, quantity: batch.quantity, days_in_quarantine: batch.days_in_quarantine }] };",
+        "x": 3300,
+        "y": 90
+      },
+      {
+        "id": "start_batch_with_external_fefo",
+        "name": "Start batch after externally checked FEFO allocation",
+        "description": "Assumed external allocation covers every unit of both materials from released, eligible FEFO lots; net checks quantities but not lot-level FEFO or stock debit, so cannot independently establish material feasibility.",
+        "inputArcs": [
+          {
+            "placeId": "planned_sonic_batches",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "allocation_external",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "production_running",
+            "weight": 1
+          },
+          {
+            "placeId": "started_wait_history",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const b = input.PlannedSonicFlowBatches[0]; const a = input.FEFOAllocationsExternal[0]; return b.quantity > 0 && a.quantity === b.quantity && a.son_qty === b.quantity && a.flow_qty === b.quantity;",
+        "transitionKernelCode": "const b = input.PlannedSonicFlowBatches[0]; const a = input.FEFOAllocationsExternal[0]; return { SonicFlowInProduction: [{ batch_ref: a.batch_ref, quantity: b.quantity, days_remaining: parameters.production_days_approx, wait_days: b.wait_days }], StartedBatchWaitHistory: [{ quantity: b.quantity, wait_days: b.wait_days }] };",
+        "x": 2630,
+        "y": 210
+      },
+      {
+        "id": "complete_production_run",
+        "name": "Complete roughly one-week Sonic Flow production",
+        "description": "Running batch completes at days remaining zero and enters finished-goods quarantine path; duration approximate and capacity unspecified.",
+        "inputArcs": [
+          {
+            "placeId": "production_running",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "fg_completed_external",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SonicFlowInProduction[0].days_remaining <= 0;",
+        "transitionKernelCode": "const run = input.SonicFlowInProduction[0]; return { CompletedSonicFlowBatchesExternal: [{ batch_ref: run.batch_ref, quantity: run.quantity, days_in_quarantine: 0 }] };",
+        "x": 2930,
+        "y": 220
+      },
+      {
+        "id": "add_released_goods_to_balance",
+        "name": "Add quality-released batch to shippable balance",
+        "description": "Aggregate approximation; requires an initial balance token from shared SAP snapshot, and retains no batch identity once pooled.",
+        "inputArcs": [
+          {
+            "placeId": "fg_released",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "fg_stock_pool",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "fg_stock_pool",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FinishedGoodsReleasedForShipping[0].quantity > 0;",
+        "transitionKernelCode": "const b = input.ReleasedFinishedGoodsBalance[0]; const g = input.FinishedGoodsReleasedForShipping[0]; return { ReleasedFinishedGoodsBalance: [{ quantity: b.quantity + g.quantity }] };",
+        "x": 3680,
+        "y": 120
+      },
+      {
+        "id": "mark_order_past_promise",
+        "name": "Mark unfilled customer order past promise",
+        "description": "If a customer order remains unfilled after its promised date, keep it available for late shipping; exact day-boundary convention assumed.",
+        "inputArcs": [
+          {
+            "placeId": "customer_orders_open",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "customer_orders_past_promise",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.CustomerOrdersAwaitingFill[0].days_to_promise < 0;",
+        "transitionKernelCode": "const o = input.CustomerOrdersAwaitingFill[0]; return { CustomerOrdersPastPromise: [{ order_ref: o.order_ref, quantity: o.quantity, days_to_promise: o.days_to_promise }] };",
+        "x": 3850,
+        "y": 350
+      },
+      {
+        "id": "ship_order_on_time",
+        "name": "Ship whole customer order on or before promise",
+        "description": "Assumed immediate shipment from aggregate quality-released goods; no delivery transit, allocation priority or partials; quantity fully deducted.",
+        "inputArcs": [
+          {
+            "placeId": "customer_orders_open",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "fg_stock_pool",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "orders_on_time",
+            "weight": 1
+          },
+          {
+            "placeId": "fg_stock_pool",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const o = input.CustomerOrdersAwaitingFill[0]; const s = input.ReleasedFinishedGoodsBalance[0]; return o.quantity > 0 && o.days_to_promise >= 0 && s.quantity >= o.quantity;",
+        "transitionKernelCode": "const o = input.CustomerOrdersAwaitingFill[0]; const s = input.ReleasedFinishedGoodsBalance[0]; return { CustomerOrdersShippedOnTime: [{ order_ref: o.order_ref, quantity: o.quantity, days_to_promise: o.days_to_promise }], ReleasedFinishedGoodsBalance: [{ quantity: s.quantity - o.quantity }] };",
+        "x": 4100,
+        "y": 120
+      },
+      {
+        "id": "ship_order_late",
+        "name": "Ship whole customer order after promise",
+        "description": "Assumed immediate full-order shipment from aggregate released goods after promised date, no transit or explicit allocation priority.",
+        "inputArcs": [
+          {
+            "placeId": "customer_orders_past_promise",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "fg_stock_pool",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "orders_late",
+            "weight": 1
+          },
+          {
+            "placeId": "fg_stock_pool",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const o = input.CustomerOrdersPastPromise[0]; const s = input.ReleasedFinishedGoodsBalance[0]; return o.quantity > 0 && s.quantity >= o.quantity;",
+        "transitionKernelCode": "const o = input.CustomerOrdersPastPromise[0]; const s = input.ReleasedFinishedGoodsBalance[0]; return { CustomerOrdersShippedLate: [{ order_ref: o.order_ref, quantity: o.quantity, days_to_promise: o.days_to_promise }], ReleasedFinishedGoodsBalance: [{ quantity: s.quantity - o.quantity }] };",
+        "x": 4100,
+        "y": 350
+      }
+    ],
+    "types": [
+      {
+        "id": "inventory_position_observation",
+        "name": "Inventory position observation",
+        "description": "External reading in material units; Elena describes on-hand plus open orders, but SAP quarantine inclusion is unverified.",
+        "iconSlug": "circle",
+        "displayColor": "#5577AA",
+        "elements": [
+          {
+            "elementId": "inventory_position_value",
+            "name": "inventory_position",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "purchase_order_amount",
+        "name": "Purchase order amount",
+        "description": "Material-order and aggregate balance quantity in the relevant material's units; batch quantity is Sonic Flow units under one-to-one recipe.",
+        "iconSlug": "square",
+        "displayColor": "#C48A32",
+        "elements": [
+          {
+            "elementId": "purchase_order_quantity",
+            "name": "quantity",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "chinese_supply_batch",
+        "name": "Sonaflozin order balance awaiting dispatch",
+        "description": "Outstanding Sonaflozin order units and time until initial dispatch eligibility; after the first lot, remaining order units await more certified lots.",
+        "iconSlug": "square",
+        "displayColor": "#7B72B0",
+        "elements": [
+          {
+            "elementId": "batch_quantity",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "batch_days_remaining",
+            "name": "days_remaining",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "scheduled_production_batch",
+        "name": "Scheduled Sonic Flow batch",
+        "description": "Externally specified batch size and days until release; dates and sizes to come from forecast or recorded static plan.",
+        "iconSlug": "square",
+        "displayColor": "#548C74",
+        "elements": [
+          {
+            "elementId": "scheduled_batch_quantity",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "scheduled_release_days",
+            "name": "days_until_release",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "forecast_sizing_snapshot",
+        "name": "Forecast sizing snapshot",
+        "description": "Order rate at each batch's planning time, plan period and average order size, with planned release offset; units and timing unverified.",
+        "iconSlug": "square",
+        "displayColor": "#4F97A4",
+        "elements": [
+          {
+            "elementId": "forecast_order_rate",
+            "name": "order_rate",
+            "type": "real"
+          },
+          {
+            "elementId": "forecast_plan_period",
+            "name": "plan_period",
+            "type": "real"
+          },
+          {
+            "elementId": "forecast_average_order_size",
+            "name": "average_order_size",
+            "type": "real"
+          },
+          {
+            "elementId": "forecast_days_until_release",
+            "name": "days_until_release",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "material_lot",
+        "name": "Material lot with expiry",
+        "description": "One material lot with external lot reference, remaining material units and days to expiry.",
+        "iconSlug": "square",
+        "displayColor": "#879953",
+        "elements": [
+          {
+            "elementId": "material_lot_ref",
+            "name": "lot_ref",
+            "type": "string"
+          },
+          {
+            "elementId": "material_lot_quantity",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "material_lot_expiry_days",
+            "name": "days_until_expiry",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "certified_son_shipment",
+        "name": "Certified Sonaflozin shipment lot",
+        "description": "One dispatched certified lot: lot reference, quantity, days until stage completion and days until fixed expiry date.",
+        "iconSlug": "square",
+        "displayColor": "#6B8E8A",
+        "elements": [
+          {
+            "elementId": "cert_shipment_lot_ref",
+            "name": "lot_ref",
+            "type": "string"
+          },
+          {
+            "elementId": "cert_shipment_quantity",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "cert_shipment_stage_days",
+            "name": "days_remaining",
+            "type": "real"
+          },
+          {
+            "elementId": "cert_shipment_expiry_days",
+            "name": "days_until_expiry",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "customer_order_promise",
+        "name": "Customer order promise",
+        "description": "One externally supplied customer order with reference, requested Sonic Flow units and days remaining to promised fulfillment.",
+        "iconSlug": "square",
+        "displayColor": "#6A86B0",
+        "elements": [
+          {
+            "elementId": "customer_order_ref",
+            "name": "order_ref",
+            "type": "string"
+          },
+          {
+            "elementId": "customer_order_units",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "customer_order_due_days",
+            "name": "days_to_promise",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "production_batch_wait",
+        "name": "Planned production batch and material wait",
+        "description": "Planned Sonic Flow units and elapsed days since scheduled start; delay stops at a future material-eligible actual start.",
+        "iconSlug": "square",
+        "displayColor": "#A57D4C",
+        "elements": [
+          {
+            "elementId": "planned_batch_units",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "planned_batch_wait_days",
+            "name": "wait_days",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "flow_supplier_order_stage",
+        "name": "Flowbind supplier stage",
+        "description": "Flowbind quantity, source code 0 India/1 Germany, and days until the current preparation, transit or quarantine stage ends; no lot identity or expiry yet.",
+        "iconSlug": "square",
+        "displayColor": "#7593A1",
+        "elements": [
+          {
+            "elementId": "flow_stage_quantity",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "flow_stage_supplier",
+            "name": "supplier_code",
+            "type": "integer"
+          },
+          {
+            "elementId": "flow_stage_days",
+            "name": "days_remaining",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "finished_goods_batch",
+        "name": "Finished Sonic Flow batch",
+        "description": "Finished Sonic Flow batch carrying batch reference, quantity and days in finished-goods quarantine; fed by draft production completion or external replay.",
+        "iconSlug": "square",
+        "displayColor": "#558F75",
+        "elements": [
+          {
+            "elementId": "fg_batch_ref",
+            "name": "batch_ref",
+            "type": "string"
+          },
+          {
+            "elementId": "fg_batch_quantity",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "fg_batch_hold_days",
+            "name": "days_in_quarantine",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "fg_quality_clearance",
+        "name": "Finished-goods quality clearance",
+        "description": "Externally supplied positive quality release for a specified Sonic Flow batch; no release timing or rejection process inferred.",
+        "iconSlug": "circle",
+        "displayColor": "#3D8C9E",
+        "elements": [
+          {
+            "elementId": "fg_clearance_batch_ref",
+            "name": "batch_ref",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "id": "fefo_allocation_certificate",
+        "name": "Externally checked batch material allocation",
+        "description": "Agent stand-in: externally supplied per-batch confirmation of FEFO allocation and quantities of both released eligible materials; the net does not itself calculate or debit lots.",
+        "iconSlug": "square",
+        "displayColor": "#A07B3F",
+        "elements": [
+          {
+            "elementId": "alloc_batch_ref",
+            "name": "batch_ref",
+            "type": "string"
+          },
+          {
+            "elementId": "alloc_batch_qty",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "alloc_son_qty",
+            "name": "son_qty",
+            "type": "real"
+          },
+          {
+            "elementId": "alloc_flow_qty",
+            "name": "flow_qty",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "production_run",
+        "name": "Sonic Flow batch in production",
+        "description": "Batch quantity, reference, running days remaining and prior material wait; derived only from externally certified allocation.",
+        "iconSlug": "square",
+        "displayColor": "#588F60",
+        "elements": [
+          {
+            "elementId": "run_ref",
+            "name": "batch_ref",
+            "type": "string"
+          },
+          {
+            "elementId": "run_qty",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "run_days",
+            "name": "days_remaining",
+            "type": "real"
+          },
+          {
+            "elementId": "run_wait",
+            "name": "wait_days",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "batch_wait_record",
+        "name": "Actual production start and prior wait",
+        "description": "One started batch's unit quantity and material-wait days, for a candidate unit-weighted scheduled-to-start metric.",
+        "iconSlug": "square",
+        "displayColor": "#A17962",
+        "elements": [
+          {
+            "elementId": "wait_rec_qty",
+            "name": "quantity",
+            "type": "real"
+          },
+          {
+            "elementId": "wait_rec_days",
+            "name": "wait_days",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "released_goods_balance",
+        "name": "Aggregate released finished-goods stock",
+        "description": "Agent approximation: one aggregate stock balance, not physical lots; initialized only with a verified starting position.",
+        "iconSlug": "square",
+        "displayColor": "#5A975A",
+        "elements": [
+          {
+            "elementId": "fg_balance_qty",
+            "name": "quantity",
+            "type": "real"
+          }
+        ]
+      }
+    ],
+    "differentialEquations": [
+      {
+        "id": "countdown_supply_stage",
+        "name": "Supply stage time remaining in days",
+        "colorId": "chinese_supply_batch",
+        "code": "return tokens.map(() => ({ days_remaining: -1 }));"
+      },
+      {
+        "id": "scheduled_batch_countdown",
+        "name": "Days until scheduled production batch release",
+        "colorId": "scheduled_production_batch",
+        "code": "return tokens.map(() => ({ days_until_release: -1 }));"
+      },
+      {
+        "id": "lot_expiry_countdown",
+        "name": "Lot shelf life remaining in days",
+        "colorId": "material_lot",
+        "code": "return tokens.map(() => ({ days_until_expiry: -1 }));"
+      },
+      {
+        "id": "certified_shipment_clock",
+        "name": "Transit or quarantine and shelf life countdown",
+        "colorId": "certified_son_shipment",
+        "code": "return tokens.map(() => ({ days_remaining: -1, days_until_expiry: -1 }));"
+      },
+      {
+        "id": "customer_promise_countdown",
+        "name": "Customer promised-date countdown",
+        "colorId": "customer_order_promise",
+        "code": "return tokens.map(() => ({ days_to_promise: -1 }));"
+      },
+      {
+        "id": "production_wait_clock",
+        "name": "Planned batch waiting days",
+        "colorId": "production_batch_wait",
+        "code": "return tokens.map(() => ({ wait_days: 1 }));"
+      },
+      {
+        "id": "flow_supply_stage_clock",
+        "name": "Flowbind supply stage remaining days",
+        "colorId": "flow_supplier_order_stage",
+        "code": "return tokens.map(() => ({ days_remaining: -1 }));"
+      },
+      {
+        "id": "fg_quarantine_elapsed",
+        "name": "Finished-goods days in quarantine",
+        "colorId": "finished_goods_batch",
+        "code": "return tokens.map(() => ({ days_in_quarantine: 1 }));"
+      },
+      {
+        "id": "production_run_clock",
+        "name": "Production days remaining",
+        "colorId": "production_run",
+        "code": "return tokens.map(() => ({ days_remaining: -1 }));"
+      }
+    ],
+    "parameters": [
+      {
+        "id": "son_reorder_point",
+        "name": "Sonaflozin reorder point (Sonaflozin units)",
+        "variableName": "son_reorder_point",
+        "type": "real",
+        "defaultValue": "2500"
+      },
+      {
+        "id": "son_order_up_to",
+        "name": "Sonaflozin order-up-to (Sonaflozin units)",
+        "variableName": "son_order_up_to",
+        "type": "real",
+        "defaultValue": "7500"
+      },
+      {
+        "id": "flow_reorder_point",
+        "name": "Flowbind reorder point (Flowbind units)",
+        "variableName": "flow_reorder_point",
+        "type": "real",
+        "defaultValue": "1500"
+      },
+      {
+        "id": "flow_order_up_to",
+        "name": "Flowbind order-up-to (Flowbind units)",
+        "variableName": "flow_order_up_to",
+        "type": "real",
+        "defaultValue": "5000"
+      },
+      {
+        "id": "supplier_prep_days",
+        "name": "Chinese supplier preparation days (approximate assumption)",
+        "variableName": "supplier_prep_days",
+        "type": "real",
+        "defaultValue": "7"
+      },
+      {
+        "id": "transit_days",
+        "name": "Chinese supplier transit days (approximate assumption)",
+        "variableName": "transit_days",
+        "type": "real",
+        "defaultValue": "21"
+      },
+      {
+        "id": "outage_delay_days",
+        "name": "Outage at order trigger days (scenario input)",
+        "variableName": "outage_delay_days",
+        "type": "real",
+        "defaultValue": "0"
+      },
+      {
+        "id": "quarantine_days_placeholder",
+        "name": "Quarantine days (agent placeholder, replace from records)",
+        "variableName": "quarantine_days_placeholder",
+        "type": "real",
+        "defaultValue": "3"
+      },
+      {
+        "id": "use_static_plan",
+        "name": "Use static production plan rather than live forecast",
+        "variableName": "use_static_plan",
+        "type": "boolean",
+        "defaultValue": "false"
+      },
+      {
+        "id": "flow_prep_days_approx",
+        "name": "Flowbind supplier preparation days (both, approximate)",
+        "variableName": "flow_prep_days_approx",
+        "type": "real",
+        "defaultValue": "7"
+      },
+      {
+        "id": "flow_india_transit_days_approx",
+        "name": "Flowbind India transit days (approximate)",
+        "variableName": "flow_india_transit_days_approx",
+        "type": "real",
+        "defaultValue": "7"
+      },
+      {
+        "id": "flow_germany_transit_days_approx",
+        "name": "Flowbind German transit days (approximate, inferred split)",
+        "variableName": "flow_germany_transit_days_approx",
+        "type": "real",
+        "defaultValue": "8"
+      },
+      {
+        "id": "flow_quarantine_days_placeholder",
+        "name": "Flowbind quarantine days (agent placeholder)",
+        "variableName": "flow_quarantine_days_placeholder",
+        "type": "real",
+        "defaultValue": "3"
+      },
+      {
+        "id": "production_days_approx",
+        "name": "Production running days (about one week)",
+        "variableName": "production_days_approx",
+        "type": "real",
+        "defaultValue": "7"
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "china_outage_at_order",
+        "name": "Live forecast during two-week China outage",
+        "description": "Forecast-driven production and 14-day China pre-dispatch outage. Both alternatives need the same most recent clean dated SAP snapshot: reject a candidate amid migration, inconsistent entries or an incompletely propagated correction; verify stock and open-order reliability. Date and snapshot data pending, not zero.",
+        "scenarioParameters": [
+          {
+            "type": "real",
+            "identifier": "outage_days",
+            "default": 14
+          }
+        ],
+        "parameterOverrides": {
+          "outage_delay_days": "scenario.outage_days",
+          "use_static_plan": "false"
+        },
+        "initialState": {
+          "type": "per_place",
+          "content": {}
+        }
+      },
+      {
+        "id": "static_plan_china_outage",
+        "name": "Static plan during two-week China outage",
+        "description": "Static dated production plan and 14-day China pre-dispatch outage. Both alternatives need the same most recent clean dated SAP snapshot: reject a candidate amid migration, inconsistent entries or an incompletely propagated correction; verify stock and open-order reliability. Date and snapshot data pending, not zero.",
+        "scenarioParameters": [
+          {
+            "type": "real",
+            "identifier": "outage_days",
+            "default": 14
+          }
+        ],
+        "parameterOverrides": {
+          "outage_delay_days": "scenario.outage_days",
+          "use_static_plan": "true"
+        },
+        "initialState": {
+          "type": "per_place",
+          "content": {}
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "id": "son_expired_units",
+        "name": "Sonaflozin units expired after usable release",
+        "description": "Cumulative Sonaflozin quantity expired after quarantine release into usable stock; numerator candidate for Elena's provisional warehouse expiry definition, not an expiry rate.",
+        "code": "return state.places.SonaflozinWrittenOffLots.tokens.reduce((sum, lot) => sum + lot.quantity, 0);"
+      },
+      {
+        "id": "flow_expired_units",
+        "name": "Flowbind units written off",
+        "description": "Cumulative expired Flowbind units from usable lots; excludes expiry before release or in transit.",
+        "code": "return state.places.FlowbindWrittenOffLots.tokens.reduce((sum, lot) => sum + lot.quantity, 0);"
+      },
+      {
+        "id": "son_expired_transit_units",
+        "name": "Sonaflozin units expired in transit",
+        "description": "Cumulative certified Sonaflozin quantity expiring in transit, reported separately from provisional warehouse expiry numerator.",
+        "code": "return state.places.SonaflozinExpiredInTransit.tokens.reduce((sum, lot) => sum + lot.quantity, 0);"
+      },
+      {
+        "id": "son_expired_other_pre_release_units",
+        "name": "Sonaflozin units expired before usable release",
+        "description": "Cumulative Sonaflozin expiry before dispatch or in quarantine; kept apart from transit and warehouse expiry pending team's exact target definition.",
+        "code": "return state.places.SonaflozinExpiredBeforeRelease.tokens.reduce((sum, lot) => sum + lot.quantity, 0);"
+      },
+      {
+        "id": "candidate_on_time_order_share",
+        "name": "Candidate fraction of orders wholly shipped by promise",
+        "description": "Reporting-only draft: on-time count divided by on-time, late and past-promise open counts; horizon eligibility and orders not yet due require verification; zero denominator returns 0.",
+        "code": "const on = state.places.CustomerOrdersShippedOnTime.count; const late = state.places.CustomerOrdersShippedLate.count; const overdue = state.places.CustomerOrdersPastPromise.count; const total = on + late + overdue; return total === 0 ? 0 : on / total;"
+      },
+      {
+        "id": "candidate_weighted_batch_start_wait_weeks",
+        "name": "Candidate unit-weighted batch-start wait (weeks)",
+        "description": "Draft average of recorded scheduled-to-actual-start wait weighted by started batch size; excludes unstarted batches and uses seven days per week.",
+        "code": "const r = state.places.StartedBatchWaitHistory.tokens; const units = r.reduce((sum, b) => sum + b.quantity, 0); return units <= 0 ? 0 : r.reduce((sum, b) => sum + b.quantity * b.wait_days, 0) / units / 7;"
+      }
+    ]
+  },
+  "lastUpdated": "2026-09-29T12:15:47.933Z",
+  "incarnationId": "5220ab89-1b66-49d1-a238-4476bedd89ad",
+  "revisionId": "312ca268-645f-4b8a-ae9f-c8df2393823f"
+}

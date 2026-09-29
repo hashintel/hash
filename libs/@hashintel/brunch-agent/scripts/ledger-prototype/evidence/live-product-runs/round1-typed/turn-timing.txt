@@ -1,0 +1,39 @@
+run run-ujTfdB: 27 turns
+wall 2856 s; model 1954 s (68%); tool phases 817 s (29%); other 84 s
+per turn: median 107 s, p90 210 s, max 237 s; steps per turn 15.3
+tool phases by category:
+  net changes                          445 s  16%
+  compile checks                       137 s  5%
+  ledger                               114 s  4%
+  net reads                             74 s  3%
+  layout                                40 s  1%
+  skills                                 5 s  0%
+  net reads+skills                       3 s  0%
+per turn (wall / model / tools / other, steps):
+  t 1    23 /   17 /    4 /   2  steps  4  {"net reads+skills":1,"skills":1,"ledger":1}
+  t 2    98 /   68 /   28 /   2  steps 21  {"ledger":3,"net reads":2,"net changes":19,"compile checks":2,"layout":1}
+  t 3   129 /   90 /   36 /   3  steps 26  {"ledger":3,"net reads":1,"net changes":24,"compile checks":7,"layout":2}
+  t 4   116 /   80 /   35 /   1  steps 22  {"ledger":3,"net reads":3,"net changes":19,"compile checks":7,"layout":3}
+  t 5   116 /   81 /   33 /   1  steps 21  {"ledger":3,"net reads":3,"net changes":18,"compile checks":7,"layout":2}
+  t 6   110 /   78 /   29 /   3  steps 17  {"ledger":3,"net reads":2,"net changes":24}
+  t 7   160 /  104 /   54 /   2  steps 28  {"ledger":3,"net reads":3,"net changes":32,"compile checks":13,"layout":2}
+  t 8   101 /   78 /   21 /   2  steps 11  {"ledger":4,"net reads":4,"net changes":7,"compile checks":3,"layout":3}
+  t 9    42 /   30 /   10 /   2  steps  5  {"ledger":3,"net reads":3,"net changes":4}
+  t10   231 /  162 /   67 /   2  steps 32  {"ledger":4,"net reads":4,"net changes":44,"compile checks":10,"layout":5}
+  t11   210 /  143 /   65 /   2  steps 31  {"ledger":5,"net reads":4,"net changes":38,"compile checks":15,"layout":3}
+  t12   111 /   77 /   31 /   2  steps 13  {"ledger":4,"net reads":4,"net changes":15,"compile checks":6,"layout":3}
+  t13   145 /  102 /   40 /   2  steps 17  {"ledger":6,"net reads":2,"net changes":25,"compile checks":7}
+  t14    32 /   25 /    3 /   4  steps  2  {"ledger":3}
+  t15    37 /   31 /    5 /   2  steps  3  {"ledger":5}
+  t16   107 /   72 /   33 /   2  steps 12  {"ledger":8,"net reads":6,"net changes":13,"compile checks":3,"layout":3}
+  t17    15 /   10 /    3 /   2  steps  2  {"ledger":3}
+  t18   170 /  110 /   57 /   3  steps 23  {"ledger":8,"net reads":5,"net changes":31,"compile checks":10,"layout":3}
+  t19   102 /   65 /   35 /   2  steps 14  {"ledger":5,"net reads":6,"net changes":14,"compile checks":8,"layout":3}
+  t20    21 /   15 /    4 /   3  steps  2  {"ledger":4}
+  t21   237 /  143 /   91 /   3  steps 30  {"ledger":6,"net reads":6,"net changes":56,"compile checks":19,"layout":4}
+  t22    55 /   35 /   17 /   3  steps  7  {"ledger":5,"net reads":4,"net changes":8}
+  t23    86 /   38 /   19 /  29  steps  7  {"ledger":5,"net reads":5,"net changes":9}
+  t24    69 /   49 /   19 /   1  steps 13  {"skills":3,"net reads+skills":1,"ledger":9,"net reads":2,"net changes":4}
+  t25    39 /   31 /    7 /   1  steps  6  {"ledger":3,"net reads":2,"net changes":3}
+  t26   109 /   78 /   29 /   2  steps 18  {"ledger":4,"skills":1,"net changes":15,"compile checks":4,"layout":3,"net reads":1}
+  t27   185 /  141 /   42 /   1  steps 25  {"ledger":3,"net changes":24,"compile checks":15}
