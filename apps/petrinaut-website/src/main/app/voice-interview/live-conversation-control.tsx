@@ -24,7 +24,10 @@ import {
 } from "./voice-interview-disclosure";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
-import type { VoiceInterviewControl } from "./voice-interview-control";
+import type {
+  OpenAIVoiceConfig,
+  VoiceInterviewControl,
+} from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type LiveControlsContext = PetrinautAiVoiceModeContext &
@@ -47,7 +50,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     >[0]["submit"];
     readonly connectionTimeoutMs: number;
     readonly isDisclosureAcknowledged: () => boolean;
-    readonly utteranceJudgment?: "log";
+    readonly utteranceJudgment?: OpenAIVoiceConfig["utteranceJudgment"];
   };
 
 const prepareVoice = async (

@@ -157,7 +157,7 @@ test("log mode does not wait for judgments or introduce new admission drops", as
     expect.objectContaining({
       inputId: "two",
       delegationId: "later",
-      decision: "submit",
+      decision: "withhold",
       applied: "submit",
     }),
   ]);
@@ -251,7 +251,7 @@ test.each([true, false])(
     expect(judge).toHaveBeenLastCalledWith(
       {
         transcript: "PRIVATE SECOND",
-        relayedBrunchText: accepted ? "PRIVATE RELAY" : null,
+        offeredBrunchText: accepted ? "PRIVATE RELAY" : null,
       },
       expect.any(AbortSignal),
     );

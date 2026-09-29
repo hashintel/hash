@@ -1,3 +1,4 @@
+import { maxUtteranceTextLength } from "../../../shared/live-utterance-judgment";
 import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import {
@@ -390,7 +391,7 @@ export class LiveBrunchBridge {
     if (!input.superseded && this.#waitingForComposer?.superseded)
       this.#evict(this.#waitingForComposer);
     if (
-      input.text.length > 32_000 ||
+      input.text.length > maxUtteranceTextLength ||
       this.#waitingForComposer ||
       !this.#chat.canAcceptVoiceInput
     ) {
@@ -398,7 +399,7 @@ export class LiveBrunchBridge {
         inputId: input.id,
         delegationId,
         superseded: input.superseded === true,
-        oversized: input.text.length > 32_000,
+        oversized: input.text.length > maxUtteranceTextLength,
         waitingForComposer: this.#waitingForComposer !== undefined,
         admissionUnavailable: !this.#chat.canAcceptVoiceInput,
       });
@@ -438,7 +439,8 @@ export class LiveBrunchBridge {
     this.#turns.add(turn);
     this.#preparations.add(turn.preparation);
     // No await: a slow judge must not change the composer's admission window.
-    if (this.#dependencies.judge) void this.#observeJudgment(turn, input.text);
+    const { judge } = this.#dependencies;
+    if (judge) void this.#observeJudgment(judge, turn, input.text);
     try {
       let text = input.text;
       const mediation = this.#dependencies.mediation;
@@ -514,19 +516,28 @@ export class LiveBrunchBridge {
     }
   }
 
-  async #observeJudgment(turn: Turn, transcript: string): Promise<void> {
+  async #observeJudgment(
+    judge: NonNullable<Dependencies["judge"]>,
+    turn: Turn,
+    transcript: string,
+  ): Promise<void> {
     const startedAt = performance.now();
     let judgment: UtteranceJudgment | null = null;
     try {
-      judgment = await this.#dependencies.judge!(
-        { transcript, relayedBrunchText: this.#lastOfferedText },
+      judgment = await judge(
+        {
+          transcript,
+          // Keep the tail, where Brunch's latest question is, within the wire limit.
+          offeredBrunchText:
+            this.#lastOfferedText?.slice(-maxUtteranceTextLength) ?? null,
+        },
         this.#abort.signal,
       );
     } catch {
       // Provider errors can contain source text. Record only an absent judgment.
     }
+    // Delegation is traced separately; any override needs its own decision.
     const decision =
-      turn.delegationId !== null ||
       judgment === null ||
       judgment.confidence < 0.8 ||
       judgment.contribution === "interview_content"

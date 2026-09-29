@@ -13,10 +13,11 @@ const environment = {
   OPENAI_VOICE_API_KEY: "voice-secret",
   TYPESAFE_API_KEY: "judge-secret",
   PETRINAUT_LIVE_UTTERANCE_JUDGMENT: "log",
+  NODE_ENV: "development",
 };
 const state = {
   transcript: "PRIVATE TRANSCRIPT",
-  relayedBrunchText: "PRIVATE RELAY",
+  offeredBrunchText: "PRIVATE RELAY",
 };
 const request = (overrides: RequestInit & { duplex?: "half" } = {}) =>
   new Request("https://petrinaut.test/api/voice/utterance-judgment", {
@@ -57,10 +58,19 @@ describe("utterance judgment handler", () => {
       },
       415,
     ],
-    [{ body: "x".repeat(65_537) }, 413],
+    [{ body: "x".repeat(400_000) }, 413],
     [
-      { body: JSON.stringify({ ...state, transcript: "é".repeat(33_000) }) },
-      413,
+      { body: JSON.stringify({ ...state, transcript: "é".repeat(32_001) }) },
+      400,
+    ],
+    [
+      {
+        body: JSON.stringify({
+          ...state,
+          offeredBrunchText: "a".repeat(32_001),
+        }),
+      },
+      400,
     ],
     [{ body: "{not json" }, 400],
     [{ body: JSON.stringify({ ...state, transcript: 42 }) }, 400],
@@ -89,7 +99,7 @@ describe("utterance judgment handler", () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(new Uint8Array(65_537));
+        controller.enqueue(new Uint8Array(400_000));
       },
       cancel,
     });
@@ -108,6 +118,8 @@ describe("utterance judgment handler", () => {
     { TYPESAFE_API_KEY: " " },
     { PETRINAUT_VOICE_PROVIDER: "realtime" },
     { PETRINAUT_OPENAI_VOICE_ENABLED: "false" },
+    { NODE_ENV: "production" },
+    { VERCEL_ENV: "preview" },
   ])("is unavailable outside the log experiment: %j", async (override) => {
     const fetch = vi.fn<typeof globalThis.fetch>();
     const response = await createUtteranceJudgmentHandler({
@@ -116,6 +128,25 @@ describe("utterance judgment handler", () => {
     })(request());
     expect(response.status).toBe(404);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("judges the longest eligible text even when every character is escaped", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ answers: { contribution: answer } }),
+    );
+    const response = await createUtteranceJudgmentHandler({
+      environment,
+      fetch,
+    })(
+      request({
+        body: JSON.stringify({
+          transcript: "\u0001".repeat(32_000),
+          offeredBrunchText: "\u0001".repeat(32_000),
+        }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   test("sends one fixed question with only the supplied text state and normalizes the answer", async () => {
@@ -162,7 +193,7 @@ describe("utterance judgment handler", () => {
       "Repeating or paraphrasing the assistant's question is not a new interview question.",
     );
     expect(body.questions.contribution.criteria.interview_content).toContain(
-      "Excludes merely repeating or paraphrasing relayedBrunchText without adding anything.",
+      "Excludes merely repeating or paraphrasing offeredBrunchText without adding anything.",
     );
     expect(body.questions.contribution.criteria.restates_assistant).toContain(
       "Any added answer or correction takes priority as interview_content.",

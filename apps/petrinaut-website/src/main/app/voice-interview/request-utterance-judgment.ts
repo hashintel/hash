@@ -1,12 +1,12 @@
-import { isUtteranceJudgment } from "../../../shared/live-utterance-judgment";
+import {
+  isUtteranceJudgment,
+  utteranceJudgmentTimeoutMs,
+} from "../../../shared/live-utterance-judgment";
 
 import type {
   UtteranceJudgment,
   UtteranceJudgmentState,
 } from "../../../shared/live-utterance-judgment";
-
-/** Log-only measurement window for the latency tail, not an enforcement deadline. */
-const utteranceJudgmentTimeoutMs = 10_000;
 
 /** One request, no retry. Failure affects the diagnostic only, never Brunch. */
 export const createUtteranceJudgmentRequester =

@@ -13,10 +13,20 @@ export type UtteranceContribution = (typeof utteranceContributions)[number];
 /** Enforcement requires a separate decision after the log-only experiment. */
 export type UtteranceJudgmentMode = "off" | "log";
 
+/** Longest finalized transcript Live submits, in UTF-16 code units. Also bounds judgment context. */
+export const maxUtteranceTextLength = 32_000;
+
+/** Browser measurement window for the log-only latency tail, not an enforcement deadline. */
+export const utteranceJudgmentTimeoutMs = 10_000;
+
+/** Server safety bound, just beyond the browser window. */
+export const utteranceJudgmentUpstreamTimeoutMs =
+  utteranceJudgmentTimeoutMs + 2_000;
+
 export interface UtteranceJudgmentState {
   readonly transcript: string;
   /** Last Brunch prose successfully offered to Live, not proof it was played. */
-  readonly relayedBrunchText: string | null;
+  readonly offeredBrunchText: string | null;
 }
 
 export interface UtteranceJudgment {

@@ -10,6 +10,7 @@ interface VoiceEnvironment {
   readonly PETRINAUT_LIVE_UTTERANCE_JUDGMENT?: string;
   readonly TYPESAFE_API_KEY?: string;
   readonly VERCEL_ENV?: string;
+  readonly NODE_ENV?: string;
 }
 
 /**
@@ -24,10 +25,15 @@ export const getVoiceProvider = (
   return provider === "realtime" || provider === "live" ? provider : null;
 };
 
-/** Only the log-only experiment is authorized; unknown modes remain off. */
+/**
+ * Only the log-only experiment is authorized; unknown modes remain off. Its
+ * results are logged only in local development, so it runs nowhere else.
+ */
 export const getUtteranceJudgmentMode = (
   environment: VoiceEnvironment,
 ): UtteranceJudgmentMode =>
+  environment.NODE_ENV === "development" &&
+  !environment.VERCEL_ENV &&
   getOpenAIVoiceAvailability(environment).available &&
   getVoiceProvider(environment) === "live" &&
   environment.TYPESAFE_API_KEY?.trim() &&
