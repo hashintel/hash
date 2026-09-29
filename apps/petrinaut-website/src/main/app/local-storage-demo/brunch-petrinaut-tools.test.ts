@@ -157,4 +157,37 @@ describe("canonical browser revision attribution", () => {
     );
     expect(instance.handle.doc()?.places).toEqual([]);
   });
+  test("history returns a recorded diagnostics result rather than reading live diagnostics", async () => {
+    const snapshot = {
+      messages: [
+        {
+          role: "assistant",
+          purpose: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "getNetCompilationErrors",
+              toolCallId: "diagnosed",
+              state: "output-available",
+              input: {},
+              output: {
+                brunchBrowserResult: true,
+                output: "Recorded diagnostics",
+              },
+            },
+          ],
+        },
+      ],
+    } as never;
+    const replay = await issuedCanonicalCallsFromHistory({ snapshot });
+    const { tool, params } = setup(replay);
+    const readDiagnosticsContext = vi.fn(async () => "Live diagnostics");
+    expect(
+      await tool("getNetCompilationErrors").execute({
+        ...params({}, "diagnosed"),
+        readDiagnosticsContext,
+      }),
+    ).toBe("Recorded diagnostics");
+    expect(readDiagnosticsContext).not.toHaveBeenCalled();
+  });
 });

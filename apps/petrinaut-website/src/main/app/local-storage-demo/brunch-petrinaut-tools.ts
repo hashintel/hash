@@ -160,7 +160,17 @@ export const createCanonicalPetrinautHostTools = (
     toolName: getNetCompilationErrorsToolName,
     inputSchema: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
     outputSchema: passthrough,
-    execute: ({ readDiagnosticsContext }) => readDiagnosticsContext(),
+    execute: async ({ toolCallId, readDiagnosticsContext }) => {
+      const prior = priorOutput(toolCallId);
+      if (prior.found) return prior.output;
+      const output = await readDiagnosticsContext();
+      started.set(toolCallId, {
+        toolName: getNetCompilationErrorsToolName,
+        input: {},
+        output,
+      });
+      return output;
+    },
   };
   const mutationTools: PetrinautAiAutomaticTool[] = (
     ["addPlace", "addTransition", "addArc"] as const
