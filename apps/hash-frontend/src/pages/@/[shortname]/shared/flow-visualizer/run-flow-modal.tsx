@@ -3,7 +3,7 @@ import { Box, FormControlLabel, Switch, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useState } from "react";
 
-import { Select, TextField } from "@hashintel/design-system";
+import { Callout, Select, TextField } from "@hashintel/design-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 
 import { createFlowScheduleMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
@@ -11,7 +11,10 @@ import { Button } from "../../../../../shared/ui/button";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { Modal } from "../../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { GoogleAuthProvider } from "../../../../shared/integrations/google/google-auth-context";
+import {
+  GoogleAuthProvider,
+  useIsGoogleAuthAvailable,
+} from "../../../../shared/integrations/google/google-auth-context";
 import { WebSelector } from "../../../../shared/web-selector";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";
@@ -126,6 +129,9 @@ export const RunFlowModal = ({
   const requiresGoogleAuth = (outputs ?? []).some((output) =>
     googlePayloadKinds.includes(output.payloadKind),
   );
+
+  const isGoogleAuthAvailable = useIsGoogleAuthAvailable();
+  const isMissingGoogleAuth = requiresGoogleAuth && !isGoogleAuthAvailable;
 
   const [pending, setPending] = useState(false);
 
@@ -364,9 +370,23 @@ export const RunFlowModal = ({
             </>
           )}
 
+          {isMissingGoogleAuth && (
+            <Callout type="warning" sx={{ mb: 2.5 }}>
+              This flow needs Google Sheets, which isn't set up on this
+              instance, so it can't be run.
+            </Callout>
+          )}
+
           {(outputs ?? []).map((outputDef) => {
             if (!isSupportedPayloadKind(outputDef.payloadKind)) {
               throw new Error("Unsupported input kind");
+            }
+
+            if (
+              isMissingGoogleAuth &&
+              googlePayloadKinds.includes(outputDef.payloadKind)
+            ) {
+              return null;
             }
 
             const payload = formState[outputDef.name]?.payload;
@@ -409,7 +429,12 @@ export const RunFlowModal = ({
             setSelectedWebId={(newWebId) => setWebId(newWebId)}
           />
           <Button
-            disabled={!allRequiredValuesPresent || !scheduleValid || pending}
+            disabled={
+              isMissingGoogleAuth ||
+              !allRequiredValuesPresent ||
+              !scheduleValid ||
+              pending
+            }
             size="small"
             onClick={submitValues}
             sx={{ mt: 2.5 }}
