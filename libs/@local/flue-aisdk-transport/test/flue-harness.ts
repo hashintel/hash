@@ -11,6 +11,7 @@ import { start } from "@flue/runtime/node";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient, type FlueClient } from "@flue/sdk";
 import * as v from "valibot";
+import { expect } from "vitest";
 
 import {
   createFlueAiSdkAdapter,
@@ -211,4 +212,31 @@ export const startFlueHarness = async () => {
       broadcaster.close();
     },
   };
+};
+
+type HarnessTurn = Awaited<
+  ReturnType<Awaited<ReturnType<typeof startFlueHarness>>["runTurn"]>
+>;
+
+/**
+ * Drops the accepted live-only details: Flue history keeps no step boundary,
+ * and the optional reasoning part id is the live stream's own part id.
+ */
+export const withoutLiveOnlyDetails = (message: UIMessage | undefined) => {
+  if (message === undefined) return undefined;
+  const comparable = structuredClone(message);
+  comparable.parts = comparable.parts.filter(
+    (part) => part.type !== "step-start",
+  );
+  for (const part of comparable.parts) {
+    if (part.type === "reasoning") delete part.id;
+  }
+  return comparable;
+};
+
+/** The reduced live response equals the message its history reopens as. */
+export const expectLiveReopenParity = (turn: HarnessTurn) => {
+  const reopened = turn.reopened.at(-1);
+  expect(reopened?.role).toBe("assistant");
+  expect(withoutLiveOnlyDetails(turn.live.message)).toEqual(reopened);
 };
