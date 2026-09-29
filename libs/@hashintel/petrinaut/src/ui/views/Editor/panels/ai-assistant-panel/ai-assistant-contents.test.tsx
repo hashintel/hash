@@ -693,12 +693,10 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
   expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
+  expect(screen.queryByText(/Applies next session/)).toBeNull();
   expect(
-    screen.getByText("Applies next session. Mute your mic to preview."),
+    screen.getByRole("button", { name: "About voice selection" }),
   ).toBeTruthy();
-  expect(
-    screen.queryByRole("button", { name: "About voice selection" }),
-  ).toBeNull();
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(
     screen.queryByText(
@@ -959,7 +957,10 @@ test("gates voice previews and hides only ordinary status text", async () => {
   await waitFor(() =>
     expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
   );
-  expect(screen.getByText("Mute your mic to preview.")).not.toBeNull();
+  expect(screen.queryByText("Mute your mic to preview.")).toBeNull();
+  expect(voice.getAttribute("aria-description")).toContain(
+    "Mute your mic to preview.",
+  );
   const toggle = screen.getByRole("checkbox", { name: "Show status text" });
   expect((toggle as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByText("Show status text"));
@@ -973,7 +974,10 @@ test("gates voice previews and hides only ordinary status text", async () => {
 
   rerender(dock("speaking", true));
   expect(voice.disabled).toBe(false);
-  expect(screen.getByText("Wait for the agent to finish.")).not.toBeNull();
+  expect(screen.queryByText("Wait for the agent to finish.")).toBeNull();
+  expect(voice.getAttribute("aria-description")).toContain(
+    "Wait for the agent to finish.",
+  );
   expect(screen.queryByText("Speaking", { exact: true })).toBeNull();
   rerender(dock("muted", true));
   expect(voice.disabled).toBe(false);
@@ -1162,7 +1166,153 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/"revision": 7/u)).not.toBeNull();
   });
 
-  test("opens running tools, then settles work while the answer streams", async () => {
+  test.each([true, false])(
+    "keeps Brunch activity and tools open=%s across streamed steps and completion",
+    async (open) => {
+      const reasoning = {
+        type: "reasoning" as const,
+        text: "Inspect the queues.",
+        state: "streaming" as const,
+      };
+      const tool = {
+        type: "dynamic-tool" as const,
+        toolName: "read",
+        toolCallId: "read-1",
+        input: {},
+        state: "input-available" as const,
+      };
+      const turn = (
+        parts: PetrinautAiMessage["parts"],
+        status: "streaming" | "ready" = "streaming",
+      ) => (
+        <AiAssistantContents
+          primaryLabel="Chat"
+          input=""
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status={status}
+          messages={[{ id: "working", role: "assistant", parts }]}
+        />
+      );
+      const { rerender } = render(turn([reasoning, tool]));
+      const activity = screen.getByRole("button", { name: "Working…" });
+      const tools = screen.getByRole("button", { name: "Running tools" });
+      const thought = screen.getByRole("button", { name: "Thinking" });
+      if (!open) {
+        fireEvent.click(thought);
+        fireEvent.click(tools);
+        fireEvent.click(activity);
+      }
+      const completedReasoning = { ...reasoning, state: "done" as const };
+      const completedTool = {
+        ...tool,
+        state: "output-available" as const,
+        output: { places: 3 },
+      };
+      const firstAnswer = {
+        type: "text" as const,
+        text: "There are three queues.",
+        state: "streaming" as const,
+      };
+      const stages: PetrinautAiMessage["parts"][] = [
+        [completedReasoning, completedTool, firstAnswer],
+        [completedReasoning, completedTool, firstAnswer, reasoning],
+        [
+          completedReasoning,
+          completedTool,
+          firstAnswer,
+          reasoning,
+          { ...tool, toolCallId: "read-2" },
+        ],
+        [
+          completedReasoning,
+          completedTool,
+          firstAnswer,
+          completedReasoning,
+          { ...completedTool, toolCallId: "read-2" },
+        ],
+      ];
+      for (const [index, parts] of stages.entries()) {
+        await act(async () => {
+          rerender(
+            turn(parts, index === stages.length - 1 ? "ready" : "streaming"),
+          );
+        });
+        await waitFor(() => {
+          for (const disclosure of [activity, tools, thought]) {
+            expect(disclosure.isConnected).toBe(true);
+            expect(disclosure.getAttribute("aria-expanded")).toBe(String(open));
+          }
+        });
+      }
+    },
+  );
+
+  test("reveals a new approval after Brunch activity was manually collapsed", async () => {
+    const props = {
+      primaryLabel: "Chat",
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+      interactiveTools: [
+        definePetrinautAiInteractiveTool({
+          toolName: "confirm",
+          inputSchema: { parse: (value: unknown) => value },
+          outputSchema: { parse: (value: unknown) => value },
+          component: () => <button type="button">Approve change</button>,
+        }),
+      ],
+    };
+    const message: PetrinautAiMessage = {
+      id: "approval-turn",
+      role: "assistant",
+      parts: [
+        { type: "reasoning", text: "Inspect queues.", state: "streaming" },
+      ],
+    };
+    const { rerender } = render(
+      <AiAssistantContents {...props} messages={[message]} />,
+    );
+    const activity = screen.getByRole("button", { name: "Working…" });
+    fireEvent.click(activity);
+    await waitFor(() =>
+      expect(activity.getAttribute("aria-expanded")).toBe("false"),
+    );
+    await act(async () => {
+      rerender(
+        <AiAssistantContents
+          {...props}
+          messages={[
+            {
+              ...message,
+              parts: [
+                ...message.parts,
+                {
+                  type: "dynamic-tool",
+                  toolName: "confirm",
+                  toolCallId: "confirmation",
+                  input: {},
+                  state: "input-available",
+                },
+              ],
+            },
+          ]}
+        />,
+      );
+    });
+    expect(activity.textContent).toBe("Approval required");
+    await waitFor(() =>
+      expect(activity.getAttribute("aria-expanded")).toBe("true"),
+    );
+    expect(screen.getByRole("button", { name: "Approve change" })).toBeTruthy();
+  });
+
+  test("opens running tools, then settles stock work while the answer streams", async () => {
     const props = {
       input: "",
       onClose: noop,
@@ -1417,7 +1567,7 @@ describe("AiAssistantContents", () => {
     expect(contentMounted).toHaveBeenCalledOnce();
   });
 
-  test("keeps tab names stable and one live region mounted across announcements", () => {
+  test("keeps tab names stable and one tab live region mounted across announcements", () => {
     const props = {
       additionalTab: { label: "Ledger", content: <p>Saved account</p> },
       hostAttentionCount: 2,
@@ -1440,21 +1590,22 @@ describe("AiAssistantContents", () => {
 
     expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
     expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
-    expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status").textContent).toBe(
+    const tabHeader = within(screen.getByRole("tablist").parentElement!);
+    expect(tabHeader.getAllByRole("status")).toHaveLength(1);
+    expect(tabHeader.getByRole("status").textContent).toBe(
       "2 unseen Ledger updates",
     );
 
     rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
-    expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status").textContent).toBe("");
+    expect(tabHeader.getAllByRole("status")).toHaveLength(1);
+    expect(tabHeader.getByRole("status").textContent).toBe("");
     rerender(
       <AiAssistantContents
         {...props}
         attentionAnnouncement="2 unseen Ledger updates"
       />,
     );
-    expect(screen.getByRole("status").textContent).toBe(
+    expect(tabHeader.getByRole("status").textContent).toBe(
       "2 unseen Ledger updates",
     );
   });
@@ -3471,6 +3622,106 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/Ask AI to create a Petri net/u)).not.toBeNull();
   });
 
+  test("reserves a Brunch-only response status without adding transcript work", () => {
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "request",
+          role: "user",
+          parts: [{ type: "text", text: "Review this model" }],
+        },
+      ] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      primaryLabel: "Chat",
+    };
+    const { rerender } = render(
+      <AiAssistantContents {...props} status="ready" />,
+    );
+    const slot = screen.getByTestId("brunch-response-status");
+    expect(slot.textContent).toBe("");
+
+    rerender(<AiAssistantContents {...props} status="submitted" />);
+    expect(screen.getByTestId("brunch-response-status")).toBe(slot);
+    expect(within(slot).getByRole("status").textContent).toBe(
+      "Waiting for Brunch",
+    );
+    expect(within(slot).queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Working…" })).toBeNull();
+    expect(
+      within(screen.getByTestId("ai-transcript")).queryByText(
+        /Waiting for Brunch/,
+      ),
+    ).toBeNull();
+
+    rerender(
+      <AiAssistantContents
+        {...props}
+        status="streaming"
+        messages={[
+          ...props.messages,
+          {
+            id: "response",
+            role: "assistant",
+            parts: [{ type: "reasoning", text: "Inspect", state: "streaming" }],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Working…" })).toBeTruthy();
+    expect(within(slot).getByRole("status").textContent).toBe("");
+
+    rerender(<AiAssistantContents {...props} status="ready" />);
+    expect(screen.getByTestId("brunch-response-status")).toBe(slot);
+    expect(slot.textContent).toBe("");
+
+    rerender(
+      <AiAssistantContents
+        {...props}
+        primaryLabel="AI assistant"
+        status="submitted"
+      />,
+    );
+    expect(screen.queryByTestId("brunch-response-status")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Working…" })).toBeNull();
+    expect(screen.queryByText(/Brunch/u)).toBeNull();
+  });
+
+  test("keeps Brunch prompt chips mounted but inaccessible while waiting", () => {
+    const props = {
+      input: "",
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onSendPrompt: noop,
+      onStop: noop,
+      onSubmit: noop,
+      primaryLabel: "Chat",
+      promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
+    };
+    const { rerender } = render(
+      <AiAssistantContents {...props} status="ready" />,
+    );
+    const dismiss = screen.getByRole("button", {
+      name: "Dismiss quick actions",
+    });
+    rerender(<AiAssistantContents {...props} status="submitted" />);
+    expect(dismiss.isConnected).toBe(true);
+    expect(dismiss.closest("[inert]")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Review/u })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Dismiss quick actions" }),
+    ).toBeNull();
+    rerender(<AiAssistantContents {...props} status="ready" />);
+    expect(screen.getByRole("button", { name: /Review/u })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Dismiss quick actions" })).toBe(
+      dismiss,
+    );
+  });
+
   test("shows an optional turn-level working label only while busy", () => {
     const props = {
       input: "",
@@ -3520,7 +3771,7 @@ describe("AiAssistantContents", () => {
     expect(status.closest("[hidden]")).toBeNull();
   });
 
-  test("shows the working label beside a stock transcript but leaves Brunch Chat to its waiting turn", () => {
+  test("shows the working label beside a stock transcript but not in Brunch Chat", () => {
     const props = {
       input: "",
       messages: [],
@@ -3537,9 +3788,7 @@ describe("AiAssistantContents", () => {
     );
 
     rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
-    expect(screen.getByTestId("ai-working-status").className).toContain(
-      "d_none",
-    );
+    expect(screen.queryByTestId("ai-working-status")).toBeNull();
   });
 
   test("keeps the stock AI transcript label in both input modes", () => {
@@ -3584,29 +3833,6 @@ describe("AiAssistantContents", () => {
 
     rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
     expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
-  });
-
-  test("holds a pending Brunch turn without naming Brunch for other hosts", () => {
-    const props = {
-      input: "",
-      messages: [
-        {
-          id: "user-1",
-          role: "user" as const,
-          parts: [{ type: "text" as const, text: "Build a queue" }],
-        },
-      ],
-      onClose: noop,
-      onInputChange: noop,
-      onStop: noop,
-      onSubmit: noop,
-      status: "submitted" as const,
-    };
-    const { rerender } = render(<AiAssistantContents {...props} />);
-    expect(screen.queryByText(/Brunch/u)).toBeNull();
-
-    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
-    expect(screen.getByText("Waiting for Brunch…")).not.toBeNull();
   });
 
   test("announces spoken-turn thinking without naming the assistant", () => {

@@ -49,19 +49,26 @@ const triggerStyle = css({
 export const BrunchWorkFold = ({
   status,
   elapsedMs,
+  preserveOpen = false,
   children,
 }: {
   status: BrunchWorkStatus;
   elapsedMs?: number;
+  preserveOpen?: boolean;
   children: ReactNode;
 }) => {
   const observedElapsed = useElapsedTime(status === "streaming");
   const duration = observedElapsed ?? elapsedMs;
   const defaultOpen = status !== "settled";
   const [disclosure, setDisclosure] = useState({ status, open: defaultOpen });
-  // Reset only on a lifecycle transition, not on each streamed delta.
+  // Brunch keeps the reader's disclosure state across tool/text phases.
+  // A new approval is the exception: it must reveal the decision controls.
   if (disclosure.status !== status)
-    setDisclosure({ status, open: defaultOpen });
+    setDisclosure({
+      status,
+      open:
+        preserveOpen && status !== "approval" ? disclosure.open : defaultOpen,
+    });
   const label =
     status === "streaming"
       ? "Working…"
@@ -89,6 +96,8 @@ export const BrunchWorkFold = ({
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div
+          data-work-details
+          data-bounded={preserveOpen && status !== "approval"}
           className={css({
             display: "flex",
             flexDirection: "column",
@@ -96,6 +105,18 @@ export const BrunchWorkFold = ({
             margin: "[4px 0 2px 5px]",
             paddingLeft: "3",
             borderLeft: "[2px solid {colors.neutral.a30}]",
+            "&[data-bounded=true]": {
+              maxHeight: "[240px]",
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+              scrollbarGutter: "stable",
+              "&::-webkit-scrollbar": { width: "[6px]" },
+              "&::-webkit-scrollbar-thumb": {
+                borderRadius: "full",
+                backgroundColor: "neutral.a60",
+              },
+              "&::-webkit-scrollbar-track": { backgroundColor: "neutral.a10" },
+            },
           })}
         >
           {children}

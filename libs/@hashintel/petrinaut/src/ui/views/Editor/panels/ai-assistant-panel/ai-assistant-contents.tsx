@@ -680,7 +680,8 @@ const AiAssistantMessage = memo(
     );
     const working =
       active &&
-      (answers.length === 0 ||
+      (expandReasoning ||
+        answers.length === 0 ||
         work.reasoning.some((item) => item.part.state === "streaming") ||
         work.tools.some(
           (tool) =>
@@ -771,7 +772,7 @@ const AiAssistantMessage = memo(
           </div>
         )}
         {showWork && (
-          <BrunchWorkFold status={workStatus}>
+          <BrunchWorkFold status={workStatus} preserveOpen={expandReasoning}>
             {work.reasoning.map((item) => (
               <AiAssistantReasoning
                 key={item.key}
@@ -784,6 +785,7 @@ const AiAssistantMessage = memo(
               tools={work.tools}
               active={active}
               stopped={wasStopped}
+              preserveOpen={expandReasoning}
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }
@@ -979,6 +981,14 @@ export const AiAssistantContents = ({
   const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
   const isBrunchChat = isBrunchChatLabel(primaryLabel);
   const transcriptLabel = getTranscriptLabel(primaryLabel, inputMode);
+  const pendingLabel =
+    isBrunchChat && isBusy
+      ? showingHostTab
+        ? (workingLabel ?? "Brunch is working")
+        : messages.at(-1)?.role !== "assistant"
+          ? "Waiting for Brunch"
+          : undefined
+      : undefined;
   const awaitingDecision =
     !stopped &&
     messages.some((message) =>
@@ -1193,10 +1203,11 @@ export const AiAssistantContents = ({
 
   const showChips =
     !chipsDismissed &&
-    !(isBrunchChat && (isBusy || experimentRunning || awaitingDecision)) &&
     onSendPrompt !== undefined &&
     promptChips !== undefined &&
     promptChips.length > 0;
+  const suppressChips =
+    isBrunchChat && (isBusy || experimentRunning || awaitingDecision);
 
   // Stable container for the per-render callbacks so `AiAssistantMessage`'s
   // memo comparator doesn't see identity churn from the panel's inline
@@ -1508,13 +1519,6 @@ export const AiAssistantContents = ({
                 stopped={stopped && index === messages.length - 1}
               />
             ))}
-            {isBrunchChat &&
-              isBusy &&
-              messages.at(-1)?.role !== "assistant" && (
-                <BrunchWorkFold status="streaming">
-                  Waiting for Brunch…
-                </BrunchWorkFold>
-              )}
           </div>
 
           {additionalTab && (
@@ -1531,11 +1535,47 @@ export const AiAssistantContents = ({
             </div>
           )}
 
-          {isBusy && workingLabel && (
+          {isBrunchChat && (
+            <div
+              className={`${css({
+                display: "flex",
+                alignItems: "center",
+                gap: "2",
+                height: "[28px]",
+                flexShrink: 0,
+                minWidth: "[0]",
+                paddingX: "3",
+                color: "neutral.s90",
+                fontSize: "xs",
+              })} ${panelContentStyle({ visible: !isVoiceDockCollapsed })}`}
+              data-testid="brunch-response-status"
+            >
+              {pendingLabel && (
+                <LoadingSpinner
+                  aria-hidden="true"
+                  size="xs"
+                  className={css({
+                    color: "blue.s90",
+                    flexShrink: 0,
+                    "@media (prefers-reduced-motion: reduce)": {
+                      animation: "[none !important]",
+                    },
+                  })}
+                />
+              )}
+              <span
+                role="status"
+                className={css({ minWidth: "[0]", truncate: true })}
+              >
+                {pendingLabel}
+              </span>
+            </div>
+          )}
+
+          {!isBrunchChat && isBusy && workingLabel && (
             <div
               className={`${workingStatusStyle} ${panelContentStyle({
-                visible:
-                  !isVoiceDockCollapsed && (showingHostTab || !isBrunchChat),
+                visible: !isVoiceDockCollapsed,
               })}`}
               role="status"
               aria-live="polite"
@@ -1607,12 +1647,24 @@ export const AiAssistantContents = ({
                 })}`}
               >
                 {showChips && (
-                  <PromptChips
-                    chips={promptChips}
-                    disabled={isBusy}
-                    onDismiss={() => setChipsDismissed(true)}
-                    onSelect={(prompt) => onSendPrompt(prompt)}
-                  />
+                  <div
+                    className={css({
+                      display: "contents",
+                      '&[data-brunch="true"]': { display: "block" },
+                      '&[data-suppressed="true"]': { visibility: "hidden" },
+                    })}
+                    data-brunch={isBrunchChat || undefined}
+                    data-suppressed={suppressChips || undefined}
+                    aria-hidden={suppressChips || undefined}
+                    inert={suppressChips}
+                  >
+                    <PromptChips
+                      chips={promptChips}
+                      disabled={isBusy}
+                      onDismiss={() => setChipsDismissed(true)}
+                      onSelect={(prompt) => onSendPrompt(prompt)}
+                    />
+                  </div>
                 )}
                 <form
                   onSubmit={(event) => {

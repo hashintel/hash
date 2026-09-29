@@ -8,13 +8,24 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { VoiceDock } from "../voice-dock";
 import { AudioSettings } from "./audio-popover/settings";
 
 const noop = () => {};
 
+beforeAll(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
+});
+afterAll(() => vi.unstubAllGlobals());
 afterEach(cleanup);
 
 test("keeps speed visible in Voice settings and changes it in 0.05 steps", async () => {
@@ -58,7 +69,7 @@ test("keeps speed visible in Voice settings and changes it in 0.05 steps", async
   await waitFor(() => expect(setSpeed).toHaveBeenCalledExactlyOnceWith(1.05));
 });
 
-test("shows permanent voice guidance without an information popover", () => {
+test("keeps voice guidance in a dismissible information popover", async () => {
   render(
     <AudioSettings
       actions={{
@@ -69,7 +80,7 @@ test("shows permanent voice guidance without an information popover", () => {
         setVoice: noop,
       }}
       disabled={false}
-      previewDisabledReason={null}
+      previewDisabledReason="Mute your mic to preview."
       settings={{
         activeVoice: "alloy",
         voice: "alloy",
@@ -88,12 +99,29 @@ test("shows permanent voice guidance without an information popover", () => {
     />,
   );
 
+  expect(screen.queryByText(/Applies next session/)).toBeNull();
+  expect(screen.queryByText("Mute your mic to preview.")).toBeNull();
   expect(
-    screen.getByText("Applies next session. Mute your mic to preview."),
+    screen
+      .getByRole("combobox", { name: "Voice" })
+      .getAttribute("aria-description"),
+  ).toContain("Mute your mic to preview.");
+  const info = screen.getByRole("button", { name: "About voice selection" });
+  expect(info.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(info);
+  expect(
+    await screen.findByText(
+      "Applies next session. Mute your mic while the agent is idle to preview.",
+    ),
   ).toBeTruthy();
-  expect(
-    screen.queryByRole("button", { name: "About voice selection" }),
-  ).toBeNull();
+  expect(info.getAttribute("aria-expanded")).toBe("true");
+  const dialog = await screen.findByRole("dialog");
+  await waitFor(() => expect(document.activeElement).toBe(dialog));
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => {
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(info.getAttribute("aria-expanded")).toBe("false");
+  });
 });
 
 test("renders an interrupted session as an unlabeled scoped ribbon with recovery", () => {

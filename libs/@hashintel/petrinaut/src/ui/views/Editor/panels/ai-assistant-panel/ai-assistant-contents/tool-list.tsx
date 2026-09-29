@@ -736,6 +736,7 @@ export const AiAssistantToolList = ({
   active = false,
   stopped = false,
   producedCard = false,
+  preserveOpen = false,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
@@ -743,6 +744,7 @@ export const AiAssistantToolList = ({
   active?: boolean;
   stopped?: boolean;
   producedCard?: boolean;
+  preserveOpen?: boolean;
 }) => {
   const running =
     active &&
@@ -752,8 +754,12 @@ export const AiAssistantToolList = ({
         !tool.interactive &&
         (tool.state === "input-streaming" || tool.state === "input-available"),
     );
-  const [disclosure, setDisclosure] = useState({ running, open: running });
-  if (disclosure.running !== running) setDisclosure({ running, open: running });
+  const [disclosure, setDisclosure] = useState({
+    running,
+    open: preserveOpen ? active : running,
+  });
+  if (disclosure.running !== running)
+    setDisclosure({ running, open: preserveOpen ? disclosure.open : running });
   if (tools.length === 0) {
     return null;
   }

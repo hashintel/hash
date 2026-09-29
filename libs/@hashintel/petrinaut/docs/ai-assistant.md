@@ -33,13 +33,35 @@ The header text is not selectable. Its icons animate on hover and click, respect
 
 ## The conversation
 
-Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, that button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for Brunch…** holds the place of a reply that has not started yet. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
+Type in **Continue iterating...** and press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, that button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
 The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each assistant turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead.
 
+Before Brunch starts a response, **Waiting for Brunch** and a small blue spinner
+appear above the composer or Voice dock. This status uses reserved space, so
+appearing or clearing it does not move the transcript or input controls.
+Suggestion chips keep their space while hidden and cannot be activated during
+work. Once the response arrives, its **Working…** header takes over; there is no
+duplicate status or information button below it. The spinner stays still with
+reduced motion enabled. While viewing Ledger, the reserved row reports
+**Brunch is working** instead. Stock assistant loading is unchanged.
+
 Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 
-The activity disclosure opens while **Working…**, when **Approval required**, or when **Stopped**. Completed work collapses under **Activity · Ns**, even while the answer is still streaming; history without timing says **Activity**. Expand it to inspect **Thought for Ns** and **Used N tools**. Brunch Chat opens streaming reasoning automatically; you can collapse it while it continues. Other hosts retain their collapsed reasoning default. **Running tools** opens automatically during execution and collapses when finished. Stopped work says **Stopped after N tools** and retains a **Response stopped** note. Unfinished tools show **Cancelled** while completed rows keep their results. Timing is shown when supplied or observed during this session; unavailable tool durations show a dash. Approval controls remain visible inside the disclosure. Disclosure icons are neutral; status dots distinguish pending, completed, and failed tools.
+Brunch opens activity and streaming thoughts when work starts. Activity, thoughts,
+and tools keep your open/closed choices as more text arrives, tools finish, or the
+response completes. Long activity scrolls inside a bounded area instead of
+continually pushing the answer down. **Working…** stays until the response ends,
+then becomes **Activity · Ns**; history without timing says **Activity**. Previously
+completed turns start collapsed. A new **Approval required** request reveals its
+controls and removes the height limit so the decision is not hidden. Expand
+activity to inspect **Thought for Ns** and **Used N tools**. Other hosts retain
+their collapsed reasoning default and automatic work/tool collapsing. Stopped
+work says **Stopped after N tools** and retains a **Response stopped** note.
+Unfinished tools show **Cancelled** while completed rows keep their results.
+Timing is shown when supplied or observed during this session; unavailable tool
+durations show a dash. Disclosure icons are neutral; status dots distinguish
+pending, completed, and failed tools.
 
 When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
@@ -183,7 +205,8 @@ options in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
-  The guidance **Applies next session. Mute your mic to preview.** stays visible below the selector.
+  Select the information icon beside **Voice** for guidance on when the voice
+  changes and how to preview it. Preview and save errors remain below the selector.
   You can select a voice at any time, including before connecting. In Brunch,
   selection also previews a short sample when the session is connected, your
   microphone is muted, and the agent is idle. Otherwise, it saves silently for

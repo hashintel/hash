@@ -843,6 +843,27 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toHaveAccessibleDescription("Wait for the agent to finish.");
+    await expect(
+      canvas.queryByText("Wait for the agent to finish."),
+    ).not.toBeInTheDocument();
+    const info = canvas.getByRole("button", { name: "About voice selection" });
+    info.focus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(
+        canvas.getByText(
+          "Applies next session. Mute your mic while the agent is idle to preview.",
+        ),
+      ).toBeVisible(),
+    );
+    await userEvent.keyboard("{Escape}");
+    await waitFor(async () => {
+      await expect(info).toHaveFocus();
+      await expect(info).toHaveAttribute("aria-expanded", "false");
+    });
+    await expect(
+      canvas.queryByText(/Applies next session/),
+    ).not.toBeInTheDocument();
     const speed = canvas.getByRole("slider", { name: "Speed" });
     await expect(speed).toBeInTheDocument();
     await new Promise<void>((resolve) =>
@@ -1489,6 +1510,181 @@ export const WaitingForResponse: Story = {
       status="submitted"
     />
   ),
+};
+
+const BrunchWaitingPreview = () => {
+  const [waiting, setWaiting] = useState(false);
+  const [voice, setVoice] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setWaiting((value) => !value)}>
+        Toggle waiting
+      </Button>
+      <Button onClick={() => setVoice((value) => !value)}>
+        Toggle Voice preview
+      </Button>
+      <Frame
+        key={String(voice)}
+        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        primaryLabel="Chat"
+        messages={[userMessage]}
+        promptChips={REVIEW_CHIPS}
+        status={waiting ? "submitted" : "ready"}
+        workingLabel="Brunch is working"
+        inputMode={voice ? "voice" : "text"}
+        voiceModeAvailable
+        voiceSession={voice ? liveSession({ phase: "listening" }) : undefined}
+      />
+    </>
+  );
+};
+
+export const BrunchWaitingForResponse: Story = {
+  render: () => <BrunchWaitingPreview />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const voice of [false, true]) {
+      if (voice) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Toggle Voice preview" }),
+        );
+      }
+      const transcript = canvas.getByTestId("ai-transcript");
+      const slot = canvas.getByTestId("brunch-response-status");
+      const footer = voice
+        ? canvas.getByRole("region", { name: "Voice session" })
+        : canvas
+            .getByRole("textbox", { name: "Message AI assistant" })
+            .closest("form")!;
+      const positions = () =>
+        [transcript, slot, footer].map((element) =>
+          element.getBoundingClientRect().toJSON(),
+        );
+      const before = positions();
+      const scrollHeight = transcript.scrollHeight;
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle waiting" }),
+      );
+      await expect(canvas.getByText("Waiting for Brunch")).toBeVisible();
+      await expect(positions()).toEqual(before);
+      await expect(transcript.scrollHeight).toBe(scrollHeight);
+      await expect(within(slot).queryByRole("button")).toBeNull();
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle waiting" }),
+      );
+      await expect(
+        canvas.queryByText("Waiting for Brunch"),
+      ).not.toBeInTheDocument();
+      await expect(positions()).toEqual(before);
+    }
+  },
+};
+
+const BrunchStreamingPreview = () => {
+  const [step, setStep] = useState(0);
+  const [finished, setFinished] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setStep((value) => value + 1)}>
+        Stream update {step}
+      </Button>
+      <Button onClick={() => setFinished(true)}>Finish response</Button>
+      <Frame
+        primaryLabel="Chat"
+        status={finished ? "ready" : "streaming"}
+        messages={[
+          userMessage,
+          {
+            id: "streaming-activity",
+            role: "assistant",
+            parts: [
+              {
+                type: "reasoning",
+                text:
+                  "**Compare capacity**\n\n" +
+                  "Check each queue’s arrival rate against available service capacity.\n\n".repeat(
+                    8 + step * 4,
+                  ),
+                state: finished || step % 2 === 1 ? "done" : "streaming",
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "inspectModel",
+                toolCallId: "inspection",
+                input: {},
+                ...(finished || step % 2 === 1
+                  ? {
+                      state: "output-available" as const,
+                      output: { queues: 3 },
+                    }
+                  : { state: "input-available" as const }),
+              },
+              {
+                type: "text",
+                text: "I’ll compare the three queues.",
+                state: "done",
+              },
+            ],
+          },
+        ]}
+      />
+    </>
+  );
+};
+
+export const BrunchStreamingActivity: Story = {
+  render: () => <BrunchStreamingPreview />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const activity = canvas.getByRole("button", { name: "Working…" });
+    const details = canvasElement.querySelector<HTMLElement>(
+      "[data-work-details]",
+    )!;
+    const answer = canvas.getByText("I’ll compare the three queues.");
+    const composer = canvas.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    await waitFor(() => expect(details.clientHeight).toBe(240));
+    await expect(details.scrollHeight).toBeGreaterThan(details.clientHeight);
+    await Promise.all(
+      canvasElement
+        .getAnimations({ subtree: true })
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished),
+    );
+    const positions = () =>
+      [answer, composer].map((element) => element.getBoundingClientRect().y);
+    const expandedPositions = positions();
+    details.scrollTop = 80;
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Stream update 0" }),
+    );
+    await expect(activity).toHaveAttribute("aria-expanded", "true");
+    await expect(positions()).toEqual(expandedPositions);
+    await expect(details.scrollTop).toBe(80);
+    await userEvent.click(activity);
+    await waitFor(() =>
+      expect(
+        details.closest("[data-scope=collapsible][data-part=content]"),
+      ).not.toBeVisible(),
+    );
+    const collapsedPositions = positions();
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Stream update 1" }),
+    );
+    await expect(activity).toHaveAttribute("aria-expanded", "false");
+    await expect(positions()).toEqual(collapsedPositions);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Finish response" }),
+    );
+    await expect(activity).toHaveAttribute("aria-expanded", "false");
+    await expect(positions()).toEqual(collapsedPositions);
+    await userEvent.click(activity);
+    await waitFor(() => expect(positions()).toEqual(expandedPositions));
+    details.scrollTop = 0;
+  },
 };
 
 export const LiveSessionSubmittedWork: Story = {

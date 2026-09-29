@@ -1,9 +1,10 @@
-import { useEffect, useEffectEvent, useId, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 
 import {
   Button,
   Icon,
   LoadingSpinner,
+  Popover,
   Select,
   Slider,
 } from "@hashintel/ds-components";
@@ -94,6 +95,8 @@ export const AudioSettings = ({
   previewDisabledReason: string | null;
 }) => {
   const [devicesExpanded, setDevicesExpanded] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoRef = useRef<HTMLButtonElement>(null);
   const id = useId();
   const devices = settings.devices;
   const microphoneName = devices.microphoneId
@@ -119,16 +122,54 @@ export const AudioSettings = ({
             <span id={`${id}-voice-label`} className={labelStyle}>
               Voice
             </span>
+            <Button
+              ref={infoRef}
+              aria-label="About voice selection"
+              aria-expanded={infoOpen}
+              aria-haspopup="dialog"
+              iconName="info"
+              size="xs"
+              variant="ghost"
+              onClick={() => setInfoOpen((open) => !open)}
+            />
+            {infoOpen && (
+              <Popover
+                triggerRef={infoRef}
+                position="top-end"
+                onClose={() => setInfoOpen(false)}
+              >
+                <Popover.Container
+                  className={css({
+                    backgroundColor: "neutral.s00",
+                    width: "[220px]",
+                    maxWidth: "[calc(100vw - 24px)]",
+                  })}
+                >
+                  <Popover.Body
+                    className={css({
+                      margin: "[0 !important]",
+                      padding: "[8px !important]",
+                      boxShadow: "[none !important]",
+                    })}
+                  >
+                    <span className={helpStyle}>
+                      Applies next session. Mute your mic while the agent is
+                      idle to preview.
+                    </span>
+                  </Popover.Body>
+                </Popover.Container>
+              </Popover>
+            )}
           </div>
           <Select
             aria-labelledby={`${id}-voice-label`}
-            aria-description="The voice applies next time the agent is connected."
-            aria-describedby={[
-              settings.voiceSaveError ? `${id}-voice-help` : "",
-              previewDisabledReason ? `${id}-voice-blocked` : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            aria-description={
+              previewDisabledReason ??
+              "The voice applies next time the agent is connected."
+            }
+            aria-describedby={
+              settings.voiceSaveError ? `${id}-voice-help` : undefined
+            }
             items={settings.voices}
             value={settings.voice}
             onChange={actions.setVoice}
@@ -178,14 +219,6 @@ export const AudioSettings = ({
             size="sm"
             width="fullWidth"
           />
-          <span className={helpStyle}>
-            Applies next session. Mute your mic to preview.
-          </span>
-          {previewDisabledReason && (
-            <span id={`${id}-voice-blocked`} className={helpStyle}>
-              {previewDisabledReason}
-            </span>
-          )}
           <span role="status" className={css({ srOnly: true })}>
             {settings.voicePreview === "playing"
               ? "Voice preview playing"
