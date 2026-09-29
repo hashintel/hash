@@ -54,6 +54,7 @@ describe("Brunch destructive edit approval", () => {
     const decision = coordinator.request({
       toolCallId: "delete-1",
       toolName: "deleteItemsByIds",
+      input: destructiveInput,
       signal: new AbortController().signal,
     });
     const ApprovalWidget = createBrunchMutationApprovalWidget(
@@ -89,6 +90,7 @@ describe("Brunch destructive edit approval", () => {
     const first = coordinator.request({
       toolCallId: "delete-1",
       toolName: "deleteItemsByIds",
+      input: destructiveInput,
       signal: new AbortController().signal,
     });
     coordinator.resolve("delete-1", "always-allow");
@@ -97,6 +99,7 @@ describe("Brunch destructive edit approval", () => {
       coordinator.request({
         toolCallId: "delete-2",
         toolName: "deleteItemsByIds",
+        input: destructiveInput,
         signal: new AbortController().signal,
       }),
     ).resolves.toEqual({ decision: "allow" });
@@ -106,6 +109,7 @@ describe("Brunch destructive edit approval", () => {
     const pending = fresh.request({
       toolCallId: "delete-3",
       toolName: "deleteItemsByIds",
+      input: destructiveInput,
       signal: controller.signal,
     });
     controller.abort();
@@ -124,6 +128,7 @@ describe("Brunch destructive edit approval", () => {
     void coordinator.request({
       toolCallId: "remove-1",
       toolName: "removePlace",
+      input: { placeId: "queue" },
       signal: new AbortController().signal,
     });
     const waiting = coordinator.pendingToolNames();
@@ -131,6 +136,29 @@ describe("Brunch destructive edit approval", () => {
     expect(coordinator.pendingToolNames()).toBe(waiting);
     coordinator.resolve("remove-1", "deny");
     expect(coordinator.pendingToolNames()).toEqual([]);
+  });
+
+  test("matches approval rows only to the waiting call's input", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    void coordinator.request({
+      toolCallId: "remove-2",
+      toolName: "removePlace",
+      input: { placeId: "queue" },
+      signal: new AbortController().signal,
+    });
+    expect(
+      coordinator.isPendingInput("removePlace", { placeId: "queue" }),
+    ).toBe(true);
+    expect(
+      coordinator.isPendingInput("removePlace", { placeId: "server" }),
+    ).toBe(false);
+    expect(
+      coordinator.isPendingInput("removeTransition", { placeId: "queue" }),
+    ).toBe(false);
+    coordinator.resolve("remove-2", "deny");
+    expect(
+      coordinator.isPendingInput("removePlace", { placeId: "queue" }),
+    ).toBe(false);
   });
 
   test("historical rendering cannot create approval authority", () => {

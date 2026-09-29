@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -22,6 +23,7 @@ type BrunchMutationApprovalDecision =
 
 type PendingApproval = {
   readonly toolName: string;
+  readonly input: ReturnType<typeof canonicalContent>;
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
   readonly removeAbortListener: () => void;
 };
@@ -30,10 +32,12 @@ export interface BrunchMutationApprovalCoordinator {
   request(params: {
     readonly toolCallId: string;
     readonly toolName: string;
+    readonly input: unknown;
     readonly signal: AbortSignal;
   }): Promise<BrunchMutationApprovalDecision>;
   resolve(toolCallId: string, choice: BrunchMutationApprovalChoice): boolean;
   hasPending(toolCallId: string): boolean;
+  isPendingInput(toolName: string, input: unknown): boolean;
   /** Stable until the set of waiting tool names changes. */
   pendingToolNames: () => readonly string[];
   subscribe: (listener: () => void) => () => void;
@@ -72,7 +76,7 @@ export const createBrunchMutationApprovalCoordinator =
     };
 
     return {
-      request: ({ toolCallId, toolName, signal }) => {
+      request: ({ toolCallId, toolName, input, signal }) => {
         if (disposed || signal.aborted)
           return Promise.resolve({ decision: "deny", reason: stoppedReason });
         if (alwaysAllow) return Promise.resolve({ decision: "allow" });
@@ -83,6 +87,7 @@ export const createBrunchMutationApprovalCoordinator =
           signal.addEventListener("abort", onAbort, { once: true });
           pending.set(toolCallId, {
             toolName,
+            input: canonicalContent(input),
             resolve,
             removeAbortListener: () =>
               signal.removeEventListener("abort", onAbort),
@@ -101,6 +106,13 @@ export const createBrunchMutationApprovalCoordinator =
         );
       },
       hasPending: (toolCallId) => pending.has(toolCallId),
+      isPendingInput: (toolName, input) => {
+        const content = canonicalContent(input);
+        return [...pending.values()].some(
+          (approval) =>
+            approval.toolName === toolName && approval.input === content,
+        );
+      },
       pendingToolNames: () => pendingToolNames,
       subscribe: (listener) => {
         listeners.add(listener);
@@ -132,7 +144,9 @@ const destructiveToolNames = [
 
 type DestructiveToolName = (typeof destructiveToolNames)[number];
 
-const requiresBrunchMutationApproval = (toolName: string) =>
+const requiresBrunchMutationApproval = (
+  toolName: string,
+): toolName is DestructiveToolName =>
   (destructiveToolNames as readonly string[]).includes(toolName);
 
 const spacedWords = (camelCase: string) =>
@@ -204,9 +218,14 @@ const removalDescriptions = (
 /** Later calls stay queued behind a waiting approval; a denial settles as not applied. */
 export const createBrunchMutationAdmission =
   (approval: BrunchMutationApprovalCoordinator): InBandBrowserCallAdmission =>
-  async ({ toolCallId, toolName, signal }) => {
+  async ({ toolCallId, toolName, input, signal }) => {
     if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
-    const decision = await approval.request({ toolCallId, toolName, signal });
+    const decision = await approval.request({
+      toolCallId,
+      toolName,
+      input: mutationActionInputSchemas[toolName].parse(input),
+      signal,
+    });
     return decision.decision === "allow"
       ? { admitted: true }
       : {
@@ -324,6 +343,8 @@ export const createBrunchMutationApprovalInteractiveTools = (
         parse: (value) => mutationActionInputSchemas[toolName].parse(value),
       },
       outputSchema: passthrough,
+      // Earlier rows of the same tool keep their normal presentation.
+      shouldHandle: (input) => coordinator.isPendingInput(toolName, input),
       component: createBrunchMutationApprovalWidget(coordinator, toolName),
     }),
   );

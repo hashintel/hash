@@ -30,6 +30,7 @@ const issuedInputSchemas: Readonly<
 export type InBandBrowserCallAdmission = (call: {
   readonly toolCallId: string;
   readonly toolName: string;
+  readonly input: unknown;
   readonly signal: AbortSignal;
 }) => Promise<
   | { readonly admitted: true }

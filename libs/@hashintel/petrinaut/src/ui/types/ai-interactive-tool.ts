@@ -48,6 +48,8 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   inputSchema: PetrinautAiInteractiveToolSchema<Input>;
   /** Runtime contract for the widget's submitted output. */
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
+  /** Render an interaction only for matching validated inputs. Defaults to all. */
+  shouldHandle?: (input: Input) => boolean;
   /**
    * Optionally map text submitted through the assistant composer to this
    * tool's output. Petrinaut validates both the pending input and mapped
@@ -65,6 +67,7 @@ type ErasedInteractiveToolDefinition = {
   placement?: "work" | "card";
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
+  shouldHandle?: (input: unknown) => boolean;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
@@ -87,6 +90,7 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
   definition: PetrinautAiInteractiveToolDefinition<Input, Output>,
 ): PetrinautAiInteractiveTool => {
   const fromComposerText = definition.fromComposerText;
+  const shouldHandle = definition.shouldHandle;
 
   return {
     toolName: definition.toolName,
@@ -95,6 +99,9 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
       placement: definition.placement,
       parseInput: (value) => definition.inputSchema.parse(value),
       parseOutput: (value) => definition.outputSchema.parse(value),
+      shouldHandle: shouldHandle
+        ? (value) => shouldHandle(definition.inputSchema.parse(value))
+        : undefined,
       fromComposerText: fromComposerText
         ? ({ input, text }) =>
             definition.outputSchema.parse(
