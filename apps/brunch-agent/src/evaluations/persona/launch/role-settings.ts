@@ -14,7 +14,7 @@ import {
   STEP_A_MODEL_ID,
   type ChatThinkingLevel,
 } from "../../../chat-model.ts";
-import { openaiProviderWithGpt6 } from "../../../openai-provider.ts";
+import { openaiProviderWithAddedModels } from "../../../openai-provider.ts";
 
 export type PersonaRoleSettings = {
   brunchModel: string;
@@ -26,7 +26,7 @@ export type PersonaRoleSettings = {
 const catalog = () => {
   const models = createModels();
   models.setProvider(anthropicProvider());
-  models.setProvider(openaiProviderWithGpt6());
+  models.setProvider(openaiProviderWithAddedModels());
   return models;
 };
 

@@ -352,8 +352,8 @@ export const petrinautAiCapabilityGuidance = [
  */
 export const petrinautAiModel = {
   provider: "openai",
-  id: "gpt-6-luna",
-  reasoningEffort: "xhigh",
+  id: "gpt-5.5-2026-04-23",
+  reasoningEffort: "medium",
 } as const;
 
 export const petrinautAiPrompt = [

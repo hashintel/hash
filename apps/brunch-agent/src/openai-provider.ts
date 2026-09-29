@@ -3,31 +3,75 @@ import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import type { Model, Provider } from "@earendil-works/pi-ai";
 
 /**
- * pi-ai's OpenAI catalogue plus GPT-6 Luna and Sol, copied from the pi-ai 0.87.1
- * catalogue. Flue 2.x resolves models through pi-ai ^0.83.0, which predates
- * GPT-6. Delete this module and register `openaiProvider()` once Flue resolves a
- * pi-ai that declares these models.
+ * pi-ai's OpenAI catalogue plus two models it lacks. Flue 2.x resolves models
+ * through pi-ai ^0.83.0, which lists GPT-5.5 only as the undated `gpt-5.5` and
+ * predates GPT-6. Delete this module and register `openaiProvider()` once Flue
+ * resolves a pi-ai that declares both.
  */
-const gpt6Luna: Model<"openai-responses"> = {
-  id: "gpt-6-luna",
-  name: "GPT-6 Luna",
+
+/** The snapshot Petrinaut assistants run by default: pi-ai 0.83.0's `gpt-5.5` entry under its dated id. */
+const gpt55Snapshot: Model<"openai-responses"> = {
+  id: "gpt-5.5-2026-04-23",
+  name: "GPT-5.5 (2026-04-23)",
   api: "openai-responses",
   provider: "openai",
   baseUrl: "https://api.openai.com/v1",
   reasoning: true,
   input: ["text", "image"],
   cost: {
-    input: 0.1,
-    output: 0.5,
-    cacheRead: 0.01,
-    cacheWrite: 0.125,
+    input: 5,
+    output: 30,
+    cacheRead: 0.5,
+    cacheWrite: 0,
     tiers: [
       {
         inputTokensAbove: 272000,
-        input: 0.2,
-        output: 0.75,
-        cacheRead: 0.02,
-        cacheWrite: 0.25,
+        input: 10,
+        output: 45,
+        cacheRead: 1,
+        cacheWrite: 0,
+      },
+    ],
+  },
+  contextWindow: 272000,
+  maxTokens: 128000,
+  thinkingLevelMap: {
+    off: "none",
+    minimal: null,
+    low: "low",
+    medium: "medium",
+    high: "high",
+    xhigh: "xhigh",
+    max: null,
+  },
+  compat: {
+    supportsStrictMode: true,
+    supportsOpenAIGrammarTools: true,
+    supportsToolSearch: true,
+  },
+};
+
+/** An opt-in for testing, copied from the pi-ai 0.87.1 catalogue. */
+const gpt6Sol: Model<"openai-responses"> = {
+  id: "gpt-6-sol",
+  name: "GPT-6 Sol",
+  api: "openai-responses",
+  provider: "openai",
+  baseUrl: "https://api.openai.com/v1",
+  reasoning: true,
+  input: ["text", "image"],
+  cost: {
+    input: 2,
+    output: 10,
+    cacheRead: 0.2,
+    cacheWrite: 2.5,
+    tiers: [
+      {
+        inputTokensAbove: 272000,
+        input: 4,
+        output: 15,
+        cacheRead: 0.4,
+        cacheWrite: 5,
       },
     ],
   },
@@ -50,32 +94,11 @@ const gpt6Luna: Model<"openai-responses"> = {
   },
 };
 
-const gpt6Sol: Model<"openai-responses"> = {
-  ...gpt6Luna,
-  id: "gpt-6-sol",
-  name: "GPT-6 Sol",
-  cost: {
-    input: 2,
-    output: 10,
-    cacheRead: 0.2,
-    cacheWrite: 2.5,
-    tiers: [
-      {
-        inputTokensAbove: 272000,
-        input: 4,
-        output: 15,
-        cacheRead: 0.4,
-        cacheWrite: 5,
-      },
-    ],
-  },
-};
-
 /** Streams stay the catalogue provider's own, so a faux catalogue under test keeps its responses. */
-export const openaiProviderWithGpt6 = (): Provider => {
+export const openaiProviderWithAddedModels = (): Provider => {
   const catalogue = openaiProvider();
   return {
     ...catalogue,
-    getModels: () => [...catalogue.getModels(), gpt6Luna, gpt6Sol],
+    getModels: () => [...catalogue.getModels(), gpt55Snapshot, gpt6Sol],
   };
 };

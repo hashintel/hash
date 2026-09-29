@@ -23,7 +23,7 @@ import { createBrowserCallRouter } from "./http/browser-calls.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
 import { logger } from "./logger.ts";
-import { openaiProviderWithGpt6 } from "./openai-provider.ts";
+import { openaiProviderWithAddedModels } from "./openai-provider.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
@@ -168,7 +168,7 @@ const registerAdmittedProvider = (provider: Provider) => {
   );
 };
 registerAdmittedProvider(anthropicProvider());
-registerAdmittedProvider(openaiProviderWithGpt6());
+registerAdmittedProvider(openaiProviderWithAddedModels());
 
 const app = new Hono();
 
