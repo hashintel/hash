@@ -12,11 +12,11 @@ import {
   type PetrinautAiInteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
 
-import type { createInBandBrowserCalls } from "./in-band-browser-call";
+import type { InBandBrowserCallAdmission } from "./in-band-browser-call";
 
-export type BrunchMutationApprovalChoice = "allow" | "always-allow" | "deny";
+type BrunchMutationApprovalChoice = "allow" | "always-allow" | "deny";
 
-export type BrunchMutationApprovalDecision =
+type BrunchMutationApprovalDecision =
   | { readonly decision: "allow" }
   | { readonly decision: "deny"; readonly reason: string };
 
@@ -119,9 +119,7 @@ const destructiveToolNames = [
 
 type DestructiveToolName = (typeof destructiveToolNames)[number];
 
-export const requiresBrunchMutationApproval = (
-  toolName: string,
-): toolName is DestructiveToolName =>
+const requiresBrunchMutationApproval = (toolName: string) =>
   (destructiveToolNames as readonly string[]).includes(toolName);
 
 const spacedWords = (camelCase: string) =>
@@ -190,18 +188,9 @@ const removalDescriptions = (
   }
 };
 
-type InBandAdmission = NonNullable<
-  Parameters<typeof createInBandBrowserCalls>[0]["admit"]
->;
-
-/**
- * Destructive canonical calls wait for approval within their own turn, so
- * later calls stay queued behind them, and before the host records the
- * revision they start from. A denial settles the call as not applied, which
- * Brunch accepts like any unchanged-document result.
- */
+/** Later calls stay queued behind a waiting approval; a denial settles as not applied. */
 export const createBrunchMutationAdmission =
-  (approval: BrunchMutationApprovalCoordinator): InBandAdmission =>
+  (approval: BrunchMutationApprovalCoordinator): InBandBrowserCallAdmission =>
   async ({ toolCallId, toolName, signal }) => {
     if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
     const decision = await approval.request({ toolCallId, signal });
@@ -312,7 +301,6 @@ export const createBrunchMutationApprovalWidget = (
 
 const passthrough = { parse: (value: unknown) => value };
 
-/** Inline approval for each destructive canonical tool, shown only while its call waits. */
 export const createBrunchMutationApprovalInteractiveTools = (
   coordinator: BrunchMutationApprovalCoordinator,
 ): readonly PetrinautAiInteractiveTool[] =>

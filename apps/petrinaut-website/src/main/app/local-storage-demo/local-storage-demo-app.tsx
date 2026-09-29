@@ -659,8 +659,7 @@ export const LocalStorageDemoApp = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
-  // The panel aborts browser-call signals on stop, unmount and conversation
-  // replacement. A new binding gets a new, non-persisted approval authority.
+  // Each binding gets its own non-persisted approval authority.
   const mutationApproval = useMemo(
     () => ({
       binding: processAgentBinding,
@@ -930,8 +929,6 @@ export const LocalStorageDemoApp = ({
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
-      // Ordinary Brunch clears by starting a fresh conversation, so its saved
-      // history is kept; Stock clears its local messages.
       canClearMessages: true,
       // These exact-name tools override the static registry only while a
       // document binding is attached. Every other canonical capability remains
