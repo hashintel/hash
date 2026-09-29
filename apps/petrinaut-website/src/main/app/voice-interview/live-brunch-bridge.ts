@@ -1,7 +1,13 @@
 import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  describeLedgerCoverage,
+  selectAppliedWorkpieceRevision,
+} from "./live-brunch-bridge/ledger-coverage-note";
+import { matchPlaybackCommand } from "./live-brunch-bridge/playback-command";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { PlaybackCommand } from "./live-brunch-bridge/playback-command";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -40,8 +46,25 @@ interface Dependencies {
     delegationId: string | null,
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
+  /** Quiet session context; never spoken and never bound to a delegation here. */
+  readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
+  /**
+   * The canvas playback controls, when the voice session runs inside a
+   * Petrinaut editor. Absent, every utterance is a Brunch turn.
+   */
+  readonly playback?: {
+    readonly play: () => Promise<void>;
+    readonly pause: () => void;
+    readonly stop: () => void;
+  };
 }
+
+const spokenPlaybackOutcome: Record<PlaybackCommand, string> = {
+  play: "Playing.",
+  pause: "Paused.",
+  stop: "Stopped. The simulation is back at the start.",
+};
 
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
@@ -62,6 +85,7 @@ export class LiveBrunchBridge {
     >
   >();
   #waitingForComposer: Turn | undefined;
+  #offeredCoverageRevision: string | undefined;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -134,6 +158,17 @@ export class LiveBrunchBridge {
           delegationId,
         );
       }
+      return;
+    }
+    const { playback } = this.#dependencies;
+    const playbackCommand = playback ? matchPlaybackCommand(input.text) : null;
+    if (playback && playbackCommand !== null) {
+      await this.#runPlaybackCommand(
+        playback,
+        playbackCommand,
+        input.id,
+        delegationId,
+      );
       return;
     }
     if (
@@ -216,6 +251,49 @@ export class LiveBrunchBridge {
     }
   }
 
+  /**
+   * Play, pause and stop are answered here, not by Brunch: they must land
+   * while the canvas is still showing what the person reacted to, and they
+   * change nothing in the model. The spoken outcome follows the control's
+   * own result, so the voice never announces playback that did not start.
+   */
+  async #runPlaybackCommand(
+    playback: NonNullable<Dependencies["playback"]>,
+    command: PlaybackCommand,
+    inputId: string,
+    delegationId: string | null,
+  ): Promise<void> {
+    let failure: string | null = null;
+    try {
+      await playback[command]();
+    } catch (caught) {
+      failure = caught instanceof Error ? caught.message : String(caught);
+    }
+    if (this.#abort.signal.aborted) return;
+    logLiveDiagnostic("playback.command", {
+      inputId,
+      delegationId,
+      command,
+      failed: failure !== null,
+    });
+    if (failure === null) {
+      this.#dependencies.appendCommentary(
+        spokenPlaybackOutcome[command],
+        delegationId,
+      );
+      return;
+    }
+    this.#dependencies.notice(
+      `The simulation could not ${command}: ${failure}`,
+    );
+    if (delegationId !== null) {
+      this.#dependencies.appendInstructions(
+        `The canvas could not ${command} the simulation: ${failure}. Tell the person briefly and ask how to continue. Do not claim the simulation is ${command === "play" ? "playing" : `${command}ped`}.`,
+        delegationId,
+      );
+    }
+  }
+
   public responseStarted(event: FlueChatResponseMessageStartedEvent): void {
     this.#recordResponse(event, false);
   }
@@ -271,7 +349,29 @@ export class LiveBrunchBridge {
       this.#interruptTurns();
       return;
     }
+    this.#offerCoverage();
     this.#settle();
+  }
+
+  /**
+   * Quiet context precedes any spoken answer from the same update. One note
+   * per applied Ledger revision: GPT-Live's session context accumulates every
+   * append, so a note is repeated only if the local send failed.
+   */
+  #offerCoverage(): void {
+    const revision = selectAppliedWorkpieceRevision(
+      this.#chat.snapshot?.messages ?? [],
+    );
+    if (!revision || revision.revisionId === this.#offeredCoverageRevision)
+      return;
+    const note = describeLedgerCoverage(revision);
+    const sent = this.#dependencies.appendThinking(note, null);
+    logLiveDiagnostic("brunch.coverage", {
+      revisionId: revision.revisionId,
+      characters: note.length,
+      sent,
+    });
+    if (sent) this.#offeredCoverageRevision = revision.revisionId;
   }
 
   #interruptTurns(): void {

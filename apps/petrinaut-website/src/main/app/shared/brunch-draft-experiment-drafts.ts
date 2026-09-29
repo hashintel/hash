@@ -1,4 +1,4 @@
-import type { PreparedExperiment } from "./describe-draft";
+import type { PreparedExperiment } from "./brunch-draft-experiment-summary";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   PetrinautExperimentProgress,
@@ -34,7 +34,7 @@ export type SessionDraft = {
   run: SessionDraftRun;
 };
 
-type SessionDraftsState = {
+export type SessionDraftsState = {
   currentToolCallId: string | null;
   drafts: ReadonlyMap<string, SessionDraft>;
 };
