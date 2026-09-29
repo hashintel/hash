@@ -1181,6 +1181,7 @@ export const AiAssistantContents = ({
 
   const distanceFromEndRef = useRef(0);
   const shouldAutoFollowRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
 
   const recordDistanceFromEnd = () => {
     const node = messagesRef.current;
@@ -1189,7 +1190,14 @@ export const AiAssistantContents = ({
     }
     distanceFromEndRef.current =
       node.scrollHeight - node.scrollTop - node.clientHeight;
-    shouldAutoFollowRef.current = distanceFromEndRef.current <= 96;
+    // The smooth follow scroll only moves down, and can trail an end that
+    // grows mid-animation; only the reader moving up stops following.
+    if (distanceFromEndRef.current <= 96) {
+      shouldAutoFollowRef.current = true;
+    } else if (node.scrollTop < lastScrollTopRef.current) {
+      shouldAutoFollowRef.current = false;
+    }
+    lastScrollTopRef.current = node.scrollTop;
   };
 
   useLayoutEffect(() => {

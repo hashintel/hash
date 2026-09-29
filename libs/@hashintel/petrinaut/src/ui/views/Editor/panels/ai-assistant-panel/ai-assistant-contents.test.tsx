@@ -4105,8 +4105,10 @@ describe("AiAssistantContents", () => {
     Object.defineProperties(transcript, {
       clientHeight: { configurable: true, value: 400 },
       scrollHeight: { configurable: true, value: 1000 },
-      scrollTop: { configurable: true, writable: true, value: 400 },
+      scrollTop: { configurable: true, writable: true, value: 600 },
     });
+    fireEvent.scroll(transcript);
+    transcript.scrollTop = 400;
     fireEvent.scroll(transcript);
     scrollTo.mockClear();
 
@@ -4123,6 +4125,67 @@ describe("AiAssistantContents", () => {
     );
 
     expect(scrollTo).not.toHaveBeenCalled();
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  test("keeps following while its smooth scroll trails content that grew mid-animation", () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
+    window.requestAnimationFrame = (callback) => {
+      callback(0);
+      return 0;
+    };
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant" as const,
+          parts: [
+            { type: "text" as const, state: "streaming" as const, text: "One" },
+          ],
+        },
+      ],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const view = render(<AiAssistantContents {...props} />);
+    const transcript = screen.getByTestId("ai-transcript");
+    Object.defineProperties(transcript, {
+      clientHeight: { configurable: true, value: 400 },
+      scrollHeight: { configurable: true, value: 1000 },
+      scrollTop: { configurable: true, writable: true, value: 600 },
+    });
+    fireEvent.scroll(transcript);
+    // 300px arrive while the smooth scroll is still moving towards the old end.
+    Object.defineProperty(transcript, "scrollHeight", {
+      configurable: true,
+      value: 1300,
+    });
+    transcript.scrollTop = 650;
+    fireEvent.scroll(transcript);
+    scrollTo.mockClear();
+
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={[
+          {
+            ...props.messages[0]!,
+            parts: [{ type: "text", state: "streaming", text: "One two" }],
+          },
+        ]}
+      />,
+    );
+
+    expect(scrollTo).toHaveBeenCalled();
     window.HTMLElement.prototype.scrollTo = originalScrollTo;
     window.requestAnimationFrame = originalRequestAnimationFrame;
   });
