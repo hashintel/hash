@@ -88,8 +88,8 @@ export const LiveConversationControl = ({
 }: LiveControlsContext) => {
   const [localHistory] = useState(() => new VoiceMediationHistory("session"));
   const history = mediationHistory ?? localHistory;
-  // A running session outlives conversation switches; read the current
-  // conversation's history at each write instead of the one it started with.
+  // A running session outlives conversation switches; each new write or turn
+  // uses the current conversation's history.
   const historyRef = useRef(history);
   useLayoutEffect(() => {
     historyRef.current = history;

@@ -290,6 +290,41 @@ test("brief stays streaming through extraction and transport, and becomes done o
   await turn;
 });
 
+test("a turn keeps its annotations in the history it began in when the conversation switches", async () => {
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const original = new VoiceMediationHistory("original");
+  const switched = new VoiceMediationHistory("switched");
+  let current = original;
+  const fixture = setup({
+    get history() {
+      return current;
+    },
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const turn = fixture.bridge.accept({
+    id: "one",
+    text: "Compare two to eight agents",
+  });
+  current = switched;
+  const fields = { decide: "two to eight agents" };
+  brief.resolve(fields);
+  await turn;
+  const admitted = [
+    {
+      id: "one",
+      role: "user" as const,
+      parts: [{ type: "text" as const, text: "Brief" }],
+    },
+  ];
+  expect(original.project(admitted)[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields, state: "done" },
+  });
+  expect(switched.project(admitted)[0]?.parts).toHaveLength(1);
+});
+
 test("speech cancels preparation and stale asynchronous wrap-ups without cancelling admitted Brunch work", async () => {
   let resolveBrief!: (fields: Record<string, string>) => void;
   let resolveSummary!: (text: string) => void;

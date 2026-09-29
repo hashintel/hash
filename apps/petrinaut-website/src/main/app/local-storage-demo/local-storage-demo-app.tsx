@@ -285,6 +285,9 @@ const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
+const subscribeToNothing = () => () => {};
+const readNothing = () => undefined;
+
 // The stock assistant's transport is the same whether or not Brunch is
 // configured: selecting the stock assistant must not route it through Brunch.
 const stockChatTransport = new DefaultChatTransport({
@@ -787,19 +790,21 @@ export const LocalStorageDemoApp = ({
   ]);
   const mediationHistory = useMemo(
     () =>
-      new VoiceMediationHistory(conversationId ?? "", {
-        getItem: (key) => window.localStorage.getItem(key),
-        setItem: (key, value) => window.localStorage.setItem(key, value),
-      }),
+      conversationId === null
+        ? undefined
+        : new VoiceMediationHistory(conversationId, {
+            getItem: (key) => window.localStorage.getItem(key),
+            setItem: (key, value) => window.localStorage.setItem(key, value),
+          }),
     [conversationId],
   );
   const mapVoiceMessages = useSyncExternalStore(
-    mediationHistory.subscribe,
-    mediationHistory.getSnapshot,
-    mediationHistory.getSnapshot,
+    mediationHistory?.subscribe ?? subscribeToNothing,
+    mediationHistory?.getSnapshot ?? readNothing,
+    mediationHistory?.getSnapshot ?? readNothing,
   );
   useLayoutEffect(() => {
-    mediationHistory.sync(flueHistory.snapshot);
+    mediationHistory?.sync(flueHistory.snapshot);
   }, [mediationHistory, flueHistory.snapshot]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;

@@ -40,6 +40,8 @@ interface Turn {
   delegationId: string | null;
   submitted?: boolean;
   submissionId?: string;
+  /** The conversation history the turn began in, so a switch cannot split it. */
+  readonly history?: VoiceMediationHistory;
 }
 
 type Submit = ConstructorParameters<
@@ -120,8 +122,7 @@ export class LiveBrunchBridge {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
-      if (!turn.submissionId)
-        this.#dependencies.mediation?.history.failed(turn.inputId);
+      if (!turn.submissionId) turn.history?.failed(turn.inputId);
     }
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
@@ -133,8 +134,7 @@ export class LiveBrunchBridge {
   #evict(turn: Turn): void {
     turn.preparation.abort();
     this.#preparations.delete(turn.preparation);
-    if (!turn.submissionId)
-      this.#dependencies.mediation?.history.failed(turn.inputId);
+    if (!turn.submissionId) turn.history?.failed(turn.inputId);
     this.#turns.delete(turn);
     if (this.#waitingForComposer === turn) this.#waitingForComposer = undefined;
   }
@@ -237,6 +237,7 @@ export class LiveBrunchBridge {
       superseded: input.superseded,
       preparation: new AbortController(),
       delegationId,
+      history: this.#dependencies.mediation?.history,
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
       baselineMessages: new Set([
         ...this.#chat.segments.map((segment) => segment.messageId),
@@ -251,7 +252,7 @@ export class LiveBrunchBridge {
       const mediation = this.#dependencies.mediation;
       let text = input.text;
       if (mediation) {
-        mediation.history.begin(input);
+        turn.history?.begin(input);
         let fields: VoiceBriefFields = {};
         try {
           fields = await mediation.prepare(input.text, turn.preparation.signal);
@@ -260,7 +261,7 @@ export class LiveBrunchBridge {
           logLiveDiagnostic("brief.unavailable", { inputId: input.id });
         }
         turn.preparation.signal.throwIfAborted();
-        mediation.history.prepared(input.id, fields);
+        turn.history?.prepared(input.id, fields);
         text = serializeVoiceBrief(input.text, fields);
       }
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
@@ -272,10 +273,7 @@ export class LiveBrunchBridge {
         signal: this.#abort.signal,
         onAdmission: (submissionId) => {
           turn.submissionId = submissionId;
-          this.#dependencies.mediation?.history.admitted(
-            input.id,
-            submissionId,
-          );
+          turn.history?.admitted(input.id, submissionId);
           logLiveDiagnostic("brunch.admitted", {
             inputId: input.id,
             submissionId,
@@ -300,8 +298,7 @@ export class LiveBrunchBridge {
       this.#settle();
     } catch {
       this.#preparations.delete(turn.preparation);
-      if (!turn.submissionId)
-        this.#dependencies.mediation?.history.failed(input.id);
+      if (!turn.submissionId) turn.history?.failed(input.id);
       if (this.#turns.delete(turn)) {
         logLiveDiagnostic("brunch.unconfirmed", {
           inputId: input.id,
@@ -383,8 +380,7 @@ export class LiveBrunchBridge {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
-      if (!turn.submissionId)
-        this.#dependencies.mediation?.history.failed(turn.inputId);
+      if (!turn.submissionId) turn.history?.failed(turn.inputId);
       logLiveDiagnostic("brunch.interrupted", {
         inputId: turn.inputId,
         submissionId: turn.submissionId,
@@ -717,7 +713,7 @@ export class LiveBrunchBridge {
       });
       const mediation = this.#dependencies.mediation;
       if (mediation) {
-        mediation.history.settled(turn.inputId, [
+        turn.history?.settled(turn.inputId, [
           ...messages,
           ...segments.map((segment) => segment.messageId),
           ...this.#chat.segments
