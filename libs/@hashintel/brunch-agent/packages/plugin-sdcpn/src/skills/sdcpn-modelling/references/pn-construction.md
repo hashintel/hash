@@ -40,10 +40,10 @@ A physical location becomes target structure only through its recorded operation
 
 ## Petrinaut tool sequence
 
-Use the exact mounted schemas and wait for results before depending on them. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, document revisions, observation call IDs, or Ledger addresses into canonical tool inputs.
+Use the exact mounted schemas. You choose every ID, so the calls that build one fragment do not depend on each other's results. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, document revisions, observation call IDs, or Ledger addresses into canonical tool inputs.
 
-1. Apply one bounded connected fragment with canonical mutation calls. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Use stable IDs and the exact canonical input schemas.
-2. Read the net again before another state-dependent mutation or a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
+1. Send a whole bounded connected fragment in one step, as parallel canonical mutation calls in dependency order: the types, parameters and differential equations it needs, then places and transitions, then arcs. The host runs a step's calls in that order, and the last change's result carries `netAfterChanges`, the net's structure after the whole step; use it instead of reading the net again. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase.
+2. Check once per fragment: after the step that writes code, call `getNetCompilationErrors` once, and send every repair it calls for in one further step. Read the net again only when you need code or fields `netAfterChanges` omits, before a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
 
 ### Keep incidental choices small
 
