@@ -86,7 +86,7 @@ Interpretation, unconfirmed: the replay removes the persona's trajectory as the 
 
 ## Round 1: build-first guidance on the restacked branch
 
-Two free-persona runs on 2026-09-29 after the guidance rewrite described in [`docs/refactoring/construction-guidance-review.md`](../../../../docs/refactoring/construction-guidance-review.md) and the restack that brought in the naive-domain-expert persona brief. GPT-6 Sol at `medium`, persona `pi` on Claude Sonnet 4.6 at low thinking, `inventory-purchasing`. Both were closed by the operator: the persona said it was out of time and asked Brunch to fill in the rest with its best guesses. Directories `round1-typed/` and `round1-open/` hold `dialogue.md` (the conversation without tool output), `ledger.md`, `net.json`, `analysis.json`, `construction-per-turn.json`, `turn-timing.txt` and `fidelity-audit-result.json`.
+Two free-persona runs on 2026-09-29 after the guidance rewrite (commit "Make Brunch build first with labelled stand-ins and treat the net as a draft": build first, labelled stand-ins for missing facts, the net as a draft to revise, checks after construction, breadth before depth) and the restack that brought in the naive-domain-expert persona brief. GPT-6 Sol at `medium`, persona `pi` on Claude Sonnet 4.6 at low thinking, `inventory-purchasing`. Both were closed by the operator: the persona said it was out of time and asked Brunch to fill in the rest with its best guesses. Directories `round1-typed/` and `round1-open/` hold `dialogue.md` (the conversation without tool output), `ledger.md`, `net.json`, `analysis.json`, `construction-per-turn.json`, `turn-timing.txt` and `fidelity-audit-result.json`.
 
 | | Sol typed | Sol open | Round 1 typed | Round 1 open |
 | --- | --- | --- | --- | --- |
