@@ -85,6 +85,22 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
 
 const googlePayloadKinds: PayloadKind[] = ["GoogleAccountId", "GoogleSheet"];
 
+const isPayloadValueMissing = (payload: LocalPayload | undefined) => {
+  if (payload?.value === undefined || payload.value === "") {
+    return true;
+  }
+
+  if (
+    payload.kind === "GoogleSheet" &&
+    !Array.isArray(payload.value) &&
+    "newSheetName" in payload.value
+  ) {
+    return payload.value.newSheetName === "";
+  }
+
+  return false;
+};
+
 const GoogleAuthProviderIfRequired = ({
   children,
   required,
@@ -126,12 +142,15 @@ export const RunFlowModal = ({
     generateInitialFormState(outputs ?? []),
   );
 
-  const requiresGoogleAuth = (outputs ?? []).some((output) =>
+  const googleOutputs = (outputs ?? []).filter((output) =>
     googlePayloadKinds.includes(output.payloadKind),
   );
+  const hasGoogleInputs = googleOutputs.length > 0;
 
   const isGoogleAuthAvailable = useIsGoogleAuthAvailable();
-  const isMissingGoogleAuth = requiresGoogleAuth && !isGoogleAuthAvailable;
+  const hideGoogleInputs = hasGoogleInputs && !isGoogleAuthAvailable;
+  const isMissingGoogleAuth =
+    hideGoogleInputs && googleOutputs.some((output) => output.required);
 
   const [pending, setPending] = useState(false);
 
@@ -146,19 +165,19 @@ export const RunFlowModal = ({
     CreateFlowScheduleMutationVariables
   >(createFlowScheduleMutation);
 
-  const allRequiredValuesPresent = (outputs ?? []).every((output) => {
-    const stateValue = formState[output.name]?.payload.value;
-    return (
+  const allRequiredValuesPresent = (outputs ?? []).every(
+    (output) =>
       !output.required ||
-      (output.payloadKind === "Text"
-        ? stateValue !== ""
-        : stateValue !== undefined)
-    );
-  });
+      !isPayloadValueMissing(formState[output.name]?.payload),
+  );
 
   const buildOutputValues = (): FlowTrigger["outputs"] => {
     const outputValues: FlowTrigger["outputs"] = [];
     for (const { outputName, payload } of typedValues(formState)) {
+      if (hideGoogleInputs && googlePayloadKinds.includes(payload.kind)) {
+        continue;
+      }
+
       if (typeof payload.value !== "undefined") {
         if (Array.isArray(payload.value) && payload.value.length === 0) {
           continue;
@@ -259,7 +278,7 @@ export const RunFlowModal = ({
       onClose={onClose}
       sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
     >
-      <GoogleAuthProviderIfRequired required={requiresGoogleAuth}>
+      <GoogleAuthProviderIfRequired required={hasGoogleInputs}>
         <Box sx={{ px: 4.5, py: 2.5 }}>
           <Typography
             component="p"
@@ -383,7 +402,7 @@ export const RunFlowModal = ({
             }
 
             if (
-              isMissingGoogleAuth &&
+              hideGoogleInputs &&
               googlePayloadKinds.includes(outputDef.payloadKind)
             ) {
               return null;
