@@ -178,14 +178,9 @@ out/
 # Vercel CLI
 .vercel/
 
-# Personal scratch/holding directories (can be placed anywhere in tree)
-**/_temp/
-**/_trash/
+# Local-only directories: `_scratch/` anywhere, and any top-level `_*/`
 **/_scratch/
-**/_holding/
-
-# brunch
-**/.brunch/
+/_*/
 
 # Jujutsu
 .jj/
