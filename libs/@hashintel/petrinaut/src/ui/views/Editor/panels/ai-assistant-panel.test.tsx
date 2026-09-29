@@ -5203,6 +5203,77 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(results).toEqual([{ kind: "message", messageId: "correction-1" }]);
   });
 
+  test("keeps the composer draft when preserved text answers a pending interactive tool", async () => {
+    let requests = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requests += 1;
+        return Promise.resolve(
+          streamChunks(
+            requests === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("answer-response", "Answer received"),
+          ),
+        );
+      }),
+    };
+    const results: unknown[] = [];
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ preserveDraft: true, text: "Staging" }).then(
+                (result) => results.push(result),
+              );
+            }}
+          >
+            Answer from host
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("Which environment?");
+
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Answer from host" }));
+    await waitFor(() =>
+      expect(results).toEqual([
+        { kind: "interactive-tool", toolCallId: "question-1" },
+      ]),
+    );
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+  });
+
   test("falls back to a normal message when a pending tool has no text mapper", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

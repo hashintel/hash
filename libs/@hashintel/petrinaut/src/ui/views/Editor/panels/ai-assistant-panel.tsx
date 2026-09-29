@@ -1914,7 +1914,7 @@ const ConversationAiAssistantPanel = ({
           throw submissionError;
         }
 
-        if (source !== "voice") {
+        if (source !== "voice" && !preserveDraft) {
           setInput("");
         }
         setStreamError(null);
