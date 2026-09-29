@@ -88,6 +88,12 @@ export class VoiceMediationHistory {
     this.#pending.add(id);
     this.#publish();
   }
+  /** Keeps words Brunch did not receive visible, so they can be sent from the composer. */
+  public unsent(id: string, text: string): void {
+    this.#turns.set(id, { id, text, responseIds: [] });
+    this.#pending.add(id);
+    this.#publish();
+  }
   public begin(input: { id: string; text: string }): void {
     this.#turns.set(input.id, { ...input, responseIds: [], fields: {} });
     this.#pending.add(input.id);

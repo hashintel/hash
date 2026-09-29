@@ -290,6 +290,31 @@ test("brief stays streaming through extraction and transport, and becomes done o
   await turn;
 });
 
+test("keeps a dropped utterance's words visible so they can be sent from the composer", async () => {
+  const history = new VoiceMediationHistory("test");
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const fixture = setup({
+    history,
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept({
+    id: "first",
+    text: "Compare staffing",
+  });
+  await fixture.bridge.accept({ id: "second", text: "Also check the queue" });
+
+  expect(fixture.notice).toHaveBeenCalledWith(
+    expect.stringContaining("not retained"),
+  );
+  expect(
+    history.project([]).find((message) => message.id === "second")?.parts,
+  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  brief.resolve({});
+  await first;
+});
+
 test("a turn keeps its annotations in the history it began in when the conversation switches", async () => {
   const brief = Promise.withResolvers<Record<string, string>>();
   const original = new VoiceMediationHistory("original");

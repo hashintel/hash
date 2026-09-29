@@ -227,6 +227,7 @@ export class LiveBrunchBridge {
       this.#dependencies.notice(
         "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       );
+      this.#dependencies.mediation?.history.unsent(input.id, input.text);
       this.#unserved(delegationId, "The request was not submitted.");
       return;
     }
