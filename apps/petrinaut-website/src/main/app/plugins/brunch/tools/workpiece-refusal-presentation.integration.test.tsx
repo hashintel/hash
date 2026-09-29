@@ -307,7 +307,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       );
     expect(thrownPart).toMatchObject({ state: "output-error" });
 
-    const reopened = adapter.reopen(history) as PetrinautAiMessage[];
+    const reopened = adapter.reopen(history);
     cleanup();
     renderAssistant(reopened);
     await expandSettledTools();

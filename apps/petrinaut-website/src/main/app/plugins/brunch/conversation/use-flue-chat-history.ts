@@ -28,9 +28,7 @@ const projectPetrinautMessages = (
   adapter: BrunchFlueAdapter,
 ): { readonly messages: PetrinautAiMessage[] } | { readonly error: Error } => {
   try {
-    // The adapter validates metadata; its client-tool catalog is the one
-    // Petrinaut's message type exposes, which narrows the tool parts.
-    return { messages: adapter.reopen(conversation) as PetrinautAiMessage[] };
+    return { messages: adapter.reopen(conversation) };
   } catch (error) {
     return {
       error: error instanceof Error ? error : new Error(String(error)),
