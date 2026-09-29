@@ -571,9 +571,29 @@ const StreamingWords = ({
       ))
     : text;
 
+const getPartScrollSignature = (
+  part: PetrinautAiMessage["parts"][number],
+): string => {
+  if (part.type === "text" || part.type === "reasoning") {
+    return `${part.type}:${part.state ?? ""}:${part.text.length}`;
+  }
+  if ("data" in part && typeof part.data === "object" && part.data !== null) {
+    const { state, text, fields } = part.data as Record<string, unknown>;
+    const size =
+      typeof text === "string"
+        ? text.length
+        : typeof fields === "object" && fields !== null
+          ? JSON.stringify(fields).length
+          : 0;
+    return `${part.type}:${typeof state === "string" ? state : ""}:${size}`;
+  }
+  return "state" in part ? `${part.type}:${part.state}` : part.type;
+};
+
 // The scroll effect only needs to know when *anything* changed — it doesn't
-// need to capture every byte of every part. Constant-time: look at the last
-// message and its last part. This runs on every render during streaming, so
+// need to capture every byte of every part. Look only at the last message:
+// its last part, plus its data parts, because Voice lines and briefs grow in
+// place wherever they sit. This runs on every render during streaming, so
 // concatenating every part's full text would burn meaningful CPU once
 // transcripts get long.
 const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
@@ -582,20 +602,12 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   }
   const last = messages[messages.length - 1]!;
   const lastPart = last.parts[last.parts.length - 1];
-  let partSignature = "";
-  if (lastPart) {
-    if (lastPart.type === "text" || lastPart.type === "reasoning") {
-      partSignature = `${lastPart.type}:${lastPart.state ?? ""}:${
-        lastPart.text.length
-      }`;
-    } else {
-      partSignature =
-        "state" in lastPart
-          ? `${lastPart.type}:${lastPart.state}`
-          : lastPart.type;
-    }
-  }
-  return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}`;
+  const partSignature = lastPart ? getPartScrollSignature(lastPart) : "";
+  const dataSignature = last.parts
+    .filter((part) => part !== lastPart && part.type.startsWith("data-"))
+    .map(getPartScrollSignature)
+    .join(",");
+  return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
 };
 
 type MessageHandlersRef = RefObject<{
@@ -696,13 +708,14 @@ const AiAssistantMessage = memo(
           ))}
         </div>
       ) : null;
+    // Voice renders the written answer inside the fold; Chat renders it below.
     const showWork =
       role === "assistant" &&
       (active ||
         wasStopped ||
         work.reasoning.length > 0 ||
         work.tools.length > 0 ||
-        answers.length > 0);
+        (voice && answers.length > 0));
 
     return (
       <div

@@ -3658,6 +3658,75 @@ describe("AiAssistantContents", () => {
     window.cancelAnimationFrame = originalCancelAnimationFrame;
   });
 
+  test("auto-follows a Voice reply that grows before later parts", () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
+    window.requestAnimationFrame = (callback) => {
+      callback(0);
+      return 0;
+    };
+    const messageWithReply = (text: string): PetrinautAiMessage => ({
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        { type: "data-voiceAgentReply", data: { text, state: "streaming" } },
+        { type: "reasoning", state: "streaming", text: "Checking" },
+      ],
+    });
+    const props = {
+      input: "",
+      inputMode: "voice" as const,
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const view = render(
+      <AiAssistantContents {...props} messages={[messageWithReply("I’ll")]} />,
+    );
+    scrollTo.mockClear();
+
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={[messageWithReply("I’ll ask Brunch")]}
+      />,
+    );
+
+    expect(scrollTo.mock.instances).toContain(
+      screen.getByTestId("ai-transcript"),
+    );
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  test("does not show an empty Activity fold above a plain Chat answer", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [{ type: "text", state: "done", text: "Plain answer" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(screen.getByText("Plain answer")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /^Activity/u })).toBeNull();
+  });
+
   test("does not auto-follow new content after the reader scrolls more than 96px from the end", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
     const originalScrollTo = window.HTMLElement.prototype.scrollTo;
