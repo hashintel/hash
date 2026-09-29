@@ -1,0 +1,8 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-accessors.yaml
+---
+16:15: pipelines.entities[0].steps[0].sink.properties["https://example.test/@demo/types/property-type/weight/v/1"]: an accessor needs `column`, `column` with `coerce`, or `amount` with `unit` and `unitMap`
+18:15: pipelines.entities[0].steps[0].sink.properties["https://example.test/@demo/types/property-type/id/v/1"]: an accessor needs `column`, `column` with `coerce`, or `amount` with `unit` and `unitMap`
+20:15: pipelines.entities[0].steps[0].sink.properties["https://example.test/@demo/types/property-type/label/v1"]: `https://example.test/@demo/types/property-type/label/v1` is not a versioned type URL

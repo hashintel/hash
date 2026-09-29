@@ -1,0 +1,7 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/examples/aviation.yaml
+---
+connector: aviation
+run order: airfields, aircraft

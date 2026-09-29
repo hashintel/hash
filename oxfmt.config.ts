@@ -72,5 +72,8 @@ export default defineConfig({
     "**/openapi.json",
     "**/*.aux.mir",
     "**/docs/task-dependencies.json",
+    // Parser test inputs: the snapshots record their exact lines and columns, and some are
+    // invalid YAML on purpose
+    "libs/@local/integrations/definition/tests/ui/**",
   ],
 });

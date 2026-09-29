@@ -1,0 +1,6 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-duplicate-key.yaml
+---
+19:15: pipelines.entities[0].steps[0].sink.properties["https://example.test/@demo/types/property-type/id/v/1"]: `https://example.test/@demo/types/property-type/id/v/1` appears more than once after `${…}` placeholders are replaced

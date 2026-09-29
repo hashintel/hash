@@ -1,0 +1,19 @@
+# Keys that resolve to the same text after placeholders are replaced are reported at the second key.
+connector: demo
+vars:
+  TYPES: https://example.test/@demo/types
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: ${TYPES}/entity-type/order/v/1
+            entityId: id
+            properties:
+              ${TYPES}/property-type/id/v/1: id
+              https://example.test/@demo/types/property-type/id/v/1: id

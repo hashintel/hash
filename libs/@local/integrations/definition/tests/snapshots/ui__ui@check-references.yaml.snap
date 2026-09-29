@@ -1,0 +1,11 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/check-references.yaml
+---
+7:3: sources.unused: source `unused` is not used by any pipeline
+13:19: pipelines.entities[0].dependsOn[0]: no pipeline reads source `customers`
+15:9: pipelines.entities[0].inputs.prices: no step produces checkpoint `demo/prices`
+22:15: pipelines.entities[0].steps[0].sink.properties["https://example.test/@demo/types/property-type/amount/v/1"]: unit map `masses` is not declared
+24:15: pipelines.entities[1].source: source `shipments` is not declared
+27:19: pipelines.links[0].checkpoint: no step produces checkpoint `demo/orders`

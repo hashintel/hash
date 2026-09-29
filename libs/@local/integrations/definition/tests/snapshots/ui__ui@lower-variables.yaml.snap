@@ -1,0 +1,8 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-variables.yaml
+---
+15:25: pipelines.entities[0].steps[0].sink.entityType: `${TYPE}` is not declared in `vars`
+18:15: pipelines.entities[0].steps[0].sink.properties["${TYPES/property-type/id/v/1"]: `${` has no closing `}`
+19:15: pipelines.entities[0].steps[0].sink.properties["${HOME}/property-type/note/v/1"]: `${HOME}` is not declared in `vars`

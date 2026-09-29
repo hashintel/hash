@@ -1,0 +1,20 @@
+# An accessor object needs `column`, `column` with `coerce`, or `amount` with `unit` and `unitMap`.
+connector: demo
+sources:
+  parts:
+    sql: SELECT 1 AS id, 2.5 AS weight, 'KG' AS unit
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: parts
+      steps:
+        - id: sink-parts
+          sink:
+            entityType: https://example.test/@demo/types/entity-type/part/v/1
+            entityId: id
+            properties:
+              https://example.test/@demo/types/property-type/weight/v/1:
+                { amount: weight, unit: unit }
+              https://example.test/@demo/types/property-type/id/v/1:
+                { column: id, amount: weight }
+              https://example.test/@demo/types/property-type/label/v1: id

@@ -1,0 +1,32 @@
+# Empty unit maps, branches and link inputs, and two versions of one property type, are reported
+# where they are written.
+connector: demo
+unitMaps:
+  lengths:
+    units: {}
+sources:
+  orders:
+    sql: SELECT 1 AS id, 'Ada' AS name
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: fan-out
+          branches:
+            - - id: cp-orders
+                checkpoint: demo/orders
+            - []
+        - id: sink-orders
+          sink:
+            entityType: https://example.test/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.test/@demo/types/property-type/name/v/1: name
+              https://example.test/@demo/types/property-type/name/v/2: name
+  links:
+    - id: order-to-order
+      inputs: {}
+      from: { entityType: "https://example.test/@demo/types/entity-type/order/v/1", column: id }
+      to: { entityType: "https://example.test/@demo/types/entity-type/order/v/1", column: id }
+      linkType: https://example.test/@demo/types/entity-type/follows/v/1
