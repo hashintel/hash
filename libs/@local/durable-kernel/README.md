@@ -147,7 +147,7 @@ cargo run -q -p durable-kernel --example customer_sync
 ```
 
 The `defer` run completes four customers and leaves customer 3 pending. The next
-run recovers that customer and writes it to `target/customer_sync_demo/crm.json`.
+run recovers that customer and writes it to `_temp/customer_sync_demo/crm.json`.
 
 Use `crash` instead of `defer` to stop after a CRM write but before its completion
 event is saved. The next run repeats the effect with the same idempotency key,
@@ -187,7 +187,7 @@ cargo run -q -p durable-kernel --example webhook_relay
 ```
 
 The journal and endpoint state are stored separately under
-`target/webhook_relay_demo`. Use `crash` on the second command to stop after the
+`_temp/webhook_relay_demo`. Use `crash` on the second command to stop after the
 endpoint accepts a delivery but before its completion event is saved. The next
 run repeats the effect with the same key, and the endpoint returns the stored
 result.

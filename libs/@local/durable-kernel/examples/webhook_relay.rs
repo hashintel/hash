@@ -323,7 +323,7 @@ struct EndpointState {
 }
 
 fn state_dir() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/webhook_relay_demo")
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("_temp/webhook_relay_demo")
 }
 
 async fn run_endpoint(listener: TcpListener) {
@@ -468,7 +468,7 @@ async fn main() {
     }
 
     println!("The durable webhook relay started.");
-    println!("The journal is stored at target/webhook_relay_demo.");
+    println!("The journal is stored in _temp/webhook_relay_demo.");
     let listener = TcpListener::bind(ENDPOINT)
         .await
         .expect("demo endpoint should bind");

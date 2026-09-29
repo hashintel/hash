@@ -207,7 +207,7 @@ const CUSTOMERS: [(&str, &str); 5] = [
 ];
 
 fn state_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/customer_sync_demo")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("_temp/customer_sync_demo")
 }
 
 #[derive(Clone, Serialize, Deserialize)]
