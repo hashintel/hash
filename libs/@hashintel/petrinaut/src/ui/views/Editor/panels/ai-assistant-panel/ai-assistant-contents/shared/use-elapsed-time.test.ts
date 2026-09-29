@@ -27,6 +27,28 @@ test("measures observed work and freezes the completed duration", () => {
   expect(result.current).toBe(2_300);
 });
 
+test("adds later active periods instead of restarting after a pause", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(10_000);
+  const { result, rerender } = renderHook(
+    ({ active }) => useElapsedTime(active),
+    { initialProps: { active: true } },
+  );
+  act(() => {
+    vi.advanceTimersByTime(2_000);
+  });
+  rerender({ active: false });
+  act(() => {
+    vi.advanceTimersByTime(30_000);
+  });
+  rerender({ active: true });
+  act(() => {
+    vi.advanceTimersByTime(1_500);
+  });
+  rerender({ active: false });
+  expect(result.current).toBe(3_500);
+});
+
 test("does not invent a duration for settled history", () => {
   const { result } = renderHook(() => useElapsedTime(false));
   expect(result.current).toBeUndefined();
