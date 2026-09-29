@@ -107,6 +107,30 @@ test("a delayed superseded transcript may be admitted but never offered back as 
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });
 
+test("a correction evicts the stale superseded turn but keeps its own Live delegation", async () => {
+  const fixture = setup();
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  void fixture.bridge.accept({
+    id: "old",
+    text: "Old request",
+    superseded: true,
+  });
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept({ id: "correction", text: "Correction" });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    "delegation",
+  );
+});
+
 test("prepares a brief before admission and summarizes only a settled rendered answer", async () => {
   const history = new VoiceMediationHistory("test");
   const prepare = vi.fn(async () => ({

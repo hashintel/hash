@@ -128,6 +128,16 @@ export class LiveBrunchBridge {
     this.#waitingForComposer = undefined;
   }
 
+  /** Frees the composer from one stale turn; other turns and delegations stay. */
+  #evict(turn: Turn): void {
+    turn.preparation.abort();
+    this.#preparations.delete(turn.preparation);
+    if (!turn.submissionId)
+      this.#dependencies.mediation?.history.failed(turn.inputId);
+    this.#turns.delete(turn);
+    if (this.#waitingForComposer === turn) this.#waitingForComposer = undefined;
+  }
+
   public stopResponse(): void {
     if (this.#abort.signal.aborted) return;
     this.#chat = { ...this.#chat, stopped: true };
@@ -182,7 +192,7 @@ export class LiveBrunchBridge {
     }
     this.#seenInputs.add(input.id);
     if (!input.superseded && this.#waitingForComposer?.superseded)
-      this.speechStarted();
+      this.#evict(this.#waitingForComposer);
     const delegationId = input.superseded
       ? null
       : ([...this.#unclaimedDelegations].at(-1) ?? null);
