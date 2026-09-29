@@ -32,4 +32,4 @@ Keep going while the conversation is getting you somewhere. Stop when you have w
 
 ## Sending messages
 
-Send every message to Brunch through the persona command described below, one at a time, and reply to the exact text it prints. If the command fails, or you can't tell whether your message arrived, stop and tell the operator. Don't send it again: Brunch may already have it.
+Send every message to Brunch through the persona command described below, one at a time, and reply to the exact text it prints. If the command fails, or you can't tell whether your message arrived, stop and tell the operator. Don't send it again: Brunch may already have it. Don't try to repair the browser, the bridge or Brunch, and don't reach Brunch by any other route; the persona command is the only one.
