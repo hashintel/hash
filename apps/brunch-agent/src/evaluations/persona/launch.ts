@@ -43,11 +43,6 @@ import {
   type PersonaAgentProcess,
   type PersonaAgentSettings,
 } from "./launch/agent.ts";
-import {
-  axisSettingsFromRun,
-  resolvePersonaAxisSettings,
-  type PersonaAxisSettings,
-} from "./launch/axis-settings.ts";
 import { appendAdmittedUtterance } from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
@@ -96,7 +91,7 @@ const listPersonaCases = async () => {
 };
 
 export const readPersonaCase = async (directory: string) => {
-  const [pack, openingFile] = await Promise.all([
+  const [pack, openingText] = await Promise.all([
     readFile(join(directory, "situation-pack.md"), "utf8"),
     readFile(join(directory, "opening-message.md"), "utf8"),
   ]).catch((cause: unknown) => {
@@ -105,13 +100,7 @@ export const readPersonaCase = async (directory: string) => {
       { cause },
     );
   });
-  // Existing case files have an operator header above a Markdown separator.
-  const separator = /^---\s*$/mu.exec(openingFile);
-  const opening = (
-    separator
-      ? openingFile.slice(separator.index + separator[0].length)
-      : openingFile
-  ).trim();
+  const opening = openingText.trim();
   if (!pack.trim() || !opening) throw new Error("Case pack/opening is empty");
   return { pack, opening };
 };
@@ -142,7 +131,6 @@ export const recordingReadySummary = ({
   url,
   browserProfile,
   roles,
-  axes,
   agent,
   resume,
 }: {
@@ -150,21 +138,17 @@ export const recordingReadySummary = ({
   url: string;
   browserProfile: string;
   roles: PersonaRoleSettings;
-  axes: PersonaAxisSettings;
   agent: PersonaAgentSettings;
   resume: boolean;
 }) =>
-  `Chrome window: ${title}\nURL: ${url}\nProfile: ${browserProfile}\nBrunch: ${roles.brunchModel} (${roles.brunchThinking})\nPersona agent: ${personaAgentLabel(agent)}\nPersona axes: verbosity ${axes.personaVerbosity}; disclosure ${axes.personaDisclosure}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and the persona agent have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`;
+  `Chrome window: ${title}\nURL: ${url}\nProfile: ${browserProfile}\nBrunch: ${roles.brunchModel} (${roles.brunchThinking})\nPersona agent: ${personaAgentLabel(agent)}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and the persona agent have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`;
 
 export const personaSettingsRecord = (
   roles: PersonaRoleSettings,
-  axes: PersonaAxisSettings,
   agent: PersonaAgentSettings,
 ) => ({
   brunchModel: roles.brunchModel,
   brunchThinking: roles.brunchThinking,
-  personaVerbosity: axes.personaVerbosity,
-  personaDisclosure: axes.personaDisclosure,
   personaAgent: agent,
 });
 
@@ -288,7 +272,6 @@ type PersonaLaunchOptions = {
   readonly initialNetPath?: string;
   readonly resume?: Awaited<ReturnType<typeof readPersonaResume>>;
   readonly roles?: PersonaRoleSettings;
-  readonly axes?: PersonaAxisSettings;
   /** Undefined on resume reuses the original run's agent. */
   readonly agent?: PersonaAgentSettings;
   /** Wait for Enter before the first message; only possible on a TTY. */
@@ -306,7 +289,6 @@ const launchPersona = async ({
   initialNetPath,
   resume,
   roles = resolvePersonaRoleSettings(),
-  axes = resolvePersonaAxisSettings(),
   agent,
   recordingPause: pauseForRecording = true,
 }: PersonaLaunchOptions) => {
@@ -314,7 +296,6 @@ const launchPersona = async ({
     ? { pack: "", opening: "" }
     : await readPersonaCase(caseDirectory);
   const settings = resume ? roleSettingsFromRun(resume.config) : roles;
-  const axisSettings = resume ? axisSettingsFromRun(resume.config) : axes;
   const agentSettings =
     agent ?? (resume ? agentSettingsFromRun(resume.config) : {});
   if (
@@ -359,7 +340,7 @@ const launchPersona = async ({
     (await mkdtemp(join(tmpdir(), "brunch-persona-browser-")));
   const record = {
     caseDirectory,
-    ...personaSettingsRecord(settings, axisSettings, agentSettings),
+    ...personaSettingsRecord(settings, agentSettings),
     databasePath: env[brunchEnv.devDbPath],
     browserProfile,
     panelOrigin,
@@ -544,7 +525,6 @@ const launchPersona = async ({
           url: personaPage.url(),
           browserProfile,
           roles: settings,
-          axes: axisSettings,
           agent: agentSettings,
           resume: resume !== undefined,
         }),
@@ -674,7 +654,6 @@ const launchPersona = async ({
         : await writePersonaBrief({
             run,
             helper,
-            axes: axisSettings,
             objective,
             opening,
             reply: opened.reply.text,
@@ -797,8 +776,6 @@ if (
       route: { type: "string" },
       "brunch-model": { type: "string" },
       "brunch-thinking": { type: "string" },
-      "persona-verbosity": { type: "string" },
-      "persona-disclosure": { type: "string" },
       agent: { type: "string" },
       "agent-command": { type: "string" },
       "persona-model": { type: "string" },
@@ -810,13 +787,13 @@ if (
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-verbosity terse|default|expansive] [--persona-disclosure reticent|default|forthcoming] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}, persona verbosity default, persona disclosure default. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. Ctrl-C stops owned resources; run data is retained.`,
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
     report(
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
     );
     report(
-      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile, database and retained effective persona axes, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/src/evaluations/persona/README.md`,
+      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/src/evaluations/persona/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
@@ -853,9 +830,7 @@ if (
         values.route ||
         values["initial-net"] ||
         values["brunch-model"] ||
-        values["brunch-thinking"] ||
-        values["persona-verbosity"] ||
-        values["persona-disclosure"]
+        values["brunch-thinking"]
       )
         throw new Error("--resume cannot be combined with fresh-run options");
       const selectedAgent = agent();
@@ -884,10 +859,6 @@ if (
         roles: resolvePersonaRoleSettings({
           brunchModel: values["brunch-model"],
           brunchThinking: values["brunch-thinking"],
-        }),
-        axes: resolvePersonaAxisSettings({
-          personaVerbosity: values["persona-verbosity"],
-          personaDisclosure: values["persona-disclosure"],
         }),
         agent: agent() ?? {},
         recordingPause,

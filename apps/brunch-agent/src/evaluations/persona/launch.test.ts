@@ -21,10 +21,6 @@ import {
   settlePersonaLauncherStop,
 } from "./launch.ts";
 import { resolvePersonaAgentSettings } from "./launch/agent.ts";
-import {
-  axisSettingsFromRun,
-  resolvePersonaAxisSettings,
-} from "./launch/axis-settings.ts";
 import { appendAdmittedUtterance } from "./launch/bridge-log.ts";
 import { readPersonaResume } from "./launch/resume.ts";
 import {
@@ -143,10 +139,7 @@ test.each([false, true])(
               runId: "TEST-old",
             },
           }
-        : {
-            personaVerbosity: "expansive",
-            personaDisclosure: "forthcoming",
-          }),
+        : {}),
     };
     try {
       await mkdir(config.browserProfile);
@@ -187,12 +180,6 @@ test.each([false, true])(
       expect(resumed.lastUtterance).toBe("Please continue.");
       expect(resumed.config.brunchModel).toBe("anthropic/claude-sonnet-4-6");
       expect(resumed.config.brunchThinking).toBe("medium");
-      expect(resumed.config.personaVerbosity).toBe(
-        legacy ? "default" : "expansive",
-      );
-      expect(resumed.config.personaDisclosure).toBe(
-        legacy ? "default" : "forthcoming",
-      );
       expect(await readFile(join(run, "usage-ledger.json"), "utf8")).toBe(
         "TEST unknown historical usage; not a valid ledger",
       );
@@ -202,27 +189,24 @@ test.each([false, true])(
   },
 );
 
-test.each([true, false])(
-  "reads a generic case and separates the public opening (header: %s)",
-  async (header) => {
-    const directory = await mkdtemp(join(tmpdir(), "brunch-launch-test-"));
-    try {
-      await Promise.all([
-        writeFile(join(directory, "situation-pack.md"), "PRIVATE background"),
-        writeFile(
-          join(directory, "opening-message.md"),
-          `${header ? "PRIVATE operator note\n\n---\n\n" : ""}Hello, please interview me.\n`,
-        ),
-      ]);
-      expect(await readPersonaCase(directory)).toEqual({
-        pack: "PRIVATE background",
-        opening: "Hello, please interview me.",
-      });
-    } finally {
-      await rm(directory, { recursive: true });
-    }
-  },
-);
+test("reads a generic case and sends the trimmed opening file", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "brunch-launch-test-"));
+  try {
+    await Promise.all([
+      writeFile(join(directory, "situation-pack.md"), "PRIVATE background"),
+      writeFile(
+        join(directory, "opening-message.md"),
+        "\nHello, I could use some help.\n",
+      ),
+    ]);
+    expect(await readPersonaCase(directory)).toEqual({
+      pack: "PRIVATE background",
+      opening: "Hello, I could use some help.",
+    });
+  } finally {
+    await rm(directory, { recursive: true });
+  }
+});
 
 test("root launch command resolves a caller-relative case before checking interactive prerequisites", async () => {
   const repo = fileURLToPath(new URL("../../../../../", import.meta.url));
@@ -390,59 +374,10 @@ test("retains Brunch role settings from run metadata and ignores Pi-era persona 
   });
 });
 
-test("persona axes accept only their exact literals and default independently", () => {
-  expect(resolvePersonaAxisSettings()).toEqual({
-    personaVerbosity: "default",
-    personaDisclosure: "default",
-  });
-  expect(
-    resolvePersonaAxisSettings({
-      personaVerbosity: "terse",
-      personaDisclosure: "forthcoming",
-    }),
-  ).toEqual({
-    personaVerbosity: "terse",
-    personaDisclosure: "forthcoming",
-  });
-  expect(() =>
-    resolvePersonaAxisSettings({ personaVerbosity: "brief" }),
-  ).toThrow(
-    "Unsupported persona verbosity brief; expected terse|default|expansive",
-  );
-  expect(() =>
-    resolvePersonaAxisSettings({ personaDisclosure: "open" }),
-  ).toThrow(
-    "Unsupported persona disclosure open; expected reticent|default|forthcoming",
-  );
-});
-
-test("legacy runs default missing axes while retained runs preserve effective axes", () => {
-  expect(axisSettingsFromRun({})).toEqual({
-    personaVerbosity: "default",
-    personaDisclosure: "default",
-  });
-  expect(
-    axisSettingsFromRun({
-      personaVerbosity: "expansive",
-      personaDisclosure: "reticent",
-    }),
-  ).toEqual({
-    personaVerbosity: "expansive",
-    personaDisclosure: "reticent",
-  });
-  expect(() => axisSettingsFromRun({ personaVerbosity: "TERSE" })).toThrow(
-    /Unsupported persona verbosity TERSE/,
-  );
-});
-
-test("fresh run metadata retains effective role, axis and agent settings", () => {
+test("fresh run metadata retains effective role and agent settings", () => {
   expect(
     personaSettingsRecord(
       resolvePersonaRoleSettings(),
-      resolvePersonaAxisSettings({
-        personaVerbosity: "expansive",
-        personaDisclosure: "forthcoming",
-      }),
       resolvePersonaAgentSettings({
         agent: "pi",
         personaModel: "anthropic/claude-sonnet-4-6",
@@ -452,8 +387,6 @@ test("fresh run metadata retains effective role, axis and agent settings", () =>
   ).toEqual({
     brunchModel: DEFAULT_CHAT_MODEL,
     brunchThinking: DEFAULT_CHAT_THINKING,
-    personaVerbosity: "expansive",
-    personaDisclosure: "forthcoming",
     personaAgent: {
       agent: "pi",
       personaModel: "anthropic/claude-sonnet-4-6",
@@ -462,26 +395,19 @@ test("fresh run metadata retains effective role, axis and agent settings", () =>
   });
 });
 
-test("recording-ready summary reports retained effective persona axes and the agent", () => {
+test("recording-ready summary reports the persona agent", () => {
   const summary = recordingReadySummary({
     title: "TEST window",
     url: "http://127.0.0.1:4915/",
     browserProfile: "/tmp/TEST-profile",
     roles: resolvePersonaRoleSettings(),
-    axes: resolvePersonaAxisSettings({
-      personaVerbosity: "terse",
-      personaDisclosure: "forthcoming",
-    }),
     agent: resolvePersonaAgentSettings({ agent: "claude" }),
     resume: true,
   });
-  expect(summary).toContain(
-    "Persona axes: verbosity terse; disclosure forthcoming",
-  );
   expect(summary).toContain("Persona agent: claude");
 });
 
-test("help documents exact axis literals and retained resume behavior", async () => {
+test("help documents the objective and agent options", async () => {
   const { stdout } = await promisify(execFile)(
     process.execPath,
     [
@@ -491,9 +417,6 @@ test("help documents exact axis literals and retained resume behavior", async ()
     ],
     { env: process.env },
   );
-  expect(stdout).toContain("--persona-verbosity terse|default|expansive");
-  expect(stdout).toContain("--persona-disclosure reticent|default|forthcoming");
-  expect(stdout).toContain("retained effective persona axes");
   expect(stdout).toContain(
     "--objective is fresh-run-only and is neither retained nor reapplied",
   );
@@ -501,7 +424,7 @@ test("help documents exact axis literals and retained resume behavior", async ()
   expect(stdout).toContain("{prompt}");
 });
 
-test("resume rejects a fresh axis before reading the retained run", async () => {
+test("resume rejects a fresh-run option before reading the retained run", async () => {
   await expect(
     promisify(execFile)(
       process.execPath,
@@ -510,8 +433,8 @@ test("resume rejects a fresh axis before reading the retained run", async () => 
         fileURLToPath(new URL("./launch.ts", import.meta.url)),
         "--resume",
         "/path/that/does/not/exist",
-        "--persona-verbosity",
-        "terse",
+        "--brunch-thinking",
+        "low",
       ],
       { env: process.env },
     ),

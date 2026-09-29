@@ -4,12 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, expect, test } from "vitest";
 
-import { resolvePersonaAxisSettings } from "./axis-settings.ts";
-import {
-  defaultPersonaObjective,
-  writePersonaBrief,
-  writePersonaResumeBrief,
-} from "./brief.ts";
+import { writePersonaBrief, writePersonaResumeBrief } from "./brief.ts";
 
 const runs: string[] = [];
 afterEach(async () => {
@@ -22,41 +17,44 @@ const temporaryRun = async () => {
   return run;
 };
 
-test("the fresh brief carries the rules, the command guide, the opening exchange and the pack", async () => {
+test("the fresh brief assembles the role, command guide, opening exchange and pack in order", async () => {
   const run = await temporaryRun();
-  const brief = await readFile(
-    await writePersonaBrief({
-      run,
-      helper: "/tmp/run/bin/persona",
-      axes: resolvePersonaAxisSettings(),
-      objective: undefined,
-      opening: "PUBLIC opening",
-      reply: "BRUNCH reply",
-      pack: "PRIVATE pack",
-    }),
-    "utf8",
-  );
-  expect(brief).toContain("You are the user-side actor");
-  expect(brief).toContain('/tmp/run/bin/persona say "<your message>"');
-  expect(brief).toContain("/tmp/run/bin/persona end");
-  expect(brief).toContain(defaultPersonaObjective);
-  expect(brief).toContain("PUBLIC opening");
-  expect(brief).toContain("BRUNCH reply");
-  expect(brief).toContain("PRIVATE pack");
-  expect(brief).not.toContain("brunch_turn");
-  expect(brief).not.toContain("For this run, override only");
+  const [brief, system] = await Promise.all([
+    readFile(
+      await writePersonaBrief({
+        run,
+        helper: "/tmp/run/bin/persona",
+        objective: undefined,
+        opening: "PUBLIC opening",
+        reply: "BRUNCH reply",
+        pack: "PRIVATE pack",
+      }),
+      "utf8",
+    ),
+    readFile(new URL("brief/system.md", import.meta.url), "utf8"),
+  ]);
+  const order = [
+    "# Persona brief",
+    system.trim(),
+    "## How to talk to Brunch",
+    '/tmp/run/bin/persona say "<your message>"',
+    "/tmp/run/bin/persona end",
+    "## Conversation so far",
+    "PUBLIC opening",
+    "BRUNCH reply",
+    "## Situation pack",
+    "PRIVATE pack",
+  ].map((part) => brief.indexOf(part));
+  expect(order.every((index) => index >= 0)).toBe(true);
+  expect(order).toEqual([...order].sort((left, right) => left - right));
 });
 
-test("non-default axes and an objective are included in stable order", async () => {
+test("an objective is placed after the command guide and before the conversation", async () => {
   const run = await temporaryRun();
   const brief = await readFile(
     await writePersonaBrief({
       run,
       helper: "persona",
-      axes: resolvePersonaAxisSettings({
-        personaVerbosity: "terse",
-        personaDisclosure: "reticent",
-      }),
       objective: "TEST objective",
       opening: "Hi",
       reply: "Hello",
@@ -64,12 +62,13 @@ test("non-default axes and an objective are included in stable order", async () 
     }),
     "utf8",
   );
-  const terse = brief.indexOf("posture: be terse");
-  const reticent = brief.indexOf("posture: be reticent");
-  expect(terse).toBeGreaterThan(0);
-  expect(reticent).toBeGreaterThan(terse);
-  expect(brief).toContain("TEST objective");
-  expect(brief).not.toContain(defaultPersonaObjective);
+  const order = [
+    "## How to talk to Brunch",
+    "## What you're after today\n\nTEST objective",
+    "## Conversation so far",
+  ].map((part) => brief.indexOf(part));
+  expect(order.every((index) => index >= 0)).toBe(true);
+  expect(order).toEqual([...order].sort((left, right) => left - right));
 });
 
 test("the resume notice points back to the original brief and forbids resending", async () => {

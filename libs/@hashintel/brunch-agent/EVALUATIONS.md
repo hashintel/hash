@@ -2,8 +2,8 @@
 
 Brunch retains one evaluation surface: browser-visible persona runs through the real local Petrinaut panel. The runner discovers maintained case directories containing exactly the two inputs it needs:
 
-- `opening-message.md` — the public first utterance;
-- `situation-pack.md` — private background for the simulated person.
+- `situation-pack.md` — the person's background: who they are, what they know about their work and how they talk;
+- `opening-message.md` — the person's first message to Brunch.
 
 The maintained cases are:
 
@@ -12,6 +12,7 @@ The maintained cases are:
 - `inventory-purchasing`
 - `pharma-cold-chain`
 - `semiconductor-fab-operations`
+- `support-desk-staffing`
 - `truck-fleet-maintenance`
 - `vestera-scheduling`
 
