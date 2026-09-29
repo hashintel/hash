@@ -457,11 +457,14 @@ test.each(["Dismiss", "Run"] as const)(
       ).toBeNull();
       expect(send).toHaveBeenCalledTimes(1);
     } else {
-      await screen.findByText("Finished");
+      // The run is a real 20-run Monte Carlo experiment, slower on CI runners.
+      await screen.findByText("Finished", {}, { timeout: 15_000 });
       expect(card.isConnected).toBe(false);
       expect(screen.getByText("20 runs")).not.toBeNull();
       // Only the finished run's result follow-up starts another turn.
-      await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(2), {
+        timeout: 15_000,
+      });
     }
   },
   30_000,
