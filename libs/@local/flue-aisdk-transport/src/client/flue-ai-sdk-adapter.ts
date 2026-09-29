@@ -2,11 +2,7 @@ import {
   createFlueChatTransport,
   type FlueChatTransportOptions,
 } from "./chat-transport";
-import {
-  snapshotToUiMessages,
-  type FlueHistory,
-  type UiHistoryMessage,
-} from "./transcript";
+import { snapshotToUiMessages, type FlueHistory } from "./transcript";
 
 import type { MetadataProjection } from "./shared/metadata-projection";
 import type { FlueUiProjectionOptions } from "./ui-stream";
@@ -43,9 +39,7 @@ export interface FlueAiSdkAdapter<UiMessage extends UIMessage> {
     options: FlueChatTransportOptions,
   ) => ChatTransport<UiMessage>;
   /** Rebuild a conversation's messages from its stored Flue history. */
-  readonly reopen: (
-    history: FlueHistory,
-  ) => UiHistoryMessage<MessageMetadata<UiMessage>>[];
+  readonly reopen: (history: FlueHistory) => UiMessage[];
 }
 
 const validateMetadata = <Metadata>(
@@ -97,6 +91,9 @@ export const createFlueAiSdkAdapter = <UiMessage extends UIMessage = UIMessage>(
   return {
     chatTransport: (options) =>
       createFlueChatTransport({ ...options, ...projection }),
-    reopen: (history) => snapshotToUiMessages(history, projection),
+    // Like the AI SDK with streamed chunks, tool parts take the host's tool
+    // types unchecked; only metadata has a schema.
+    reopen: (history) =>
+      snapshotToUiMessages(history, projection) as UiMessage[],
   };
 };
