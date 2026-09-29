@@ -11,7 +11,7 @@ This capability owns source-side acquisition and epistemic correction: recognizi
 
 Follow the person's thread and the purpose they stated rather than any schema, template, or register order.
 
-Deepen one answerable thread at a time. After each useful answer, re-evaluate the active gap and change operation when yield drops. Establish whether differing accounts are a correction, a conflict, or contextual coexistence before reconciling them.
+Map the account broadly first, then deepen one answerable thread at a time where the purpose depends on it. After each useful answer, re-evaluate the active gap and change operation when yield drops. Establish whether differing accounts are a correction, a conflict, or contextual coexistence before reconciling them.
 
 Record what was learned using the Ledger discipline below and the job skill's filing guidance. Return to the job skill for target transformation and checks.
 
@@ -101,7 +101,7 @@ Choose an operation for the active gap, apply it to one thread, inspect what cha
 
 ### Select the smallest consequential absence
 
-Compare the current account with what its stated purpose depends on. Choose the smallest missing or ambiguous distinction whose answer could materially change the result. Ask for that rather than everything adjacent to it.
+Compare the current account with what its stated purpose depends on. Until the account has been mapped end to end, the largest unmapped part outranks refining a mapped one. Otherwise choose the smallest missing or ambiguous distinction whose answer could materially change the result. Ask for that rather than everything adjacent to it, and do not let the most recently recorded gap choose the question by default.
 
 ### Slice a concrete case
 
