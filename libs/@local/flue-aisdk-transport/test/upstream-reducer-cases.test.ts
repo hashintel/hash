@@ -6,7 +6,10 @@
  * "guarantee" cases assert behaviour the AI SDK types or documents.
  * "observed" cases pin reducer behaviour the transport relies on but the AI
  * SDK does not promise; a failure there is a compatibility decision to make,
- * not necessarily a transport bug.
+ * not necessarily a transport bug. "decision" cases pin a choice recorded in
+ * the README.
+ *
+ * Every real Flue turn here also asserts live/reopen parity.
  */
 import {
   fauxAssistantMessage,
@@ -18,7 +21,11 @@ import { afterAll, describe, expect, test } from "vitest";
 
 import { createFlueUiStream } from "../src/client";
 import { reduceUiMessageChunks } from "./ai-sdk-oracle";
-import { harnessTools, startFlueHarness } from "./flue-harness";
+import {
+  expectLiveReopenParity,
+  harnessTools,
+  startFlueHarness,
+} from "./flue-harness";
 
 import type { UIMessageChunk } from "ai";
 
@@ -44,20 +51,22 @@ describe("upstream: 'server-side tool roundtrip'", () => {
       ),
       fauxAssistantMessage([fauxText("It is sunny.")]),
     ]);
-    const { live } = await harness.runTurn("Weather?");
+    const turn = await harness.runTurn("Weather?");
 
-    expect(partTypes(live.message?.parts)).toEqual([
+    expect(partTypes(turn.live.message?.parts)).toEqual([
       "step-start",
       `tool-${harnessTools.lookup}`,
       "data-progress",
       "step-start",
       "text",
     ]);
-    expect(live.message?.parts[1]).toMatchObject({
+    expect(turn.live.message?.parts[1]).toMatchObject({
       state: "output-available",
       input: { q: "London" },
       output: { answer: "found London" },
     });
+
+    expectLiveReopenParity(turn);
   });
 
   test("observed: the tool output arrives after its step closes, and the reducer finds the part in the earlier step", async () => {
@@ -67,13 +76,18 @@ describe("upstream: 'server-side tool roundtrip'", () => {
       }),
       fauxAssistantMessage([fauxText("Done.")]),
     ]);
-    const { chunks } = await harness.runTurn("Look");
+    const turn = await harness.runTurn("Look");
 
     expect(
-      chunkIndex(chunks, (chunk) => chunk.type === "tool-output-available"),
+      chunkIndex(
+        turn.chunks,
+        (chunk) => chunk.type === "tool-output-available",
+      ),
     ).toBeGreaterThan(
-      chunkIndex(chunks, (chunk) => chunk.type === "finish-step"),
+      chunkIndex(turn.chunks, (chunk) => chunk.type === "finish-step"),
     );
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -85,15 +99,17 @@ describe("upstream: 'server-side tool roundtrip with output-error'", () => {
       }),
       fauxAssistantMessage([fauxText("It failed.")]),
     ]);
-    const { live } = await harness.runTurn("Try");
+    const turn = await harness.runTurn("Try");
 
-    const failed = live.message?.parts.find(
+    const failed = turn.live.message?.parts.find(
       (part) => part.type === `tool-${harnessTools.failing}`,
     );
     expect(failed).toMatchObject({ state: "output-error" });
     expect(failed && "errorText" in failed ? failed.errorText : "").toContain(
       "The lookup service is unavailable.",
     );
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -105,15 +121,19 @@ describe("upstream: 'provider-executed static tools'", () => {
       }),
       fauxAssistantMessage([fauxText("Done.")]),
     ]);
-    const { chunks, live } = await harness.runTurn("Look");
+    const turn = await harness.runTurn("Look");
 
-    expect(chunks).toContainEqual(
+    expect(turn.chunks).toContainEqual(
       expect.objectContaining({
         type: "tool-input-available",
         providerExecuted: true,
       }),
     );
-    expect(live.message?.parts[1]).toMatchObject({ providerExecuted: true });
+    expect(turn.live.message?.parts[1]).toMatchObject({
+      providerExecuted: true,
+    });
+
+    expectLiveReopenParity(turn);
   });
 
   test("observed: a client tool's input is not provider-executed, but its in-band result makes it so", async () => {
@@ -126,14 +146,19 @@ describe("upstream: 'provider-executed static tools'", () => {
       ),
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
-    const { chunks, live } = await harness.runTurn("Show");
+    const turn = await harness.runTurn("Show");
 
-    const input = chunks.find((chunk) => chunk.type === "tool-input-available");
+    const input = turn.chunks.find(
+      (chunk) => chunk.type === "tool-input-available",
+    );
     expect(input).toMatchObject({ providerExecuted: undefined });
-    expect(live.message?.parts[1]).toMatchObject({
+    expect(turn.live.message?.parts[1]).toMatchObject({
       state: "output-available",
       providerExecuted: true,
+      output: { shown: "t" },
     });
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -148,16 +173,18 @@ describe("upstream: 'dynamic tools'", () => {
       ),
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
-    const { live } = await harness.runTurn("Show", {
+    const turn = await harness.runTurn("Show", {
       adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
     });
 
-    expect(live.message?.parts[1]).toMatchObject({
+    expect(turn.live.message?.parts[1]).toMatchObject({
       type: "dynamic-tool",
       toolName: harnessTools.widget,
       state: "output-available",
       output: { shown: "d" },
     });
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -165,14 +192,16 @@ describe("upstream: 'message metadata'", () => {
   test("guarantee: metadata on the start chunk becomes the message's metadata", async () => {
     harness.setResponseMetadata({ model: "faux" });
     harness.script([fauxAssistantMessage([fauxText("Tagged.")])]);
-    const { chunks, live } = await harness.runTurn("Tag");
+    const turn = await harness.runTurn("Tag");
     harness.setResponseMetadata(undefined);
 
-    expect(chunks[0]).toMatchObject({
+    expect(turn.chunks[0]).toMatchObject({
       type: "start",
       messageMetadata: { model: "faux" },
     });
-    expect(live.message?.metadata).toEqual({ model: "faux" });
+    expect(turn.live.message?.metadata).toEqual({ model: "faux" });
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -181,13 +210,15 @@ describe("upstream: 'reasoning'", () => {
     harness.script([
       fauxAssistantMessage([fauxThinking("Considering."), fauxText("Answer.")]),
     ]);
-    const { live } = await harness.runTurn("Think");
+    const turn = await harness.runTurn("Think");
 
-    expect(live.message?.parts).toMatchObject([
+    expect(turn.live.message?.parts).toMatchObject([
       { type: "step-start" },
       { type: "reasoning", text: "Considering.", state: "done" },
       { type: "text", text: "Answer.", state: "done" },
     ]);
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -199,21 +230,25 @@ describe("upstream: 'data ui parts (single part)'", () => {
       }),
       fauxAssistantMessage([fauxText("Done.")]),
     ]);
-    const { live } = await harness.runTurn("Progress");
+    const turn = await harness.runTurn("Progress");
 
-    expect(live.message?.parts).toContainEqual({
+    expect(turn.live.message?.parts).toContainEqual({
       type: "data-progress",
       data: { q: "p" },
     });
+
+    expectLiveReopenParity(turn);
   });
 });
 
 describe("upstream: 'start with message id'", () => {
   test("decision: the assistant message takes Flue's response message id", async () => {
     harness.script([fauxAssistantMessage([fauxText("Hi.")])]);
-    const { history, live } = await harness.runTurn("Hi");
+    const turn = await harness.runTurn("Hi");
 
-    expect(live.message?.id).toBe(history.messages.at(-1)?.id);
+    expect(turn.live.message?.id).toBe(turn.history.messages.at(-1)?.id);
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -225,10 +260,10 @@ describe("upstream: 'errors'", () => {
         errorMessage: "The provider is unavailable.",
       }),
     ]);
-    const { chunks, live } = await harness.runTurn("Fail");
+    const turn = await harness.runTurn("Fail");
 
-    expect(chunks.at(-1)).toMatchObject({ type: "error" });
-    expect(live.streamErrors).toHaveLength(1);
+    expect(turn.chunks.at(-1)).toMatchObject({ type: "error" });
+    expect(turn.live.streamErrors).toHaveLength(1);
   });
 });
 
@@ -243,11 +278,11 @@ describe("upstream: 'tool call streaming'", () => {
       ),
       fauxAssistantMessage([fauxText("Done.")]),
     ]);
-    const { chunks, live } = await harness.runTurn("Look", {
+    const turn = await harness.runTurn("Look", {
       transport: { liveToolStream: { headers: {}, fetch: harness.fetch } },
     });
 
-    const types = chunks.map((chunk) => chunk.type);
+    const types = turn.chunks.map((chunk) => chunk.type);
     expect(types.indexOf("tool-input-start")).toBeGreaterThan(-1);
     expect(types.indexOf("tool-input-delta")).toBeGreaterThan(
       types.indexOf("tool-input-start"),
@@ -256,7 +291,7 @@ describe("upstream: 'tool call streaming'", () => {
       types.lastIndexOf("tool-input-delta"),
     );
     expect(
-      live.snapshots.some((snapshot) =>
+      turn.live.snapshots.some((snapshot) =>
         snapshot.parts.some(
           (part) =>
             "state" in part &&
@@ -265,10 +300,12 @@ describe("upstream: 'tool call streaming'", () => {
         ),
       ),
     ).toBe(true);
-    expect(live.message?.parts[1]).toMatchObject({
+    expect(turn.live.message?.parts[1]).toMatchObject({
       state: "output-available",
       input: { q: "streamed" },
     });
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -284,9 +321,9 @@ describe("upstream: 'provider-executed static tools' (two calls in one step)", (
       ),
       fauxAssistantMessage([fauxText("Both settled.")]),
     ]);
-    const { live } = await harness.runTurn("Both");
+    const turn = await harness.runTurn("Both");
 
-    expect(live.message?.parts).toMatchObject([
+    expect(turn.live.message?.parts).toMatchObject([
       { type: "step-start" },
       { type: `tool-${harnessTools.lookup}`, state: "output-available" },
       { type: `tool-${harnessTools.failing}`, state: "output-error" },
@@ -294,6 +331,8 @@ describe("upstream: 'provider-executed static tools' (two calls in one step)", (
       { type: "step-start" },
       { type: "text", text: "Both settled." },
     ]);
+
+    expectLiveReopenParity(turn);
   });
 });
 
@@ -309,16 +348,18 @@ describe("upstream: 'dynamic tools' (two calls in one step)", () => {
       ),
       fauxAssistantMessage([fauxText("Shown.")]),
     ]);
-    const { live } = await harness.runTurn("Show both", {
+    const turn = await harness.runTurn("Show both", {
       adapter: { dynamicClientToolNames: new Set([harnessTools.widget]) },
     });
 
     expect(
-      live.message?.parts.filter((part) => part.type === "dynamic-tool"),
+      turn.live.message?.parts.filter((part) => part.type === "dynamic-tool"),
     ).toMatchObject([
       { toolName: harnessTools.widget, output: { shown: "first" } },
       { toolName: harnessTools.widget, output: { shown: "second" } },
     ]);
+
+    expectLiveReopenParity(turn);
   });
 });
 

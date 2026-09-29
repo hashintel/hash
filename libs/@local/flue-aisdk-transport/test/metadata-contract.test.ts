@@ -1,3 +1,8 @@
+/**
+ * The metadata half of the README's host contract, which is this package's
+ * decision rather than AI SDK behaviour: a narrowed metadata type requires its
+ * schema, and the schema validates synchronously, live and on reopen.
+ */
 import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 import * as v from "valibot";
 import { afterAll, expect, test } from "vitest";
