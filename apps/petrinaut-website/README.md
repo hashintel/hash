@@ -12,11 +12,13 @@ oEmbed discovery.
 
 ## Quickstart
 
-```sh
-cp .env.example .env.local
-# add your OPENAI_API_KEY to .env.local, if you want to use the chat feature
+Run these commands from the repository root after installing the toolchains and dependencies in the [root setup guide](../../README.md#setup). On Windows, use Git Bash as described there.
 
-turbo run dev
+```sh
+cp apps/petrinaut-website/.env.example apps/petrinaut-website/.env.local
+# Add OPENAI_API_KEY to apps/petrinaut-website/.env.local to use chat.
+
+turbo run dev --filter=@apps/petrinaut-website
 ```
 
 The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API functions.
@@ -48,49 +50,13 @@ updates start from the latest persisted value so another tab's documents survive
 
 ## Choosing the assistant
 
-Petrinaut's stock assistant is the AI panel fallback. A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local choices under `petrinaut-website:assistant` remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) offers **Use Brunch** as a hidden alternate and, once switched, **Use the stock Petrinaut assistant**. This preference belongs to the website host, not Petrinaut. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint the stock assistant is the only one and no command is offered.
+Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and automatically enables **Voice**. You can turn **Enable Voice** off manually; that choice survives reload until you select Brunch again. Voice defaults on for an already selected Brunch assistant unless explicitly disabled. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled`. These preferences belong to the website host, not Petrinaut.
 
-## Worked-model documents
+When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by default. Leave it off to use Live; turn it on to use Realtime. This choice is saved under `petrinaut-website:realtime-enabled` and applies to the next Voice session. Changing it does not interrupt active audio: end Voice and start it again to switch providers.
 
-The required worked-model copy is an independently writable copy of the
-fixture's complete connected bundle: retained conversation/session, workpiece
-history and current revision, Petrinaut document and revision history, net,
-mutation provenance and the links among them.
+A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
 
-`/?bundle=<key>` currently opens an explicitly incomplete net projection from
-the configured Brunch service. Resolution is principal-scoped: GET resumes or
-creates the principal's active net projection, **Create a fresh net projection
-from this template** issues POST and selects a fresh projection of the fixture
-net, and identity-explicit net revisions persist with PUT. The fresh projection
-mints an empty conversation and does not inherit the fixture's retained session,
-workpiece or provenance links, so this GET/POST/PUT path does not yet create a
-worked-model copy. Workpiece and history created inside the projection prove
-post-open behavior only; they do not prove that the fixture bundle was copied.
-
-The route shows **Loading document…** while resolving. Missing configuration,
-an unknown bundle, ownership failure and other resolution errors show
-**Worked-model document unavailable**. The route fails closed: it never opens
-or reads a local document as fallback.
-
-Worked-model routes always use the Brunch process assistant, regardless of the
-stored preference for ordinary documents. They state **This document uses the
-Brunch process assistant**, hide the assistant switch and preserve the
-preference unchanged for the next ordinary route. The template supplies a
-read-only title: users and the assistant may edit the net, but neither the title
-input nor `setNetTitle` permits a title change.
-
-New, Import and example creation are source transitions. When invoked from a
-worked-model route, they create a local document and navigate to the ordinary
-route; they do not write the imported or example content into the remote copy.
-
-The host implements this boundary through a `DocumentController` over
-storage-neutral repositories: the ordinary local repository and the remote
-net-projection repository. The controller alone crosses sources. A typed
-process-agent seed carries the remote document and conversation identity into
-the Brunch binding; remote adapter-private storage identities do not cross that
-host boundary. This
-repository/controller/binding split remains the document-lifecycle authority,
-but it does not instantiate or preserve the required complete connected bundle.
+Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
 ## Example embeds and oEmbed
 
@@ -124,22 +90,33 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 ## Environment variables
 
-| Name                               | Required         | Used by          | Notes                                                                                         |
-| ---------------------------------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                            |
-| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                    |
-| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                       |
-| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` (default) or `live` (detached experiment). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                        |
-| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                    |
-| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.       |
-| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                     |
+| Name                               | Required         | Used by          | Notes                                                                                                            |
+| ---------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                                               |
+| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
+| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
+| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
+| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the model id; the default is `petrinautAiModel` in `@hashintel/petrinaut-core`.                        |
+| `PETRINAUT_AI_REASONING_EFFORT`    | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `petrinautAiModel.reasoningEffort`.                               |
+| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
+| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
+| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
+### Voice provider defaults
+
+The website defaults to Live in every environment. **Realtime mode** in Labs
+selects Realtime for this browser. `PETRINAUT_VOICE_PROVIDER` remains the
+discovery default for clients without a provider picker; it does not override
+the website's Labs choice or restrict either provider's session endpoint.
+An invalid value still disables Voice discovery. Both providers require
+`PETRINAUT_OPENAI_VOICE_ENABLED=true` and a dedicated `OPENAI_VOICE_API_KEY`;
+sessions are billed to that key.
+
 ### Experimental Brunch-backed Live interview (FE-1664)
 
-`PETRINAUT_VOICE_PROVIDER=live` uses GPT-Live-1 for conversational audio while a
+With **Realtime mode** off, Live uses GPT-Live-1 for conversational audio while a
 separate `gpt-4o-transcribe` session supplies finalized user text to Brunch.
 Brunch remains the canonical conversation, domain and tool authority. Settled
 Brunch prose is offered to Live as delegation-correlated commentary; Live has no
@@ -196,7 +173,8 @@ PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=realtime yarn dev:b
 ```
 
 Reload the page before starting a new session. Unsetting
-`PETRINAUT_VOICE_PROVIDER` also selects Realtime. Provider/config selection is
+`PETRINAUT_VOICE_PROVIDER` also selects Realtime locally (Vercel previews
+default to Live; see [provider defaults](#voice-provider-defaults)). Provider/config selection is
 pinned for the mounted conversation; there is no provider switching or input
 resubmission mid-session. The launcher sets the existing `/agents/chat` route;
 the ordinary website launcher still needs `VITE_BRUNCH_CHAT_ENDPOINT` configured
@@ -225,7 +203,7 @@ do not expose this local experiment publicly without addressing that boundary.
 
 ### Brunch Voice mode
 
-The following describes Realtime, the default provider. Voice mode is disabled by default. To enable it, configure a real
+The following describes Realtime, the default provider in production and local development. Voice mode is disabled by default. To enable it, configure a real
 `VITE_BRUNCH_CHAT_ENDPOINT`, set `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and
 provide a dedicated `OPENAI_VOICE_API_KEY`.
 

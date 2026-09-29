@@ -8,7 +8,7 @@
     decl_macro,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     ascii_char,
     variant_count,
 )]

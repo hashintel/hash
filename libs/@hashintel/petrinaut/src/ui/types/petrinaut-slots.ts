@@ -29,4 +29,6 @@ export type PetrinautSlots = {
    * without competing with the editor's own styles.
    */
   titleStyle?: React.CSSProperties;
+  /** Rendered after Petrinaut's built-in groups in the Labs settings section. */
+  settingsLabs?: React.ReactNode;
 };

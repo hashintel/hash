@@ -52,8 +52,7 @@ impl Sink<PolicyEditionSnapshotRecord> for PolicyEditionSender {
         let (principal_id, actor_type) = policy
             .principal
             .as_ref()
-            .map(PrincipalConstraint::to_parts)
-            .unwrap_or_default();
+            .map_or_default(PrincipalConstraint::to_parts);
 
         self.edition
             .start_send_unpin(PolicyEditionRow {

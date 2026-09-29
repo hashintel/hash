@@ -1,9 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  type PostgresDatabaseConfig,
-  POSTGRES_ENV,
-} from "../src/database-config.ts";
+import { brunchEnv } from "@hashintel/brunch-agent";
+
+import { type PostgresDatabaseConfig } from "../src/database-config.ts";
 import {
   createPostgresPool,
   createPostgresPoolConfig,
@@ -101,7 +100,7 @@ describe("Postgres connection configuration", () => {
       errorMessage = String(error);
     }
 
-    expect(errorMessage).toContain(POSTGRES_ENV.tlsCaPath);
+    expect(errorMessage).toContain(brunchEnv.postgres.tlsCaPath);
     expect(errorMessage).not.toContain(tlsCaPath);
   });
 

@@ -1,7 +1,7 @@
+import { StatusPage } from "../../../shared/status-page";
 import { BrunchActualModeProvider } from "./brunch-actual-mode-provider";
 import { getBrunchEndpoint } from "./brunch-endpoint";
 import { BrunchPetrinaut } from "./brunch-petrinaut";
-import { BrunchStatusPage } from "./brunch-status-page";
 
 import type { BrunchRouteSearch } from "./brunch-search";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
@@ -23,10 +23,7 @@ export const BrunchActualModeRoute = ({
 
   if (!endpointResult.ok) {
     return (
-      <BrunchStatusPage
-        title="Missing Brunch endpoint"
-        body={endpointResult.error}
-      />
+      <StatusPage title="Missing Brunch endpoint" body={endpointResult.error} />
     );
   }
 

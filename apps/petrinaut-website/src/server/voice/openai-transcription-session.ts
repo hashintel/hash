@@ -39,7 +39,7 @@ export const createOpenAITranscriptionSessionHandler =
       return respond("Expected SDP.", 415);
 
     const availability = getOpenAIVoiceAvailability(environment);
-    if (!availability.available || getVoiceProvider(environment) !== "live")
+    if (!availability.available)
       return respond("Transcription is unavailable.", 404);
 
     const requestId = createVoiceRequestId();

@@ -4,7 +4,7 @@ export { Badge } from "./components/Badge/badge";
 export { BaseBadge } from "./components/Badge/base-badge";
 export { Banner } from "./components/Banner/banner";
 export {
-  type BreadcrumbItemProps,
+  type BreadcrumbItem,
   BreadCrumbs,
   type BreadcrumbSubItem,
 } from "./components/Breadcumbs/breadcrumbs";
@@ -31,6 +31,7 @@ export { minimumNearestNeighbourWorld } from "./components/Chart/NetworkGraph/no
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Chip, type ChipColor } from "./components/Chip/chip";
+export { Combobox, type ComboboxItem } from "./components/Combobox/combobox";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Filter, type FilterOperator } from "./components/Filter/filter";
@@ -66,14 +67,13 @@ export {
 export { EllipsisMenu } from "./components/Menu/ellipsis-menu";
 export { Menu, type MenuItem } from "./components/Menu/menu";
 export { NumberInput } from "./components/NumberInput/number-input";
-export { Popover, type PopoverProps } from "./components/Popover/popover";
+export { Popover } from "./components/Popover/popover";
 export { Radio } from "./components/Radio/radio";
 export { RadioGroup } from "./components/RadioGroup/radio-group";
 export { RightClickMenu } from "./components/RightClickMenu/right-click-menu";
 export {
   SegmentedControl,
   type SegmentedControlItem,
-  type SegmentedControlProps,
 } from "./components/SegmentedControl/segmented-control";
 export {
   type MultiSelectItem,

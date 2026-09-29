@@ -10,7 +10,11 @@ use core::{
 use std::simd::simd_swizzle;
 
 use super::{Vec2, Vec2x4};
-use crate::math::{dvec2::DVec2x4T, kernel::mul_add_f32x4, scalar::DNonNegative};
+use crate::math::{
+    dvec2::DVec2x4T,
+    kernel::{mul_add_f32x4, mul_add_f64x4},
+    scalar::DNonNegative,
+};
 
 /// Four 2D vectors packed in transposed (structure-of-arrays) order.
 ///
@@ -193,14 +197,27 @@ impl Vec2x4T {
 
     /// Returns the four pairwise perpendicular dot products as SIMD lanes.
     ///
-    /// Lane `i` approximates x₁y₂ − y₁x₂ for the batches' `i`-th vectors, with the geometric
-    /// interpretation of [`Vec2::perp_dot`]. The y₁x₂ product rounds first, then x₁y₂ and
-    /// subtraction are fused with one rounding. This can leave a nonzero rounding residual even for
-    /// parallel vectors and does not certify orientation or collinearity.
+    /// # Numerical guarantees
+    ///
+    /// Each lane follows [`Vec2::perp_dot`]'s numerical contract.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f32, 4> {
-        mul_add_f32x4(*self.xs(), *other.ys(), -(self.ys() * other.xs()))
+        self.xs() * other.ys() - self.ys() * other.xs()
+    }
+
+    /// Returns the four pairwise perpendicular dot products rounded to `f64`.
+    ///
+    /// # Numerical guarantees
+    ///
+    /// Each lane follows [`Vec2::perp_dot_wide`]'s numerical contract.
+    #[inline]
+    #[must_use]
+    pub fn perp_dot_wide(self, other: Self) -> Simd<f64, 4> {
+        let this = DVec2x4T::from(self);
+        let other = DVec2x4T::from(other);
+
+        mul_add_f64x4(*this.xs(), *other.ys(), -(this.ys() * other.xs()))
     }
 
     /// Returns the four pairwise squared Euclidean distances as SIMD lanes.
@@ -220,10 +237,10 @@ impl Vec2x4T {
 
     /// Returns the four pairwise squared Euclidean distances, accumulated in `f64`.
     ///
-    /// Both batches must contain finite points. Widening before subtraction covers the full finite
-    /// `f32` coordinate range with finite, non-negative results. Each lane uses the separately
-    /// rounded expression of [`Vec2::distance_squared_wide`], rather than the fused expression of
-    /// [`Self::distance_squared`].
+    /// # Numerical guarantees
+    ///
+    /// Both batches must contain finite points. Each lane matches [`Vec2::distance_squared_wide`]
+    /// for the corresponding pair.
     #[inline]
     #[must_use]
     pub(crate) fn distance_squared_wide(self, other: Self) -> [DNonNegative; 4] {

@@ -413,19 +413,21 @@ export const Alignment: Story<SingleSelectProps> = (args) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "auto auto",
+      gridTemplateColumns: "auto auto auto",
       columnGap: 32,
       rowGap: 12,
       alignItems: "center",
       justifyContent: "start",
     }}
   >
+    <span />
     <span style={subheadingStyle}>Editable</span>
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
-        <Controlled {...args} value="apple" align={align} />
-        <Controlled {...args} value="apple" align={align} readonly />
+        <span style={subheadingStyle}>{align}</span>
+        <Controlled {...args} value="apple" align={align} width="sm" />
+        <Controlled {...args} value="apple" align={align} width="sm" readonly />
       </Fragment>
     ))}
   </div>

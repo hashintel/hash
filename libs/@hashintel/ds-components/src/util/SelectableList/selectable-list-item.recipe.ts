@@ -262,6 +262,10 @@ export const styles = sva({
         },
       },
     },
+    // A selected item keeps its darker background when highlighted by the
+    // machine (opening the dropdown, keyboard navigation); only a pointer
+    // hover lightens it. The `&[data-highlighted]` key matches the tone
+    // variant's so the compound overrides it in the JS merge.
     {
       selectedTone: "neutral",
       selectedStyle: "highlight",
@@ -269,6 +273,12 @@ export const styles = sva({
       css: {
         item: {
           backgroundColor: "neutral.a35",
+          "&[data-highlighted]": {
+            backgroundColor: "neutral.a35",
+          },
+          "&[data-highlighted]:hover": {
+            backgroundColor: "neutral.a25",
+          },
         },
       },
     },
@@ -279,7 +289,10 @@ export const styles = sva({
       css: {
         item: {
           backgroundColor: "blue.a40",
-          "&[data-selected][data-highlighted]": {
+          "&[data-highlighted]": {
+            backgroundColor: "blue.a40",
+          },
+          "&[data-highlighted]:hover": {
             backgroundColor: "blue.a30",
           },
         },
@@ -292,7 +305,10 @@ export const styles = sva({
       css: {
         item: {
           backgroundColor: "red.a40",
-          "&[data-selected][data-highlighted]": {
+          "&[data-highlighted]": {
+            backgroundColor: "red.a40",
+          },
+          "&[data-highlighted]:hover": {
             backgroundColor: "red.a30",
           },
         },

@@ -8,7 +8,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 
 import { calculateCost } from "@earendil-works/pi-ai";
 import * as v from "valibot";
@@ -192,58 +192,6 @@ const requestHoldUsd = (model: Model<Api>, maxOutputTokens: number) =>
     ) +
     maxOutputTokens * model.cost.output) /
   1_000_000;
-
-/** A fresh allocation shared by every participant; existing ledgers are never reset. */
-export const initializeRequestLedger = (
-  path: string,
-  runId: string,
-  usd: number,
-  model: Model<Api>,
-) => {
-  const reservedUsd = requestHoldUsd(model, model.maxTokens);
-  if (
-    model.id !== STEP_A_MODEL_ID ||
-    model.provider !== "anthropic" ||
-    !Number.isFinite(usd) ||
-    usd > 100 ||
-    usd < reservedUsd
-  ) {
-    throw new Error(
-      "Persona allocation must cover one full Sonnet request and be at most USD 100.",
-    );
-  }
-  // Dollars bound this allocation. Historical instruments may still set their own call limit.
-  const calls = Number.MAX_SAFE_INTEGER;
-  const ledger: Ledger = v.parse(ledgerSchema, {
-    limits: { calls, usd },
-    reservation: {
-      runId,
-      status: "active",
-      calls,
-      usd,
-      perCall: { maxOutputTokens: model.maxTokens, reservedUsd },
-    },
-    totals: {
-      spentCalls: 0,
-      spentUsd: 0,
-      remainingCalls: calls,
-      remainingUsd: usd,
-      outstandingReservedCalls: 0,
-      outstandingReservedUsd: 0,
-    },
-    calls: [],
-  });
-  writeFileSync(
-    join(dirname(path), "attempt-ledger.md"),
-    "# Persona request accounting\n",
-    { flag: "wx", mode: 0o600 },
-  );
-  writeFileSync(path, `${JSON.stringify(ledger, null, 2)}\n`, {
-    flag: "wx",
-    mode: 0o600,
-  });
-  return { ledgerPath: path, runId };
-};
 
 /** One evidence authority shared by the app and persona processes. Each synchronous
  * transaction owns an exclusive file guard; contention/stale guards stop, never retry or steal.

@@ -120,7 +120,7 @@ impl Similarity {
         let sin = f64::from(rotation.sin());
 
         // products of finite widened f32 components are exact in f64. Only their sum rounds.
-        let norm_squared = cos * cos + sin * sin;
+        let norm_squared = f64::mul_add(sin, sin, cos * cos);
         if !norm_squared.is_finite()
             || (norm_squared - 1.0).abs() > 1.0e-6
             || !translation.is_finite()

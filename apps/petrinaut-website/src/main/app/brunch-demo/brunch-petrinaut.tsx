@@ -10,7 +10,7 @@ import {
 } from "@hashintel/petrinaut/react";
 import { Petrinaut, type ViewportAction } from "@hashintel/petrinaut/ui";
 
-import { BrunchStatusPage } from "./brunch-status-page";
+import { StatusPage } from "../../../shared/status-page";
 
 import type {
   ActualModeSource,
@@ -76,7 +76,7 @@ export const BrunchPetrinaut = ({
 
   if (!actualMode.available) {
     return (
-      <BrunchStatusPage
+      <StatusPage
         title="Brunch stream unavailable"
         body="Actual mode requires a Brunch stream endpoint."
       />
@@ -85,23 +85,23 @@ export const BrunchPetrinaut = ({
 
   if (actualMode.status === "error") {
     return (
-      <BrunchStatusPage
+      <StatusPage
         title="Could not load Brunch run"
         body={actualMode.error ?? "The Brunch stream returned an error."}
-        endpoint={actualMode.source.endpoint}
+        detail={actualMode.source.endpoint}
       />
     );
   }
 
   if (!definition || !initialState || !source || !sourceKey) {
     return (
-      <BrunchStatusPage
+      <StatusPage
         title="Connecting to Brunch"
         body={
           actualMode.error ??
           "Waiting for the Petri net definition and initial state."
         }
-        endpoint={actualMode.source.endpoint}
+        detail={actualMode.source.endpoint}
       />
     );
   }

@@ -215,6 +215,7 @@ export {
   metricSchema,
   parameterSchema,
   petrinautAiCommandTools,
+  petrinautAiModel,
   petrinautAiMutationTools,
   petrinautAiPrompt,
   petrinautAiTools,

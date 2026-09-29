@@ -306,10 +306,6 @@ impl GenerationManager {
     /// Panics outside a Tokio runtime with time enabled. A sufficiently late tick can also panic
     /// when adding [`ManagerOptions::poll_interval`] to the current instant would exceed Tokio's
     /// representable deadline.
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "Tokio select traverses its branch set with a remainder"
-    )]
     pub(crate) async fn run(&mut self, shutdown: impl Future<Output = ()>) {
         let mut shutdown = pin!(shutdown);
         let mut interval = tokio::time::interval(self.options.poll_interval);

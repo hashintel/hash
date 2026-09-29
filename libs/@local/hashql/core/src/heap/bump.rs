@@ -23,7 +23,6 @@
 //! Both traits are implemented by [`Heap`] and [`Scratch`] allocators:
 //!
 //! ```
-//! # #![feature(allocator_api)]
 //! use hashql_core::heap::{CollectIn, ResetAllocator, Scratch};
 //!
 //! let mut scratch = Scratch::new();

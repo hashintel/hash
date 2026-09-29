@@ -34,6 +34,7 @@ hash-graph-embeddings          = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 hash-middleware                = { workspace = true, public = true }
+problematic                    = { workspace = true }
 
 # Private third-party dependencies
 aide                      = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }

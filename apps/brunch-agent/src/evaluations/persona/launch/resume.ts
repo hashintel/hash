@@ -6,10 +6,8 @@ import { join, resolve } from "node:path";
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 
-import { isAwaitingClient } from "../../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -77,8 +75,7 @@ export const readPersonaResume = async (directory: string) => {
     session.url,
     `${config.panelOrigin}/agents/chat/${flueConversationIdFrom(session)}`,
   );
-  const binding = session.initialData.construction?.binding;
-  assert(binding, "Resume requires the original construction binding");
+  const binding = session.initialData.binding;
   assert.equal(binding.conversationId, session.conversationId);
   assert((await stat(config.databasePath)).isFile());
   assert((await stat(config.browserProfile)).isDirectory());
@@ -135,8 +132,8 @@ export const openRetainedPersonaBrowser = async (
     ) as unknown,
   }));
   const data = v.parse(sdcpnInitialDataSchema, session.initialData);
-  const binding = data?.construction?.binding;
-  assert(binding);
+  assert(data);
+  const binding = data.binding;
   assert.equal(
     saved.principal,
     session.principalKey,
@@ -198,20 +195,6 @@ export const reconcilePersonaResume = async (
     (entry) => entry.submissionId === lastUser.submissionId,
   );
   assert(settlement, "Interrupted submission has not settled; do not start Pi");
-  const results = clientToolHistoryFrom(snapshot.messages).results;
-  for (const message of snapshot.messages)
-    for (const part of message.parts) {
-      if (
-        part.type === "dynamic-tool" &&
-        part.state === "output-available" &&
-        isAwaitingClient(part.output)
-      ) {
-        assert(
-          results.some((result) => result.toolCallId === part.toolCallId),
-          `Unanswered browser call ${part.toolCallId}; automatic resume is not safe`,
-        );
-      }
-    }
   const reply = snapshot.messages
     .slice(
       snapshot.messages.findIndex((message) => message.id === lastUser.id) + 1,

@@ -1037,10 +1037,6 @@ async fn synchronize_source_advances_during_read() {
 
 /// Shutdown finishes the synchronization already started and polls the source no further.
 #[expect(
-    clippy::integer_division_remainder_used,
-    reason = "the remainder is `tokio::select!`'s own branch dispatch"
-)]
-#[expect(
     clippy::significant_drop_tightening,
     reason = "the pinned run retains the download until the end of the test"
 )]

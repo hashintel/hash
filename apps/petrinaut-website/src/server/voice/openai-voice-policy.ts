@@ -46,7 +46,7 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
  * interrupting playback, and the Realtime model has no tools with which to
  * manufacture an answer.
  */
-export const createOpenAIRealtimeSession = () => ({
+export const createOpenAIRealtimeSession = (voice = "marin") => ({
   type: "realtime" as const,
   model: "gpt-realtime-2",
   output_modalities: ["audio"] as const,
@@ -70,6 +70,6 @@ export const createOpenAIRealtimeSession = () => ({
         interrupt_response: false,
       },
     },
-    output: { voice: "marin" as const },
+    output: { voice },
   },
 });

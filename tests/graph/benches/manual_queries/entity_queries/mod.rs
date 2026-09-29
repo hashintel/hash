@@ -5,7 +5,7 @@ use criterion::{BatchSize, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
-use hash_graph_api::legacy::{
+use hash_graph_api::rest::legacy::{
     ApiConfig,
     entity::query::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
 };

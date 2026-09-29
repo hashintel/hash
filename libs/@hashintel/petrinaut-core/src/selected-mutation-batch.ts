@@ -117,6 +117,37 @@ export const selectedMutationOperationSchema = z.discriminatedUnion("type", [
     type: z.literal("removeDifferentialEquation"),
     input: mutationActionInputSchemas.removeDifferentialEquation,
   }),
+  // Simulation scenarios and metrics, the saved entities an experiment names.
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addScenario"),
+    input: mutationActionInputSchemas.addScenario,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateScenario"),
+    input: mutationActionInputSchemas.updateScenario,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeScenario"),
+    input: mutationActionInputSchemas.removeScenario,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("addMetric"),
+    input: mutationActionInputSchemas.addMetric,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("updateMetric"),
+    input: mutationActionInputSchemas.updateMetric,
+  }),
+  z.strictObject({
+    operationId: z.string().min(1),
+    type: z.literal("removeMetric"),
+    input: mutationActionInputSchemas.removeMetric,
+  }),
 ]);
 
 export const selectedMutationBatchSchema = z

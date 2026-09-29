@@ -6,7 +6,6 @@
     coverage_attribute,
 
     // Library Features
-    allocator_api,
     core_io,
     duration_millis_float,
     exitcode_exit_method,
@@ -15,7 +14,6 @@
     macro_metavar_expr,
     pattern,
     try_trait_v2,
-    vec_from_fn,
 )]
 
 extern crate alloc;
@@ -23,6 +21,7 @@ extern crate alloc;
 use std::{
     env,
     io::{Write as _, stdout},
+    process::ExitCode,
 };
 
 use self::{
@@ -61,7 +60,7 @@ pub fn nextest_bridge(package: &str) {
         quick_filter: true,
     };
 
-    runner
+    let _: ExitCode = runner
         .execute(Command::Run(Run {
             format: OutputFormat::Human,
             bless: false,

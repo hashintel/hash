@@ -333,10 +333,6 @@ where
         pin!(let stream = self.stream;);
 
         loop {
-            #[expect(
-                clippy::integer_division_remainder_used,
-                reason = "tokio macro uses remainder internally"
-            )]
             let event = tokio::select! {
                 () = self.cancel.cancelled() => break,
                 event = stream.next() => event,

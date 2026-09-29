@@ -113,6 +113,29 @@ export type PetrinautAiAssistant = {
    * Not called for read-only refusals, schema failures, title changes or commands.
    */
   executeMutation?: PetrinautAiMutationExecutor;
+  /**
+   * Host-run tool calls whose results the host returns itself while the
+   * response is still streaming. Omitted for Stock and legacy Flue modes.
+   */
+  inBandBrowserTools?: {
+    has: (toolName: string) => boolean;
+    /**
+     * Run one call at its turn in same-document order. The host decides
+     * whether it may start, calls `execute` at most once with the input to
+     * run, and reports the resolved output or the failure itself. `signal`
+     * aborts on Stop. Later calls wait until this promise settles, except
+     * behind an experiment, which yields once it has captured its source.
+     */
+    run: (
+      call: {
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+        signal: AbortSignal;
+      },
+      execute: (input: unknown) => Promise<unknown>,
+    ) => Promise<void>;
+  };
   /** Host-owned dynamic tools executed automatically against the mounted editor. */
   automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Host-owned dynamic tools that render inline in the AI conversation. */

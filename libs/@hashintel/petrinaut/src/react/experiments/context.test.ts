@@ -48,28 +48,27 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
 const ALL_STATUSES: ExperimentStatus[] = [
   "initializing",
   "running",
+  "idle",
   "complete",
   "error",
   "cancelled",
 ];
 
-describe("isTerminalExperimentStatus", () => {
-  it("partitions every status into exactly active or terminal", () => {
-    // The two must stay exact complements: `isExperimentActive` is defined as the
-    // negation, and the provider stamps `finishedAt` off the terminal side.
+describe("experiment status predicates", () => {
+  it("keeps an idle sweep outside the computing and terminal sets", () => {
     const terminal = ALL_STATUSES.filter(isTerminalExperimentStatus);
-    const active = ALL_STATUSES.filter(
-      (status) => !isTerminalExperimentStatus(status),
+    const active = ALL_STATUSES.filter((status) =>
+      isExperimentActive(makeRecord({ status })),
     );
 
     expect(terminal).toStrictEqual(["complete", "error", "cancelled"]);
     expect(active).toStrictEqual(["initializing", "running"]);
+  });
 
-    for (const status of ALL_STATUSES) {
-      expect(isExperimentActive(makeRecord({ status }))).toBe(
-        !isTerminalExperimentStatus(status),
-      );
-    }
+  it("keeps a host-owned idle sweep active until the request settles", () => {
+    expect(
+      isExperimentActive(makeRecord({ status: "idle", requestActive: true })),
+    ).toBe(true);
   });
 });
 

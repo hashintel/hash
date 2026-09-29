@@ -183,7 +183,7 @@ export const styles = sva({
           "&:active": {
             transform: "[scale(0.99)]",
           },
-          "&:focus-visible": {
+          _focusVisible: {
             outline: "[2px solid transparent]",
             outlineOffset: "[2px]",
             boxShadow:

@@ -95,6 +95,7 @@ export {
   isExperimentActive,
 } from "./experiments/context";
 export { ExperimentHostContext } from "./experiment-host/context";
+export { prepareExperiment } from "./experiment-host/prepare-experiment";
 export type {
   CreateExperimentInput,
   ExperimentRecord,

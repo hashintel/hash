@@ -263,6 +263,7 @@ export function makeOptimizationsContextValue(
 ): OptimizationsContextValue {
   return {
     optimizations: [optimization],
+    optimizationUnavailableReason: null,
     createOptimization: () => Promise.resolve(optimization.id),
     cancelOptimization: () => {},
     removeOptimization: () => {},

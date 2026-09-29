@@ -82,18 +82,6 @@ describe("Brunch tool presentation", () => {
     },
   );
 
-  test("renders a model name as document detail", () => {
-    expect(
-      resolveBrunchToolPresentation({
-        toolName: "read_petrinaut_net",
-        state: "success",
-        input: {},
-        output: { title: "New Process" },
-        error: undefined,
-      }),
-    ).toEqual({ title: "Read current model", detail: "Model: New Process" });
-  });
-
   test("fails safe when a skill resource path is malformed", () => {
     expect(() =>
       resolveBrunchToolPresentation({

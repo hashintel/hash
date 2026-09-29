@@ -49,10 +49,6 @@ impl<P> TransactionSendDelegateTask<P>
 where
     P: ServerTransactionPermit,
 {
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
     async fn run(mut self) {
         let cancel = self.permit.cancellation_token();
 

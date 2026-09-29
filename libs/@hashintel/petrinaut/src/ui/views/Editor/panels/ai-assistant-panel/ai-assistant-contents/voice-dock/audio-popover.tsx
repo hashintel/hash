@@ -1,15 +1,24 @@
 import { useRef, useState } from "react";
 
-import { Button, Popover, Slider } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Popover,
+  Slider,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { voiceSessionActionLabels } from "../../../../components/voice-session-labels";
+import { AudioSettings } from "./audio-popover/settings";
 import { SpeakerIcon } from "./speaker-icon";
 
 import type { VoiceSessionActions } from "../../../../../../../react/voice-session/store";
+import type { VoiceAudioSettingsState } from "../../../../../../../react/voice-session/types";
 
 const popoverStyle = css({
   width: "[236px]",
+  maxWidth: "[calc(100vw - 32px)]",
   backgroundColor: "neutral.s00",
 });
 
@@ -17,6 +26,9 @@ const popoverBodyStyle = css({
   margin: "[0 !important]",
   padding: "[8px !important]",
   boxShadow: "[none !important]",
+  maxHeight: "[min(calc(100vh - 32px), var(--available-height, 70vh))]",
+  overflowY: "auto",
+  scrollbarGutter: "stable",
 });
 
 const controlsStyle = css({
@@ -30,6 +42,23 @@ const actionStyle = css({
   width: "full",
 });
 
+const interruptionStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+  minHeight: "[32px]",
+  paddingX: "2",
+});
+
+const interruptionLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  fontSize: "sm",
+  fontWeight: "medium",
+});
+
 const speakerControlsStyle = css({
   display: "flex",
   width: "full",
@@ -41,6 +70,10 @@ const speakerControlsStyle = css({
 const volumeStyle = css({
   flex: "1",
   minWidth: "[0]",
+  '&:not([data-disabled]) [data-part="control"], &:not([data-disabled]) [data-part="thumb"]':
+    {
+      cursor: "pointer",
+    },
   '& [data-part="label"]': {
     position: "absolute",
     width: "[1px]",
@@ -83,20 +116,28 @@ const advancedControlsStyle = cva({
 
 export const AudioPopover = ({
   actions,
+  settings,
   canReadFullResponse,
   canRepeatQuestion,
   interruptionBySpeaking,
   speakerControlsDisabled,
   speakerMuted,
   speakerVolume,
+  previewDisabledReason,
+  showStatusText,
+  setShowStatusText,
 }: {
   actions: VoiceSessionActions;
+  settings?: VoiceAudioSettingsState;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   interruptionBySpeaking: boolean;
   speakerControlsDisabled: boolean;
   speakerMuted: boolean;
   speakerVolume: number;
+  previewDisabledReason: string | null;
+  showStatusText: boolean;
+  setShowStatusText: (value: boolean) => void;
 }) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -121,7 +162,10 @@ export const AudioPopover = ({
         aria-haspopup="dialog"
         aria-label={voiceSessionActionLabels.audioOptions}
         iconName="sliders"
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
+        onClick={() => {
+          if (!open && settings) actions.audioSettings?.refreshDevices();
+          setOpen((wasOpen) => !wasOpen);
+        }}
         size="sm"
         tooltip={voiceSessionActionLabels.audioOptions}
         type="button"
@@ -129,18 +173,35 @@ export const AudioPopover = ({
       />
       {open && (
         <Popover
+          className={css({ animationName: "[none !important]" })}
           gapY={4}
           onClose={() => setOpen(false)}
           position="top-start"
           triggerRef={triggerRef}
         >
           <Popover.Container className={popoverStyle}>
-            <Popover.Body className={popoverBodyStyle}>
+            <Popover.Body className={popoverBodyStyle} withPadding={false}>
               <div
                 aria-label={voiceSessionActionLabels.audioControls}
                 className={controlsStyle}
                 role="group"
               >
+                {hasSpeakerControls && (
+                  <span
+                    className={css({
+                      fontSize: "xs",
+                      color: "neutral.s90",
+                      padding: "[0 8px 4px]",
+                    })}
+                  >
+                    Volume
+                    {speakerMuted
+                      ? " · Muted"
+                      : clampedSpeakerVolume === 0
+                        ? " · Silent"
+                        : ""}
+                  </span>
+                )}
                 {hasSpeakerControls && (
                   <div className={speakerControlsStyle}>
                     {actions.setSpeakerMuted && (
@@ -161,13 +222,13 @@ export const AudioPopover = ({
                         className={volumeStyle}
                         disabled={speakerControlsDisabled}
                         label={voiceSessionActionLabels.speakerVolume}
-                        max={1}
+                        max={100}
                         min={0}
                         onChange={(volume) =>
-                          actions.setSpeakerVolume?.(volume)
+                          actions.setSpeakerVolume?.(volume / 100)
                         }
-                        step={0.05}
-                        value={clampedSpeakerVolume}
+                        step={5}
+                        value={Math.round(clampedSpeakerVolume * 100)}
                         variant="plain"
                       />
                     )}
@@ -178,6 +239,37 @@ export const AudioPopover = ({
                     )}
                   </div>
                 )}
+                {settings && actions.audioSettings && (
+                  <AudioSettings
+                    actions={actions.audioSettings}
+                    settings={settings}
+                    disabled={speakerControlsDisabled}
+                    previewDisabledReason={previewDisabledReason}
+                  />
+                )}
+                <div
+                  className={css({
+                    borderTopWidth: "thin",
+                    borderTopStyle: "solid",
+                    borderTopColor: "neutral.a20",
+                    marginTop: "2",
+                    padding: "2",
+                  })}
+                >
+                  <Toggle
+                    className={css({
+                      width: "[100% !important]",
+                      justifyContent: "space-between",
+                    })}
+                    labelOffText="Show status text"
+                    aria-label="Show status text"
+                    aria-description="Show Listening, Thinking, and Speaking beside the voice indicator."
+                    value={showStatusText}
+                    onChange={setShowStatusText}
+                    size="sm"
+                    tone="brand"
+                  />
+                </div>
                 {hasAdvancedControls && (
                   <div
                     className={advancedControlsStyle({
@@ -186,8 +278,10 @@ export const AudioPopover = ({
                   >
                     {actions.repeatQuestion && (
                       <Button
+                        aria-label={voiceSessionActionLabels.repeatQuestion}
                         className={actionStyle}
                         disabled={!canRepeatQuestion}
+                        iconName="rotate"
                         onClick={actions.repeatQuestion}
                         size="sm"
                         type="button"
@@ -198,8 +292,10 @@ export const AudioPopover = ({
                     )}
                     {actions.readFullResponse && (
                       <Button
+                        aria-label={voiceSessionActionLabels.readFullResponse}
                         className={actionStyle}
                         disabled={!canReadFullResponse}
+                        iconName="play"
                         onClick={actions.readFullResponse}
                         size="sm"
                         type="button"
@@ -209,20 +305,23 @@ export const AudioPopover = ({
                       </Button>
                     )}
                     {actions.setInterruptionBySpeaking && (
-                      <Button
-                        className={actionStyle}
-                        onClick={() =>
-                          actions.setInterruptionBySpeaking?.(
-                            !interruptionBySpeaking,
-                          )
-                        }
-                        pressed={interruptionBySpeaking}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        {voiceSessionActionLabels.interruptionBySpeaking}
-                      </Button>
+                      <div className={interruptionStyle}>
+                        <span className={interruptionLabelStyle}>
+                          <Icon name="hand" size="sm" />
+                          {voiceSessionActionLabels.interruptionBySpeaking}
+                        </span>
+                        <Toggle
+                          aria-label={
+                            voiceSessionActionLabels.interruptionBySpeaking
+                          }
+                          onChange={(enabled) =>
+                            actions.setInterruptionBySpeaking?.(enabled)
+                          }
+                          size="sm"
+                          tone="brand"
+                          value={interruptionBySpeaking}
+                        />
+                      </div>
                     )}
                   </div>
                 )}

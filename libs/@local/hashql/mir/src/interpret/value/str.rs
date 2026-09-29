@@ -122,7 +122,6 @@ impl<A: Allocator> Str<'_, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// use alloc::alloc::Global;
     ///

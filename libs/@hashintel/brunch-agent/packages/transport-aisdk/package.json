@@ -8,11 +8,8 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
-    },
-    "./headers": {
-      "types": "./src/headers.ts",
-      "import": "./dist/headers.js"
     }
   },
   "scripts": {
@@ -24,7 +21,8 @@
   },
   "dependencies": {
     "@flue/sdk": "2.0.3",
-    "ai": "6.0.182"
+    "@hashintel/brunch-agent": "workspace:*",
+    "ai": "6.0.286"
   },
   "devDependencies": {
     "@types/node": "22.18.13",

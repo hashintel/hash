@@ -25,9 +25,14 @@ use crate::principal::actor_group::WebId;
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema), schemars(inline))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityUuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
+pub struct EntityUuid(
+    #[serde(with = "hash_codec::serde::valid_uuid")]
+    #[cfg_attr(feature = "schemars", schemars(with = "Uuid"))]
+    Uuid,
+);
 
 impl EntityUuid {
     #[must_use]

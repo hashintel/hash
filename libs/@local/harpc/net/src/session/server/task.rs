@@ -35,10 +35,6 @@ pub(crate) struct Task {
 
 impl Task {
     #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
-    #[expect(
         clippy::significant_drop_tightening,
         reason = "permit is used for congestion control"
     )]

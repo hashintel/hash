@@ -93,6 +93,12 @@ const connectOptimizationSource = (
 
 export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   const source = use(PetrinautOptimizationContext);
+  const optimizationUnavailableReason =
+    source === null
+      ? "Optimization is unavailable"
+      : isConnectedOptimization(source)
+        ? null
+        : "A sweep can only be optimized in the browser";
   const experimentsActionsRef = useLatest(use(ExperimentsActionsContext));
   const connectionRef = useRef<OptimizationConnection | null>(null);
   const abortControllersRef = useRef(new Map<string, AbortController>());
@@ -513,6 +519,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
 
   const value: OptimizationsContextValue = {
     optimizations,
+    optimizationUnavailableReason,
     createOptimization,
     cancelOptimization,
     removeOptimization,

@@ -38,9 +38,6 @@
     "start": {
       "dependsOn": ["build"]
     },
-    "start:test": {
-      "dependsOn": ["build"]
-    },
     "test:integration": {
       "dependsOn": ["build", "codegen", "^build"],
       "env": ["TEST_COVERAGE"]
@@ -50,8 +47,6 @@
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/docs/**",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/evaluations/**",
         "$TURBO_ROOT$/libs/@hashintel/petrinaut/docs/**"
       ]
     }

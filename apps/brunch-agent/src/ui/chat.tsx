@@ -18,13 +18,14 @@ import {
   flueConversationIdWeb,
   type ConversationIdentity,
 } from "@hashintel/brunch-agent-transport-aisdk";
-
-import { LOCAL_UI_PRINCIPAL } from "../conversation/payload.ts";
-import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
+import {
+  brunchRoutes,
+  localUiPrincipal,
+} from "@hashintel/brunch-agent/constants";
 
 /** The local UI always speaks as its one demo principal. */
 type LocalConversationIdentity = ConversationIdentity & {
-  readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
+  readonly principalKey: typeof localUiPrincipal;
 };
 
 type ChatConfiguration =
@@ -40,17 +41,17 @@ const chatConfiguration = (): ChatConfiguration => {
   if (parameters.get("mode") !== "observe") {
     return {
       mode: "writable",
-      principalKey: LOCAL_UI_PRINCIPAL,
+      principalKey: localUiPrincipal,
       conversationId: crypto.randomUUID(),
     };
   }
 
   const principalKey = parameters.get("principal");
   const conversationId = parameters.get("id")?.trim();
-  if (principalKey !== LOCAL_UI_PRINCIPAL) {
+  if (principalKey !== localUiPrincipal) {
     return {
       mode: "observer-error",
-      message: `Observer principal must be "${LOCAL_UI_PRINCIPAL}".`,
+      message: `Observer principal must be "${localUiPrincipal}".`,
     };
   }
   if (!conversationId) {
@@ -62,7 +63,7 @@ const chatConfiguration = (): ChatConfiguration => {
 
   return {
     mode: "observe",
-    principalKey: LOCAL_UI_PRINCIPAL,
+    principalKey: localUiPrincipal,
     conversationId,
   };
 };
@@ -183,7 +184,7 @@ export function Chat() {
       if (cancelled) return;
       setClient(
         createFlueClient({
-          url: `/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+          url: `/agents/${brunchRoutes.chatAgent}/${instanceId}`,
           headers: agentOwnershipHeaders(configuration),
         }),
       );

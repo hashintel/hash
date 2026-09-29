@@ -22,7 +22,7 @@
     default_field_values,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     formatting_options,
     iter_intersperse,
 )]

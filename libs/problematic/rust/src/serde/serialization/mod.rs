@@ -1,5 +1,6 @@
 use core::fmt::Display;
 
+use http::StatusCode;
 use serde_core::{
     Serialize, Serializer,
     ser::{Error, Impossible, SerializeMap, SerializeStruct},
@@ -19,23 +20,25 @@ struct ExtensionKey<'a, T: ?Sized>(&'a T);
     reason = "Serde passes fields to serialize_with by reference."
 )]
 pub(crate) fn serialize_status<S: Serializer>(
-    status: &u16,
+    status: &StatusCode,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-    if !(100..=599).contains(status) {
+    let status = status.as_u16();
+    if !(100..=599).contains(&status) {
         return Err(S::Error::custom(format_args!(
             "problem status code {status} is outside 100..=599"
         )));
     }
 
-    serializer.serialize_u16(*status)
+    serializer.serialize_u16(status)
 }
 
 /// Checks extension member names while serializing an object.
 ///
 /// # Errors
 ///
-/// Returns an error for non-object extensions, reserved member names, or serializer failures.
+/// Returns an error for extensions other than an object, a unit or `None`, for reserved member
+/// names, or for serializer failures.
 pub(crate) fn serialize_extensions<E: Serialize, S: Serializer>(
     extensions: &E,
     serializer: S,
@@ -43,8 +46,11 @@ pub(crate) fn serialize_extensions<E: Serialize, S: Serializer>(
     extensions.serialize(ExtensionSerializer(serializer))
 }
 
+/// The members of a problem details object that an extension must not name.
+pub(crate) const STANDARD_MEMBERS: [&str; 5] = ["type", "title", "status", "detail", "instance"];
+
 fn check_member<E: Error>(name: &str) -> Result<(), E> {
-    if matches!(name, "type" | "title" | "status" | "detail" | "instance") {
+    if STANDARD_MEMBERS.contains(&name) {
         return Err(E::custom(format_args!(
             "problem extension `{name}` conflicts with a standard member"
         )));
@@ -58,6 +64,12 @@ fn non_object_error<E: Error>() -> E {
 }
 
 struct ExtensionSerializer<S>(S);
+
+impl<S: Serializer> ExtensionSerializer<S> {
+    fn no_members(self) -> Result<S::Ok, S::Error> {
+        self.0.serialize_map(Some(0))?.end()
+    }
+}
 
 macro_rules! reject_scalar {
     ($($method:ident($type:ty)),* $(,)?) => {
@@ -100,7 +112,7 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Err(non_object_error())
+        self.no_members()
     }
 
     fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
@@ -108,11 +120,11 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Err(non_object_error())
+        self.no_members()
     }
 
     fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
-        Err(non_object_error())
+        self.no_members()
     }
 
     fn serialize_unit_variant(

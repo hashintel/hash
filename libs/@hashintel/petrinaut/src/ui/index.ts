@@ -12,6 +12,10 @@
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 export {
+  ExperimentExecutionCard,
+  type ExperimentExecutionCardProps,
+} from "./views/Editor/panels/ai-assistant-panel/ai-assistant-contents/experiment-execution-card";
+export {
   Petricon,
   PetriconProvider,
   petriconNames,
@@ -191,6 +195,7 @@ export {
   type PetrinautAiMessage,
   type PetrinautAiMessageMetadata,
 } from "./views/Editor/panels/ai-assistant-panel";
+export { executePetrinautAiMutation } from "./views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,

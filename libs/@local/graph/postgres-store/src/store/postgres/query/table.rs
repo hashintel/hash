@@ -2433,7 +2433,7 @@ impl Relation {
                 ..
             } if table == Table::Reference(reference_table) => reference_table
                 .inheritance_depth_column()
-                .map(|column| {
+                .map_or_default(|column| {
                     column
                         .inheritance_depth()
                         .map_or_else(Vec::new, |inheritance_depth| {
@@ -2442,8 +2442,7 @@ impl Relation {
                                 Expression::Constant(Constant::U32(inheritance_depth)),
                             )]
                         })
-                })
-                .unwrap_or_default(),
+                }),
             Self::OntologyIds
             | Self::OntologyOwnedMetadata
             | Self::OntologyExternalMetadata

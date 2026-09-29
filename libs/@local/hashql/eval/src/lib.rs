@@ -9,10 +9,9 @@
     exhaustive_patterns,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     const_convert,
     const_trait_impl,
-    drop_guard,
     get_mut_unchecked,
     impl_trait_in_assoc_type,
     iter_array_chunks,

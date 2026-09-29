@@ -122,7 +122,6 @@ fn public_view_policy() -> CreateEntityPolicyParams {
 }
 
 /// A full-width embedding pointing along `(x, y)` in the first two components.
-#[expect(clippy::indexing_slicing)]
 fn embedding_towards(x: f32, y: f32) -> Embedding<'static> {
     let mut vector = vec![0.0_f32; Embedding::DIM];
     vector[0] = x;

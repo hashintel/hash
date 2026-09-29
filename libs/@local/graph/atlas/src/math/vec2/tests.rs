@@ -161,14 +161,15 @@ fn batch_perp_dot_matches_scalar_lanes() {
 
     let perps = lhs.perp_dot(rhs);
     let reversed = rhs.perp_dot(lhs);
+    let wide = lhs.perp_dot_wide(rhs);
 
     // The coordinates are multiples of 1/4 with magnitude at most 8. Each product and difference
-    // fits exactly in f32. Therefore the fused and separately rounded expressions agree on these
-    // fixtures.
+    // fits exactly in f32. Therefore the f32 and f64 evaluations agree on these fixtures.
     for lane in 0..4 {
         assert_eq!(perps[lane], POINTS[lane].perp_dot(other[lane]));
         // The perpendicular product is antisymmetric lane-wise.
         assert_eq!(reversed[lane], -perps[lane]);
+        assert_eq!(wide[lane], f64::from(perps[lane]));
     }
 }
 
@@ -329,6 +330,14 @@ fn perp_dot_is_antisymmetric(
 }
 
 #[property_test]
+fn perp_dot_wide_antisymmetry(
+    #[strategy = vec2_strategy()] left: Vec2,
+    #[strategy = vec2_strategy()] right: Vec2,
+) {
+    prop_assert_eq!(left.perp_dot_wide(right), -right.perp_dot_wide(left));
+}
+
+#[property_test]
 fn distance_is_symmetric_with_zero_self_distance(
     #[strategy = vec2_strategy()] left: Vec2,
     #[strategy = vec2_strategy()] right: Vec2,
@@ -387,9 +396,9 @@ fn batch_operators_match_scalar_lanes_on_arbitrary_inputs(
     }
 }
 
-// cancellation can make a dot or perpendicular product much smaller than its terms. Their error
-// tolerances use the products' scale to account for different rounding under fused multiply-add.
-// Squared sums have no cancellation and use the result's magnitude.
+// cancellation can make a dot product much smaller than its terms. Its error tolerance uses the
+// products' scale to account for different rounding under fused multiply-add. Squared sums have no
+// cancellation and use the result's magnitude.
 #[property_test]
 fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
     #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],
@@ -411,21 +420,33 @@ fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
             .abs()
             .max((lhs[lane].y() * rhs[lane].y()).abs());
         prop_assert!(close(dots[lane], lhs[lane].dot(rhs[lane]), dot_magnitude));
-
-        let perp_magnitude = (lhs[lane].x() * rhs[lane].y())
-            .abs()
-            .max((lhs[lane].y() * rhs[lane].x()).abs());
-        prop_assert!(close(
-            perps[lane],
-            lhs[lane].perp_dot(rhs[lane]),
-            perp_magnitude
-        ));
+        prop_assert_eq!(perps[lane], lhs[lane].perp_dot(rhs[lane]));
 
         let distance = lhs[lane].distance_squared(rhs[lane]);
         prop_assert!(close(distances[lane], distance.get(), distance.get()));
 
         let length = lhs[lane].length_squared().get();
         prop_assert!(close(lengths[lane], length, length));
+    }
+}
+
+#[property_test]
+fn batch_perp_dot_is_antisymmetric_and_matches_scalar_lanes(
+    #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],
+    #[strategy = vec2_array_strategy()] rhs: [Vec2; 4],
+) {
+    let left = Vec2x4T::from(lhs);
+    let right = Vec2x4T::from(rhs);
+
+    let perps = left.perp_dot(right);
+    let wide = left.perp_dot_wide(right);
+
+    prop_assert_eq!(perps, -right.perp_dot(left));
+    prop_assert_eq!(wide, -right.perp_dot_wide(left));
+
+    for lane in 0..4 {
+        prop_assert_eq!(perps[lane], lhs[lane].perp_dot(rhs[lane]));
+        prop_assert_eq!(wide[lane], lhs[lane].perp_dot_wide(rhs[lane]));
     }
 }
 

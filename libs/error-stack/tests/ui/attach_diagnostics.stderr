@@ -16,8 +16,9 @@ help: the trait `std::fmt::Display` is not implemented for `NotDisplay`
 note: required by a bound in `error_stack::Report::<C>::attach`
   --> src/report.rs
    |
+   | impl<C: ?Sized> Report<C> {
+...
    |     pub fn attach<A>(mut self, attachment: A) -> Self
-   |            ------ required by a bound in this associated function
    |     where
    |         A: Attachment,
    |            ^^^^^^^^^^ required by this bound in `Report::<C>::attach`

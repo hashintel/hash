@@ -8,8 +8,11 @@
 //!   [`AuthenticationProvider`] and [`Caller`], the contract between the middleware and the
 //!   credential verifiers a service supplies.
 //! - [`rate_limit`] budgets requests by client address ahead of authentication and by resolved
-//!   principal behind it — its module documentation states the ordering contract.
+//!   caller behind it — its module documentation states the ordering contract.
 //! - [`telemetry`] spans every request and joins the caller's OpenTelemetry trace.
+//! - [`problem`] defines [`InternalServerError`], the problem variant of an error that stays
+//!   internal.
+//! - [`response`] renders a problem document as an `application/problem+json` response.
 //!
 //! The providers are the extension point, and the credential vocabulary is not. A new failure
 //! mode extends [`AuthenticationErrorKind`], a new caller type the sealed [`Caller`], and both
@@ -20,10 +23,11 @@
 //! [`Caller`]: authentication::provider::Caller
 //! [`AuthenticatedActorId`]: authentication::AuthenticatedActorId
 //! [`AuthenticationErrorKind`]: authentication::request::AuthenticationErrorKind
+//! [`InternalServerError`]: problem::InternalServerError
 //!
 //! # Example
 //!
-//! A router assembles the request middlewares as address gate, authentication, principal
+//! A router assembles the request middlewares as address gate, authentication, caller
 //! limiter — requests traverse them in that order — with the tracing layer on the outside:
 //!
 //! ```
@@ -39,7 +43,7 @@
 //!         request::AuthenticationError,
 //!     },
 //!     rate_limit::{
-//!         ClientIpSource, IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimitMode,
+//!         CallerLimitLayer, ClientIpSource, IpGateLayer, RateLimitConfig, RateLimitMode,
 //!         RateLimiters,
 //!     },
 //!     telemetry::HttpTracingLayer,
@@ -86,7 +90,7 @@
 //!
 //! let router: Router = Router::new()
 //!     .route("/whoami", get(whoami))
-//!     .route_layer(PrincipalLimitLayer {
+//!     .route_layer(CallerLimitLayer {
 //!         limiters: Arc::clone(&limiters),
 //!         service_secret: Arc::clone(&service_secret),
 //!     })
@@ -111,8 +115,9 @@
 //!
 //! # Feature flags
 //!
-//! Both are off by default.
+//! All are off by default.
 //!
+//! - `aide`: documents authentication and rate-limit rejections in OpenAPI.
 //! - `clap`: derives `clap::ValueEnum` on [`RateLimitMode`] and [`ClientIpSource`], so a service
 //!   parses them straight from its command line.
 //! - `test-utils`: exposes the fixed-outcome provider `StaticAuthenticationProvider` and
@@ -123,14 +128,17 @@
 //!
 //! # Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(impl_trait_in_assoc_type, generic_atomic, error_generic_member_access)]
+#![feature(impl_trait_in_assoc_type, generic_atomic)]
 #![cfg_attr(test, feature(variant_count))]
 
 extern crate alloc;
 
+#[cfg(feature = "aide")]
+mod aide;
 pub mod authentication;
+pub mod problem;
 pub mod rate_limit;
-mod response;
+pub mod response;
 pub mod telemetry;
 #[cfg(test)]
 mod test_metrics;

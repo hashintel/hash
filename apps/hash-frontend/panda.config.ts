@@ -2,7 +2,10 @@ import { createRequire } from "node:module";
 
 import { defineConfig } from "@pandacss/dev";
 
-import { scopedThemeConfig } from "@hashintel/ds-components/preset";
+import {
+  resolvePandaBuildInfoPath,
+  scopedThemeConfig,
+} from "@hashintel/ds-components/preset";
 import petrinautPandaPreset from "@hashintel/petrinaut/panda-preset";
 
 /** Panda evaluates this config through CJS, so `__filename` is available here. */
@@ -55,13 +58,21 @@ export default defineConfig({
 
   /**
    * Styles used inside ds-components itself, plus Petrinaut's shipped style
-   * usage, plus the supply-chain tool and its route pages, which author Panda
-   * `css()` calls against the ds-components preset tokens.
+   * usage, plus this app's own sources that author Panda `css()` calls
+   * against the ds-components preset tokens: the supply-chain tool and its
+   * route pages, and the tiled network graph.
    */
   include: [
-    require.resolve("@hashintel/ds-components/panda.buildinfo.json"),
-    require.resolve("@hashintel/petrinaut/panda.buildinfo.json"),
+    resolvePandaBuildInfoPath(
+      "@hashintel/ds-components/panda.buildinfo.json",
+      require.resolve,
+    ),
+    resolvePandaBuildInfoPath(
+      "@hashintel/petrinaut/panda.buildinfo.json",
+      require.resolve,
+    ),
     "./src/pages/supply-chain/**/*.{ts,tsx}",
+    "./src/components/tiled-network-graph/**/*.{ts,tsx}",
   ],
 
   exclude: [],

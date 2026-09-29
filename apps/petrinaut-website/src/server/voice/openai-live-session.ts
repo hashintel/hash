@@ -1,3 +1,7 @@
+import {
+  isSupportedVoice,
+  voicePreferenceHeader,
+} from "../../shared/voice-settings.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 
@@ -69,8 +73,11 @@ export const createOpenAILiveSessionHandler =
     )
       return respond("Expected SDP.", 415);
     const availability = getOpenAIVoiceAvailability(environment);
-    if (!availability.available || getVoiceProvider(environment) !== "live")
-      return respond("Live is unavailable.", 404);
+    if (!availability.available) return respond("Live is unavailable.", 404);
+
+    const voice = request.headers.get(voicePreferenceHeader) ?? "marin";
+    if (!isSupportedVoice("live", voice))
+      return respond("Unsupported voice.", 400);
 
     const signal = AbortSignal.any([
       request.signal,
@@ -115,7 +122,7 @@ export const createOpenAILiveSessionHandler =
             instructions,
             delegation: { type: "client" },
             store: false,
-            audio: { output: { voice: "marin" } },
+            audio: { output: { voice } },
           },
           transport: { type: "webrtc", sdp },
         }),

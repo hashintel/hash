@@ -100,7 +100,7 @@
     macro_metavar_expr,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     alloc_io,
     arc_is_unique,
     clone_from_ref,

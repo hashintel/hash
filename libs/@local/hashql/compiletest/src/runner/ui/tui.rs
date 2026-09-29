@@ -297,7 +297,7 @@ fn render_stats_distribution(frame: &mut Frame, area: Rect, trials: &[TrialByTot
         Line::from(vec![
             Span::styled("min  ", Style::new().dim()),
             Span::styled(
-                format_duration(trials.first().map(|trial| trial.total).unwrap_or_default()),
+                format_duration(trials.first().map_or_default(|trial| trial.total)),
                 Style::new().green(),
             ),
         ]),
@@ -320,7 +320,7 @@ fn render_stats_distribution(frame: &mut Frame, area: Rect, trials: &[TrialByTot
         Line::from(vec![
             Span::styled("max  ", Style::new().dim()),
             Span::styled(
-                format_duration(trials.last().map(|stat| stat.total).unwrap_or_default()),
+                format_duration(trials.last().map_or_default(|stat| stat.total)),
                 Style::new().red(),
             ),
         ]),

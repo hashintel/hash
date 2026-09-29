@@ -2,16 +2,19 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { createLiveConversation } from "./live-conversation";
+import { VoiceAudioSettings } from "./voice-audio-settings";
 
 beforeEach(() => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
 });
 
 const setup = ({
+  audioSettings,
   audioMuted = false,
   audioVolume = 1,
   inputEnabled = true,
 }: {
+  readonly audioSettings?: VoiceAudioSettings;
   readonly audioMuted?: boolean;
   readonly audioVolume?: number;
   readonly inputEnabled?: boolean;
@@ -25,6 +28,7 @@ const setup = ({
     });
   const channels = [createChannel(sent[0]), createChannel(sent[1])] as const;
   const input = Object.assign(new EventTarget(), {
+    kind: "audio",
     enabled: inputEnabled,
     stop: vi.fn(),
   });
@@ -44,6 +48,7 @@ const setup = ({
       setLocalDescription: vi.fn(async () => undefined),
       setRemoteDescription: vi.fn(async () => undefined),
       close: vi.fn(),
+      getSenders: () => [{ track: input, replaceTrack: vi.fn() }],
       getReceivers: () => [{ track: outputs[index]! }],
       getStats: vi.fn(async () => new Map()),
     }),
@@ -91,6 +96,7 @@ const setup = ({
     onFinalizedInput,
     onDelegation,
     onAppendResult,
+    audioSettings,
   );
   const emit = (connection: 0 | 1, data: unknown) =>
     channels[connection].dispatchEvent(
@@ -127,6 +133,69 @@ const connect = async (fixture: ReturnType<typeof setup>) => {
   fixture.emit(0, { type: "session.started" });
   fixture.emit(1, { type: "session.created" });
 };
+
+test("stops voice preview before reopening the Live microphone", async () => {
+  const settings = new VoiceAudioSettings("live", undefined);
+  const fixture = setup({ audioSettings: settings });
+  await connect(fixture);
+  fixture.conversation.setMicrophoneMuted(true);
+  const stop = vi
+    .spyOn(settings.actions, "stopVoicePreview")
+    .mockImplementation(() => {
+      expect(fixture.input.enabled).toBe(false);
+    });
+  fixture.conversation.setMicrophoneMuted(false);
+  expect(stop).toHaveBeenCalledOnce();
+  expect(fixture.input.enabled).toBe(true);
+  stop.mockRestore();
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("wires selected voice and both Live senders to session-owned audio settings", async () => {
+  const settings = new VoiceAudioSettings("live", undefined, {
+    getItem: () => "quartz",
+    setItem: vi.fn(),
+  });
+  const attach = vi.spyOn(settings, "attach");
+  const detach = vi.spyOn(settings, "detach");
+  const fixture = setup({ audioSettings: settings });
+  await connect(fixture);
+  expect(fixture.fetch).toHaveBeenCalledWith(
+    "/api/voice/live-session",
+    expect.objectContaining({
+      headers: {
+        "content-type": "application/sdp",
+        "x-petrinaut-voice": "quartz",
+      },
+    }),
+  );
+  expect(fixture.fetch).toHaveBeenCalledWith(
+    "/api/voice/transcription-session",
+    expect.objectContaining({
+      headers: { "content-type": "application/sdp" },
+    }),
+  );
+  expect(attach).toHaveBeenCalledOnce();
+  const connection = attach.mock.calls[0]?.[0];
+  expect(connection?.senders).toHaveLength(2);
+  fixture.conversation.setMicrophoneMuted(true);
+  fixture.conversation.setSpeakerVolume(0.4);
+  const replacement = { enabled: true, stop: vi.fn() };
+  connection?.replaceMicrophone({
+    getAudioTracks: () => [replacement],
+    getTracks: () => [replacement],
+  } as unknown as MediaStream);
+  expect(replacement.enabled).toBe(false);
+  expect(fixture.audio.volume).toBe(0.4);
+  detach.mockClear();
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+  expect(detach).toHaveBeenCalledOnce();
+  expect(replacement.stop).toHaveBeenCalled();
+});
 
 test.each([true, false])(
   "diagnostic trace is development-only (%s) and excludes provider content",

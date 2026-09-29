@@ -10,7 +10,7 @@ use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
     },
-    rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimiters},
+    rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
 };
 use rand::rngs::SysRng;
@@ -77,7 +77,7 @@ pub struct ServeOptions<P> {
     pub provider: Arc<P>,
     /// The delegation secret internal services use to bypass request budgets.
     pub service_secret: SecretString,
-    /// Address and principal request budgets.
+    /// Address and caller request budgets.
     pub rate_limit: RateLimitConfig,
     /// Shared connections for feeds, visibility resolution and document hydration.
     pub pool: Arc<PostgresStorePool>,
@@ -249,7 +249,7 @@ impl ServeCommand {
             visibility,
         )
         .route_layer(
-            // PrincipalLimitLayer requires the request extension written by AuthenticationLayer.
+            // CallerLimitLayer requires the request extension written by AuthenticationLayer.
             ServiceBuilder::new()
                 .layer(IntoProblemLayer)
                 .layer(AuthenticationLayer::<_, ActorId> {
@@ -260,7 +260,7 @@ impl ServeCommand {
                     caller: core::marker::PhantomData,
                 })
                 .layer(IntoProblemLayer)
-                .layer(PrincipalLimitLayer {
+                .layer(CallerLimitLayer {
                     limiters: Arc::clone(&limiters),
                     service_secret: Arc::clone(&service_secret),
                 }),

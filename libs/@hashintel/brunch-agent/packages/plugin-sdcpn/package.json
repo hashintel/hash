@@ -8,16 +8,15 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./flue": {
       "types": "./src/flue.ts",
+      "@dev/source": "./src/flue.ts",
       "import": "./dist/flue.js"
     },
-    "./worked-model": {
-      "types": "./src/worked-model-net-projection.ts",
-      "import": "./dist/worked-model.js"
-    }
+    "./skills/sdcpn-modelling/SKILL.md": "./src/skills/sdcpn-modelling/SKILL.md"
   },
   "scripts": {
     "build": "vite build",

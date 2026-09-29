@@ -1,4 +1,8 @@
 import {
+  isSupportedVoice,
+  voicePreferenceHeader,
+} from "../../shared/voice-settings.js";
+import {
   voiceErrorMessage,
   type VoiceDiagnosticReporter,
   type VoiceErrorCode,
@@ -107,6 +111,11 @@ export const createOpenAIRealtimeCallHandler =
       return voiceFailure("unavailable", 404);
     }
 
+    const voice = request.headers.get(voicePreferenceHeader) ?? "marin";
+    if (!isSupportedVoice("realtime", voice)) {
+      return diagnostics.respond(response("Unsupported voice.", 400));
+    }
+
     const abortController = new AbortController();
     const abortForTimeout = () => abortController.abort(timeoutError);
     const abortForRequest = () => abortController.abort();
@@ -146,7 +155,7 @@ export const createOpenAIRealtimeCallHandler =
         return diagnostics.respond(sdp);
       }
 
-      const session = createOpenAIRealtimeSession();
+      const session = createOpenAIRealtimeSession(voice);
       const form = new FormData();
       form.set("sdp", sdp);
       form.set("session", JSON.stringify(session));

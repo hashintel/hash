@@ -22,10 +22,6 @@ export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
   return (specifier: string) => require.resolve(specifier);
 };
 
-export const resolveDsComponentsBuildInfoPath = (
-  resolve: (specifier: string) => string,
-) => resolve(DS_COMPONENTS_BUILD_INFO_SUBPATH);
-
 export const createPetrinautPandaConfig = (
   dsComponentsBuildInfoPath: string,
 ) => {

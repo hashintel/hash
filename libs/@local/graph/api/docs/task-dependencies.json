@@ -28,6 +28,7 @@
     "hashql-hir",
     "hashql-mir",
     "hashql-syntax-jexpr",
+    "problematic",
     "type-system"
   ],
   "tasks": {

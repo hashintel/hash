@@ -26,6 +26,7 @@ import { createVoiceSessionStore } from "../../../../../react/voice-session/stor
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import { AiAssistantContents } from "./ai-assistant-contents";
 import { VoiceDock } from "./ai-assistant-contents/voice-dock";
+import { AudioSettings } from "./ai-assistant-contents/voice-dock/audio-popover/settings";
 
 import type { PetrinautAiMessage } from "./types";
 
@@ -197,13 +198,11 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
     screen
       .getByRole("slider", { name: "Speaker volume" })
       .getAttribute("aria-valuenow"),
-  ).toBe("1");
+  ).toBe("100");
   expect(screen.queryByRole("button", { name: "Repeat question" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Read full reply" })).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Read full response" }),
-  ).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Interruption by speaking" }),
+    screen.queryByRole("checkbox", { name: "Allow interruptions" }),
   ).toBeNull();
   expect(
     microphone.closest('[data-scope="popover"][data-part="content"]'),
@@ -211,6 +210,71 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
 
   fireEvent.click(screen.getByRole("button", { name: "End voice mode" }));
   expect(end).toHaveBeenCalledOnce();
+});
+
+test("keeps crowded Voice actions fixed while status content can shrink", () => {
+  render(
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices: noop,
+          requestSpeaker: noop,
+          setMicrophoneDevice: noop,
+          setSpeakerDevice: noop,
+          setVoice: noop,
+          stopVoicePreview: noop,
+        },
+        end: noop,
+        pause: noop,
+        retryPlayback: noop,
+        setMicrophoneMuted: noop,
+        setSpeakerMuted: noop,
+        setSpeakerVolume: noop,
+        takeTurn: noop,
+      }}
+      assistantBusy
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canRetryPlayback
+      canTakeTurn
+      collapsed={false}
+      indicator={<span data-testid="waveform" />}
+      microphoneMuted={false}
+      notice="Audio playback is blocked. Select Play voice audio to hear Live."
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase="speaking"
+      speakerMuted={false}
+      speakerVolume={1}
+    />,
+  );
+
+  const dock = screen.getByTestId("ai-voice-dock");
+  const getPart = (part: string) => {
+    const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
+    if (!element) throw new Error(`Missing Voice dock part: ${part}`);
+    return element;
+  };
+  const leftActions = getPart("left-actions");
+  const center = getPart("shrinkable-status");
+  const indicator = getPart("fixed-indicator");
+  const status = getPart("visible-status");
+  const rightActions = getPart("right-actions");
+  const liveStatus = getPart("live-status");
+
+  expect(dock.className).toContain("d_grid");
+  expect(dock.className).toContain("grid-tc_[auto_minmax(0,_1fr)_auto]");
+  expect(leftActions.className).toContain("flex-sh_0");
+  expect(rightActions.className).toContain("flex-sh_0");
+  expect(center.className).toContain("min-w_[0]");
+  expect(status.className).toContain("min-w_[0]");
+  expect(indicator.className).toContain("flex-sh_0");
+  expect(status.className).toContain("ov_hidden");
+  expect(status.className).toContain("tov_ellipsis");
+  expect(within(indicator).getByTestId("waveform")).toBeTruthy();
+  expect(liveStatus.textContent).toBe(
+    "Voice status: Audio playback is blocked. Select Play voice audio to hear Live.",
+  );
 });
 
 test("offers a user-gesture retry while session audio is blocked", () => {
@@ -406,12 +470,14 @@ test.each(["connecting", "error"] as const)(
     expect(setSpeakerMuted).not.toHaveBeenCalled();
     expect(setSpeakerVolume).not.toHaveBeenCalled();
 
-    const interruption = screen.getByRole<HTMLButtonElement>("button", {
-      name: "Interruption by speaking",
+    const interruption = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "Allow interruptions",
     });
     expect(interruption.disabled).toBe(false);
     fireEvent.click(interruption);
-    expect(setInterruptionBySpeaking).toHaveBeenCalledExactlyOnceWith(false);
+    await waitFor(() =>
+      expect(setInterruptionBySpeaking).toHaveBeenCalledExactlyOnceWith(false),
+    );
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
         name: "Repeat question",
@@ -419,7 +485,7 @@ test.each(["connecting", "error"] as const)(
     ).toBe(true);
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
-        name: "Read full response",
+        name: "Read full reply",
       }).disabled,
     ).toBe(true);
   },
@@ -469,6 +535,387 @@ test.each(["listening", "thinking", "speaking", "paused"] as const)(
     );
   },
 );
+
+test("collapses Real-time speed settings until expanded", async () => {
+  const setSpeed = vi.fn();
+  render(
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices: vi.fn(),
+          requestSpeaker: vi.fn(),
+          setMicrophoneDevice: vi.fn(),
+          setSpeakerDevice: vi.fn(),
+          setSpeed,
+          setVoice: vi.fn(),
+        },
+        end: vi.fn(),
+        pause: noop,
+      }}
+      audioSettings={{
+        activeVoice: "alloy",
+        voice: "alloy",
+        voices: [{ value: "alloy", text: "Alloy" }],
+        speed: 1,
+        devices: {
+          microphones: [],
+          speakers: [],
+          microphoneId: "",
+          speakerId: "",
+          canSelectSpeaker: false,
+          canRequestSpeaker: false,
+          busy: false,
+          message: null,
+        },
+      }}
+      assistantBusy={false}
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canTakeTurn={false}
+      collapsed={false}
+      indicator={<span />}
+      microphoneMuted={false}
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase="connected"
+      speakerMuted={false}
+      speakerVolume={1}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  const realTime = await screen.findByRole("button", { name: "Real-time" });
+  expect(realTime.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("slider", { name: "Speed" })).toBeNull();
+
+  fireEvent.click(realTime);
+  expect(realTime.getAttribute("aria-expanded")).toBe("true");
+  const speed = screen.getByRole("slider", { name: "Speed" });
+  expect(speed.getAttribute("aria-valuemin")).toBe("0.25");
+  expect(speed.getAttribute("aria-valuemax")).toBe("1.5");
+  expect(speed.getAttribute("aria-valuenow")).toBe("1");
+  expect(screen.getByText("1×")).not.toBeNull();
+  expect(screen.queryByText("Next reply")).toBeNull();
+
+  speed.focus();
+  fireEvent.keyDown(speed, { key: "ArrowRight" });
+  await waitFor(() => expect(setSpeed).toHaveBeenCalledExactlyOnceWith(1.25));
+});
+
+test("keeps voice visible while toggling devices and refreshes devices when opened", async () => {
+  const refreshDevices = vi.fn();
+  const stopVoicePreview = vi.fn();
+  const setVoice = vi.fn();
+  render(
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices,
+          stopVoicePreview,
+          requestSpeaker: vi.fn(),
+          setMicrophoneDevice: vi.fn(),
+          setSpeakerDevice: vi.fn(),
+          setVoice,
+        },
+        end: vi.fn(),
+        pause: noop,
+        setSpeakerVolume: vi.fn(),
+      }}
+      audioSettings={{
+        activeVoice: "alloy",
+        voice: "verse",
+        voicePreview: "playing",
+        voices: [
+          { value: "alloy", text: "Alloy" },
+          { value: "verse", text: "Verse" },
+        ],
+        devices: {
+          microphones: [],
+          speakers: [],
+          microphoneId: "",
+          speakerId: "",
+          canSelectSpeaker: false,
+          canRequestSpeaker: false,
+          busy: false,
+          message: "Allow microphone access to list devices.",
+        },
+      }}
+      assistantBusy={false}
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canTakeTurn={false}
+      collapsed={false}
+      indicator={<span />}
+      microphoneMuted={true}
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase="connected"
+      speakerMuted={false}
+      speakerVolume={0.65}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(
+    (
+      await screen.findByRole("slider", { name: "Speaker volume" })
+    ).getAttribute("aria-valuenow"),
+  ).toBe("65");
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(screen.getByText("Voice preview playing").getAttribute("role")).toBe(
+    "status",
+  );
+  expect(
+    screen.queryByRole("button", { name: /play preview|pause preview/i }),
+  ).toBeNull();
+  const nativeVoice = document.querySelector("select");
+  if (!nativeVoice) throw new Error("Missing native voice field");
+  fireEvent.change(nativeVoice, { target: { value: "alloy" } });
+  await waitFor(() =>
+    expect(setVoice).toHaveBeenCalledExactlyOnceWith("alloy"),
+  );
+  expect(screen.queryByRole("button", { name: /^Voice/ })).toBeNull();
+  const devicesToggle = screen.getByRole("button", { name: "Devices" });
+  expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
+  expect(screen.queryByText(/^The voice applies next time/)).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "About voice selection" }),
+  );
+  const voiceInfo = await screen.findByText(/^The voice applies next time/);
+  expect(voiceInfo.textContent).toBe(
+    "The voice applies next time the agent is connected.Preview when your mic is muted and the agent is idle.",
+  );
+  expect(voiceInfo.querySelector("br")).not.toBeNull();
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText(/^The voice applies next time/)
+        .closest('[data-part="content"]')
+        ?.getAttribute("data-state"),
+    ).toBe("open"),
+  );
+  // Ark installs the nested dismissable layer on the next animation frame.
+  await act(
+    async () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  fireEvent.keyDown(screen.getByText(/^The voice applies next time/), {
+    key: "Escape",
+  });
+  await waitFor(() =>
+    expect(screen.queryByText(/^The voice applies next time/)).toBeNull(),
+  );
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(
+    screen.queryByText(
+      "Speaking speed is not available with this voice provider.",
+    ),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Real-time" })).toBeNull();
+  expect(screen.queryByRole("slider", { name: "Speed" })).toBeNull();
+
+  expect(refreshDevices).toHaveBeenCalledOnce();
+  fireEvent.click(devicesToggle);
+  expect(devicesToggle.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(screen.getByRole("combobox", { name: "Microphone" }).textContent).toBe(
+    "System default",
+  );
+  expect(screen.getByRole("combobox", { name: "Speaker" }).textContent).toBe(
+    "System default",
+  );
+  expect(
+    screen.getByRole<HTMLButtonElement>("combobox", { name: "Speaker" })
+      .disabled,
+  ).toBe(true);
+  expect(
+    screen.getByText("System default — change output in your system settings."),
+  ).not.toBeNull();
+  expect(
+    screen
+      .getByText("Allow microphone access to list devices.")
+      .getAttribute("role"),
+  ).toBe("status");
+  expect(screen.queryByRole("button", { name: "Refresh devices" })).toBeNull();
+  expect(
+    screen.queryByText("Disconnected devices switch to system default."),
+  ).toBeNull();
+  fireEvent.click(devicesToggle);
+  expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(refreshDevices).toHaveBeenCalledOnce();
+  expect(stopVoicePreview).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(refreshDevices).toHaveBeenCalledTimes(2);
+});
+
+test("stops a voice preview only when audio settings unmount", () => {
+  const initialStopVoicePreview = vi.fn();
+  const latestStopVoicePreview = vi.fn();
+  const actions = {
+    refreshDevices: vi.fn(),
+    requestSpeaker: vi.fn(),
+    setMicrophoneDevice: vi.fn(),
+    setSpeakerDevice: vi.fn(),
+    setVoice: vi.fn(),
+  };
+  const settings = {
+    activeVoice: "alloy",
+    voice: "alloy",
+    voices: [{ value: "alloy", text: "Alloy" }],
+    devices: {
+      microphones: [],
+      speakers: [],
+      microphoneId: "",
+      speakerId: "",
+      canSelectSpeaker: false,
+      canRequestSpeaker: false,
+      busy: false,
+      message: null,
+    },
+  };
+  const { rerender, unmount } = render(
+    <AudioSettings
+      actions={{
+        ...actions,
+        stopVoicePreview: initialStopVoicePreview,
+      }}
+      disabled={false}
+      previewDisabledReason={null}
+      settings={settings}
+    />,
+  );
+
+  rerender(
+    <AudioSettings
+      actions={{
+        ...actions,
+        stopVoicePreview: latestStopVoicePreview,
+      }}
+      disabled={false}
+      previewDisabledReason={null}
+      settings={settings}
+    />,
+  );
+
+  expect(initialStopVoicePreview).not.toHaveBeenCalled();
+  expect(latestStopVoicePreview).not.toHaveBeenCalled();
+
+  unmount();
+  expect(initialStopVoicePreview).not.toHaveBeenCalled();
+  expect(latestStopVoicePreview).toHaveBeenCalledOnce();
+});
+
+test("gates voice previews and hides only ordinary status text", async () => {
+  const stopVoicePreview = vi.fn();
+  const setMicrophoneMuted = vi.fn();
+  const setVoice = vi.fn();
+  const dock = (
+    phase: "listening" | "speaking" | "muted" | "connecting",
+    microphoneMuted: boolean,
+  ) => (
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices: vi.fn(),
+          stopVoicePreview,
+          requestSpeaker: vi.fn(),
+          setMicrophoneDevice: vi.fn(),
+          setSpeakerDevice: vi.fn(),
+          setVoice,
+        },
+        end: noop,
+        pause: noop,
+        setSpeakerVolume: noop,
+        setMicrophoneMuted,
+      }}
+      audioSettings={{
+        activeVoice: "alloy",
+        voice: "alloy",
+        voices: [
+          { value: "alloy", text: "Alloy" },
+          { value: "verse", text: "Verse" },
+        ],
+        devices: {
+          microphones: [],
+          speakers: [],
+          microphoneId: "",
+          speakerId: "",
+          canSelectSpeaker: false,
+          canRequestSpeaker: false,
+          busy: false,
+          message: null,
+        },
+      }}
+      assistantBusy={false}
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canTakeTurn={false}
+      collapsed={false}
+      indicator={<span data-testid="waveform" />}
+      microphoneMuted={microphoneMuted}
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase={phase}
+      speakerMuted={false}
+      speakerVolume={1}
+    />
+  );
+  const { rerender } = render(dock("listening", false));
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  const voice = await screen.findByRole<HTMLButtonElement>("combobox", {
+    name: "Voice",
+  });
+  expect(voice.disabled).toBe(false);
+  const nativeVoice = document.querySelector("select");
+  if (!nativeVoice) throw new Error("Missing native voice field");
+  fireEvent.change(nativeVoice, { target: { value: "verse" } });
+  await waitFor(() =>
+    expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
+  );
+  expect(screen.getByText("Mute your mic to preview.")).not.toBeNull();
+  const toggle = screen.getByRole("checkbox", { name: "Show status text" });
+  expect((toggle as HTMLInputElement).checked).toBe(true);
+  fireEvent.click(screen.getByText("Show status text"));
+  await waitFor(() =>
+    expect(screen.queryByText("Listening", { exact: true })).toBeNull(),
+  );
+  expect(screen.getByRole("status", { name: "Voice status" }).textContent).toBe(
+    "Voice status: Listening",
+  );
+  expect(screen.getByTestId("waveform")).not.toBeNull();
+
+  rerender(dock("speaking", true));
+  expect(voice.disabled).toBe(false);
+  expect(screen.getByText("Wait for the agent to finish.")).not.toBeNull();
+  expect(screen.queryByText("Speaking", { exact: true })).toBeNull();
+  rerender(dock("muted", true));
+  expect(voice.disabled).toBe(false);
+  expect(screen.getByText("Muted", { exact: true })).not.toBeNull();
+  stopVoicePreview.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "Unmute microphone" }));
+  expect(stopVoicePreview).toHaveBeenCalledOnce();
+  expect(setMicrophoneMuted).toHaveBeenCalledExactlyOnceWith(false);
+  expect(stopVoicePreview.mock.invocationCallOrder[0]).toBeLessThan(
+    setMicrophoneMuted.mock.invocationCallOrder[0]!,
+  );
+
+  rerender(dock("connecting", true));
+  expect(voice.disabled).toBe(false);
+  setVoice.mockClear();
+  fireEvent.change(nativeVoice, { target: { value: "verse" } });
+  await waitFor(() =>
+    expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
+  );
+  expect(screen.getByText("Connecting", { exact: true })).not.toBeNull();
+});
 
 describe("AiAssistantContents", () => {
   test("switches to host content without unmounting chat or losing its draft and Stop control", () => {
@@ -1176,23 +1623,24 @@ describe("AiAssistantContents", () => {
     );
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-    const preference = await screen.findByRole("button", {
-      name: "Interruption by speaking",
+    const preference = await screen.findByRole<HTMLInputElement>("checkbox", {
+      name: "Allow interruptions",
     });
-    expect(preference.getAttribute("aria-pressed")).toBe("true");
+    expect(preference.checked).toBe(true);
+    expect(preference.closest("div")?.querySelector("svg")).not.toBeNull();
     fireEvent.click(preference);
     await waitFor(() =>
       expect(setInterruptionBySpeaking).toHaveBeenCalledWith(false),
     );
     expect(screen.queryByText("Audio options")).toBeNull();
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
-    expect(preference.getAttribute("aria-pressed")).toBe("false");
+    expect(preference.checked).toBe(false);
     expect(screen.getByRole("button", { name: "Your turn" })).not.toBeNull();
     fireEvent.click(preference);
     await waitFor(() =>
       expect(setInterruptionBySpeaking).toHaveBeenLastCalledWith(true),
     );
-    expect(preference.getAttribute("aria-pressed")).toBe("true");
+    expect(preference.checked).toBe(true);
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
   });
 
@@ -1274,12 +1722,12 @@ describe("AiAssistantContents", () => {
     expect(actions.repeatQuestion).toHaveBeenCalledOnce();
 
     const readFullResponse = screen.getByRole("button", {
-      name: "Read full response",
+      name: "Read full reply",
     });
     fireEvent.click(readFullResponse);
     expect(actions.readFullResponse).toHaveBeenCalledOnce();
     expect(
-      screen.getByRole("button", { name: "Interruption by speaking" }),
+      screen.getByRole("checkbox", { name: "Allow interruptions" }),
     ).not.toBeNull();
 
     const speakerMute = screen.getByRole("button", { name: "Mute speaker" });
@@ -1469,7 +1917,7 @@ describe("AiAssistantContents", () => {
     });
     expect(speakerMute.getAttribute("aria-pressed")).toBe("false");
     const volume = screen.getByRole("slider", { name: "Speaker volume" });
-    expect(volume.getAttribute("aria-valuenow")).toBe("1");
+    expect(volume.getAttribute("aria-valuenow")).toBe("100");
 
     volume.focus();
     fireEvent.keyDown(volume, { key: "ArrowLeft" });
@@ -1528,7 +1976,7 @@ describe("AiAssistantContents", () => {
       };
       store.setState(state);
       const end = vi.fn();
-      store.setActions({ end, pause: noop });
+      store.setActions({ end, pause: noop, setSpeakerVolume: vi.fn() });
       render(
         <NotificationsProvider>
           <VoiceSessionContext.Provider value={store}>
@@ -1547,6 +1995,19 @@ describe("AiAssistantContents", () => {
         </NotificationsProvider>,
       );
       const dock = screen.getByTestId("ai-voice-dock");
+      expect(
+        within(dock)
+          .getAllByRole("button")
+          .slice(0, 3)
+          .map((button) => button.getAttribute("aria-label")),
+      ).toEqual(["Show conversation", "Audio options", "Show 1 Voice issue"]);
+      act(() => store.setActions({ end, pause: noop }));
+      expect(
+        within(dock)
+          .getAllByRole("button")
+          .slice(0, 2)
+          .map((button) => button.getAttribute("aria-label")),
+      ).toEqual(["Show conversation", "Show 1 Voice issue"]);
       expect(within(dock).getByText("Connected")).toBeTruthy();
       expect(screen.queryByText(warningMessage)).toBeNull();
       expect(within(dock).getByRole("status").textContent).toBe(

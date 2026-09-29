@@ -16,25 +16,6 @@ runs:
         read -r -a scopes <<< "${SCOPE//$'\n'/ }"
         turbo prune "${scopes[@]}"
 
-    # `turbo prune` copies the workspace directories and the root manifests; paths a package
-    # reads from outside any workspace are copied here.
-    - name: Copy paths outside the workspaces
-      shell: bash
-      env:
-        SCOPE: ${{ inputs.scope }}
-      run: |
-        copy() { mkdir -p "out/$(dirname "$1")" && cp -R "$1" "out/$1"; }
-        read -r -a scopes <<< "${SCOPE//$'\n'/ }"
-        for scope in "${scopes[@]}"; do
-          case "$scope" in
-            # The app's product tests execute evaluation runners and inspect committed evidence.
-            @apps/brunch-agent)
-              copy libs/@hashintel/brunch-agent/docs
-              copy libs/@hashintel/brunch-agent/evaluations
-              ;;
-          esac
-        done
-
     - name: Copy required files
       shell: bash
       run: |

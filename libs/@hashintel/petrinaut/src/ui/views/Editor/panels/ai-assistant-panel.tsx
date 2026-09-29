@@ -81,7 +81,10 @@ import type {
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
 import type { FrameSceneResult } from "../../SDCPN/canvas-renderer";
-import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiTransport,
+} from "./ai-assistant-panel/types";
 
 export type {
   PetrinautAiMessage,
@@ -513,9 +516,9 @@ const ConversationAiAssistantPanel = ({
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
-  // The wrapped AI transport reads the latest language client through a ref
-  // when `sendMessages` eventually runs. React
-  // Compiler can't prove those reads happen off-render, so we opt out here.
+  // The wrapped AI transport and language client read their latest host values
+  // through refs when `sendMessages` eventually runs. React Compiler can't
+  // prove those reads happen off-render, so we opt out here.
   "use no memo";
 
   const instance = use(PetrinautInstanceContext);
@@ -642,18 +645,29 @@ const ConversationAiAssistantPanel = ({
     return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
   }, [instance, requestDiagnosticsRef]);
 
-  // The wrapper is render-derived from the host transport. Delaying this to an
-  // effect leaves useChat on the previous host for one committed render.
-  // Timing stays outside diagnostics so it tags receipt of the response chunks.
+  // AI SDK retains the transport that existed when a conversation ID first
+  // mounted. Delegate through a stable identity so host mechanics that become
+  // ready later (binding, replay and provenance) apply to the next send without
+  // discarding that conversation. Timing stays outside diagnostics so it tags
+  // receipt of the response chunks.
+  const hostTransportRef = useLatest(aiAssistant.transport);
+  const liveHostTransport = useMemo<PetrinautAiTransport>(
+    () => ({
+      sendMessages: (options) => hostTransportRef.current.sendMessages(options),
+      reconnectToStream: (options) =>
+        hostTransportRef.current.reconnectToStream(options),
+    }),
+    [hostTransportRef],
+  );
   const diagnosticsTransport = useMemo(
     () =>
       createReasoningTimingAwareAiTransport(
         createDiagnosticsAwareAiTransport({
           readDiagnosticsContext,
-          transport: aiAssistant.transport,
+          transport: liveHostTransport,
         }),
       ),
-    [aiAssistant.transport, readDiagnosticsContext],
+    [liveHostTransport, readDiagnosticsContext],
   );
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
@@ -718,6 +732,9 @@ const ConversationAiAssistantPanel = ({
     (controls: PetrinautAiVoiceModeSessionControls) => {
       voiceModeControlsRef.current = controls;
       voiceSessionStore.setActions({
+        ...(controls.audioSettings
+          ? { audioSettings: controls.audioSettings }
+          : {}),
         // Ending returns the composer to text, which is also the path that
         // invalidates the host's active generation.
         end: () => requestInputMode("text"),
@@ -824,6 +841,10 @@ const ConversationAiAssistantPanel = ({
     typeof setTimeout
   > | null>(null);
   const suppressedAutomaticSendsRef = useRef(0);
+  // Host-owned widgets can submit before their response stream settles. Keep
+  // their calls here until the explicit ready-state continuation begins so
+  // AI SDK's later stream-end auto-send is suppressed as well.
+  const explicitContinuationToolCallIdsRef = useRef(new Set<string>());
   const addToolOutputRef = useRef<
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"] | null
   >(null);
@@ -834,6 +855,7 @@ const ConversationAiAssistantPanel = ({
   // Flue had nothing left to abort once that step settled, so withholding the
   // follow-up is what makes the Stop real.
   const withholdContinuationForStop = () => {
+    explicitContinuationToolCallIdsRef.current.clear();
     stopRequestedRef.current = false;
     setContinuationPending(false);
     setStreamError(null);
@@ -887,9 +909,10 @@ const ConversationAiAssistantPanel = ({
     if (!canContinue()) return;
   };
 
-  const executeToolCall: ChatOnToolCallCallback<PetrinautAiMessage> = async ({
-    toolCall,
-  }) => {
+  const executeToolCall = async (
+    { toolCall }: Parameters<ChatOnToolCallCallback<PetrinautAiMessage>>[0],
+    captureInBandOutput?: (output: unknown) => void,
+  ) => {
     const generation = submissionGenerationRef.current;
     const executionConversationId = toolHostIdentityRef.current;
     if (executionConversationId === null) {
@@ -898,11 +921,13 @@ const ConversationAiAssistantPanel = ({
     const addAutomaticToolOutput = (
       params: Parameters<typeof addAutomaticToolOutputForGeneration>[0],
     ) =>
-      addAutomaticToolOutputForGeneration(
-        params,
-        generation,
-        executionConversationId,
-      );
+      captureInBandOutput
+        ? Promise.resolve(captureInBandOutput(params.output))
+        : addAutomaticToolOutputForGeneration(
+            params,
+            generation,
+            executionConversationId,
+          );
     if (!instance) {
       throw new Error(
         "The AI assistant cannot run without an editor instance.",
@@ -952,12 +977,16 @@ const ConversationAiAssistantPanel = ({
         } as never);
         return;
       }
-      resolveDynamicInteractiveTool(
-        toolCall.toolName,
-        toolCall.input,
-        aiAssistant.interactiveTools ?? [],
-      );
-      return;
+      if (!aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
+        resolveDynamicInteractiveTool(
+          toolCall.toolName,
+          toolCall.input,
+          aiAssistant.interactiveTools ?? [],
+        );
+        return;
+      }
+      // I-mode canonical tools may be projected dynamically to execute while Flue is awaiting them.
+      // Petrinaut's existing static executor below still owns their behavior.
     }
 
     if (toolCall.toolName === createExperimentToolName) {
@@ -1181,6 +1210,69 @@ const ConversationAiAssistantPanel = ({
     });
   };
 
+  const inBandDocumentLaneRef = useRef<Promise<void>>(Promise.resolve());
+  const executeIssuedBrowserCall = (
+    toolCall: Parameters<
+      ChatOnToolCallCallback<PetrinautAiMessage>
+    >[0]["toolCall"],
+  ) => {
+    const host = aiAssistant.inBandBrowserTools;
+    if (!host?.has(toolCall.toolName)) return;
+    const controller = new AbortController();
+    automaticToolAbortsRef.current.add(controller);
+    let yieldLane = () => {};
+    const laneYielded = new Promise<void>((resolve) => {
+      yieldLane = resolve;
+    });
+    let experimentExecuting = false;
+    const execute = async (issuedInput: unknown) => {
+      const outputs: unknown[] = [];
+      const execution = executeToolCall(
+        { toolCall: { ...toolCall, input: issuedInput } as typeof toolCall },
+        (output) => {
+          outputs.push(output);
+        },
+      );
+      if (toolCall.toolName === createExperimentToolName) {
+        // The source was captured on entry; simulation need not hold the lane.
+        experimentExecuting = true;
+        yieldLane();
+      }
+      await execution;
+      if (outputs.length === 0 && !controller.signal.aborted)
+        throw new Error(
+          `In-band tool ${toolCall.toolName} settled without an output.`,
+        );
+      return outputs[0];
+    };
+    // Run at the start of this call's document-lane turn, so a Stop while it
+    // waits behind another call aborts it before the host lets it start.
+    const scheduled = inBandDocumentLaneRef.current.then(() =>
+      host.run(
+        {
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          signal: controller.signal,
+        },
+        execute,
+      ),
+    );
+    void scheduled.then(yieldLane, yieldLane);
+    // Rejections have a terminal server failure; they do not strand later issued calls.
+    inBandDocumentLaneRef.current = laneYielded;
+    void scheduled
+      .finally(() => automaticToolAbortsRef.current.delete(controller))
+      .catch((error: unknown) => {
+        // A started experiment reports even after Stop, as its simulation does.
+        if (!controller.signal.aborted || experimentExecuting)
+          reportOperationalFailure(
+            error instanceof Error ? error : new Error(String(error)),
+            "browser-tool",
+          );
+      });
+  };
+
   const {
     error,
     id: conversationId,
@@ -1196,8 +1288,9 @@ const ConversationAiAssistantPanel = ({
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransport,
-    // Interactive tools retain AI SDK's native continuation; static tools
-    // suppress it while addAutomaticToolOutput owns the explicit chain.
+    // Built-in interactive commands retain AI SDK's native continuation.
+    // Automatic tools and host-owned dynamic widgets coordinate an explicit
+    // continuation below so stream settlement cannot duplicate their send.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       if (
         suppressedAutomaticSendsRef.current !== 0 ||
@@ -1208,6 +1301,9 @@ const ConversationAiAssistantPanel = ({
         return false;
       }
       if (automaticToolTurnIsTerminated(submissionGenerationRef.current)) {
+        return false;
+      }
+      if (explicitContinuationToolCallIdsRef.current.size !== 0) {
         return false;
       }
       if (!stopRequestedRef.current) {
@@ -1301,6 +1397,10 @@ const ConversationAiAssistantPanel = ({
         `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
         submissionGenerationRef.current,
       );
+      if (aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
+        executeIssuedBrowserCall(toolCall);
+        return undefined;
+      }
       if (!toolCall.dynamic) return undefined;
       if (
         aiAssistant.automaticTools?.some(
@@ -1345,6 +1445,7 @@ const ConversationAiAssistantPanel = ({
         return;
       }
       const sendContinuation = sendAutomaticToolContinuationRef.current;
+      explicitContinuationToolCallIdsRef.current.clear();
       if (sendContinuation === null) {
         setContinuationPending(false);
         const hostError = new Error("The AI assistant tool host is not ready.");
@@ -1400,6 +1501,7 @@ const ConversationAiAssistantPanel = ({
     followedMessagesRef.current = undefined;
     locallyStreamedToolCallsRef.current.clear();
     abortAutomaticTools();
+    explicitContinuationToolCallIdsRef.current.clear();
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
     setContinuationPending(false);
@@ -1856,6 +1958,7 @@ const ConversationAiAssistantPanel = ({
       setStopped(false);
       stopRequestedRef.current = false;
       abortAutomaticTools();
+      explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
       await submitMessage({
         id: messageId,
@@ -2232,6 +2335,7 @@ const ConversationAiAssistantPanel = ({
           controller.abort();
         experimentControllersRef.current.clear();
         setExperimentStates({});
+        explicitContinuationToolCallIdsRef.current.clear();
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
         // with `isAbort`. Drop the stop flag first so that handler treats this
@@ -2278,11 +2382,23 @@ const ConversationAiAssistantPanel = ({
             throw new Error(`Unknown AI tool: ${toolName}`);
           }
 
+          // Retain suppression through stream settlement: addToolOutput skips
+          // its own continuation while streaming, but AI SDK checks again when
+          // the stream reaches ready. The ready-state effect owns the one send.
+          explicitContinuationToolCallIdsRef.current.add(toolCallId);
           return addDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
             output,
-          });
+          }).then(
+            () => {
+              setContinuationPending(true);
+            },
+            (caught: unknown) => {
+              explicitContinuationToolCallIdsRef.current.delete(toolCallId);
+              throw caught;
+            },
+          );
         }
 
         const petrinautOutput = output as AiToolOutput;

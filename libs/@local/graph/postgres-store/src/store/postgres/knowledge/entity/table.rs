@@ -277,11 +277,10 @@ impl RowIndices {
             properties: row.get(self.properties),
             properties_metadata: row
                 .get::<_, Option<serde_json::Value>>(self.property_metadata)
-                .map(|value| {
+                .map_or_default(|value| {
                     PropertyObjectMetadata::deserialize(value)
                         .expect("the stored property metadata should be valid")
-                })
-                .unwrap_or_default(),
+                }),
             source_entity: source_entity.map(|(endpoint, _)| endpoint),
             target_entity: target_entity.map(|(endpoint, _)| endpoint),
         };

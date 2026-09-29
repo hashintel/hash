@@ -135,6 +135,54 @@ fn products_refine_the_f32_counterparts(
 }
 
 #[property_test]
+fn perp_dot_wide_matches_the_widened_perp_dot_bitwise(
+    #[strategy = -1e30_f32..1e30] ax: f32,
+    #[strategy = -1e30_f32..1e30] ay: f32,
+    #[strategy = -1e30_f32..1e30] bx: f32,
+    #[strategy = -1e30_f32..1e30] by: f32,
+) {
+    let left = Vec2::new(ax, ay);
+    let right = Vec2::new(bx, by);
+
+    let wide = left.perp_dot_wide(right);
+    let widened = DVec2::from(left).perp_dot(DVec2::from(right)).into_raw();
+
+    prop_assert_eq!(wide.to_bits(), widened.to_bits());
+}
+
+/// Exercises antisymmetry with rounded `f64` products.
+///
+/// The coordinate bounds keep the products finite. Equality is numerical, including signed zeros.
+#[property_test]
+fn perp_dot_is_antisymmetric(
+    #[strategy = -1e150_f64..1e150] ax: f64,
+    #[strategy = -1e150_f64..1e150] ay: f64,
+    #[strategy = -1e150_f64..1e150] bx: f64,
+    #[strategy = -1e150_f64..1e150] by: f64,
+) {
+    let left = DVec2::new(ax, ay);
+    let right = DVec2::new(bx, by);
+
+    prop_assert_eq!(
+        left.perp_dot(right).into_raw(),
+        -right.perp_dot(left).into_raw()
+    );
+}
+
+#[property_test]
+fn batch_perp_dot_is_antisymmetric(
+    #[strategy = -1e150_f64..1e150] ax: f64,
+    #[strategy = -1e150_f64..1e150] ay: f64,
+    #[strategy = -1e150_f64..1e150] bx: f64,
+    #[strategy = -1e150_f64..1e150] by: f64,
+) {
+    let left = DVec2x4T::splat(DVec2::new(ax, ay));
+    let right = DVec2x4T::splat(DVec2::new(bx, by));
+
+    prop_assert_eq!(left.perp_dot(right), -right.perp_dot(left));
+}
+
+#[property_test]
 fn distance_squared_lanes_match_the_scalar_metric_bitwise(
     #[strategy = -1e150_f64..1e150] ax: f64,
     #[strategy = -1e150_f64..1e150] ay: f64,
@@ -180,7 +228,6 @@ mod miri {
         let perp_dot = source.perp_dot(target);
         let length_squared = source.length_squared();
 
-        // scalar and lane products use the same fused arithmetic on these finite inputs
         for index in 0..4 {
             let source = DVec2::from(sources[index]);
             let target = DVec2::from(targets[index]);

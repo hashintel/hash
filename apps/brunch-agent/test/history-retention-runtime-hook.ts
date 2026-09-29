@@ -14,7 +14,8 @@ import { join } from "node:path";
 
 const directory = process.env.A4_DIAGNOSTIC_DIRECTORY;
 assert(directory);
-const mode = process.env.A4_FAULT ?? "observe";
+const mode = process.env.A4_FAULT;
+assert(mode);
 const label = `${process.env.A4_PHASE ?? "create"}-${mode}`;
 const trace = join(directory, `${label}-runtime-trace.jsonl`);
 assert(!existsSync(trace), "Fresh trace required");
@@ -52,30 +53,6 @@ Reflect.set(globalThis, Symbol.for("a4.runtime.diagnostic"), {
       kill("after-repair", records);
     return result;
   },
-  directOutcome() {
-    kill("direct-after-outcome", []);
-  },
-  continuation(
-    session: {
-      agentLoop: {
-        state: {
-          messages: unknown[];
-          model: { id: string; contextWindow: number };
-        };
-      };
-    },
-    options: { restart?: unknown },
-  ) {
-    report({
-      boundary: "continueRebuilt",
-      restartPresent: typeof options.restart === "function",
-      messages: session.agentLoop.state.messages,
-      model: {
-        id: session.agentLoop.state.model.id,
-        contextWindow: session.agentLoop.state.model.contextWindow,
-      },
-    });
-  },
 });
 registerHooks({
   load(url, context, nextLoad) {
@@ -88,33 +65,27 @@ registerHooks({
     const original = readFileSync(new URL(url), "utf8");
     const append =
       "\tappendCanonical(records) {\n\t\treturn this.conversationWriter.append(records, this.canonicalAppendOptions());\n\t}";
-    const continuation = "\t\tconst continueRebuilt = () => {";
     assert.equal(original.split(append).length, 2);
-    assert.equal(original.split(continuation).length, 2);
-    let source = original
-      .replace(
-        append,
-        '\tappendCanonical(records) {\n\t\treturn globalThis[Symbol.for("a4.runtime.diagnostic")].append(this, records, () => this.conversationWriter.append(records, this.canonicalAppendOptions()));\n\t}',
-      )
-      .replace(
-        continuation,
-        `${continuation}\n\t\t\tglobalThis[Symbol.for("a4.runtime.diagnostic")].continuation(this, options);`,
-      );
-    if (mode === "direct-after-outcome") {
-      // Independent control: one synchronous kill after the ORIGINAL awaited append,
-      // with neither the append promise wrapper nor any other substitution.
-      const boundary = "\t\t\t\t\t\tdurationMs: toolDurationMs\n\t\t\t\t\t}]);";
-      assert.equal(original.split(boundary).length, 2);
-      source = original.replace(
-        boundary,
-        `${boundary}\n\t\t\t\t\tglobalThis[Symbol.for("a4.runtime.diagnostic")].directOutcome();`,
-      );
-    }
+    const source = original.replace(
+      append,
+      '\tappendCanonical(records) {\n\t\treturn globalThis[Symbol.for("a4.runtime.diagnostic")].append(this, records, () => this.conversationWriter.append(records, this.canonicalAppendOptions()));\n\t}',
+    );
     const hash = (value: string) =>
       createHash("sha256").update(value).digest("hex");
     writeFileSync(
       join(directory, `${label}-instrumentation.json`),
-      `${JSON.stringify({ url, mode, originalSha256: hash(original), instrumentedSha256: hash(source), policy: mode === "direct-after-outcome" ? "One synchronous kill after the original awaited outcome append; no promise wrapper." : "Two load-time substitutions only: observe/interrupt canonical append promises and observe rebuilt continuation. No repair or stored-record insertion." }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          url,
+          mode,
+          originalSha256: hash(original),
+          instrumentedSha256: hash(source),
+          policy:
+            "One load-time substitution only: observe/interrupt canonical append promises. No repair or stored-record insertion.",
+        },
+        null,
+        2,
+      )}\n`,
     );
     writeFileSync(join(directory, `${label}-instrumented-runtime.mjs`), source);
     return { format: "module", source, shortCircuit: true };

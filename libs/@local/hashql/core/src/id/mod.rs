@@ -438,7 +438,7 @@ macro_rules! newtype_counter {
 /// # Examples
 ///
 /// ```
-/// # #![feature(allocator_api, macro_metavar_expr_concat)]
+/// # #![feature(macro_metavar_expr_concat)]
 /// # extern crate alloc;
 /// # use hashql_core::id::{newtype, newtype_collections};
 /// # newtype!(struct NodeId(u32 is 0..=1000));

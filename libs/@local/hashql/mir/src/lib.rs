@@ -12,7 +12,7 @@
     const_trait_impl,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     binary_heap_drain_sorted,
     clone_from_ref,
     const_convert,

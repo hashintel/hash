@@ -21,6 +21,8 @@
 # Atlas compiles its wire contract into the binary with `include_str!`, so the
 # file is a build input rather than documentation the image can do without.
 !libs/@local/graph/atlas/docs/wire.md
+# Graph embeds the API overview in its OpenAPI documents.
+!libs/@local/graph/api/src/rest/documentation/overview.md
 # Brunch packages prompts and skills through `?raw` imports in their builds.
 !libs/@hashintel/brunch-agent/packages/*/src/**/*.md
 
@@ -180,11 +182,11 @@ seed-users.json
 out/
 **/out/
 
-# Personal scratch/holding directories (can be placed anywhere in tree)
-**/_temp/
-**/_trash/
-**/_scratch/
-**/_holding/
+# Local-only directories: `_scratch/` anywhere, and any top-level `_*/`
+# (matches `.gitignore`; Docker drops trailing slashes, so `/**` limits these
+# to directory contents)
+**/_scratch/**
+_*/**
 
 # Jujutsu
 .jj/

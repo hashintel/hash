@@ -138,7 +138,7 @@ const stubUnavailableMicrophone = () => {
     },
   );
   vi.stubGlobal("navigator", {
-    mediaDevices: { getUserMedia },
+    mediaDevices: Object.assign(new EventTarget(), { getUserMedia }),
   });
   return getUserMedia;
 };
@@ -188,7 +188,7 @@ afterEach(() => {
 });
 
 describe("voice interview control", () => {
-  test("keeps an interactive-tool submission pending until Flue admits its continuation", async () => {
+  test("keeps an interactive-tool submission pending until Flue admits its message", async () => {
     const events: string[] = [];
     let notifyAdmission:
       | ((submissionId: AgentSendResult["submissionId"]) => void)
@@ -197,7 +197,7 @@ describe("voice interview control", () => {
     const subscribeToAdmission = vi.fn(
       (
         _target: {
-          readonly kind: "client-tool-result" | "user";
+          readonly kind: "user";
           readonly messageId: string;
         },
         listener: (submissionId: AgentSendResult["submissionId"]) => void,
@@ -218,8 +218,8 @@ describe("voice interview control", () => {
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
         admissionTarget: {
-          kind: "client-tool-result",
-          messageId: "assistant-question",
+          kind: "user",
+          messageId: "voice-answer",
         },
         id: "voice-realtime:1:call-1",
         onAdmission: () => events.push("admitted"),
@@ -254,8 +254,8 @@ describe("voice interview control", () => {
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
         admissionTarget: {
-          kind: "client-tool-result",
-          messageId: "assistant-question",
+          kind: "user",
+          messageId: "voice-answer",
         },
         id: "voice-realtime:1:call-1",
         onAdmission: vi.fn(),
@@ -460,7 +460,9 @@ describe("voice interview control", () => {
           resolveCheck = resolve;
         }),
     );
-    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    vi.stubGlobal("navigator", {
+      mediaDevices: Object.assign(new EventTarget(), { getUserMedia }),
+    });
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
@@ -486,11 +488,11 @@ describe("voice interview control", () => {
       failure: "getUserMedia throws synchronously",
       stubMedia: () =>
         vi.stubGlobal("navigator", {
-          mediaDevices: {
+          mediaDevices: Object.assign(new EventTarget(), {
             getUserMedia: () => {
               throw new DOMException("Unavailable", "NotSupportedError");
             },
-          },
+          }),
         }),
     },
   ])(

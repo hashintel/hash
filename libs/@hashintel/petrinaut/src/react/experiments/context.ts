@@ -228,8 +228,12 @@ export function isTerminalExperimentStatus(status: ExperimentStatus): boolean {
 export function isExperimentActive(experiment: ExperimentRecord): boolean {
   // "idle" is deliberately not active: an idle sweep computes nothing, so it
   // neither blocks closing the window nor keeps elapsed-time tickers running.
+  // A host request is the exception: it owns an idle sweep while an optimizer
+  // is choosing the next point, and remains active until that request settles.
   return (
-    experiment.status === "initializing" || experiment.status === "running"
+    experiment.requestActive === true ||
+    experiment.status === "initializing" ||
+    experiment.status === "running"
   );
 }
 

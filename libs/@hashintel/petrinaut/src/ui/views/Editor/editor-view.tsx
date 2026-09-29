@@ -604,7 +604,7 @@ const EditorViewContent = ({
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
-      <UserSettings />
+      <UserSettings settingsLabs={slots?.settingsLabs} />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}

@@ -1,8 +1,3 @@
-#![expect(
-    clippy::print_stderr,
-    reason = "eprintln! used for debug output on test failures"
-)]
-
 //! Integration tests for email filter protection on User entities.
 //!
 //! These tests verify the protection algorithm documented in

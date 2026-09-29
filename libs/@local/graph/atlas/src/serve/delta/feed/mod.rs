@@ -158,10 +158,6 @@ impl Publication {
     /// # Errors
     ///
     /// Returns [`DeltaFeedError::Closed`] if the feed task stops before completing the exchange.
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "Tokio select uses a remainder to traverse its branch set"
-    )]
     pub(super) async fn next(&self, previous: Arc<Delta>) -> Result<Delta, Report<DeltaFeedError>> {
         tokio::select! {
             biased;
@@ -187,10 +183,6 @@ impl Publication {
     /// # Errors
     ///
     /// Returns [`DeltaFeedError::Closed`] if the feed task stops before shutdown.
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "Tokio select uses a remainder to traverse its branch set"
-    )]
     pub(super) async fn run(
         self,
         current: Arc<ArcSwap<Delta>>,
@@ -355,10 +347,6 @@ impl DeltaFeedTask {
     ///
     /// Panics under the conditions on [`Self::tick`] or [`Self::exchange`]. A late tick can also
     /// panic if `interval` computes an unrepresentable next deadline.
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "Tokio select uses a remainder to randomize its first branch"
-    )]
     async fn step(
         &mut self,
         interval: &mut Interval,

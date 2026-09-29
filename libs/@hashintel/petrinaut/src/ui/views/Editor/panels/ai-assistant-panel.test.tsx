@@ -48,7 +48,10 @@ import {
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
-import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-tool";
+import {
+  definePetrinautAiInteractiveTool,
+  type PetrinautAiInteractiveToolWidgetProps,
+} from "../../../types/ai-interactive-tool";
 import {
   addMappedToolOutput,
   AiAssistantPanel,
@@ -382,6 +385,43 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("uses the latest host transport without replacing the conversation", async () => {
+    const firstSend = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(streamChunks([...textChunks("first", "First reply")])),
+    );
+    const secondSend = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(streamChunks([...textChunks("second", "Second reply")])),
+    );
+    const transport = (
+      sendMessages: PetrinautAiTransport["sendMessages"],
+    ): PetrinautAiTransport => ({
+      sendMessages,
+      reconnectToStream: async () => null,
+    });
+    const mounted = renderTestPanel({
+      aiAssistant: {
+        conversationId: "stable-host-transport",
+        transport: transport(firstSend),
+      },
+    });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "First" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(firstSend).toHaveBeenCalledOnce());
+    await screen.findByText("First reply");
+
+    mounted.rerenderPanel({
+      conversationId: "stable-host-transport",
+      transport: transport(secondSend),
+    });
+    fireEvent.change(textarea, { target: { value: "Second" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(secondSend).toHaveBeenCalledOnce());
+    expect(firstSend).toHaveBeenCalledOnce();
+  });
+
   test("declines setNetTitle when the host omits title editing", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {
@@ -1107,18 +1147,39 @@ describe("AiAssistantPanel composer submissions", () => {
 
   test("following refuses external interactive widget completion on arrival and reload", async () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    const ExternalQuestion = ({
+      submitAndWait,
+    }: PetrinautAiInteractiveToolWidgetProps<
+      { question: string },
+      { answer: string }
+    >) => {
+      const [completion, setCompletion] = useState("pending");
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              if (!submitAndWait) {
+                setCompletion("unavailable");
+                return;
+              }
+              void submitAndWait({ answer: "Must not submit" }).then(
+                () => setCompletion("authorized"),
+                () => setCompletion("rejected"),
+              );
+            }}
+          >
+            Complete external question
+          </button>
+          <span>{completion}</span>
+        </>
+      );
+    };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
       inputSchema: { parse: (raw: unknown) => raw as { question: string } },
       outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
-      component: ({ submit }) => (
-        <button
-          type="button"
-          onClick={() => submit({ answer: "Must not submit" })}
-        >
-          Complete external question
-        </button>
-      ),
+      component: ExternalQuestion,
     });
     const config: PetrinautAiAssistant = {
       conversationId: "external-widget",
@@ -1151,6 +1212,7 @@ describe("AiAssistantPanel composer submissions", () => {
         screen.getByRole("button", { name: "Complete external question" }),
       );
     });
+    expect(screen.getByText("rejected")).not.toBeNull();
     expect(sendMessages).not.toHaveBeenCalled();
     mounted.unmount();
     renderTestPanel({ aiAssistant: config });
@@ -1160,6 +1222,7 @@ describe("AiAssistantPanel composer submissions", () => {
         screen.getByRole("button", { name: "Complete external question" }),
       );
     });
+    expect(screen.getByText("rejected")).not.toBeNull();
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
@@ -2650,7 +2713,7 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() => expect(setSpeakerVolume).toHaveBeenCalledWith(0.3));
 
     const readFullResponseItem = screen.getByRole("button", {
-      name: "Read full response",
+      name: "Read full reply",
     });
     expect((readFullResponseItem as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(readFullResponseItem);
@@ -2671,7 +2734,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(
       (
         screen.getByRole("button", {
-          name: "Read full response",
+          name: "Read full reply",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -3662,6 +3725,60 @@ describe("AiAssistantPanel composer submissions", () => {
       ),
     );
     expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("runs an in-band browser call only at its document-lane turn, so Stop aborts a queued call before it starts", async () => {
+    const abortedAtRun = new Map<string, boolean>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(
+      ({ toolCallId, signal }) =>
+        new Promise((_resolve, reject) => {
+          abortedAtRun.set(toolCallId, signal.aborted);
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    );
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async ({ abortSignal }) =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            for (const toolCallId of ["running-read", "queued-read"]) {
+              controller.enqueue({
+                type: "tool-input-available",
+                toolCallId,
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              });
+            }
+            abortSignal?.addEventListener("abort", () =>
+              controller.error(new DOMException("Aborted", "AbortError")),
+            );
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) => toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+      },
+      initialMessage: "Read the net twice",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(run).toHaveBeenCalledOnce());
+    expect(run.mock.calls[0]?.[0].toolCallId).toBe("running-read");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(2));
+    expect(abortedAtRun.get("queued-read")).toBe(true);
   });
 
   test("does not execute tools from a durably stopped reopened response", async () => {
@@ -5721,6 +5838,60 @@ describe("AI experiment requests", () => {
         output: result,
       }),
     );
+  });
+
+  test("an in-band experiment yields the document lane once started and resolves its result to the host", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const outputs = new Map<string, unknown>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async ({ toolCallId, input }, execute) => {
+      outputs.set(toolCallId, await execute(input));
+    });
+    // The response stays open, as it does while the server awaits browser calls.
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "experiment-call",
+              toolName: "createExperiment",
+              input: request,
+            });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "read-call",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            });
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) =>
+            toolName === "createExperiment" ||
+            toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+      },
+      initialMessage: "Run an experiment, then read the net",
+      experimentHost: { runExperiment },
+    });
+
+    await waitFor(() => expect(outputs.has("read-call")).toBe(true));
+    expect(runExperiment).toHaveBeenCalledOnce();
+    expect(outputs.has("experiment-call")).toBe(false);
+
+    await act(async () => completion.resolve(result));
+    await waitFor(() => expect(outputs.get("experiment-call")).toEqual(result));
   });
 
   test("cancels browser computation through the experiment card", async () => {

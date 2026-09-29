@@ -1,14 +1,16 @@
 import { existsSync } from "node:fs";
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { preset as dsComponentsPreset } from "@hashintel/ds-components/preset";
+import {
+  preset as dsComponentsPreset,
+  resolvePandaBuildInfoPath,
+} from "@hashintel/ds-components/preset";
 
 import {
   createNodeSpecifierResolver,
   createPetrinautPandaConfig,
   DS_COMPONENTS_BUILD_INFO_SUBPATH,
-  resolveDsComponentsBuildInfoPath,
 } from "./panda.config.shared";
 import { petrinautPandaPreset } from "./src/panda-preset";
 
@@ -16,7 +18,9 @@ describe("createNodeSpecifierResolver", () => {
   it("resolves the shipped ds-components Panda build-info file from the consumer module", () => {
     const resolve = createNodeSpecifierResolver(import.meta.url);
 
-    expect(resolveDsComponentsBuildInfoPath(resolve)).toMatch(
+    expect(
+      resolvePandaBuildInfoPath(DS_COMPONENTS_BUILD_INFO_SUBPATH, resolve),
+    ).toMatch(
       /libs\/[@]hashintel\/ds-components\/dist\/panda\.buildinfo\.json$/,
     );
   });
@@ -24,18 +28,11 @@ describe("createNodeSpecifierResolver", () => {
   it("resolves to an existing build-info artifact", () => {
     const resolve = createNodeSpecifierResolver(import.meta.url);
 
-    expect(existsSync(resolveDsComponentsBuildInfoPath(resolve))).toBe(true);
-  });
-});
-
-describe("resolveDsComponentsBuildInfoPath", () => {
-  it("resolves the shipped ds-components Panda build-info subpath", () => {
-    const resolve = vi.fn((specifier: string) => `/virtual/${specifier}`);
-
-    expect(resolveDsComponentsBuildInfoPath(resolve)).toBe(
-      `/virtual/${DS_COMPONENTS_BUILD_INFO_SUBPATH}`,
-    );
-    expect(resolve).toHaveBeenCalledWith(DS_COMPONENTS_BUILD_INFO_SUBPATH);
+    expect(
+      existsSync(
+        resolvePandaBuildInfoPath(DS_COMPONENTS_BUILD_INFO_SUBPATH, resolve),
+      ),
+    ).toBe(true);
   });
 });
 

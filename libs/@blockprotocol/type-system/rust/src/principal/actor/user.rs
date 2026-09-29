@@ -30,6 +30,11 @@ use crate::{
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(inline, description = "The UUID of a user.")
+)]
+#[cfg_attr(
     feature = "postgres",
     derive(postgres_types::ToSql, postgres_types::FromSql),
     postgres(transparent)

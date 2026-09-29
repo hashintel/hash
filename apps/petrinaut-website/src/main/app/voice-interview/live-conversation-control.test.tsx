@@ -293,6 +293,14 @@ test.each(["submitted", "streaming"] as const)(
 
 test("reuses setup and reports failure to the host dock and notification surface", async () => {
   const props = context();
+  const audioSettings: unknown = expect.objectContaining({
+    voice: "marin",
+    activeVoice: "marin",
+    devices: expect.objectContaining({
+      microphoneId: "",
+      speakerId: "",
+    }) as unknown,
+  });
   render(<VoiceInterviewControl {...props} config={config} />);
   expect(
     screen.getByRole("region", { name: "Voice mode consent" }),
@@ -321,6 +329,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     screen.queryByRole("region", { name: "Voice mode consent" }),
   ).toBeNull();
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
+    audioSettings,
     phase: "listening",
     microphoneLevel: 0,
     microphoneMuted: false,
@@ -381,6 +390,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     }),
   );
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
+    audioSettings,
     canRetryPlayback: true,
     phase: "listening",
     microphoneLevel: 0,
@@ -397,6 +407,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     .lastCall![0];
   expect(props.registerVoiceModeControls).not.toHaveBeenCalled();
   expect(Object.keys(controls).sort()).toEqual([
+    "audioSettings",
     "end",
     "pause",
     "retryPlayback",
@@ -417,6 +428,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     }),
   );
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
+    audioSettings,
     phase: "error",
     errorMessage: connectionError,
     microphoneLevel: 0,
@@ -722,6 +734,27 @@ test("pins provider, ends through host controls, and never submits or stops cano
   expect(props.submitVoiceInput).not.toHaveBeenCalled();
   expect(props.stop).not.toHaveBeenCalled();
   expect(subscribeToAdmission).not.toHaveBeenCalled();
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      inputMode="text"
+      config={{ ...config, provider: "realtime" }}
+    />,
+  );
+  // The next start must use Realtime's separate disclosure, without restarting Live.
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      config={{ ...config, provider: "realtime" }}
+    />,
+  );
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+  expect(
+    screen.getByText(
+      "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio.",
+    ),
+  ).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Start voice" })).toBeTruthy();
   unmount();
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(null);
 });

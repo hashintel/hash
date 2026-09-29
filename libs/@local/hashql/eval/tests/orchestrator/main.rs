@@ -1,4 +1,4 @@
-#![feature(allocator_api, core_io)]
+#![feature(allocator_ext, core_io)]
 extern crate alloc;
 
 use alloc::sync::Arc;

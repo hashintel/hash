@@ -1,0 +1,164 @@
+/** CBOR visitors shared by document schemas. */
+import * as Result from "./result";
+import * as TaggedError from "./tagged-error";
+
+import type * as CborDecoder from "./cbor-decoder";
+import type * as Num from "./num";
+
+/** An array length that differs from its enclosing schema's declaration. */
+export interface ArrayVisitorErrorReason {
+  readonly _tag: "length";
+  readonly field: string;
+  readonly expected: Num.u64;
+  readonly actual: number;
+}
+
+/** A rejected array length, independent of element decoding failures. */
+export class ArrayVisitorError extends TaggedError.TaggedError<
+  "ArrayVisitorError",
+  ArrayVisitorErrorReason
+> {
+  /** Describes the expected and encoded array lengths. */
+  constructor(reason: ArrayVisitorErrorReason) {
+    const message = `${reason.field} requires ${reason.expected} entries, received ${reason.actual}`;
+
+    super("ArrayVisitorError", reason, message);
+  }
+}
+
+/** Accepts unsigned integers without narrowing to JavaScript numbers. */
+export const unsigned: CborDecoder.CborVisitor<Num.u64, never> = {
+  expecting: "an unsigned integer",
+  visitUnsignedInteger: Result.ok,
+};
+
+/** Accepts CBOR booleans. */
+export const boolean: CborDecoder.CborVisitor<boolean, never> = {
+  expecting: "a boolean",
+  visitBoolean: Result.ok,
+};
+
+/** Accepts UTF-8 text strings. */
+export const text: CborDecoder.CborVisitor<string, never> = {
+  expecting: "a text string",
+  visitTextString: Result.ok,
+};
+
+/** Accepts byte strings as borrowed views. */
+export const bytes: CborDecoder.CborVisitor<Uint8Array, never> = {
+  expecting: "a byte string",
+  visitByteString: Result.ok,
+};
+
+/** Accepts only single-precision CBOR floats. */
+export const float32: CborDecoder.CborVisitor<Num.f32, never> = {
+  expecting: "an f32 value",
+  visitFloat32: Result.ok,
+};
+
+/** Accepts only double-precision CBOR floats. */
+export const float64: CborDecoder.CborVisitor<Num.f64, never> = {
+  expecting: "an f64 value",
+  visitFloat64: Result.ok,
+};
+
+const ignored = (): Result.Result<void> => Result.ok(undefined);
+
+/** Consumes and discards a CBOR value under the decoder's encoding profile. */
+export const ignore: CborDecoder.CborVisitor<void, never> = {
+  expecting: "a CBOR value",
+  visitUnsignedInteger: ignored,
+  visitNegativeInteger: ignored,
+  visitByteString: ignored,
+  visitTextString: ignored,
+  visitBoolean: ignored,
+  visitNull: ignored,
+  visitFloat32: ignored,
+  visitFloat64: ignored,
+  visitArray: Result.fn(function* ignoreArray(
+    access: CborDecoder.CborArrayAccess,
+  ) {
+    while (access.remaining > 0) {
+      yield* access.readElement(ignore);
+    }
+  }),
+  visitMap: Result.fn(function* ignoreMap(access: CborDecoder.CborMapAccess) {
+    while (access.remaining > 0) {
+      yield* access.readKey();
+      yield* access.readValue(ignore);
+    }
+  }),
+};
+
+/**
+ * Accepts null in addition to the element visitor's supported values.
+ *
+ * @returns The element's value or error, or null for an explicit CBOR null.
+ */
+export const nullable = <T, E>(
+  element: Omit<CborDecoder.CborVisitor<T, E>, "visitNull">,
+): CborDecoder.CborVisitor<T | null, E> => {
+  const visitor: CborDecoder.CborVisitor<T | null, E> = {
+    expecting: `${element.expecting} or null`,
+    visitNull: () => Result.ok(null),
+  };
+
+  const methods = [
+    "visitUnsignedInteger",
+    "visitNegativeInteger",
+    "visitFloat32",
+    "visitFloat64",
+    "visitByteString",
+    "visitTextString",
+    "visitBoolean",
+    "visitArray",
+    "visitMap",
+  ] as const;
+
+  for (const name of methods) {
+    const method = element[name];
+    if (method !== undefined) {
+      Object.defineProperty(visitor, name, {
+        value: method.bind(element),
+        enumerable: true,
+      });
+    }
+  }
+  return visitor;
+};
+
+/**
+ * Collects array elements with their receiving visitor.
+ *
+ * When count is supplied, a length mismatch returns {@link ArrayVisitorError} before any element is visited. Element and CBOR errors propagate to the document decoder. Without count, only the decoder bounds the length.
+ */
+export const array = <T, E>(
+  element: CborDecoder.CborVisitor<T, E>,
+  field: string,
+  count?: Num.u64,
+): CborDecoder.CborVisitor<T[], E | ArrayVisitorError> => ({
+  expecting: field,
+  visitArray: Result.fn(function* readArray(
+    access: CborDecoder.CborArrayAccess,
+  ): Result.gen.Return<
+    T[],
+    E | ArrayVisitorError | CborDecoder.CborDecoderError
+  > {
+    if (count !== undefined && BigInt(access.remaining) !== count) {
+      return yield* Result.err(
+        new ArrayVisitorError({
+          _tag: "length",
+          field,
+          expected: count,
+          actual: access.remaining,
+        }),
+      );
+    }
+
+    const values: T[] = [];
+    while (access.remaining > 0) {
+      values.push(yield* access.readElement(element));
+    }
+    return values;
+  }),
+});

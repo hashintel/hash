@@ -107,12 +107,13 @@ mod tests {
 
     use error_stack::Report;
     use hash_middleware::authentication::{
+        AuthenticationProblem,
         provider::{AuthenticationProvider as _, Caller, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
     use http::HeaderMap;
-    use problematic::error_stack::ReportExt as _;
+    use problematic::Expose;
     use type_system::principal::actor::{ActorEntityUuid, ActorId};
     use uuid::Uuid;
 
@@ -237,12 +238,13 @@ mod tests {
             AuthenticationErrorKind::ActorNotFound { .. },
             "a delegated actor that does not exist should be rejected"
         );
-        let problem = report
-            .problem_details()
-            .next()
-            .expect("the unknown actor should carry a public problem");
+        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let problem = answer.details();
         assert_eq!(problem.status, 401);
-        assert_eq!(problem.detail.as_deref(), Some("actor does not exist"));
+        assert_eq!(
+            problem.detail.as_deref(),
+            Some("credentials are not accepted")
+        );
     }
 
     #[tokio::test]

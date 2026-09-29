@@ -50,6 +50,14 @@ export function createPreset(options?: PresetOptions) {
           "@media (hover: hover) and (pointer: fine)",
           "&:is(:hover, [data-support-hover])",
         ],
+        // Extends Panda's base condition with a delegation marker: a
+        // composite widget that keeps DOM focus elsewhere (e.g. OverflowRow's
+        // keyboard highlight, where focus stays on its input) marks the
+        // active element with `data-force-focus-visible`, and it and its
+        // subtree render their `_focusVisible` styles. `:is()` keeps the
+        // specificity of plain `:focus-visible`.
+        focusVisible:
+          "&:is(:focus-visible, [data-focus-visible], [data-force-focus-visible], [data-force-focus-visible] *)",
         focusVisibleWithin:
           "&:is(:has(:focus-visible), [data-focus-visible-within])",
         inert: "&:is([inert], [inert] *, [data-inert])",
@@ -299,6 +307,24 @@ export function scopedThemeConfig(scope: string) {
     presets: [createPreset({ scope })],
   };
 }
+
+/**
+ * Resolves a shipped `panda.buildinfo.json` specifier to a path usable in
+ * Panda's `include`. Panda treats `include` entries as globs, where `\` is an
+ * escape character, so Windows paths must use forward slashes.
+ *
+ * Pass a resolver created from the consuming config file, such as
+ * `createRequire(__filename).resolve`, so resolution starts from the consumer.
+ */
+export const resolvePandaBuildInfoPath = (
+  specifier: string,
+  resolve: (specifier: string) => string,
+  platform: string = process.platform,
+) => {
+  const path = resolve(specifier);
+
+  return platform === "win32" ? path.replaceAll("\\", "/") : path;
+};
 
 export const preset = createPreset();
 export default preset;

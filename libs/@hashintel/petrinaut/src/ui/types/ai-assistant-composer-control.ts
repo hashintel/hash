@@ -1,6 +1,7 @@
 import type {
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
+  VoiceAudioSettingsActions,
 } from "../../react/voice-session/types";
 import type { PetrinautAiMessage } from "../views/Editor/panels/ai-assistant-panel/types";
 import type { ReactNode } from "react";
@@ -56,6 +57,7 @@ export type PetrinautAiComposerControl = (
 
 /** Complete lifecycle controls retained for existing host-owned Voice modes. */
 export type PetrinautAiVoiceModeControls = {
+  audioSettings?: VoiceAudioSettingsActions;
   /**
    * Invalidates the active Voice generation synchronously, then finishes
    * disconnecting its provider resources.

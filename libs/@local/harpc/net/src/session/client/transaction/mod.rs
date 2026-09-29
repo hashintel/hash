@@ -87,10 +87,6 @@ where
         ControlFlow::Continue(payload.into_bytes())
     }
 
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
     pub(crate) async fn run(mut self) {
         let mut state: Option<ResponseState> = None;
         let cancel = self.permit.cancellation_token();
@@ -199,10 +195,6 @@ where
     S: Stream<Item = Bytes> + Send,
     P: ClientTransactionPermit,
 {
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
     pub(crate) async fn run(self) {
         let cancel = self.permit.cancellation_token();
         let mut writer = RequestWriter::new(
