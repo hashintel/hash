@@ -1,10 +1,6 @@
 use super::{Driver, DstEffect, DstEvent, ReferenceState, ScheduleCoverage};
 use crate::{
-    domain::EventRecord,
-    ids::EffectId,
-    properties::{self},
-    registry::VersionedRecord as _,
-    sim::SimKey,
+    domain::EventRecord, ids::EffectId, properties, registry::VersionedRecord as _, sim::SimKey,
 };
 
 impl Driver<'_> {

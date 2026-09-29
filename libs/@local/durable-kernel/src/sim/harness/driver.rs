@@ -7,7 +7,7 @@ use super::{
 use crate::{
     domain::{EventRecordV1, Hosted},
     ids::EffectId,
-    properties::{self},
+    properties,
     registry::RecordRegistry,
     shard_log::{
         OpenedShard, ShardCommandConfig, ShardCommandErrorKind, ShardCommandOutcome,

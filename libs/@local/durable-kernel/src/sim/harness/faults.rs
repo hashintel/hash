@@ -3,7 +3,7 @@ use alloc::sync::Arc;
 use super::{Driver, ScheduleCoverage};
 use crate::{
     domain::EventRecordV1,
-    properties::{self},
+    properties,
     shard_log::{ShardCommandErrorKind, ShardCommandOutcome},
     sim::SimAppendOutcome,
 };

@@ -84,7 +84,6 @@ impl Fold<DstEvent> for DstCounters {
                 if *amount == 0 {
                     return Err(error_stack::Report::new(CounterRejection::ZeroIncrement));
                 }
-                Ok(event.clone())
             }
             DstEvent::Archive {
                 counter,
@@ -96,9 +95,10 @@ impl Fold<DstEvent> for DstCounters {
                         counter: counter.clone(),
                     }));
                 }
-                Ok(event.clone())
             }
         }
+
+        Ok(event.clone())
     }
 
     fn apply(&mut self, validated: Self::Validated) {
