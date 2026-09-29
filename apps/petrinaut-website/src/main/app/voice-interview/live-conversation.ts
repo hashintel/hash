@@ -5,6 +5,7 @@ import {
 } from "./live-conversation/echo-diagnostics";
 import { createOutputOverlap } from "./live-conversation/output-overlap";
 import {
+  roundForTrace,
   summarizeLogprobs,
   type TranscriptionConfidence,
 } from "./live-conversation/transcription-confidence";
@@ -380,7 +381,7 @@ export const createLiveConversation = (
           sinceOutputMs: echoTrace.sinceOutputMs(itemId),
           overlappedOutput: liveOutputText !== undefined,
           peakMicrophoneLevel: utteranceLevels.peak(itemId),
-          ...inputConfidence,
+          ...(inputConfidence && roundForTrace(inputConfidence)),
         });
         confidence.delete(itemId);
         echoTrace.forget(itemId);

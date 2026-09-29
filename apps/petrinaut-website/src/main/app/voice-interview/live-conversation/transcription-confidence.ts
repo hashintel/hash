@@ -24,11 +24,22 @@ export const summarizeLogprobs = (
   if (values.length === 0) return { logprobTokens: 0 };
   return {
     logprobTokens: values.length,
-    meanLogprob: rounded(
+    meanLogprob:
       values.reduce((total, value) => total + value, 0) / values.length,
-    ),
-    minLogprob: rounded(
-      values.reduce((lowest, value) => Math.min(lowest, value), Infinity),
+    minLogprob: values.reduce(
+      (lowest, value) => Math.min(lowest, value),
+      Infinity,
     ),
   };
 };
+
+/** Rounded only for the trace; filters compare the exact values. */
+export const roundForTrace = ({
+  logprobTokens,
+  meanLogprob,
+  minLogprob,
+}: TranscriptionConfidence): TranscriptionConfidence => ({
+  logprobTokens,
+  ...(meanLogprob === undefined ? {} : { meanLogprob: rounded(meanLogprob) }),
+  ...(minLogprob === undefined ? {} : { minLogprob: rounded(minLogprob) }),
+});
