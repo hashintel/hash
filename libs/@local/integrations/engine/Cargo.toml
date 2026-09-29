@@ -1,0 +1,25 @@
+[package]
+name              = "hash-integrations-engine"
+description       = "Runs integration pipelines in DuckDB"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+duckdb   = { workspace = true, features = ["bundled"] }
+proptest = { workspace = true, features = ["std"] }
+
+[lints]
+workspace = true
