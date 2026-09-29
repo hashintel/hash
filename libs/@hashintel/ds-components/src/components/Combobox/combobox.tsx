@@ -22,7 +22,7 @@ import {
   SelectableList,
   isCustomItem,
 } from "../../util/SelectableList/selectable-list";
-import { renderMultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
+import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
 import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Chip, type ChipSize } from "../Chip/chip";
 import { useFieldId } from "../Form/field-id-context";
@@ -30,6 +30,7 @@ import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { BaseInput, renderAdornment } from "../TextInput/base-input";
 import { baseInputRecipe } from "../TextInput/base-input.recipe";
+import { InputConnector } from "../TextInput/input-connector";
 import {
   comboboxChipContentRecipe,
   comboboxMultiRecipe,
@@ -67,7 +68,7 @@ type AllowNewValueOptions = {
 
 type ComboboxBaseProps = Omit<
   React.ComponentProps<typeof TextInput>,
-  "autocomplete" | "onChange" | "value"
+  "autocomplete" | "onChange" | "value" | "style"
 > & {
   /** Called as the input's text changes, whether typed or set by a selection */
   onChangeInput?: (value: string) => void;
@@ -241,20 +242,6 @@ const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
-// zag's visually-hidden style, for the multi variant's form-mirror select
-const visuallyHiddenStyle: React.CSSProperties = {
-  border: 0,
-  clip: "rect(0 0 0 0)",
-  height: "1px",
-  margin: "-1px",
-  overflow: "hidden",
-  padding: 0,
-  position: "absolute",
-  width: "1px",
-  whiteSpace: "nowrap",
-  wordWrap: "normal",
-};
-
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
   xs: "xs",
@@ -266,7 +253,9 @@ const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
 /**
  * A copy of a keydown event whose `currentTarget` masks the two attributes
  * (`role`, `aria-expanded`) the tags machine's keydown gate reads before
- * ceding ArrowLeft/Right to an expanded combobox host. Everything else
+ * ceding ArrowLeft/Right to an expanded combobox host — through both read
+ * paths each has (the IDL reflection property and `getAttribute`), so a zag
+ * upgrade switching between them cannot un-mask the gate. Everything else
  * delegates to the real input, and `preventDefault`/`stopPropagation` land
  * on the real event, so the machine's caret handling still works.
  */
@@ -274,14 +263,15 @@ const maskComboboxRoleFromTagsMachine = (
   event: React.KeyboardEvent<HTMLInputElement>,
 ): React.KeyboardEvent<HTMLInputElement> => {
   const input = event.currentTarget;
+  const maskedAttributes = new Set(["role", "aria-expanded"]);
   const maskedInput = new Proxy(input, {
     get(element, property) {
-      if (property === "ariaExpanded") {
+      if (property === "role" || property === "ariaExpanded") {
         return null;
       }
       if (property === "getAttribute") {
         return (name: string) =>
-          name === "role" ? null : element.getAttribute(name);
+          maskedAttributes.has(name) ? null : element.getAttribute(name);
       }
       const value = Reflect.get(element, property) as unknown;
       return typeof value === "function"
@@ -345,7 +335,6 @@ export const Combobox = <TValue extends string>({
   readonly,
   htmlForId,
   placeholder,
-  style,
   className,
   name,
   testId,
@@ -366,6 +355,19 @@ export const Combobox = <TValue extends string>({
   ref,
   ...inputProps
 }: ComboboxProps<TValue>) => {
+  // Leftover TextInput props: the single variant hands them to BaseInput
+  // wholesale below; the multi variant forwards the input-element ones onto
+  // the row's input and wires the connectors onto its frame itself
+  // (`align`/`showEditIcon` stay single-only).
+  const {
+    align: _align,
+    showEditIcon: _showEditIcon,
+    connectToLeftInput,
+    connectToRightInput,
+    spellcheck,
+    inputRef,
+    ...forwardedInputAttrs
+  } = inputProps;
   const portalContainerRef = usePortalContainerRef();
   const wrapperRef = useRef<HTMLElement>(null);
   const mergedWrapperRef = useMergeRefs([wrapperRef, ...(ref ? [ref] : [])]);
@@ -589,9 +591,9 @@ export const Combobox = <TValue extends string>({
 
   const selectOnly = useCallback(
     (val: string) => {
-      (onChange as (value: string[], isNew: boolean) => void)([val], false);
+      emitMultiChange([val], false);
     },
-    [onChange],
+    [emitMultiChange],
   );
 
   const listItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
@@ -605,15 +607,15 @@ export const Combobox = <TValue extends string>({
       selectedStyle:
         option.selectedStyle ?? (multiple ? "checkbox" : "highlight"),
       selectedTone: option.selectedTone,
-      suffix: multiple
-        ? renderMultiItemSuffix({
-            suffix: option.suffix,
-            showOnlyButton: option.showOnlyButton,
-            disabled: option.disabled,
-            tone: option.selectedTone,
-            onSelectOnly: () => selectOnly(option.value),
-          })
-        : undefined,
+      suffix: multiple ? (
+        <MultiItemSuffix
+          suffix={option.suffix}
+          showOnlyButton={option.showOnlyButton}
+          disabled={option.disabled}
+          tone={option.selectedTone}
+          onSelectOnly={() => selectOnly(option.value)}
+        />
+      ) : undefined,
       subItems: undefined,
       onClick: () => {},
     });
@@ -838,12 +840,12 @@ export const Combobox = <TValue extends string>({
 
   const removeValue = useCallback(
     (val: string) => {
-      (onChange as (value: string[], isNew: boolean) => void)(
+      emitMultiChange(
         selectedValues.filter((entry) => entry !== val),
         false,
       );
     },
-    [onChange, selectedValues],
+    [emitMultiChange, selectedValues],
   );
 
   const [rowFocused, setRowFocused] = useState(false);
@@ -921,6 +923,9 @@ export const Combobox = <TValue extends string>({
     hasSelection && renderSelectedAll === undefined && overflow !== "summary"
       ? ("chips" as const)
       : ("text" as const);
+  // Connectors mirror BaseInput's gating: default variant only
+  const connectsLeft = !!connectToLeftInput && variant === "default";
+  const connectsRight = !!connectToRightInput && variant === "default";
   const multiClasses = comboboxMultiRecipe({
     variant,
     size,
@@ -929,6 +934,8 @@ export const Combobox = <TValue extends string>({
     disabled: !!disabled,
     loading: !!loading,
     contentInset,
+    connectsLeft,
+    connectsRight,
   });
 
   if (readonly) {
@@ -967,7 +974,6 @@ export const Combobox = <TValue extends string>({
         prefix={prefix}
         suffix={suffix}
         placeholder={placeholder}
-        style={style}
         value={committedText}
         onChange={() => {}}
         styledValue={resolvedStyledValue}
@@ -977,6 +983,9 @@ export const Combobox = <TValue extends string>({
 
   const clearSelection = () => {
     if (typeof clearable === "object") {
+      if (multiple) {
+        setText("");
+      }
       clearable.onClear();
       return;
     }
@@ -1017,6 +1026,9 @@ export const Combobox = <TValue extends string>({
           "aria-required": required === true || undefined,
           "data-testid": testId,
           ...resolveAutoFocusProps(autoFocus),
+          ...forwardedInputAttrs,
+          spellCheck: spellcheck,
+          ref: inputRef,
         }
       : {}),
     onKeyDown: (
@@ -1167,7 +1179,6 @@ export const Combobox = <TValue extends string>({
         <div
           ref={mergedWrapperRef as React.Ref<HTMLDivElement>}
           className={cx(multiClasses.wrapper, className)}
-          style={style}
         >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus frame delegates to the row's <input> */}
           <div
@@ -1226,6 +1237,16 @@ export const Combobox = <TValue extends string>({
           >
             {prefix != null &&
               renderAdornment("prefix", prefix, size, adornmentClasses)}
+            {connectsLeft && (
+              <InputConnector
+                className={cx(
+                  adornmentClasses.connector,
+                  adornmentClasses.connectLeft,
+                  prefix != null && adornmentClasses.connectAdornment,
+                )}
+                data-part="connector"
+              />
+            )}
             <div className={multiClasses.content}>
               {customSelection !== undefined && (
                 <span className={multiClasses.customSelection}>
@@ -1295,6 +1316,16 @@ export const Combobox = <TValue extends string>({
             )}
             {suffix != null &&
               renderAdornment("suffix", suffix, size, adornmentClasses)}
+            {connectsRight && (
+              <InputConnector
+                className={cx(
+                  adornmentClasses.connector,
+                  adornmentClasses.connectRight,
+                  suffix != null && adornmentClasses.connectAdornment,
+                )}
+                data-part="connector"
+              />
+            )}
           </div>
           {/* Native form participation, as a Select's hidden select: `name`
               submits the selection and `required` is valid with any value
@@ -1310,7 +1341,7 @@ export const Combobox = <TValue extends string>({
               disabled={disabled}
               value={selectedValues}
               onChange={() => {}}
-              style={visuallyHiddenStyle}
+              className={multiClasses.formMirror}
               onFocus={() => {
                 // Validation (reportValidity) focuses the invalid control;
                 // hand focus to the real input so the user can act.
@@ -1355,7 +1386,6 @@ export const Combobox = <TValue extends string>({
         required={required}
         invalid={invalid}
         placeholder={placeholder}
-        style={style}
         value={inputText === "" ? null : inputText}
         onChange={() => {
           // Text changes flow through the machine (inputElementProps) into

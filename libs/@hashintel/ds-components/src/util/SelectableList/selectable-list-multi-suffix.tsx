@@ -11,7 +11,7 @@ import type { Tone } from "../form-shared";
  * an enabled item — an "Only" button shown while the item is hovered, which
  * replaces the suffix and sets the selection to just this item.
  */
-export const renderMultiItemSuffix = ({
+export const MultiItemSuffix = ({
   suffix,
   showOnlyButton,
   disabled,

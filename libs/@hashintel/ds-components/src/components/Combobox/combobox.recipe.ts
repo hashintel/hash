@@ -82,6 +82,7 @@ export const comboboxMultiRecipe = sva({
     "hideClear",
     "loading",
     "readonly",
+    "formMirror",
   ],
   base: {
     wrapper: {
@@ -194,6 +195,19 @@ export const comboboxMultiRecipe = sva({
     readonly: {
       display: "inline",
     },
+    // zag's visually-hidden style, for the hidden form-mirror select
+    formMirror: {
+      position: "absolute",
+      width: "[1px]",
+      height: "[1px]",
+      margin: "[-1px]",
+      padding: "0",
+      overflow: "hidden",
+      border: "[0]",
+      clip: "[rect(0 0 0 0)]",
+      whiteSpace: "nowrap",
+      overflowWrap: "[normal]",
+    },
   },
   variants: {
     variant: {
@@ -204,6 +218,9 @@ export const comboboxMultiRecipe = sva({
           "&:not(.layer-style_disabled):hover": {
             borderColor: "var(--base-input-border-hover-color)",
             "--base-input-background-color": "var(--colors-neutral-s10)",
+            "& [data-part='connector']": {
+              color: "var(--base-input-border-hover-color)",
+            },
           },
           "&:focus-within:not(.layer-style_disabled)": {
             outline: "[1px solid var(--base-input-focus-color)]",
@@ -377,6 +394,21 @@ export const comboboxMultiRecipe = sva({
       true: {
         clear: {
           "--clear-right-offset": "spacing.1.5",
+        },
+      },
+    },
+    // Room for a neighbouring connected input, as BaseInput's wrapper leaves
+    connectsRight: {
+      true: {
+        wrapper: {
+          paddingRight: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
+        },
+      },
+    },
+    connectsLeft: {
+      true: {
+        wrapper: {
+          paddingLeft: "[calc(var(--base-input-connector-width) / 2 - 1px)]",
         },
       },
     },

@@ -4,6 +4,7 @@ import {
   type UseTagsInputReturn,
 } from "@ark-ui/react/tags-input";
 import { Fragment, useCallback, useId, useMemo, useRef, useState } from "react";
+import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -22,7 +23,9 @@ type CountLabelRenderer = (text: string) => React.ReactNode;
  * available, in one of three modes:
  *
  * - `summary` — plain text built from the item names: "none" when `items` is
- *   empty, "any" when every selectable item is selected (see `total`), the
+ *   empty (omitted entirely with `withInput`, whose placeholder covers the
+ *   empty state), "any" when every selectable item is selected (see `total`),
+ *   the
  *   lone name when there is one item (switching to "1 of Y" once the name is
  *   heavily clipped and the count label meaningfully shorter), all names
  *   joined with `separator` while they fit, and "X of Y" (selected count of
@@ -84,11 +87,13 @@ export type OverflowRowProps = {
    * `value`/`defaultValue` are ignored. `id` is also registered as the row
    * machine's input id, so a composite host whose own machine finds its
    * input element by id shares the one element (see the multiple Combobox).
+   * `ref` is merged with the row's own ref on the input element.
    */
   inputElementProps?: Omit<
     React.ComponentPropsWithoutRef<"input">,
     "onKeyDown"
   > & {
+    ref?: React.Ref<HTMLInputElement>;
     onKeyDown?: (
       event: React.KeyboardEvent<HTMLInputElement>,
       machineOnKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void,
@@ -381,6 +386,7 @@ const OverflowRowBase = ({
   const {
     value: _extraValue,
     defaultValue: _extraDefaultValue,
+    ref: extraInputRef,
     onChange: extraOnChange,
     onInput: extraOnInput,
     onClick: extraOnClick,
@@ -393,6 +399,10 @@ const OverflowRowBase = ({
   const definedExtraInputAttrs = Object.fromEntries(
     Object.entries(extraInputAttrs).filter(([, attr]) => attr !== undefined),
   ) as typeof extraInputAttrs;
+  const inputElementRef = useMergeRefs([
+    inputRef,
+    ...(extraInputRef ? [extraInputRef] : []),
+  ]);
   // A press on the input dismisses a lingering item highlight (typing or
   // navigation would otherwise be needed): the machine exposes no clear
   // method and its own pointerdown reset only runs from idle, so this
@@ -470,7 +480,7 @@ const OverflowRowBase = ({
         {...machineInputProps}
         {...definedExtraInputAttrs}
         key="input"
-        ref={inputRef}
+        ref={inputElementRef}
         className={classes.input}
         placeholder={withInput?.placeholder}
         onInput={(event) => {
@@ -576,9 +586,11 @@ const OverflowRowBase = ({
         ref={rootRef}
         className={cx(classes.root, className)}
       >
-        <span key="summary" className={classes.summary}>
-          {summaryLabel()}
-        </span>
+        {count === 0 && withInput !== undefined ? null : (
+          <span key="summary" className={classes.summary}>
+            {summaryLabel()}
+          </span>
+        )}
         {inputCell}
         <div
           key="measure"
