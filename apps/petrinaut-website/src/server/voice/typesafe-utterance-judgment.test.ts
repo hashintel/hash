@@ -58,7 +58,7 @@ describe("utterance judgment handler", () => {
       },
       415,
     ],
-    [{ body: "x".repeat(400_000) }, 413],
+    [{ body: "x".repeat(1_000_000) }, 413],
     [
       { body: JSON.stringify({ ...state, transcript: "é".repeat(32_001) }) },
       400,
@@ -99,7 +99,7 @@ describe("utterance judgment handler", () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(new Uint8Array(400_000));
+        controller.enqueue(new Uint8Array(1_000_000));
       },
       cancel,
     });
