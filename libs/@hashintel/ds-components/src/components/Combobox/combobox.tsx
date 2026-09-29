@@ -241,6 +241,20 @@ const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
+// zag's visually-hidden style, for the multi variant's form-mirror select
+const visuallyHiddenStyle: React.CSSProperties = {
+  border: 0,
+  clip: "rect(0 0 0 0)",
+  height: "1px",
+  margin: "-1px",
+  overflow: "hidden",
+  padding: 0,
+  position: "absolute",
+  width: "1px",
+  whiteSpace: "nowrap",
+  wordWrap: "normal",
+};
+
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
   xs: "xs",
@@ -696,7 +710,10 @@ export const Combobox = <TValue extends string>({
       : {}),
     disabled,
     invalid,
-    required,
+    // In multi mode the machine's input is the chip-row filter: a native
+    // `required` there would track the typed draft, not the selection. The
+    // hidden mirror select below carries form participation instead.
+    required: multiple ? undefined : required,
     openOnClick: true,
     // The machine (whose prop keeps ark's allowCustomValue name) must never
     // revert/reject typed text itself — commit and revert are decided below
@@ -993,7 +1010,11 @@ export const Combobox = <TValue extends string>({
         }
       : arkInputBlur,
     ...(multiple
-      ? { name, "data-testid": testId, ...resolveAutoFocusProps(autoFocus) }
+      ? {
+          "aria-required": required === true || undefined,
+          "data-testid": testId,
+          ...resolveAutoFocusProps(autoFocus),
+        }
       : {}),
     onKeyDown: (
       event: React.KeyboardEvent<HTMLInputElement>,
@@ -1268,6 +1289,35 @@ export const Combobox = <TValue extends string>({
             {suffix != null &&
               renderAdornment("suffix", suffix, size, adornmentClasses)}
           </div>
+          {/* Native form participation, as a Select's hidden select: `name`
+              submits the selection and `required` is valid with any value
+              selected — the visible input is only the filter draft, whose
+              text must not drive validity or the submitted value. */}
+          {(name !== undefined || required === true) && (
+            <select
+              multiple
+              aria-hidden="true"
+              tabIndex={-1}
+              name={name}
+              required={required}
+              disabled={disabled}
+              value={selectedValues}
+              onChange={() => {}}
+              style={visuallyHiddenStyle}
+              onFocus={() => {
+                // Validation (reportValidity) focuses the invalid control;
+                // hand focus to the real input so the user can act.
+                document.getElementById(multiInputId)?.focus();
+              }}
+            >
+              {selectedValues.map((selectedValue) => (
+                <option key={selectedValue} value={selectedValue}>
+                  {findComboboxItemByValue(effectiveItems, selectedValue)
+                    ?.text ?? selectedValue}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         {dropdown}
       </>
