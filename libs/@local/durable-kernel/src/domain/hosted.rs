@@ -255,8 +255,12 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
             .change_context(RecoveryError::InvalidRecord { sequence })?;
 
         match projection.seen.get(&record.event_id()) {
-            // A lost acknowledgement can leave duplicate records in the journal.
+            // A duplicate means storage stored an append it reported as not committed. The live
+            // path finalized the last copy, so its sequence is the partition watermark.
             Some(seen) if *seen == digest => {
+                projection
+                    .partitions
+                    .insert(record.partition().clone(), sequence);
                 projection.through_sequence = Some(sequence);
                 Ok(())
             }

@@ -789,9 +789,14 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
         JournalSequence::new(1),
         EventRecord::V1(record.clone()),
     )
-    .expect("duplicate replay should be a no-op");
+    .expect("a duplicate with the same digest should be accepted");
     assert_eq!(projection.domain().totals["orders"], 5);
     assert_eq!(projection.through_sequence(), Some(JournalSequence::new(1)));
+    assert_eq!(
+        projection.partition_sequence(record.partition()),
+        Some(JournalSequence::new(1)),
+        "the partition watermark should match the copy the live path finalized"
+    );
 
     let error = Toy::replay(
         &mut projection,
