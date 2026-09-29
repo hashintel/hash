@@ -43,7 +43,7 @@ Where missing material admits materially different structures, the fragment carr
 - Arc weights or multiplicities are positive and conform to the mounted schema.
 - No later step depends on a rejected or absent change.
 
-Re-inspect after dependent stages and once at the end. Record rejected calls and repairs. Describe this result as **tool-schema accepted**, not valid, runnable, or simulated.
+Inspect each step's `netAfterChanges`; read the net again only at the end, or when a check needs fields it omits. Record rejected calls and repairs. Describe this result as **tool-schema accepted**, not valid, runnable, or simulated.
 
 ## Agent-reviewed structural correspondence
 
