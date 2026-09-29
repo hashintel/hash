@@ -825,6 +825,40 @@ describe("BrunchDraftExperimentWidget", () => {
     );
   });
 
+  it("retries a run the host resolves as an error", async () => {
+    const runExperiment = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...finishedResult,
+        status: "error",
+        message: "Compilation failed",
+        runsCompleted: 0,
+      })
+      .mockResolvedValueOnce(finishedResult);
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "call_draft_error_result",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Failed"),
+    );
+    expect(screen.getByText("Compilation failed")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Finished"),
+    );
+  });
+
   it("reports active runs only to their conversation and clears the hint on unmount", async () => {
     const result = Promise.withResolvers<typeof finishedResult>();
     const { submit, wrap } = renderWidget({

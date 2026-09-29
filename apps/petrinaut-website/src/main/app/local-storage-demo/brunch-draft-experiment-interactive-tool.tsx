@@ -467,7 +467,15 @@ export const BrunchDraftExperimentWidget = ({
             }),
         },
       );
-      editorDrafts.update(toolCallId, { run: { phase: "finished", result } });
+      editorDrafts.update(toolCallId, {
+        run:
+          result.status === "error"
+            ? {
+                phase: "failed",
+                message: result.message ?? "The experiment failed.",
+              }
+            : { phase: "finished", result },
+      });
     } catch (caught) {
       editorDrafts.update(toolCallId, {
         run: {
