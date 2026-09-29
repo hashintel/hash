@@ -120,9 +120,10 @@ test.each([
 
 test("stages see the transcript's lowest token log probability", () => {
   const skip = vi.fn(() => null);
-  routeUtterance({ id: "one", text: "Okay", minLogprob: -2.5 }, [
-    { name: "probe", mode: "on", skip },
-  ]);
+  routeUtterance(
+    { id: "one", text: "Okay", startedDuringOutput: false, minLogprob: -2.5 },
+    [{ name: "probe", mode: "on", skip }],
+  );
   expect(skip).toHaveBeenCalledWith({
     inputId: "one",
     text: "Okay",
