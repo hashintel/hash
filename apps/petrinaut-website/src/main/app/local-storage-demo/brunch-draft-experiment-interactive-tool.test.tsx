@@ -32,6 +32,7 @@ import {
   describeExperiment,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
+import { editorDraftsFor } from "./shared/brunch-draft-experiment-drafts";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
 vi.hoisted(() => {
@@ -1012,6 +1013,109 @@ describe("BrunchDraftExperimentWidget", () => {
       screen.getByRole("button", { name: "Retry against current model" }),
     );
     await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
+  });
+
+  it("shows the run error when a run against an accepted model fails", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const runExperiment = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Unavailable"))
+      .mockRejectedValueOnce(new Error("Still unavailable"));
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "retry-review-failure",
+      state: awaiting,
+      definition,
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await screen.findByRole("button", { name: "Retry run" });
+    definition.set({
+      ...definition.get(),
+      places: [
+        {
+          id: "new-place",
+          name: "New place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Accept current model" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry against current model" }),
+    );
+
+    expect(await screen.findByText("Still unavailable")).toBeTruthy();
+    expect(
+      screen.queryByText(/model changed since this was drafted/u),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Retry run" })).toBeTruthy();
+  });
+
+  it("sends a later completed result after an earlier summary fails", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const drafts = editorDraftsFor(definition);
+    for (const toolCallId of ["earlier", "later"]) {
+      drafts.register({
+        toolCallId,
+        input: makeInput(),
+        definition: makeDefinition(),
+        prepared: null,
+        invalid: null,
+        dismissed: false,
+        run: { phase: "finished", result: finishedResult },
+      });
+    }
+    drafts.update("earlier", { followUp: "failed" });
+    const submitText = vi
+      .fn<PetrinautAiComposerControlContext["submitText"]>()
+      .mockResolvedValue({ kind: "message", messageId: "completion" });
+    const toolPart = (toolCallId: string) => ({
+      type: "dynamic-tool" as const,
+      toolCallId,
+      toolName: "draft_petrinaut_experiment",
+      state: "output-available" as const,
+      input: {},
+      output: {},
+    });
+    render(
+      <PetrinautInstanceContext.Provider
+        value={{ definition } as unknown as Petrinaut}
+      >
+        <BrunchExperimentFollowUp
+          context={{
+            conversationId: "original",
+            messages: [
+              {
+                id: "drafts",
+                role: "assistant",
+                parts: [toolPart("earlier"), toolPart("later")],
+              },
+            ],
+            status: "ready",
+            submitText,
+            stop: async () => {},
+          }}
+        />
+      </PetrinautInstanceContext.Provider>,
+    );
+
+    await waitFor(() =>
+      expect(drafts.get().drafts.get("later")?.followUp).toBe("sent"),
+    );
+    expect(submitText).toHaveBeenCalledOnce();
+    expect(drafts.get().drafts.get("earlier")?.followUp).toBe("failed");
+    expect(
+      screen.getByRole("button", { name: "Retry result summary" }),
+    ).toBeTruthy();
   });
 
   it.each(["simulate", "optimize"] as const)(

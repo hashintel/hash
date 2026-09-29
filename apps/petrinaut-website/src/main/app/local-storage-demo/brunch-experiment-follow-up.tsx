@@ -62,7 +62,7 @@ export const BrunchExperimentFollowUp = ({
   const pending = [...snapshot.drafts.values()].some(
     (draft) => draft.followUp === "pending",
   );
-  const completed = [...snapshot.drafts.values()].find(
+  const completed = [...snapshot.drafts.values()].filter(
     (draft) =>
       draft.run.phase === "finished" &&
       draft.run.result.status === "complete" &&
@@ -75,20 +75,16 @@ export const BrunchExperimentFollowUp = ({
         ),
       ),
   );
+  const unsent = completed.find((draft) => draft.followUp !== "failed");
+  const failed = completed.find((draft) => draft.followUp === "failed");
 
   useEffect(() => {
-    if (
-      !completed ||
-      pending ||
-      completed.followUp === "failed" ||
-      context.status !== "ready" ||
-      context.stopped
-    )
+    if (!unsent || pending || context.status !== "ready" || context.stopped)
       return;
-    sendResults(drafts, context.submitText, completed);
-  }, [completed, pending, context, drafts]);
+    sendResults(drafts, context.submitText, unsent);
+  }, [unsent, pending, context, drafts]);
 
-  return completed?.followUp === "failed" ? (
+  return failed ? (
     <Button
       size="xs"
       variant="ghost"
@@ -98,7 +94,7 @@ export const BrunchExperimentFollowUp = ({
         context.status === "streaming"
       }
       tooltip="The experiment finished, but its results could not be sent to Brunch."
-      onClick={() => sendResults(drafts, context.submitText, completed)}
+      onClick={() => sendResults(drafts, context.submitText, failed)}
     >
       Retry result summary
     </Button>

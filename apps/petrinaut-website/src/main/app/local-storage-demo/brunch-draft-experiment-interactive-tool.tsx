@@ -446,6 +446,10 @@ export const BrunchDraftExperimentWidget = ({
     }
     if (reviewed && !reviewAccepted) return;
     setRunError(null);
+    // The accepted model becomes the draft's own below, so a later failure
+    // shows the run error instead of an empty model-change review.
+    setReviewed(null);
+    setReviewAccepted(false);
     const controller = new AbortController();
     editorDrafts.update(toolCallId, {
       prepared: current.prepared,
