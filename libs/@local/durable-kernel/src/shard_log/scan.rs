@@ -115,7 +115,7 @@ where
             }));
         }
 
-        records.push((sequence, T::decode(&bytes)));
+        records.push((sequence, bytes));
     }
 
     if stream.next_sequence() != expected_end {
@@ -126,5 +126,8 @@ where
         }));
     }
 
-    Ok(records)
+    Ok(records
+        .into_iter()
+        .map(|(sequence, bytes)| (sequence, T::decode(&bytes)))
+        .collect())
 }
