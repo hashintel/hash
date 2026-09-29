@@ -13,7 +13,7 @@ One adapter per host configuration, shared by the live transport and by reopened
 
 - `clientToolNames`, `dynamicClientToolNames` and `mapClientToolInput` shape how client-executed tools render, and `mapToolOutput` unwraps a host envelope from tool results.
 - `projectMetadata` derives message metadata from the agent's response metadata and the submission's outcome. Without it, agent metadata passes through.
-- `metadataSchema` is the Standard Schema member of the AI SDK's `FlexibleSchema`, so the same schema can be given to `useChat`. It is required when the adapter's message type narrows its metadata, and it must validate synchronously. Projected metadata that fails it ends a live turn with an error and makes `reopen` throw.
+- `metadataSchema` is the Standard Schema member of the AI SDK's `FlexibleSchema`, so the same schema can be given to `useChat`. It is required when the adapter's message type narrows its metadata, and it must validate synchronously. Projected metadata that fails it ends a live turn with an error and makes `reopen` throw. Messages carry the schema's output, so a schema that strips unknown keys drops them.
 
 Per transport, `submittedUserMessage` frames the admitted user turn, and `initialData`, `liveToolStream` and the admission and response callbacks connect the host.
 
@@ -23,12 +23,12 @@ The transport targets `ai@6.0.286` and `@flue/sdk`/`@flue/runtime` `2.0.3`. Upst
 
 - Every chunk sequence the unit tests and `AbstractChat` consume must pass the AI SDK wire schema and reduce through `readUIMessageStream` and `validateUIMessages` ([`test/ai-sdk-oracle.ts`](test/ai-sdk-oracle.ts)).
 - [`test/`](test/) runs an in-process Flue runtime with a scripted model and this package's live channel:
-  - `live-reopen-parity.test.ts` requires a reduced live response to equal the message its stored history reopens as.
   - `upstream-reducer-cases.test.ts` reproduces cases from `process-ui-message-stream.test.ts` as real Flue turns.
   - `chat.test.ts` drives the AI SDK's own `AbstractChat`, mapped to cases in `chat.test.ts`.
-  - `metadata-contract.test.ts` holds the metadata schema contract.
+  - `live-reopen-parity.test.ts` covers the shapes no upstream case produces. Every real Flue turn in both suites requires the reduced live response to equal the message its stored history reopens as.
+  - `metadata-contract.test.ts` holds the metadata half of the host contract.
 
-Those suites label each case as a guarantee (behaviour the AI SDK types or documents), an observed behaviour the transport relies on, or a decision. The decisions and known gaps are:
+The upstream and `AbstractChat` suites label each case as a guarantee (behaviour the AI SDK types or documents), an observed behaviour the transport relies on, or a decision. The parity and metadata suites assert this package's own contract, and label only the cases that pin a decision below. The decisions and known gaps are:
 
 | Behaviour                                                                                                                                                                        | Status        |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
@@ -39,6 +39,9 @@ Those suites label each case as a guarantee (behaviour the AI SDK types or docum
 | With the live channel, a tool part can appear before text the model wrote earlier in the same step, and the reducer cannot reorder it; history keeps the model's order.          | Open decision |
 | A durable Flue abort ends the stream with an `abort` chunk, preceded by the projected metadata for the aborted outcome; the AI SDK does not report it as `isAbort`.              | Decision      |
 | Flue's SDK retries a dropped update stream, so the transport never reports a disconnect.                                                                                         | Observed      |
+| The assistant message takes the id of Flue's response message, so live and reopened messages share it.                                                                           | Decision      |
+| A failed submission ends the stream with one `error` chunk carrying Flue's error text.                                                                                           | Decision      |
+| Stopping the chat ends only the local observer; the Flue turn runs on, and a durable stop is Flue's `abort`.                                                                     | Decision      |
 | Regenerating is refused and resuming finds no stream; reopened history is the recovery path.                                                                                     | Decision      |
 | An idempotency conflict is read from the body of Flue's 409 response, which no Flue type describes.                                                                              | Observed      |
 
