@@ -84,6 +84,46 @@ The control waited, then built coloured aggregate stock balances at turn 12, and
 
 Interpretation, unconfirmed: the replay removes the persona's trajectory as the explanation for turns 1–12, and the stall reproduces in typed mode. Both typed Sol runs built a small fragment at turn 4 and then judged later rules against it. The skill's blocked disposition covers a fragment the target "cannot represent", and typed Brunch applied that to its own early net rather than to Petri nets. Whether the Note shape causes the early commitment is not settled; each replay arm is still a single sample of a nondeterministic model.
 
+## Round 1: build-first guidance on the restacked branch
+
+Two free-persona runs on 2026-09-29 after the guidance rewrite described in [`docs/refactoring/construction-guidance-review.md`](../../../../docs/refactoring/construction-guidance-review.md) and the restack that brought in the naive-domain-expert persona brief. GPT-6 Sol at `medium`, persona `pi` on Claude Sonnet 4.6 at low thinking, `inventory-purchasing`. Both were closed by the operator: the persona said it was out of time and asked Brunch to fill in the rest with its best guesses. Directories `round1-typed/` and `round1-open/` hold `dialogue.md` (the conversation without tool output), `ledger.md`, `net.json`, `analysis.json`, `construction-per-turn.json`, `turn-timing.txt` and `fidelity-audit-result.json`.
+
+| | Sol typed | Sol open | Round 1 typed | Round 1 open |
+| --- | --- | --- | --- | --- |
+| Turns | 37 | 22 | 27 | 24 |
+| First turn that changed the net | 4 | 12 | 2 | 2 |
+| Turns built / blocked / neither | 5 / 27 / 5 | 6 / 16 / 0 | 22 / 3 / 2 | 16 / 2 / 6 |
+| Places / transitions / arcs | 5 / 2 / 4 | 14 / 8 / 34 | 38 / 30 / 71 | 37 / 25 / 77 |
+| Token types / coloured places | 2 / 5 | 4 / 11 | 16 / 36 | 5 / 28 |
+| Transitions with code | 2 | 8 | 30 | 25 |
+| Parameters / differential equations | 2 / 0 | 5 / 1 | 14 / 9 | 16 / 3 |
+| Metrics / scenarios | 3 / 1 | 2 / 0 | 6 / 2 | 10 / 1 |
+| Net mutations (updates, removes) | 23 (5, 0) | 48 (11, 0) | 223 (71, 16) | 183 (73, 3) |
+| `getNetCompilationErrors` calls | 9 | 13 | 68 | 69 |
+| `ledger_compile` / filtered reader calls | 0 / 0 | 0 / 2 | 3 / 24 | 0 / 3 |
+| Notes / superseding Notes | 127 / 34 | 87 / 36 | 142 / 50 | 116 / 42 |
+| Median / 90th-percentile turn | 20 s / 62 s | 24 s / 133 s | 107 s / 210 s | 113 s / 176 s |
+| Brunch spend, estimated | USD 2.0 | USD 2.2 | USD 10.4 | USD 5.7 |
+
+Per-turn outcome:
+
+```text
+Round 1 typed  -BBBBBBBBBBBBxxBxBB-BBBBBBB
+Round 1 open   -BB-xBBBBBB-xB-B--BBBBBB
+```
+
+**Construction.** Both arms built from turn 2 and kept building; the stall did not recur in either. Both nets carry behaviour end to end: ordering against reorder points and targets, supplier routes, receipt into quarantine, release or rejection, lot ageing, production against the one-to-one recipe, and customer or cost outcomes. Typed favoured many token types and continuous dynamics; open favoured aggregate balances with read and inhibitor arcs and more metrics. The typed run revised as it went (16 removals, 71 updates); the open run mostly added. The typed run's three blocked turns were real representation limits, not caution: Petrinaut's TypeScript diagnostic rejected its attempt at oldest-expiry-first allocation across many lots, and it recorded the rejected attempt rather than inventing around it. The open run's two "blocked" turns were "already represented" and are a counting artefact.
+
+**Fidelity** (`fidelity-audit-result.json`; blind auditors, one per run, following `scripts/fidelity-audit-instructions.md`): of 67 audited items in the typed net, 53 traced to the person, 6 were labelled stand-ins, 7 were authorised guesses and 1 was unclear; of 69 in the open net, 58, 5, 6 and 0. Neither net had an unlabelled or misattributed item. The unclear item is the typed run's outage scenario, which adds 14 days to every order over the whole horizon where the person described one order caught by a two-week outage. Communication differed: the typed run disowned its stand-ins in replies the person could see ("my replaceable placeholder, not as your estimate"); the open run labelled three shelf-life placeholders that drive every expiry outcome only in parameter names and Notes, and an inhibitor arc enforcing "one German top-up outstanding at a time" only in a Note.
+
+**The closing request.** Asked to fill in the rest with best guesses, both arms first recorded the authorisation as a Note, then built, then said what was guessed and that nothing had been simulated. Typed used the permission to construct the whole production-to-shipping path (4 types, 6 places, 6 transitions, a differential equation and two metrics), naming the external allocation certificate as its central unsafe assumption. Open added only an illustrative one-batch scenario with agent-chosen opening stock and refused to draft anything that could be mistaken for the 104-week comparison.
+
+**Where the time goes** (`turn-timing.txt`, from `scripts/turn-timing.mjs`): 68–71% of wall time is model generation, 16% net mutation round trips, 5–6% compilation checks, 4% Ledger commits. The cause is step count. Brunch averaged 15 model steps per turn, up to 57, and in 378 of 412 typed-run steps issued exactly one tool call. Each step costs about 6.7 s of model time, 2 s of it before the first token, plus about 2 s of browser round trip, so a 20-element fragment costs about three minutes. Reasoning parts appear in 84% of steps. The same step count drives the four-fold cost increase.
+
+**Ledger.** Both arms now use the Ledger as a record rather than a steering device: gap Notes fell (typed 18 in `open-matters`, open 4) while construction Notes stayed at 37–40, and the typed run compiled the Ledger three times and used the filtered net readers 24 times, the first run to use either at will.
+
+**Persona harness.** The open run's persona agent lost about ten minutes at turn 2 when `persona say` refused to overwrite a composer draft consisting of one space (`browser-turn.ts` asserts the draft equals `""`), and tried to clear the composer through Chrome's debugging port before recovering. It read only the composer, so nothing privileged leaked, but the assertion should treat a whitespace-only draft as empty, and the brief should tell the agent to report a failed `say` rather than repair the browser.
+
 ## Audits
 
 Independent auditor agents judged deterministic samples of 30 Notes per run (`scripts/audit-prep.mjs` selects every k-th Note). Inputs were each Note plus the exchange in which it was committed.
@@ -151,5 +191,8 @@ node scripts/run-cost.mjs <run-dir>                  # Brunch spend from the ser
 node scripts/persona-cost.mjs <pi-session.jsonl>     # persona spend
 node scripts/construction-per-turn.mjs <run-dir>     # per-turn construction and final net
 node scripts/audit-prep.mjs <run-dir> 30             # audit samples
+node scripts/turn-timing.mjs <run-dir> [--turns]     # wall time split into model, tool phases and other
+node scripts/dialogue.mjs <run-dir>                  # the conversation without tool output
+node scripts/fidelity-audit-prep.mjs <run-dir> <out> # arm-blind inputs for scripts/fidelity-audit-instructions.md
 scripts/replay.sh <source-run> <live-run> 2 22       # replay user messages into an agentless run
 ```

@@ -1,0 +1,1415 @@
+{
+  "id": "net-1",
+  "title": "Site 1000 Sonic Flow purchasing and production",
+  "sdcpn": {
+    "places": [
+      {
+        "id": "p_sap_reorder_signal",
+        "name": "SapReorderSignal",
+        "description": "Externally supplied SAP inventory-position snapshot in Sonaflozin units, reportedly on-hand plus on-order; inclusion of quarantine and calculation timing unverified.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 120,
+        "y": 472.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_ordered",
+        "name": "SonaflozinOrdered",
+        "description": "Chinese Supplier Sonaflozin order carrying units and provisional remaining life starting at order; supplier-preparation start and future supplier shelf life need confirmation.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 680,
+        "y": 462.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_transit",
+        "name": "SonaflozinInTransit",
+        "description": "Ordered Sonaflozin shipment in transit, possibly held at customs; no transit duration distribution assumed.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 1240,
+        "y": 525.3333333333334
+      },
+      {
+        "id": "p_receipt_event",
+        "name": "ShipmentArrivalNotice",
+        "description": "Externally supplied arrival/clearance event: timing not yet specified, including customs holds.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 90.66666666666667
+      },
+      {
+        "id": "p_sonaflozin_quarantine",
+        "name": "SonaflozinQuarantine",
+        "description": "Arrived Sonaflozin unavailable for production pending quality release.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 1800,
+        "y": 90.66666666666667
+      },
+      {
+        "id": "p_quality_release_event",
+        "name": "QualityReleaseNotice",
+        "description": "Externally supplied quality clearance for a quarantined shipment; elapsed quarantine time and rejection criteria unresolved.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 894.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_released",
+        "name": "SonaflozinReleased",
+        "description": "Individual quality-released Sonaflozin lots carry units and remaining usable weeks; no aggregated stock token required.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 2360,
+        "y": 998.6666666666667
+      },
+      {
+        "id": "p_production_waiting",
+        "name": "ProductionOrderWaiting",
+        "description": "Production orders each carrying the number of Sonic Flow units requested; arrival and scheduling of orders remain external.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 1018.6666666666667
+      },
+      {
+        "id": "p_flowbind_available",
+        "name": "FlowbindAvailable",
+        "description": "Usable Flowbind lots with time remaining on each lot; 156 weeks remaining for current stock is the team's assumption at record observation, not a value for new receipts.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 2360,
+        "y": 1126.6666666666667
+      },
+      {
+        "id": "p_sonicflow_produced",
+        "name": "SonicFlowBatchProduced",
+        "description": "Unshipped finished Sonic Flow batches, with units and age in weeks since the represented production completion; not cumulative production.",
+        "colorId": "type_finished_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_finished_age",
+        "x": 2360,
+        "y": 1628.6666666666667
+      },
+      {
+        "id": "p_customer_orders",
+        "name": "CustomerOrdersWaiting",
+        "description": "Externally supplied contract or spot customer order, with units and weeks until due; due-date source and partial fulfillment unresolved.",
+        "colorId": "type_customer_order",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_customer_due_countdown",
+        "x": 1800,
+        "y": 1669.6666666666667
+      },
+      {
+        "id": "p_customer_shipped",
+        "name": "SonicFlowShipped",
+        "description": "Customer orders shipped by their due time; one token per order carries shipped units for provisional order-based fill reporting.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2360,
+        "y": 1752.6666666666667
+      },
+      {
+        "id": "p_sonicflow_expired",
+        "name": "SonicFlowExpired",
+        "description": "Cumulative stock reaching the approximate age cutoff before sale, not confirmed physical scrap.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2920,
+        "y": 1602.6666666666667
+      },
+      {
+        "id": "p_indian_supplier_out",
+        "name": "IndianSupplierOutage",
+        "description": "Externally supplied indication that Indian Supplier is out; no onset or recovery schedule established.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 2006.7619047619048
+      },
+      {
+        "id": "p_german_flowbind_ordered",
+        "name": "GermanFlowbindTopUpOrdered",
+        "description": "New German emergency Flowbind lot pending receipt; supplier-start remaining life is unknown and uses an agent placeholder, not the team's current-stock assumption.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 1240,
+        "y": 1882.7619047619048
+      },
+      {
+        "id": "p_german_flowbind_receipt_notice",
+        "name": "GermanFlowbindReceiptNotice",
+        "description": "Externally supplied physical receipt of German emergency Flowbind into quarantine; quality release remains required before production use.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 897.3333333333334
+      },
+      {
+        "id": "p_flowbind_total_snapshot",
+        "name": "FlowbindStockReading",
+        "description": "Externally supplied reading of total Flowbind stock in units; using a single lot as the <500 trigger would be incorrect.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 2130.7619047619046
+      },
+      {
+        "id": "p_sonaflozin_expired",
+        "name": "SonaflozinExpiredUnits",
+        "description": "Cumulative Sonaflozin units expiring AFTER Site 1000 receipt, including quarantine; excludes pre-receipt losses. Monetary disposal/write-down unknown.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2920,
+        "y": 82
+      },
+      {
+        "id": "p_flowbind_expired",
+        "name": "FlowbindExpiredUnits",
+        "description": "Cumulative Flowbind units expiring after Site 1000 receipt from opening stock, Indian regular or German emergency supply; pre-receipt losses excluded, disposal cost unknown.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2920,
+        "y": 1144
+      },
+      {
+        "id": "p_contract_late_shipped",
+        "name": "ContractOrdersShippedLate",
+        "description": "Contract orders shipped after due; one token per late order carries units, lateness payment not valued.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2920,
+        "y": 1799.6666666666667
+      },
+      {
+        "id": "p_spot_cancelled",
+        "name": "SpotOrdersCancelled",
+        "description": "Spot customer orders cancelled while waiting; one token per lost-sale order carries requested units; price unknown.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2360,
+        "y": 2031.6666666666667
+      },
+      {
+        "id": "p_spot_cancel_notice",
+        "name": "SpotCustomerCancellationNotice",
+        "description": "Externally supplied spot-customer cancellation event while an order waits; rate and timing not inferred.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 2041.6666666666667
+      },
+      {
+        "id": "p_purchase_spend_events",
+        "name": "PurchaseCostCommitted",
+        "description": "Cumulative priced order-commitment events for Chinese Sonaflozin, Indian regular Flowbind and German emergency Flowbind; excludes storage, shortage, disposal, lateness and other costs.",
+        "colorId": "type_cost_eur",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 1793.6666666666667
+      },
+      {
+        "id": "p_german_switch_cost_events",
+        "name": "GermanSwitchCostEvents",
+        "description": "EUR 5,000 estimated team switching-charge events when placing an emergency German Flowbind order; not measured at Site 1000.",
+        "colorId": "type_cost_eur",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 1917.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_receipts",
+        "name": "SonaflozinReceivedUnits",
+        "description": "Cumulative units received into Site 1000 quarantine during period; opening stock supplied separately.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 338.6666666666667
+      },
+      {
+        "id": "p_flowbind_receipts",
+        "name": "FlowbindReceivedUnits",
+        "description": "Cumulative newly received Flowbind units at Site 1000 from modeled Indian regular and German emergency orders; opening stock separately required.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 770.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_pre_receipt_loss",
+        "name": "SonaflozinPreReceiptLossUnits",
+        "description": "Sonaflozin units lost before Site 1000 receipt, outside site's expired-stock percentage; quality-rejection classification tentative.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 462.6666666666667
+      },
+      {
+        "id": "p_flowbind_pre_receipt_loss",
+        "name": "FlowbindPreReceiptLossUnits",
+        "description": "Indian or German Flowbind units lost before Site 1000 receipt, outside site's expired-stock percentage; quality classification and liability unsettled.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 1266.6666666666667
+      },
+      {
+        "id": "p_flowbind_sap_position",
+        "name": "FlowbindSapPositionReading",
+        "description": "Externally supplied Indian-flowbind SAP inventory-position snapshot in units; exact on-hand/on-order computation not internal.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 680,
+        "y": 659.3333333333334
+      },
+      {
+        "id": "p_indian_flowbind_ordered",
+        "name": "IndianFlowbindOnOrder",
+        "description": "Regular Flowbind order with units and ageing while supplier prepares/transports it; new-lot life agent placeholder, arrival externally supplied.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 1240,
+        "y": 649.3333333333334
+      },
+      {
+        "id": "p_indian_flowbind_receipt_notice",
+        "name": "IndianFlowbindReceiptNotice",
+        "description": "Externally supplied physical receipt of routine Indian Flowbind into quarantine; quality release is a separate requirement.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1240,
+        "y": 773.3333333333334
+      },
+      {
+        "id": "p_flowbind_quarantine",
+        "name": "FlowbindQuarantine",
+        "description": "Received Indian or German Flowbind lots age while waiting for Site 1000 quality release; cannot enter production before release.",
+        "colorId": "type_raw_lot",
+        "dynamicsEnabled": true,
+        "differentialEquationId": "eq_raw_remaining",
+        "x": 1800,
+        "y": 1390.6666666666667
+      },
+      {
+        "id": "p_flowbind_quality_release_notice",
+        "name": "FlowbindQualityReleaseNotice",
+        "description": "External quality authorization to release one quarantined Flowbind lot; release delay and rejection criteria unresolved.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 1142.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_reject_notice",
+        "name": "SonaflozinQualityRejectionNotice",
+        "description": "Externally supplied quality-failure decision for one quarantined Sonaflozin lot; 5% team industry assumption not implemented as an automatic draw.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 214.66666666666669
+      },
+      {
+        "id": "p_flowbind_reject_notice",
+        "name": "FlowbindQualityRejectionNotice",
+        "description": "Externally supplied quality-failure decision for one quarantined Flowbind lot, either Indian or German.",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 1800,
+        "y": 1514.6666666666667
+      },
+      {
+        "id": "p_sonaflozin_rejected",
+        "name": "SonaflozinRejectedUnits",
+        "description": "Cumulative Sonaflozin units rejected by quality after Site receipt and sent for disposal; separate from age-expired units; monetary disposal unknown.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2360,
+        "y": 204.66666666666669
+      },
+      {
+        "id": "p_flowbind_rejected",
+        "name": "FlowbindRejectedUnits",
+        "description": "Cumulative Indian or German Flowbind units rejected by quality after Site receipt and sent for disposal; distinct from expiry units.",
+        "colorId": "type_material_units",
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 2360,
+        "y": 1504.6666666666667
+      }
+    ],
+    "transitions": [
+      {
+        "id": "t_trigger_sonaflozin_order",
+        "name": "SAP triggers Sonaflozin order",
+        "description": "From external SAP position, commits a Sonaflozin purchase and its approximate SAP-priced EUR amount; cash timing not modelled.",
+        "inputArcs": [
+          {
+            "placeId": "p_sap_reorder_signal",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_ordered",
+            "weight": 1
+          },
+          {
+            "placeId": "p_purchase_spend_events",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SapReorderSignal[0].units < parameters.sonaflozin_reorder_point;",
+        "transitionKernelCode": "const position = input.SapReorderSignal[0].units;\nconst gap = Math.max(0, parameters.sonaflozin_target - position);\nconst increment = Math.max(1, parameters.sonaflozin_order_increment);\nconst units = Math.ceil(gap / increment) * increment;\nreturn {\n  SonaflozinOrdered: [{ units, remaining_weeks: parameters.placeholder_sonaflozin_supplier_weeks }],\n  PurchaseCostCommitted: [{ eur: units * parameters.chinese_sonaflozin_eur_per_unit }]\n};",
+        "x": 400,
+        "y": 472.6666666666667
+      },
+      {
+        "id": "t_dispatch_shipment",
+        "name": "Supplier dispatches shipment",
+        "description": "Draft step from purchase order to transit; dispatch timing and supplier-outage rules have not been established.",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_ordered",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_transit",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "const lot = input.SonaflozinOrdered[0];\nreturn { SonaflozinInTransit: [{ units: lot.units, remaining_weeks: lot.remaining_weeks }] };",
+        "x": 960,
+        "y": 525.3333333333334
+      },
+      {
+        "id": "t_arrive_quarantine",
+        "name": "Shipment arrives into quarantine",
+        "description": "Moves a received shipment into quarantine and counts its units once as a new Site 1000 receipt; time in transit remains part of shelf life.",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_transit",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_receipt_event",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_quarantine",
+            "weight": 1
+          },
+          {
+            "placeId": "p_sonaflozin_receipts",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "const lot = input.SonaflozinInTransit[0];\nreturn {\n  SonaflozinQuarantine: [{ units: lot.units, remaining_weeks: lot.remaining_weeks }],\n  SonaflozinReceivedUnits: [{ units: lot.units }]\n};",
+        "x": 1520,
+        "y": 100.66666666666667
+      },
+      {
+        "id": "t_quality_release",
+        "name": "Quality releases Sonaflozin",
+        "description": "Moves a quarantined Sonaflozin lot into usable stock retaining remaining shelf life; an expired lot cannot be released.",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_quarantine",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_quality_release_event",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_released",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SonaflozinQuarantine[0].remaining_weeks > 0;",
+        "transitionKernelCode": "const lot = input.SonaflozinQuarantine[0];\nreturn { SonaflozinReleased: [{ units: lot.units, remaining_weeks: lot.remaining_weeks }] };",
+        "x": 2080,
+        "y": 884.6666666666667
+      },
+      {
+        "id": "t_produce_sonicflow",
+        "name": "Produce Sonic Flow order",
+        "description": "Provisional atomic production using one unexpired Sonaflozin lot and available Flowbind; multi-lot allocation and production duration remain unresolved.",
+        "inputArcs": [
+          {
+            "placeId": "p_production_waiting",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_sonaflozin_released",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_flowbind_available",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_released",
+            "weight": 1
+          },
+          {
+            "placeId": "p_flowbind_available",
+            "weight": 1
+          },
+          {
+            "placeId": "p_sonicflow_produced",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const needed = input.ProductionOrderWaiting[0].units;\nconst sonaflozin = input.SonaflozinReleased[0];\nconst flowbind = input.FlowbindAvailable[0];\nreturn needed > 0 && sonaflozin.remaining_weeks > 0 && flowbind.remaining_weeks > 0 && sonaflozin.units >= needed && flowbind.units >= needed;",
+        "transitionKernelCode": "const needed = input.ProductionOrderWaiting[0].units;\nconst sonaflozin = input.SonaflozinReleased[0];\nconst flowbind = input.FlowbindAvailable[0];\nreturn {\n  SonaflozinReleased: [{ units: sonaflozin.units - needed, remaining_weeks: sonaflozin.remaining_weeks }],\n  FlowbindAvailable: [{ units: flowbind.units - needed, remaining_weeks: flowbind.remaining_weeks }],\n  SonicFlowBatchProduced: [{ units: needed, age_weeks: 0 }]\n};",
+        "x": 2080,
+        "y": 1018.6666666666667
+      },
+      {
+        "id": "t_ship_customer_order",
+        "name": "Ship customer order on time",
+        "description": "Provisional on-time one-lot fulfillment; a customer order not yet past due and sufficient unexpired finished stock are required.",
+        "inputArcs": [
+          {
+            "placeId": "p_customer_orders",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_sonicflow_produced",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonicflow_produced",
+            "weight": 1
+          },
+          {
+            "placeId": "p_customer_shipped",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const order = input.CustomerOrdersWaiting[0];\nconst lot = input.SonicFlowBatchProduced[0];\nreturn order.units > 0 && order.weeks_to_due >= 0 && lot.units >= order.units && lot.age_weeks < parameters.example_finished_life_weeks;",
+        "transitionKernelCode": "const order = input.CustomerOrdersWaiting[0].units;\nconst lot = input.SonicFlowBatchProduced[0];\nreturn {\n  SonicFlowBatchProduced: [{ units: lot.units - order, age_weeks: lot.age_weeks }],\n  SonicFlowShipped: [{ units: order }]\n};",
+        "x": 2080,
+        "y": 1643.6666666666667
+      },
+      {
+        "id": "t_finished_expiry",
+        "name": "Mark finished stock past example life",
+        "description": "Provisional boundary at about 28 weeks from production; tracks units no longer usable rather than asserting physical scrap.",
+        "inputArcs": [
+          {
+            "placeId": "p_sonicflow_produced",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonicflow_expired",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.SonicFlowBatchProduced[0];\nreturn lot.units > 0 && lot.age_weeks >= parameters.example_finished_life_weeks;",
+        "transitionKernelCode": "return { SonicFlowExpired: [{ units: input.SonicFlowBatchProduced[0].units }] };",
+        "x": 2640,
+        "y": 1602.6666666666667
+      },
+      {
+        "id": "t_flowbind_german_low",
+        "name": "Order emergency Flowbind on low stock",
+        "description": "Below-500 external stock reading orders 250 German Flowbind units and records approximate purchase cost plus estimated one-time switch cost.",
+        "inputArcs": [
+          {
+            "weight": 1,
+            "type": "read",
+            "placeId": "p_flowbind_total_snapshot"
+          },
+          {
+            "placeId": "p_german_flowbind_ordered",
+            "weight": 1,
+            "type": "inhibitor"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_german_flowbind_ordered",
+            "weight": 1
+          },
+          {
+            "placeId": "p_purchase_spend_events",
+            "weight": 1
+          },
+          {
+            "placeId": "p_german_switch_cost_events",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindStockReading[0].units < parameters.flowbind_emergency_point;",
+        "transitionKernelCode": "const units = parameters.flowbind_german_topup_units;\nreturn {\n  GermanFlowbindTopUpOrdered: [{ units, remaining_weeks: parameters.placeholder_new_flowbind_supplier_weeks }],\n  PurchaseCostCommitted: [{ eur: units * parameters.german_flowbind_eur_per_unit }],\n  GermanSwitchCostEvents: [{ eur: parameters.estimated_german_switch_eur }]\n};",
+        "x": 1520,
+        "y": 2115.7619047619046
+      },
+      {
+        "id": "t_flowbind_german_outage",
+        "name": "Order emergency Flowbind during Indian outage",
+        "description": "Indian supplier outage triggers German emergency order and records approximate purchase cost plus team-estimated switch cost.",
+        "inputArcs": [
+          {
+            "placeId": "p_indian_supplier_out",
+            "weight": 1,
+            "type": "read"
+          },
+          {
+            "placeId": "p_german_flowbind_ordered",
+            "weight": 1,
+            "type": "inhibitor"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_german_flowbind_ordered",
+            "weight": 1
+          },
+          {
+            "placeId": "p_purchase_spend_events",
+            "weight": 1
+          },
+          {
+            "placeId": "p_german_switch_cost_events",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "const units = parameters.flowbind_german_topup_units;\nreturn {\n  GermanFlowbindTopUpOrdered: [{ units, remaining_weeks: parameters.placeholder_new_flowbind_supplier_weeks }],\n  PurchaseCostCommitted: [{ eur: units * parameters.german_flowbind_eur_per_unit }],\n  GermanSwitchCostEvents: [{ eur: parameters.estimated_german_switch_eur }]\n};",
+        "x": 1520,
+        "y": 1890.3333333333335
+      },
+      {
+        "id": "t_flowbind_german_receive",
+        "name": "Receive German emergency Flowbind",
+        "description": "On external receipt an unexpired German Flowbind top-up enters quarantine, not usable stock, while its units count once as site receipts.",
+        "inputArcs": [
+          {
+            "placeId": "p_german_flowbind_ordered",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_german_flowbind_receipt_notice",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "p_flowbind_quarantine"
+          },
+          {
+            "placeId": "p_flowbind_receipts",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.GermanFlowbindTopUpOrdered[0].remaining_weeks > 0;",
+        "transitionKernelCode": "const lot = input.GermanFlowbindTopUpOrdered[0];\nreturn {\n  FlowbindQuarantine: [{ units: lot.units, remaining_weeks: lot.remaining_weeks }],\n  FlowbindReceivedUnits: [{ units: lot.units }]\n};",
+        "x": 1520,
+        "y": 907.3333333333334
+      },
+      {
+        "id": "t_sonaflozin_released_expire",
+        "name": "Remove expired usable Sonaflozin",
+        "description": "Remove a released lot at zero remaining weeks; unit write-down tally, not monetary value.",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_released",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_expired",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.SonaflozinReleased[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { SonaflozinExpiredUnits: [{ units: input.SonaflozinReleased[0].units }] };",
+        "x": 2640,
+        "y": 998.6666666666667
+      },
+      {
+        "id": "t_sonaflozin_quarantine_expire",
+        "name": "Remove expired quarantined Sonaflozin",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_quarantine",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_expired",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.SonaflozinQuarantine[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { SonaflozinExpiredUnits: [{ units: input.SonaflozinQuarantine[0].units }] };",
+        "x": 2640,
+        "y": 64.66666666666667
+      },
+      {
+        "id": "t_sonaflozin_transit_expire",
+        "name": "Record Sonaflozin loss before receipt",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_transit",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "p_sonaflozin_pre_receipt_loss"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.SonaflozinInTransit[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { SonaflozinPreReceiptLossUnits: [{ units: input.SonaflozinInTransit[0].units }] };",
+        "x": 1520,
+        "y": 542.6666666666667,
+        "description": "Shipment passes remaining-life boundary in transit, outside site-held expiry fraction; treatment as quality rejection and liability remain tentative."
+      },
+      {
+        "id": "t_sonaflozin_order_expire",
+        "name": "Record Sonaflozin loss before dispatch",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_ordered",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "p_sonaflozin_pre_receipt_loss"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.SonaflozinOrdered[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { SonaflozinPreReceiptLossUnits: [{ units: input.SonaflozinOrdered[0].units }] };",
+        "x": 960,
+        "y": 445.33333333333337,
+        "description": "A lot lost before Site receipt is excluded from Site 1000's expired-stock fraction; rejection classification and cost liability unverified."
+      },
+      {
+        "id": "t_flowbind_available_expire",
+        "name": "Remove expired usable Flowbind",
+        "inputArcs": [
+          {
+            "placeId": "p_flowbind_available",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_flowbind_expired",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.FlowbindAvailable[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { FlowbindExpiredUnits: [{ units: input.FlowbindAvailable[0].units }] };",
+        "x": 2640,
+        "y": 1126.6666666666667
+      },
+      {
+        "id": "t_flowbind_pending_expire",
+        "name": "Record German Flowbind loss before receipt",
+        "inputArcs": [
+          {
+            "placeId": "p_german_flowbind_ordered",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "p_flowbind_pre_receipt_loss"
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.GermanFlowbindTopUpOrdered[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { FlowbindPreReceiptLossUnits: [{ units: input.GermanFlowbindTopUpOrdered[0].units }] };",
+        "x": 1520,
+        "y": 1284,
+        "description": "German emergency lot expires before Site receipt; excluded from Site 1000 expired-stock percentage, cost liability unresolved."
+      },
+      {
+        "id": "t_ship_contract_late",
+        "name": "Ship contract customer order late",
+        "description": "When contract order is past due, fulfills from one unexpired finished lot; lateness payment awaits cost input.",
+        "inputArcs": [
+          {
+            "placeId": "p_customer_orders",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_sonicflow_produced",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonicflow_produced",
+            "weight": 1
+          },
+          {
+            "placeId": "p_contract_late_shipped",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const order = input.CustomerOrdersWaiting[0];\nconst lot = input.SonicFlowBatchProduced[0];\nreturn order.is_contract && order.weeks_to_due < 0 && order.units > 0 && lot.units >= order.units && lot.age_weeks < parameters.example_finished_life_weeks;",
+        "transitionKernelCode": "const order = input.CustomerOrdersWaiting[0];\nconst lot = input.SonicFlowBatchProduced[0];\nreturn {\n  SonicFlowBatchProduced: [{ units: lot.units - order.units, age_weeks: lot.age_weeks }],\n  ContractOrdersShippedLate: [{ units: order.units }]\n};",
+        "x": 2640,
+        "y": 1799.6666666666667
+      },
+      {
+        "id": "t_cancel_spot_order",
+        "name": "Spot customer cancels waiting order",
+        "description": "Externally supplied cancellation consumes one waiting spot order and counts its requested units as lost sale; cancellations are not generated probabilistically.",
+        "inputArcs": [
+          {
+            "placeId": "p_customer_orders",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_spot_cancel_notice",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_spot_cancelled",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return !input.CustomerOrdersWaiting[0].is_contract;",
+        "transitionKernelCode": "return { SpotOrdersCancelled: [{ units: input.CustomerOrdersWaiting[0].units }] };",
+        "x": 2080,
+        "y": 2031.6666666666667
+      },
+      {
+        "id": "t_flowbind_indian_order",
+        "name": "Order regular Indian Flowbind",
+        "description": "External Flowbind inventory-position reading below 1,500 produces order toward 5,000 in 2,500-unit increments; new-lot life is agent placeholder and cost approximates SAP price.",
+        "inputArcs": [
+          {
+            "placeId": "p_flowbind_sap_position",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_indian_flowbind_ordered",
+            "weight": 1
+          },
+          {
+            "placeId": "p_purchase_spend_events",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindSapPositionReading[0].units < parameters.flowbind_reorder_point;",
+        "transitionKernelCode": "const position = input.FlowbindSapPositionReading[0].units;\nconst gap = Math.max(0, parameters.flowbind_target - position);\nconst increment = Math.max(1, parameters.flowbind_order_increment);\nconst units = Math.ceil(gap / increment) * increment;\nreturn {\n  IndianFlowbindOnOrder: [{ units, remaining_weeks: parameters.placeholder_new_indian_supplier_weeks }],\n  PurchaseCostCommitted: [{ eur: units * parameters.indian_flowbind_eur_per_unit }]\n};",
+        "x": 960,
+        "y": 659.3333333333334
+      },
+      {
+        "id": "t_flowbind_indian_receive",
+        "name": "Receive regular Indian Flowbind",
+        "description": "On external receipt an unexpired Indian Flowbind lot enters quarantine, not usable stock, while its units count once as site receipts.",
+        "inputArcs": [
+          {
+            "placeId": "p_indian_flowbind_ordered",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_indian_flowbind_receipt_notice",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "weight": 1,
+            "placeId": "p_flowbind_quarantine"
+          },
+          {
+            "placeId": "p_flowbind_receipts",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.IndianFlowbindOnOrder[0].remaining_weeks > 0;",
+        "transitionKernelCode": "const lot = input.IndianFlowbindOnOrder[0];\nreturn {\n  FlowbindQuarantine: [{ units: lot.units, remaining_weeks: lot.remaining_weeks }],\n  FlowbindReceivedUnits: [{ units: lot.units }]\n};",
+        "x": 1520,
+        "y": 763.3333333333334
+      },
+      {
+        "id": "t_flowbind_indian_pre_receipt_loss",
+        "name": "Record Indian Flowbind loss before receipt",
+        "description": "An Indian lot passing remaining life before Site receipt is tallied outside the Site 1000 expiry percentage; financial liability unresolved.",
+        "inputArcs": [
+          {
+            "placeId": "p_indian_flowbind_ordered",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_flowbind_pre_receipt_loss",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.IndianFlowbindOnOrder[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { FlowbindPreReceiptLossUnits: [{ units: input.IndianFlowbindOnOrder[0].units }] };",
+        "x": 1520,
+        "y": 632
+      },
+      {
+        "id": "t_flowbind_quality_release",
+        "name": "Quality releases Flowbind",
+        "description": "An external quality-release notice moves one unexpired quarantined Flowbind lot to usable stock, regardless of Indian or German source.",
+        "inputArcs": [
+          {
+            "placeId": "p_flowbind_quarantine",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_flowbind_quality_release_notice",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_flowbind_available",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindQuarantine[0].remaining_weeks > 0;",
+        "transitionKernelCode": "const lot = input.FlowbindQuarantine[0];\nreturn { FlowbindAvailable: [{ units: lot.units, remaining_weeks: lot.remaining_weeks }] };",
+        "x": 2080,
+        "y": 1152.6666666666667
+      },
+      {
+        "id": "t_flowbind_quarantine_expire",
+        "name": "Remove expired quarantined Flowbind",
+        "description": "After Site receipt but before quality release, expired Indian or German Flowbind is removed and counted in Site expiry units.",
+        "inputArcs": [
+          {
+            "placeId": "p_flowbind_quarantine",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_flowbind_expired",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "const lot = input.FlowbindQuarantine[0];\nreturn lot.units > 0 && lot.remaining_weeks <= 0;",
+        "transitionKernelCode": "return { FlowbindExpiredUnits: [{ units: input.FlowbindQuarantine[0].units }] };",
+        "x": 2640,
+        "y": 1390.6666666666667
+      },
+      {
+        "id": "t_sonaflozin_quality_reject",
+        "name": "Quality rejects Sonaflozin lot",
+        "description": "On external failed-inspection notice, an unexpired quarantined lot is removed and its units tallied for disposal; cost amount unknown.",
+        "inputArcs": [
+          {
+            "placeId": "p_sonaflozin_quarantine",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_sonaflozin_reject_notice",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_sonaflozin_rejected",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.SonaflozinQuarantine[0].remaining_weeks > 0;",
+        "transitionKernelCode": "return { SonaflozinRejectedUnits: [{ units: input.SonaflozinQuarantine[0].units }] };",
+        "x": 2080,
+        "y": 204.66666666666669
+      },
+      {
+        "id": "t_flowbind_quality_reject",
+        "name": "Quality rejects Flowbind lot",
+        "description": "On external failed-inspection notice, a quarantined Indian or German Flowbind lot is removed for disposal, separate from expiry; cost unknown.",
+        "inputArcs": [
+          {
+            "placeId": "p_flowbind_quarantine",
+            "weight": 1,
+            "type": "standard"
+          },
+          {
+            "placeId": "p_flowbind_reject_notice",
+            "weight": 1,
+            "type": "standard"
+          }
+        ],
+        "outputArcs": [
+          {
+            "placeId": "p_flowbind_rejected",
+            "weight": 1
+          }
+        ],
+        "lambdaType": "predicate",
+        "lambdaCode": "return input.FlowbindQuarantine[0].remaining_weeks > 0;",
+        "transitionKernelCode": "return { FlowbindRejectedUnits: [{ units: input.FlowbindQuarantine[0].units }] };",
+        "x": 2080,
+        "y": 1504.6666666666667
+      }
+    ],
+    "types": [
+      {
+        "id": "type_material_units",
+        "name": "Material quantity",
+        "description": "A quantity in whole units for demand, SAP snapshots, customer shipments or cumulative expired-material counts; age-bearing material stock uses separate lot types.",
+        "iconSlug": "circle",
+        "displayColor": "#3979A6",
+        "elements": [
+          {
+            "elementId": "element_material_units",
+            "name": "units",
+            "type": "integer"
+          }
+        ]
+      },
+      {
+        "id": "type_finished_lot",
+        "name": "Finished Sonic Flow lot",
+        "description": "Finished batch inventory with quantity and age since production in weeks; age origin and cutoff are modelling assumptions awaiting confirmation.",
+        "iconSlug": "square",
+        "displayColor": "#6F9E48",
+        "elements": [
+          {
+            "elementId": "element_finished_units",
+            "name": "units",
+            "type": "integer"
+          },
+          {
+            "elementId": "element_finished_age_weeks",
+            "name": "age_weeks",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "type_raw_lot",
+        "name": "Ingredient lot with remaining life",
+        "description": "Lot quantities carry remaining usable weeks from supplier onward; current lots and future lots need separate remaining-life evidence.",
+        "iconSlug": "square",
+        "displayColor": "#D17A32",
+        "elements": [
+          {
+            "elementId": "element_raw_lot_units",
+            "name": "units",
+            "type": "integer"
+          },
+          {
+            "elementId": "element_raw_lot_remaining_weeks",
+            "name": "remaining_weeks",
+            "type": "real"
+          }
+        ]
+      },
+      {
+        "id": "type_customer_order",
+        "name": "Customer order with due time",
+        "description": "One customer order: requested units, weeks remaining until due time, and whether it is a contract rather than spot customer.",
+        "iconSlug": "square",
+        "displayColor": "#8C66AC",
+        "elements": [
+          {
+            "elementId": "element_customer_units",
+            "name": "units",
+            "type": "integer"
+          },
+          {
+            "elementId": "element_customer_due_weeks",
+            "name": "weeks_to_due",
+            "type": "real"
+          },
+          {
+            "elementId": "element_customer_contract",
+            "name": "is_contract",
+            "type": "boolean"
+          }
+        ]
+      },
+      {
+        "id": "type_cost_eur",
+        "name": "Cost event in EUR",
+        "description": "One modelled event with an EUR amount; order commitment timing is a modelling convention, not observed cash flow.",
+        "iconSlug": "circle",
+        "displayColor": "#B87B27",
+        "elements": [
+          {
+            "elementId": "element_cost_eur",
+            "name": "eur",
+            "type": "real"
+          }
+        ]
+      }
+    ],
+    "differentialEquations": [
+      {
+        "id": "eq_finished_age",
+        "name": "Finished stock age in weeks",
+        "colorId": "type_finished_lot",
+        "code": "return tokens.map(() => ({ age_weeks: 1 }));"
+      },
+      {
+        "id": "eq_raw_remaining",
+        "name": "Ingredient remaining life ticks down",
+        "colorId": "type_raw_lot",
+        "code": "return tokens.map(() => ({ remaining_weeks: -1 }));"
+      },
+      {
+        "id": "eq_customer_due_countdown",
+        "name": "Customer due-time countdown in weeks",
+        "colorId": "type_customer_order",
+        "code": "return tokens.map(() => ({ weeks_to_due: -1 }));"
+      }
+    ],
+    "parameters": [
+      {
+        "id": "param_example_finished_life_weeks",
+        "name": "Approximate Sonic Flow shelf life (weeks)",
+        "variableName": "example_finished_life_weeks",
+        "type": "real",
+        "defaultValue": "28"
+      },
+      {
+        "id": "param_sonaflozin_reorder_point",
+        "name": "Sonaflozin reorder point (units)",
+        "variableName": "sonaflozin_reorder_point",
+        "type": "integer",
+        "defaultValue": "2500"
+      },
+      {
+        "id": "param_sonaflozin_target",
+        "name": "Sonaflozin stock target (units)",
+        "variableName": "sonaflozin_target",
+        "type": "integer",
+        "defaultValue": "7500"
+      },
+      {
+        "id": "param_placeholder_moq",
+        "name": "Sonaflozin SAP order increment (units; reported)",
+        "variableName": "sonaflozin_order_increment",
+        "type": "integer",
+        "defaultValue": "2500"
+      },
+      {
+        "id": "param_flowbind_emergency_point",
+        "name": "Flowbind emergency point (units)",
+        "variableName": "flowbind_emergency_point",
+        "type": "integer",
+        "defaultValue": "500"
+      },
+      {
+        "id": "param_flowbind_german_topup_units",
+        "name": "German emergency Flowbind top-up units",
+        "variableName": "flowbind_german_topup_units",
+        "type": "integer",
+        "defaultValue": "250"
+      },
+      {
+        "id": "param_placeholder_sonaflozin_life",
+        "name": "Unknown new Sonaflozin supplier remaining life (weeks; placeholder)",
+        "variableName": "placeholder_sonaflozin_supplier_weeks",
+        "type": "real",
+        "defaultValue": "156"
+      },
+      {
+        "id": "param_flowbind_assumed_supplier_life",
+        "name": "Unknown new German Flowbind lot life (weeks; agent placeholder)",
+        "variableName": "placeholder_new_flowbind_supplier_weeks",
+        "type": "real",
+        "defaultValue": "156"
+      },
+      {
+        "id": "param_chinese_price_eur",
+        "name": "Approx. Chinese Sonaflozin purchase price (EUR/unit)",
+        "variableName": "chinese_sonaflozin_eur_per_unit",
+        "type": "real",
+        "defaultValue": "89"
+      },
+      {
+        "id": "param_german_price_eur",
+        "name": "Approx. German Flowbind purchase price (EUR/unit)",
+        "variableName": "german_flowbind_eur_per_unit",
+        "type": "real",
+        "defaultValue": "82"
+      },
+      {
+        "id": "param_german_switch_eur",
+        "name": "Estimated German supplier switch cost (EUR/event)",
+        "variableName": "estimated_german_switch_eur",
+        "type": "real",
+        "defaultValue": "5000"
+      },
+      {
+        "id": "param_flowbind_reorder_point",
+        "name": "Flowbind reorder point (units)",
+        "variableName": "flowbind_reorder_point",
+        "type": "integer",
+        "defaultValue": "1500"
+      },
+      {
+        "id": "param_flowbind_target",
+        "name": "Flowbind target (units)",
+        "variableName": "flowbind_target",
+        "type": "integer",
+        "defaultValue": "5000"
+      },
+      {
+        "id": "param_flowbind_order_increment",
+        "name": "Flowbind Indian order increment (units)",
+        "variableName": "flowbind_order_increment",
+        "type": "integer",
+        "defaultValue": "2500"
+      },
+      {
+        "id": "param_indian_flowbind_price_eur",
+        "name": "Approx. Indian Flowbind price (EUR/unit)",
+        "variableName": "indian_flowbind_eur_per_unit",
+        "type": "real",
+        "defaultValue": "110"
+      },
+      {
+        "id": "param_placeholder_new_indian_life",
+        "name": "Unknown new Indian Flowbind lot life (weeks; agent placeholder)",
+        "variableName": "placeholder_new_indian_supplier_weeks",
+        "type": "real",
+        "defaultValue": "156"
+      }
+    ],
+    "metrics": [
+      {
+        "id": "metric_waiting_orders",
+        "name": "Waiting production orders",
+        "description": "Number of production orders still awaiting completion at each observation, not an on-time service-level measure.",
+        "code": "return state.places.ProductionOrderWaiting.count;"
+      },
+      {
+        "id": "metric_finished_stock_units",
+        "name": "Unshipped Sonic Flow units",
+        "description": "Current units in finished lots that have not shipped or crossed the model's approximate age cutoff.",
+        "code": "return state.places.SonicFlowBatchProduced.tokens.reduce((sum, lot) => sum + lot.units, 0);"
+      },
+      {
+        "id": "metric_finished_expired_units",
+        "name": "Finished units past example life",
+        "description": "Accumulated finished units moved out of saleable stock at the model's approximate shelf-life cutoff; not actual scrap records.",
+        "code": "return state.places.SonicFlowExpired.tokens.reduce((sum, lot) => sum + lot.units, 0);"
+      },
+      {
+        "id": "metric_sonaflozin_expired_units",
+        "name": "Site-received Sonaflozin expired units",
+        "description": "Units expired only after Site 1000 receipt, including quarantine; excludes separate pre-receipt losses and is not monetary write-down.",
+        "code": "return state.places.SonaflozinExpiredUnits.tokens.reduce((sum, lot) => sum + lot.units, 0);"
+      },
+      {
+        "id": "metric_flowbind_expired_units",
+        "name": "Site-received Flowbind expired units",
+        "description": "Flowbind units expiring after Site 1000 receipt from current stock, Indian regular or German emergency supply; excludes pre-receipt losses. Current-stock 156 weeks is team's assumption.",
+        "code": "return state.places.FlowbindExpiredUnits.tokens.reduce((sum, lot) => sum + lot.units, 0);"
+      },
+      {
+        "id": "metric_on_time_customer_orders",
+        "name": "Customer orders shipped on time",
+        "description": "Cumulative count of orders shipped no later than due; candidate numerator only, not yet Elena's formal fill-rate definition.",
+        "code": "return state.places.SonicFlowShipped.count;"
+      },
+      {
+        "id": "metric_customer_orders_missed_candidate",
+        "name": "Candidate customer-order misses",
+        "description": "Late contract shipments, cancelled spot orders and still-waiting orders past due; provisional order-count interpretation, not the agreed 95% measure.",
+        "code": "const late = state.places.ContractOrdersShippedLate.count;\nconst cancelled = state.places.SpotOrdersCancelled.count;\nconst overdue = state.places.CustomerOrdersWaiting.tokens.filter(order => order.weeks_to_due < 0).length;\nreturn late + cancelled + overdue;"
+      },
+      {
+        "id": "metric_modelled_purchase_eur",
+        "name": "Modelled supplier purchase commitments (EUR)",
+        "description": "Approximate SAP-priced commitments for modelled Chinese Sonaflozin, Indian regular Flowbind and German emergency Flowbind orders; excludes other cost classes.",
+        "code": "return state.places.PurchaseCostCommitted.tokens.reduce((sum, event) => sum + event.eur, 0);"
+      },
+      {
+        "id": "metric_modelled_switch_eur",
+        "name": "Estimated German switch costs (EUR)",
+        "description": "Accumulated team-estimated EUR 5,000 per emergency German Flowbind order in this model; not measured costs.",
+        "code": "return state.places.GermanSwitchCostEvents.tokens.reduce((sum, event) => sum + event.eur, 0);"
+      },
+      {
+        "id": "metric_rejected_raw_units",
+        "name": "Quality-rejected raw-material units",
+        "description": "Cumulative units rejected by quality after Site receipt, both materials; not expiry, not a rejection probability or disposal EUR.",
+        "code": "return state.places.SonaflozinRejectedUnits.tokens.reduce((sum, x) => sum + x.units, 0) + state.places.FlowbindRejectedUnits.tokens.reduce((sum, x) => sum + x.units, 0);"
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "scenario_illustrative_one_batch",
+        "name": "Illustrative one-batch walkthrough (agent defaults)",
+        "description": "Agent-chosen smoke-test starting state, NOT a 104-week purchasing policy comparison. Guess: 2,500 units each of released Sonaflozin and Flowbind, Sonaflozin 100 weeks left (within the reported 88–156 current-lot range), Flowbind 156 weeks left (team's current-stock assumption), one 700-unit production order and one 700-unit contract customer order due in one week. No new supplies or disruptions are scheduled.",
+        "scenarioParameters": [
+          {
+            "type": "integer",
+            "identifier": "opening_sonaflozin_units",
+            "default": 2500
+          },
+          {
+            "type": "integer",
+            "identifier": "opening_flowbind_units",
+            "default": 2500
+          },
+          {
+            "type": "real",
+            "identifier": "opening_sonaflozin_weeks_left",
+            "default": 100
+          },
+          {
+            "type": "real",
+            "identifier": "opening_flowbind_weeks_left",
+            "default": 156
+          },
+          {
+            "type": "integer",
+            "identifier": "production_order_units",
+            "default": 700
+          },
+          {
+            "type": "integer",
+            "identifier": "customer_order_units",
+            "default": 700
+          },
+          {
+            "type": "real",
+            "identifier": "customer_due_weeks",
+            "default": 1
+          }
+        ],
+        "parameterOverrides": {},
+        "initialState": {
+          "type": "code",
+          "content": "// Illustrative starting state only: agent-chosen opening stock and due date.\nreturn {\n  SonaflozinReleased: [{ units: scenario.opening_sonaflozin_units, remaining_weeks: scenario.opening_sonaflozin_weeks_left }],\n  FlowbindAvailable: [{ units: scenario.opening_flowbind_units, remaining_weeks: scenario.opening_flowbind_weeks_left }],\n  ProductionOrderWaiting: [{ units: scenario.production_order_units }],\n  CustomerOrdersWaiting: [{ units: scenario.customer_order_units, weeks_to_due: scenario.customer_due_weeks, is_contract: true }]\n};"
+        }
+      }
+    ]
+  },
+  "lastUpdated": "2026-09-29T12:13:52.606Z",
+  "incarnationId": "c4877d59-03f2-44f8-8146-e1604c8b8767",
+  "revisionId": "c534680c-f5a3-40cb-8431-eb2ed86d5efb"
+}
