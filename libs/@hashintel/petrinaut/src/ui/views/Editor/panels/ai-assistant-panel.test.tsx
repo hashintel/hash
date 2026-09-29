@@ -3727,14 +3727,14 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).toHaveBeenCalledOnce();
   });
 
-  test("claims an issued browser call only at its document-lane turn, so Stop leaves a queued call unclaimed", async () => {
-    const abortedAtClaim = new Map<string, boolean>();
-    const claim = vi.fn<
-      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["claim"]
+  test("runs an in-band browser call only at its document-lane turn, so Stop aborts a queued call before it starts", async () => {
+    const abortedAtRun = new Map<string, boolean>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
     >(
       ({ toolCallId, signal }) =>
         new Promise((_resolve, reject) => {
-          abortedAtClaim.set(toolCallId, signal.aborted);
+          abortedAtRun.set(toolCallId, signal.aborted);
           signal.addEventListener("abort", () => reject(signal.reason), {
             once: true,
           });
@@ -3764,21 +3764,21 @@ describe("AiAssistantPanel composer submissions", () => {
         transport: { reconnectToStream: async () => null, sendMessages },
         inBandBrowserTools: {
           has: (toolName) => toolName === getLatestNetDefinitionToolName,
-          claim,
+          run,
         },
       },
       initialMessage: "Read the net twice",
       petriNetDefinition: nonEmptySDCPN,
     });
 
-    await waitFor(() => expect(claim).toHaveBeenCalledOnce());
-    expect(claim.mock.calls[0]?.[0].toolCallId).toBe("running-read");
+    await waitFor(() => expect(run).toHaveBeenCalledOnce());
+    expect(run.mock.calls[0]?.[0].toolCallId).toBe("running-read");
 
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
 
     expect(await screen.findByText("Response stopped")).not.toBeNull();
-    await waitFor(() => expect(claim).toHaveBeenCalledTimes(2));
-    expect(abortedAtClaim.get("queued-read")).toBe(true);
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(2));
+    expect(abortedAtRun.get("queued-read")).toBe(true);
   });
 
   test("does not execute tools from a durably stopped reopened response", async () => {
@@ -5838,6 +5838,60 @@ describe("AI experiment requests", () => {
         output: result,
       }),
     );
+  });
+
+  test("an in-band experiment yields the document lane once started and resolves its result to the host", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const outputs = new Map<string, unknown>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async ({ toolCallId, input }, execute) => {
+      outputs.set(toolCallId, await execute(input));
+    });
+    // The response stays open, as it does while the server awaits browser calls.
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "experiment-call",
+              toolName: "createExperiment",
+              input: request,
+            });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "read-call",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            });
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) =>
+            toolName === "createExperiment" ||
+            toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+      },
+      initialMessage: "Run an experiment, then read the net",
+      experimentHost: { runExperiment },
+    });
+
+    await waitFor(() => expect(outputs.has("read-call")).toBe(true));
+    expect(runExperiment).toHaveBeenCalledOnce();
+    expect(outputs.has("experiment-call")).toBe(false);
+
+    await act(async () => completion.resolve(result));
+    await waitFor(() => expect(outputs.get("experiment-call")).toEqual(result));
   });
 
   test("cancels browser computation through the experiment card", async () => {

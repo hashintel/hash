@@ -911,7 +911,7 @@ const ConversationAiAssistantPanel = ({
 
   const executeToolCall = async (
     { toolCall }: Parameters<ChatOnToolCallCallback<PetrinautAiMessage>>[0],
-    inBandSubmit?: (output: unknown) => Promise<void>,
+    captureInBandOutput?: (output: unknown) => void,
   ) => {
     const generation = submissionGenerationRef.current;
     const executionConversationId = toolHostIdentityRef.current;
@@ -921,8 +921,8 @@ const ConversationAiAssistantPanel = ({
     const addAutomaticToolOutput = (
       params: Parameters<typeof addAutomaticToolOutputForGeneration>[0],
     ) =>
-      inBandSubmit
-        ? inBandSubmit(params.output)
+      captureInBandOutput
+        ? Promise.resolve(captureInBandOutput(params.output))
         : addAutomaticToolOutputForGeneration(
             params,
             generation,
@@ -1220,62 +1220,52 @@ const ConversationAiAssistantPanel = ({
     if (!host?.has(toolCall.toolName)) return;
     const controller = new AbortController();
     automaticToolAbortsRef.current.add(controller);
-    // Claim at the start of this call's document-lane turn, so a claimed call
-    // has started: a Stop while it waits behind another call leaves it unstarted.
-    const execute = async () => {
-      let issued: Awaited<ReturnType<typeof host.claim>> | undefined;
-      let started = false;
-      try {
-        issued = await host.claim({
+    let yieldLane = () => {};
+    const laneYielded = new Promise<void>((resolve) => {
+      yieldLane = resolve;
+    });
+    let experimentExecuting = false;
+    const execute = async (issuedInput: unknown) => {
+      const outputs: unknown[] = [];
+      const execution = executeToolCall(
+        { toolCall: { ...toolCall, input: issuedInput } as typeof toolCall },
+        (output) => {
+          outputs.push(output);
+        },
+      );
+      if (toolCall.toolName === createExperimentToolName) {
+        // The source was captured on entry; simulation need not hold the lane.
+        experimentExecuting = true;
+        yieldLane();
+      }
+      await execution;
+      if (outputs.length === 0 && !controller.signal.aborted)
+        throw new Error(
+          `In-band tool ${toolCall.toolName} settled without an output.`,
+        );
+      return outputs[0];
+    };
+    // Run at the start of this call's document-lane turn, so a Stop while it
+    // waits behind another call aborts it before the host lets it start.
+    const scheduled = inBandDocumentLaneRef.current.then(() =>
+      host.run(
+        {
           toolCallId: toolCall.toolCallId,
           toolName: toolCall.toolName,
           input: toolCall.input,
           signal: controller.signal,
-        });
-        if (controller.signal.aborted) return;
-        issued.prepare();
-        started = true;
-        const execution = executeToolCall(
-          { toolCall: { ...toolCall, input: issued.input } as typeof toolCall },
-          issued.submit,
-        );
-        if (toolCall.toolName === createExperimentToolName) {
-          // The source was captured at this barrier; simulation need not hold the lane.
-          const experimentCall = issued;
-          void execution
-            .catch(async (error: unknown) => {
-              if (!controller.signal.aborted)
-                await experimentCall.fail().catch(() => {});
-              reportOperationalFailure(
-                error instanceof Error ? error : new Error(String(error)),
-                "browser-tool",
-              );
-            })
-            .finally(() => {
-              experimentCall.release();
-              automaticToolAbortsRef.current.delete(controller);
-            });
-          return;
-        }
-        await execution;
-      } catch (error) {
-        if (issued && !controller.signal.aborted)
-          await issued.fail(started ? "failed" : "unstarted").catch(() => {});
-        throw error;
-      } finally {
-        if (toolCall.toolName !== createExperimentToolName) issued?.release();
-      }
-    };
-    const scheduled = inBandDocumentLaneRef.current.then(execute);
-    // Rejections have a terminal server failure; they do not strand later issued calls.
-    inBandDocumentLaneRef.current = scheduled.then(
-      () => undefined,
-      () => undefined,
+        },
+        execute,
+      ),
     );
+    void scheduled.then(yieldLane, yieldLane);
+    // Rejections have a terminal server failure; they do not strand later issued calls.
+    inBandDocumentLaneRef.current = laneYielded;
     void scheduled
       .finally(() => automaticToolAbortsRef.current.delete(controller))
       .catch((error: unknown) => {
-        if (!controller.signal.aborted)
+        // A started experiment reports even after Stop, as its simulation does.
+        if (!controller.signal.aborted || experimentExecuting)
           reportOperationalFailure(
             error instanceof Error ? error : new Error(String(error)),
             "browser-tool",

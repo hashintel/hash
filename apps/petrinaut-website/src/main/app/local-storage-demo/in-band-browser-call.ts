@@ -37,9 +37,8 @@ export const createInBandBrowserCalls = (input: {
     toolName: string;
     input: unknown;
   }) => void;
-}) => ({
-  has: (toolName: string) => toolName in petrinautAiTools,
-  claim: async (call: {
+}) => {
+  const claim = async (call: {
     readonly toolCallId: string;
     readonly toolName: string;
     readonly input: unknown;
@@ -119,12 +118,6 @@ export const createInBandBrowserCalls = (input: {
     });
     return {
       input: claimed.input,
-      prepare: () =>
-        input.prepareInput({
-          toolCallId: call.toolCallId,
-          toolName: call.toolName,
-          input: claimed.input,
-        }),
       release: () => clearInterval(lease),
       fail: async (disposition: "unstarted" | "failed" = "failed") => {
         clearInterval(lease);
@@ -169,5 +162,41 @@ export const createInBandBrowserCalls = (input: {
           );
       },
     };
-  },
-});
+  };
+  return {
+    has: (toolName: string) => toolName in petrinautAiTools,
+    claim,
+    /**
+     * Claim at this call's turn, run it under a renewed lease, then settle it.
+     * A call is unstarted until `execute` is entered; after Stop nothing is reported.
+     */
+    run: async (
+      call: {
+        readonly toolCallId: string;
+        readonly toolName: string;
+        readonly input: unknown;
+        readonly signal: AbortSignal;
+      },
+      execute: (issuedInput: unknown) => Promise<unknown>,
+    ) => {
+      const issued = await claim(call);
+      let started = false;
+      try {
+        if (call.signal.aborted) return;
+        input.prepareInput({
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          input: issued.input,
+        });
+        started = true;
+        await issued.submit(await execute(issued.input));
+      } catch (error) {
+        if (!call.signal.aborted)
+          await issued.fail(started ? "failed" : "unstarted").catch(() => {});
+        throw error;
+      } finally {
+        issued.release();
+      }
+    },
+  };
+};
