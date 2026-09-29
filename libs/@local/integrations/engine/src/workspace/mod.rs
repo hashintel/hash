@@ -2,7 +2,7 @@ mod connection;
 mod error;
 mod rows;
 
-use core::error::Error;
+use core::{error::Error, num::NonZeroUsize};
 use std::{path::PathBuf, sync::mpsc, thread};
 
 use duckdb::types::Value;
@@ -11,9 +11,10 @@ use tokio::sync::oneshot;
 
 use self::connection::Connection;
 pub use self::{
-    error::{CloseError, OpenError, SnapshotError, StatementError},
+    error::{CloseError, DiskLimitError, OpenError, SnapshotError, StatementError},
     rows::Rows,
 };
+use crate::ByteSize;
 
 /// Settings for a [`Workspace`].
 #[derive(Debug, Default)]
@@ -23,6 +24,20 @@ pub struct WorkspaceConfig {
     /// Statements can also write in DuckDB's temporary directory, `<database>.tmp`, once DuckDB
     /// has created it. They cannot open any other file.
     pub allowed_directories: Vec<PathBuf>,
+    /// The most memory DuckDB uses. A statement that needs more spills to the temporary
+    /// directory, or fails if it cannot.
+    pub memory_limit: Option<ByteSize>,
+    /// The most disk space DuckDB uses for the data it spills to its temporary directory.
+    pub temp_directory_limit: Option<ByteSize>,
+    /// The most disk space the database file, its log and DuckDB's temporary directory use
+    /// together.
+    ///
+    /// The workspace checks the limit when it opens and after each statement. A statement that
+    /// takes the workspace files over the limit reports [`StatementError::DiskLimit`], and its
+    /// changes stay in the database.
+    pub disk_limit: Option<ByteSize>,
+    /// The number of threads DuckDB runs a statement on.
+    pub threads: Option<NonZeroUsize>,
 }
 
 /// A request to the workspace thread, with the channel for its reply.
@@ -73,6 +88,8 @@ impl Workspace {
     /// - [`NonUtf8Directory`] if an allowed directory is not valid UTF-8
     /// - [`Configure`] if DuckDB refuses a setting
     /// - [`Open`] if DuckDB cannot open the database
+    /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`], or their
+    ///   size cannot be checked
     /// - [`Spawn`] if the workspace thread cannot be started
     /// - [`Stopped`] if the workspace thread stopped before it opened the database
     ///
@@ -80,6 +97,7 @@ impl Workspace {
     /// [`NonUtf8Directory`]: OpenError::NonUtf8Directory
     /// [`Configure`]: OpenError::Configure
     /// [`Open`]: OpenError::Open
+    /// [`DiskLimit`]: OpenError::DiskLimit
     /// [`Spawn`]: OpenError::Spawn
     /// [`Stopped`]: OpenError::Stopped
     pub async fn open(path: PathBuf, config: WorkspaceConfig) -> Result<Self, Report<OpenError>> {
@@ -124,9 +142,12 @@ impl Workspace {
     /// # Errors
     ///
     /// - [`Failed`] if DuckDB cannot prepare or run the statement
+    /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`] after the
+    ///   statement, or their size cannot be checked
     /// - [`Stopped`] if the workspace thread stopped
     ///
     /// [`Failed`]: StatementError::Failed
+    /// [`DiskLimit`]: StatementError::DiskLimit
     /// [`Stopped`]: StatementError::Stopped
     pub async fn execute(
         &self,
@@ -149,9 +170,12 @@ impl Workspace {
     /// # Errors
     ///
     /// - [`Failed`] if DuckDB cannot prepare or run the query, or cannot read a value
+    /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`] after the
+    ///   query, or their size cannot be checked
     /// - [`Stopped`] if the workspace thread stopped
     ///
     /// [`Failed`]: StatementError::Failed
+    /// [`DiskLimit`]: StatementError::DiskLimit
     /// [`Stopped`]: StatementError::Stopped
     pub async fn query(
         &self,

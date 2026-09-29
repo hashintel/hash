@@ -11,9 +11,9 @@ use tokio::sync::oneshot;
 
 use super::{
     Command, Rows, WorkspaceConfig,
-    error::{CloseError, OpenError, SnapshotError, StatementError},
+    error::{CloseError, DiskLimitError, OpenError, SnapshotError, StatementError},
 };
-use crate::sql::StringLiteral;
+use crate::{ByteSize, sql::StringLiteral};
 
 /// Sends `result` to the caller that waits for it.
 ///
@@ -31,9 +31,31 @@ pub(super) fn send_reply<T, C>(
 pub(super) struct Connection {
     duckdb: duckdb::Connection,
     path: PathBuf,
+    log_path: PathBuf,
+    temp_path: PathBuf,
+    disk_limit: Option<ByteSize>,
 }
 
 impl Connection {
+    /// Returns the size of the file at `path`, the total size of the files under it if it is a
+    /// directory, or zero if it does not exist.
+    fn disk_usage(path: &Path) -> io::Result<u64> {
+        let metadata = match fs::symlink_metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(0),
+            Err(error) => return Err(error),
+        };
+        if !metadata.is_dir() {
+            return Ok(metadata.len());
+        }
+
+        let mut total = 0_u64;
+        for entry in fs::read_dir(path)? {
+            total = total.saturating_add(Self::disk_usage(&entry?.path())?);
+        }
+        Ok(total)
+    }
+
     /// Formats `directories` as a DuckDB list of strings.
     fn directory_list(directories: &[PathBuf]) -> Result<String, Report<OpenError>> {
         let literals = directories
@@ -52,22 +74,71 @@ impl Connection {
         Ok(format!("[{}]", literals.join(", ")))
     }
 
+    /// Returns the disk space the database file, its log and DuckDB's temporary directory use.
+    fn workspace_size(&self) -> Result<ByteSize, Report<DiskLimitError>> {
+        let mut used = 0_u64;
+        for path in [&self.path, &self.log_path, &self.temp_path] {
+            let size = Self::disk_usage(path)
+                .change_context_lazy(|| DiskLimitError::Measure { path: path.clone() })?;
+            used = used.saturating_add(size);
+        }
+        Ok(ByteSize::from_bytes(used))
+    }
+
+    /// Checks the workspace files against the disk limit.
+    ///
+    /// When they are over the limit, a checkpoint writes the log into the database file and
+    /// truncates the log, and the files are measured again.
+    fn check_disk_limit(&self) -> Result<(), Report<DiskLimitError>> {
+        let Some(limit) = self.disk_limit else {
+            return Ok(());
+        };
+        if self.workspace_size()? <= limit {
+            return Ok(());
+        }
+
+        self.duckdb
+            .execute_batch("CHECKPOINT")
+            .change_context(DiskLimitError::Checkpoint)?;
+        let used = self.workspace_size()?;
+        if used > limit {
+            return Err(Report::new(DiskLimitError::Exceeded { used, limit }));
+        }
+        Ok(())
+    }
+
     /// Opens the database at `path` and locks its settings.
     ///
-    /// The extension settings apply before the database opens. DuckDB accepts
+    /// The extension settings and limits apply before the database opens. DuckDB accepts
     /// `allowed_directories` only from a `SET` statement, which must run while external access is
     /// still enabled. `lock_configuration` then stops statements from changing any setting.
     pub(super) fn open(path: PathBuf, config: &WorkspaceConfig) -> Result<Self, Report<OpenError>> {
         let allowed_directories = Self::directory_list(&config.allowed_directories)?;
+        let limits = [
+            (
+                "memory_limit",
+                config.memory_limit.map(|size| size.to_string()),
+            ),
+            (
+                "max_temp_directory_size",
+                config.temp_directory_limit.map(|size| size.to_string()),
+            ),
+            ("threads", config.threads.map(|threads| threads.to_string())),
+        ];
         let mut duckdb_config = Config::default();
-        for setting in [
-            "allow_community_extensions",
-            "autoinstall_known_extensions",
-            "autoload_known_extensions",
-        ] {
-            duckdb_config = duckdb_config
-                .with(setting, "false")
-                .change_context(OpenError::Configure { setting })?;
+        for (setting, value) in [
+            ("allow_community_extensions", Some("false".to_owned())),
+            ("autoinstall_known_extensions", Some("false".to_owned())),
+            ("autoload_known_extensions", Some("false".to_owned())),
+        ]
+        .into_iter()
+        .chain(limits)
+        {
+            if let Some(value) = value {
+                duckdb_config = duckdb_config
+                    .with(setting, value)
+                    .change_context(OpenError::Configure { setting })?;
+            }
         }
         let connection = duckdb::Connection::open_with_flags(&path, duckdb_config)
             .change_context_lazy(|| OpenError::Open { path: path.clone() })?;
@@ -82,10 +153,23 @@ impl Connection {
                 .change_context(OpenError::Configure { setting })?;
         }
 
-        Ok(Self {
+        // DuckDB names its log and its default temporary directory after the database file.
+        let with_suffix = |suffix: &str| {
+            let mut name = path.clone().into_os_string();
+            name.push(suffix);
+            PathBuf::from(name)
+        };
+        let opened = Self {
             duckdb: connection,
+            log_path: with_suffix(".wal"),
+            temp_path: with_suffix(".tmp"),
             path,
-        })
+            disk_limit: config.disk_limit,
+        };
+        opened
+            .check_disk_limit()
+            .change_context(OpenError::DiskLimit)?;
+        Ok(opened)
     }
 
     fn execute(&self, sql: &str, params: Vec<Value>) -> Result<(), Report<StatementError>> {
@@ -96,7 +180,8 @@ impl Connection {
         statement
             .execute(params_from_iter(params))
             .change_context(StatementError::Failed)?;
-        Ok(())
+        self.check_disk_limit()
+            .change_context(StatementError::DiskLimit)
     }
 
     fn query(&self, sql: &str, params: Vec<Value>) -> Result<Rows, Report<StatementError>> {
@@ -119,6 +204,8 @@ impl Connection {
         }
         drop(results);
 
+        self.check_disk_limit()
+            .change_context(StatementError::DiskLimit)?;
         Ok(Rows::new(statement.column_names(), rows))
     }
 
