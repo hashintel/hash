@@ -223,6 +223,47 @@ test("streams a display-only user bubble, then prepares and admits only correcte
   ).toBe(false);
 });
 
+test("writes Live previews and briefs to the current conversation's history after a switch", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const first = new VoiceMediationHistory("first");
+  const second = new VoiceMediationHistory("second");
+  const { rerender } = render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={first}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={second}
+      config={config}
+    />,
+  );
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "preview",
+      text: "Compare four",
+      startMs: 100,
+      endMs: 300,
+    });
+  });
+  expect(second.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare four", state: "streaming" },
+  ]);
+  act(() => call[2]({ id: "final", text: "Compare seven agents" }));
+  expect(second.project([]).map((message) => message.id)).toEqual(["final"]);
+  expect(first.project([])).toEqual([]);
+});
+
 test("a delayed superseded final never replaces the newer Live input preview", async () => {
   vi.stubGlobal(
     "fetch",

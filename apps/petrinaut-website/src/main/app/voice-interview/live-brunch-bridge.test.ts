@@ -130,7 +130,11 @@ test("prepares a brief before admission and summarizes only a settled rendered a
     '"excerpts":{"decide":"two to eight"}',
   );
   expect(fixture.submit.mock.calls[0]?.[0].text).not.toContain("Still open");
-  expect(history.project([])[0]?.parts[0]).toEqual({
+  expect(
+    history.project([
+      { id: "one", role: "user", parts: [{ type: "text", text: "Brief" }] },
+    ])[0]?.parts[0],
+  ).toEqual({
     type: "text",
     text: "Um, compare two to eight",
   });
@@ -153,6 +157,33 @@ test("prepares a brief before admission and summarizes only a settled rendered a
     expect.any(AbortSignal),
   );
   expect(offered).toHaveBeenCalledWith("one");
+});
+
+test("tells Live about the limitation when a settled answer's spoken summary fails", async () => {
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: async () => ({}),
+    summarize: vi.fn(async () => {
+      throw new Error("Unavailable");
+    }),
+    offered: vi.fn(),
+  });
+  await fixture.bridge.accept({ id: "one", text: "Compare two to eight" });
+  fixture.bridge.acceptDelegation("delegation");
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+
+  await vi.waitFor(() =>
+    expect(fixture.appendInstructions).toHaveBeenCalledWith(
+      expect.stringContaining("spoken summary could not be prepared"),
+      "delegation",
+    ),
+  );
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });
 
 test.each([
@@ -215,12 +246,19 @@ test("brief stays streaming through extraction and transport, and becomes done o
     data: { fields, state: "streaming" },
   });
   fixture.submit.mock.calls[0]?.[0].onAdmission("root");
-  expect(history.project([])[0]?.parts[1]).toEqual({
+  const admitted = [
+    {
+      id: "one",
+      role: "user" as const,
+      parts: [{ type: "text" as const, text: "Brief" }],
+    },
+  ];
+  expect(history.project(admitted)[0]?.parts[1]).toEqual({
     type: "data-brief",
     data: { fields, state: "done" },
   });
   fixture.bridge.speechStarted();
-  expect(history.project([])[0]?.parts[1]).toEqual({
+  expect(history.project(admitted)[0]?.parts[1]).toEqual({
     type: "data-brief",
     data: { fields, state: "done" },
   });

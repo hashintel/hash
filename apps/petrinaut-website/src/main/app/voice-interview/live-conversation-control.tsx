@@ -88,6 +88,12 @@ export const LiveConversationControl = ({
 }: LiveControlsContext) => {
   const [localHistory] = useState(() => new VoiceMediationHistory("session"));
   const history = mediationHistory ?? localHistory;
+  // A running session outlives conversation switches; read the current
+  // conversation's history at each write instead of the one it started with.
+  const historyRef = useRef(history);
+  useLayoutEffect(() => {
+    historyRef.current = history;
+  }, [history]);
   const [audioSettingsStore] = useState(
     () => new VoiceAudioSettings("live", navigator.mediaDevices),
   );
@@ -209,10 +215,13 @@ export const LiveConversationControl = ({
     setSpeakerVolumeState(1);
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
-    const captions = new LiveSpeechCaptions(history.caption, {
-      update: (id, text) => history.input(id, text),
-      discard: (id) => history.failed(id),
-    });
+    const captions = new LiveSpeechCaptions(
+      (id, kind, line) => historyRef.current.caption(id, kind, line),
+      {
+        update: (id, text) => historyRef.current.input(id, text),
+        discard: (id) => historyRef.current.failed(id),
+      },
+    );
     let offeredInput: string | undefined;
     const appendInputs = new Map<string, string>();
     const next = createLiveConversation(
@@ -252,7 +261,7 @@ export const LiveConversationControl = ({
         void bridge.current?.accept(input);
         if (!input.superseded) {
           const previewId = captions.begin(input.id);
-          if (previewId) history.failed(previewId);
+          if (previewId) historyRef.current.failed(previewId);
         }
       },
       (delegationId) => {
@@ -315,7 +324,9 @@ export const LiveConversationControl = ({
     bridge.current = new LiveBrunchBridge({
       submit: (input) => latest.current.submit(input),
       mediation: {
-        history,
+        get history() {
+          return historyRef.current;
+        },
         prepare: async (text, signal) =>
           z
             .object({ fields: z.record(z.string(), z.string()) })
@@ -340,7 +351,7 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, history, phase, setVoiceActive]);
+  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;

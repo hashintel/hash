@@ -47,20 +47,35 @@ test("partial input is display-only and only admitted final briefs survive reloa
     },
   });
   history.admitted("final", "submission");
-  expect(history.project([])[0]?.parts[1]).toEqual({
+  const canonical: PetrinautAiMessage[] = [
+    { id: "final", role: "user", parts: [{ type: "text", text: "BRIEF" }] },
+  ];
+  expect(history.project(canonical)[0]?.parts[1]).toEqual({
     type: "data-brief",
     data: {
       fields: { decide: "two to eight agents", runs: "Still open" },
       state: "done",
     },
   });
-  const canonical: PetrinautAiMessage[] = [
-    { id: "final", role: "user", parts: [{ type: "text", text: "BRIEF" }] },
-  ];
   expect(
     new VoiceMediationHistory("conversation", storage).project(canonical),
   ).toEqual(history.project(canonical));
   expect(canonical[0]?.parts[0]).toEqual({ type: "text", text: "BRIEF" });
+});
+
+test("does not bring back an admitted voice turn after the chat is cleared", () => {
+  const history = new VoiceMediationHistory("conversation");
+  history.begin({ id: "input", text: "Compare two to eight agents" });
+  expect(history.project([]).map((message) => message.id)).toEqual(["input"]);
+  history.admitted("input", "submission");
+  const messages: PetrinautAiMessage[] = [
+    { id: "input", role: "user", parts: [{ type: "text", text: "Brief" }] },
+  ];
+  expect(history.project(messages)[0]?.parts[0]).toEqual({
+    type: "text",
+    text: "Compare two to eight agents",
+  });
+  expect(history.project([])).toEqual([]);
 });
 
 test("anchors an experiment summary after the card without fabricating a user turn", () => {

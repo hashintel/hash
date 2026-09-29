@@ -100,8 +100,10 @@ export class VoiceMediationHistory {
       this.#publish();
     }
   }
+  /** Admission creates the host message with this id, so no placeholder is needed. */
   public admitted(id: string, submissionId: string): void {
     const turn = this.#turns.get(id);
+    this.#pending.delete(id);
     if (turn) {
       turn.submissionId = submissionId;
       this.#publish();

@@ -738,10 +738,15 @@ export class LiveBrunchBridge {
       mediation.offered(turn.inputId);
       this.#dependencies.appendCommentary(summary, turn.delegationId);
     } catch {
-      if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted)
+      if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted) {
         this.#dependencies.notice(
           "Brunch finished, but its spoken summary could not be prepared. Read the written answer; no automatic retry was made.",
         );
+        this.#unserved(
+          turn.delegationId,
+          "Brunch finished, but its spoken summary could not be prepared. The written answer is in the conversation.",
+        );
+      }
     } finally {
       this.#preparations.delete(turn.preparation);
     }
