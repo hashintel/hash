@@ -446,6 +446,7 @@ export const Combobox = <TValue extends string>({
   const valueAtOpenRef = useRef<string[]>([]);
   const highlightedValueRef = useRef<string | null>(null);
   const openRef = useRef(false);
+  const backspaceHoldBeganWithTextRef = useRef(false);
   useEffect(() => {
     inputTextRef.current = inputText;
     committedTextRef.current = committedText;
@@ -860,6 +861,8 @@ export const Combobox = <TValue extends string>({
       const text = findComboboxItemByValue(effectiveItems, val)?.text ?? val;
       return {
         name: text,
+        // The value is the row identity — display texts can repeat.
+        id: val,
         children: (
           <Chip
             size={chipSizeMap[size]}
@@ -1026,13 +1029,19 @@ export const Combobox = <TValue extends string>({
       if (
         multiple &&
         renderSelectedAll !== undefined &&
-        event.key === "Backspace" &&
-        inputTextRef.current === "" &&
-        selectedValuesRef.current.length > 0
+        event.key === "Backspace"
       ) {
-        // With a custom selection render there are no row items whose tags
-        // machine could remove the last value — cover the shortcut here.
-        emitMultiChange(selectedValuesRef.current.slice(0, -1), false);
+        // OverflowRow's hold guard, mirrored
+        if (!event.repeat) {
+          backspaceHoldBeganWithTextRef.current = inputTextRef.current !== "";
+        }
+        if (
+          inputTextRef.current === "" &&
+          selectedValuesRef.current.length > 0 &&
+          !(event.repeat && backspaceHoldBeganWithTextRef.current)
+        ) {
+          emitMultiChange(selectedValuesRef.current.slice(0, -1), false);
+        }
       }
       // Enter that abandons unacceptable text must not submit a form; decided
       // before the machine processes the key (which closes and clears the
@@ -1089,16 +1098,14 @@ export const Combobox = <TValue extends string>({
   };
 
   // The row's keyboard removal (Backspace/Delete on a highlighted or last
-  // chip) reports the removed chip by its display name; map it back to the
-  // first selected value bearing it — the same first-divergence rule the
-  // row's machine applied when it picked the chip.
-  const handleRowRemove = (removedName: string) => {
-    const index = rowItems.findIndex((item) => item.name === removedName);
-    if (index === -1) {
+  // chip) reports the removed chip by its row identity — the selected value
+  // itself (see rowItems' `id`).
+  const handleRowRemove = (removedValue: string) => {
+    if (!selectedValues.includes(removedValue)) {
       return;
     }
     emitMultiChange(
-      selectedValues.filter((_entry, entryIndex) => entryIndex !== index),
+      selectedValues.filter((entry) => entry !== removedValue),
       false,
     );
   };

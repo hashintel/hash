@@ -46,8 +46,10 @@ export type OverflowRowProps = {
   className?: string;
   /** The selected items. `name` is the plain-text label the `summary` mode is
    * built from; `children` is the node rendered per item by `truncate` and
-   * `scroll`. */
-  items: Array<{ name: string; children: React.ReactNode }>;
+   * `scroll`; `id` is the item's identity for the row's machine and
+   * `withKeyboardControl.onRemove`, defaulting to `name` — supply it when
+   * labels can repeat. */
+  items: Array<{ name: string; id?: string; children: React.ReactNode }>;
   /** Rendered between items: `summary` joins the names with it, while
    * `truncate` and `scroll` place it between item cells (and before the "+X"
    * badge). Defaults to " " — which the rows, being gap-spaced already, skip
@@ -328,11 +330,11 @@ const OverflowRowBase = ({
   // parts so it can be highlighted; the measure-layer clones stay plain so
   // the machine's DOM queries never see them.
   const itemCell = (
-    item: { name: string; children: React.ReactNode },
+    item: { name: string; id?: string; children: React.ReactNode },
     index: number,
   ) => {
     if (tags && withKeyboardControl) {
-      const itemProps = { index, value: item.name };
+      const itemProps = { index, value: item.id ?? item.name };
       const previewProps = tags.getItemPreviewProps(itemProps);
       // The highlighted wrapper delegates focus-visibility to the item it
       // wraps (DOM focus stays on the row's input): the marker makes the
@@ -665,7 +667,9 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
     inputElementProps,
     onInputInteractOutside,
   } = props;
-  const names = items.map((item) => item.name);
+  // The machine's per-item identity: `id` where given (labels can repeat),
+  // the display name otherwise.
+  const identities = items.map((item) => item.id ?? item.name);
 
   // Keyboard control needs its items rendered, so a `truncate` or `summary`
   // row displays as `scroll` while focus is inside it.
@@ -697,7 +701,7 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
 
   const tags = useTagsInput({
     ids: { root: rootId, input: inputId },
-    value: names,
+    value: identities,
     // Items are arbitrary nodes, never editable in place; duplicate
     // submissions still reach `onSubmit` for the parent to judge.
     editable: false,
@@ -720,7 +724,7 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
     },
     onValueChange: (details) => {
       const next = details.value;
-      if (next.length > names.length) {
+      if (next.length > identities.length) {
         // The machine appends submissions to the end.
         const submitted = next[next.length - 1];
         if (submitted !== undefined) {
@@ -731,10 +735,10 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
       // A removal drops a single entry: the first index where the arrays
       // diverge names it.
       let index = 0;
-      while (index < next.length && next[index] === names[index]) {
+      while (index < next.length && next[index] === identities[index]) {
         index += 1;
       }
-      const removed = names[index];
+      const removed = identities[index];
       if (removed !== undefined) {
         withKeyboardControl?.onRemove(removed);
       }
