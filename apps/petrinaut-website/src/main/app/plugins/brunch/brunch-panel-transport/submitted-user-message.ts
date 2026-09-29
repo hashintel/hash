@@ -1,18 +1,16 @@
 import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "@hashintel/brunch-agent/client-tools";
 import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent/contextual-user-message";
+import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { finalUserMessage } from "@local/flue-aisdk-transport";
 
 import type { SubmittedUserMessage } from "@local/flue-aisdk-transport";
 import type { UIMessage } from "ai";
 
-/** The message id Petrinaut's diagnostics-aware transport appends. */
-const diagnosticsContextMessageId = "petrinaut-diagnostics-context";
-
 const submittedDiagnosticsContext = (
   messages: readonly UIMessage[],
 ): string | undefined => {
   const [message, ...duplicates] = messages.filter(
-    ({ id }) => id === diagnosticsContextMessageId,
+    ({ id }) => id === petrinautDiagnosticsContextMessageId,
   );
   if (message === undefined) return undefined;
   if (duplicates.length > 0) {

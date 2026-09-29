@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent/contextual-user-message";
+import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 
 import { brunchSubmittedUserMessage } from "./submitted-user-message";
 
@@ -25,7 +26,7 @@ describe("brunchSubmittedUserMessage", () => {
     expect(
       brunchSubmittedUserMessage([
         text("user-with-context", "Repair the model."),
-        text("petrinaut-diagnostics-context", context),
+        text(petrinautDiagnosticsContextMessageId, context),
       ]),
     ).toEqual({
       messageId: "user-with-context",
@@ -41,14 +42,17 @@ describe("brunchSubmittedUserMessage", () => {
       "duplicate",
       [
         text("user-1", "Repair."),
-        text("petrinaut-diagnostics-context", "a"),
-        text("petrinaut-diagnostics-context", "b"),
+        text(petrinautDiagnosticsContextMessageId, "a"),
+        text(petrinautDiagnosticsContextMessageId, "b"),
       ],
       "The submission has duplicate diagnostics context.",
     ],
     [
       "stale",
-      [text("petrinaut-diagnostics-context", "a"), text("user-1", "Repair.")],
+      [
+        text(petrinautDiagnosticsContextMessageId, "a"),
+        text("user-1", "Repair."),
+      ],
       "The submission has invalid or stale diagnostics context.",
     ],
   ])("refuses %s diagnostics context", (_label, messages, error) => {
