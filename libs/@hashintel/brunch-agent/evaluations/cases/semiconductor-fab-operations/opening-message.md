@@ -1,11 +1,1 @@
-# Opening message
-
-The first user message the interviewer receives. It opens the authored synthetic Aster Vale
-Foundry case based on the semiconductor-fabrication source sections named in the situation pack.
-
----
-
-I'm Leena Park, production-control manager at Aster Vale Foundry. We need a simulation of how
-lot dispatch, furnace batching, maintenance, WIP, due dates, and yield interact, especially after
-an incident this morning exposed gaps in our rules. Please interview me about how the fab actually
-operates and what decisions the simulation needs to support.
+Hi, I'm Leena Park, I run production control at Aster Vale Foundry. This morning two lots failed final inspection, quality stopped a furnace and quarantined seven lots, and maintenance is running late, and it's shown our dispatch rules don't hold up well. I'd like a simulation of how dispatch, furnace batching, maintenance, WIP, due dates and yield play off each other, so we can try decisions out before making them.
