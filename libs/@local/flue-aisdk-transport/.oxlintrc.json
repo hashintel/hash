@@ -49,7 +49,7 @@
       }
     },
     {
-      "files": ["src/client.ts", "src/client/**", "src/shared/**"],
+      "files": ["src/client.ts", "src/client/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -62,6 +62,62 @@
               {
                 "group": ["@flue/!(sdk)", "@earendil-works/*", "node:*"],
                 "message": "The browser client may depend only on the public Flue SDK."
+              },
+              {
+                "group": ["**/server", "**/server/**", "**/server.ts"],
+                "message": "The browser client must not import the server entry; share contracts through src/shared."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/server.ts", "src/server/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@hashintel/*", "@apps/*"],
+                "message": "The Flue AI SDK transport must stay independent of the products that use it."
+              },
+              {
+                "group": ["@flue/!(sdk|runtime)", "@earendil-works/*"],
+                "message": "The transport may depend on the public Flue SDK and runtime types, not a provider substrate."
+              },
+              {
+                "group": ["**/client", "**/client/**", "**/client.ts"],
+                "message": "The server entry must not import the browser client; share contracts through src/shared."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@hashintel/*", "@apps/*"],
+                "message": "The Flue AI SDK transport must stay independent of the products that use it."
+              },
+              {
+                "group": ["@flue/!(sdk)", "@earendil-works/*", "node:*"],
+                "message": "The browser client may depend only on the public Flue SDK."
+              },
+              {
+                "group": ["**/server", "**/server/**", "**/server.ts"],
+                "message": "The browser client must not import the server entry; share contracts through src/shared."
+              },
+              {
+                "group": ["**/client", "**/client/**", "**/client.ts"],
+                "message": "The server entry must not import the browser client; share contracts through src/shared."
               }
             ]
           }
