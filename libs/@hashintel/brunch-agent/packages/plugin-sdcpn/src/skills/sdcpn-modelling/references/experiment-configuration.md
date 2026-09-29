@@ -1,6 +1,6 @@
 # Experiment Configuration
 
-Read this during the Construct disposition whenever the person states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
+Read this while constructing, whenever the person states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
 
 An experiment is an ordinary thing a model has, like a scenario or a metric: the person's account supplies what it means, the net supplies what makes it executable, and you propose it when both are present. The person does not need to ask for one or know the word.
 
@@ -76,7 +76,7 @@ The tool result reports preparation only. Run and Dismiss happen later in the ca
 ## Refusals
 
 - Never propose from structure alone or infer the objective from the net.
-- Never invent a scenario, metric, parameter, range, unit, threshold, horizon or default; construct prerequisites first, ask for facts.
+- Never propose on a range, unit, threshold, horizon or objective the person has not stated or confirmed; a stand-in parameter's placeholder value is not a stated range. Construct missing prerequisites first and ask for missing facts.
 - Never encode a hard restriction as an objective penalty.
 - Never claim a restriction is enforced; the request carries none.
 - Never call `draft_petrinaut_experiment` as a way to run, or describe a drafted proposal as saved, running or applied.

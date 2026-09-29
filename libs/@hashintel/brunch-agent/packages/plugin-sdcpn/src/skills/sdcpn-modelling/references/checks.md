@@ -1,6 +1,6 @@
 # Ledger, Construction, and Delivery Checks
 
-Read this when preparing to construct, after construction changes, and before delivering a net. For Ledger-only delivery, apply the universal and plugin Verification registers without loading this construction resource.
+Read this before the first construction, after construction changes, and before delivering a net. For Ledger-only delivery, apply the universal and plugin Verification registers without loading this construction resource.
 
 A failed check triggers the smallest relevant repair available in the current runtime branch: commit a correcting Note, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.
 
@@ -22,20 +22,18 @@ An actual simulation, state-space exploration, invariant check, or other named a
 
 If no behavioral execution or stronger analysis occurred, say so. Do not convert tool acceptance or visual inspection into behavioral validation.
 
-## Before construction
+## Fragment review
 
-Apply these checks to the fragment being added or changed. Unresolved material elsewhere remains an open Note, not a prerequisite for this fragment.
+Apply these checks after each construction change, to the fragment added or changed. A finding is repaired in the net or recorded as a construction Note; none is a precondition for building.
 
-- The intended question, comparison, or decision is stated in the person's terms.
-- The fragment's boundary and a meaningful concrete case are established.
-- An activity and an adjacent state or relationship are supported, with the flow, ordering and enabling conditions needed for the proposed change. A complete end-to-end process spine is not required for an intermediate fragment.
-- Inputs that matter are distinguished as consumed, reserved/released, or read.
-- Required resource availability and release are recorded or visibly unknown.
-- Consequential quantities retain their context and supported precision.
+- The fragment carries what the account established, and each stand-in marks what it did not.
+- Inputs that matter are distinguished as consumed, reserved/released, or read, or carried by a stand-in.
+- Resource availability and release are represented, or carried by a stand-in.
+- Consequential quantities retain their context and supported precision; placeholder values are named as placeholders.
 - Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.
-- Assumptions, unresolved matters, omissions, and anticipated losses are visible.
+- A rule that did not fit the previous representation changed the representation, rather than being left out of the net.
 
-If missing material admits materially different structures for the proposed fragment, formulate the smallest resolving question before constructing that portion. If the person has stopped, deliver the partial account and already-checked net instead of opening a new topic.
+Where missing material admits materially different structures, the fragment carries the likelier one, labelled, and the question is asked. If the person has stopped, deliver the partial account and already-checked net instead of opening a new topic.
 
 ## Tool-schema acceptance checks
 
@@ -79,7 +77,7 @@ No behavioral tool or result means no behavioral claim.
 
 ## Fidelity and uncertainty
 
-- Every load-bearing net choice rests on the person's account or a named construction inference, approximation, or default.
+- Every load-bearing net choice rests on the person's account or a named stand-in, construction inference, approximation, or default.
 - No hedge has been hardened solely to satisfy a schema.
 - No conflict has been averaged and no contextual value has been made universal without an accepted simplification.
 - Assumptions state why they were introduced, what they affect, and how they could be checked.
@@ -93,8 +91,8 @@ When revising an existing account or analyzing a requested net change:
 - the changed or disputed material is explicit;
 - the prior and current account are distinguishable as correction, conflict, or contextual coexistence;
 - the desired net delta follows from changed operational meaning;
-- unsupported update or removal operations are reported rather than imitated with competing additive structure;
-- any applied additive net changes preserve the intended existing structure at the level actually inspected;
+- a representation that no longer fits was revised or removed, not left beside a competing replacement;
+- structure the change did not intend to touch is preserved at the level actually inspected;
 - assumptions and losses displaced or introduced by the revision are reported;
 - the delivery distinguishes what changed from what was only inspected and says what the model can now support that it could not support before, or vice versa.
 

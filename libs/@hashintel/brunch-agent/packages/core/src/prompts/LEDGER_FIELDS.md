@@ -1,6 +1,6 @@
 ## Ledger epistemic fields
 
-Each Note carries one standing; when an answer yields a settled fact and an open gap, they are two Notes. Use the commit tool's epistemic fields for the distinctions the elicitation guidance asks you to preserve:
+Each Note carries one standing. Use the commit tool's epistemic fields for the distinctions the elicitation guidance asks you to preserve:
 
 - `source`: who supplied the content. `person` for the person's own account, `material` for consulted or shown material (say the person's standing toward it in the content), `agent` for your inference, proposal, default or a gap you record. Assent to your wording does not make your proposal the person's.
 - `basis`, when known: `observed` records or events, a `documented` rule, `practiced` judgment, an `estimated` value, an `assumed` value (anyone's assumption, including a planning assumption the person reports), or your `inferred` conclusion.
