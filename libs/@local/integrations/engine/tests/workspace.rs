@@ -1,13 +1,17 @@
 #![expect(missing_docs, reason = "integration tests")]
 
+use core::num::NonZeroUsize;
 use std::{fs, path::Path};
 
 use duckdb::types::Value;
 use error_stack::Report;
 use hash_integrations_engine::{
-    CloseError, OpenError, StatementError, StringLiteral, Workspace, WorkspaceConfig,
+    ByteSize, CloseError, DiskLimitError, OpenError, StatementError, StringLiteral, Workspace,
+    WorkspaceConfig,
 };
 use tempfile::TempDir;
+
+const MIB: u64 = 1024 * 1024;
 
 async fn open(directory: &TempDir, config: WorkspaceConfig) -> Workspace {
     Workspace::open(directory.path().join("workspace.duckdb"), config)
@@ -150,6 +154,7 @@ async fn statements_open_files_only_in_allowed_directories() {
         &directory,
         WorkspaceConfig {
             allowed_directories: vec![allowed.clone()],
+            ..WorkspaceConfig::default()
         },
     )
     .await;
@@ -190,6 +195,7 @@ async fn open_refuses_relative_directory() {
         path.clone(),
         WorkspaceConfig {
             allowed_directories: vec!["allowed".into()],
+            ..WorkspaceConfig::default()
         },
     )
     .await
@@ -316,5 +322,180 @@ async fn close_reports_uncommitted_transaction() {
     assert!(
         duckdb_message(&report).contains("Table with name flights does not exist"),
         "the table should be missing, not {report:?}"
+    );
+}
+
+#[tokio::test]
+async fn open_applies_limits() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(
+        &directory,
+        WorkspaceConfig {
+            memory_limit: Some(ByteSize::from_bytes(256 * MIB)),
+            temp_directory_limit: Some(ByteSize::from_bytes(1024 * MIB)),
+            threads: NonZeroUsize::new(2),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    let rows = workspace
+        .query(
+            "SELECT current_setting('memory_limit'), current_setting('max_temp_directory_size'), \
+             current_setting('threads')"
+                .to_owned(),
+            [],
+        )
+        .await
+        .expect("the settings should be readable");
+
+    assert_eq!(
+        rows.iter().next(),
+        Some(
+            [
+                Value::Text("256.0 MiB".to_owned()),
+                Value::Text("1.0 GiB".to_owned()),
+                Value::BigInt(2),
+            ]
+            .as_slice()
+        ),
+        "DuckDB should use the configured limits"
+    );
+}
+
+#[tokio::test]
+async fn open_refuses_files_over_disk_limit() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(&directory, WorkspaceConfig::default()).await;
+    workspace
+        .execute(
+            "CREATE TABLE flights AS SELECT 'BA117' AS code".to_owned(),
+            [],
+        )
+        .await
+        .expect("the table should be created");
+    workspace.close().await.expect("the workspace should close");
+
+    let report = Workspace::open(
+        directory.path().join("workspace.duckdb"),
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(1)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await
+    .expect_err("files over the disk limit should not open");
+
+    assert!(
+        matches!(report.current_context(), OpenError::DiskLimit),
+        "the disk limit should be reported, not {report:?}"
+    );
+    assert!(
+        matches!(
+            report.downcast_ref::<DiskLimitError>(),
+            Some(DiskLimitError::Exceeded { limit, .. }) if limit.bytes() == 1
+        ),
+        "the report should hold the size and the limit, not {report:?}"
+    );
+}
+
+#[tokio::test]
+async fn statement_over_disk_limit_fails() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(
+        &directory,
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(2 * MIB)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    let report = workspace
+        .execute(
+            "CREATE TABLE numbers AS SELECT random() AS value FROM range(1000000)".to_owned(),
+            [],
+        )
+        .await
+        .expect_err("a statement that takes the files over the limit should fail");
+
+    assert!(
+        matches!(report.current_context(), StatementError::DiskLimit),
+        "the disk limit should be reported, not {report:?}"
+    );
+    workspace.close().await.expect("the workspace should close");
+    let database = duckdb::Connection::open(directory.path().join("workspace.duckdb"))
+        .expect("the database should open");
+    let rows: i64 = database
+        .query_row("SELECT count(*) FROM numbers", [], |row| row.get(0))
+        .expect("the table should stay in the database");
+    assert_eq!(rows, 1_000_000, "the statement's changes should stay");
+}
+
+#[tokio::test]
+async fn disk_limit_counts_temp_directory() {
+    let directory = TempDir::new().expect("should create a directory");
+    let temp = directory.path().join("workspace.duckdb.tmp");
+    fs::create_dir_all(&temp).expect("should create the temporary directory");
+    let workspace = open(
+        &directory,
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(2 * MIB)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    let path = temp.join("numbers.csv");
+    let path = path.to_str().expect("the path should be UTF-8");
+    let report = workspace
+        .execute(
+            format!(
+                "COPY (SELECT random() AS value FROM range(1000000)) TO {}",
+                StringLiteral::new(path)
+            ),
+            [],
+        )
+        .await
+        .expect_err("a file in the temporary directory should count towards the limit");
+
+    assert!(
+        matches!(report.current_context(), StatementError::DiskLimit),
+        "the disk limit should be reported, not {report:?}"
+    );
+}
+
+#[tokio::test]
+async fn disk_limit_checkpoints_before_refusing() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(
+        &directory,
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(MIB)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+    workspace
+        .execute(
+            "CREATE TABLE counters AS SELECT range AS id, 0 AS count FROM range(10000)".to_owned(),
+            [],
+        )
+        .await
+        .expect("the table should be created");
+
+    for _ in 0..50 {
+        workspace
+            .execute("UPDATE counters SET count = count + 1".to_owned(), [])
+            .await
+            .expect("each update should fit once the log is checkpointed");
+    }
+
+    assert_eq!(
+        first_value(&workspace, "SELECT min(count) FROM counters")
+            .await
+            .expect("the query should run"),
+        Value::Int(50),
+        "every update should have run"
     );
 }

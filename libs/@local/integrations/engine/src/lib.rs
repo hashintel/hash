@@ -6,12 +6,15 @@
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
+mod byte_size;
 mod sql;
 mod workspace;
 
 pub use self::{
+    byte_size::ByteSize,
     sql::{Identifier, StringLiteral},
     workspace::{
-        CloseError, OpenError, Rows, SnapshotError, StatementError, Workspace, WorkspaceConfig,
+        CloseError, DiskLimitError, OpenError, Rows, SnapshotError, StatementError, Workspace,
+        WorkspaceConfig,
     },
 };

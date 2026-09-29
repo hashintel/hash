@@ -1,5 +1,21 @@
 use std::path::PathBuf;
 
+use crate::ByteSize;
+
+/// Reports why the workspace files are over [`WorkspaceConfig::disk_limit`], or why their size
+/// could not be checked.
+///
+/// [`WorkspaceConfig::disk_limit`]: super::WorkspaceConfig::disk_limit
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum DiskLimitError {
+    #[display("could not read the disk usage of `{}`", path.display())]
+    Measure { path: PathBuf },
+    #[display("could not checkpoint the database")]
+    Checkpoint,
+    #[display("the workspace files use {used}, over the limit of {limit}")]
+    Exceeded { used: ByteSize, limit: ByteSize },
+}
+
 /// Reports why [`Workspace::open`](super::Workspace::open) failed.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum OpenError {
@@ -11,6 +27,8 @@ pub enum OpenError {
     Configure { setting: &'static str },
     #[display("could not open the database at `{}`", path.display())]
     Open { path: PathBuf },
+    #[display("could not keep the workspace files within the disk limit")]
+    DiskLimit,
     #[display("could not start the workspace thread")]
     Spawn,
     #[display("the workspace thread stopped before the database opened")]
@@ -23,6 +41,8 @@ pub enum OpenError {
 pub enum StatementError {
     #[display("the statement failed")]
     Failed,
+    #[display("could not keep the workspace files within the disk limit after the statement")]
+    DiskLimit,
     #[display("the workspace thread stopped before the statement finished")]
     Stopped,
 }
