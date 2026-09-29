@@ -21,6 +21,7 @@ type BrunchMutationApprovalDecision =
   | { readonly decision: "deny"; readonly reason: string };
 
 type PendingApproval = {
+  readonly toolName: string;
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
   readonly removeAbortListener: () => void;
 };
@@ -28,10 +29,13 @@ type PendingApproval = {
 export interface BrunchMutationApprovalCoordinator {
   request(params: {
     readonly toolCallId: string;
+    readonly toolName: string;
     readonly signal: AbortSignal;
   }): Promise<BrunchMutationApprovalDecision>;
   resolve(toolCallId: string, choice: BrunchMutationApprovalChoice): boolean;
   hasPending(toolCallId: string): boolean;
+  /** Stable until the set of waiting tool names changes. */
+  pendingToolNames: () => readonly string[];
   subscribe: (listener: () => void) => () => void;
   dispose(): void;
 }
@@ -46,7 +50,14 @@ export const createBrunchMutationApprovalCoordinator =
     const listeners = new Set<() => void>();
     let alwaysAllow = false;
     let disposed = false;
-    const notify = () => listeners.forEach((listener) => listener());
+    let pendingToolNames: readonly string[] = [];
+    const notify = () => {
+      const next = [
+        ...new Set([...pending.values()].map((approval) => approval.toolName)),
+      ];
+      if (next.join() !== pendingToolNames.join()) pendingToolNames = next;
+      listeners.forEach((listener) => listener());
+    };
     const settle = (
       toolCallId: string,
       decision: BrunchMutationApprovalDecision,
@@ -61,7 +72,7 @@ export const createBrunchMutationApprovalCoordinator =
     };
 
     return {
-      request: ({ toolCallId, signal }) => {
+      request: ({ toolCallId, toolName, signal }) => {
         if (disposed || signal.aborted)
           return Promise.resolve({ decision: "deny", reason: stoppedReason });
         if (alwaysAllow) return Promise.resolve({ decision: "allow" });
@@ -71,6 +82,7 @@ export const createBrunchMutationApprovalCoordinator =
           };
           signal.addEventListener("abort", onAbort, { once: true });
           pending.set(toolCallId, {
+            toolName,
             resolve,
             removeAbortListener: () =>
               signal.removeEventListener("abort", onAbort),
@@ -89,6 +101,7 @@ export const createBrunchMutationApprovalCoordinator =
         );
       },
       hasPending: (toolCallId) => pending.has(toolCallId),
+      pendingToolNames: () => pendingToolNames,
       subscribe: (listener) => {
         listeners.add(listener);
         return () => listeners.delete(listener);
@@ -193,7 +206,7 @@ export const createBrunchMutationAdmission =
   (approval: BrunchMutationApprovalCoordinator): InBandBrowserCallAdmission =>
   async ({ toolCallId, toolName, signal }) => {
     if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
-    const decision = await approval.request({ toolCallId, signal });
+    const decision = await approval.request({ toolCallId, toolName, signal });
     return decision.decision === "allow"
       ? { admitted: true }
       : {

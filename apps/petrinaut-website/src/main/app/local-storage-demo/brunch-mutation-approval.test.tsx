@@ -53,6 +53,7 @@ describe("Brunch destructive edit approval", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const decision = coordinator.request({
       toolCallId: "delete-1",
+      toolName: "deleteItemsByIds",
       signal: new AbortController().signal,
     });
     const ApprovalWidget = createBrunchMutationApprovalWidget(
@@ -87,6 +88,7 @@ describe("Brunch destructive edit approval", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const first = coordinator.request({
       toolCallId: "delete-1",
+      toolName: "deleteItemsByIds",
       signal: new AbortController().signal,
     });
     coordinator.resolve("delete-1", "always-allow");
@@ -94,6 +96,7 @@ describe("Brunch destructive edit approval", () => {
     await expect(
       coordinator.request({
         toolCallId: "delete-2",
+        toolName: "deleteItemsByIds",
         signal: new AbortController().signal,
       }),
     ).resolves.toEqual({ decision: "allow" });
@@ -102,6 +105,7 @@ describe("Brunch destructive edit approval", () => {
     const controller = new AbortController();
     const pending = fresh.request({
       toolCallId: "delete-3",
+      toolName: "deleteItemsByIds",
       signal: controller.signal,
     });
     controller.abort();
@@ -111,6 +115,22 @@ describe("Brunch destructive edit approval", () => {
     });
     expect(fresh.resolve("delete-3", "allow")).toBe(false);
     expect(fresh.hasPending("delete-3")).toBe(false);
+  });
+
+  test("reports which tools wait for a decision, keeping the list stable between changes", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const idle = coordinator.pendingToolNames();
+    expect(idle).toEqual([]);
+    void coordinator.request({
+      toolCallId: "remove-1",
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+    const waiting = coordinator.pendingToolNames();
+    expect(waiting).toEqual(["removePlace"]);
+    expect(coordinator.pendingToolNames()).toBe(waiting);
+    coordinator.resolve("remove-1", "deny");
+    expect(coordinator.pendingToolNames()).toEqual([]);
   });
 
   test("historical rendering cannot create approval authority", () => {

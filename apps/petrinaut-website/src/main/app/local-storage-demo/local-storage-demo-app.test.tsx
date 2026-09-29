@@ -55,21 +55,6 @@ import type {
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
 
-const destructiveApprovalToolNames = [
-  "removePlace",
-  "removeTransition",
-  "removeArc",
-  "removeType",
-  "removeTypeElement",
-  "removeDifferentialEquation",
-  "removeParameter",
-  "removeScenario",
-  "removeMetric",
-  "removeSubnet",
-  "removeComponentInstance",
-  "deleteItemsByIds",
-];
-
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
 }));
@@ -416,14 +401,9 @@ describe("local storage demo Brunch voice integration", () => {
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect(aiAssistant.executeMutation).toBeUndefined();
-    // Destructive approval and the experiment draft are available; the
-    // voice-only brunch_ask widget is never mounted here.
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([
-      ...destructiveApprovalToolNames,
-      brunchTools.draftPetrinautExperiment,
-    ]);
+    ).toEqual([brunchTools.draftPetrinautExperiment]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1278,10 +1258,18 @@ describe("local storage demo Brunch controls", () => {
         },
         execute,
       );
+      const interactiveToolNames = () =>
+        (
+          editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined
+        )?.interactiveTools?.map(({ toolName }) => toolName);
       await waitFor(() => expect(claimed).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(interactiveToolNames()).toContain("removePlace"),
+      );
       act(() => assistant.onClearMessages?.());
 
       await run;
+      expect(interactiveToolNames()).not.toContain("removePlace");
       expect(execute).not.toHaveBeenCalled();
       expect(posted).toEqual([
         expect.objectContaining({
@@ -1383,10 +1371,7 @@ describe("local storage demo Brunch controls", () => {
     );
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([
-      ...destructiveApprovalToolNames,
-      brunchTools.draftPetrinautExperiment,
-    ]);
+    ).toEqual([brunchTools.draftPetrinautExperiment]);
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     // Every configured Brunch browser tool, the draft included, settles in band.
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(

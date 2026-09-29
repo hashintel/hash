@@ -16,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -675,12 +676,26 @@ export const LocalStorageDemoApp = ({
       liveMutationApprovalRef.current.dispose();
     liveMutationApprovalRef.current = mutationApproval.coordinator;
   }, [mutationApproval]);
-  const mutationApprovalTools = useMemo(
+  const allMutationApprovalTools = useMemo(
     () =>
       createBrunchMutationApprovalInteractiveTools(
         mutationApproval.coordinator,
       ),
     [mutationApproval],
+  );
+  // A registered widget replaces the tool's row, so only calls still waiting
+  // for a decision render as approvals; others keep the normal tool row.
+  const pendingApprovalToolNames = useSyncExternalStore(
+    mutationApproval.coordinator.subscribe,
+    mutationApproval.coordinator.pendingToolNames,
+    mutationApproval.coordinator.pendingToolNames,
+  );
+  const mutationApprovalTools = useMemo(
+    () =>
+      allMutationApprovalTools.filter(({ toolName }) =>
+        pendingApprovalToolNames.includes(toolName),
+      ),
+    [allMutationApprovalTools, pendingApprovalToolNames],
   );
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
