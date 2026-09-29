@@ -129,6 +129,7 @@ finalized user messages. Brunch remains responsible for domain answers, chat
 history, and changes to the net. In the website's Live mode, your complete
 finalized words go to Brunch alongside excerpts from a prepared brief, so short
 replies, corrections and requests to use defaults are not lost during preparation.
+If the brief cannot be prepared, your words are sent without excerpts.
 Brunch uses the prior conversation to interpret them. Expand **Sent to Brunch**
 to inspect the brief. **Still open** means a detail was not extracted from this
 turn, not that a previous answer has been forgotten. Those placeholders are not

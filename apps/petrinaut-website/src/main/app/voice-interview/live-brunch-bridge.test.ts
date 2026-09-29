@@ -333,6 +333,69 @@ test("speech cancels preparation and stale asynchronous wrap-ups without cancell
   );
 });
 
+test("submits the utterance without excerpts when brief preparation fails", async () => {
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: vi.fn(async () => {
+      throw new Error("Mediation unavailable");
+    }),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  await fixture.bridge.accept({ id: "one", text: "Compare two to eight" });
+
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    JSON.stringify({ utterance: "Compare two to eight", excerpts: {} }),
+  );
+  expect(
+    history.project([
+      { id: "one", role: "user", parts: [{ type: "text", text: "Brief" }] },
+    ])[0]?.parts[0],
+  ).toEqual({ type: "text", text: "Compare two to eight" });
+  expect(fixture.notice).not.toHaveBeenCalledWith(expect.any(String));
+});
+
+test("does not submit a brief that speech cancelled while it failed", async () => {
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: (_transcript, signal) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason));
+      }),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept({ id: "one", text: "First request" });
+  fixture.bridge.speechStarted();
+  await first;
+
+  expect(fixture.submit).not.toHaveBeenCalled();
+});
+
+test("speech keeps a submitted turn's composer slot until Brunch admits it", async () => {
+  const prepare = vi.fn(async () => ({}));
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  void fixture.bridge.accept({ id: "one", text: "First request" });
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+
+  fixture.bridge.speechStarted();
+  await fixture.bridge.accept({ id: "two", text: "Thanks" });
+
+  expect(prepare).toHaveBeenCalledOnce();
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    expect.stringContaining("Wait for the pending input"),
+  );
+});
+
 test("trace distinguishes ungated admission, later delegation matching, settlement and dropped speech", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});

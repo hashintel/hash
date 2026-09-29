@@ -125,7 +125,8 @@ export class LiveBrunchBridge {
     }
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
-    this.#waitingForComposer = undefined;
+    if (!this.#waitingForComposer?.submitted)
+      this.#waitingForComposer = undefined;
   }
 
   /** Frees the composer from one stale turn; other turns and delegations stay. */
@@ -251,10 +252,13 @@ export class LiveBrunchBridge {
       let text = input.text;
       if (mediation) {
         mediation.history.begin(input);
-        const fields = await mediation.prepare(
-          input.text,
-          turn.preparation.signal,
-        );
+        let fields: VoiceBriefFields = {};
+        try {
+          fields = await mediation.prepare(input.text, turn.preparation.signal);
+        } catch {
+          turn.preparation.signal.throwIfAborted();
+          logLiveDiagnostic("brief.unavailable", { inputId: input.id });
+        }
         turn.preparation.signal.throwIfAborted();
         mediation.history.prepared(input.id, fields);
         text = serializeVoiceBrief(input.text, fields);
