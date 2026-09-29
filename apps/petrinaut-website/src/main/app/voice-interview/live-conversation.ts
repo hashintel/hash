@@ -29,7 +29,7 @@ export interface LiveConversationState {
   };
 }
 
-interface FinalizedInput {
+export interface FinalizedInput {
   readonly id: string;
   readonly text: string;
   /** Speech start was reported while Live was audible or within half a second after. */

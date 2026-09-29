@@ -2,6 +2,7 @@ import { selectCanonicalSpeech } from "./canonical-speech";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { FinalizedInput } from "./live-conversation";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -113,11 +114,7 @@ export class LiveBrunchBridge {
     );
   }
 
-  public async accept(input: {
-    readonly id: string;
-    readonly text: string;
-    readonly startedDuringOutput?: boolean;
-  }): Promise<void> {
+  public async accept(input: FinalizedInput): Promise<void> {
     if (this.#abort.signal.aborted) return;
     if (this.#seenInputs.has(input.id)) {
       logLiveDiagnostic("input.ignored", {
