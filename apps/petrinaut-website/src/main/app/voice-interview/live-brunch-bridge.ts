@@ -110,22 +110,28 @@ export class LiveBrunchBridge {
     const turn = [...this.#turns].findLast(
       (candidate) => candidate.delegationId === null,
     );
-    if (turn) turn.delegationId = delegationId;
-    else this.#unclaimedDelegations.add(delegationId);
-    logLiveDiagnostic(turn ? "delegation.matched" : "delegation.unclaimed", {
-      delegationId,
-      inputId: turn?.inputId,
-      submissionId: turn?.submissionId,
-    });
-    this.#closeStrayDelegations();
+    if (turn) {
+      turn.delegationId = delegationId;
+      logLiveDiagnostic("delegation.matched", {
+        delegationId,
+        inputId: turn.inputId,
+        submissionId: turn.submissionId,
+      });
+    } else if (this.#dependencies.speechPending()) {
+      this.#unclaimedDelegations.add(delegationId);
+      logLiveDiagnostic("delegation.unclaimed", { delegationId });
+    } else {
+      logLiveDiagnostic("delegation.deferred", {
+        delegationId,
+        reason: "speech-order-unknown",
+      });
+    }
   }
 
   /**
-   * A delegation can only belong to speech that had started when it arrived.
-   * Once no speech awaits its transcript, no later transcript can own an
-   * unclaimed delegation, and holding it would pair the next answer with the
-   * wrong request. The instruction can't claim that nobody spoke: a filter may
-   * have dropped real speech.
+   * Unclaimed delegations were observed while transcription speech was pending.
+   * Once none remains, a filter may have dropped the only speech that could
+   * claim them, so holding them would shift later pairings.
    */
   #closeStrayDelegations(): void {
     if (this.#dependencies.speechPending()) return;

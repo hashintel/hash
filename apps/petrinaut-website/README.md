@@ -211,12 +211,15 @@ GPT-Live can delegate its own echo. A real interruption of three words or fewer
 still stops Live, but its words don't reach Brunch. Neither case shows a
 notice.
 
-Each GPT-Live delegation goes to the latest transcript still without one, or
-waits for the next transcript. A delegation can only belong to speech that had
-started when it arrived. So once no transcription speech is waiting for its
-transcript, a waiting delegation, such as one GPT-Live created for its own
-echo, is closed with an instruction not to respond instead of going to the next
-answer. `delegation.closed` records each one with only its ID and reason.
+Each GPT-Live delegation goes to the latest finalized transcript still without
+one, or waits for speech that the transcription session already reports as
+started. Live and transcription use independent sessions, so a delegation that
+arrives while neither condition is visible has unknown ordering: it is deferred,
+neither closed nor attached to later speech. A delegation observed while
+transcription speech is pending is closed if that speech is later filtered,
+instead of shifting to the next answer. `delegation.deferred` and
+`delegation.closed` record these outcomes with only the delegation ID and a
+fixed reason.
 
 #### Speaker echo check — 10 minutes
 

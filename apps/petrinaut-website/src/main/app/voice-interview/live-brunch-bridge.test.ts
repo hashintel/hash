@@ -629,47 +629,44 @@ test("an input repeating Live's overlapping words is traced by the echo stage in
   expect(traced).not.toContain("Okay");
 });
 
-test("a delegation arriving when no speech awaits its transcript is closed, not left for the next answer", async () => {
+test("a delegation arriving before transcription reports speech is deferred without shifting the next answer", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   const fixture = setup();
   fixture.speechPending.mockReturnValue(false);
-  await fixture.bridge.accept({
-    id: "phantom",
-    text: "PRIVATE Okay.",
-    startedDuringOutput: true,
-  });
-  fixture.bridge.acceptDelegation("phantom-delegation");
-  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining("Do not respond"),
-    "phantom-delegation",
-  );
 
+  fixture.bridge.acceptDelegation("raced-delegation");
+
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
   fixture.speechPending.mockReturnValue(true);
-  fixture.bridge.acceptDelegation("answer-delegation");
-  fixture.speechPending.mockReturnValue(false);
   await fixture.bridge.accept({
     id: "answer",
     text: "Seven reviewers.",
     startedDuringOutput: false,
   });
-  expect(fixture.appendInstructions).toHaveBeenCalledOnce();
+  fixture.speechPending.mockReturnValue(false);
+  expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ id: "answer" }),
+  );
   expect(debug).toHaveBeenCalledWith(
     expect.stringContaining(
-      '"event":"brunch.submit","inputId":"answer","delegationId":"answer-delegation"',
+      '"event":"brunch.submit","inputId":"answer","delegationId":null',
     ),
   );
-  const closed = traceRecords(debug.mock.calls, "delegation.closed");
-  expect(closed).toMatchObject([
-    { delegationId: "phantom-delegation", reason: "no-speech" },
+  const deferred = traceRecords(debug.mock.calls, "delegation.deferred");
+  expect(deferred).toMatchObject([
+    {
+      delegationId: "raced-delegation",
+      reason: "speech-order-unknown",
+    },
   ]);
-  expect(Object.keys(closed[0] ?? {}).sort()).toEqual([
+  expect(Object.keys(deferred[0] ?? {}).sort()).toEqual([
     "at",
     "delegationId",
     "event",
     "reason",
   ]);
-  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  expect(traceRecords(debug.mock.calls, "delegation.closed")).toEqual([]);
 });
 
 test("a delegation that arrived while its phantom was transcribed is closed when the phantom is skipped", async () => {
