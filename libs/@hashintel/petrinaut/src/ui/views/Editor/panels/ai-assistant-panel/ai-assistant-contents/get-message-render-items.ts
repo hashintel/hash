@@ -1,4 +1,8 @@
 import {
+  getPetrinautAiInteractiveToolDefinition,
+  type PetrinautAiInteractiveTool,
+} from "../../../../../types/ai-interactive-tool";
+import {
   getToolName,
   isToolPart,
   toToolRenderItem,
@@ -6,7 +10,6 @@ import {
 } from "./tool-list";
 
 import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
-import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { PetrinautAiMessage } from "../types";
 import type { ExperimentToolPart } from "./experiment-card";
 
@@ -51,6 +54,14 @@ export const getMessageRenderItems = (
     answers: [],
     cards: [],
   };
+  const cardToolNames = new Set(
+    interactiveTools
+      .filter(
+        (tool) =>
+          getPetrinautAiInteractiveToolDefinition(tool).placement === "card",
+      )
+      .map(({ toolName }) => toolName),
+  );
   message.parts.forEach((part, index) => {
     const key = `${message.id}-${index}`;
     if (part.type === "text") {
@@ -67,9 +78,9 @@ export const getMessageRenderItems = (
         interactiveTools,
         resolveToolPresentation,
       );
-      // Drafts remain mounted outside disclosures: preparation and execution
-      // must not depend on whether the person expands Brunch's work.
-      if (tool.interactive?.definition.placement === "card") {
+      // Drafts remain mounted outside disclosures in every state: preparation
+      // and execution must not depend on whether the person expands Brunch's work.
+      if (cardToolNames.has(tool.toolName)) {
         turn.cards.push({ type: "tool", key: tool.id, tool });
       } else {
         turn.work.tools.push(tool);

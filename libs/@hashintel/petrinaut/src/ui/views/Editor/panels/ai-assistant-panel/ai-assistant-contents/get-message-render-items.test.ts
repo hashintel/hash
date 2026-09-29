@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { definePetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import { getMessageRenderItems } from "./get-message-render-items";
 
 import type { PetrinautAiMessage } from "../types";
@@ -43,6 +44,45 @@ describe("conversation turn structure", () => {
       "Here is the comparison.",
     ]);
     expect(turn.cards).toEqual([]);
+  });
+
+  test("keeps a card-placed tool out of the work fold while it streams and after it errors", () => {
+    const draftTool = definePetrinautAiInteractiveTool({
+      toolName: "draft",
+      placement: "card",
+      inputSchema: { parse: (input: unknown) => input },
+      outputSchema: { parse: (output: unknown) => output },
+      component: () => null,
+    });
+    const turn = getMessageRenderItems(
+      {
+        id: "turn",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "draft",
+            toolCallId: "draft-streaming",
+            state: "input-streaming",
+            input: {},
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "draft",
+            toolCallId: "draft-failed",
+            state: "output-error",
+            input: {},
+            errorText: "Preparation failed",
+          },
+        ],
+      },
+      [draftTool],
+    );
+    expect(turn.work.tools).toEqual([]);
+    expect(turn.cards.map((card) => card.key)).toEqual([
+      "draft-streaming",
+      "draft-failed",
+    ]);
   });
 
   test("accepts optional mediation data without rendering unknown data", () => {
