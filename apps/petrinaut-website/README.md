@@ -97,7 +97,7 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
 | `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for the log-only Live experiment.                                                       |
-| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission. Unset, unknown, and `enforce` values are off.       |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission, in local development only. Others are off.          |
 | `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the model id; the default is `petrinautAiModel` in `@hashintel/petrinaut-core`.                        |
 | `PETRINAUT_AI_REASONING_EFFORT`     | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `petrinautAiModel.reasoningEffort`.                               |
 | `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
@@ -317,7 +317,8 @@ safety bound. This longer window measures results missed by the initial
 one-second cutoff; it is not an enforcement deadline and never delays submission.
 Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
 and 2 seconds separately from failures/timeouts, which are not successful latency
-samples. Diagnostics are dev-only.
+samples. Log mode runs only in local development (`NODE_ENV=development`,
+no `VERCEL_ENV`), where its diagnostics are recorded.
 This endpoint inherits the unauthenticated Voice boundary; origin checks are
 not authentication. Do not enable it on a public deployment.
 
@@ -325,7 +326,7 @@ Acceptance requires a real log-only support-desk run: opening modelling request,
 "okay", a staffing range, Brunch's question repeated back, and "hang on". Retain
 the five metadata-only triples and latency p50, verify one unchanged submission
 per eligible utterance, and check `JSON.stringify(trace)` contains none of the
-spoken or relayed text. Synthetic fixtures and a working endpoint do not prove
+spoken or offered text. Synthetic fixtures and a working endpoint do not prove
 classification quality or real latency. Enforcement is not implemented in this
 milestone; threshold, timeout and any later delegation override remain subject
 to a separate owner decision after reviewing those traces.

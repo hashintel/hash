@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
 
-const state = { transcript: "PRIVATE", relayedBrunchText: null };
+const state = { transcript: "PRIVATE", offeredBrunchText: null };
 const judgment = { contribution: "social_or_backchannel", confidence: 0.9 };
 
 afterEach(() => {

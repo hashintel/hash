@@ -133,7 +133,7 @@ test.each(["log", undefined] as const)(
         expect(fetch.mock.calls[0]?.[1]?.body).toBe(
           JSON.stringify({
             transcript: "PRIVATE OKAY",
-            relayedBrunchText: null,
+            offeredBrunchText: null,
           }),
         );
       }

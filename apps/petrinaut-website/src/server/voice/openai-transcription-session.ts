@@ -4,6 +4,7 @@ import {
 } from "../../voice-diagnostics.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
+import { readBoundedBody } from "./read-bounded-body.js";
 
 const maxSdpBytes = 65_536;
 
@@ -84,28 +85,10 @@ export const createOpenAITranscriptionSessionHandler =
     try {
       report("progress");
       signal.throwIfAborted();
-      if (Number(request.headers.get("content-length")) > maxSdpBytes)
-        return respond("SDP too large.", 413);
+      const bytes = await readBoundedBody(request, maxSdpBytes, signal);
+      if (!bytes) return respond("SDP too large.", 413);
 
-      const bytes = new Uint8Array(maxSdpBytes);
-      let length = 0;
-      try {
-        await request.body?.pipeTo(
-          new WritableStream<Uint8Array>({
-            write(chunk) {
-              length += chunk.byteLength;
-              if (length > bytes.byteLength) throw new Error("SDP too large");
-              bytes.set(chunk, length - chunk.byteLength);
-            },
-          }),
-          { signal },
-        );
-      } catch (error) {
-        if (length > bytes.byteLength) return respond("SDP too large.", 413);
-        throw error;
-      }
-
-      const sdp = new TextDecoder().decode(bytes.subarray(0, length));
+      const sdp = new TextDecoder().decode(bytes);
       if (!sdp.trimStart().startsWith("v=0"))
         return respond("Invalid SDP.", 400);
       signal.throwIfAborted();

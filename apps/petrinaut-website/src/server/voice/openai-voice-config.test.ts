@@ -83,6 +83,7 @@ describe("OpenAI voice config handler", () => {
       PETRINAUT_VOICE_PROVIDER: "live",
       TYPESAFE_API_KEY: "judge-secret",
       PETRINAUT_LIVE_UTTERANCE_JUDGMENT: value,
+      NODE_ENV: "development",
     });
     expect(body).toMatchObject({ utteranceJudgment: mode });
     expect(JSON.stringify(body)).not.toContain("secret");
@@ -92,6 +93,8 @@ describe("OpenAI voice config handler", () => {
     { TYPESAFE_API_KEY: " " },
     { PETRINAUT_VOICE_PROVIDER: "realtime" },
     { PETRINAUT_VOICE_PROVIDER: "invalid" },
+    { NODE_ENV: "production" },
+    { VERCEL_ENV: "preview" },
     { PETRINAUT_OPENAI_VOICE_ENABLED: undefined },
     { OPENAI_VOICE_API_KEY: undefined },
   ])("disables judgment when unavailable: %j", async (override) => {
@@ -101,6 +104,7 @@ describe("OpenAI voice config handler", () => {
       PETRINAUT_VOICE_PROVIDER: "live",
       TYPESAFE_API_KEY: "judge-secret",
       PETRINAUT_LIVE_UTTERANCE_JUDGMENT: "log",
+      NODE_ENV: "development",
       ...override,
     });
     expect(body).toMatchObject({ utteranceJudgment: "off" });
