@@ -31,9 +31,6 @@ const snapshot = {
       purpose: "assistant",
       display: "visible",
       parts: [
-        applied("move", "commitNodePositions", {
-          commits: [{ id: "queue", x: 10, y: 20 }],
-        }),
         applied("arc-kind", "updateArcType", {
           transitionId: "serve",
           placeId: "queue",
@@ -56,8 +53,6 @@ const attributed = (
   callsForElement(snapshot, { kind, id }).map(({ toolCallId }) => toolCallId);
 
 test("a change is attributed by the element kinds its canonical tool targets, not by its name", () => {
-  // Committing node positions changes the named place.
-  expect(attributed("place", "queue")).toEqual(["move"]);
   // An arc's type is its arc kind, never a token type that shares the ID.
   expect(attributed("type", "inhibitor")).toEqual([]);
   // A type element belongs to its type.

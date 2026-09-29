@@ -31,23 +31,25 @@ export type PetrinautToolCapability =
 
 export interface PetrinautToolEffect {
   readonly capability: PetrinautToolCapability;
-  /** Element kinds whose IDs a document change made by this tool can name. */
+  /** Element kinds whose meaning a document change made by this tool can change, and so whose IDs it can name. */
   readonly targets: readonly NetElementKind[];
 }
 
 const read = { capability: "petrinaut-read", targets: [] } as const;
 const mutation = (...targets: readonly NetElementKind[]) =>
   ({ capability: "petrinaut-mutation", targets }) as const;
+/** Positions are layout, which is not part of what an element means, so no element is credited with a layout change. */
+const layout = mutation();
 
 /** What each canonical Petrinaut tool does to the bound document. */
 export const petrinautToolEffects = {
   addPlace: mutation("place"),
   updatePlace: mutation("place"),
-  updatePlacePosition: mutation("place"),
+  updatePlacePosition: layout,
   removePlace: mutation("place"),
   addTransition: mutation("transition"),
   updateTransition: mutation("transition"),
-  updateTransitionPosition: mutation("transition"),
+  updateTransitionPosition: layout,
   removeTransition: mutation("transition"),
   addArc: mutation("arc"),
   removeArc: mutation("arc"),
@@ -79,15 +81,12 @@ export const petrinautToolEffects = {
   removeSubnet: mutation("subnet"),
   addComponentInstance: mutation("componentInstance"),
   updateComponentInstance: mutation("componentInstance"),
-  updateComponentInstancePosition: mutation("componentInstance"),
+  updateComponentInstancePosition: layout,
   removeComponentInstance: mutation("componentInstance"),
   deleteItemsByIds: mutation(...netElementKinds),
-  commitNodePositions: mutation("place", "transition", "componentInstance"),
+  commitNodePositions: layout,
   setNetTitle: mutation(),
-  applyAutoLayout: {
-    capability: "petrinaut-command",
-    targets: ["place", "transition"],
-  },
+  applyAutoLayout: { capability: "petrinaut-command", targets: [] },
   getLatestNetDefinition: read,
   getNetCompilationErrors: read,
   readPetrinautDoc: read,
