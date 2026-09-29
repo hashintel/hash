@@ -9,17 +9,23 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+error-stack = { workspace = true, public = true, features = ["std"] }
 
 # Public third-party dependencies
+duckdb = { workspace = true, public = true, features = ["bundled"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+derive_more    = { workspace = true, features = ["display", "error"] }
 simple-mermaid = { workspace = true }
+tokio          = { workspace = true, features = ["sync"] }
+tracing        = { workspace = true }
 
 [dev-dependencies]
-duckdb   = { workspace = true, features = ["bundled"] }
 proptest = { workspace = true, features = ["std"] }
+tempfile = { workspace = true }
+tokio    = { workspace = true, features = ["macros", "rt"] }
 
 [lints]
 workspace = true

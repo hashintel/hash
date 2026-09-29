@@ -7047,9 +7047,14 @@ dependencies = [
 name = "hash-integrations-engine"
 version = "0.0.0"
 dependencies = [
+ "derive_more",
  "duckdb",
+ "error-stack",
  "proptest",
  "simple-mermaid",
+ "tempfile",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
