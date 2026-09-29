@@ -77,6 +77,8 @@ export const createOutputOverlap = () => {
         .map((fragment) => fragment.text)
         .join("");
     },
+    /** Some speech has started and its transcript isn't finalized yet. */
+    pending: (): boolean => speech.size > 0,
     clear: (): void => {
       stretches.length = 0;
       liveWords.length = 0;
