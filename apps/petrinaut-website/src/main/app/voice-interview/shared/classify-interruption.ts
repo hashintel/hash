@@ -54,11 +54,12 @@ export const classifyInterruption = (
   // Short answers and isolated domain terms are not enough evidence of echo.
   if (tokens.length < 6) return null;
   const bigrams = bigramsOf(tokens);
-  if (tokens.length >= 8 && hasStrongOrderedOverlap(bigrams, promptBigrams)) {
-    return "prompt-regurgitation";
-  }
+  // Playback that also resembles the prompt is still echo of that playback.
   if (hasStrongOrderedOverlap(bigrams, bigramsOf(canonicalPlaybackTokens))) {
     return "self-echo";
+  }
+  if (tokens.length >= 8 && hasStrongOrderedOverlap(bigrams, promptBigrams)) {
+    return "prompt-regurgitation";
   }
   return null;
 };

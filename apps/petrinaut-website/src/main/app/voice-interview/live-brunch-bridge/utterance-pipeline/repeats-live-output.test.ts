@@ -38,3 +38,11 @@ test("nothing repeats Live when none of its words were captured", () => {
     false,
   );
 });
+
+test("Live's words repeat as echo even when they also resemble the transcription prompt", () => {
+  const vocabulary =
+    "place, transition, arc, token, marking, guard, rate, distribution";
+  expect(repeatsLiveOutput(vocabulary, `Let's cover ${vocabulary}.`)).toBe(
+    true,
+  );
+});
