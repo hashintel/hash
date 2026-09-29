@@ -5,10 +5,8 @@ import { join } from "node:path";
 
 export type CrashRecoveryKind =
   | "plain"
-  | "observe"
   | "after-outcome"
   | "before-outcome"
-  | "direct-after-outcome"
   | "repair-after-repair"
   | "repair-after-outcome";
 
@@ -72,14 +70,11 @@ const outcomeBatches = (
 const expectedFaultsFor = (kind: CrashRecoveryKind): readonly string[] => {
   switch (kind) {
     case "plain":
-    case "observe":
       return [];
     case "after-outcome":
       return ["after-outcome"];
     case "before-outcome":
       return ["before-outcome"];
-    case "direct-after-outcome":
-      return ["direct-after-outcome"];
     case "repair-after-repair":
       return ["before-outcome", "after-repair"];
     case "repair-after-outcome":

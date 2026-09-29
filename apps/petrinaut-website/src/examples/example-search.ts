@@ -22,9 +22,9 @@ import {
  * `navigation-search.ts` maps each of these onto the editor's own vocabulary
  * with an exhaustive switch, so a rename on either side fails to compile.
  */
-export const sharedModes = ["edit", "simulate", "actual"] as const;
+const sharedModes = ["edit", "simulate", "actual"] as const;
 
-export const sharedEditViews = ["canvas", "definitions"] as const;
+const sharedEditViews = ["canvas", "definitions"] as const;
 
 export const sharedSimulateViews = [
   "scenarios",
@@ -40,13 +40,9 @@ export const sharedOverlays = [
   "create-experiment",
 ] as const;
 
-export const sharedSettingsSections = ["general", "viewport", "labs"] as const;
+const sharedSettingsSections = ["general", "viewport", "labs"] as const;
 
-export const sharedResourceTypes = [
-  "scenario",
-  "metric",
-  "experiment",
-] as const;
+const sharedResourceTypes = ["scenario", "metric", "experiment"] as const;
 
 export type SharedEditView = (typeof sharedEditViews)[number];
 export type SharedMode = (typeof sharedModes)[number];

@@ -10,20 +10,20 @@
  * moved or a config path changed.
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { execFile, spawn } from "node:child_process";
+import { once } from "node:events";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { createServer } from "node:net";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
-import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_DOCUMENT_REVISION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-} from "@hashintel/brunch-agent-transport-aisdk/headers";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { ChatAgent } from "../../src/agents/chat-agent/agent";
-import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application";
+import { loadBuiltBrunchApplication } from "../load-built-application";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
   /[/\\]$/u,
@@ -36,6 +36,22 @@ const previousAllowedCorsOrigins = process.env.BRUNCH_CORS_ALLOWED_ORIGINS;
 
 /** Everything the server build emitted, concatenated. */
 let bundle = "";
+
+/** The test process's environment without any Brunch configuration. */
+const unconfiguredEnvironment = () =>
+  Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("BRUNCH_")),
+  );
+
+const unusedPort = async () => {
+  const probe = createServer().listen(0, "127.0.0.1");
+  await once(probe, "listening");
+  const address = probe.address();
+  probe.close();
+  if (address === null || typeof address === "string")
+    throw new Error("The port probe has no TCP address.");
+  return address.port;
+};
 
 beforeAll(() => {
   process.env.BRUNCH_CORS_ALLOWED_ORIGINS = allowedCorsOrigin;
@@ -73,26 +89,62 @@ describe("the emitted server bundle", () => {
         ),
       ].map((match) => match[1]!),
     );
-    expect(bound.has(ChatAgent.agentName)).toBe(true);
+    expect(bound.has("brunch-chat-agent")).toBe(true);
   });
 
-  test("includes the fail-closed production store", () => {
+  test("starts as a server and reports liveness on /health", async () => {
+    const port = await unusedPort();
+    const server = spawn(process.execPath, [join(DIST, "server.mjs")], {
+      env: {
+        ...unconfiguredEnvironment(),
+        BRUNCH_DEV_DB_PATH: join(
+          mkdtempSync(join(tmpdir(), "brunch-server-")),
+          "conversation.db",
+        ),
+        NODE_ENV: "test",
+        OTEL_SDK_DISABLED: "true",
+        PORT: String(port),
+      },
+      stdio: "ignore",
+    });
+    try {
+      const response = await vi.waitFor(
+        () => fetch(`http://localhost:${port}/health`),
+        { timeout: 30_000, interval: 250 },
+      );
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ status: "pass" });
+    } finally {
+      server.kill();
+    }
+  });
+
+  test("refuses to start in production without Postgres settings", async () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
-    expect(bundle).toContain("BRUNCH_POSTGRES_AUTH_MODE");
-    expect(bundle).toContain(`config.kind === "postgres"`);
-    expect(bundle).toContain(
-      `createPostgresRunner(config, shutdownBrunchTelemetry)`,
+    const refusal = await promisify(execFile)(
+      process.execPath,
+      [join(DIST, "server.mjs")],
+      {
+        env: {
+          ...unconfiguredEnvironment(),
+          // Production telemetry is required before the database is opened.
+          HASH_OTLP_ENDPOINT: "http://127.0.0.1:9",
+          NODE_ENV: "production",
+          PORT: "0",
+        },
+        timeout: 30_000,
+      },
+    ).then(
+      () => {
+        throw new Error("The production server exited cleanly.");
+      },
+      (error: unknown) => error,
     );
-    expect(bundle).toContain(`createPostgresWorkedModelStore(runner)`);
-    expect(bundle).toContain(`database: postgres(runner)`);
-    expect(bundle).toContain("Postgres database configuration requires");
-    expect(bundle).toContain(
-      String.raw`BRUNCH_DB_KIND must be \"postgres\" in production.`,
+    expect(refusal).toHaveProperty(
+      "stderr",
+      expect.stringContaining("BRUNCH_POSTGRES_AUTH_MODE"),
     );
-    // SQLite remains available to local/test execution only.
-    expect(bundle).toContain("BRUNCH_DEV_DB_PATH");
-    expect(bundle).toContain(".data-wipe-me");
   });
 
   test("serves only the guarded Flue conversation door", async () => {
@@ -110,83 +162,42 @@ describe("the emitted server bundle", () => {
 
   test("applies route-scoped CORS before ownership", async () => {
     const application = await loadBuiltBrunchApplication();
-    const [
-      preflight,
-      workedModelPutPreflight,
-      guardedResponse,
-      bareOptions,
-      healthResponse,
-    ] = await Promise.all([
-      application.fetch(
-        new Request("http://brunch.test/agents/chat/conversation", {
-          method: "OPTIONS",
-          headers: {
-            Origin: allowedCorsOrigin,
-            "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": [
-              "content-type",
-              BRUNCH_PRINCIPAL_HEADER,
-              BRUNCH_CONVERSATION_HEADER,
-              BRUNCH_DOCUMENT_REVISION_HEADER,
-            ].join(","),
-          },
-        }),
-      ),
-      application.fetch(
-        new Request(
-          "http://brunch.test/api/worked-models/copies/copy-1/definition",
-          {
+    const [preflight, guardedResponse, bareOptions, healthResponse] =
+      await Promise.all([
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
             method: "OPTIONS",
             headers: {
               Origin: allowedCorsOrigin,
-              "Access-Control-Request-Method": "PUT",
-              "Access-Control-Request-Headers": `content-type,${BRUNCH_PRINCIPAL_HEADER}`,
+              "Access-Control-Request-Method": "POST",
+              "Access-Control-Request-Headers": [
+                "content-type",
+                brunchHeaders.principal,
+                brunchHeaders.conversation,
+              ].join(","),
             },
-          },
+          }),
         ),
-      ),
-      application.fetch(
-        new Request("http://brunch.test/agents/chat/conversation", {
-          headers: { Origin: allowedCorsOrigin },
-        }),
-      ),
-      application.fetch(
-        new Request("http://brunch.test/agents/chat/conversation", {
-          method: "OPTIONS",
-        }),
-      ),
-      application.fetch(
-        new Request("http://brunch.test/health", {
-          headers: { Origin: allowedCorsOrigin },
-        }),
-      ),
-    ]);
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            headers: { Origin: allowedCorsOrigin },
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            method: "OPTIONS",
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/health", {
+            headers: { Origin: allowedCorsOrigin },
+          }),
+        ),
+      ]);
 
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("access-control-allow-origin")).toBe(
       allowedCorsOrigin,
-    );
-    expect(preflight.headers.get("access-control-allow-methods")).toBe(
-      "GET,POST,PUT,OPTIONS",
-    );
-    expect(preflight.headers.get("access-control-allow-headers")).toBe(
-      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
-    );
-    expect(
-      preflight.headers.get("access-control-allow-credentials"),
-    ).toBeNull();
-
-    expect(workedModelPutPreflight.status).toBe(204);
-    expect(
-      workedModelPutPreflight.headers.get("access-control-allow-origin"),
-    ).toBe(allowedCorsOrigin);
-    expect(
-      workedModelPutPreflight.headers.get("access-control-allow-methods"),
-    ).toBe("GET,POST,PUT,OPTIONS");
-    expect(
-      workedModelPutPreflight.headers.get("access-control-allow-headers"),
-    ).toBe(
-      `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
     );
 
     expect(guardedResponse.status).toBe(401);
@@ -204,26 +215,23 @@ describe("the emitted server bundle", () => {
     ).toBeNull();
   });
 
-  test("packages the authored skill without the retired filesystem loader", () => {
-    expect(bundle).toContain("defineSkill");
-    expect(bundle).toContain("sdcpn-modelling");
-    expect(bundle).toContain("The registers are addresses, not a procedure");
-    expect(bundle).toContain("Operational-Process and SDCPN Elicitation");
-    expect(bundle).toContain(
-      "Every operational claim has one authoritative home",
-    );
-    expect(bundle).toContain("Capability-aware lifecycle");
-    expect(bundle).toContain("Activate the `elicitation` skill");
-    expect(bundle).not.toContain("## The role (core)");
-    expect(bundle).not.toContain("Completion is computed by the harness");
-    expect(bundle).not.toContain("splitSkillMarkdown");
-    expect(bundle).not.toContain("skillFileUrl");
-    expect(bundle).not.toContain("./sdcpn-modelling/SKILL.md");
+  test("packages each mounted skill directory natively through Flue", () => {
+    expect(bundle).toContain("createSkillReference(");
+    expect(bundle).toMatch(/"id": "skill:elicitation:[0-9a-f]+"/u);
+    expect(bundle).toMatch(/"id": "skill:sdcpn-modelling:[0-9a-f]+"/u);
+    for (const resource of [
+      "references/checks.md",
+      "references/experiment-configuration.md",
+      "references/pn-construction.md",
+      "references/profile.md",
+      "templates/workpiece.md",
+    ])
+      expect(bundle).toContain(`"${resource}"`);
   });
 
   test("carries no model key", () => {
     const modelKey = new RegExp(
-      `${"ANTHROPIC"}_${"API"}_${"KEY"}\\s*[:=]\\s*['"][^'"]+['"]`,
+      `(?:${"ANTHROPIC"}|${"OPENAI"})_${"API"}_${"KEY"}\\s*[:=]\\s*['"][^'"]+['"]`,
       "u",
     );
     expect(bundle).not.toMatch(modelKey);

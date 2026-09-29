@@ -6,7 +6,10 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { applyPetrinautAiMutation } from "./apply-petrinaut-ai-mutation";
+import {
+  applyPetrinautAiMutation,
+  executePetrinautAiMutation,
+} from "./apply-petrinaut-ai-mutation";
 
 const definition: SDCPN = {
   places: [
@@ -37,6 +40,129 @@ const definition: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
+
+describe("executePetrinautAiMutation", () => {
+  test("owns canonical mutation output shaping at the callback boundary", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: definition }),
+    });
+    const aiToolCall = {
+      toolName: "addPlace" as const,
+      input: {
+        id: "queue",
+        name: "Queue",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 10,
+        y: 20,
+      },
+    };
+
+    expect(
+      executePetrinautAiMutation({
+        aiToolCall,
+        getDefinition: () => instance.definition.get(),
+        mutations: instance.mutations,
+      }),
+    ).toEqual({
+      applied: true,
+      title: "Added place Queue",
+      target: { kind: "selection", item: { type: "place", id: "queue" } },
+    });
+    const addArcCall = {
+      toolName: "addArc" as const,
+      input: {
+        transitionId: "start",
+        arcDirection: "input" as const,
+        placeId: "crew",
+        weight: 1,
+        type: "standard" as const,
+      },
+    };
+    executePetrinautAiMutation({
+      aiToolCall: addArcCall,
+      getDefinition: () => instance.definition.get(),
+      mutations: instance.mutations,
+    });
+    expect(
+      executePetrinautAiMutation({
+        aiToolCall: addArcCall,
+        getDefinition: () => instance.definition.get(),
+        mutations: instance.mutations,
+      }),
+    ).toEqual({
+      applied: false,
+      reason: "Added input arc left the document unchanged.",
+    });
+
+    instance.dispose();
+  });
+
+  test("rejects unsupported names without indexing callbacks", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: definition }),
+    });
+    const callbackReads: PropertyKey[] = [];
+    const mutations = new Proxy(instance.mutations, {
+      get: (target, property, receiver) => {
+        callbackReads.push(property);
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const aiToolCall = {
+      toolName: "toString",
+      input: {},
+    } as unknown as Parameters<
+      typeof executePetrinautAiMutation
+    >[0]["aiToolCall"];
+
+    expect(() =>
+      executePetrinautAiMutation({
+        aiToolCall,
+        getDefinition: () => instance.definition.get(),
+        mutations,
+      }),
+    ).toThrow("Unsupported Petrinaut mutation: toString");
+    expect(callbackReads).toEqual([]);
+
+    instance.dispose();
+  });
+
+  test("does not intercept callback failures", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: definition }),
+    });
+    const callbackError = new Error("Canonical callback failed");
+    const mutations = {
+      ...instance.mutations,
+      addPlace: () => {
+        throw callbackError;
+      },
+    };
+
+    expect(() =>
+      executePetrinautAiMutation({
+        aiToolCall: {
+          toolName: "addPlace",
+          input: {
+            id: "queue",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 10,
+            y: 20,
+          },
+        },
+        getDefinition: () => instance.definition.get(),
+        mutations,
+      }),
+    ).toThrow(callbackError);
+
+    instance.dispose();
+  });
+});
 
 describe("applyPetrinautAiMutation", () => {
   test("observes the live definition around one synchronous execution with its call identity", () => {

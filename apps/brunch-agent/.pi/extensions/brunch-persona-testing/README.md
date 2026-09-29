@@ -109,7 +109,7 @@ For Anthropic schema acceptance after a tool, schema, or adapter change, run `ya
 
 Add `--openai` to `yarn workspace @apps/brunch-agent test:persona` for the same proof through the registered OpenAI provider at low effort. The native Responses serializer and SSE parser remain real; only HTTP responses are synthetic. Each request checks the mounted tools' schemas/descriptions, `strict: false`, model and effort; captured `openai-requests.json` includes browser-result history. Passing is synthetic wiring evidence, not OpenAI server acceptance or a live-model result.
 
-The construction proof holds the recording pause and checks that no submission occurs before release. `test/persona-extension-lifecycle.test.ts`, enabled with `PI_PERSONA_CLI=$(command -v pi)`, crosses the installed Pi's flag hydration and tool-registration boundary with a synthetic socket reply and no inference. After building Brunch, `node --experimental-strip-types test/provider-accounting.integration.ts --disabled` checks that native requests proceed with an unusable historical ledger, preserve it untouched and retain usage in the original database. These checks do not prove live-model fidelity or successful generation with the operator's credential.
+The construction proof holds the recording pause and checks that no submission occurs before release. `test/persona-extension-lifecycle.test.ts`, enabled with `PI_PERSONA_CLI=$(command -v pi)`, crosses the installed Pi's flag hydration and tool-registration boundary with a synthetic socket reply and no inference. These checks do not prove live-model fidelity or successful generation with the operator's credential.
 
 From the HASH root, build and run the synthetic browser proof:
 

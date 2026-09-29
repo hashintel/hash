@@ -13,6 +13,8 @@
  * honoured, an accidental clash is reported.
  */
 
+import { brunchEnv } from "@hashintel/brunch-agent/constants";
+
 const listenPort = (variable: string, fallback: number): number => {
   const requested = Number(process.env[variable]);
   return Number.isInteger(requested) && requested > 0 && requested < 65536
@@ -22,13 +24,13 @@ const listenPort = (variable: string, fallback: number): number => {
 
 export const localChatListen = {
   host: "127.0.0.1",
-  port: listenPort("BRUNCH_CHAT_PORT", 4321),
+  port: listenPort(brunchEnv.chatPort, 4321),
   strictPort: true,
 } as const;
 
 export const localPanelListen = {
   host: "127.0.0.1",
-  port: listenPort("BRUNCH_PANEL_PORT", 4915),
+  port: listenPort(brunchEnv.panelPort, 4915),
   strictPort: true,
 } as const;
 

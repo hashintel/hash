@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk";
+import { brunchEnv, brunchHeaders } from "@hashintel/brunch-agent";
 
 import {
   validatePersistedHistory,
@@ -15,17 +15,17 @@ const required = (name: string): string => {
   return value;
 };
 
-const baseUrl = required("BRUNCH_SMOKE_BASE_URL").replace(/\/$/u, "");
-const principal = required("BRUNCH_SMOKE_PRINCIPAL");
-const mode = process.env.BRUNCH_SMOKE_MODE ?? "turn";
+const baseUrl = required(brunchEnv.smokeBaseUrl).replace(/\/$/u, "");
+const principal = required(brunchEnv.smokePrincipal);
+const mode = process.env[brunchEnv.smokeMode] ?? "turn";
 const conversationId =
   mode === "history"
-    ? required("BRUNCH_SMOKE_CONVERSATION_ID")
-    : process.env.BRUNCH_SMOKE_CONVERSATION_ID?.trim() || randomUUID();
-const requestId = process.env.BRUNCH_SMOKE_REQUEST_ID?.trim() || randomUUID();
+    ? required(brunchEnv.smokeConversationId)
+    : process.env[brunchEnv.smokeConversationId]?.trim() || randomUUID();
+const requestId = process.env[brunchEnv.smokeRequestId]?.trim() || randomUUID();
 const headers = new Headers({
   "content-type": "application/json",
-  [BRUNCH_PRINCIPAL_HEADER]: principal,
+  [brunchHeaders.principal]: principal,
   "x-request-id": requestId,
 });
 // A streamed turn legitimately takes tens of seconds; a hung server must still fail the smoke.
@@ -41,7 +41,7 @@ if (mode === "history") {
   }
   const messages = validatePersistedHistory(
     await response.json(),
-    required("BRUNCH_SMOKE_EXPECTED_TEXT"),
+    required(brunchEnv.smokeExpectedText),
   );
   process.stdout.write(
     `${JSON.stringify({
@@ -65,7 +65,7 @@ if (mode === "history") {
             {
               type: "text",
               text:
-                process.env.BRUNCH_SMOKE_PROMPT ??
+                process.env[brunchEnv.smokePrompt] ??
                 "Activate the elicitation skill, call ping once, then briefly confirm the restricted deployment path.",
             },
           ],
@@ -98,5 +98,5 @@ if (mode === "history") {
     })}\n`,
   );
 } else {
-  throw new Error('BRUNCH_SMOKE_MODE must be either "turn" or "history".');
+  throw new Error(`${brunchEnv.smokeMode} must be either "turn" or "history".`);
 }

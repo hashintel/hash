@@ -12,7 +12,6 @@ test("does not read browser storage for an abandoned render", () => {
   const never = new Promise<void>(() => {});
   const Probe = () => {
     usePersistedState({
-      enabled: true,
       fallback: "fallback",
       read,
       write: () => {},
@@ -25,35 +24,12 @@ test("does not read browser storage for an abandoned render", () => {
   expect(read).not.toHaveBeenCalled();
 });
 
-test("bases a permitted disabled functional update on persisted state without reading on mount", () => {
-  const fallback: string[] = [];
-  const read = vi.fn(() => ["existing"]);
-  const write = vi.fn();
-  const { result } = renderHook(() =>
-    usePersistedState({
-      enabled: false,
-      fallback,
-      read,
-      write,
-      writeWhenDisabled: true,
-    }),
-  );
-
-  expect(read).not.toHaveBeenCalled();
-
-  act(() => result.current[1]((previous) => [...previous, "new"]));
-
-  expect(read).toHaveBeenCalledOnce();
-  expect(write).toHaveBeenCalledWith(["existing", "new"]);
-});
-
 test("evaluates an update once and persists it outside React's updater", () => {
   const write = vi.fn();
   const update = vi.fn((previous: number) => previous + 1);
   const { result } = renderHook(
     () =>
       usePersistedState({
-        enabled: true,
         fallback: 0,
         read: () => 0,
         write,
@@ -75,7 +51,6 @@ test("preserves consecutive in-memory updates when persistence is unavailable", 
   const read = () => fallback;
   const { result } = renderHook(() =>
     usePersistedState({
-      enabled: true,
       fallback,
       read,
       write: () => {},
@@ -95,7 +70,6 @@ test("subscribes to its local storage key and releases the subscription", () => 
   const write = (value: string) => localStorage.setItem(storageKey, value);
   const { result, unmount } = renderHook(() =>
     usePersistedState({
-      enabled: true,
       fallback: "empty",
       read,
       write,

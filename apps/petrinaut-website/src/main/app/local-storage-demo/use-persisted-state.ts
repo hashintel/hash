@@ -11,45 +11,39 @@ const readStoredValue = (key: string): string | null | undefined => {
 };
 
 export const usePersistedState = <Value>({
-  enabled,
   fallback,
   read,
   storageKey,
   write,
-  writeWhenDisabled = false,
 }: {
-  readonly enabled: boolean;
   readonly fallback: Value;
   readonly read: () => Value;
   readonly storageKey?: string;
   readonly write: (value: Value) => void;
-  readonly writeWhenDisabled?: boolean;
 }): readonly [Value, (update: StateUpdate<Value>) => void, boolean] => {
   const [value, setValue] = useState(fallback);
-  const [loadedMode, setLoadedMode] = useState<boolean>();
+  const [ready, setReady] = useState(false);
   const currentValueRef = useRef(fallback);
   const storedValueRef = useRef<string | null>(null);
 
   useEffect(() => {
     const refresh = () => {
       const storedValue =
-        enabled && storageKey !== undefined
-          ? readStoredValue(storageKey)
-          : null;
+        storageKey === undefined ? null : readStoredValue(storageKey);
       if (storedValue === undefined) return;
-      const next = enabled ? read() : fallback;
+      const next = read();
       currentValueRef.current = next;
       storedValueRef.current =
-        enabled && storageKey !== undefined
-          ? (readStoredValue(storageKey) ?? storedValue)
-          : null;
+        storageKey === undefined
+          ? null
+          : (readStoredValue(storageKey) ?? storedValue);
       setValue(next);
     };
     refresh();
     // Hydrate from external storage after mount, then expose its readiness.
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Tracks completion of the localStorage synchronization above, including mode changes.
-    setLoadedMode(enabled);
-    if (!enabled || storageKey === undefined) return;
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Tracks completion of the localStorage synchronization above.
+    setReady(true);
+    if (storageKey === undefined) return;
     const onStorage = (event: StorageEvent) => {
       const storedValue = readStoredValue(storageKey);
       if (
@@ -63,11 +57,10 @@ export const usePersistedState = <Value>({
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [enabled, fallback, read, storageKey]);
+  }, [read, storageKey]);
 
   const updateValue = useCallback(
     (update: StateUpdate<Value>) => {
-      if (!enabled && !writeWhenDisabled) return;
       const storedValue =
         storageKey === undefined ? null : readStoredValue(storageKey);
       const storageChanged =
@@ -75,9 +68,7 @@ export const usePersistedState = <Value>({
       const next =
         typeof update === "function"
           ? (update as (previous: Value) => Value)(
-              (!enabled && storedValue !== undefined) || storageChanged
-                ? read()
-                : currentValueRef.current,
+              storageChanged ? read() : currentValueRef.current,
             )
           : update;
       currentValueRef.current = next;
@@ -90,12 +81,8 @@ export const usePersistedState = <Value>({
             : (readStoredValue(storageKey) ?? storedValue);
       }
     },
-    [enabled, read, storageKey, write, writeWhenDisabled],
+    [read, storageKey, write],
   );
 
-  return [
-    enabled ? value : fallback,
-    updateValue,
-    !enabled || loadedMode === enabled,
-  ] as const;
+  return [value, updateValue, ready] as const;
 };

@@ -332,6 +332,7 @@ function enforceNoInstallScripts({ Yarn }) {
 
 /**
  * Keeps transport packages independent of Brunch mechanism and substrates.
+ * The one inward edge is core, for Brunch's named constants.
  *
  * @param {Context} context - The Yarn constraint context.
  */
@@ -340,8 +341,8 @@ function enforceBrunchTransportBoundary({ Yarn }) {
     if (
       !dependency.workspace.ident.startsWith(brunchAgentTransportPrefix) ||
       dependency.ident === "@flue/sdk" ||
-      (dependency.ident !== brunchAgentCore &&
-        !dependency.ident.startsWith(`${brunchAgentCore}-`) &&
+      dependency.ident === brunchAgentCore ||
+      (!dependency.ident.startsWith(`${brunchAgentCore}-`) &&
         !brunchSubstrateScopes.some((scope) =>
           dependency.ident.startsWith(scope),
         ))

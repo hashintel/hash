@@ -1,9 +1,4 @@
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  parseClientToolResults,
-  type ClientToolResult,
-} from "./client-tool-result";
-
+import type { ClientToolResult } from "./browser-tool-result";
 import type { FlueConversationMessage, FlueConversationPart } from "@flue/sdk";
 
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
@@ -24,10 +19,7 @@ export interface ClientToolHistory {
   readonly results: readonly ClientToolHistoryResult[];
 }
 
-export type ClientToolHistoryMessage = Pick<
-  FlueConversationMessage,
-  "parts" | "signal"
->;
+export type ClientToolHistoryMessage = Pick<FlueConversationMessage, "parts">;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -54,20 +46,26 @@ const resultsFrom = (
   messages: readonly ClientToolHistoryMessage[],
 ): readonly ClientToolHistoryResult[] =>
   messages.flatMap((message) => {
-    if (message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL) {
-      return [];
-    }
-    const body = message.parts
-      .flatMap((part) => (part.type === "text" ? [part.text] : []))
-      .join("");
-    return parseClientToolResults(body).map(
-      ({ output, metadata, toolCallId, toolName }) => ({
-        output,
-        ...(metadata === undefined ? {} : { metadata }),
-        toolCallId,
-        toolName,
-      }),
-    );
+    return message.parts.flatMap((part): ClientToolHistoryResult[] => {
+      if (
+        part.type !== "dynamic-tool" ||
+        part.state !== "output-available" ||
+        !isRecord(part.output) ||
+        part.output.brunchBrowserResult !== true ||
+        !("output" in part.output)
+      )
+        return [];
+      return [
+        {
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: part.output.output,
+          ...("metadata" in part.output
+            ? { metadata: part.output.metadata }
+            : {}),
+        },
+      ];
+    });
   });
 
 export const clientToolHistoryFrom = (

@@ -1,24 +1,20 @@
-export const PERSONA_VERBOSITY_VALUES = [
-  "terse",
-  "default",
-  "expansive",
-] as const;
-export const PERSONA_DISCLOSURE_VALUES = [
+const PERSONA_VERBOSITY_VALUES = ["terse", "default", "expansive"] as const;
+const PERSONA_DISCLOSURE_VALUES = [
   "reticent",
   "default",
   "forthcoming",
 ] as const;
 
-export type PersonaVerbosity = (typeof PERSONA_VERBOSITY_VALUES)[number];
-export type PersonaDisclosure = (typeof PERSONA_DISCLOSURE_VALUES)[number];
+type PersonaVerbosity = (typeof PERSONA_VERBOSITY_VALUES)[number];
+type PersonaDisclosure = (typeof PERSONA_DISCLOSURE_VALUES)[number];
 
 export type PersonaAxisSettings = {
   personaVerbosity: PersonaVerbosity;
   personaDisclosure: PersonaDisclosure;
 };
 
-export const PERSONA_DEFAULT_VERBOSITY: PersonaVerbosity = "default";
-export const PERSONA_DEFAULT_DISCLOSURE: PersonaDisclosure = "default";
+const PERSONA_DEFAULT_VERBOSITY: PersonaVerbosity = "default";
+const PERSONA_DEFAULT_DISCLOSURE: PersonaDisclosure = "default";
 
 const isPersonaVerbosity = (value: string): value is PersonaVerbosity =>
   PERSONA_VERBOSITY_VALUES.some((candidate) => candidate === value);

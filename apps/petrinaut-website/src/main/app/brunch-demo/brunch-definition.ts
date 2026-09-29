@@ -6,8 +6,6 @@ import {
 import type { BrunchNetDefinition } from "./brunch-protocol";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-export { brunchNetDefinitionSchema } from "./brunch-protocol";
-
 const shouldAutoLayout = (definition: BrunchNetDefinition): boolean => {
   const nodes = [...definition.places, ...definition.transitions];
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { brunchClientToolNames } from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
 import type {
   AgentConversationObservation,
@@ -27,14 +27,6 @@ export type FlueHistorySnapshot = FlueConversationState & {
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
   clientToolNames: ReadonlySet<string>,
-  mapClientToolInput:
-    | ((input: {
-        readonly input: unknown;
-        readonly toolName: string;
-        readonly toolCallId: string;
-      }) => unknown)
-    | undefined,
-  validatedClientToolNames?: ReadonlySet<string>,
   dynamicClientToolNames?: ReadonlySet<string>,
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
@@ -42,20 +34,12 @@ const projectPetrinautMessages = (
   snapshotToUiMessages(conversation, {
     clientToolNames,
     dynamicClientToolNames,
-    validatedClientToolNames,
-    ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
   clientPromise: Promise<FlueClient> | null,
   conversationId: string,
-  clientToolNames: ReadonlySet<string> = brunchClientToolNames,
-  mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-    readonly toolCallId: string;
-  }) => unknown,
-  validatedClientToolNames?: ReadonlySet<string>,
+  clientToolNames: ReadonlySet<string> = canonicalPetrinautClientToolNames,
   dynamicClientToolNames?: ReadonlySet<string>,
 ): {
   readonly error: Error | undefined;
@@ -152,8 +136,6 @@ export const useFlueChatHistory = (
         : projectPetrinautMessages(
             conversation,
             clientToolNames,
-            mapClientToolInput,
-            validatedClientToolNames,
             dynamicClientToolNames,
           ),
     phase: observation?.phase,

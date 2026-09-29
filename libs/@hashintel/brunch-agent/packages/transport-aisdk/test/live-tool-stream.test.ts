@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 
-import { readLiveToolStream } from "../src";
+import { readLiveToolStream } from "../src/live-tool-stream";
 
 test("reads fragmented SSE data with ownership headers and no reconnect", async () => {
   const encoder = new TextEncoder();

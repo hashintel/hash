@@ -9,13 +9,16 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import { petrinautAiTools, petrinautAiPrompt } from "@hashintel/petrinaut-core";
+import {
+  petrinautAiModel,
+  petrinautAiPrompt,
+  petrinautAiTools,
+} from "@hashintel/petrinaut-core";
 
 declare const process: {
   env: Record<string, string | undefined>;
 };
 
-const DEFAULT_MODEL = "gpt-5.5-2026-04-23";
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
 const RATE_LIMIT_MAX_TRACKED_CLIENTS = 10_000;
@@ -192,7 +195,7 @@ const fetch = async (request: Request): Promise<Response> => {
 
   const openai = createOpenAI({ apiKey });
   const registry = createProviderRegistry({ openai });
-  const modelId = process.env.PETRINAUT_AI_MODEL ?? DEFAULT_MODEL;
+  const modelId = process.env.PETRINAUT_AI_MODEL ?? petrinautAiModel.id;
 
   const result = streamText({
     model: registry.languageModel(`openai:${modelId}`),
@@ -203,7 +206,9 @@ const fetch = async (request: Request): Promise<Response> => {
     tools: petrinautAiTools,
     providerOptions: {
       openai: {
-        reasoningEffort: "medium",
+        reasoningEffort:
+          process.env.PETRINAUT_AI_REASONING_EFFORT ??
+          petrinautAiModel.reasoningEffort,
         reasoningSummary: "auto",
         textVerbosity: "medium",
       },

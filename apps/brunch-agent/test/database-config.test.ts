@@ -1,16 +1,18 @@
 import { describe, expect, test } from "vitest";
 
-import { loadDatabaseConfig, POSTGRES_ENV } from "../src/database-config.ts";
+import { brunchEnv } from "@hashintel/brunch-agent";
+
+import { loadDatabaseConfig } from "../src/database-config.ts";
 
 const productionEnvironment = {
   NODE_ENV: "production",
-  [POSTGRES_ENV.authMode]: "iam",
-  [POSTGRES_ENV.awsRegion]: "eu-central-1",
-  [POSTGRES_ENV.database]: "brunch",
-  [POSTGRES_ENV.host]: "brunch.example.rds.amazonaws.com",
-  [POSTGRES_ENV.port]: "5432",
-  [POSTGRES_ENV.tlsCaPath]: "/run/config/rds-ca.pem",
-  [POSTGRES_ENV.user]: "brunch_agent",
+  [brunchEnv.postgres.authMode]: "iam",
+  [brunchEnv.postgres.awsRegion]: "eu-central-1",
+  [brunchEnv.postgres.database]: "brunch",
+  [brunchEnv.postgres.host]: "brunch.example.rds.amazonaws.com",
+  [brunchEnv.postgres.port]: "5432",
+  [brunchEnv.postgres.tlsCaPath]: "/run/config/rds-ca.pem",
+  [brunchEnv.postgres.user]: "brunch_agent",
 } as const;
 
 describe("database configuration", () => {
@@ -53,9 +55,9 @@ describe("database configuration", () => {
         ...productionEnvironment,
         NODE_ENV: "development",
         BRUNCH_DB_KIND: "postgres",
-        [POSTGRES_ENV.authMode]: "password",
-        [POSTGRES_ENV.awsRegion]: undefined,
-        [POSTGRES_ENV.password]: "synthetic-password",
+        [brunchEnv.postgres.authMode]: "password",
+        [brunchEnv.postgres.awsRegion]: undefined,
+        [brunchEnv.postgres.password]: "synthetic-password",
       }),
     ).toEqual({
       kind: "postgres",
@@ -79,8 +81,8 @@ describe("database configuration", () => {
       expect(loadDatabaseConfig(environment)).toEqual(
         loadDatabaseConfig(productionEnvironment),
       );
-      for (const name of Object.values(POSTGRES_ENV).filter(
-        (field) => field !== POSTGRES_ENV.password,
+      for (const name of Object.values(brunchEnv.postgres).filter(
+        (field) => field !== brunchEnv.postgres.password,
       )) {
         for (const value of [undefined, "", " "]) {
           expect(() =>
@@ -90,37 +92,43 @@ describe("database configuration", () => {
       }
       for (const port of ["0", "5432.5", "65536", "abc"]) {
         expect(() =>
-          loadDatabaseConfig({ ...environment, [POSTGRES_ENV.port]: port }),
-        ).toThrow(POSTGRES_ENV.port);
+          loadDatabaseConfig({
+            ...environment,
+            [brunchEnv.postgres.port]: port,
+          }),
+        ).toThrow(brunchEnv.postgres.port);
       }
-      expect(() =>
-        loadDatabaseConfig({ ...environment, [POSTGRES_ENV.authMode]: "none" }),
-      ).toThrow(POSTGRES_ENV.authMode);
       expect(() =>
         loadDatabaseConfig({
           ...environment,
-          [POSTGRES_ENV.password]: "synthetic-password",
+          [brunchEnv.postgres.authMode]: "none",
         }),
-      ).toThrow(POSTGRES_ENV.password);
+      ).toThrow(brunchEnv.postgres.authMode);
+      expect(() =>
+        loadDatabaseConfig({
+          ...environment,
+          [brunchEnv.postgres.password]: "synthetic-password",
+        }),
+      ).toThrow(brunchEnv.postgres.password);
       const passwordEnvironment = {
         ...environment,
-        [POSTGRES_ENV.authMode]: "password",
-        [POSTGRES_ENV.awsRegion]: undefined,
+        [brunchEnv.postgres.authMode]: "password",
+        [brunchEnv.postgres.awsRegion]: undefined,
       };
       expect(() => loadDatabaseConfig(passwordEnvironment)).toThrow(
-        POSTGRES_ENV.password,
+        brunchEnv.postgres.password,
       );
       expect(() =>
         loadDatabaseConfig({
           ...passwordEnvironment,
-          [POSTGRES_ENV.password]: "synthetic-password",
-          [POSTGRES_ENV.awsRegion]: "eu-central-1",
+          [brunchEnv.postgres.password]: "synthetic-password",
+          [brunchEnv.postgres.awsRegion]: "eu-central-1",
         }),
-      ).toThrow(POSTGRES_ENV.awsRegion);
+      ).toThrow(brunchEnv.postgres.awsRegion);
     },
   );
 
-  test.each(Object.values(POSTGRES_ENV))(
+  test.each(Object.values(brunchEnv.postgres))(
     "rejects %s with implicit or explicit SQLite",
     (name) => {
       for (const selector of [undefined, "sqlite"]) {
@@ -160,7 +168,7 @@ describe("database configuration", () => {
       }),
     ).toThrow("BRUNCH_DB_KIND");
     expect(() => loadDatabaseConfig({ NODE_ENV: "production" })).toThrow(
-      POSTGRES_ENV.authMode,
+      brunchEnv.postgres.authMode,
     );
   });
 
@@ -180,10 +188,10 @@ describe("database configuration", () => {
     expect(
       loadDatabaseConfig({
         ...productionEnvironment,
-        [POSTGRES_ENV.awsRegion]: " eu-central-1\n",
-        [POSTGRES_ENV.host]: " brunch.example.rds.amazonaws.com\n",
-        [POSTGRES_ENV.port]: " 5432\n",
-        [POSTGRES_ENV.user]: " brunch_agent\n",
+        [brunchEnv.postgres.awsRegion]: " eu-central-1\n",
+        [brunchEnv.postgres.host]: " brunch.example.rds.amazonaws.com\n",
+        [brunchEnv.postgres.port]: " 5432\n",
+        [brunchEnv.postgres.user]: " brunch_agent\n",
       }),
     ).toMatchObject({
       auth: { mode: "iam", region: "eu-central-1" },
@@ -196,9 +204,9 @@ describe("database configuration", () => {
   test("loads a runtime-injected password without accepting a region", () => {
     const environment = {
       ...productionEnvironment,
-      [POSTGRES_ENV.authMode]: "password",
-      [POSTGRES_ENV.awsRegion]: undefined,
-      [POSTGRES_ENV.password]: "secret-for-test",
+      [brunchEnv.postgres.authMode]: "password",
+      [brunchEnv.postgres.awsRegion]: undefined,
+      [brunchEnv.postgres.password]: "secret-for-test",
     };
     expect(loadDatabaseConfig(environment)).toMatchObject({
       kind: "postgres",
@@ -207,11 +215,11 @@ describe("database configuration", () => {
   });
 
   test.each([
-    [POSTGRES_ENV.host, undefined],
-    [POSTGRES_ENV.database, ""],
-    [POSTGRES_ENV.port, "0"],
-    [POSTGRES_ENV.port, "5432.5"],
-    [POSTGRES_ENV.port, "65536"],
+    [brunchEnv.postgres.host, undefined],
+    [brunchEnv.postgres.database, ""],
+    [brunchEnv.postgres.port, "0"],
+    [brunchEnv.postgres.port, "5432.5"],
+    [brunchEnv.postgres.port, "65536"],
   ])("rejects invalid required field %s", (name, value) => {
     expect(() =>
       loadDatabaseConfig({ ...productionEnvironment, [name]: value }),
@@ -235,15 +243,15 @@ describe("database configuration", () => {
     expect(() =>
       loadDatabaseConfig({
         ...productionEnvironment,
-        [POSTGRES_ENV.password]: password,
+        [brunchEnv.postgres.password]: password,
       }),
-    ).toThrow(POSTGRES_ENV.password);
+    ).toThrow(brunchEnv.postgres.password);
 
     let errorMessage = "";
     try {
       loadDatabaseConfig({
         ...productionEnvironment,
-        [POSTGRES_ENV.password]: password,
+        [brunchEnv.postgres.password]: password,
       });
     } catch (error) {
       errorMessage = String(error);

@@ -1,57 +1,27 @@
 import { useCallback, useMemo } from "react";
 
 import { useLocalDocumentRepository } from "./local-storage/use-local-document-repository";
-import { useRemoteDocumentRepository } from "./remote/use-remote-document-repository";
 
-import type { DocumentController, DocumentSource } from "./document-repository";
+import type { DocumentController } from "./document-repository";
 
 export const useDocumentController = (input: {
-  readonly bundleKey: string | undefined;
-  readonly chatEndpoint: string;
-  readonly currentOrigin: string;
-  readonly isBrunchConfigured: boolean;
-  readonly principalKey: string;
-  readonly remoteRouteSelected: boolean;
   readonly onOpenDocument: () => void;
-  readonly onSelectLocalRoute: () => void;
 }): {
   readonly controller: DocumentController;
 } => {
-  const { onSelectLocalRoute } = input;
-  const local = useLocalDocumentRepository({
-    enabled: !input.remoteRouteSelected,
+  const { repository } = useLocalDocumentRepository({
     onOpen: input.onOpenDocument,
   });
-  const remote = useRemoteDocumentRepository({
-    bundleKey: input.bundleKey,
-    chatEndpoint: input.chatEndpoint,
-    currentOrigin: input.currentOrigin,
-    enabled: input.remoteRouteSelected,
-    isBrunchConfigured: input.isBrunchConfigured,
-    principalKey: input.principalKey,
-  });
-  const source = useMemo<DocumentSource>(
-    () => (input.remoteRouteSelected ? remote : local),
-    [input.remoteRouteSelected, local, remote],
-  );
-  const createLocalAndOpen = useCallback<
-    DocumentController["createLocalAndOpen"]
-  >(
+  const createAndOpen = useCallback<DocumentController["createAndOpen"]>(
     ({ definition, title }) => {
-      const create = local.repository.actions.create;
-      if (create === undefined)
-        throw new Error(
-          "The local document repository cannot create documents.",
-        );
-      const created = create({ definition, title });
-      onSelectLocalRoute();
-      local.repository.open(created.documentId);
+      const created = repository.actions.create({ definition, title });
+      repository.open(created.documentId);
     },
-    [local.repository, onSelectLocalRoute],
+    [repository],
   );
   const controller = useMemo<DocumentController>(
-    () => ({ source, createLocalAndOpen }),
-    [createLocalAndOpen, source],
+    () => ({ repository, createAndOpen }),
+    [createAndOpen, repository],
   );
   return { controller };
 };

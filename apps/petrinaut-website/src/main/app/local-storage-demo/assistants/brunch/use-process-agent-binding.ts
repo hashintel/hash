@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getOrCreateBrunchConversationId } from "../../brunch-conversation-id";
 
-import type {
-  DocumentRecord,
-  ProcessAgentSeed,
-} from "../../documents/document-repository";
+import type { DocumentRecord } from "../../documents/document-repository";
 
 export interface ProcessAgentBinding {
   readonly conversationId: string;
@@ -19,23 +16,12 @@ export interface FixtureProcessAgentConfiguration {
 
 export const resolveProcessAgentBinding = (input: {
   readonly document: DocumentRecord | null;
-  readonly seed: ProcessAgentSeed | undefined;
   readonly fixture: FixtureProcessAgentConfiguration | undefined;
   readonly fallbackConversationId?: string;
 }): ProcessAgentBinding | null => {
   if (input.document === null) return null;
-  if (
-    input.seed !== undefined &&
-    input.seed.documentId !== input.document.documentId
-  ) {
-    throw new Error(
-      `Process-agent seed belongs to ${input.seed.documentId}, not ${input.document.documentId}.`,
-    );
-  }
   const conversationId =
-    input.seed?.conversationId ??
-    input.fixture?.conversationId ??
-    input.fallbackConversationId;
+    input.fixture?.conversationId ?? input.fallbackConversationId;
   if (conversationId === undefined) return null;
   return {
     conversationId,
@@ -46,24 +32,17 @@ export const resolveProcessAgentBinding = (input: {
 
 export const useProcessAgentBinding = (input: {
   readonly document: DocumentRecord | null;
-  readonly seed: ProcessAgentSeed | undefined;
   readonly fixture: FixtureProcessAgentConfiguration | undefined;
 }): ProcessAgentBinding | null => {
   const documentId = input.document?.documentId;
   const incarnationId = input.document?.incarnationId;
-  const seedDocumentId = input.seed?.documentId;
-  const seedConversationId = input.seed?.conversationId;
   const fixtureConversationId = input.fixture?.conversationId;
   const [fallbackConversationIds, setFallbackConversationIds] = useState<
     Readonly<Record<string, string>>
   >({});
 
   useEffect(() => {
-    if (
-      documentId === undefined ||
-      seedConversationId !== undefined ||
-      fixtureConversationId !== undefined
-    ) {
+    if (documentId === undefined || fixtureConversationId !== undefined) {
       return;
     }
     const conversationId = getOrCreateBrunchConversationId(documentId);
@@ -73,19 +52,13 @@ export const useProcessAgentBinding = (input: {
         ? current
         : { ...current, [documentId]: conversationId },
     );
-  }, [documentId, fixtureConversationId, seedConversationId]);
+  }, [documentId, fixtureConversationId]);
 
   const fallbackConversationId =
     documentId === undefined ? undefined : fallbackConversationIds[documentId];
   return useMemo(() => {
     if (documentId === undefined || incarnationId === undefined) return null;
-    if (seedDocumentId !== undefined && seedDocumentId !== documentId) {
-      throw new Error(
-        `Process-agent seed belongs to ${seedDocumentId}, not ${documentId}.`,
-      );
-    }
-    const conversationId =
-      seedConversationId ?? fixtureConversationId ?? fallbackConversationId;
+    const conversationId = fixtureConversationId ?? fallbackConversationId;
     return conversationId === undefined
       ? null
       : { conversationId, documentId, incarnationId };
@@ -94,7 +67,5 @@ export const useProcessAgentBinding = (input: {
     fallbackConversationId,
     fixtureConversationId,
     incarnationId,
-    seedConversationId,
-    seedDocumentId,
   ]);
 };

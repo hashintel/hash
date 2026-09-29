@@ -63,12 +63,8 @@ export const isBrunchSelected = (
   selection: AssistantSelection,
 ): boolean => isBrunchConfigured && selection === "brunch";
 
-export const useAssistantSelection = (input?: {
-  readonly enabled: boolean;
-}) => {
-  const enabled = input?.enabled ?? true;
+export const useAssistantSelection = () => {
   const [selection, setSelection, ready] = usePersistedState({
-    enabled,
     fallback: defaultAssistantSelection,
     read: readAssistantSelection,
     write: writeAssistantSelection,

@@ -97,7 +97,7 @@ export const summarizeForAgent = (
   definition: SDCPN,
   unsupportedCount: number,
 ): string =>
-  `Drafted for this session, not run and not saved with the document: ${describeExperiment(prepared, definition)} ${describeBudget(prepared.request)} ${
+  `Drafted for review in this editor, not run and not saved with the document: ${describeExperiment(prepared, definition)} ${describeBudget(prepared.request)} ${
     unsupportedCount === 0
       ? "No restrictions were stated; none are enforced."
       : `${unsupportedCount} stated ${unsupportedCount === 1 ? "restriction is" : "restrictions are"} not carried into execution.`
