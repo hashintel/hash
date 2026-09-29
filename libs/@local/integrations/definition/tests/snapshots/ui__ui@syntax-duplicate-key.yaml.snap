@@ -1,0 +1,15 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-duplicate-key.yaml
+---
+error: line 7 column 3: duplicate mapping key: orders, set DuplicateKeyPolicy in Options if acceptable
+ --> <input>:7:3
+  |
+5 |     sql: SELECT 1 AS id
+6 |     primaryKey: [id]
+7 |   orders:
+  |   ^ duplicate mapping key: orders, set DuplicateKeyPolicy in Options if acceptable
+8 |     sql: SELECT 2 AS id
+9 |     primaryKey: [id]
+  |

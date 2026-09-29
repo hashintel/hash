@@ -1,0 +1,12 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-unknown-field.yaml
+---
+error: line 6 column 5: unknown field `primaryKeys`, expected one of sql, checkpoint, primaryKey, coverage
+ --> <input>:6:5
+  |
+4 |   orders:
+5 |     sql: SELECT 1 AS id
+6 |     primaryKeys: [id]
+  |     ^ unknown field `primaryKeys`, expected one of sql, checkpoint, primaryKey, coverage

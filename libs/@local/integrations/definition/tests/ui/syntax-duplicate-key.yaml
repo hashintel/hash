@@ -1,0 +1,9 @@
+# A key repeated in one mapping stops parsing at the second occurrence.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+  orders:
+    sql: SELECT 2 AS id
+    primaryKey: [id]

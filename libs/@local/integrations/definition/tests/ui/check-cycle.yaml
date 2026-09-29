@@ -1,0 +1,24 @@
+# Pipelines that depend on each other, directly or through checkpoints, cannot be ordered.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+  customers:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+  invoices:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      dependsOn: [customers]
+      steps:
+        - id: cp-orders
+          checkpoint: demo/orders
+    - source: customers
+      inputs:
+        orders: demo/orders
+    - source: invoices
+      dependsOn: [invoices, orders]
