@@ -204,6 +204,8 @@ export type PersonaAgentProcess =
  */
 export const startPersonaAgent = async (input: {
   readonly run: string;
+  /** Where the agent starts: outside the repository, unlike `run`. */
+  readonly cwd: string;
   readonly socketPath: string;
   readonly command: string;
 }): Promise<PersonaAgentProcess> => {
@@ -215,7 +217,7 @@ export const startPersonaAgent = async (input: {
       "--direction",
       "right",
       "--cwd",
-      input.run,
+      input.cwd,
       "--no-focus",
     ]);
     const pane = paneIdFrom(split.stdout);
@@ -246,7 +248,7 @@ export const startPersonaAgent = async (input: {
       "Without Herdr the persona agent needs this interactive terminal; run from a terminal, from Herdr, or omit --agent and start the agent yourself",
     );
   const child = spawn("sh", ["-c", input.command], {
-    cwd: input.run,
+    cwd: input.cwd,
     stdio: "inherit",
     env: personaAgentEnvironment(input.run, input.socketPath),
   });

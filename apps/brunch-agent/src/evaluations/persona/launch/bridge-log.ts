@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import * as v from "valibot";
 
+import type { PersonaAgentSettings } from "./agent.ts";
+
 const admittedEntrySchema = v.object({
   event: v.literal("admitted"),
   source: v.picklist(["opening", "persona"]),
@@ -12,19 +14,23 @@ const admittedEntrySchema = v.object({
 
 export const bridgeLogPath = (run: string) => join(run, "bridge-log.jsonl");
 
+/** A persona utterance records the agent settings that wrote it, since a resume may start a different agent. */
 export const appendAdmittedUtterance = (
   run: string,
-  source: v.InferOutput<typeof admittedEntrySchema>["source"],
-  message: string,
-  submissionId?: string,
+  entry:
+    | { readonly source: "opening"; readonly message: string }
+    | {
+        readonly source: "persona";
+        readonly message: string;
+        readonly submissionId: string;
+        readonly personaAgent: PersonaAgentSettings;
+      },
 ) =>
   appendFile(
     bridgeLogPath(run),
     `${JSON.stringify({
       event: "admitted",
-      source,
-      message,
-      ...(submissionId === undefined ? {} : { submissionId }),
+      ...entry,
       recordedAt: new Date().toISOString(),
     })}\n`,
     { mode: 0o600 },

@@ -150,13 +150,16 @@ test.each([false, true])(
     };
     try {
       await mkdir(config.browserProfile);
-      await appendAdmittedUtterance(run, "opening", "Hello.");
-      await appendAdmittedUtterance(
-        run,
-        "persona",
-        "Please continue.",
-        "sub_TEST",
-      );
+      await appendAdmittedUtterance(run, {
+        source: "opening",
+        message: "Hello.",
+      });
+      await appendAdmittedUtterance(run, {
+        source: "persona",
+        message: "Please continue.",
+        submissionId: "sub_TEST",
+        personaAgent: { agent: "pi" },
+      });
       await Promise.all([
         writeFile(join(run, "run.json"), JSON.stringify(config)),
         writeFile(config.databasePath, "TEST store presence"),

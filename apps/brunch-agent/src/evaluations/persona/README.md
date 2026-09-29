@@ -19,9 +19,9 @@ The command uses the app's normal development configuration for Brunch: `apps/br
 - `--agent-command '<shell command>'` starts any other agent. Every `{prompt}` in the template becomes the quoted launch prompt, for example `--agent-command 'opencode run {prompt}'`.
 - With neither option, the launcher prints the launch prompt and the helper path. Start any agent yourself, in any terminal, and give it that prompt.
 
-The agent runs in a sibling Herdr pane when the launcher runs inside Herdr (`HERDR_ENV=1`); otherwise it takes over the launcher's terminal. It starts in the run directory with your normal shell environment, so it uses its own login and credentials. Its permission prompts are its own: approve the helper command when asked, or allow it in the agent's settings.
+The agent runs in a sibling Herdr pane when the launcher runs inside Herdr (`HERDR_ENV=1`); otherwise it takes over the launcher's terminal. It starts in a fresh directory under the system temporary directory, outside the repository, so it loads none of the repository's `AGENTS.md` or `CLAUDE.md` files. It keeps your normal shell environment, so it uses its own login, credentials and user-level instructions. Its permission prompts are its own: approve reading the brief and running the helper command when asked, or allow them in the agent's settings.
 
-The persona agent may be able to read the repository; the brief tells it not to seek answer keys or repository content, and it is asked to play a role rather than being sandboxed. Brunch itself can see only what the persona types.
+The persona agent is asked to play a role, not sandboxed: it may still be able to read the repository by path, and the brief tells it not to seek answer keys or repository content. Brunch itself can see only what the persona types.
 
 ## How the agent talks to Brunch
 
@@ -95,9 +95,9 @@ cdp-cli --cdp-url "$cdp" screenshot "$page" "$run/browser-observer.png"
 
 The debugging endpoint controls this browser: keep it loopback-only and keep its run-private profile out of commits and shared proof artifacts.
 
-### Resume the original run
+### Resume the Brunch conversation
 
-Use `yarn brunch:persona --resume <run-directory>` with the original `BRUNCH_PANEL_PORT` and an unused `BRUNCH_CHAT_PORT`. Resume reuses the saved Chrome profile, database and effective axis settings; it does not replay the opening or import a snapshot. It starts a **fresh** persona agent (the original one unless you pass agent options) with `resume-brief.md`, which points back to the original brief and tells it to read `persona transcript` first. Fresh-run options, including `--objective` and axis flags, are rejected.
+Use `yarn brunch:persona --resume <run-directory>` with the original `BRUNCH_PANEL_PORT` and an unused `BRUNCH_CHAT_PORT`. Resume reuses the saved Chrome profile, database and effective axis settings; it does not replay the opening or import a snapshot. It starts a **fresh** persona agent (the original agent and model unless you pass agent options) with `resume-brief.md`, which points back to the original brief and tells it to read `persona transcript` first. The earlier agent's own session is not resumed, so a resumed run is one Brunch conversation played by successive persona sessions, possibly on different models; `bridge-log.jsonl` records which agent settings wrote each persona utterance. Fresh-run options, including `--objective` and axis flags, are rejected.
 
 The panel opens first and the launcher waits for recording readiness **before starting backend recovery or the agent**. After Enter, Flue settles the prior admitted submission; the launcher checks it against the last admitted utterance in `bridge-log.jsonl` and refuses mismatches or unanswered browser calls. The interrupted utterance is never resent. Runs made with the earlier Pi extension launcher have no bridge log and cannot be resumed.
 
@@ -110,7 +110,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 - `conversation.db`: this run's local Flue database, including conversation history, persistent workpiece state and provider usage records.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
-- `bridge-log.jsonl`: every utterance Brunch admitted, used to reconcile resume.
+- `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, workpiece and bound `net.json`; refreshed after completed turns and on shutdown.
 - Service logs, only for services this launch started.
 

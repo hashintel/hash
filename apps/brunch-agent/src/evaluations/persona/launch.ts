@@ -597,7 +597,10 @@ const launchPersona = async ({
           })),
         };
     if (opened.kind === "fresh")
-      await appendAdmittedUtterance(run, "opening", opening);
+      await appendAdmittedUtterance(run, {
+        source: "opening",
+        message: opening,
+      });
     documentId = documentIdFromInitialData(opened.session.initialData);
     await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
     const flue = createFlueClient({
@@ -624,12 +627,12 @@ const launchPersona = async ({
               logged = true;
               // Brunch has the utterance; a failed log write must not read as unadmitted.
               turn.admitted();
-              await appendAdmittedUtterance(
-                run,
-                "persona",
+              await appendAdmittedUtterance(run, {
+                source: "persona",
                 message,
-                receipt.submissionId,
-              );
+                submissionId: receipt.submissionId,
+                personaAgent: agentSettings,
+              });
             },
           });
           await writeProofArtifacts(join(run, "evidence"), result.snapshot);
@@ -682,15 +685,20 @@ const launchPersona = async ({
       socketPath: bridge.socketPath,
       startedPids: started.map((child) => child.pid),
     });
+    // Outside the repository, so the agent loads none of its AGENTS.md or CLAUDE.md files.
+    const agentDirectory = await mkdtemp(
+      join(tmpdir(), "brunch-persona-agent-"),
+    );
     const launchPrompt = personaLaunchPrompt(brief);
     const agentCommand = personaAgentShellCommand(agentSettings, launchPrompt);
     if (agentCommand === undefined) {
       report(
-        `Browser bridge ready. Start any coding agent in ${run} with this prompt:\n\n  ${launchPrompt}\n\nPersona command: ${helper}\nCtrl-C stops this launcher and its owned resources; run data is retained.`,
+        `Browser bridge ready. Start any coding agent in ${agentDirectory} with this prompt:\n\n  ${launchPrompt}\n\nPersona command: ${helper}\nCtrl-C stops this launcher and its owned resources; run data is retained.`,
       );
     } else {
       agentProcess = await startPersonaAgent({
         run,
+        cwd: agentDirectory,
         socketPath: bridge.socketPath,
         command: agentCommand,
       });
@@ -808,7 +816,7 @@ if (
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
     );
     report(
-      `Resume: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile, database and retained effective persona axes, and starts a fresh persona agent with a resume notice (the original agent unless agent options are given). Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/src/evaluations/persona/README.md`,
+      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile, database and retained effective persona axes, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/src/evaluations/persona/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
