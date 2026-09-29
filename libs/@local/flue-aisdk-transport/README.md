@@ -34,6 +34,7 @@ The upstream and `AbstractChat` suites label each case as a guarantee (behaviour
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | Every Flue-executed tool is `providerExecuted`, including a client tool once its in-band result arrives, so the AI SDK skips `onToolCall` and its continuation predicate for it. | Decision      |
 | A server tool's output arrives after the step that called it closes; the reducer finds the part in the earlier step.                                                             | Observed      |
+| Reopened tool parts take the host's tool types without a runtime check, as the AI SDK does for streamed tool chunks; only metadata has a schema.                                 | Decision      |
 | Reopened messages have no `step-start` parts, because Flue history does not keep step boundaries.                                                                                | Accepted gap  |
 | A live reasoning part carries the stream's own optional `id`; a reopened one does not.                                                                                           | Accepted gap  |
 | With the live channel, a tool part can appear before text the model wrote earlier in the same step, and the reducer cannot reorder it; history keeps the model's order.          | Open decision |
