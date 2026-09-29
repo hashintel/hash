@@ -33,7 +33,11 @@ pub(super) struct Check<'parts> {
 
 impl<'parts> Check<'parts> {
     fn report(&mut self, path: DefinitionPath, kind: IssueKind) {
-        self.issues.capture(DefinitionIssue { path, kind });
+        self.issues.capture(DefinitionIssue {
+            path,
+            kind,
+            location: None,
+        });
     }
 
     fn pipeline_sources(&mut self) {
@@ -114,7 +118,10 @@ impl<'parts> Check<'parts> {
                 ),
             },
             Action::Sink(sink) => {
-                self.properties(&sink.properties, &path.clone().field("properties"));
+                self.properties(
+                    &sink.properties,
+                    &path.clone().field("sink").field("properties"),
+                );
             }
         }
     }
@@ -283,6 +290,7 @@ impl<'parts> Check<'parts> {
                         .map(|pipeline| pipeline.source.clone())
                         .collect(),
                 },
+                location: None,
             })
         })
     }

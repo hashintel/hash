@@ -433,7 +433,7 @@ fn unknown_unit_map() {
         issues(parts),
         [(
             format!(
-                r#"pipelines.entities[0].steps[1].properties["{TYPES}/property-type/empty-mass/v/1"]"#
+                r#"pipelines.entities[0].steps[1].sink.properties["{TYPES}/property-type/empty-mass/v/1"]"#
             ),
             IssueKind::UnknownUnitMap {
                 unit_map: parse("masses")
@@ -505,7 +505,7 @@ fn issues_all_reported() {
         paths,
         [
             format!(
-                r#"pipelines.entities[0].steps[1].properties["{TYPES}/property-type/empty-mass/v/1"]"#
+                r#"pipelines.entities[0].steps[1].sink.properties["{TYPES}/property-type/empty-mass/v/1"]"#
             ),
             "pipelines.links[0].checkpoint".to_owned(),
             "sources.hangars".to_owned(),

@@ -2,12 +2,19 @@ use alloc::{
     string::{String, ToString as _},
     vec::Vec,
 };
-use core::fmt::{self, Display, Formatter, Write as _};
+use core::{
+    fmt::{self, Display, Formatter, Write as _},
+    num::NonZeroU64,
+};
 
-use crate::name::{CheckpointName, LinkId, SourceName, StepId, UnitMapName, is_name};
+use crate::{
+    name::{CheckpointName, InvalidName, LinkId, SourceName, StepId, UnitMapName, is_name},
+    source::InvalidPrimaryKey,
+    step::{ConflictingPropertyVersions, InvalidBranches},
+};
 
 /// One step of a [`DefinitionPath`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PathSegment {
     /// A field of an object in the definition format, such as `steps`.
     Field(&'static str),
@@ -21,7 +28,7 @@ pub enum PathSegment {
 ///
 /// Paths use the names of the definition format and print as `pipelines.entities[0].source`.
 /// Keys that are not plain names print quoted, as in `properties["https://…/v/1"]`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DefinitionPath(Vec<PathSegment>);
 
 impl DefinitionPath {
@@ -46,6 +53,12 @@ impl DefinitionPath {
     #[must_use]
     pub fn segments(&self) -> &[PathSegment] {
         &self.0
+    }
+
+    /// Returns the path this path extends, or `None` for the empty path.
+    pub(crate) fn parent(mut self) -> Option<Self> {
+        self.0.pop()?;
+        Some(self)
     }
 
     fn join(mut self, segment: PathSegment) -> Self {
@@ -92,9 +105,53 @@ impl<T: Display> Display for DisplayList<'_, T> {
     }
 }
 
+/// A line and column in a definition's source text, both counted from 1.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, derive_more::Display)]
+#[display("{line}:{column}")]
+pub struct SourceLocation {
+    pub line: NonZeroU64,
+    pub column: NonZeroU64,
+}
+
 /// Explains what is wrong at the location of a [`DefinitionIssue`].
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum IssueKind {
+    #[display("`${{{name}}}` is not declared in `vars`")]
+    UnknownVariable { name: String },
+    #[display("`${{` has no closing `}}`")]
+    UnterminatedPlaceholder,
+    #[display("`{value}` is not a valid name: {reason}")]
+    InvalidName { value: String, reason: InvalidName },
+    #[display("`{key}` appears more than once after `${{…}}` placeholders are replaced")]
+    DuplicateKey { key: String },
+    #[display("`{value}` is not a versioned type URL")]
+    InvalidTypeUrl { value: String },
+    #[display("SQL query is empty")]
+    EmptySql,
+    #[display("{reason}")]
+    InvalidPrimaryKey { reason: InvalidPrimaryKey },
+    #[display("unit map has no units and no fallback")]
+    EmptyUnitMap,
+    #[display("{reason}")]
+    InvalidBranches { reason: InvalidBranches },
+    #[display("link reads no checkpoints")]
+    EmptyInputs,
+    #[display("{reason}")]
+    ConflictingPropertyVersions { reason: ConflictingPropertyVersions },
+    #[display("needs one of {}", DisplayList(expected))]
+    MissingKind { expected: &'static [&'static str] },
+    #[display("{} cannot be used together", DisplayList(found))]
+    ConflictingKinds { found: Vec<&'static str> },
+    #[display("a branch cannot contain another branch")]
+    NestedBranch,
+    #[display("`{field}` is required")]
+    MissingField { field: &'static str },
+    #[display("`{field}` does not apply here")]
+    UnexpectedField { field: &'static str },
+    #[display(
+        "an accessor needs `column`, `column` with `coerce`, or `amount` with `unit` and `unitMap`"
+    )]
+    InvalidAccessor,
     #[display("source `{source}` is not declared")]
     UndeclaredSource { source: SourceName },
     #[display("source `{source}` is not used by any pipeline")]
@@ -126,12 +183,21 @@ pub enum IssueKind {
     UncombinedInputs,
 }
 
-/// A problem in a definition, with its location.
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("{path}: {kind}")]
+/// A problem in a definition, with its path and, for a parsed definition, its source location.
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Error)]
 pub struct DefinitionIssue {
     pub path: DefinitionPath,
     pub kind: IssueKind,
+    pub location: Option<SourceLocation>,
+}
+
+impl Display for DefinitionIssue {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(location) = self.location {
+            write!(fmt, "{location}: ")?;
+        }
+        write!(fmt, "{}: {}", self.path, self.kind)
+    }
 }
 
 #[cfg(test)]
