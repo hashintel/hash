@@ -136,7 +136,7 @@ export const CreateOrEditSheetsSync = ({
   );
 
   const authContext = useGoogleAuth();
-  if (authContext.loading) {
+  if (!authContext.available || authContext.loading) {
     return null;
   }
 

@@ -29,6 +29,7 @@ import type {
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
+  PayloadKind,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
@@ -79,6 +80,14 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
     return acc;
   }, {});
 
+const googlePayloadKinds: PayloadKind[] = ["GoogleAccountId", "GoogleSheet"];
+
+const GoogleAuthProviderIfRequired = ({
+  children,
+  required,
+}: PropsWithChildren<{ required: boolean }>) =>
+  required ? <GoogleAuthProvider>{children}</GoogleAuthProvider> : children;
+
 type IntervalUnit = "minutes" | "hours" | "days";
 
 const intervalUnitToMs: Record<IntervalUnit, number> = {
@@ -112,6 +121,10 @@ export const RunFlowModal = ({
 
   const [formState, setFormState] = useState<FormState>(() =>
     generateInitialFormState(outputs ?? []),
+  );
+
+  const requiresGoogleAuth = (outputs ?? []).some((output) =>
+    googlePayloadKinds.includes(output.payloadKind),
   );
 
   const [pending, setPending] = useState(false);
@@ -240,7 +253,7 @@ export const RunFlowModal = ({
       onClose={onClose}
       sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
     >
-      <GoogleAuthProvider>
+      <GoogleAuthProviderIfRequired required={requiresGoogleAuth}>
         <Box sx={{ px: 4.5, py: 2.5 }}>
           <Typography
             component="p"
@@ -410,7 +423,7 @@ export const RunFlowModal = ({
                 : "Run flow"}
           </Button>
         </Box>
-      </GoogleAuthProvider>
+      </GoogleAuthProviderIfRequired>
     </Modal>
   );
 };

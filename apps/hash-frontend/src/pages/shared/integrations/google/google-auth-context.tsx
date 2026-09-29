@@ -9,6 +9,7 @@ import {
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import { useHashInstance } from "../../../../components/hooks/use-hash-instance";
 import { useGoogleAccounts } from "./google-auth-context/use-google-accounts";
 
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -19,6 +20,7 @@ const googleOAuthClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 
 type GoogleAuthContextReturn =
   | {
+      available: true;
       accounts: HashEntity<GoogleAccount>[];
       addGoogleAccount: () => void;
       checkAccessToken: (args: {
@@ -30,13 +32,25 @@ type GoogleAuthContextReturn =
       loading: false;
     }
   | {
+      available: true;
       loading: true;
+    }
+  | {
+      available: false;
     }
   | null;
 
 const GoogleAuthContext = createContext<GoogleAuthContextReturn>(null);
 
+export const useIsGoogleAuthAvailable = () => {
+  const { enabledIntegrations } = useHashInstance();
+
+  return !!googleOAuthClientId && enabledIntegrations.googleSheets;
+};
+
 export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
+  const available = useIsGoogleAuthAvailable();
+
   const [oauthClient, setOAuthClient] =
     useState<google.accounts.oauth2.CodeClient | null>(null);
 
@@ -90,7 +104,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
 
   const loadOAuthClient = () => {
     if (!googleOAuthClientId) {
-      throw new Error("GOOGLE_OAUTH_CLIENT_ID is not set");
+      return;
     }
 
     const client = google.accounts.oauth2.initCodeClient({
@@ -130,8 +144,11 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
   };
 
   const value = useMemo<GoogleAuthContextReturn>(() => {
-    if (oauthClient && !accountsLoading) {
+    if (!available) {
+      return { available: false };
+    } else if (oauthClient && !accountsLoading) {
       return {
+        available: true,
         accounts,
         addGoogleAccount: () => {
           oauthClient.requestCode();
@@ -142,12 +159,14 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
       };
     } else {
       return {
+        available: true,
         loading: true,
       };
     }
   }, [
     accounts,
     accountsLoading,
+    available,
     checkAccessToken,
     getAccessToken,
     oauthClient,
@@ -155,10 +174,12 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
 
   return (
     <GoogleAuthContext.Provider value={value}>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        onReady={loadOAuthClient}
-      />
+      {available && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          onReady={loadOAuthClient}
+        />
+      )}
       {children}
     </GoogleAuthContext.Provider>
   );
