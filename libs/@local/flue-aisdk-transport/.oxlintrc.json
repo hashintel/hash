@@ -33,7 +33,7 @@
   },
   "overrides": [
     {
-      "files": ["src/ai-sdk-compatibility/**"],
+      "files": ["test/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
