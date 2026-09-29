@@ -200,7 +200,6 @@ export {
   parameterSchema,
   petrinautAiCapabilitySections,
   petrinautAiCommandTools,
-  petrinautAiMessageMetadataSchema,
   petrinautAiMutationTools,
   petrinautAiTools,
   petrinautDocNames,
@@ -217,7 +216,6 @@ export {
 export type {
   PetrinautAiCommandToolInput,
   PetrinautAiCommandToolName,
-  PetrinautAiMessageMetadata,
   PetrinautAiTool,
   PetrinautAiWritableCallbacks,
   PetrinautAiToolInput,

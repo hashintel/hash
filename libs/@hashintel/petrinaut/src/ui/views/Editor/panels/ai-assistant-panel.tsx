@@ -26,7 +26,6 @@ import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
-  petrinautAiMessageMetadataSchema,
   type PetrinautAiMutationToolName,
   readPetrinautDocToolInputSchema,
   readPetrinautDocToolName,
@@ -1267,7 +1266,6 @@ const ConversationAiAssistantPanel = ({
       ? {}
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
-    messageMetadataSchema: petrinautAiMessageMetadataSchema,
     transport: diagnosticsTransport,
     // Built-in interactive commands retain AI SDK's native continuation.
     // Automatic tools and host-owned dynamic widgets coordinate an explicit
