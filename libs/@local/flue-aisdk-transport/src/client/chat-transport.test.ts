@@ -1,7 +1,7 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
-import { useUiChunkRecorder } from "../shared/ai-sdk-oracle";
+import { useUiChunkRecorder } from "../../test/ai-sdk-oracle";
 import { createFlueChatTransport } from "./chat-transport";
 
 import type { FlueChatTransportOptions } from "./chat-transport";

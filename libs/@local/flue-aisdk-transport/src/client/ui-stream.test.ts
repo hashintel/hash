@@ -3,7 +3,7 @@ import { expect, test, vi } from "vitest";
 import {
   reduceUiMessageChunks,
   useUiChunkRecorder,
-} from "../shared/ai-sdk-oracle";
+} from "../../test/ai-sdk-oracle";
 import { createFlueUiStream } from "./ui-stream";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";

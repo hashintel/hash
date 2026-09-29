@@ -17,14 +17,14 @@ import {
   type FlueAiSdkAdapterConfig,
   type FlueChatTransportOptions,
   type MetadataProjection,
-} from "../client";
+} from "../src/client";
 import {
   createLiveToolBroadcaster,
   createLiveToolObserver,
   liveToolResponse,
   liveToolRouteSegment,
-} from "../server";
-import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
+} from "../src/server";
+import { reduceUiMessageChunks } from "./ai-sdk-oracle";
 
 import type { UIMessage, UIMessageChunk } from "ai";
 

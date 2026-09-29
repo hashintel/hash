@@ -16,8 +16,8 @@ import {
 } from "@earendil-works/pi-ai";
 import { afterAll, describe, expect, test } from "vitest";
 
-import { createFlueUiStream } from "../client";
-import { reduceUiMessageChunks } from "../shared/ai-sdk-oracle";
+import { createFlueUiStream } from "../src/client";
+import { reduceUiMessageChunks } from "./ai-sdk-oracle";
 import { harnessTools, startFlueHarness } from "./flue-harness";
 
 import type { UIMessageChunk } from "ai";

@@ -21,8 +21,8 @@ Per transport, `submittedUserMessage` frames the admitted user turn, and `initia
 
 The transport targets `ai@6.0.286` and `@flue/sdk`/`@flue/runtime` `2.0.3`. Upstream cases come from vercel/ai at that tag (commit `38f42fce`). When either dependency moves, rerun the suites below and re-derive any case whose upstream source changed.
 
-- Every chunk sequence the unit tests and `AbstractChat` consume must pass the AI SDK wire schema and reduce through `readUIMessageStream` and `validateUIMessages` ([`src/shared/ai-sdk-oracle.ts`](src/shared/ai-sdk-oracle.ts)).
-- [`src/ai-sdk-compatibility/`](src/ai-sdk-compatibility/) runs an in-process Flue runtime with a scripted model and this package's live channel:
+- Every chunk sequence the unit tests and `AbstractChat` consume must pass the AI SDK wire schema and reduce through `readUIMessageStream` and `validateUIMessages` ([`test/ai-sdk-oracle.ts`](test/ai-sdk-oracle.ts)).
+- [`test/`](test/) runs an in-process Flue runtime with a scripted model and this package's live channel:
   - `live-reopen-parity.test.ts` requires a reduced live response to equal the message its stored history reopens as.
   - `upstream-reducer-cases.test.ts` reproduces cases from `process-ui-message-stream.test.ts` as real Flue turns.
   - `chat.test.ts` drives the AI SDK's own `AbstractChat`, mapped to cases in `chat.test.ts`.
