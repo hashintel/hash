@@ -667,6 +667,14 @@ export const LocalStorageDemoApp = ({
     }),
     [processAgentBinding],
   );
+  // The panel stays mounted when the binding changes, so a replaced authority
+  // must settle the approvals still waiting on it.
+  const liveMutationApprovalRef = useRef(mutationApproval.coordinator);
+  useEffect(() => {
+    if (liveMutationApprovalRef.current !== mutationApproval.coordinator)
+      liveMutationApprovalRef.current.dispose();
+    liveMutationApprovalRef.current = mutationApproval.coordinator;
+  }, [mutationApproval]);
   const mutationApprovalTools = useMemo(
     () =>
       createBrunchMutationApprovalInteractiveTools(
@@ -970,7 +978,6 @@ export const LocalStorageDemoApp = ({
       },
       onClearMessages: () => {
         if (flueClientPromise !== null && incarnationId !== undefined) {
-          mutationApproval.coordinator.dispose();
           const initialId =
             ordinaryConstructionConversationIdFrom(incarnationId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
@@ -1005,7 +1012,6 @@ export const LocalStorageDemoApp = ({
     inBandBrowserTools,
     draftInteractiveTool,
     incarnationId,
-    mutationApproval,
     mutationApprovalTools,
     constructionBrowser,
     conversationTracker,

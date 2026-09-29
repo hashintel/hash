@@ -1219,6 +1219,83 @@ describe("local storage demo Brunch controls", () => {
     );
   });
 
+  test("a destructive edit waiting for approval settles when the conversation is replaced", async () => {
+    seedStoredNet("pending-incarnation");
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    flueClientMock.current = {
+      url: "http://brunch.local/agents/chat/instance",
+      history: async () => ({
+        conversation: { settlements: [], messages: [] },
+        offset: "0",
+      }),
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => {},
+      }),
+    };
+    const posted: unknown[] = [];
+    const claimed = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (url, init) => {
+        const target = new URL(url instanceof Request ? url.url : url);
+        if (!target.pathname.includes("/browser-calls/remove-1"))
+          return new Response(null, { status: 404 });
+        if (init?.method === "POST") {
+          posted.push(
+            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+          );
+          return new Response(null, { status: 200 });
+        }
+        claimed();
+        return Response.json({
+          capability: "capability",
+          binding: target.searchParams.get("binding"),
+          toolName: "removePlace",
+          input: { placeId: "queue" },
+        });
+      }),
+    );
+    try {
+      render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+      await waitFor(() =>
+        expect(
+          (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+            ?.inBandBrowserTools,
+        ).toBeDefined(),
+      );
+      const assistant = editorProps.current
+        ?.aiAssistant as PetrinautAiAssistant;
+      const execute = vi.fn(async () => ({ applied: true }));
+      const run = assistant.inBandBrowserTools?.run(
+        {
+          toolCallId: "remove-1",
+          toolName: "removePlace",
+          input: { placeId: "queue" },
+          signal: new AbortController().signal,
+        },
+        execute,
+      );
+      await waitFor(() => expect(claimed).toHaveBeenCalled());
+      act(() => assistant.onClearMessages?.());
+
+      await run;
+      expect(execute).not.toHaveBeenCalled();
+      expect(posted).toEqual([
+        expect.objectContaining({
+          output: {
+            applied: false,
+            reason: "The destructive edit was stopped before approval.",
+          },
+        }),
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test.each(["metaKey", "ctrlKey"])(
     "reserves %s + Shift + K for the assistant and keeps plain K for the palette",
     (modifier) => {
