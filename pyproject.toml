@@ -16,7 +16,7 @@ dev = [
 [tool.uv]
 preview       = true
 add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
-exclude-newer = "5 days" # mirrors npm release age
+exclude-newer = "7 days" # mirrors npm release age
 package       = false
 
 [tool.uv.workspace]
