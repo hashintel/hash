@@ -1,4 +1,4 @@
-import { echoTailMs } from "./echo-diagnostics";
+import { echoTailMs } from "./shared/echo-tail";
 
 /** Live's output transcript can arrive ahead of the audio it describes. */
 const leadMs = 3_000;
