@@ -1,5 +1,7 @@
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 
+import type { FinalizedInput } from "../live-conversation";
+
 export type SkipReason = "short-during-output" | "empty";
 
 export interface Utterance {
@@ -42,18 +44,14 @@ const wordCount = (text: string) =>
 
 /** The first stage that is on and skips decides; otherwise the input is sent. */
 export const routeUtterance = (
-  input: {
-    readonly id: string;
-    readonly text: string;
-    readonly startedDuringOutput?: boolean;
-  },
+  input: FinalizedInput,
   stages: readonly UtteranceStage[],
 ): SkipReason | null => {
   const utterance: Utterance = {
     inputId: input.id,
     text: input.text,
     words: wordCount(input.text),
-    startedDuringOutput: input.startedDuringOutput ?? false,
+    startedDuringOutput: input.startedDuringOutput,
   };
   for (const stage of stages) {
     if (stage.mode === "off") continue;

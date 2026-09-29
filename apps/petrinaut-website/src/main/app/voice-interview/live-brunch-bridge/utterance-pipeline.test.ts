@@ -80,7 +80,7 @@ test("a stage that is off never runs", () => {
 
 test.each([
   ["I'll send it", true, 3],
-  ["Five.", undefined, 1],
+  ["Five.", false, 1],
   [" ?! ", false, 0],
 ])(
   "stages see %j with its word count, counting contractions as one word",
@@ -93,7 +93,7 @@ test.each([
       inputId: "one",
       text,
       words,
-      startedDuringOutput: startedDuringOutput ?? false,
+      startedDuringOutput,
     });
   },
 );
