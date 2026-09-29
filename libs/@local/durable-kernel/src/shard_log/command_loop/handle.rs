@@ -56,10 +56,6 @@ impl<D: EventDomain> ShardCommandHandle<D> {
         self.send(Command::Operation(operation)).await
     }
 
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "tokio select uses modulo to choose its polling order"
-    )]
     async fn send(&self, command: Command<D>) -> Result<(), Report<ShardCommandError>> {
         let kind = command.kind();
         let permit = tokio::select! {

@@ -87,10 +87,6 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
         Err(context)
     }
 
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "tokio select uses modulo to choose its polling order"
-    )]
     async fn run_commands(&mut self) -> Result<(), CommandFailure> {
         loop {
             let command = tokio::select! {

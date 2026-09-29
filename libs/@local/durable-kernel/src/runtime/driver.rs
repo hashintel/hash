@@ -104,10 +104,6 @@ async fn maybe_snapshot<S: SimpleDomain>(
     }
 }
 
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "tokio select uses modulo to choose its polling order"
-)]
 async fn drive_shard<S, X>(
     handle: ShardCommandHandle<Hosted<S>>,
     mut state_changes: StateChangeFeed<PartitionKey>,
