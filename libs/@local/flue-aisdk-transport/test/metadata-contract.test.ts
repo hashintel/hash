@@ -2,7 +2,7 @@ import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 import * as v from "valibot";
 import { afterAll, expect, test } from "vitest";
 
-import { createFlueAiSdkAdapter } from "../client";
+import { createFlueAiSdkAdapter } from "../src/client";
 import { harnessAdapterConfig, startFlueHarness } from "./flue-harness";
 
 import type { UIMessage, UIMessageChunk } from "ai";

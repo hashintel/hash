@@ -32,6 +32,6 @@ export default defineConfig({
     sourcemap: true,
   },
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "test/**/*.test.ts"],
   },
 });

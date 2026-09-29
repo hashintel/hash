@@ -14,11 +14,8 @@ import { createFlueClient } from "@flue/sdk";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { afterAll, describe, expect, test, vi } from "vitest";
 
-import { createFlueAiSdkAdapter, createFlueUiStream } from "../client";
-import {
-  reduceUiMessageChunks,
-  useUiChunkRecorder,
-} from "../shared/ai-sdk-oracle";
+import { createFlueAiSdkAdapter, createFlueUiStream } from "../src/client";
+import { reduceUiMessageChunks, useUiChunkRecorder } from "./ai-sdk-oracle";
 import {
   harnessAdapterConfig,
   harnessTools,
@@ -26,7 +23,7 @@ import {
 } from "./flue-harness";
 import { TestChat } from "./test-chat";
 
-import type { FlueChatTransportOptions } from "../client";
+import type { FlueChatTransportOptions } from "../src/client";
 import type {
   AgentSendResult,
   ConversationStreamChunk,
