@@ -1397,7 +1397,7 @@ describe("AiAssistantContents", () => {
         onSubmit={noop}
       />,
     );
-    const transcript = screen.getByRole("tabpanel", { name: "Chat" });
+    const transcript = screen.getByRole("tabpanel", { name: "AI" });
     const composer = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
@@ -1412,8 +1412,8 @@ describe("AiAssistantContents", () => {
     expect((composer as HTMLTextAreaElement).value).toBe("Unsent question");
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
     expect(onStop).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole("tab", { name: "Chat" }));
-    expect(screen.getByRole("tabpanel", { name: "Chat" })).toBe(transcript);
+    fireEvent.click(screen.getByRole("tab", { name: "AI" }));
+    expect(screen.getByRole("tabpanel", { name: "AI" })).toBe(transcript);
     expect(contentMounted).toHaveBeenCalledOnce();
   });
 
@@ -1700,7 +1700,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByRole("tabpanel", { name: "Workpiece" })).toBe(workpiece);
     expect(workpiece.textContent).toContain("Saved model account");
     expect(transcript.hidden).toBe(true);
-    fireEvent.click(screen.getByRole("tab", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("tab", { name: "AI" }));
     expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
       textarea,
     );
@@ -2722,7 +2722,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.getByText("Voice")).not.toBeNull();
+    expect(screen.getByText("AI")).not.toBeNull();
     expect(screen.getByText("Existing transcript")).not.toBeNull();
     expect(screen.getByText("Voice mode stage")).not.toBeNull();
     expect(
@@ -3518,6 +3518,126 @@ describe("AiAssistantContents", () => {
     const status = screen.getByTestId("ai-working-status");
     expect(status.textContent).toContain("Brunch is working");
     expect(status.closest("[hidden]")).toBeNull();
+  });
+
+  test("shows the working label beside a stock transcript but leaves Brunch Chat to its waiting turn", () => {
+    const props = {
+      input: "",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+      workingLabel: "Working",
+    };
+    const { rerender } = render(<AiAssistantContents {...props} />);
+    expect(screen.getByTestId("ai-working-status").className).not.toContain(
+      "d_none",
+    );
+
+    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
+    expect(screen.getByTestId("ai-working-status").className).toContain(
+      "d_none",
+    );
+  });
+
+  test("keeps the stock AI transcript label in both input modes", () => {
+    const props = {
+      input: "",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(<AiAssistantContents {...props} />);
+    expect(screen.getByText("AI")).not.toBeNull();
+
+    rerender(
+      <AiAssistantContents
+        {...props}
+        additionalTab={{ label: "Ledger", content: <p>Ledger body</p> }}
+        inputMode="voice"
+      />,
+    );
+    expect(screen.getByRole("tab", { name: "AI" })).not.toBeNull();
+  });
+
+  test("shows the host transcript label, switching Brunch Chat to Voice", () => {
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      input: "",
+      inputMode: "voice" as const,
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(
+      <AiAssistantContents {...props} primaryLabel="Copilot" />,
+    );
+    expect(screen.getByRole("tab", { name: "Copilot" })).not.toBeNull();
+
+    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
+    expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
+  });
+
+  test("holds a pending Brunch turn without naming Brunch for other hosts", () => {
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "user-1",
+          role: "user" as const,
+          parts: [{ type: "text" as const, text: "Build a queue" }],
+        },
+      ],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "submitted" as const,
+    };
+    const { rerender } = render(<AiAssistantContents {...props} />);
+    expect(screen.queryByText(/Brunch/u)).toBeNull();
+
+    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
+    expect(screen.getByText("Waiting for Brunch…")).not.toBeNull();
+  });
+
+  test("announces spoken-turn thinking without naming the assistant", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        inputMode="voice"
+        messages={[
+          {
+            id: "user-1",
+            role: "user",
+            parts: [{ type: "text", text: "Build a queue" }],
+          },
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [
+              { type: "reasoning", text: "Planning", state: "streaming" },
+            ],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+      />,
+    );
+
+    expect(screen.getByRole("status", { name: "Thinking" })).not.toBeNull();
+    expect(screen.queryByRole("status", { name: /Brunch/u })).toBeNull();
   });
 
   test("renders streamed markdown and collapsed reasoning", async () => {

@@ -793,11 +793,7 @@ const AiAssistantMessage = memo(
             />
             {voice && writtenAnswer}
             {voice && working && !writtenAnswer && (
-              <div
-                className={answerStyle}
-                role="status"
-                aria-label="Brunch is thinking"
-              >
+              <div className={answerStyle} role="status" aria-label="Thinking">
                 {["92%", "74%", "46%"].map((width) => (
                   <span
                     key={width}
@@ -913,6 +909,17 @@ const AiAssistantMessage = memo(
 );
 AiAssistantMessage.displayName = "AiAssistantMessage";
 
+const isBrunchChatLabel = (primaryLabel: string | undefined) =>
+  primaryLabel === "Chat";
+
+export const getTranscriptLabel = (
+  primaryLabel: string | undefined,
+  inputMode: PetrinautAiInputMode,
+) =>
+  isBrunchChatLabel(primaryLabel) && inputMode === "voice"
+    ? "Voice"
+    : (primaryLabel ?? "AI");
+
 export const AiAssistantContents = ({
   additionalTab,
   attentionAnnouncement,
@@ -970,7 +977,8 @@ export const AiAssistantContents = ({
   const isBusy = status === "submitted" || status === "streaming";
   const hasInput = input.trim().length > 0;
   const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
-  const isBrunchChat = primaryLabel === "Chat";
+  const isBrunchChat = isBrunchChatLabel(primaryLabel);
+  const transcriptLabel = getTranscriptLabel(primaryLabel, inputMode);
   const awaitingDecision =
     !stopped &&
     messages.some((message) =>
@@ -1358,9 +1366,7 @@ export const AiAssistantContents = ({
               {...(isFloating ? handleProps : {})}
             >
               <AiAssistantIcon size={16} />
-              {!additionalTab && (
-                <span>{inputMode === "voice" ? "Voice" : "Chat"}</span>
-              )}
+              {!additionalTab && <span>{transcriptLabel}</span>}
             </HeaderLabel>
             <div className={headerTabsStyle}>
               {additionalTab && (
@@ -1368,7 +1374,7 @@ export const AiAssistantContents = ({
                   subViews={[
                     {
                       id: aiTabId,
-                      title: inputMode === "voice" ? "Voice" : "Chat",
+                      title: transcriptLabel,
                       mark:
                         inputMode === "voice" ? (
                           <AiVoiceModeIcon size={12} />
@@ -1502,11 +1508,13 @@ export const AiAssistantContents = ({
                 stopped={stopped && index === messages.length - 1}
               />
             ))}
-            {isBusy && messages.at(-1)?.role !== "assistant" && (
-              <BrunchWorkFold status="streaming">
-                Waiting for Brunch…
-              </BrunchWorkFold>
-            )}
+            {isBrunchChat &&
+              isBusy &&
+              messages.at(-1)?.role !== "assistant" && (
+                <BrunchWorkFold status="streaming">
+                  Waiting for Brunch…
+                </BrunchWorkFold>
+              )}
           </div>
 
           {additionalTab && (
@@ -1526,7 +1534,8 @@ export const AiAssistantContents = ({
           {isBusy && workingLabel && (
             <div
               className={`${workingStatusStyle} ${panelContentStyle({
-                visible: !isVoiceDockCollapsed && showingHostTab,
+                visible:
+                  !isVoiceDockCollapsed && (showingHostTab || !isBrunchChat),
               })}`}
               role="status"
               aria-live="polite"

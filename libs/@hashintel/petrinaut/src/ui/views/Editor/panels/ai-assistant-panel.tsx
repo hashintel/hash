@@ -49,7 +49,10 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
-import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
+import {
+  AiAssistantContents,
+  getTranscriptLabel,
+} from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
@@ -1579,11 +1582,17 @@ const ConversationAiAssistantPanel = ({
     ) {
       setPrimaryAttention(true);
       setAttentionAnnouncement(
-        `${aiAssistant.primaryLabel ?? "AI"} needs your attention`,
+        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode)} needs your attention`,
       );
     }
     conversationWasBusyRef.current = isBusy;
-  }, [aiAssistant.primaryLabel, hostTabSelected, isAiAssistantOpen, status]);
+  }, [
+    aiAssistant.primaryLabel,
+    hostTabSelected,
+    interactionMode,
+    isAiAssistantOpen,
+    status,
+  ]);
 
   useEffect(() => {
     if (attentionAnnouncement.length === 0) {

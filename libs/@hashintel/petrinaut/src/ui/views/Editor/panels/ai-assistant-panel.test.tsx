@@ -491,8 +491,8 @@ describe("AiAssistantPanel composer submissions", () => {
       },
     });
     const hostTab = screen.getByRole("tab", { name: "Workpiece" });
-    screen.getByRole("tab", { name: "Chat" }).focus();
-    fireEvent.keyDown(screen.getByRole("tab", { name: "Chat" }), {
+    screen.getByRole("tab", { name: "AI" }).focus();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "AI" }), {
       key: "ArrowRight",
     });
     expect(document.activeElement).toBe(hostTab);
@@ -502,7 +502,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toContain("Saved workpiece");
     fireEvent.keyDown(hostTab, { key: "Home" });
     expect(
-      screen.getByRole("tab", { name: "Chat" }).getAttribute("aria-selected"),
+      screen.getByRole("tab", { name: "AI" }).getAttribute("aria-selected"),
     ).toBe("true");
     expect(sendMessages).not.toHaveBeenCalled();
   });
