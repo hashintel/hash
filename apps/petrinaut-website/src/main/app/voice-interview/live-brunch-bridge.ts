@@ -722,31 +722,6 @@ export class LiveBrunchBridge {
     }
   }
 
-  public offerResult(
-    id: string,
-    source: string,
-    responseIds: string[],
-  ): boolean {
-    const mediation = this.#dependencies.mediation;
-    if (
-      !mediation ||
-      this.#abort.signal.aborted ||
-      !responseIds.length ||
-      this.#seenInputs.has(id)
-    )
-      return false;
-    this.#seenInputs.add(id);
-    const preparation = new AbortController();
-    this.#preparations.add(preparation);
-    mediation.history.result(id, responseIds);
-    void this.#summarize(
-      { inputId: id, preparation, delegationId: null },
-      source,
-      mediation,
-    );
-    return true;
-  }
-
   async #summarize(
     turn: Pick<Turn, "inputId" | "preparation" | "delegationId">,
     source: string,
