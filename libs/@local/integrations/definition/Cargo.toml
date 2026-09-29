@@ -23,7 +23,8 @@ serde-saphyr   = { workspace = true }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-insta = { workspace = true, features = ["glob"] }
+insta    = { workspace = true, features = ["glob"] }
+proptest = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
