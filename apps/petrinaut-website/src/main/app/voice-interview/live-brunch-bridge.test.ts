@@ -555,6 +555,37 @@ test("speech cancels preparation and stale asynchronous wrap-ups without cancell
   );
 });
 
+test("speech that cancels unsent words says they were not sent", async () => {
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept(speech("one", "First request"));
+  fixture.notice.mockClear();
+  fixture.bridge.speechStarted();
+  brief.resolve({});
+  await first;
+
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.notice).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("was not sent"),
+  );
+});
+
+test("speech after a submission leaves the notice alone", async () => {
+  const fixture = setup();
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  void fixture.bridge.accept(speech("one", "First request"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.notice.mockClear();
+  fixture.bridge.speechStarted();
+
+  expect(fixture.notice).not.toHaveBeenCalled();
+});
+
 test("speech during a spoken summary closes that summary's Live delegation", async () => {
   const summary = Promise.withResolvers<string>();
   const fixture = setup({

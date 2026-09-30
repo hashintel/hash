@@ -153,16 +153,19 @@ export class LiveBrunchBridge {
   public speechStarted(): void {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
+    let withdrew = false;
     for (const turn of this.#turns) {
       if (!turn.submissionId) turn.history.failed(turn.inputId);
       // Words cancelled before submission stay sendable in the conversation
       // shown now, even after a switch; teardown withdraws them.
-      if (!turn.submitted && !this.#abort.signal.aborted)
+      if (!turn.submitted && !this.#abort.signal.aborted) {
         this.#dependencies.mediation.history.unsent(
           turn.inputId,
           turn.inputText,
           this.#chat.messages?.at(-1)?.id,
         );
+        withdrew = true;
+      }
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
         this.#dependencies.appendInstructions(
           speakingAgainInstruction,
@@ -170,6 +173,10 @@ export class LiveBrunchBridge {
         );
     }
     this.#turns.clear();
+    if (withdrew)
+      this.#dependencies.notice(
+        "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",
+      );
     for (const turn of this.#summarizing) {
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
         this.#dependencies.appendInstructions(
