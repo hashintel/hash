@@ -79,6 +79,9 @@ const clipLiveAppend = (text: string): string =>
     ? text
     : `${text.slice(0, liveAppendCharacterBudget - 1).trimEnd()}…`;
 
+const speakingAgainInstruction =
+  "The person started speaking again. Do not answer the earlier request; listen to them.";
+
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
@@ -86,6 +89,8 @@ export class LiveBrunchBridge {
   readonly #seenInputs = new Set<string>();
   readonly #offeredSegments = new Set<string>();
   readonly #turns = new Set<Turn>();
+  /** Settled turns whose spoken summary is still being prepared. */
+  readonly #summarizing = new Set<Turn>();
   readonly #preparations = new Set<AbortController>();
   readonly #unclaimedDelegations = new Set<string>();
   readonly #responses = new Map<
@@ -136,11 +141,19 @@ export class LiveBrunchBridge {
         );
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
         this.#dependencies.appendInstructions(
-          "The person started speaking again. Do not answer the earlier request; listen to them.",
+          speakingAgainInstruction,
           turn.delegationId,
         );
     }
     this.#turns.clear();
+    for (const turn of this.#summarizing) {
+      if (turn.delegationId !== null && !this.#abort.signal.aborted)
+        this.#dependencies.appendInstructions(
+          speakingAgainInstruction,
+          turn.delegationId,
+        );
+    }
+    this.#summarizing.clear();
     // The newest delegation may be for the speech that just started, and
     // transcription and Live report on separate connections.
     const newest = [...this.#unclaimedDelegations].at(-1);
@@ -765,6 +778,7 @@ export class LiveBrunchBridge {
             )
             .map((visible) => visible.messageId),
         ]);
+        this.#summarizing.add(turn);
         void this.#summarize(turn, source, mediation);
       } else {
         this.#preparations.delete(turn.preparation);
@@ -774,7 +788,7 @@ export class LiveBrunchBridge {
   }
 
   async #summarize(
-    turn: Pick<Turn, "inputId" | "preparation" | "delegationId">,
+    turn: Turn,
     source: string,
     mediation: NonNullable<Dependencies["mediation"]>,
   ): Promise<void> {
@@ -800,6 +814,7 @@ export class LiveBrunchBridge {
       }
     } finally {
       this.#preparations.delete(turn.preparation);
+      this.#summarizing.delete(turn);
     }
   }
 }

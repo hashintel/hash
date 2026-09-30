@@ -466,6 +466,36 @@ test("speech cancels preparation and stale asynchronous wrap-ups without cancell
   );
 });
 
+test("speech during a spoken summary closes that summary's Live delegation", async () => {
+  const summary = Promise.withResolvers<string>();
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: vi.fn(async () => ({})),
+    summarize: () => summary.promise,
+    offered: vi.fn(),
+  });
+  fixture.bridge.acceptDelegation("summary-delegation");
+  await fixture.bridge.accept({ id: "one", text: "Compare staffing" });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+
+  fixture.bridge.speechStarted();
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("started speaking again"),
+    "summary-delegation",
+  );
+
+  summary.resolve("Stale result.");
+  await Promise.resolve();
+  fixture.bridge.speechStarted();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).toHaveBeenCalledOnce();
+});
+
 test("Stop withdraws words whose brief is still preparing", async () => {
   const history = new VoiceMediationHistory("test");
   const brief = Promise.withResolvers<Record<string, string>>();
