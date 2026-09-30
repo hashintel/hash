@@ -138,7 +138,7 @@ export class LiveBrunchBridge {
     const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
     // Transcription can finalize noise as punctuation alone, such as ".".
-    if (!/[\p{L}\p{N}]/u.test(input.text)) {
+    if (words === 0) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
         delegationId,
