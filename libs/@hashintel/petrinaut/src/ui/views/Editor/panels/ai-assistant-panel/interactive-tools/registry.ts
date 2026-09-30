@@ -86,7 +86,9 @@ export const resolveDynamicInteractiveTool = (
 
   const descriptor = getInteractiveTool(call, hostTools);
   if (!descriptor) {
-    throw new Error(`Unknown AI tool: ${call.toolName}`);
+    throw new Error(
+      `AI tool ${call.toolName} was declined by the host for call ${call.toolCallId}`,
+    );
   }
 
   descriptor.parseInput(call.input);

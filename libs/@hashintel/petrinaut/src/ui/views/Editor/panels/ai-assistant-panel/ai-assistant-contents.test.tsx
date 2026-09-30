@@ -1206,6 +1206,93 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/"revision": 7/u)).not.toBeNull();
   });
 
+  test("marks unfinished stock tools cancelled after a stop", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="stock"
+        status="ready"
+        stopped
+        messages={[
+          {
+            id: "stopped-stock-tools",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "check",
+                toolCallId: "pending",
+                state: "input-available",
+                input: { revision: 7 },
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    const pending = screen.getByRole("button", { name: /check.*Cancelled/u });
+    expect(
+      pending.querySelector('[data-tool-status="cancelled"]'),
+    ).not.toBeNull();
+    expect(pending.getAttribute("aria-busy")).not.toBe("true");
+  });
+
+  test("keeps the stopped note out of a user turn stopped before any reply", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="ready"
+        stopped
+        messages={[
+          {
+            id: "unanswered",
+            role: "user",
+            parts: [{ type: "text", text: "Add a queue" }],
+          },
+        ]}
+      />,
+    );
+    const [note, ...rest] = screen.getAllByText("Response stopped");
+    expect(rest).toHaveLength(0);
+    expect(note?.closest('[data-role="user"]')).toBeNull();
+    expect(note?.parentElement).toBe(screen.getByTestId("ai-transcript"));
+  });
+
+  test.each([
+    ["brunch", "true"],
+    ["stock", null],
+  ] as const)(
+    "sets the compact Stop marker for the %s presentation to %s",
+    (presentation, dataStop) => {
+      render(
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation={presentation}
+          status="streaming"
+        />,
+      );
+      expect(
+        screen
+          .getByRole("button", { name: "Stop AI response" })
+          .getAttribute("data-stop"),
+      ).toBe(dataStop);
+    },
+  );
+
   test.each([true, false])(
     "keeps Brunch activity and tools open=%s across streamed steps and completion",
     async (open) => {
