@@ -7,10 +7,10 @@
 import {
   competingTransitionIds,
   leverNodeIds,
-  outputPlaceIds,
+  tokenFieldPlaces,
 } from "./controllers";
 
-import type { Controller, Lever } from "./controllers";
+import type { Controller, Lever, TokenFieldPlace } from "./controllers";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 type NetLike = Pick<SDCPN, "places" | "transitions" | "types">;
@@ -22,20 +22,13 @@ export type LeverDraft = Lever extends infer L
     : never
   : never;
 
-export type TokenFieldChoice = {
-  placeId: string;
-  placeName: string;
-  elementId: string;
-  fieldName: string;
-};
-
 export type LeverOption =
   | { id: string; label: string; levers: LeverDraft[] }
   | {
       id: string;
       label: string;
-      /** Token field: pick a field of an output place's token type first. */
-      fields: TokenFieldChoice[];
+      /** Token field: pick fields of the output places' token types first. */
+      places: TokenFieldPlace[];
       transitionId: string;
     };
 
@@ -51,11 +44,11 @@ export type LeverOption =
  */
 export const leverOptionsFor = (
   net: NetLike,
-  targetIds: string[],
+  targetIds: string[]
 ): LeverOption[] => {
   const places = targetIds.filter((id) => net.places.some((p) => p.id === id));
   const transitions = targetIds.filter((id) =>
-    net.transitions.some((t) => t.id === id),
+    net.transitions.some((t) => t.id === id)
   );
 
   if (places.length > 0 && transitions.length > 0) {
@@ -100,26 +93,18 @@ export const leverOptionsFor = (
   }
 
   const transitionId = transitions[0]!;
-  const fields = outputPlaceIds(net, transitionId).flatMap(
-    (placeId): TokenFieldChoice[] => {
-      const place = net.places.find((p) => p.id === placeId);
-      const type = net.types.find((t) => t.id === place?.colorId);
-      return place && type
-        ? type.elements.map((element) => ({
-            placeId,
-            placeName: place.name,
-            elementId: element.elementId,
-            fieldName: element.name,
-          }))
-        : [];
-    },
-  );
+  const outputs = tokenFieldPlaces(net, transitionId);
 
-  return fields.length > 0
+  return outputs.length > 0
     ? [
         ...choices,
         rate,
-        { id: "tokenField", label: "Token field", fields, transitionId },
+        {
+          id: "tokenField",
+          label: "Token field",
+          places: outputs,
+          transitionId,
+        },
       ]
     : [...choices, rate];
 };
@@ -133,12 +118,7 @@ const sameLever = (a: LeverDraft, b: Lever): boolean => {
     case "initialTokens":
       return b.kind === "initialTokens" && b.placeId === a.placeId;
     case "tokenField":
-      return (
-        b.kind === "tokenField" &&
-        b.transitionId === a.transitionId &&
-        b.placeId === a.placeId &&
-        b.elementId === a.elementId
-      );
+      return b.kind === "tokenField" && b.transitionId === a.transitionId;
   }
 };
 
@@ -149,19 +129,54 @@ export const holdsAll = (controller: Controller, drafts: LeverDraft[]) =>
       (lever) =>
         sameLever(draft, lever) &&
         (draft.kind !== "choice" ||
-          draft.transitionIds.every((id) => leverNodeIds(lever).includes(id))),
-    ),
+          draft.transitionIds.every((id) =>
+            leverNodeIds(lever).includes(id)
+          )) &&
+        (draft.kind !== "tokenField" ||
+          (lever.kind === "tokenField" &&
+            draft.places.every((place) =>
+              place.elementIds.every((elementId) =>
+                lever.places.some(
+                  (held) =>
+                    held.placeId === place.placeId &&
+                    held.elementIds.includes(elementId)
+                )
+              )
+            )))
+    )
   );
+
+type TokenFieldPlaces = Extract<Lever, { kind: "tokenField" }>["places"];
+
+const mergePlaces = (
+  held: TokenFieldPlaces,
+  added: TokenFieldPlaces
+): TokenFieldPlaces => {
+  const merged = held.map((entry) => ({
+    ...entry,
+    elementIds: [
+      ...new Set([
+        ...entry.elementIds,
+        ...(added.find((a) => a.placeId === entry.placeId)?.elementIds ?? []),
+      ]),
+    ],
+  }));
+  return [
+    ...merged,
+    ...added.filter((a) => !held.some((entry) => entry.placeId === a.placeId)),
+  ];
+};
 
 /**
  * Adds the drafts to a controller. A Choice at a place the controller already
- * decides gains the new transitions; any other lever it already holds is
+ * decides gains the new transitions, and a Token field on a transition it
+ * already sets gains the new fields; any other lever it already holds is
  * left as it is.
  */
 export const addLevers = (
   controller: Controller,
   drafts: LeverDraft[],
-  makeId: () => string,
+  makeId: () => string
 ): Controller => {
   let levers = controller.levers;
   for (const draft of drafts) {
@@ -177,7 +192,16 @@ export const addLevers = (
                 ...new Set([...existing.transitionIds, ...draft.transitionIds]),
               ],
             }
-          : lever,
+          : lever
+      );
+    } else if (draft.kind === "tokenField" && existing.kind === "tokenField") {
+      levers = levers.map((lever) =>
+        lever === existing
+          ? {
+              ...existing,
+              places: mergePlaces(existing.places, draft.places),
+            }
+          : lever
       );
     }
   }

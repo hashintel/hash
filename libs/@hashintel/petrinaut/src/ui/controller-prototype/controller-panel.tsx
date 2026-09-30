@@ -231,7 +231,7 @@ const LeverBody: React.FC<{
 
     case "rate": {
       const transition = net.transitions.find(
-        (t) => t.id === lever.transitionId,
+        (t) => t.id === lever.transitionId
       );
       if (!transition) {
         return null;
@@ -257,8 +257,8 @@ const LeverBody: React.FC<{
         typeof marking === "number"
           ? marking
           : Array.isArray(marking)
-            ? marking.length
-            : 0;
+          ? marking.length
+          : 0;
       return (
         <div className={todayRowStyle}>
           <span>Today</span>
@@ -270,21 +270,28 @@ const LeverBody: React.FC<{
     }
 
     case "tokenField": {
-      const place = net.places.find((p) => p.id === lever.placeId);
-      const type = net.types.find((t) => t.id === place?.colorId);
-      const element = type?.elements.find(
-        (e) => e.elementId === lever.elementId,
-      );
-      if (!place || !element) {
-        return <span className={missingStyle}>Field not found</span>;
+      const shown = lever.places.flatMap((entry) => {
+        const place = net.places.find((p) => p.id === entry.placeId);
+        const type = net.types.find((t) => t.id === place?.colorId);
+        const names = entry.elementIds.flatMap(
+          (id) => type?.elements.find((e) => e.elementId === id)?.name ?? []
+        );
+        return place && names.length > 0
+          ? [{ placeId: place.id, placeName: place.name, names }]
+          : [];
+      });
+      if (shown.length === 0) {
+        return <span className={bodyTextStyle}>No fields</span>;
       }
       return (
-        <div className={todayRowStyle}>
-          <code className={codeChipStyle}>{element.name}</code>
-          <span>
-            {element.type} · {place.name}
-          </span>
-        </div>
+        <>
+          {shown.map((entry) => (
+            <div key={entry.placeId} className={todayRowStyle}>
+              <span>{entry.placeName}</span>
+              <code className={codeChipStyle}>{entry.names.join(", ")}</code>
+            </div>
+          ))}
+        </>
       );
     }
   }
@@ -341,8 +348,8 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
   const updateThis = (update: (current: Controller) => Controller) =>
     updateControllers((all) =>
       all.map((candidate) =>
-        candidate.id === controller.id ? update(candidate) : candidate,
-      ),
+        candidate.id === controller.id ? update(candidate) : candidate
+      )
     );
 
   const toggleChoice =
@@ -357,7 +364,7 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
                   ? [...lever.transitionIds, transitionId]
                   : lever.transitionIds.filter((id) => id !== transitionId),
               }
-            : lever,
+            : lever
         ),
       }));
 
@@ -382,7 +389,7 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
         ) : (
           leverKindOrder.map((kind) => {
             const levers = controller.levers.filter(
-              (lever) => lever.kind === kind,
+              (lever) => lever.kind === kind
             );
             if (levers.length === 0) {
               return null;
@@ -408,7 +415,7 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
       <div>
         <div className={headingStyle}>Fallback</div>
         <div className={bodyTextStyle}>
-          Uses the net&apos;s own rules until an AI is trained
+          When you simulate, the net&apos;s own code runs
         </div>
       </div>
     </div>
@@ -421,7 +428,7 @@ const ControllerMainContent: React.FC = () => {
   const controller = use(ControllerContext);
   if (!controller) {
     throw new Error(
-      "ControllerMainContent must be used within ControllerProperties",
+      "ControllerMainContent must be used within ControllerProperties"
     );
   }
   return <ControllerMainFields controller={controller} />;
@@ -432,7 +439,7 @@ export const ControllerProperties: React.FC<{ controllerId: string }> = ({
 }) => {
   const { controllers } = useControllers();
   const controller = controllers.find(
-    (candidate) => candidate.id === controllerId,
+    (candidate) => candidate.id === controllerId
   );
   if (!controller) {
     return null;

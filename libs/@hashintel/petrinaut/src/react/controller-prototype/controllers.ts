@@ -8,7 +8,12 @@
 
 import { getArcEndpoint } from "@hashintel/petrinaut-core";
 
-import type { ArcEndpoint, JsonValue, SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  ArcEndpoint,
+  ColorElementType,
+  JsonValue,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const placeIdOf = (endpoint: ArcEndpoint): string | null =>
   endpoint.kind === "place" ? endpoint.placeId : null;
@@ -32,9 +37,8 @@ export type Lever =
       id: string;
       kind: "tokenField";
       transitionId: string;
-      /** The output place whose token type holds the field. */
-      placeId: string;
-      elementId: string;
+      /** Per output place, the fields of its token type the controller sets. */
+      places: { placeId: string; elementIds: string[] }[];
     };
 
 export type Controller = {
@@ -72,7 +76,7 @@ const parseLever = (raw: unknown): Lever | null => {
             kind: "choice",
             placeId: raw.placeId,
             transitionIds: raw.transitionIds.filter(
-              (id): id is string => typeof id === "string",
+              (id): id is string => typeof id === "string"
             ),
           }
         : null;
@@ -84,18 +88,44 @@ const parseLever = (raw: unknown): Lever | null => {
       return typeof raw.placeId === "string"
         ? { id: raw.id, kind: "initialTokens", placeId: raw.placeId }
         : null;
-    case "tokenField":
-      return typeof raw.transitionId === "string" &&
+    case "tokenField": {
+      if (typeof raw.transitionId !== "string") {
+        return null;
+      }
+      if (
         typeof raw.placeId === "string" &&
         typeof raw.elementId === "string"
-        ? {
-            id: raw.id,
-            kind: "tokenField",
-            transitionId: raw.transitionId,
-            placeId: raw.placeId,
-            elementId: raw.elementId,
-          }
-        : null;
+      ) {
+        return {
+          id: raw.id,
+          kind: "tokenField",
+          transitionId: raw.transitionId,
+          places: [{ placeId: raw.placeId, elementIds: [raw.elementId] }],
+        };
+      }
+      if (!Array.isArray(raw.places)) {
+        return null;
+      }
+      return {
+        id: raw.id,
+        kind: "tokenField",
+        transitionId: raw.transitionId,
+        places: raw.places.flatMap((entry) =>
+          isRecord(entry) &&
+          typeof entry.placeId === "string" &&
+          Array.isArray(entry.elementIds)
+            ? [
+                {
+                  placeId: entry.placeId,
+                  elementIds: entry.elementIds.filter(
+                    (id): id is string => typeof id === "string"
+                  ),
+                },
+              ]
+            : []
+        ),
+      };
+    }
     default:
       return null;
   }
@@ -131,7 +161,7 @@ export const readControllers = (sdcpn: SDCPN): Controller[] => {
 
 export const writeControllers = (
   draft: SDCPN,
-  controllers: Controller[],
+  controllers: Controller[]
 ): void => {
   draft.metadata = {
     ...draft.metadata,
@@ -173,14 +203,14 @@ type NetLike = Pick<SDCPN, "places" | "transitions" | "types">;
  */
 export const competingTransitionIds = (
   net: NetLike,
-  placeId: string,
+  placeId: string
 ): string[] =>
   net.transitions
     .filter((transition) =>
       transition.inputArcs.some(
         (arc) =>
-          arc.type === "standard" && placeIdOf(getArcEndpoint(arc)) === placeId,
-      ),
+          arc.type === "standard" && placeIdOf(getArcEndpoint(arc)) === placeId
+      )
     )
     .map((transition) => transition.id);
 
@@ -191,6 +221,101 @@ export const outputPlaceIds = (net: NetLike, transitionId: string): string[] =>
     const id = placeIdOf(getArcEndpoint(arc));
     return id === null ? [] : [id];
   });
+
+export type TokenFieldPlace = {
+  placeId: string;
+  placeName: string;
+  typeName: string;
+  displayColor: string;
+  fields: { elementId: string; name: string; type: ColorElementType }[];
+};
+
+/** The output places of a transition that hold typed tokens, with the fields of each token type. */
+export const tokenFieldPlaces = (
+  net: NetLike,
+  transitionId: string
+): TokenFieldPlace[] =>
+  [...new Set(outputPlaceIds(net, transitionId))].flatMap(
+    (placeId): TokenFieldPlace[] => {
+      const place = net.places.find((p) => p.id === placeId);
+      const type = net.types.find((t) => t.id === place?.colorId);
+      return place && type
+        ? [
+            {
+              placeId,
+              placeName: place.name,
+              typeName: type.name,
+              displayColor: type.displayColor,
+              fields: type.elements.map(({ elementId, name, type: kind }) => ({
+                elementId,
+                name,
+                type: kind,
+              })),
+            },
+          ]
+        : [];
+    }
+  );
+
+/** How many fields a Token field lever sets in all. */
+export const tokenFieldCount = (
+  lever: Extract<Lever, { kind: "tokenField" }>
+): number =>
+  lever.places.reduce((count, entry) => count + entry.elementIds.length, 0);
+
+/**
+ * Ticks or unticks one field in the controller's Token field lever for a
+ * transition, creating the lever when it is missing. The lever stays when its
+ * last field is unticked. Fields keep the order of their token type.
+ */
+export const toggleTokenField = (
+  net: NetLike,
+  controller: Controller,
+  transitionId: string,
+  placeId: string,
+  elementId: string,
+  on: boolean,
+  makeId: () => string
+): Controller => {
+  const existing = controller.levers.find(
+    (lever): lever is Extract<Lever, { kind: "tokenField" }> =>
+      lever.kind === "tokenField" && lever.transitionId === transitionId
+  );
+  const current = existing?.places.find((entry) => entry.placeId === placeId);
+  const chosen = new Set(current?.elementIds ?? []);
+  if (on) {
+    chosen.add(elementId);
+  } else {
+    chosen.delete(elementId);
+  }
+  const outputs = tokenFieldPlaces(net, transitionId);
+  const typeOrder =
+    outputs
+      .find((place) => place.placeId === placeId)
+      ?.fields.map((field) => field.elementId) ?? [];
+  const elementIds = typeOrder.filter((id) => chosen.has(id));
+  const placeOrder = outputs.map((place) => place.placeId);
+  const places = [
+    ...(existing?.places.filter((entry) => entry.placeId !== placeId) ?? []),
+    ...(elementIds.length > 0 ? [{ placeId, elementIds }] : []),
+  ].sort(
+    (a, b) => placeOrder.indexOf(a.placeId) - placeOrder.indexOf(b.placeId)
+  );
+  const lever: Lever = {
+    id: existing?.id ?? makeId(),
+    kind: "tokenField",
+    transitionId,
+    places,
+  };
+  return {
+    ...controller,
+    levers: existing
+      ? controller.levers.map((candidate) =>
+          candidate === existing ? lever : candidate
+        )
+      : [...controller.levers, lever],
+  };
+};
 
 /** The name shown for a lever, or null when the node it points at is gone. */
 export const leverName = (net: NetLike, lever: Lever): string | null => {
@@ -209,7 +334,7 @@ export const leverAnchorKind = (lever: Lever): "place" | "transition" =>
 /** Every controller that holds a lever over the node, with the kinds it holds. */
 export const controllersOfNode = (
   controllers: Controller[],
-  nodeId: string,
+  nodeId: string
 ): { controller: Controller; kinds: LeverKind[] }[] =>
   controllers.flatMap((controller) => {
     const kinds = controller.levers
@@ -239,9 +364,9 @@ export const rateExpression = (lambdaCode: string): string | null => {
 
 /** Drops controllers from a selection, for actions that only know net entities. */
 export const withoutControllers = <Item extends { type: string }>(
-  items: Item[],
+  items: Item[]
 ): Exclude<Item, { type: "controller" }>[] =>
   items.filter(
     (item): item is Exclude<Item, { type: "controller" }> =>
-      item.type !== "controller",
+      item.type !== "controller"
   );

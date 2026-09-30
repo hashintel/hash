@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 
 import {
-  scheduler,
+  demoControllers,
   withControllers,
 } from "../src/ui/controller-prototype/scheduler-example";
 import { PetrinautStoryProvider } from "../src/ui/petrinaut-story-provider";
@@ -23,9 +23,10 @@ const App = () => (
       initialDefinition={
         params.has("empty")
           ? supplyChainWithDisruption.petriNetDefinition
-          : withControllers(supplyChainWithDisruption.petriNetDefinition, [
-              scheduler,
-            ])
+          : withControllers(
+              supplyChainWithDisruption.petriNetDefinition,
+              demoControllers
+            )
       }
     />
   </div>

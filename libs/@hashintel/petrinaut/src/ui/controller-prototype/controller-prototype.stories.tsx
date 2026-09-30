@@ -1,7 +1,7 @@
 import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 
 import { PetrinautStoryProvider } from "../petrinaut-story-provider";
-import { scheduler, withControllers } from "./scheduler-example";
+import { demoControllers, withControllers } from "./scheduler-example";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -14,7 +14,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Supply Chain With Disruption with one controller, Scheduler, holding one lever of each kind. */
+/** Supply Chain With Disruption with two controllers, Scheduler and Purchasing. */
 export const Scheduler: Story = {
   render: () => (
     <div style={{ height: "100vh", width: "100vw" }}>
@@ -22,7 +22,7 @@ export const Scheduler: Story = {
         initialTitle={supplyChainWithDisruption.title}
         initialDefinition={withControllers(
           supplyChainWithDisruption.petriNetDefinition,
-          [scheduler],
+          demoControllers
         )}
       />
     </div>
@@ -41,7 +41,7 @@ export const NoControllers: Story = {
   ),
 };
 
-/** Scheduler, read-only. */
+/** The two controllers, read-only. */
 export const ReadOnly: Story = {
   render: () => (
     <div style={{ height: "100vh", width: "100vw" }}>
@@ -50,7 +50,7 @@ export const ReadOnly: Story = {
         initialTitle={supplyChainWithDisruption.title}
         initialDefinition={withControllers(
           supplyChainWithDisruption.petriNetDefinition,
-          [scheduler],
+          demoControllers
         )}
       />
     </div>

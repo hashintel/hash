@@ -81,7 +81,7 @@ export const useLeverKindItems = (targetIds: string[]): MenuEntry[] => {
       return next.map((controller) =>
         controller.id === id
           ? addLevers(controller, drafts, newLeverId)
-          : controller,
+          : controller
       );
     });
     selectItem({ type: "controller", id });
@@ -116,7 +116,7 @@ export const useLeverKindItems = (targetIds: string[]): MenuEntry[] => {
               disabled: holdsAll(controller, drafts),
               suffix: holdsAll(controller, drafts) ? "Added" : undefined,
               onClick: () => addTo(controller.id, drafts),
-            }) as MenuItem,
+            } as MenuItem)
         ),
         {
           id: `${key}:create`,
@@ -139,33 +139,33 @@ export const useLeverKindItems = (targetIds: string[]): MenuEntry[] => {
       if ("levers" in option) {
         return leaf(option.id, option.label, option.levers);
       }
-      const places = [...new Set(option.fields.map((f) => f.placeId))];
       return {
         id: option.id,
         text: option.label,
-        subItems: places.map((placeId) => ({
-          id: `${option.id}:${placeId}`,
-          label:
-            option.fields.find((f) => f.placeId === placeId)?.placeName ?? "",
-          items: option.fields
-            .filter((field) => field.placeId === placeId)
-            .map((field) =>
-              leaf(
-                `${option.id}:${placeId}:${field.elementId}`,
-                <span className={fieldNameStyle}>{field.fieldName}</span>,
-                [
-                  {
-                    kind: "tokenField",
-                    transitionId: option.transitionId,
-                    placeId,
-                    elementId: field.elementId,
-                  },
-                ],
-              ),
-            ),
+        subItems: option.places.map((place) => ({
+          id: `${option.id}:${place.placeId}`,
+          label: place.placeName,
+          items: place.fields.map((field) =>
+            leaf(
+              `${option.id}:${place.placeId}:${field.elementId}`,
+              <span className={fieldNameStyle}>{field.name}</span>,
+              [
+                {
+                  kind: "tokenField",
+                  transitionId: option.transitionId,
+                  places: [
+                    {
+                      placeId: place.placeId,
+                      elementIds: [field.elementId],
+                    },
+                  ],
+                },
+              ]
+            )
+          ),
         })),
       } as MenuItem;
-    },
+    }
   );
 };
 

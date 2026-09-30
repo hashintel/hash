@@ -3,40 +3,56 @@ import { CONTROLLERS_METADATA_KEY } from "../../react/controller-prototype/contr
 import type { Controller } from "../../react/controller-prototype/controllers";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-/** One controller, Scheduler, holding one lever of each kind on Supply Chain With Disruption. */
-export const scheduler: Controller = {
-  id: "controller__scheduler",
-  name: "Scheduler",
-  levers: [
-    {
-      id: "lever__machine_up",
-      kind: "choice",
-      placeId: "place_machine_up",
-      transitionIds: ["trans_start_production", "trans_preventive_maintenance"],
-    },
-    {
-      id: "lever__supplier_a_rate",
-      kind: "rate",
-      transitionId: "trans_order_supplier_a",
-    },
-    {
-      id: "lever__raw_materials",
-      kind: "initialTokens",
-      placeId: "place_raw_materials",
-    },
-    {
-      id: "lever__promised_lead_time",
-      kind: "tokenField",
-      transitionId: "trans_convert_to_backorder",
-      placeId: "place_backorders",
-      elementId: "order_promise",
-    },
-  ],
-};
+/** Two controllers on Supply Chain With Disruption: Scheduler for the factory floor, Purchasing for supply. */
+export const demoControllers: Controller[] = [
+  {
+    id: "controller__scheduler",
+    name: "Scheduler",
+    levers: [
+      {
+        id: "lever__start_production_rate",
+        kind: "rate",
+        transitionId: "trans_start_production",
+      },
+      {
+        id: "lever__start_production_fields",
+        kind: "tokenField",
+        transitionId: "trans_start_production",
+        places: [
+          {
+            placeId: "place_wip",
+            elementIds: ["batch_processing_left", "batch_source_mix"],
+          },
+        ],
+      },
+      {
+        id: "lever__maintenance_rate",
+        kind: "rate",
+        transitionId: "trans_preventive_maintenance",
+      },
+    ],
+  },
+  {
+    id: "controller__purchasing",
+    name: "Purchasing",
+    levers: [
+      {
+        id: "lever__supplier_a_rate",
+        kind: "rate",
+        transitionId: "trans_order_supplier_a",
+      },
+      {
+        id: "lever__raw_materials",
+        kind: "initialTokens",
+        placeId: "place_raw_materials",
+      },
+    ],
+  },
+];
 
 export const withControllers = (
   sdcpn: SDCPN,
-  controllers: Controller[],
+  controllers: Controller[]
 ): SDCPN => ({
   ...sdcpn,
   metadata: {
