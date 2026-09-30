@@ -138,7 +138,7 @@ const choiceLabelStyle = css({
 });
 
 const staysStochasticStyle = css({
-  fontSize: "xs",
+  fontSize: "sm",
   color: "neutral.s100",
   paddingLeft: "[42px]",
 });
@@ -411,10 +411,13 @@ const LeverBody: React.FC<{
                 onChange={() => {}}
                 label={
                   <span className={fieldLabelStyle}>
-                    <span className={fieldNameStyle}>count</span>
+                    <span className={cx(fieldNameStyle, mutedStyle)}>
+                      count
+                    </span>
                     <span className={fieldTypeStyle}>
                       {count} in {source}
                     </span>
+                    <span className={fieldTypeStyle}>always set</span>
                   </span>
                 }
               />
@@ -428,18 +431,19 @@ const LeverBody: React.FC<{
             .map((field) => field.name)
         : [];
       return (
-        <div className={todayRowStyle}>
-          <span>Count</span>
-          {place ? (
-            chosenNames.length > 0 ? (
-              <code className={codeChipStyle}>{chosenNames.join(", ")}</code>
-            ) : null
-          ) : (
+        <>
+          <div className={todayRowStyle}>
+            <span>Count</span>
             <span className={mutedStyle}>
               {count} in {source}
             </span>
-          )}
-        </div>
+          </div>
+          {chosenNames.length > 0 ? (
+            <div className={todayRowStyle}>
+              <code className={codeChipStyle}>{chosenNames.join(", ")}</code>
+            </div>
+          ) : null}
+        </>
       );
     }
 
