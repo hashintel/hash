@@ -48,6 +48,35 @@ test("rejects foreign origins, oversized bodies and disabled Voice before infere
   expect(generate).not.toHaveBeenCalled();
 });
 
+test("guards the mediation request before reading its body", async () => {
+  const generate = vi.fn().mockResolvedValue({ kind: "modelling" });
+  const handle = createVoiceMediationHandler({ environment, generate });
+  const methodResponse = await handle(
+    new Request("https://petrinaut.test/api/voice/mediation", {
+      method: "GET",
+    }),
+  );
+  expect(methodResponse.status).toBe(405);
+  expect(methodResponse.headers.get("allow")).toBe("POST");
+  expect(
+    (
+      await handle(
+        request(
+          { kind: "brief", text: "desk" },
+          { "content-type": "APPLICATION/JSON; charset=UTF-8" },
+        ),
+      )
+    ).status,
+  ).toBe(200);
+  expect(
+    (
+      await handle(
+        request({ kind: "brief", text: "desk" }, { "content-length": "65537" }),
+      )
+    ).status,
+  ).toBe(413);
+});
+
 test("validates model evidence before returning the brief and never returns provider errors", async () => {
   const generate = vi.fn().mockResolvedValue({
     kind: "modelling",

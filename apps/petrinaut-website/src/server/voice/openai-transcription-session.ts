@@ -4,6 +4,7 @@ import {
 } from "../../voice-diagnostics.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
+import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const maxSdpBytes = 65_536;
 
@@ -25,18 +26,16 @@ export const createOpenAITranscriptionSessionHandler =
     fetch: typeof globalThis.fetch;
   }) =>
   async (request: Request): Promise<Response> => {
-    if (request.method !== "POST")
+    const rejection = guardVoiceRequest(
+      request,
+      "application/sdp",
+      maxSdpBytes,
+    );
+    if (rejection === "method")
       return respond("Method not allowed.", 405, { allow: "POST" });
-    if (request.headers.get("origin") !== new URL(request.url).origin)
-      return respond("Forbidden.", 403);
-    if (
-      request.headers
-        .get("content-type")
-        ?.split(";", 1)[0]
-        ?.trim()
-        .toLowerCase() !== "application/sdp"
-    )
-      return respond("Expected SDP.", 415);
+    if (rejection === "origin") return respond("Forbidden.", 403);
+    if (rejection === "content-type") return respond("Expected SDP.", 415);
+    if (rejection === "content-length") return respond("SDP too large.", 413);
 
     const availability = getOpenAIVoiceAvailability(environment);
     if (!availability.available)
@@ -84,9 +83,6 @@ export const createOpenAITranscriptionSessionHandler =
     try {
       report("progress");
       signal.throwIfAborted();
-      if (Number(request.headers.get("content-length")) > maxSdpBytes)
-        return respond("SDP too large.", 413);
-
       const bytes = new Uint8Array(maxSdpBytes);
       let length = 0;
       try {

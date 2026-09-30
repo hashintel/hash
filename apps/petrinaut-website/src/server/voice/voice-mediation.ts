@@ -6,6 +6,7 @@ import {
 } from "../../shared/voice-mediation.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
+import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const requestSchema = z.object({
   kind: z.enum(["brief", "wrap-up"]),
@@ -38,24 +39,27 @@ export const createVoiceMediationHandler =
     ) => Promise<unknown>;
   }) =>
   async (request: Request): Promise<Response> => {
-    const respond = (message: string, status: number) =>
+    const respond = (
+      message: string,
+      status: number,
+      headers?: Record<string, string>,
+    ) =>
       new Response(message, {
         status,
-        headers: { "cache-control": "no-store" },
+        headers: { "cache-control": "no-store", ...headers },
       });
-    if (request.method !== "POST") return respond("Method not allowed.", 405);
-    if (request.headers.get("origin") !== new URL(request.url).origin)
-      return respond("Forbidden.", 403);
+    const rejection = guardVoiceRequest(request, "application/json", 65_536);
+    if (rejection === "method")
+      return respond("Method not allowed.", 405, { allow: "POST" });
+    if (rejection === "origin") return respond("Forbidden.", 403);
     if (
       !getOpenAIVoiceAvailability(environment).available ||
       getVoiceProvider(environment) !== "live"
     )
       return respond("Voice mediation is unavailable.", 404);
-    if (
-      request.headers.get("content-type")?.split(";")[0]?.trim() !==
-      "application/json"
-    )
-      return respond("Expected JSON.", 415);
+    if (rejection === "content-type") return respond("Expected JSON.", 415);
+    if (rejection === "content-length")
+      return respond("Invalid mediation request.", 413);
     const signal = AbortSignal.any([
       request.signal,
       AbortSignal.timeout(30_000),

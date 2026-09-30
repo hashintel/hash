@@ -4,6 +4,7 @@ import {
 } from "../../shared/voice-settings.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
+import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const instructions = `You are a calm, friendly process interview assistant. Speak as one
 conversational partner, not a receptionist passing the person to another assistant.
@@ -101,18 +102,12 @@ export const createOpenAILiveSessionHandler =
         status,
         headers: { "cache-control": "no-store", ...headers },
       });
-    if (request.method !== "POST")
+    const rejection = guardVoiceRequest(request, "application/sdp", 65_536);
+    if (rejection === "method")
       return respond("Method not allowed.", 405, { allow: "POST" });
-    if (request.headers.get("origin") !== new URL(request.url).origin)
-      return respond("Forbidden.", 403);
-    if (
-      request.headers
-        .get("content-type")
-        ?.split(";")[0]
-        ?.trim()
-        .toLowerCase() !== "application/sdp"
-    )
-      return respond("Expected SDP.", 415);
+    if (rejection === "origin") return respond("Forbidden.", 403);
+    if (rejection === "content-type") return respond("Expected SDP.", 415);
+    if (rejection === "content-length") return respond("SDP too large.", 413);
     const availability = getOpenAIVoiceAvailability(environment);
     if (!availability.available) return respond("Live is unavailable.", 404);
 
@@ -126,8 +121,6 @@ export const createOpenAILiveSessionHandler =
     ]);
     try {
       signal.throwIfAborted();
-      if (Number(request.headers.get("content-length")) > 65_536)
-        return respond("SDP too large.", 413);
       const body = new Uint8Array(65_536);
       let length = 0;
       try {
