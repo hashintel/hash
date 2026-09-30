@@ -32,16 +32,39 @@ const vocabulary = {
       description: "The steps.",
       done: "a case is traced",
     },
+    {
+      name: "quantities",
+      description: "The numbers.",
+      done: "durations are known",
+    },
+    {
+      name: "actors",
+      description: "Who acts.",
+      done: "performers are known",
+    },
   ],
   kinds: [
     { name: "goal", description: "What to achieve." },
-    { name: "activity", description: "A step." },
+    {
+      name: "activity",
+      description: "A step.",
+      expects: [
+        { name: "duration", description: "How long.", covers: "quantities" },
+        {
+          name: "performer",
+          description: "Who does it.",
+          covers: "actors",
+          relation: { names: ["performs"], end: "to" },
+        },
+      ],
+    },
     { name: "resource", description: "Something limited." },
     { name: "actor", description: "Someone who acts." },
   ],
   relations: [
     { name: "reserves", description: "Holds, then releases." },
     { name: "measures", description: "A goal is judged on it." },
+    { name: "performs", description: "Carries out an activity." },
   ],
   fixed: [{ name: "purpose", description: "Why the model exists." }],
 } as const satisfies LedgerVocabulary;
@@ -335,7 +358,7 @@ describe("identity-addressed ledger_commit", () => {
     expect(
       accepts({ ...identify, kind: "machine", covers: ["resources"] }),
     ).toBe(false);
-    expect(accepts({ ...identify, covers: ["quantities"] })).toBe(false);
+    expect(accepts({ ...identify, covers: ["validation"] })).toBe(false);
     expect(accepts(identify)).toBe(false);
     expect(accepts({ op: "supersede", address: "n1", ...settled })).toBe(true);
     expect(
@@ -397,8 +420,89 @@ describe("coverage", () => {
         "- goals: nothing recorded; nothing confirmed — done when a measure is confirmed",
         "- resources: 1 confirmed, 1 pencilled",
         "- activities: 1 confirmed, 1 pencilled",
+        "- quantities: nothing recorded; nothing confirmed — done when durations are known",
+        "- actors: nothing recorded; nothing confirmed — done when performers are known",
+        "Identities still missing what their kind needs:",
+        "- `cleaning` [activity]: duration, performer",
       ].join("\n"),
     );
+  });
+
+  test("an identity's needs are met by the person's account, not by stand-ins or pencilled relationships", () => {
+    const chat = conversation();
+    const first = coverageOf(
+      chat.commit([
+        {
+          op: "identify",
+          identity: "cleaning",
+          kind: "activity",
+          covers: ["activities"],
+          ...settled,
+        },
+        { op: "identify", identity: "crew", covers: ["actors"], ...settled },
+        {
+          op: "relate",
+          from: "crew",
+          relation: "performs",
+          to: "cleaning",
+          covers: ["actors"],
+          ...inferred,
+        },
+        {
+          op: "note",
+          about: ["cleaning"],
+          content: "Draft stand-in: three hours.",
+          concerns: "draft",
+          covers: ["quantities"],
+          ...inferred,
+        },
+      ]),
+    );
+    expect(first).toContain(
+      "- `cleaning` [activity]: duration, performer (pencilled)",
+    );
+    const second = coverageOf(
+      chat.commit([
+        { op: "supersede", address: "n3", ...settled },
+        {
+          op: "note",
+          about: ["cleaning"],
+          content: "About three hours.",
+          covers: ["quantities"],
+          ...settled,
+        },
+      ]),
+    );
+    expect(second).toContain(
+      "Every identity with a kind has what its kind needs.",
+    );
+  });
+
+  test("a Note at inapplicable standing closes a need", () => {
+    const chat = conversation();
+    chat.commit([
+      {
+        op: "identify",
+        identity: "curing",
+        kind: "activity",
+        covers: ["activities"],
+        ...settled,
+      },
+    ]);
+    const coverage = coverageOf(
+      chat.commit([
+        {
+          op: "note",
+          about: ["curing"],
+          content: "Nobody performs curing; it only takes time.",
+          covers: ["actors"],
+          source: "person",
+          standing: "inapplicable",
+        },
+      ]),
+    );
+    expect(coverage).toContain("- `curing` [activity]: duration");
+    expect(coverage).not.toContain("performer");
   });
 
   test("placeholders are listed, and superseding keeps or replaces covers", () => {
@@ -442,7 +546,7 @@ describe("coverage", () => {
     ]);
     const markdown = mapOf(chat, {
       detail: "full",
-      dimensions: vocabulary.dimensions,
+      coverage: vocabulary,
     });
     expect(markdown).toContain("## Coverage");
     expect(markdown).toContain("- resources: 1 confirmed");
