@@ -436,10 +436,16 @@ test("speech cancels preparation and stale asynchronous wrap-ups without cancell
   const fixture = setup({ history, prepare, summarize, offered: vi.fn() });
   const first = fixture.bridge.accept({ id: "one", text: "First request" });
   fixture.bridge.speechStarted();
-  expect(history.project([])).toEqual([]);
+  expect(history.project([])).toMatchObject([
+    {
+      id: "one",
+      role: "user",
+      parts: [{ type: "text", text: "First request" }],
+    },
+  ]);
   resolveBrief({ goal: "First request" });
   await first;
-  expect(history.project([])).toEqual([]);
+  expect(history.project([])).toHaveLength(1);
   expect(fixture.submit).not.toHaveBeenCalled();
   prepare.mockResolvedValue({ goal: "Correction" });
   await fixture.bridge.accept({ id: "two", text: "Correction" });
@@ -458,6 +464,27 @@ test("speech cancels preparation and stale asynchronous wrap-ups without cancell
     "signal.aborted",
     false,
   );
+});
+
+test("Stop withdraws words whose brief is still preparing", async () => {
+  const history = new VoiceMediationHistory("test");
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const fixture = setup({
+    history,
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const acceptance = fixture.bridge.accept({
+    id: "one",
+    text: "First request",
+  });
+
+  fixture.bridge.stopResponse();
+  brief.resolve({ goal: "First request" });
+  await acceptance;
+
+  expect(history.project([])).toEqual([]);
 });
 
 test("submits the utterance without excerpts when brief preparation fails", async () => {
@@ -502,9 +529,10 @@ test("does not submit a brief that speech cancelled while it failed", async () =
 });
 
 test("speech keeps a submitted turn's composer slot until Brunch admits it", async () => {
+  const history = new VoiceMediationHistory("test");
   const prepare = vi.fn(async () => ({}));
   const fixture = setup({
-    history: new VoiceMediationHistory("test"),
+    history,
     prepare,
     summarize: vi.fn(),
     offered: vi.fn(),
@@ -516,6 +544,9 @@ test("speech keeps a submitted turn's composer slot until Brunch admits it", asy
   fixture.bridge.speechStarted();
   await fixture.bridge.accept({ id: "two", text: "Thanks" });
 
+  expect(
+    history.project([]).filter((message) => message.id === "one"),
+  ).toHaveLength(0);
   expect(prepare).toHaveBeenCalledOnce();
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.notice).toHaveBeenLastCalledWith(

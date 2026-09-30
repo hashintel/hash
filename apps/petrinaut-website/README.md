@@ -313,7 +313,9 @@ speech segments to Realtime. It instructs Realtime to speak only those
 segments. Generated audio is not a verbatim recording: canonical Brunch text
 remains visible and authoritative. **Interruption by speaking** is enabled by
 default: speech detection immediately cancels generation and clears output audio,
-never the input buffer. The completed answer waits if Brunch is still busy.
+never the input buffer. If new speech cancels brief preparation before admission,
+the finalized words remain in the composer as an unsent message. Stop and session
+teardown still withdraw them. The completed answer waits if Brunch is still busy.
 False speech detection may still stop playback even if the transcript is later
 discarded. Disable this browser-saved preference for half-duplex capture: the
 microphone closes during assistant output, and audio captured before a completed

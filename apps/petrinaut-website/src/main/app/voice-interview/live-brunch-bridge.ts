@@ -123,6 +123,17 @@ export class LiveBrunchBridge {
     this.#preparations.clear();
     for (const turn of this.#turns) {
       if (!turn.submissionId) turn.history?.failed(turn.inputId);
+      // Words cancelled before submission stay sendable; teardown withdraws them.
+      if (
+        !turn.submitted &&
+        !this.#abort.signal.aborted &&
+        turn.history === this.#dependencies.mediation?.history
+      )
+        turn.history?.unsent(
+          turn.inputId,
+          turn.inputText,
+          this.#chat.messages?.at(-1)?.id,
+        );
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
         this.#dependencies.appendInstructions(
           "The person started speaking again. Do not answer the earlier request; listen to them.",
