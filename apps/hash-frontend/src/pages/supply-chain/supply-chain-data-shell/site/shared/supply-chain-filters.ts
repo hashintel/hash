@@ -22,6 +22,10 @@ import {
 import { trendToneFor } from "../../../shared/trend-tone";
 import { siteNodeDisplayLabel } from "./helpers";
 import {
+  materialFilterItemRenderer,
+  materialFilterSelectedRenderer,
+} from "./supply-chain-filters/material-filter-item";
+import {
   matchesNumberOperator,
   matchesSelectionOperator,
   matchesStringOperator,
@@ -35,7 +39,11 @@ import {
 } from "./supply-chain-filters/operators";
 
 import type { TimeRange } from "../../../shared/time-range";
-import type { SiteNode, VendorOtifStats } from "../../../shared/types";
+import type {
+  SiteNode,
+  StepType,
+  VendorOtifStats,
+} from "../../../shared/types";
 import type { MultiSelectItem } from "@hashintel/ds-components";
 
 /**
@@ -171,6 +179,38 @@ const sortedItems = (byValue: Map<string, string>): MultiSelectItem[] =>
     .map(([value, text]) => ({ value, text }))
     .sort((left, right) => left.text.localeCompare(right.text));
 
+/**
+ * Step types whose label reads "<Step kind>: <material name>", so the suffix
+ * names the row's own material. The location-scoped types (qa/ship/transit/
+ * destination) are excluded: their label suffix names a plant, lane, or hub.
+ */
+const MATERIAL_TITLED_TYPES: StepType[] = [
+  "procurement",
+  "raw_material_dwell",
+  "intermediate_dwell",
+  "production",
+];
+
+/**
+ * Best-effort display name for a row's material: the explicit `material_name`
+ * when present, else the label suffix — current artifacts omit
+ * `material_name`, leaving the label as the only source of the human name.
+ */
+const materialDisplayNameOf = (row: FilterableStepRow): string | null => {
+  if (row.material_name) {
+    return row.material_name;
+  }
+  if (!MATERIAL_TITLED_TYPES.includes(row.type)) {
+    return null;
+  }
+  const separatorIndex = row.label.indexOf(": ");
+  if (separatorIndex === -1) {
+    return null;
+  }
+  const name = row.label.slice(separatorIndex + 2).trim();
+  return name.length > 0 ? name : null;
+};
+
 export const buildSupplyChainFilterOptions = (
   rows: FilterableStepRow[],
   display: Pick<SupplyChainFilterOptions, "currency" | "timeRange" | "measure">,
@@ -181,8 +221,11 @@ export const buildSupplyChainFilterOptions = (
   for (const row of rows) {
     if (row.material) {
       const existing = materials.get(row.material);
-      if (!existing || existing === row.material) {
-        materials.set(row.material, row.material_name ?? row.material);
+      // Explicit names win; a derived name only replaces the matnr fallback.
+      if (row.material_name) {
+        materials.set(row.material, row.material_name);
+      } else if (existing === undefined || existing === row.material) {
+        materials.set(row.material, materialDisplayNameOf(row) ?? row.material);
       }
     }
     for (const product of row.products) {
@@ -195,7 +238,14 @@ export const buildSupplyChainFilterOptions = (
   }
   return {
     ...display,
-    materialItems: sortedItems(materials),
+    // The matnr rides inside `text` so the dropdown search matches it; the
+    // material renderers split name and matnr back apart for display.
+    materialItems: [...materials.entries()]
+      .map(([value, name]) => ({
+        value,
+        text: name === value ? value : `${name} ${value}`,
+      }))
+      .sort((left, right) => left.text.localeCompare(right.text)),
     productItems: sortedItems(products),
     supplierItems: sortedItems(suppliers),
   };
@@ -421,6 +471,12 @@ export const STEP_FILTER_DEFINITIONS = [
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.materialItems, {
         searchable: true,
         overflow: "summary",
+        // Dropdown rows show the matnr in small text under the name; the
+        // chip's selected values show the name alone.
+        renderItem: materialFilterItemRenderer(options.materialItems),
+        renderSelectedItem: materialFilterSelectedRenderer(
+          options.materialItems,
+        ),
       }),
     matches: (row, value) =>
       matchesSelectionOperator(

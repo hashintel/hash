@@ -52,7 +52,8 @@ export type MultiSelectInput<TValue extends string = string> = {
   type: "select";
   items: SelectInputItems<MultiSelectItem<TValue>>;
   renderItem?: (value: TValue) => React.ReactNode;
-  renderSelectedItem?: (values: TValue[]) => React.ReactNode;
+  renderSelectedItem?: (value: TValue) => React.ReactNode;
+  renderSelectedAll?: (values: TValue[]) => React.ReactNode;
   emptyState?: React.ReactNode;
   placeholder?: string;
   multiple: true;

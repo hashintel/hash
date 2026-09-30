@@ -516,10 +516,37 @@ describe("buildSupplyChainFilterOptions", () => {
       "Zeta",
     ]);
     expect(options.materialItems).toEqual([
-      { value: "MAT-B", text: "Material B" },
+      { value: "MAT-B", text: "Material B MAT-B" },
     ]);
     expect(options.productItems).toEqual([
       { value: "prod-2", text: "Product 2" },
+    ]);
+  });
+
+  it("derives material names from step labels when material_name is absent", () => {
+    const rows = [
+      row({
+        id: "procurement_ha",
+        type: "procurement",
+        material: "90000100001",
+        label: "Procurement: Highland Arabica",
+      }),
+      // A location-scoped step's label suffix names a hub, not the material.
+      row({
+        id: "dest_dwell_hub1",
+        type: "destination_dwell",
+        material: "90000300001",
+        label: "Destination Dwell: HUB-1",
+      }),
+    ];
+    const options = buildSupplyChainFilterOptions(rows, {
+      currency: "CHF",
+      timeRange: "12m",
+      measure: "median",
+    });
+    expect(options.materialItems).toEqual([
+      { value: "90000300001", text: "90000300001" },
+      { value: "90000100001", text: "Highland Arabica 90000100001" },
     ]);
   });
 });

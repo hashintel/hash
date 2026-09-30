@@ -51,6 +51,8 @@ export const selectOperators = {
 interface MultiSelectOperatorOpts {
   searchable?: boolean;
   overflow?: FilterMultiSelectInput["overflow"];
+  renderItem?: FilterMultiSelectInput["renderItem"];
+  renderSelectedItem?: FilterMultiSelectInput["renderSelectedItem"];
 }
 
 /** Multi-select operators; items vary per filter, so these are factories. */
@@ -66,6 +68,8 @@ export const multiSelectOperators = {
       multiple: true,
       searchable: opts?.searchable ?? false,
       overflow: opts?.overflow,
+      renderItem: opts?.renderItem,
+      renderSelectedItem: opts?.renderSelectedItem,
     },
   }),
   isNoneOf: (
@@ -79,6 +83,8 @@ export const multiSelectOperators = {
       multiple: true,
       searchable: opts?.searchable ?? false,
       overflow: opts?.overflow,
+      renderItem: opts?.renderItem,
+      renderSelectedItem: opts?.renderSelectedItem,
     },
   }),
 };

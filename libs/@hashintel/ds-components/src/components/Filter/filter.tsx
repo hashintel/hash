@@ -192,6 +192,7 @@ const FilterSelectInput = ({
         maxItems={config.maxItems}
         overflow={config.overflow}
         renderSelectedItem={config.renderSelectedItem}
+        renderSelectedAll={config.renderSelectedAll}
         value={Array.isArray(slot) ? slot : []}
         onChange={(next) => onSlotChange(next)}
         hideArrow

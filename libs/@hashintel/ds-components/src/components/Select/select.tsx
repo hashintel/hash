@@ -131,6 +131,7 @@ type SelectSingleProps<TValue extends string> = {
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
+  renderSelectedAll?: never;
 } & (
   | {
       required: true;
@@ -149,7 +150,7 @@ type SelectMultipleProps<TValue extends string> = {
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
-  /** How the selected values render in the trigger when no `renderSelectedItem` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
+  /** How the selected values render in the trigger when no `renderSelectedAll` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
   searchable?:
@@ -165,8 +166,10 @@ type SelectMultipleProps<TValue extends string> = {
         hideSelectAllToggle?: boolean;
       });
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
-  /** Custom renderer for the selected values in the trigger. Defaults to rendering each selected value with `renderItem` (or the item's `text`), comma-separated. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
-  renderSelectedItem?: (values: TValue[]) => React.ReactNode;
+  /** Custom renderer for each selected value in the trigger's row. Defaults to `renderItem` (or the item's `text`); values render comma-separated with the `overflow` behaviour. A plain-string result also supplies the `summary` overflow's text for that value. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
+  renderSelectedItem?: (value: TValue) => React.ReactNode;
+  /** Custom renderer for the trigger's entire selection, replacing the per-value row and with it the `overflow` behaviour (and `renderSelectedItem`). */
+  renderSelectedAll?: (values: TValue[]) => React.ReactNode;
   required?: boolean;
   value: ReadonlyArray<NoInfer<TValue>>;
   onChange: (value: Array<NoInfer<TValue>>) => void;
@@ -398,6 +401,7 @@ export const Select = <TValue extends string>({
   overflow,
   renderItem,
   renderSelectedItem,
+  renderSelectedAll,
   className,
   name,
   value,
@@ -687,20 +691,26 @@ export const Select = <TValue extends string>({
   }, [effectiveItems]);
 
   const overflowMode =
-    multiple && !renderSelectedItem ? (overflow ?? "scroll") : undefined;
+    multiple && !renderSelectedAll ? (overflow ?? "scroll") : undefined;
 
   const renderSelectedContent = (): React.ReactNode => {
     if (multiple) {
-      if (renderSelectedItem) {
-        return (renderSelectedItem as (values: TValue[]) => React.ReactNode)(
-          selectedValues,
-        );
+      if (renderSelectedAll) {
+        return renderSelectedAll(selectedValues);
       }
+      const renderSingle = renderSelectedItem ?? resolvedRenderItem;
       const mode = overflow ?? "scroll";
-      const rowItems = selectedValues.map((val) => ({
-        name: findSelectItem(effectiveItems, val)?.text ?? val,
-        children: resolvedRenderItem(val),
-      }));
+      const rowItems = selectedValues.map((val) => {
+        const children = renderSingle(val);
+        return {
+          // A plain-string renderer result doubles as the summary-mode text.
+          name:
+            typeof children === "string"
+              ? children
+              : (findSelectItem(effectiveItems, val)?.text ?? val),
+          children,
+        };
+      });
       return mode === "summary" ? (
         <OverflowRow
           items={rowItems}
@@ -721,10 +731,7 @@ export const Select = <TValue extends string>({
     if (selectedValue === undefined) {
       return "";
     }
-    const renderSingle =
-      (renderSelectedItem as
-        | ((value: TValue) => React.ReactNode)
-        | undefined) ?? resolvedRenderItem;
+    const renderSingle = renderSelectedItem ?? resolvedRenderItem;
     return renderSingle(selectedValue);
   };
 
@@ -895,10 +902,16 @@ export const Select = <TValue extends string>({
     connectsLeft,
     connectsRight,
     customRender:
-      !!renderItem || !!renderSelectedItem || overflowMode !== undefined,
+      !!renderItem ||
+      !!renderSelectedItem ||
+      !!renderSelectedAll ||
+      overflowMode !== undefined,
     overflowRow: overflowMode !== undefined,
     clampTriggerHeight:
-      (!!renderItem || !!renderSelectedItem || overflowMode !== undefined) &&
+      (!!renderItem ||
+        !!renderSelectedItem ||
+        !!renderSelectedAll ||
+        overflowMode !== undefined) &&
       (connectsLeft || connectsRight),
     willClear: showClear && !!clearable && !hasSelection,
   });
@@ -1030,6 +1043,7 @@ export const Select = <TValue extends string>({
               <>
                 {(renderItem ||
                   renderSelectedItem ||
+                  renderSelectedAll ||
                   overflowMode !== undefined) &&
                   "\u200B"}
                 {renderSelectedContent()}
