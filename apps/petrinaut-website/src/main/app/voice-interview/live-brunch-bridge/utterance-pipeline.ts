@@ -19,6 +19,7 @@ export interface UtteranceStage {
   readonly skip: (utterance: Utterance) => SkipReason | null;
 }
 
+/** Shadow stages come before active ones: a stage after a skip never runs. */
 export const liveUtteranceStages: readonly UtteranceStage[] = [
   // Leaked Live audio finalizes as phantoms of a few words.
   {
