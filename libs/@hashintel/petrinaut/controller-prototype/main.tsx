@@ -34,7 +34,7 @@ const FieldsViewPill = () => {
       style={{
         position: "fixed",
         left: 296,
-        bottom: 16,
+        top: 112,
         zIndex: 2147483647,
         display: "flex",
         alignItems: "center",
