@@ -244,9 +244,8 @@ export const filterRecipe = sva({
       fontSize: "[var(--filter-font-size)]",
       color: "neutral.s115",
       fieldSizing: "content",
-      minWidth: "[calc(2 * var(--filter-input-padding-x))]",
+      minWidth: "[calc(2 * var(--filter-input-padding-x) + 1ch)]",
       maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
-      textAlign: "center",
       textOverflow: "ellipsis",
       _focus: {
         textAlign: "left",
@@ -298,6 +297,7 @@ export const filterRecipe = sva({
       "& [data-part=trigger]": {
         paddingInline: "[var(--filter-input-padding-x)]",
         paddingBlock: "[var(--form-padding-y)]",
+        minWidth: "[calc(2 * var(--filter-input-padding-x) + 1ch)]",
         maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
       },
     },
