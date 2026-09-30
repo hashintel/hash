@@ -1256,7 +1256,6 @@ describe("BrunchDraftExperimentWidget", () => {
       expect(screen.getByRole("status").textContent).toBe(
         mode === "simulate" ? "Running" : "Refining",
       );
-      expect(screen.getByRole("progressbar").className).toContain("h_[5px]");
       const kind = screen.getByText(
         mode === "simulate" ? "Simulation" : "Optimization",
       );

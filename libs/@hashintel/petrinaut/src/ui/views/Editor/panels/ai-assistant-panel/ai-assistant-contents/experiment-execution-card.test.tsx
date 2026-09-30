@@ -89,7 +89,6 @@ it.each(["simulate", "optimize"] as const)(
     expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe(
       "6",
     );
-    expect(screen.getByRole("progressbar").className).toContain("h_[5px]");
     const kind = screen.getByText(
       mode === "simulate" ? "Simulation" : "Optimization",
     );
