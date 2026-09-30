@@ -207,6 +207,97 @@ acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 
+Two kinds of finalized transcript never reach Brunch. A transcript with no
+letters or digits, such as ".", is handled like empty input. A transcript of
+up to three words whose speech started while Live was audible, or within half a
+second after, is dropped: these are almost always Live's own audio leaking back
+and misheard as speech. Live isn't audible while the speaker is muted or at
+zero volume. A GPT-Live delegation doesn't exempt the transcript, because
+GPT-Live can delegate its own echo. A real interruption of three words or fewer
+still stops Live, but its words don't reach Brunch. Neither case shows a
+notice.
+
+Each GPT-Live delegation goes to the latest finalized transcript still without
+one, or waits for speech that the transcription session already reports as
+started. Live and transcription use independent sessions, so a delegation that
+arrives while neither condition is visible has unknown ordering: it is deferred,
+never attached to later speech, and closed only by Stop, a Brunch error or the
+end of Voice mode. A delegation observed while transcription speech is pending
+is closed if that speech is later filtered, instead of shifting to the next
+answer. `delegation.deferred` and `delegation.closed` record these outcomes
+with only the delegation ID and a fixed reason.
+
+#### Speaker echo check — 10 minutes
+
+The transcription session requests English, far-field noise reduction and
+per-token log probabilities. None of these removes Live's own voice from the
+microphone; only the browser's echo cancellation can. To see whether that voice
+gets through, open DevTools, enable the **Verbose** console level and filter by
+`[Petrinaut Live trace]`:
+
+- `capture.settings` shows the echo cancellation, noise suppression and
+  automatic gain control the browser applied, at start and after a microphone
+  switch.
+- `echo.output` follows each stretch of audible Live output plus a one-second
+  tail. It reports the peak microphone level, the browser's mean echo return
+  loss and mean echo return loss enhancement in dB, each when reported
+  (`echoReturnLossSamples` and `echoReturnLossEnhancementSamples` count them),
+  transcription speech starts, and GPT-Live input transcript fragments that
+  began after its output did. `liveOutputFragments` shows whether output
+  transcripts arrived; without them `liveInputFragments` stays at zero.
+- `input.finalized` marks speech that started during output with
+  `startedDuringOutput`. `sinceOutputMs`, present when Live was audible in the
+  second before, is the time from its last audible moment until the speech
+  start was reported. Below about 100 means Live was still audible; from 500,
+  the speech doesn't count as started during output. The window is measured
+  from when `speech_started` arrives, because its `audio_start_ms` is on the
+  audio stream's clock rather than the page clock the output stretches use. The same line records the
+  transcription's confidence from its per-token log probabilities:
+  `logprobTokens`, and when any were returned, `meanLogprob` and `minLogprob`.
+  `peakMicrophoneLevel` is the loudest microphone sample from a second before
+  the speech start was reported until the speech stopped. Nothing is dropped on
+  confidence or loudness yet. `overlappedOutput` is true when the speech, from
+  its reported start until it stopped, met audible output or the second after
+  it.
+- `input.ignored` with `reason: "short-during-output"` marks a short transcript
+  that started during output and was not sent to Brunch.
+- `filter.shadow` with `stage: "echo"` marks a transcript the echo check would
+  skip. The check runs in shadow, so the transcript is still handled as before
+  and can also appear as `input.ignored`. It compares speech that overlapped
+  output, in memory only, with Live's output transcript from three seconds
+  before the speech started until it stopped. Six or more words count as a
+  repeat when they mostly match Live's words in order; fewer count only when
+  they appear together, in order, in Live's words.
+- `filter.shadow` with `stage: "doubtful-short-during-output"` tries a narrower
+  three-word rule: short speech during output counts only when its least
+  likely token has a log probability below -1.9 (`minLogprob`) or it repeats
+  Live's words as the echo check defines them. The three-word rule still
+  decides. An `input.ignored` line with `reason: "short-during-output"` and no
+  `filter.shadow` line from this stage is speech the narrower rule would have
+  sent to Brunch.
+
+On laptop speakers, on a speaker chosen in the audio settings, and on
+headphones, answer three Brunch questions and stay silent while Live speaks
+each reply. Any speech start, input fragment or `startedDuringOutput: true`
+during a reply means echo reached the microphone path; also note whether Live
+stops itself mid-sentence. Then interrupt a reply once with a sentence of your
+own and once with a short answer such as "Yes". Each `filter.shadow` line
+should match a phantom in the conversation, and the interruptions should
+usually get none. After any `delegation.deferred` line, note whether Live
+speaks without a Brunch reply: what GPT-Live does with a delegation left open
+is not yet known. The traces are local development diagnostics and contain no
+audio or text.
+
+#### Noise check — 5 minutes
+
+The transcriber can turn a non-speech sound into a word, such as "Okay." or
+"Certainly.", while Live is silent. To see whether confidence or loudness tells
+those apart from real speech, wait until Live is silent, then make a few
+non-speech sounds (a cough, typing, a chair creak, a desk tap) and give a few
+short answers such as "Yes" and "Seven". Match each `input.finalized` line to
+the conversation by order, then compare `meanLogprob`, `minLogprob` and
+`peakMicrophoneLevel` between the invented words and the real answers.
+
 ### Brunch Voice mode
 
 The following describes Realtime, the default provider in production and local development. Voice mode is disabled by default. To enable it, configure a real

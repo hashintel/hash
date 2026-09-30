@@ -40,6 +40,7 @@ vi.mock("./live-conversation", () => ({
     appendCommentary: vi.fn(() => true),
     appendInstructions: vi.fn(() => true),
     appendThinking: vi.fn(() => true),
+    speechPending: vi.fn(() => true),
     setMicrophoneMuted: liveConversationMocks.setMicrophoneMuted,
     setSpeakerMuted: liveConversationMocks.setSpeakerMuted,
     setSpeakerVolume: liveConversationMocks.setSpeakerVolume,
@@ -171,7 +172,13 @@ test("streams a display-only user bubble, then prepares and admits only correcte
   ]);
   expect(props.submitVoiceInput).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
-  act(() => call[2]({ id: "final", text: "Compare seven agents" }));
+  act(() =>
+    call[2]({
+      id: "final",
+      text: "Compare seven agents",
+      startedDuringOutput: false,
+    }),
+  );
   expect(history.project([])).toHaveLength(1);
   expect(history.project([])[0]?.parts).toEqual([
     { type: "text", text: "Compare seven agents" },
@@ -259,7 +266,13 @@ test("writes Live previews and briefs to the current conversation's history afte
   expect(second.project([])[0]?.parts).toEqual([
     { type: "text", text: "Compare four", state: "streaming" },
   ]);
-  act(() => call[2]({ id: "final", text: "Compare seven agents" }));
+  act(() =>
+    call[2]({
+      id: "final",
+      text: "Compare seven agents",
+      startedDuringOutput: false,
+    }),
+  );
   expect(second.project([]).map((message) => message.id)).toEqual(["final"]);
   expect(first.project([])).toEqual([]);
 });
@@ -299,7 +312,13 @@ const renderSwitchingLive = async () => {
 test("captions a Live turn in the history it began in after a switch", async () => {
   const { call, first, second, switchConversation } =
     await renderSwitchingLive();
-  act(() => call[2]({ id: "final", text: "Compare seven agents" }));
+  act(() =>
+    call[2]({
+      id: "final",
+      text: "Compare seven agents",
+      startedDuringOutput: false,
+    }),
+  );
   switchConversation();
 
   act(() =>
@@ -364,7 +383,12 @@ test("a delayed superseded final never replaces the newer Live input preview", a
     { type: "text", text: "seven", state: "streaming" },
   ]);
   act(() =>
-    call[2]({ id: "old-final", text: "Four agents", superseded: true }),
+    call[2]({
+      id: "old-final",
+      text: "Four agents",
+      superseded: true,
+      startedDuringOutput: false,
+    }),
   );
   expect(
     history.project([]).find((message) => message.id === preview?.id),
@@ -1212,7 +1236,11 @@ test("the prepared brief enters the real admission helper and only its settled c
   });
   act(() => call[3]("delegation-1"));
   await act(async () =>
-    call[2]({ id: "utterance-1", text: "Seven reviewers, not four." }),
+    call[2]({
+      id: "utterance-1",
+      text: "Seven reviewers, not four.",
+      startedDuringOutput: false,
+    }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
   expect(vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0].text).toContain(
@@ -1323,7 +1351,13 @@ test("the prepared brief enters the real admission helper and only its settled c
   });
   act(() => tracker.recordStopRequested());
   expect(session.stop).not.toHaveBeenCalled();
-  await act(async () => call[2]({ id: "late", text: "Late transcription" }));
+  await act(async () =>
+    call[2]({
+      id: "late",
+      text: "Late transcription",
+      startedDuringOutput: false,
+    }),
+  );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
 });
 
@@ -1373,7 +1407,11 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
   act(() => call[0]({ phase: "connected", message: null }));
   act(() => call[3]("original-delegation"));
   await act(async () =>
-    call[2]({ id: "original", text: "Use sensible defaults" }),
+    call[2]({
+      id: "original",
+      text: "Use sensible defaults",
+      startedDuringOutput: false,
+    }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
   const response = {
@@ -1430,8 +1468,12 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
     call[6]?.started();
     call[3]("resume-delegation");
   });
-  await act(async () => call[2]({ id: "resume", text: "Continue" }));
-  await act(async () => call[2]({ id: "resume", text: "Continue" }));
+  await act(async () =>
+    call[2]({ id: "resume", text: "Continue", startedDuringOutput: false }),
+  );
+  await act(async () =>
+    call[2]({ id: "resume", text: "Continue", startedDuringOutput: false }),
+  );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
   expect(vi.mocked(props.submitVoiceInput).mock.calls[1]?.[0].text).toContain(
     '"utterance":"Continue"',
@@ -1611,7 +1653,11 @@ test.each(["answer", "folded-answer"])(
       .value as ReturnType<typeof createLiveConversation>;
     act(() => call[0]({ phase: "connected", message: null }));
     await act(async () =>
-      call[2]({ id: "utterance", text: "Seven, not four" }),
+      call[2]({
+        id: "utterance",
+        text: "Seven, not four",
+        startedDuringOutput: false,
+      }),
     );
     rerender(
       <VoiceInterviewControl

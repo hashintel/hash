@@ -1,9 +1,15 @@
 import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  liveUtteranceStages,
+  routeUtterance,
+} from "./live-brunch-bridge/utterance-pipeline";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { VoiceBriefFields } from "../../../shared/voice-mediation";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
+import type { FinalizedInput } from "./live-conversation";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -47,6 +53,20 @@ interface Turn {
 type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
+
+/**
+ * Leaked Live audio is skipped before a delegation is claimed: GPT-Live can
+ * delegate its own echo, and an unclaimed delegation can outlast the utterance
+ * it was created for. Other skips claim the delegation and decline it.
+ */
+const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
+  // Shadow stages never skip, so these apply once the stage is switched on.
+  echo: "leave",
+  "doubtful-short-during-output": "leave",
+  "short-during-output": "leave",
+  empty: "decline",
+};
+
 interface Dependencies {
   readonly submit: Submit;
   readonly mediation: {
@@ -66,6 +86,8 @@ interface Dependencies {
   /** Quiet interruption context, never spoken or bound to a delegation. */
   readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
+  /** Transcription speech has started and its transcript isn't finalized yet. */
+  readonly speechPending: () => boolean;
 }
 
 /** GPT-Live accepts at most 500 tokens per append; stay well inside it. */
@@ -96,6 +118,7 @@ export class LiveBrunchBridge {
   readonly #summarizing = new Set<Turn>();
   readonly #preparations = new Set<AbortController>();
   readonly #unclaimedDelegations = new Set<string>();
+  readonly #deferredDelegations = new Set<string>();
   readonly #responses = new Map<
     string,
     Map<
@@ -119,6 +142,7 @@ export class LiveBrunchBridge {
   }
 
   public stop(): void {
+    this.#closeDeferredDelegations();
     this.#abort.abort();
     this.speechStarted();
     this.#turns.clear();
@@ -190,13 +214,53 @@ export class LiveBrunchBridge {
     const turn = [...this.#turns].findLast(
       (candidate) => !candidate.superseded && candidate.delegationId === null,
     );
-    if (turn) turn.delegationId = delegationId;
-    else this.#unclaimedDelegations.add(delegationId);
-    logLiveDiagnostic(turn ? "delegation.matched" : "delegation.unclaimed", {
+    if (turn) {
+      turn.delegationId = delegationId;
+      logLiveDiagnostic("delegation.matched", {
+        delegationId,
+        inputId: turn.inputId,
+        submissionId: turn.submissionId,
+      });
+    } else if (this.#dependencies.speechPending()) {
+      this.#unclaimedDelegations.add(delegationId);
+      logLiveDiagnostic("delegation.unclaimed", { delegationId });
+    } else {
+      this.#deferredDelegations.add(delegationId);
+      logLiveDiagnostic("delegation.deferred", {
+        delegationId,
+        reason: "speech-order-unknown",
+      });
+    }
+  }
+
+  /**
+   * Unclaimed delegations were observed while transcription speech was pending.
+   * Once none remains, a filter may have dropped the only speech that could
+   * claim them, so holding them would shift later pairings.
+   */
+  #closeStrayDelegations(): void {
+    if (this.#dependencies.speechPending()) return;
+    for (const delegationId of this.#unclaimedDelegations)
+      this.#closeDelegation(delegationId, "no-pending-speech");
+    this.#unclaimedDelegations.clear();
+  }
+
+  /** Deferred delegations are never paired, so only Stop or teardown closes them. */
+  #closeDeferredDelegations(): void {
+    for (const delegationId of this.#deferredDelegations)
+      this.#closeDelegation(delegationId, "deferred");
+    this.#deferredDelegations.clear();
+  }
+
+  #closeDelegation(
+    delegationId: string,
+    reason: "no-pending-speech" | "deferred",
+  ): void {
+    logLiveDiagnostic("delegation.closed", { delegationId, reason });
+    this.#dependencies.appendInstructions(
+      "This request will not be answered. Do not respond to it; keep listening.",
       delegationId,
-      inputId: turn?.inputId,
-      submissionId: turn?.submissionId,
-    });
+    );
   }
 
   #unserved(delegationId: string | null, status: string): void {
@@ -218,11 +282,7 @@ export class LiveBrunchBridge {
     );
   }
 
-  public async accept(input: {
-    readonly id: string;
-    readonly text: string;
-    readonly superseded?: boolean;
-  }): Promise<void> {
+  public async accept(input: FinalizedInput): Promise<void> {
     if (this.#abort.signal.aborted) return;
     if (this.#seenInputs.has(input.id)) {
       logLiveDiagnostic("input.ignored", {
@@ -232,17 +292,27 @@ export class LiveBrunchBridge {
       return;
     }
     this.#seenInputs.add(input.id);
+    const skipReason = routeUtterance(input, liveUtteranceStages);
+    if (skipReason !== null && delegationOnSkip[skipReason] === "leave") {
+      logLiveDiagnostic("input.ignored", {
+        inputId: input.id,
+        reason: skipReason,
+      });
+      this.#closeStrayDelegations();
+      return;
+    }
     if (!input.superseded && this.#waitingForComposer?.superseded)
       this.#evict(this.#waitingForComposer);
     const delegationId = input.superseded
       ? null
       : ([...this.#unclaimedDelegations].at(-1) ?? null);
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
-    if (!input.text.trim()) {
+    this.#closeStrayDelegations();
+    if (skipReason !== null) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
         delegationId,
-        reason: "empty",
+        reason: skipReason,
       });
       if (delegationId !== null) {
         this.#dependencies.appendInstructions(
@@ -320,7 +390,7 @@ export class LiveBrunchBridge {
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       turn.submitted = true;
       const result = await this.#dependencies.submit({
-        ...input,
+        id: input.id,
         text,
         admissionTarget: { kind: "user", messageId: input.id },
         signal: this.#abort.signal,
@@ -468,6 +538,7 @@ export class LiveBrunchBridge {
         delegationId,
         "No request admission was confirmed for this delegation.",
       );
+    this.#closeDeferredDelegations();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
     this.#waitingForComposer = undefined;
