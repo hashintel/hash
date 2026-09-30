@@ -1,4 +1,15 @@
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
+import {
+  createOutputEchoTrace,
+  logCaptureSettings,
+} from "./live-conversation/echo-diagnostics";
+import { createOutputOverlap } from "./live-conversation/output-overlap";
+import {
+  roundForTrace,
+  summarizeLogprobs,
+  type TranscriptionConfidence,
+} from "./live-conversation/transcription-confidence";
+import { createUtteranceLevels } from "./live-conversation/utterance-levels";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { VoiceAudioSettings } from "./voice-audio-settings";
@@ -20,9 +31,15 @@ export interface LiveConversationState {
   };
 }
 
-interface FinalizedInput {
+export interface FinalizedInput {
   readonly id: string;
   readonly text: string;
+  /** Speech start was reported while Live was audible or within half a second after. */
+  readonly startedDuringOutput: boolean;
+  /** Live's words around the speech, only when it overlapped audible output. Never traced. */
+  readonly liveOutputText?: string;
+  /** The transcript's lowest per-token log probability, when any were returned. */
+  readonly minLogprob?: number;
 }
 
 type ConnectionKind = "live" | "transcription";
@@ -46,6 +63,9 @@ export const createLiveConversation = (
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
+  const echoTrace = createOutputEchoTrace(sessionId);
+  const outputOverlap = createOutputOverlap();
+  const utteranceLevels = createUtteranceLevels();
   const seenDelegations = new Set<string>();
   const openDelegations = new Set<string>();
   const pendingAppends = new Map<string, LiveAppendResult>();
@@ -65,7 +85,14 @@ export const createLiveConversation = (
           .map(([kind, stage]) => `${kind}: ${stage}`)
           .join("; ");
   const committedPrevious = new Map<string, string | null>();
-  const completed = new Map<string, FinalizedInput>();
+  const completed = new Map<
+    string,
+    Omit<
+      FinalizedInput,
+      "startedDuringOutput" | "liveOutputText" | "minLogprob"
+    >
+  >();
+  const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
@@ -109,6 +136,8 @@ export const createLiveConversation = (
   };
 
   const stopMedia = () => {
+    echoTrace.end();
+    outputOverlap.clear();
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
@@ -249,6 +278,8 @@ export const createLiveConversation = (
     if (stopping || !livePeer) return;
     let microphoneLevel = 0;
     let outputLevel = 0;
+    let echoReturnLoss: number | undefined;
+    let echoReturnLossEnhancement: number | undefined;
     try {
       const stats = await livePeer.getStats();
       stats.forEach((report: unknown) => {
@@ -262,7 +293,19 @@ export const createLiveConversation = (
           !("type" in report)
         )
           return;
-        if (report.type === "media-source") microphoneLevel = report.audioLevel;
+        if (report.type === "media-source") {
+          microphoneLevel = report.audioLevel;
+          if (
+            "echoReturnLoss" in report &&
+            typeof report.echoReturnLoss === "number"
+          )
+            echoReturnLoss = report.echoReturnLoss;
+          if (
+            "echoReturnLossEnhancement" in report &&
+            typeof report.echoReturnLossEnhancement === "number"
+          )
+            echoReturnLossEnhancement = report.echoReturnLossEnhancement;
+        }
         if (report.type === "inbound-rtp") outputLevel = report.audioLevel;
       });
     } catch {
@@ -273,6 +316,21 @@ export const createLiveConversation = (
     if (recoveryTimers.size > 0) return;
     const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
+    const audible =
+      Boolean(playing) &&
+      outputLevel > 0.01 &&
+      !speakerMuted &&
+      speakerVolume > 0;
+    outputOverlap.sample(Date.now(), audible);
+    echoTrace.sample(Date.now(), {
+      audible,
+      microphoneLevel,
+      echoReturnLoss,
+      echoReturnLossEnhancement,
+      microphoneMuted,
+      selectedSpeaker: Boolean(audio?.sinkId),
+    });
+    utteranceLevels.sample(Date.now(), microphoneLevel);
     const activity = {
       microphoneLevel: microphoneMuted
         ? 0
@@ -311,13 +369,30 @@ export const createLiveConversation = (
       if (!input) return;
       if (!emitted.has(input.id)) {
         emitted.add(input.id);
+        const startedDuringOutput = echoTrace.startedDuringOutput(itemId);
+        const liveOutputText = outputOverlap.finalize(itemId, Date.now());
+        const inputConfidence = confidence.get(itemId);
         logLiveDiagnostic("input.finalized", {
           sessionId,
           itemId,
           inputId: input.id,
           characters: input.text.length,
+          startedDuringOutput,
+          sinceOutputMs: echoTrace.sinceOutputMs(itemId),
+          overlappedOutput: liveOutputText !== undefined,
+          peakMicrophoneLevel: utteranceLevels.peak(itemId),
+          ...(inputConfidence && roundForTrace(inputConfidence)),
         });
-        onFinalizedInput(input);
+        confidence.delete(itemId);
+        echoTrace.forget(itemId);
+        utteranceLevels.forget(itemId);
+        const minLogprob = inputConfidence?.minLogprob;
+        onFinalizedInput({
+          ...input,
+          startedDuringOutput,
+          ...(liveOutputText === undefined ? {} : { liveOutputText }),
+          ...(minLogprob === undefined ? {} : { minLogprob }),
+        });
       }
       itemId = committedAfter(itemId);
     }
@@ -340,6 +415,7 @@ export const createLiveConversation = (
         ),
         replaceMicrophone: (stream) => {
           microphone = stream;
+          logCaptureSettings(sessionId, stream, "microphone-switched");
           applyMicrophoneMuted();
         },
       });
@@ -351,6 +427,17 @@ export const createLiveConversation = (
   const handleTranscriptionEvent = (data: Record<string, unknown>) => {
     if (data.type === "session.created" || data.type === "session.updated") {
       if (!ready.has("transcription")) markReady("transcription");
+      return;
+    }
+    if (data.type === "input_audio_buffer.speech_started") {
+      echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
+      outputOverlap.speechStarted(data.item_id, Date.now());
+      utteranceLevels.speechStarted(data.item_id, Date.now());
+      return;
+    }
+    if (data.type === "input_audio_buffer.speech_stopped") {
+      outputOverlap.speechStopped(data.item_id, Date.now());
+      utteranceLevels.speechStopped(data.item_id);
       return;
     }
     if (data.type === "input_audio_buffer.committed") {
@@ -413,6 +500,9 @@ export const createLiveConversation = (
       ) {
         fail("Transcription identity conflicted. No automatic retry was made.");
         return;
+      }
+      if (!existing) {
+        confidence.set(data.item_id, summarizeLogprobs(data.logprobs));
       }
       completed.set(data.item_id, input);
       flushFinalizedInputs();
@@ -551,6 +641,19 @@ export const createLiveConversation = (
       if (pending.delegationId !== null)
         openDelegations.delete(pending.delegationId);
       reportAppendResult({ ...pending, status: "accepted" });
+    } else if (data.type === "session.output_transcript.delta") {
+      echoTrace.liveOutputFragment(
+        "start_ms" in data ? data.start_ms : undefined,
+        "end_ms" in data ? data.end_ms : undefined,
+      );
+      outputOverlap.liveOutput(
+        Date.now(),
+        "delta" in data ? data.delta : undefined,
+      );
+    } else if (data.type === "session.input_transcript.delta") {
+      echoTrace.liveInputFragment(
+        "start_ms" in data ? data.start_ms : undefined,
+      );
     } else if (
       !stopping &&
       (data.type === "error" || data.type === "session.error")
@@ -752,6 +855,7 @@ export const createLiveConversation = (
         return;
       }
       microphone = stream;
+      logCaptureSettings(sessionId, stream, "started");
       applyMicrophoneMuted();
       if (!audioSettings)
         stream.getTracks().forEach((track) =>
@@ -840,6 +944,7 @@ export const createLiveConversation = (
     setSpeakerMuted,
     setSpeakerVolume,
     openDelegations: openDelegations as ReadonlySet<string>,
+    speechPending: outputOverlap.pending,
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
     appendInstructions: (text: string, delegationId: string | null) =>
