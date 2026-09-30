@@ -1582,11 +1582,12 @@ const ConversationAiAssistantPanel = ({
     ) {
       setPrimaryAttention(true);
       setAttentionAnnouncement(
-        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode)} needs your attention`,
+        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode, aiAssistant.presentation)} needs your attention`,
       );
     }
     conversationWasBusyRef.current = isBusy;
   }, [
+    aiAssistant.presentation,
     aiAssistant.primaryLabel,
     hostTabSelected,
     interactionMode,

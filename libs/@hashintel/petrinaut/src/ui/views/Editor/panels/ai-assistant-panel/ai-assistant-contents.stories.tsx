@@ -1984,6 +1984,7 @@ const ledgerTab = {
 export const ChatTurn: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       additionalTab={ledgerTab}
       messages={[supportDeskUser, conversationTurn]}
     />
@@ -2019,6 +2020,7 @@ export const ChatTurn: Story = {
 export const VoiceMediatedTurn: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       additionalTab={ledgerTab}
       inputMode="voice"
       voiceModeAvailable
@@ -2090,6 +2092,7 @@ export const VoiceMediatedTurn: Story = {
 export const ChatVoiceOrigin: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       additionalTab={ledgerTab}
       messages={[
         { ...supportDeskUser, metadata: { source: "voice" } },
@@ -2118,6 +2121,7 @@ export const ChatVoiceOrigin: Story = {
 export const ChatAnswerActions: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       messages={[
         supportDeskUser,
         conversationTurn,
@@ -2158,6 +2162,7 @@ export const ChatAnswerActions: Story = {
 export const VoicePreparing: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       additionalTab={ledgerTab}
       inputMode="voice"
       voiceModeAvailable
@@ -2197,6 +2202,7 @@ export const VoicePreparing: Story = {
 export const VoiceSending: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
@@ -2225,6 +2231,7 @@ export const VoiceSending: Story = {
 export const VoiceStopped: Story = {
   render: () => (
     <Frame
+      presentation="brunch"
       additionalTab={ledgerTab}
       inputMode="voice"
       voiceModeAvailable
@@ -2239,6 +2246,7 @@ const ExperimentExample = ({ finished = false }: { finished?: boolean }) => {
   const [cancelled, setCancelled] = useState(false);
   return (
     <Frame
+      presentation="brunch"
       additionalTab={ledgerTab}
       onCancelExperiment={() => setCancelled(true)}
       messages={[
