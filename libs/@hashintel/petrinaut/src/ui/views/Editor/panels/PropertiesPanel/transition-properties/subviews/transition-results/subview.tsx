@@ -7,6 +7,7 @@ import {
   getArcEndpoint,
 } from "@hashintel/petrinaut-core";
 
+import { FieldsCodeSwitch } from "../../../../../../../controller-prototype/fields-code-switch";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
@@ -186,26 +187,28 @@ const TransitionResultsContent: React.FC = () => {
     useTransitionPropertiesContext();
 
   return (
-    <div className={contentStyle}>
-      <CodeEditor
-        path={getDocumentUri("transition-kernel", transition.id)}
-        language="typescript"
-        value={transition.transitionKernelCode || ""}
-        height="100%"
-        onChange={(value) => {
-          if (value === undefined) {
-            return;
-          }
+    <FieldsCodeSwitch transitionId={transition.id}>
+      <div className={contentStyle}>
+        <CodeEditor
+          path={getDocumentUri("transition-kernel", transition.id)}
+          language="typescript"
+          value={transition.transitionKernelCode || ""}
+          height="100%"
+          onChange={(value) => {
+            if (value === undefined) {
+              return;
+            }
 
-          updateTransition({
-            transitionId: transition.id,
-            update: { transitionKernelCode: value },
-          });
-        }}
-        options={{ readOnly: isReadOnly }}
-        tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-      />
-    </div>
+            updateTransition({
+              transitionId: transition.id,
+              update: { transitionKernelCode: value },
+            });
+          }}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+      </div>
+    </FieldsCodeSwitch>
   );
 };
 

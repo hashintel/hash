@@ -270,7 +270,7 @@ const fieldListStyle = css({
   paddingLeft: "3.5",
 });
 
-const PlaceFieldRows: React.FC<{
+export const PlaceFieldRows: React.FC<{
   place: TokenFieldPlace;
   chosen: string[];
   onToggle: (elementId: string, on: boolean) => void;
