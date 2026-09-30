@@ -33,8 +33,8 @@ const FieldsViewPill = () => {
     <label
       style={{
         position: "fixed",
-        left: 12,
-        bottom: 12,
+        left: 296,
+        bottom: 16,
         zIndex: 2147483647,
         display: "flex",
         alignItems: "center",
