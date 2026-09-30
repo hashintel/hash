@@ -10,12 +10,14 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  STEP_FILTER_DEFINITIONS,
+  STEP_FILTER_MENUS,
+  stepFilterDefinition,
   stepFilterLabel,
   type ActiveStepFilter,
   type StepFilterKey,
   type StepFilterOptions,
   type StepFilterValue,
+  type StepFilterView,
 } from "./step-filters";
 
 type MenuItems = React.ComponentProps<typeof Menu>["items"];
@@ -38,12 +40,15 @@ const emptyBarAlign = css({
 });
 
 export const StepFilterBar = ({
+  view,
   filters,
   onFiltersChange,
   options,
   skippedKeys,
   addableKeys,
 }: {
+  /** The hosting view; selects the add menu's layout and group order. */
+  view: StepFilterView;
   filters: ActiveStepFilter[];
   onFiltersChange: (next: ActiveStepFilter[]) => void;
   options: StepFilterOptions;
@@ -53,7 +58,7 @@ export const StepFilterBar = ({
    * Filter keys the adjacent table can offer in the add menu (see
    * `applicableFilterKeys`). Filters already active render regardless, so a
    * set carried over from another view survives — it just cannot be added
-   * afresh here. Omit to offer everything.
+   * afresh here. Omit to offer the view's whole menu.
    */
   addableKeys?: ReadonlySet<StepFilterKey>;
 }) => {
@@ -70,40 +75,38 @@ export const StepFilterBar = ({
       pendingAutoFocusKey = filterKey;
       onFiltersChange([...filters, { filterKey, value: null }]);
     };
-    const groups = new Map<
-      string,
-      Array<{ id: string; text: string; onClick: () => void }>
-    >();
-    for (const definition of STEP_FILTER_DEFINITIONS) {
-      if (activeKeys.has(definition.key)) {
-        continue;
+    return STEP_FILTER_MENUS[view].flatMap(({ group, keys }): MenuItems => {
+      const items = keys
+        .flatMap((key) => {
+          if (activeKeys.has(key) || (addableKeys && !addableKeys.has(key))) {
+            return [];
+          }
+          const definition = stepFilterDefinition(key);
+          return definition
+            ? [
+                {
+                  id: key,
+                  text: stepFilterLabel(definition, options),
+                  onClick: () => addFilter(key),
+                },
+              ]
+            : [];
+        })
+        .sort((left, right) => left.text.localeCompare(right.text));
+      if (items.length === 0) {
+        return [];
       }
-      if (addableKeys && !addableKeys.has(definition.key)) {
-        continue;
-      }
-      const groupItems = groups.get(definition.group) ?? [];
-      groupItems.push({
-        id: definition.key,
-        text: stepFilterLabel(definition, options),
-        onClick: () => addFilter(definition.key),
-      });
-      groups.set(definition.group, groupItems);
-    }
-    return [...groups.entries()].map(([label, items]) => ({
-      id: label,
-      label,
-      items,
-    }));
-  }, [filters, onFiltersChange, addableKeys, options]);
+      // A heading-less entry lists its filters as ungrouped items.
+      return group ? [{ id: group, label: group, items }] : items;
+    });
+  }, [view, filters, onFiltersChange, addableKeys, options]);
 
   const setFilterValue = (
     filterKey: StepFilterKey,
     operatorKey: string,
     committed: unknown,
   ) => {
-    const definition = STEP_FILTER_DEFINITIONS.find(
-      (candidate) => candidate.key === filterKey,
-    );
+    const definition = stepFilterDefinition(filterKey);
     const operator = definition
       ?.operators(options)
       .find((candidate) => candidate.key === operatorKey);
@@ -144,9 +147,7 @@ export const StepFilterBar = ({
   return (
     <FilterGroup dismissAbandoned>
       {filters.map((filter) => {
-        const definition = STEP_FILTER_DEFINITIONS.find(
-          (candidate) => candidate.key === filter.filterKey,
-        );
+        const definition = stepFilterDefinition(filter.filterKey);
         if (!definition) {
           return null;
         }

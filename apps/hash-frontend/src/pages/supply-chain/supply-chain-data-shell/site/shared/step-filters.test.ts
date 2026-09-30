@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { monthKeyMonthsAgo } from "../../../shared/time-range";
 import {
   applicableFilterKeys,
   STEP_FILTER_DEFINITIONS,
+  STEP_FILTER_MENUS,
   stepFilterLabel,
   applyStepFilters,
   applyVendorStepFilters,
@@ -14,6 +14,7 @@ import {
   type FilterableStepRow,
   type StepFilterContext,
   type StepFilterOptions,
+  type StepFilterView,
 } from "./step-filters";
 
 import type {
@@ -71,7 +72,9 @@ const rowsAfter = (
   rows: FilterableStepRow[],
   filters: ActiveStepFilter[],
   filterContext: StepFilterContext,
-): FilterableStepRow[] => applyStepFilters(rows, filters, filterContext).rows;
+  view: StepFilterView = "planning",
+): FilterableStepRow[] =>
+  applyStepFilters(rows, filters, filterContext, view).rows;
 
 describe("applyStepFilters", () => {
   const procurement = row({
@@ -158,11 +161,11 @@ describe("applyStepFilters", () => {
   it("only evaluates carrying cost on dwell-type rows", () => {
     const ctx = context(rows);
     expect(
-      rowsAfter(rows, [filter("carryingCost", "gte", 1_000)], ctx),
+      rowsAfter(rows, [filter("carryingCost", "gte", 1_000)], ctx, "dwell"),
     ).toEqual([dwell]);
   });
 
-  it("only evaluates excess vs policy on dwell-type rows", () => {
+  it("filters dwell rows by their inventory-policy quantities", () => {
     const inventoryPolicy = {
       material: "MAT-P",
       plant: "PLA",
@@ -175,35 +178,49 @@ describe("applyStepFilters", () => {
       safety_stock_source: null,
       warnings: [],
     };
-    // 36,528 units over 12 months (365.28 days) = exactly 100 units/day
-    const materialValue = {
-      unit_cost: 1,
-      currency: "USD",
-      unit_cost_source: null,
-      uom: null,
-      monthly: [{ month: monthKeyMonthsAgo(0), quantity: 36_528 }],
-    };
     const dwellWithPolicy = row({
       id: "raw_material_dwell_mat-p",
       type: "raw_material_dwell",
       material: "MAT-P",
       inventory_policy: inventoryPolicy,
-      material_value: materialValue,
     });
-    const procurementWithPolicy = row({
-      id: "procurement_mat-p",
-      type: "procurement",
-      material: "MAT-P",
-      inventory_policy: inventoryPolicy,
-      material_value: materialValue,
-    });
-    const policyRows = [dwellWithPolicy, procurementWithPolicy];
+    const policyRows = [dwellWithPolicy, dwell];
     const ctx = context(policyRows);
-    // dwell: 8 observed - (1000/2 + 100)/100 = 6 policy days = +2 excess;
-    // procurement's duration is lead time, not days on hand, so it is excluded
     expect(
-      rowsAfter(policyRows, [filter("excessVsPolicy", "gte", 1)], ctx),
+      rowsAfter(policyRows, [filter("moq", "gte", 500)], ctx, "dwell"),
     ).toEqual([dwellWithPolicy]);
+    expect(
+      rowsAfter(policyRows, [filter("safetyStock", "lte", 50)], ctx, "dwell"),
+    ).toEqual([]);
+  });
+
+  it("filters planning rows by their planned days", () => {
+    const ctx = context(rows);
+    // dwell has no plan, so it is excluded rather than passed through.
+    expect(rowsAfter(rows, [filter("plan", "gte", 5)], ctx)).toEqual([
+      procurement,
+      production,
+    ]);
+  });
+
+  it("filters trend rows by their previous-period value", () => {
+    const ctx = context(rows);
+    expect(
+      rowsAfter(rows, [filter("previousValue", "gte", 10)], ctx, "trends"),
+    ).toEqual([production]);
+  });
+
+  it("derives P95 vs plan for the opportunities view", () => {
+    const ctx = context(rows);
+    // procurement and production: (24 - 10) / 10 = +140%; dwell has no plan.
+    expect(
+      rowsAfter(
+        rows,
+        [filter("p95DeviationPct", "gte", 100)],
+        ctx,
+        "opportunities",
+      ),
+    ).toEqual([procurement, production]);
   });
 
   it("detects steps that crossed their plan this period", () => {
@@ -226,16 +243,40 @@ describe("applyStepFilters", () => {
 
   it("skips filters no row is applicable to and reports them", () => {
     const ctx = context([dwell]);
+    // The dwell view offers moq, but this row has no inventory policy.
     const application = applyStepFilters(
       [dwell],
       [
-        filter("deviationPct", "gte", 0),
+        filter("moq", "gte", 1),
         filter("stepType", "isAnyOf", ["raw_material_dwell"]),
       ],
       ctx,
+      "dwell",
     );
     expect(application.rows).toEqual([dwell]);
-    expect(application.skippedKeys).toEqual(["deviationPct"]);
+    expect(application.skippedKeys).toEqual(["moq"]);
+  });
+
+  it("skips filters the view does not offer, even when rows could match", () => {
+    const ctx = context(rows);
+    // Every row has stats.n, but the planning table shows no sample count.
+    const onPlanning = applyStepFilters(
+      rows,
+      [filter("observations", "gte", 21)],
+      ctx,
+      "planning",
+    );
+    expect(onPlanning.rows).toEqual(rows);
+    expect(onPlanning.skippedKeys).toEqual(["observations"]);
+    // The trend table has a Samples column, so the same filter applies there.
+    const onTrends = applyStepFilters(
+      rows,
+      [filter("observations", "gte", 21)],
+      ctx,
+      "trends",
+    );
+    expect(onTrends.rows).toEqual([]);
+    expect(onTrends.skippedKeys).toEqual([]);
   });
 });
 
@@ -276,7 +317,31 @@ describe("applyVendorStepFilters", () => {
       },
     ],
   });
-  const zeta = vendor({ vendor_id: "V2", vendor_name: "Zeta" });
+  const zeta = vendor({
+    vendor_id: "V2",
+    vendor_name: "Zeta",
+    otif_pct: 95,
+    max_days_late: 2,
+  });
+
+  it("filters vendors on supplier-performance metrics", () => {
+    const ctx = context([]);
+    expect(
+      applyVendorStepFilters([acme, zeta], [filter("maxDelay", "gte", 5)], ctx)
+        .rows,
+    ).toEqual([acme]);
+    expect(
+      applyVendorStepFilters([acme, zeta], [filter("otifPct", "gte", 90)], ctx)
+        .rows,
+    ).toEqual([zeta]);
+    expect(
+      applyVendorStepFilters(
+        [acme, zeta],
+        [filter("materialsCount", "gte", 1)],
+        ctx,
+      ).rows,
+    ).toEqual([acme]);
+  });
 
   it("applies vendor-capable filters and skips the rest", () => {
     const application = applyVendorStepFilters(
@@ -312,26 +377,72 @@ describe("applicableFilterKeys", () => {
         periodCost: 5_000,
       }),
     ];
-    const keys = applicableFilterKeys(dwellOnly, context(dwellOnly));
+    const keys = applicableFilterKeys(dwellOnly, context(dwellOnly), "dwell");
     expect(keys.has("stepType")).toBe(true);
     expect(keys.has("carryingCost")).toBe(true);
-    // No plan on any row: the plan-calibration filters are not offered.
+    // No plan or inventory policy on any row: those filters are data-gated off.
     expect(keys.has("deviationPct")).toBe(false);
-    expect(keys.has("bufferReleasable")).toBe(false);
-    expect(keys.has("basis")).toBe(false);
+    expect(keys.has("moq")).toBe(false);
   });
 
-  it("restricts nothing for an empty view", () => {
-    const keys = applicableFilterKeys([], context([]));
-    expect(keys.has("deviationPct")).toBe(true);
-    expect(keys.has("basis")).toBe(true);
+  it("offers the view's own filters for an empty table", () => {
+    const dwellKeys = applicableFilterKeys([], context([]), "dwell");
+    expect(dwellKeys.has("moq")).toBe(true);
+    expect(dwellKeys.has("costTrendPct")).toBe(true);
+    expect(dwellKeys.has("statusAge")).toBe(true);
+    // Not dwell-view filters, even though an empty table data-gates nothing.
+    expect(dwellKeys.has("basis")).toBe(false);
+    expect(dwellKeys.has("materialValue")).toBe(false);
+    expect(dwellKeys.has("changeDays")).toBe(false);
+    expect(dwellKeys.has("deviationPct")).toBe(false);
+
+    const planningKeys = applicableFilterKeys([], context([]), "planning");
+    expect(planningKeys.has("plan")).toBe(true);
+    expect(planningKeys.has("deviationPct")).toBe(true);
+    expect(planningKeys.has("observations")).toBe(false);
+
+    const opportunityKeys = applicableFilterKeys(
+      [],
+      context([]),
+      "opportunities",
+    );
+    expect(opportunityKeys.has("p95DeviationPct")).toBe(true);
+    expect(opportunityKeys.has("stepType")).toBe(false);
+  });
+});
+
+describe("STEP_FILTER_MENUS", () => {
+  it("lists every filter definition in at least one view's menu", () => {
+    const menuKeys = new Set(
+      Object.values(STEP_FILTER_MENUS).flatMap((menu) =>
+        menu.flatMap((menuGroup) => menuGroup.keys),
+      ),
+    );
+    for (const definition of STEP_FILTER_DEFINITIONS) {
+      expect(menuKeys.has(definition.key), definition.key).toBe(true);
+    }
+  });
+
+  it("offers exactly the vendor-capable filters on the suppliers view", () => {
+    const supplierMenuKeys = new Set(
+      STEP_FILTER_MENUS.suppliers.flatMap((menuGroup) => menuGroup.keys),
+    );
+    expect(supplierMenuKeys).toEqual(vendorApplicableFilterKeys());
   });
 });
 
 describe("vendorApplicableFilterKeys", () => {
   it("offers only vendor-capable filters", () => {
     expect([...vendorApplicableFilterKeys()].sort()).toEqual([
+      "lateLines",
+      "lines",
       "material",
+      "materialsCount",
+      "maxDelay",
+      "meanDelayAll",
+      "meanDelayWhenLate",
+      "onTimePct",
+      "otifPct",
       "supplier",
     ]);
   });

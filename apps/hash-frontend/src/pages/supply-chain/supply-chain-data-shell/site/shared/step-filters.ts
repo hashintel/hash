@@ -19,11 +19,7 @@ import {
   statusLabelForNode,
   type StatusStore,
 } from "../../../shared/status";
-import {
-  cutoffForRange,
-  rangeMonths,
-  type TimeRange,
-} from "../../../shared/time-range";
+import { rangeMonths, type TimeRange } from "../../../shared/time-range";
 import { trendToneFor } from "../../../shared/trend-tone";
 import { siteNodeDisplayLabel } from "./helpers";
 import {
@@ -47,8 +43,15 @@ import type { MultiSelectItem } from "@hashintel/ds-components";
  * trend, and supplier tables, so a filter set applied on one table carries to
  * the others unchanged.
  *
+ * `STEP_FILTER_MENUS` is the authoritative per-view layout: groups mirror the
+ * view's table columns left-to-right, and filters kept for cross-view
+ * continuity without a column of their own sit in the nearest related group.
+ * Membership doubles as availability: a view whose menu omits a filter
+ * neither offers it nor applies it — a chip carried over from another view
+ * renders disabled there, even if its rows could match.
+ *
  * The supplier table's rows are vendors, not step nodes, so only filters that
- * define a `vendor` predicate (supplier, material) apply there.
+ * define a `vendor` predicate apply there.
  */
 
 export type FilterableStepRow = SiteNode & {
@@ -90,6 +93,14 @@ export interface StepFilterValue {
   value: unknown;
 }
 
+/** The five filterable views; the tab views match the `Tab` union. */
+export type StepFilterView =
+  | "dwell"
+  | "planning"
+  | "trends"
+  | "suppliers"
+  | "opportunities";
+
 export interface ActiveStepFilter {
   filterKey: StepFilterKey;
   value: StepFilterValue | null;
@@ -99,7 +110,6 @@ interface StepFilterDefinition {
   key: string;
   /** Static, or resolved against the display context for unit-aware labels. */
   label: string | ((options: StepFilterOptions) => string);
-  group: string;
   operators: (options: StepFilterOptions) => StepFilterOperator[];
   matches: (
     row: FilterableStepRow,
@@ -267,65 +277,6 @@ const carryingCostOf = (
   );
 };
 
-const dailyConsumptionOf = (
-  row: FilterableStepRow,
-  context: StepFilterContext,
-): number | null => {
-  const monthly = row.material_value?.monthly;
-  if (!monthly) {
-    return null;
-  }
-  const cutoff = cutoffForRange(context.timeRange);
-  const quantity = monthly.reduce(
-    (sum, bucket) => (bucket.month >= cutoff ? sum + bucket.quantity : sum),
-    0,
-  );
-  return quantity > 0 ? quantity / daysInRange(context.timeRange) : null;
-};
-
-/**
- * Days on hand beyond what the inventory policy forces: cycle stock from the
- * MOQ averages out to half an order, safety stock is held in full, and both
- * convert to days through the observed consumption rate. Positive = stock the
- * policy does not explain. Only dwell steps measure days on hand; procurement
- * and production durations are lead/processing times, so those rows yield null.
- */
-const excessVsPolicyOf = (
-  row: FilterableStepRow,
-  context: StepFilterContext,
-): number | null => {
-  if (!isDwellType(row.type)) {
-    return null;
-  }
-  const policy = row.inventory_policy;
-  const daysOnHand = measureValueOf(row, context);
-  if (!policy || daysOnHand == null) {
-    return null;
-  }
-  const minimumOrderQty = policy.minimum_order_qty ?? 0;
-  const safetyStockQty = policy.safety_stock_qty ?? 0;
-  if (minimumOrderQty <= 0 && safetyStockQty <= 0) {
-    return null;
-  }
-  const dailyConsumption = dailyConsumptionOf(row, context);
-  if (dailyConsumption == null) {
-    return null;
-  }
-  const policyImpliedDays =
-    (minimumOrderQty / 2 + safetyStockQty) / dailyConsumption;
-  return daysOnHand - policyImpliedDays;
-};
-
-const tailRatioOf = (row: FilterableStepRow): number | null => {
-  const { median, p95 } = row.stats;
-  return median != null && median > 0 && p95 != null ? p95 / median : null;
-};
-
-const variabilityOf = (row: FilterableStepRow): number | null => {
-  const { mean, std } = row.stats;
-  return mean != null && mean > 0 && std != null ? std / mean : null;
-};
-
 const deviationPctOf = (
   row: FilterableStepRow,
   context: StepFilterContext,
@@ -357,9 +308,10 @@ const deviationDirectionOf = (
   return deviation > 0 ? "over" : "under";
 };
 
-const bufferReleasableOf = (row: FilterableStepRow): number | null =>
-  row.plan != null && row.stats.p85 != null
-    ? Math.max(0, row.plan - row.stats.p85)
+/** P95 against plan: the planning opportunities' impact value. */
+const p95DeviationPctOf = (row: FilterableStepRow): number | null =>
+  row.plan != null && row.plan > 0 && row.stats.p95 != null
+    ? ((row.stats.p95 - row.plan) / row.plan) * 100
     : null;
 
 const changeDaysOf = (
@@ -468,7 +420,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "stepName",
     label: "Step name",
-    group: "Scope",
     operators: () =>
       pickOperators(stringOperators, ["contains", "notContains", "is"]),
     matches: (row, value) =>
@@ -478,7 +429,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "stepType",
     label: "Step type",
-    group: "Scope",
     operators: () =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], stepTypeItems, {
         overflow: "summary",
@@ -490,7 +440,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "material",
     label: "Material",
-    group: "Scope",
     operators: (options) =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.materialItems, {
         searchable: true,
@@ -513,7 +462,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "product",
     label: "Product",
-    group: "Scope",
     operators: (options) =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.productItems, {
         searchable: true,
@@ -530,7 +478,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "supplier",
     label: "Supplier",
-    group: "Scope",
     operators: (options) =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], options.supplierItems, {
         searchable: true,
@@ -557,7 +504,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "basis",
     label: "Receipt basis",
-    group: "Scope",
     operators: () =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], basisItems),
     matches: (row, value) =>
@@ -572,7 +518,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "measureValue",
     label: (options) => `Observed days (${MEASURE_LABELS[options.measure]})`,
-    group: "Magnitude",
     operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
@@ -583,9 +528,16 @@ export const STEP_FILTER_DEFINITIONS = [
     isApplicable: (row, context) => measureValueOf(row, context) != null,
   },
   {
+    key: "previousValue",
+    label: (options) => `Previous days (${MEASURE_LABELS[options.measure]})`,
+    operators: dayNumberOperators,
+    matches: (row, value) =>
+      matchesNumberOperator(value.key, row.previousValue, value.value),
+    isApplicable: (row) => row.previousValue != null,
+  },
+  {
     key: "materialValue",
     label: (options) => `Material value${periodSuffix(options)}`,
-    group: "Magnitude",
     operators: currencyNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
@@ -598,7 +550,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "carryingCost",
     label: (options) => `Carrying cost${periodSuffix(options)}`,
-    group: "Magnitude",
     operators: currencyNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
@@ -608,24 +559,35 @@ export const STEP_FILTER_DEFINITIONS = [
       ),
     isApplicable: (row, context) => carryingCostOf(row, context) != null,
   },
+  // Policy quantities are in each row's own order UOM, so the inputs are unitless.
   {
-    key: "excessVsPolicy",
-    label: "Excess vs policy",
-    group: "Magnitude",
-    operators: dayNumberOperators,
-    matches: (row, value, context) =>
+    key: "moq",
+    label: "MOQ",
+    operators: allNumberOperators,
+    matches: (row, value) =>
       matchesNumberOperator(
         value.key,
-        excessVsPolicyOf(row, context),
+        row.inventory_policy?.minimum_order_qty,
         value.value,
       ),
-    isApplicable: (row, context) => excessVsPolicyOf(row, context) != null,
+    isApplicable: (row) => row.inventory_policy?.minimum_order_qty != null,
+  },
+  {
+    key: "safetyStock",
+    label: "Safety stock",
+    operators: allNumberOperators,
+    matches: (row, value) =>
+      matchesNumberOperator(
+        value.key,
+        row.inventory_policy?.safety_stock_qty,
+        value.value,
+      ),
+    isApplicable: (row) => row.inventory_policy?.safety_stock_qty != null,
   },
   // Statistics
   {
     key: "sampleConfidence",
     label: "Sample confidence",
-    group: "Statistics",
     operators: () =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], sampleTierItems),
     matches: (row, value) =>
@@ -639,35 +601,23 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "observations",
     label: "Observations",
-    group: "Statistics",
     operators: allNumberOperators,
     matches: (row, value) =>
       matchesNumberOperator(value.key, row.stats.n, value.value),
     isApplicable: () => true,
   },
-  {
-    key: "tailRatio",
-    label: "Tail ratio (P95 ÷ median)",
-    group: "Statistics",
-    operators: allNumberOperators,
-    matches: (row, value) =>
-      matchesNumberOperator(value.key, tailRatioOf(row), value.value),
-    isApplicable: (row) => tailRatioOf(row) != null,
-  },
-  {
-    key: "variability",
-    label: "Variability (CV)",
-    group: "Statistics",
-    operators: allNumberOperators,
-    matches: (row, value) =>
-      matchesNumberOperator(value.key, variabilityOf(row), value.value),
-    isApplicable: (row) => variabilityOf(row) != null,
-  },
   // Planning
+  {
+    key: "plan",
+    label: "Planned days",
+    operators: dayNumberOperators,
+    matches: (row, value) =>
+      matchesNumberOperator(value.key, row.plan, value.value),
+    isApplicable: (row) => row.plan != null,
+  },
   {
     key: "deviationPct",
     label: "Deviation %",
-    group: "Planning",
     operators: allNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
@@ -680,7 +630,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "deviationDirection",
     label: "Deviation direction",
-    group: "Planning",
     operators: () =>
       pickSingleSelectOperators(["is", "isNot"], deviationDirectionItems),
     matches: (row, value, context) => {
@@ -694,27 +643,25 @@ export const STEP_FILTER_DEFINITIONS = [
     isApplicable: (row, context) => deviationPctOf(row, context) != null,
   },
   {
+    key: "p95DeviationPct",
+    label: "P95 vs plan %",
+    // Matches the planning opportunities' displayed impact value.
+    operators: allNumberOperators,
+    matches: (row, value) =>
+      matchesNumberOperator(value.key, p95DeviationPctOf(row), value.value),
+    isApplicable: (row) => p95DeviationPctOf(row) != null,
+  },
+  {
     key: "exceedingPlan",
     label: "% exceeding plan",
-    group: "Planning",
     operators: allNumberOperators,
     matches: (row, value) =>
       matchesNumberOperator(value.key, row.pct_exceeding_plan, value.value),
     isApplicable: (row) => row.pct_exceeding_plan != null,
   },
   {
-    key: "bufferReleasable",
-    label: "Buffer releasable",
-    group: "Planning",
-    operators: dayNumberOperators,
-    matches: (row, value) =>
-      matchesNumberOperator(value.key, bufferReleasableOf(row), value.value),
-    isApplicable: (row) => bufferReleasableOf(row) != null,
-  },
-  {
     key: "planningWarnings",
     label: "Planning warnings",
-    group: "Planning",
     operators: () => [
       { key: "has", label: "present", input: null },
       { key: "none", label: "none", input: null },
@@ -730,7 +677,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "trendPct",
     label: "Trend %",
-    group: "Change",
     operators: allNumberOperators,
     matches: (row, value) =>
       matchesNumberOperator(value.key, row.trendPct, value.value),
@@ -739,7 +685,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "trendDirection",
     label: "Trend direction",
-    group: "Change",
     operators: () =>
       pickSingleSelectOperators(["is", "isNot"], trendDirectionItems),
     matches: (row, value) => {
@@ -753,9 +698,17 @@ export const STEP_FILTER_DEFINITIONS = [
     isApplicable: (row) => row.trendPct != null,
   },
   {
+    key: "costTrendPct",
+    label: "Cost trend %",
+    // The trend glyph stacked under the dwell table's Cost column.
+    operators: allNumberOperators,
+    matches: (row, value) =>
+      matchesNumberOperator(value.key, row.costTrendPct, value.value),
+    isApplicable: (row) => row.costTrendPct != null,
+  },
+  {
     key: "changeDays",
     label: "Change",
-    group: "Change",
     operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(value.key, changeDaysOf(row, context), value.value),
@@ -764,7 +717,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "valueWeightedChange",
     label: "Value-weighted change",
-    group: "Change",
     operators: currencyNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
@@ -777,7 +729,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "crossedPlan",
     label: "Crossed plan this period",
-    group: "Change",
     // "no" includes rows without a plan or previous period.
     operators: () => [
       { key: "yes", label: "yes", input: null },
@@ -793,7 +744,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "status",
     label: "Status",
-    group: "Workflow",
     operators: () =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], statusItems),
     matches: (row, value, context) =>
@@ -807,7 +757,6 @@ export const STEP_FILTER_DEFINITIONS = [
   {
     key: "statusAge",
     label: "Status age",
-    group: "Workflow",
     operators: dayNumberOperators,
     matches: (row, value, context) =>
       matchesNumberOperator(
@@ -817,13 +766,224 @@ export const STEP_FILTER_DEFINITIONS = [
       ),
     isApplicable: (row, context) => statusAgeDaysOf(row, context) != null,
   },
+  // Supplier performance: vendor-only metrics matching the supplier table's
+  // columns. Only the suppliers view lists them, so the step-row predicates
+  // are inert (`isApplicable` false keeps a stray chip disabled elsewhere).
+  {
+    key: "materialsCount",
+    label: "Materials count",
+    operators: allNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(
+        value.key,
+        vendor.materials?.length ?? 0,
+        value.value,
+      ),
+  },
+  {
+    key: "lines",
+    label: "Lines",
+    operators: allNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(value.key, vendor.n_lines, value.value),
+  },
+  {
+    key: "lateLines",
+    label: "Late lines",
+    operators: allNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(value.key, vendor.n_late, value.value),
+  },
+  {
+    key: "onTimePct",
+    label: "On-time %",
+    operators: allNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(value.key, vendor.on_time_pct, value.value),
+  },
+  {
+    key: "otifPct",
+    label: "OTIF %",
+    operators: allNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(value.key, vendor.otif_pct, value.value),
+  },
+  {
+    key: "meanDelayAll",
+    label: "Mean delay (all)",
+    operators: dayNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(value.key, vendor.mean_days_late_all, value.value),
+  },
+  {
+    key: "meanDelayWhenLate",
+    label: "Mean delay when late",
+    operators: dayNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(
+        value.key,
+        vendor.mean_days_late_when_late,
+        value.value,
+      ),
+  },
+  {
+    key: "maxDelay",
+    label: "Max delay",
+    operators: dayNumberOperators,
+    matches: () => true,
+    isApplicable: () => false,
+    vendor: (vendor, value) =>
+      matchesNumberOperator(value.key, vendor.max_days_late, value.value),
+  },
 ] as const satisfies readonly StepFilterDefinition[];
 
 export type StepFilterKey = (typeof STEP_FILTER_DEFINITIONS)[number]["key"];
 
+export interface StepFilterMenuGroup {
+  /** Menu heading; omit to list the keys ungrouped (used where a heading would just repeat a filter's own label). */
+  group?: string;
+  keys: ReadonlyArray<StepFilterKey>;
+}
+
+/**
+ * Add-menu layout per view: groups in display order, mirroring the view's
+ * table columns left-to-right; filters kept for cross-view continuity that
+ * have no column sit in the nearest related group. Within a group the menu
+ * renders filters alphabetized by their resolved labels, so key order here
+ * only documents association. Membership is authoritative: a view offers,
+ * and applies, exactly the filters its layout lists (see the module doc).
+ */
+export const STEP_FILTER_MENUS: Record<
+  StepFilterView,
+  ReadonlyArray<StepFilterMenuGroup>
+> = {
+  dwell: [
+    { group: "Step", keys: ["stepName", "stepType", "product"] },
+    { group: "Supplier", keys: ["material", "supplier"] },
+    {
+      group: "Observed days",
+      keys: ["measureValue", "trendPct", "trendDirection"],
+    },
+    { group: "Inventory policy", keys: ["moq", "safetyStock"] },
+    { group: "Cost", keys: ["carryingCost", "costTrendPct"] },
+    { group: "Samples", keys: ["observations", "sampleConfidence"] },
+    { group: "Status", keys: ["status", "statusAge"] },
+  ],
+  planning: [
+    { group: "Step", keys: ["stepName", "stepType", "product"] },
+    { group: "Supplier", keys: ["material", "supplier", "basis"] },
+    { group: "Value", keys: ["materialValue"] },
+    {
+      group: "Plan",
+      keys: [
+        "plan",
+        "measureValue",
+        "deviationPct",
+        "deviationDirection",
+        "exceedingPlan",
+        "crossedPlan",
+        "planningWarnings",
+      ],
+    },
+    // The low-sample badge renders inside the Trend cell, so the sample
+    // filter sits with the trend ones here.
+    {
+      group: "Trend",
+      keys: ["trendPct", "trendDirection", "changeDays", "sampleConfidence"],
+    },
+    { keys: ["status", "statusAge"] },
+  ],
+  trends: [
+    { group: "Step", keys: ["stepName", "stepType", "product"] },
+    { group: "Supplier", keys: ["material", "supplier", "basis"] },
+    { group: "Days", keys: ["measureValue", "previousValue", "changeDays"] },
+    {
+      group: "Trend",
+      keys: [
+        "trendPct",
+        "trendDirection",
+        "deviationPct",
+        "deviationDirection",
+        "exceedingPlan",
+        "crossedPlan",
+      ],
+    },
+    { group: "Samples", keys: ["observations", "sampleConfidence"] },
+    { keys: ["status"] },
+  ],
+  suppliers: [
+    { group: "Vendor", keys: ["supplier"] },
+    { group: "Materials", keys: ["material", "materialsCount"] },
+    { group: "Lines", keys: ["lines", "lateLines"] },
+    { group: "Reliability", keys: ["onTimePct", "otifPct"] },
+    {
+      group: "Delays",
+      keys: ["meanDelayAll", "meanDelayWhenLate", "maxDelay"],
+    },
+  ],
+  opportunities: [
+    { group: "Step", keys: ["stepName", "product"] },
+    { group: "Supplier", keys: ["material", "supplier", "basis"] },
+    // The displayed impact values first, then the underlying step metrics
+    // the impact derives from (plan comparison, then change).
+    {
+      group: "Impact",
+      keys: [
+        "carryingCost",
+        "p95DeviationPct",
+        "measureValue",
+        "deviationPct",
+        "deviationDirection",
+        "crossedPlan",
+        "trendPct",
+        "trendDirection",
+        "changeDays",
+        "valueWeightedChange",
+      ],
+    },
+    {
+      group: "Sample",
+      keys: ["sampleConfidence", "observations", "planningWarnings"],
+    },
+    { keys: ["status"] },
+  ],
+};
+
+const menuFilterKeys = (
+  menu: ReadonlyArray<StepFilterMenuGroup>,
+): ReadonlySet<StepFilterKey> =>
+  new Set(menu.flatMap((menuGroup) => menuGroup.keys));
+
+/** Flattened menu membership per view, for availability checks. */
+const viewFilterKeys: Record<StepFilterView, ReadonlySet<StepFilterKey>> = {
+  dwell: menuFilterKeys(STEP_FILTER_MENUS.dwell),
+  planning: menuFilterKeys(STEP_FILTER_MENUS.planning),
+  trends: menuFilterKeys(STEP_FILTER_MENUS.trends),
+  suppliers: menuFilterKeys(STEP_FILTER_MENUS.suppliers),
+  opportunities: menuFilterKeys(STEP_FILTER_MENUS.opportunities),
+};
+
 const definitionByKey = new Map<string, StepFilterDefinition>(
   STEP_FILTER_DEFINITIONS.map((definition) => [definition.key, definition]),
 );
+
+/** Definition lookup for rendering a chip's label and operators. */
+export const stepFilterDefinition = (key: StepFilterKey) =>
+  definitionByKey.get(key);
 
 export interface StepFilterApplication<Item> {
   rows: Item[];
@@ -836,7 +996,9 @@ const resolveActiveFilters = (filters: ActiveStepFilter[]) =>
       return [];
     }
     const definition = definitionByKey.get(filter.filterKey);
-    return definition ? [{ definition, value: filter.value }] : [];
+    return definition
+      ? [{ key: filter.filterKey, definition, value: filter.value }]
+      : [];
   });
 
 export const applyStepFiltersBy = <Item>(
@@ -844,6 +1006,7 @@ export const applyStepFiltersBy = <Item>(
   rowOf: (item: Item) => FilterableStepRow,
   filters: ActiveStepFilter[],
   context: StepFilterContext,
+  view: StepFilterView,
 ): StepFilterApplication<Item> => {
   const active = resolveActiveFilters(filters);
   if (active.length === 0) {
@@ -853,12 +1016,15 @@ export const applyStepFiltersBy = <Item>(
   const skippedKeys: StepFilterKey[] = [];
   for (const entry of active) {
     if (
-      items.length === 0 ||
-      items.some((item) => entry.definition.isApplicable(rowOf(item), context))
+      viewFilterKeys[view].has(entry.key) &&
+      (items.length === 0 ||
+        items.some((item) =>
+          entry.definition.isApplicable(rowOf(item), context),
+        ))
     ) {
       applied.push(entry);
     } else {
-      skippedKeys.push(entry.definition.key as StepFilterKey);
+      skippedKeys.push(entry.key);
     }
   }
   const rows =
@@ -876,30 +1042,31 @@ export const applyStepFilters = <Row extends FilterableStepRow>(
   rows: Row[],
   filters: ActiveStepFilter[],
   context: StepFilterContext,
+  view: StepFilterView,
 ): StepFilterApplication<Row> =>
-  applyStepFiltersBy(rows, (row) => row, filters, context);
+  applyStepFiltersBy(rows, (row) => row, filters, context, view);
 
 /**
- * Supplier-table variant: vendor rows are not step nodes, so only filters
- * that define a `vendor` predicate apply; every other active filter is
- * skipped and reported.
- */
-/**
- * Filter keys a view offers in its add-filter menu: those at least one of the
- * view's rows carries the property for. An empty view restricts nothing
- * (mirroring apply's empty-table behaviour). Pass the view's full row set,
- * not its filtered rows, so one active filter cannot hide the others.
+ * Filter keys a view offers in its add-filter menu: the view's own filters,
+ * narrowed to those at least one of its rows carries the property for. An
+ * empty table applies no data-narrowing (mirroring apply's empty-table
+ * behaviour). Pass the view's full row set, not its filtered rows, so one
+ * active filter cannot hide the others.
  */
 export const applicableFilterKeys = (
   rows: FilterableStepRow[],
   context: StepFilterContext,
+  view: StepFilterView,
 ): Set<StepFilterKey> =>
   new Set(
-    STEP_FILTER_DEFINITIONS.filter(
-      (definition) =>
-        rows.length === 0 ||
-        rows.some((row) => definition.isApplicable(row, context)),
-    ).map((definition) => definition.key),
+    [...viewFilterKeys[view]].filter((key) => {
+      const definition = definitionByKey.get(key);
+      return (
+        !!definition &&
+        (rows.length === 0 ||
+          rows.some((row) => definition.isApplicable(row, context)))
+      );
+    }),
   );
 
 /** Supplier-table variant: only filters with a `vendor` predicate apply. */
@@ -922,7 +1089,7 @@ export const applyVendorStepFilters = (
   const applied = active.filter((entry) => entry.definition.vendor);
   const skippedKeys = active
     .filter((entry) => !entry.definition.vendor)
-    .map((entry) => entry.definition.key as StepFilterKey);
+    .map((entry) => entry.key);
   const rows =
     applied.length === 0
       ? vendors

@@ -465,6 +465,7 @@ export const SiteOverview = ({
       dwellRows,
       stepFilters,
       stepFilterContext,
+      "dwell",
     );
     return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
   }, [dwellRows, searchMatchers, stepFilters, stepFilterContext]);
@@ -473,6 +474,7 @@ export const SiteOverview = ({
       planningRows,
       stepFilters,
       stepFilterContext,
+      "planning",
     );
     return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
   }, [planningRows, searchMatchers, stepFilters, stepFilterContext]);
@@ -481,6 +483,7 @@ export const SiteOverview = ({
       trendRows,
       stepFilters,
       stepFilterContext,
+      "trends",
     );
     return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
   }, [trendRows, searchMatchers, stepFilters, stepFilterContext]);
@@ -498,6 +501,7 @@ export const SiteOverview = ({
       (opportunity) => opportunity.node,
       opportunityFilters,
       stepFilterContext,
+      "opportunities",
     );
     return { rows: rows.filter(searchMatchers.opportunity), skippedKeys };
   }, [
@@ -523,6 +527,7 @@ export const SiteOverview = ({
       applicableFilterKeys(
         generatedOpportunities.map((opportunity) => opportunity.node),
         stepFilterContext,
+        "opportunities",
       ),
     [generatedOpportunities, stepFilterContext],
   );
@@ -536,7 +541,7 @@ export const SiteOverview = ({
         : tab === "planning"
           ? planningRows
           : trendRows;
-    return applicableFilterKeys(rows, stepFilterContext);
+    return applicableFilterKeys(rows, stepFilterContext, tab);
   }, [tab, dwellRows, planningRows, trendRows, stepFilterContext]);
   const activeTabSkippedKeys = useMemo(() => {
     const application =
@@ -559,6 +564,7 @@ export const SiteOverview = ({
   // set is independent of the opportunities table's bar above.
   const activeTabFilterBar = (
     <StepFilterBar
+      view={tab}
       filters={stepFilters}
       onFiltersChange={setStepFilters}
       options={stepFilterOptions}
@@ -861,6 +867,7 @@ export const SiteOverview = ({
           onSort={setOppSort}
           filterBar={
             <StepFilterBar
+              view="opportunities"
               filters={opportunityFilters}
               onFiltersChange={setOpportunityFilters}
               options={stepFilterOptions}
