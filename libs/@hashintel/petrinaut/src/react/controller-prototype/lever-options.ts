@@ -207,3 +207,21 @@ export const addLevers = (
   }
   return { ...controller, levers };
 };
+
+/**
+ * The controller a Token field checklist edits: the one picked in the menu,
+ * else the first that already sets fields on the transition, else the first.
+ */
+export const tokenFieldTarget = (
+  controllers: Controller[],
+  transitionId: string,
+  pickedId: string | null
+): Controller | undefined =>
+  controllers.find((controller) => controller.id === pickedId) ??
+  controllers.find((controller) =>
+    controller.levers.some(
+      (lever) =>
+        lever.kind === "tokenField" && lever.transitionId === transitionId
+    )
+  ) ??
+  controllers[0];

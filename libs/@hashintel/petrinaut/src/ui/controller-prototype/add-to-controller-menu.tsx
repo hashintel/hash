@@ -1,14 +1,18 @@
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button, Menu, RightClickMenu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../react";
-import { withoutControllers } from "../../react/controller-prototype/controllers";
+import {
+  toggleTokenField,
+  withoutControllers,
+} from "../../react/controller-prototype/controllers";
 import {
   addLevers,
   holdsAll,
   leverOptionsFor,
+  tokenFieldTarget,
 } from "../../react/controller-prototype/lever-options";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 import { EditorContext } from "../../react/state/editor-context";
@@ -63,6 +67,13 @@ export const useLeverKindItems = (targetIds: string[]): MenuEntry[] => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { controllers, updateControllers } = useControllers();
   const { selectItem } = use(EditorContext);
+  const [picked, setPicked] = useState<{
+    forTargets: string;
+    controllerId: string;
+  } | null>(null);
+  const targetsKey = targetIds.join(",");
+  const pickedId =
+    picked?.forTargets === targetsKey ? picked.controllerId : null;
 
   const addTo = (controllerId: string | null, drafts: LeverDraft[]) => {
     const id = controllerId ?? newControllerId();
@@ -139,31 +150,95 @@ export const useLeverKindItems = (targetIds: string[]): MenuEntry[] => {
       if ("levers" in option) {
         return leaf(option.id, option.label, option.levers);
       }
+      const target = tokenFieldTarget(
+        controllers,
+        option.transitionId,
+        pickedId
+      );
+      const lever = target?.levers.find(
+        (candidate) =>
+          candidate.kind === "tokenField" &&
+          candidate.transitionId === option.transitionId
+      );
+      const isChosen = (placeId: string, elementId: string) =>
+        lever?.kind === "tokenField" &&
+        lever.places.some(
+          (entry) =>
+            entry.placeId === placeId && entry.elementIds.includes(elementId)
+        );
+      const tick = (placeId: string, elementId: string, on: boolean) =>
+        updateControllers((current) => {
+          const id = target?.id ?? newControllerId();
+          const all = current.some((controller) => controller.id === id)
+            ? current
+            : [
+                ...current,
+                {
+                  id,
+                  name: `Controller ${current.length + 1}`,
+                  levers: [],
+                } satisfies Controller,
+              ];
+          return all.map((controller) =>
+            controller.id === id
+              ? toggleTokenField(
+                  petriNetDefinition,
+                  controller,
+                  option.transitionId,
+                  placeId,
+                  elementId,
+                  on,
+                  newLeverId
+                )
+              : controller
+          );
+        });
       return {
         id: option.id,
         text: option.label,
-        subItems: option.places.map((place) => ({
-          id: `${option.id}:${place.placeId}`,
-          label: place.placeName,
-          items: place.fields.map((field) =>
-            leaf(
-              `${option.id}:${place.placeId}:${field.elementId}`,
-              <span className={fieldNameStyle}>{field.name}</span>,
-              [
+        subItems: [
+          ...option.places.map((place) => ({
+            id: `${option.id}:${place.placeId}`,
+            label: place.placeName,
+            items: place.fields.map(
+              (field): MenuItem => ({
+                id: `${option.id}:${place.placeId}:${field.elementId}`,
+                text: <span className={fieldNameStyle}>{field.name}</span>,
+                selectedStyle: "checkbox",
+                keepOpenOnSelect: true,
+                selected: isChosen(place.placeId, field.elementId),
+                onClick: () =>
+                  tick(
+                    place.placeId,
+                    field.elementId,
+                    !isChosen(place.placeId, field.elementId)
+                  ),
+              })
+            ),
+          })),
+          ...(controllers.length >= 2
+            ? [
                 {
-                  kind: "tokenField",
-                  transitionId: option.transitionId,
-                  places: [
-                    {
-                      placeId: place.placeId,
-                      elementIds: [field.elementId],
-                    },
-                  ],
+                  id: `${option.id}:controller`,
+                  label: "Controller",
+                  items: controllers.map(
+                    (controller): MenuItem => ({
+                      id: `${option.id}:controller:${controller.id}`,
+                      text: controller.name,
+                      selectedStyle: "tick",
+                      keepOpenOnSelect: true,
+                      selected: controller.id === target?.id,
+                      onClick: () =>
+                        setPicked({
+                          forTargets: targetsKey,
+                          controllerId: controller.id,
+                        }),
+                    })
+                  ),
                 },
               ]
-            )
-          ),
-        })),
+            : []),
+        ],
       } as MenuItem;
     }
   );
@@ -224,9 +299,19 @@ export const NodeContextMenu: React.FC<{
   ];
 
   return (
-    <RightClickMenu items={items}>
-      <div className={contextTargetStyle}>{children}</div>
-    </RightClickMenu>
+    <div
+      role="presentation"
+      className={contextTargetStyle}
+      onClick={(event) => {
+        if (!event.currentTarget.contains(event.target as Node)) {
+          event.stopPropagation();
+        }
+      }}
+    >
+      <RightClickMenu items={items}>
+        <div className={contextTargetStyle}>{children}</div>
+      </RightClickMenu>
+    </div>
   );
 };
 

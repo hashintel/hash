@@ -8,9 +8,10 @@ import {
   competingTransitionIds,
   leverAnchorKind,
   leverKindLabel,
-  leverKindOrder,
   leverName,
   rateExpression,
+  tokenFieldPlaces,
+  toggleTokenField,
 } from "../../react/controller-prototype/controllers";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 import { SimulationContext } from "../../react/simulation/context";
@@ -218,11 +219,69 @@ const ChoiceBody: React.FC<{
   );
 };
 
+const placeDotStyle = css({
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "full",
+  flexShrink: "0",
+});
+
+const fieldNameStyle = css({ fontFamily: "mono", fontSize: "xs" });
+
+const TokenFieldChecklist: React.FC<{
+  net: NetLike;
+  lever: Extract<Lever, { kind: "tokenField" }>;
+  onToggle: (placeId: string, elementId: string, on: boolean) => void;
+}> = ({ net, lever, onToggle }) => {
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <>
+      {tokenFieldPlaces(net, lever.transitionId).map((place) => {
+        const chosen =
+          lever.places.find((entry) => entry.placeId === place.placeId)
+            ?.elementIds ?? [];
+        return (
+          <div key={place.placeId} className={choiceRowStyle}>
+            <span className={choiceLabelStyle}>
+              <span
+                className={placeDotStyle}
+                style={{ backgroundColor: place.displayColor }}
+              />
+              {place.placeName}
+              <span className={mutedStyle}>{place.typeName}</span>
+            </span>
+            {place.fields.map((field) => (
+              <Checkbox
+                key={field.elementId}
+                size="sm"
+                value={chosen.includes(field.elementId)}
+                disabled={isReadOnly}
+                onChange={(checked) =>
+                  onToggle(place.placeId, field.elementId, checked)
+                }
+                label={
+                  <span className={choiceLabelStyle}>
+                    <span className={fieldNameStyle}>{field.name}</span>
+                    <span className={mutedStyle}>{field.type}</span>
+                  </span>
+                }
+              />
+            ))}
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
 const LeverBody: React.FC<{
   net: NetLike;
   lever: Lever;
   onToggleChoice: (transitionId: string, controlled: boolean) => void;
-}> = ({ net, lever, onToggleChoice }) => {
+  onToggleField: (placeId: string, elementId: string, on: boolean) => void;
+  open: boolean;
+}> = ({ net, lever, onToggleChoice, onToggleField, open }) => {
   const { initialMarking } = use(SimulationContext);
 
   switch (lever.kind) {
@@ -270,6 +329,15 @@ const LeverBody: React.FC<{
     }
 
     case "tokenField": {
+      if (open) {
+        return (
+          <TokenFieldChecklist
+            net={net}
+            lever={lever}
+            onToggle={onToggleField}
+          />
+        );
+      }
       const shown = lever.places.flatMap((entry) => {
         const place = net.places.find((p) => p.id === entry.placeId);
         const type = net.types.find((t) => t.id === place?.colorId);
@@ -302,11 +370,13 @@ const LeverRow: React.FC<{
   lever: Lever;
   defaultOpen: boolean;
   onToggleChoice: (transitionId: string, controlled: boolean) => void;
-}> = ({ net, lever, defaultOpen, onToggleChoice }) => {
+  onToggleField: (placeId: string, elementId: string, on: boolean) => void;
+}> = ({ net, lever, defaultOpen, onToggleChoice, onToggleField }) => {
   const [open, setOpen] = useState(defaultOpen);
   const NodeIcon =
     leverAnchorKind(lever) === "place" ? PlaceFilledIcon : TransitionFilledIcon;
   const missing = leverName(net, lever) === null;
+  const expandable = lever.kind === "choice" || lever.kind === "tokenField";
 
   return (
     <>
@@ -322,16 +392,24 @@ const LeverRow: React.FC<{
         <span className={missing ? missingStyle : undefined}>
           {leverTitle(net, lever)}
         </span>
-        <span
-          className={chevronStyle}
-          style={{ transform: open ? "rotate(90deg)" : undefined }}
-        >
-          <Icon name="chevronRight" size="xs" />
-        </span>
+        {expandable ? (
+          <span
+            className={chevronStyle}
+            style={{ transform: open ? "rotate(90deg)" : undefined }}
+          >
+            <Icon name="chevronRight" size="xs" />
+          </span>
+        ) : null}
       </button>
-      {open && !missing ? (
+      {!missing && (open || lever.kind !== "choice") ? (
         <div className={leverBodyStyle}>
-          <LeverBody net={net} lever={lever} onToggleChoice={onToggleChoice} />
+          <LeverBody
+            net={net}
+            lever={lever}
+            onToggleChoice={onToggleChoice}
+            onToggleField={onToggleField}
+            open={open}
+          />
         </div>
       ) : null}
     </>
@@ -368,6 +446,21 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
         ),
       }));
 
+  const toggleField =
+    (lever: Lever) => (placeId: string, elementId: string, on: boolean) =>
+      lever.kind === "tokenField" &&
+      updateThis((current) =>
+        toggleTokenField(
+          petriNetDefinition,
+          current,
+          lever.transitionId,
+          placeId,
+          elementId,
+          on,
+          () => lever.id
+        )
+      );
+
   return (
     <div className={sectionStyle}>
       <Form.Section>
@@ -387,28 +480,18 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
         {controller.levers.length === 0 ? (
           <div className={bodyTextStyle}>No levers yet.</div>
         ) : (
-          leverKindOrder.map((kind) => {
-            const levers = controller.levers.filter(
-              (lever) => lever.kind === kind
-            );
-            if (levers.length === 0) {
-              return null;
-            }
-            return (
-              <div key={kind} className={kindCardStyle}>
-                <div className={kindLabelStyle}>{leverKindLabel[kind]}</div>
-                {levers.map((lever) => (
-                  <LeverRow
-                    key={lever.id}
-                    net={petriNetDefinition}
-                    lever={lever}
-                    defaultOpen={kind === "choice"}
-                    onToggleChoice={toggleChoice(lever.id)}
-                  />
-                ))}
-              </div>
-            );
-          })
+          controller.levers.map((lever) => (
+            <div key={lever.id} className={kindCardStyle}>
+              <div className={kindLabelStyle}>{leverKindLabel[lever.kind]}</div>
+              <LeverRow
+                net={petriNetDefinition}
+                lever={lever}
+                defaultOpen={lever.kind === "choice"}
+                onToggleChoice={toggleChoice(lever.id)}
+                onToggleField={toggleField(lever)}
+              />
+            </div>
+          ))
         )}
       </div>
 

@@ -9,7 +9,12 @@ import {
   toggleTokenField,
   writeControllers,
 } from "./controllers";
-import { addLevers, holdsAll, leverOptionsFor } from "./lever-options";
+import {
+  addLevers,
+  holdsAll,
+  leverOptionsFor,
+  tokenFieldTarget,
+} from "./lever-options";
 
 import type { Controller } from "./controllers";
 import type { LeverDraft } from "./lever-options";
@@ -225,5 +230,34 @@ describe("readControllers", () => {
     const written = structuredClone(sdcpn);
     writeControllers(written, readControllers(sdcpn));
     expect(readControllers(written)).toEqual(readControllers(sdcpn));
+  });
+});
+
+describe("tokenFieldTarget", () => {
+  const withField: Controller = {
+    id: "b",
+    name: "B",
+    levers: [
+      {
+        id: "l",
+        kind: "tokenField",
+        transitionId: "trans_start_production",
+        places: [],
+      },
+    ],
+  };
+  const plain: Controller = { id: "a", name: "A", levers: [] };
+
+  it("prefers the picked controller, then one that already has the lever, then the first", () => {
+    expect(
+      tokenFieldTarget([plain, withField], "trans_start_production", "a")
+    ).toBe(plain);
+    expect(
+      tokenFieldTarget([plain, withField], "trans_start_production", "gone")
+    ).toBe(withField);
+    expect(tokenFieldTarget([plain, withField], "trans_other", null)).toBe(
+      plain
+    );
+    expect(tokenFieldTarget([], "trans_other", null)).toBeUndefined();
   });
 });
