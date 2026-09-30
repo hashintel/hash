@@ -274,7 +274,9 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   `startedDuringOutput`. `sinceOutputMs`, present when Live was audible in the
   second before, is the time from its last audible moment until the speech
   start was reported. Below about 100 means Live was still audible; from 500,
-  the speech doesn't count as started during output. The same line records the
+  the speech doesn't count as started during output. The window is measured
+  from when `speech_started` arrives, because its `audio_start_ms` is on the
+  audio stream's clock rather than the page clock the output stretches use. The same line records the
   transcription's confidence from its per-token log probabilities:
   `logprobTokens`, and when any were returned, `meanLogprob` and `minLogprob`.
   `peakMicrophoneLevel` is the loudest microphone sample from a second before
