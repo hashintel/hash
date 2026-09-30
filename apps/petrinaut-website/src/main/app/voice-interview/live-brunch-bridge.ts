@@ -1,4 +1,7 @@
-import { maxUtteranceTextLength } from "../../../shared/live-utterance-judgment";
+import {
+  maxUtteranceTextLength,
+  shouldWithholdUtterance,
+} from "../../../shared/live-utterance-judgment";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import {
   liveUtteranceStages,
@@ -10,14 +13,12 @@ import { logLiveDiagnostic } from "./shared/live-diagnostic";
 import type {
   UtteranceJudgment,
   UtteranceJudgmentState,
+  WithheldContribution,
 } from "../../../shared/live-utterance-judgment";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
-import type {
-  DiscardReason,
-  WithheldContribution,
-} from "./live-utterance-gate";
+import type { DiscardReason } from "./live-utterance-gate";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -410,12 +411,7 @@ export class LiveBrunchBridge {
       // Provider errors can contain source text. Record only an absent judgment.
     }
     // Delegation is traced separately; any override needs its own decision.
-    const decision =
-      judgment === null ||
-      judgment.confidence < 0.8 ||
-      judgment.contribution === "interview_content"
-        ? "submit"
-        : "withhold";
+    const decision = shouldWithholdUtterance(judgment) ? "withhold" : "submit";
     logLiveDiagnostic("judgment.result", {
       inputId: turn.inputId,
       delegationId: turn.delegationId,

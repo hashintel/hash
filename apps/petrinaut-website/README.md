@@ -396,7 +396,10 @@ To check local enforcement:
    reach Brunch.
 3. End voice and start again. Confirm old held inputs are not replayed.
 
-The threshold and deadline are trial settings, not validated production policy.
+The threshold and deadline (`utteranceWithholdConfidence`, which log-mode
+recommendations also use, and `utteranceJudgmentDeadlineMs`, both in
+`src/shared/live-utterance-judgment.ts`) are trial settings, not validated
+production policy.
 Before shared enablement, run the support-desk script plus contextual short
 answers; measure false withholding, Brunch-start delay, and avoided
 submissions. Synthetic tests do not establish classification quality, real Live

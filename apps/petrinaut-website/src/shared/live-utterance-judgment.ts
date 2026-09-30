@@ -10,11 +10,22 @@ export const utteranceContributions = [
 
 export type UtteranceContribution = (typeof utteranceContributions)[number];
 
+export type WithheldContribution = Exclude<
+  UtteranceContribution,
+  "interview_content"
+>;
+
 /** Enforcement is an owner-approved local trial, not a shared rollout. */
 export type UtteranceJudgmentMode = "off" | "log" | "enforce";
 
 /** Longest finalized transcript Live submits, in UTF-16 code units. Also bounds judgment context. */
 export const maxUtteranceTextLength = 32_000;
+
+/** Trial setting: judgments below this confidence never withhold. */
+export const utteranceWithholdConfidence = 0.8;
+
+/** Trial setting: enforcement submits unjudged input after this wait. Bounds classification, not composer admission. */
+export const utteranceJudgmentDeadlineMs = 1_000;
 
 /** Browser measurement window for the log-only latency tail, not an enforcement deadline. */
 export const utteranceJudgmentTimeoutMs = 10_000;
@@ -50,3 +61,13 @@ export const isUtteranceJudgment = (
   Number.isFinite(value.confidence) &&
   value.confidence >= 0 &&
   value.confidence <= 1;
+
+/** The trial withhold rule, shared by log-mode recommendations and enforcement. */
+export const shouldWithholdUtterance = (
+  judgment: UtteranceJudgment | null,
+): judgment is UtteranceJudgment & {
+  readonly contribution: WithheldContribution;
+} =>
+  judgment !== null &&
+  judgment.confidence >= utteranceWithholdConfidence &&
+  judgment.contribution !== "interview_content";

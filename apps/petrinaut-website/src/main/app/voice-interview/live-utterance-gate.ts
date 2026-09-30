@@ -1,16 +1,15 @@
+import {
+  shouldWithholdUtterance,
+  utteranceJudgmentDeadlineMs,
+} from "../../../shared/live-utterance-judgment";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type {
-  UtteranceContribution,
   UtteranceJudgment,
   UtteranceJudgmentState,
+  WithheldContribution,
 } from "../../../shared/live-utterance-judgment";
 import type { FinalizedInput } from "./live-conversation";
-
-export type WithheldContribution = Exclude<
-  UtteranceContribution,
-  "interview_content"
->;
 
 /** Why queued input was discarded: Stop, a Brunch error, or the end of voice. */
 export type DiscardReason = "stopped" | "error" | "ended";
@@ -63,12 +62,9 @@ export class LiveUtteranceGate {
       if (settled || this.#stopped) return;
       settled = true;
       cancel();
-      const withheld =
-        judgment !== null &&
-        judgment.confidence >= 0.8 &&
-        judgment.contribution !== "interview_content"
-          ? judgment.contribution
-          : null;
+      const withheld = shouldWithholdUtterance(judgment)
+        ? judgment.contribution
+        : null;
       entry.decision = withheld === null ? "submit" : "withhold";
       logLiveDiagnostic("judgment.result", {
         inputId: input.id,
@@ -84,7 +80,7 @@ export class LiveUtteranceGate {
       if (withheld !== null) this.#dependencies.withhold(input, withheld);
       this.drain();
     };
-    timer = setTimeout(() => finish(null, true), 1_000);
+    timer = setTimeout(() => finish(null, true), utteranceJudgmentDeadlineMs);
     this.#cancellations.add(cancel);
     try {
       const judgment = this.#dependencies.judge?.(state, controller.signal);
