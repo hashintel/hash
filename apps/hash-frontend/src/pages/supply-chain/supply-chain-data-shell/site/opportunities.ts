@@ -86,11 +86,7 @@ function opportunityId(
 function confidenceLabel(
   currentN: number,
   previousN: number | null | undefined,
-  hasRequiredData: boolean,
 ): string {
-  if (!hasRequiredData) {
-    return "Low sample";
-  }
   const tier = combinedSampleTier(currentN, previousN);
   if (tier === "low" || tier === "none") {
     return "Low sample";
@@ -161,7 +157,7 @@ function planningOpportunity(
     sampleLabel: sampleLabel(row.stats.n, row.previousTrendN, row),
     currentSampleN: row.stats.n,
     previousSampleN: row.previousTrendN,
-    confidenceLabel: confidenceLabel(row.stats.n, row.previousTrendN, true),
+    confidenceLabel: confidenceLabel(row.stats.n, row.previousTrendN),
     score: Math.abs(p95DeviationPct),
     briefHref: briefHref("planning", row, kind),
   };
@@ -188,6 +184,8 @@ export function buildSiteOpportunities({
     // opportunity is driven by carrying cost (kg-days x assumptions), so its
     // qualification and displayed value must not change when the Measure
     // dropdown is toggled. Below the 5k floor the saving isn't worth surfacing.
+    // Rows missing `cost.unit_price` have periodCost 0, so the floor also
+    // guarantees every surfaced opportunity has complete cost inputs.
     const days = row.stats.median;
     if (
       days == null ||
@@ -213,11 +211,7 @@ export function buildSiteOpportunities({
       sampleLabel: sampleLabel(row.stats.n, row.previousTrendN, row),
       currentSampleN: row.stats.n,
       previousSampleN: row.previousTrendN,
-      confidenceLabel: confidenceLabel(
-        row.stats.n,
-        row.previousTrendN,
-        row.cost?.unit_price != null,
-      ),
+      confidenceLabel: confidenceLabel(row.stats.n, row.previousTrendN),
       score: row.periodCost,
       briefHref: briefHref("dwell", row, "dwell_cost"),
     });
