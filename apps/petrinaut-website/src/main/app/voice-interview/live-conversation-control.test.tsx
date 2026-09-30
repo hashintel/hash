@@ -46,7 +46,6 @@ vi.mock("./live-conversation", () => ({
 }));
 beforeEach(() => {
   vi.stubEnv("DEV", true);
-  window.history.replaceState(null, "", "/");
   const values = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -66,7 +65,6 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.unstubAllEnvs();
-  window.history.replaceState(null, "", "/");
   window.localStorage.clear();
 });
 
@@ -166,16 +164,10 @@ test.each(["log", undefined] as const)(
   },
 );
 
-test.each([
-  { development: true, search: "" },
-  { development: true, search: "?voiceDebug=0" },
-  { development: true, search: "?voiceDebug=1" },
-  { development: false, search: "?voiceDebug=1" },
-])(
-  "withholds judged control speech: $development $search",
-  async ({ development, search }) => {
+test.each([true, false])(
+  "withholds judged control speech with development traces %s",
+  async (development) => {
     vi.stubEnv("DEV", development);
-    window.history.replaceState(null, "", `/${search}`);
     window.localStorage.setItem(
       LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
       "acknowledged",
@@ -186,7 +178,6 @@ test.each([
         Response.json({ contribution: "control", confidence: 0.99 }),
       );
     const trace = vi.spyOn(console, "debug").mockImplementation(() => {});
-    const readable = vi.spyOn(console, "log").mockImplementation(() => {});
     const props = context();
     try {
       render(
@@ -214,25 +205,15 @@ test.each([
       } else {
         expect(trace).not.toHaveBeenCalled();
       }
-      if (development && search === "?voiceDebug=1") {
-        expect(readable).toHaveBeenCalledWith(
-          expect.stringContaining("Withheld by gate"),
-        );
-      } else {
-        expect(readable).not.toHaveBeenCalled();
-      }
-      expect(JSON.stringify(readable.mock.calls)).not.toContain("PRIVATE");
       expect(JSON.stringify(trace.mock.calls)).not.toContain("PRIVATE");
     } finally {
       fetch.mockRestore();
       trace.mockRestore();
-      readable.mockRestore();
     }
   },
 );
 
 test("connected enforcement uses context without letting delegation release held speech", async () => {
-  window.history.replaceState(null, "", "/?voiceDebug=1");
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
     "acknowledged",

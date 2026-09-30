@@ -355,11 +355,11 @@ discarded without retry. Each discarded input gets an `input.dropped` trace
 with `reason` (`stopped`, `error`, or `ended` when voice ends) and the gate
 `decision` it had reached (`pending` or `submit`), metadata only.
 
-Withholding is silent: there is no **Not sent to Brunch** list or
-**Send to Brunch** button, even with diagnostics enabled. **A wrongly held answer
-cannot be recovered through the UI.** Ending voice clears session-local state
-and cancels pending work. No automatic retry or replay occurs after reconnect.
-Check canonical history if admission is unconfirmed.
+Withholding is silent: there is no **Not sent to Brunch** list or **Send to
+Brunch** button. **A wrongly held answer cannot be recovered through the UI.**
+Ending voice clears session-local state and cancels pending work. No automatic
+retry or replay occurs after reconnect. Check canonical history if admission is
+unconfirmed.
 
 Transcripts skipped by the empty or short-during-output checks are never
 judged. GPT-Live delegation neither chooses nor releases a transcript, but it
@@ -370,30 +370,12 @@ to answer itself; other withheld speech declines it. `judgment.result` records
 the applied decision and `input.withheld` the delegation outcome, using
 metadata only.
 
-For readable browser console lines, add `?voiceDebug=1` to the page URL (or
-`&voiceDebug=1` if it already has query parameters), reload, and filter DevTools
-Console by `[Petrinaut Voice debug]`. This local-development-only option works
-in log and enforce modes; it does not enable voice or change the gate mode.
-Match lines by `inputId`: **Submission attempted** is not confirmation;
-**Reached Brunch** means Flue admitted it and supplied a `submissionId`.
-Log-only judgments say **Judgment only; submissions unchanged**, even when the
-recommendation is to withhold. Enforcement distinguishes withholding, permission
-to submit, and timeout fallback. A response failure after
-admission remains **Reached Brunch; response unconfirmed**. These lines contain
-only selected metadata, never transcript or relayed prose. Remove the parameter
-or set `voiceDebug=0` and reload to disable the extra lines;
-existing structured `[Petrinaut Live trace]` diagnostics remain metadata-only
-and unchanged. Held text is never moved into console logs.
+To check local enforcement, filter DevTools Console by `[Petrinaut Live trace]`:
 
-To check local enforcement:
-
-1. Start the local enforcement configuration above with diagnostics off. Speak
-   the support-desk script; confirm withheld inputs have metadata traces but no
-   recovery list or Brunch admission.
-2. Add `voiceDebug=1`, reload, and start a new voice session. Repeat a held input;
-   confirm **Withheld by gate** appears in the console without its text, and no
-   recovery UI appears. Check meaningful short answers and corrections still
-   reach Brunch.
+1. Start the local enforcement configuration above. Speak the support-desk
+   script; confirm withheld inputs have a `judgment.result` trace with
+   `"applied":"withhold"`, no `brunch.admitted` trace, and none of their text.
+2. Check meaningful short answers and corrections still reach Brunch.
 3. End voice and start again. Confirm old held inputs are not replayed.
 
 The threshold and deadline (`utteranceWithholdConfidence`, which log-mode
