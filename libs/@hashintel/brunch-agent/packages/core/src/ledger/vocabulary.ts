@@ -18,6 +18,33 @@ export interface LedgerDimension {
 }
 
 /**
+ * Something a finished identity of a kind has. A confirmed Note about the
+ * identity naming `covers` meets it, or, when `relation` is set, a confirmed
+ * relationship of one of those types with the identity at `end`. A Note about
+ * the identity naming `covers` at inapplicable standing closes it either way.
+ */
+export interface LedgerExpectation {
+  readonly name: string;
+  readonly description: string;
+  readonly covers: string;
+  readonly relation?: {
+    readonly names: readonly string[];
+    readonly end: "from" | "to";
+  };
+}
+
+/** A kind of identity, with what a finished identity of that kind has. */
+export interface LedgerKind extends LedgerVocabularyTerm {
+  readonly expects?: readonly LedgerExpectation[];
+}
+
+/** The terms coverage is judged against. */
+export type LedgerCoverageTerms = Pick<
+  LedgerVocabulary,
+  "dimensions" | "kinds"
+>;
+
+/**
  * The terms of an identity-addressed Ledger. Notes are filed against the
  * identities of the emerging model and the relationships among them rather
  * than fixed categories; this object is the single source for the commit
@@ -28,7 +55,7 @@ export interface LedgerVocabulary {
   /** What the account must cover; every entry names the ones it helps cover. */
   readonly dimensions: readonly LedgerDimension[];
   /** Optional, revisable classifications of an identity. */
-  readonly kinds: readonly LedgerVocabularyTerm[];
+  readonly kinds: readonly LedgerKind[];
   /** Relationship types; `other` with a label is always available as well. */
   readonly relations: readonly LedgerVocabularyTerm[];
   /** Identities every conversation starts with. */
@@ -154,6 +181,19 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
 const term = ({ name, description, covers }: LedgerVocabularyTerm) =>
   `- ${name}${covers ? ` (covers ${covers.join(", ")})` : ""}: ${description}`;
 
+const expectation = ({
+  name,
+  description,
+  covers,
+  relation,
+}: LedgerExpectation) =>
+  `${name} (${relation ? `relation ${relation.names.join(" or ")} ${relation.end} it; ` : ""}dimension ${covers}): ${description}`;
+
+const kindTerm = (kind: LedgerKind) =>
+  kind.expects
+    ? `${term(kind)}\n  Needs: ${kind.expects.map(expectation).join("; ")}`
+    : term(kind);
+
 /** The vocabulary as the tool description shows it. */
 export const renderVocabulary = (vocabulary: LedgerVocabulary): string =>
   [
@@ -163,8 +203,8 @@ export const renderVocabulary = (vocabulary: LedgerVocabulary): string =>
         `- ${name}: ${description} Done when ${done}.`,
     ),
     "",
-    "Kinds (optional; revise by superseding the identity Note):",
-    ...vocabulary.kinds.map(term),
+    "Kinds (optional; revise by superseding the identity Note). Needs are what a finished identity of the kind has, met by a confirmed Note or relationship; a Note about the identity at inapplicable standing covering the need's dimension closes one that does not apply:",
+    ...vocabulary.kinds.map(kindTerm),
     "",
     "Relations (from -relation-> to; other takes a label):",
     ...vocabulary.relations.map(term),

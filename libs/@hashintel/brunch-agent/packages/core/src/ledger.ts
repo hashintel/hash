@@ -23,7 +23,10 @@ export {
 export {
   identityCommitInputSchema,
   renderVocabulary,
+  type LedgerCoverageTerms,
   type LedgerDimension,
+  type LedgerExpectation,
+  type LedgerKind,
   type LedgerVocabulary,
   type LedgerVocabularyTerm,
 } from "./ledger/vocabulary";

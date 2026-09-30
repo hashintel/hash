@@ -119,7 +119,7 @@ export const prepareIdentityLedgerCommit = ({
   decideCommit({
     ...call,
     check: (prior) => identityRefusal(vocabulary, prior, call.changes),
-    summarise: (notes) => summariseCoverage(notes, vocabulary.dimensions),
+    summarise: (notes) => summariseCoverage(notes, vocabulary),
   });
 
 const identityRefusal = (
