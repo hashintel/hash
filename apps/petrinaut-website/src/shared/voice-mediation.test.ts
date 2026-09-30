@@ -19,8 +19,6 @@ test("keeps absent modelling details open and uses only verbatim evidence", () =
   expect(brief).toEqual({
     goal: "support tickets",
     arrivals: "Arrivals vary through the day",
-    handling: "Still open",
-    queue: "Still open",
     stillOpen: "handling, queue",
   });
   const serialized = serializeVoiceBrief(transcript, brief);
@@ -68,19 +66,37 @@ test("preserves decision ranges and negation without inventing a run budget", ()
   ).toEqual({
     decide: "Compare 2–8 agents",
     measure: "waiting time, not cost",
-    constraints: "Still open",
-    runs: "Still open",
-    ask: "Still open",
+    stillOpen: "constraints, runs, ask",
   });
 });
 
-test("wrap-ups allow two sentences but reject a third and oversized speech", () => {
+test("retains and serializes verbatim evidence whose actual words are Still open", () => {
+  const brief = prepareVoiceBrief("The run budget is Still open.", {
+    kind: "decision",
+    runs: "Still open",
+  });
+
+  expect(brief.runs).toBe("Still open");
+  expect(
+    JSON.parse(
+      serializeVoiceBrief("The run budget is Still open.", brief).split(
+        "\n",
+      )[1]!,
+    ),
+  ).toMatchObject({
+    excerpts: { runs: "Still open" },
+  });
+});
+
+test("wrap-ups allow any sentence count within the character limit", () => {
   expect(
     validateVoiceWrapUp(
       "Brunch drafted the comparison. Select Run to start it.",
     ),
   ).toBe("Brunch drafted the comparison. Select Run to start it.");
-  expect(() => validateVoiceWrapUp("Drafted. Not run. Select Run.")).toThrow();
+  expect(validateVoiceWrapUp("Drafted. Not run. Select Run.")).toBe(
+    "Drafted. Not run. Select Run.",
+  );
   expect(() => validateVoiceWrapUp("x".repeat(601))).toThrow();
   expect(() => validateVoiceWrapUp("")).toThrow();
 });

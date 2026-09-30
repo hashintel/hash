@@ -802,6 +802,7 @@ test("summarizes selected audio devices without exposing device IDs", () => {
 
 test.each<{
   state: "streaming" | "done";
+  preparationFailed?: boolean;
   fields: Record<string, string>;
   label: string;
   note: string;
@@ -824,13 +825,50 @@ test.each<{
     label: "Sent to Brunch",
     note: "Prepared from what you said",
   },
-])("labels a brief truthfully: $label", ({ state, fields, label, note }) => {
-  render(<VoiceInputProvenance brief={{ state, fields }} />);
-  const disclosure = screen.getByText(label).closest("details");
-  expect(disclosure?.getAttribute("aria-busy")).toBe(
-    String(state === "streaming"),
+  {
+    state: "streaming" as const,
+    preparationFailed: true,
+    fields: {},
+    label: "Sending without preparation",
+    note: "Preparation failed; sending your original words",
+  },
+  {
+    state: "done" as const,
+    preparationFailed: true,
+    fields: {},
+    label: "Sent without preparation",
+    note: "Preparation failed; your original words were sent",
+  },
+])(
+  "labels a brief truthfully: $label",
+  ({ state, fields, preparationFailed, label, note }) => {
+    render(
+      <VoiceInputProvenance brief={{ state, fields, preparationFailed }} />,
+    );
+    const disclosure = screen.getByText(label).closest("details");
+    expect(disclosure?.getAttribute("aria-busy")).toBe(
+      String(state === "streaming"),
+    );
+    expect(screen.getByText(note)).not.toBeNull();
+  },
+);
+
+test("renders absent brief fields as placeholders without confusing verbatim Still open", () => {
+  render(
+    <VoiceInputProvenance
+      brief={{
+        state: "done",
+        fields: { runs: "Still open", stillOpen: "constraints, ask" },
+      }}
+    />,
   );
-  expect(screen.getByText(note)).not.toBeNull();
+
+  expect(screen.getByText("runs").nextSibling?.textContent).toBe("Still open");
+  expect(screen.getByText("constraints").nextSibling?.textContent).toBe(
+    "Still open",
+  );
+  expect(screen.getByText("ask").nextSibling?.textContent).toBe("Still open");
+  expect(screen.queryByText("still Open")).toBeNull();
 });
 
 test("stops a voice preview only when audio settings unmount", () => {
@@ -3789,6 +3827,65 @@ describe("AiAssistantContents", () => {
       />,
     );
     expect(screen.queryByTestId("ai-working-status")).toBeNull();
+  });
+
+  test("keeps Brunch answer cards and wrapping out of the stock presentation", () => {
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant" as const,
+          parts: [{ type: "text" as const, text: "A stock answer" }],
+        },
+      ],
+      onClose: noop,
+      onInputChange: noop,
+      onSendPrompt: noop,
+      onStop: noop,
+      onSubmit: noop,
+      promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
+      status: "ready" as const,
+    };
+    const { container, rerender } = render(<AiAssistantContents {...props} />);
+
+    expect(container.querySelector('[data-answer="brunch"]')).toBeNull();
+    expect(
+      container.querySelector("[data-prompt-chips]")?.hasAttribute("data-wrap"),
+    ).toBe(false);
+    expect(container.querySelector("[data-prompt-chips]")?.className).toContain(
+      "ov-x_auto",
+    );
+
+    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+
+    expect(container.querySelector('[data-answer="brunch"]')).not.toBeNull();
+    expect(
+      container.querySelector("[data-prompt-chips]")?.getAttribute("data-wrap"),
+    ).toBe("true");
+  });
+
+  test("uses stock tabs for a stock assistant with an additional tab", () => {
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      input: "",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(<AiAssistantContents {...props} />);
+
+    expect(screen.getByRole("tablist").getAttribute("data-style-variant")).toBe(
+      "stock",
+    );
+
+    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    expect(screen.getByRole("tablist").getAttribute("data-style-variant")).toBe(
+      "brunch",
+    );
   });
 
   test("keeps the stock AI transcript label in both input modes", () => {

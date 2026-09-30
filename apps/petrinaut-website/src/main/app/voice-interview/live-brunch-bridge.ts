@@ -41,7 +41,7 @@ interface Turn {
   submitted?: boolean;
   submissionId?: string;
   /** The conversation history the turn began in, so a switch cannot split it. */
-  readonly history?: VoiceMediationHistory;
+  readonly history: VoiceMediationHistory;
 }
 
 type Submit = ConstructorParameters<
@@ -49,7 +49,7 @@ type Submit = ConstructorParameters<
 >[0]["submitInterviewAnswer"];
 interface Dependencies {
   readonly submit: Submit;
-  readonly mediation?: {
+  readonly mediation: {
     readonly history: VoiceMediationHistory;
     readonly prepare: (
       text: string,
@@ -127,14 +127,14 @@ export class LiveBrunchBridge {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
-      if (!turn.submissionId) turn.history?.failed(turn.inputId);
+      if (!turn.submissionId) turn.history.failed(turn.inputId);
       // Words cancelled before submission stay sendable; teardown withdraws them.
       if (
         !turn.submitted &&
         !this.#abort.signal.aborted &&
-        turn.history === this.#dependencies.mediation?.history
+        turn.history === this.#dependencies.mediation.history
       )
-        turn.history?.unsent(
+        turn.history.unsent(
           turn.inputId,
           turn.inputText,
           this.#chat.messages?.at(-1)?.id,
@@ -174,7 +174,7 @@ export class LiveBrunchBridge {
   #evict(turn: Turn): void {
     turn.preparation.abort();
     this.#preparations.delete(turn.preparation);
-    if (!turn.submissionId) turn.history?.failed(turn.inputId);
+    if (!turn.submissionId) turn.history.failed(turn.inputId);
     this.#turns.delete(turn);
     if (this.#waitingForComposer === turn) this.#waitingForComposer = undefined;
   }
@@ -270,9 +270,9 @@ export class LiveBrunchBridge {
       this.#dependencies.notice(
         "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       );
-      const history = this.#dependencies.mediation?.history;
+      const history = this.#dependencies.mediation.history;
       const waiting = this.#waitingForComposer;
-      history?.unsent(
+      history.unsent(
         input.id,
         input.text,
         waiting && waiting.history === history
@@ -289,7 +289,7 @@ export class LiveBrunchBridge {
       superseded: input.superseded,
       preparation: new AbortController(),
       delegationId,
-      history: this.#dependencies.mediation?.history,
+      history: this.#dependencies.mediation.history,
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
       baselineMessages: new Set([
         ...this.#chat.segments.map((segment) => segment.messageId),
@@ -301,20 +301,21 @@ export class LiveBrunchBridge {
     this.#turns.add(turn);
     this.#preparations.add(turn.preparation);
     try {
-      const mediation = this.#dependencies.mediation;
       let text = input.text;
-      if (mediation) {
-        turn.history?.begin(input);
-        let fields: VoiceBriefFields = {};
-        try {
-          fields = await mediation.prepare(input.text, turn.preparation.signal);
-        } catch {
-          turn.preparation.signal.throwIfAborted();
-          logLiveDiagnostic("brief.unavailable", { inputId: input.id });
-        }
+      const mediation = this.#dependencies.mediation;
+      turn.history.begin(input);
+      try {
+        const fields = await mediation.prepare(
+          input.text,
+          turn.preparation.signal,
+        );
         turn.preparation.signal.throwIfAborted();
-        turn.history?.prepared(input.id, fields);
+        turn.history.prepared(input.id, fields);
         text = serializeVoiceBrief(input.text, fields);
+      } catch {
+        turn.preparation.signal.throwIfAborted();
+        logLiveDiagnostic("brief.unavailable", { inputId: input.id });
+        turn.history.preparationFailed(input.id);
       }
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       turn.submitted = true;
@@ -325,7 +326,7 @@ export class LiveBrunchBridge {
         signal: this.#abort.signal,
         onAdmission: (submissionId) => {
           turn.submissionId = submissionId;
-          turn.history?.admitted(input.id, submissionId);
+          turn.history.admitted(input.id, submissionId);
           logLiveDiagnostic("brunch.admitted", {
             inputId: input.id,
             submissionId,
@@ -350,7 +351,7 @@ export class LiveBrunchBridge {
       this.#settle();
     } catch {
       this.#preparations.delete(turn.preparation);
-      if (!turn.submissionId) turn.history?.failed(input.id);
+      if (!turn.submissionId) turn.history.failed(input.id);
       if (this.#turns.delete(turn)) {
         logLiveDiagnostic("brunch.unconfirmed", {
           inputId: input.id,
@@ -432,7 +433,7 @@ export class LiveBrunchBridge {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
-      if (!turn.submissionId) turn.history?.failed(turn.inputId);
+      if (!turn.submissionId) turn.history.failed(turn.inputId);
       logLiveDiagnostic("brunch.interrupted", {
         inputId: turn.inputId,
         submissionId: turn.submissionId,
@@ -766,31 +767,26 @@ export class LiveBrunchBridge {
         characters: source.length,
       });
       const mediation = this.#dependencies.mediation;
-      if (mediation) {
-        turn.history?.settled(turn.inputId, [
-          ...messages,
-          ...segments.map((segment) => segment.messageId),
-          ...this.#chat.segments
-            .filter(
-              (visible) =>
-                !turn.baselineMessages.has(visible.messageId) &&
-                segments.some((segment) => segment.text === visible.text),
-            )
-            .map((visible) => visible.messageId),
-        ]);
-        this.#summarizing.add(turn);
-        void this.#summarize(turn, source, mediation);
-      } else {
-        this.#preparations.delete(turn.preparation);
-        this.#dependencies.appendCommentary(source, turn.delegationId);
-      }
+      turn.history.settled(turn.inputId, [
+        ...messages,
+        ...segments.map((segment) => segment.messageId),
+        ...this.#chat.segments
+          .filter(
+            (visible) =>
+              !turn.baselineMessages.has(visible.messageId) &&
+              segments.some((segment) => segment.text === visible.text),
+          )
+          .map((visible) => visible.messageId),
+      ]);
+      this.#summarizing.add(turn);
+      void this.#summarize(turn, source, mediation);
     }
   }
 
   async #summarize(
     turn: Turn,
     source: string,
-    mediation: NonNullable<Dependencies["mediation"]>,
+    mediation: Dependencies["mediation"],
   ): Promise<void> {
     try {
       const summary = await mediation.summarize(
@@ -798,8 +794,7 @@ export class LiveBrunchBridge {
         turn.preparation.signal,
       );
       if (turn.preparation.signal.aborted || this.#abort.signal.aborted) return;
-      // Only the provider's output transcript becomes a blue card. This marks
-      // the upcoming append for timeline grouping, not proof of spoken words.
+      // Only provider output transcripts prove that these words were spoken.
       mediation.offered(turn.inputId);
       this.#dependencies.appendCommentary(summary, turn.delegationId);
     } catch {

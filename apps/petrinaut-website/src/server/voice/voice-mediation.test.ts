@@ -92,9 +92,6 @@ test("validates model evidence before returning the brief and never returns prov
   expect(await response.json()).toEqual({
     fields: {
       goal: "desk",
-      arrivals: "Still open",
-      handling: "Still open",
-      queue: "Still open",
       stillOpen: "arrivals, handling, queue",
     },
   });
@@ -123,9 +120,17 @@ test("wrap-up instructions use a direct conversational voice without weakening f
 });
 
 test("rejects over-budget wrap-ups without silently truncating a claim", async () => {
-  const generate = vi.fn().mockResolvedValue({ text: "One. Two. Three." });
+  const generate = vi.fn().mockResolvedValue({ text: "x".repeat(601) });
   const response = await createVoiceMediationHandler({ environment, generate })(
     request({ kind: "wrap-up", text: "The draft is ready but has not run." }),
   );
   expect(response.status).toBe(502);
+});
+
+test("accepts short wrap-ups regardless of sentence count", async () => {
+  const generate = vi.fn().mockResolvedValue({ text: "One. Two. Three." });
+  const response = await createVoiceMediationHandler({ environment, generate })(
+    request({ kind: "wrap-up", text: "The draft is ready but has not run." }),
+  );
+  expect(response.status).toBe(200);
 });

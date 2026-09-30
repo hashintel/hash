@@ -26,6 +26,7 @@ import {
   useVoiceSessionWarningMessage,
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import {
   ExperimentalIcon,
   useExperimentalIconMotionAllowed,
@@ -34,7 +35,6 @@ import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
-import { BrunchTabs } from "./ai-assistant-contents/brunch-tabs";
 import { BrunchWorkFold } from "./ai-assistant-contents/brunch-work-fold";
 import {
   ExperimentCard,
@@ -408,26 +408,36 @@ const userTextStyle = css({
   wordBreak: "break-word",
 });
 
-const answerStyle = css({
-  alignSelf: "flex-start",
-  maxWidth: "[92%]",
-  backgroundColor: "blue.a20",
-  borderRadius: "lg",
-  padding: "[10px]",
-  color: "neutral.s100",
-  overflowWrap: "anywhere",
-  '&[data-streaming="true"]': {
-    animation: "[petrinautComposerActionSwap 180ms ease-out]",
+const answerStyle = cva({
+  base: {
+    overflowWrap: "anywhere",
   },
-  "@media (prefers-reduced-motion: reduce)": {
-    animation: "[none]",
+  variants: {
+    presentation: {
+      stock: {},
+      brunch: {
+        alignSelf: "flex-start",
+        maxWidth: "[92%]",
+        backgroundColor: "blue.a20",
+        borderRadius: "lg",
+        padding: "[10px]",
+        color: "neutral.s100",
+        '&[data-streaming="true"]': {
+          animation: "[petrinautComposerActionSwap 180ms ease-out]",
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          animation: "[none]",
+        },
+        "[data-work-status] &": {
+          alignSelf: "stretch",
+          maxWidth: "full",
+          backgroundColor: "neutral.s00",
+          border: "[1px solid {colors.neutral.a30}]",
+        },
+      },
+    },
   },
-  "[data-work-status] &": {
-    alignSelf: "stretch",
-    maxWidth: "full",
-    backgroundColor: "neutral.s00",
-    border: "[1px solid {colors.neutral.a30}]",
-  },
+  defaultVariants: { presentation: "stock" },
 });
 
 const workingStatusStyle = css({
@@ -701,8 +711,8 @@ const AiAssistantMessage = memo(
     const writtenAnswer =
       answers.length > 0 ? (
         <div
-          className={answerStyle}
-          data-answer="brunch"
+          className={answerStyle({ presentation })}
+          data-answer={presentation === "brunch" ? "brunch" : undefined}
           data-streaming={active || undefined}
         >
           {answers.map((item) => (
@@ -764,7 +774,7 @@ const AiAssistantMessage = memo(
         {brief && <VoiceInputProvenance brief={brief} />}
         {voiceAgentReply && (
           <div
-            className={answerStyle}
+            className={answerStyle({ presentation })}
             data-answer="voice-reply"
             aria-busy={voiceAgentReply.state === "streaming"}
           >
@@ -799,7 +809,11 @@ const AiAssistantMessage = memo(
             />
             {voice && writtenAnswer}
             {voice && working && !writtenAnswer && (
-              <div className={answerStyle} role="status" aria-label="Thinking">
+              <div
+                className={answerStyle({ presentation })}
+                role="status"
+                aria-label="Thinking"
+              >
                 {["92%", "74%", "46%"].map((width) => (
                   <span
                     key={width}
@@ -873,7 +887,7 @@ const AiAssistantMessage = memo(
         )}
         {voiceAgentWrapUp && (
           <div
-            className={answerStyle}
+            className={answerStyle({ presentation })}
             data-answer="voice-wrap-up"
             aria-busy={voiceAgentWrapUp.state === "streaming"}
           >
@@ -1430,7 +1444,7 @@ export const AiAssistantContents = ({
             </HeaderLabel>
             <div className={headerTabsStyle}>
               {additionalTab && (
-                <BrunchTabs
+                <HorizontalTabsHeader
                   subViews={[
                     {
                       id: aiTabId,
@@ -1465,6 +1479,7 @@ export const AiAssistantContents = ({
                   ]}
                   activeTabId={showingHostTab ? hostTabId : aiTabId}
                   announcement={attentionAnnouncement}
+                  styleVariant={presentation}
                   onTabChange={(tabId) => {
                     const selected = tabId === hostTabId;
                     setInternalHostTabSelected(selected);
@@ -1711,6 +1726,7 @@ export const AiAssistantContents = ({
                     <PromptChips
                       chips={promptChips}
                       disabled={isBusy}
+                      presentation={presentation}
                       onDismiss={() => setChipsDismissed(true)}
                       onSelect={(prompt) => onSendPrompt(prompt)}
                     />

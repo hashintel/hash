@@ -692,19 +692,20 @@ export const LocalStorageDemoApp = ({
     [mutationApproval],
   );
   // A registered widget replaces the tool's row, so only calls still waiting
-  // for a decision render as approvals; others keep the normal tool row.
-  const pendingApprovalToolNames = useSyncExternalStore(
+  // for a decision render as approvals. Refresh the registry when call identities
+  // change; shouldHandle is the single gate, including for same-name calls.
+  const approvalVersion = useSyncExternalStore(
     mutationApproval.coordinator.subscribe,
-    mutationApproval.coordinator.pendingToolNames,
-    mutationApproval.coordinator.pendingToolNames,
+    mutationApproval.coordinator.getVersion,
+    mutationApproval.coordinator.getVersion,
   );
   const mutationApprovalTools = useMemo(
-    () =>
-      allMutationApprovalTools.filter(({ toolName }) =>
-        pendingApprovalToolNames.includes(toolName),
-      ),
-    [allMutationApprovalTools, pendingApprovalToolNames],
-  );
+    () => ({
+      version: approvalVersion,
+      tools: [...allMutationApprovalTools],
+    }),
+    [allMutationApprovalTools, approvalVersion],
+  ).tools;
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected,

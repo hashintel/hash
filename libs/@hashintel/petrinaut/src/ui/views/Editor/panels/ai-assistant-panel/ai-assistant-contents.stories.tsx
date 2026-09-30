@@ -22,7 +22,10 @@ import { AiAssistantContents } from "./ai-assistant-contents";
 import { REVIEW_CHIPS } from "./ai-assistant-contents/prompt-chips";
 
 import type { VoiceAudioSettingsState } from "../../../../../react/voice-session/types";
-import type { PetrinautAiToolPresentationResolver } from "../../../../petrinaut";
+import type {
+  PetrinautAiAssistantPresentation,
+  PetrinautAiToolPresentationResolver,
+} from "../../../../petrinaut";
 import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -400,7 +403,7 @@ const Frame = ({
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   primaryLabel?: string;
-  presentation?: "stock" | "brunch";
+  presentation?: PetrinautAiAssistantPresentation;
   promptChips?: ComponentProps<typeof AiAssistantContents>["promptChips"];
   resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   status?: "submitted" | "streaming" | "ready" | "error";
@@ -2226,6 +2229,41 @@ export const VoiceSending: Story = {
       ]}
     />
   ),
+};
+
+const VoicePreparationFailure = () => {
+  const [admitted, setAdmitted] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setAdmitted(true)}>Confirm admission</Button>
+      <Frame
+        presentation="brunch"
+        inputMode="voice"
+        voiceModeAvailable
+        voiceSession={liveSession({ phase: "thinking" })}
+        messages={[
+          {
+            ...supportDeskUser,
+            parts: [
+              ...supportDeskUser.parts,
+              {
+                type: "data-brief",
+                data: {
+                  state: admitted ? "done" : "streaming",
+                  fields: {},
+                  preparationFailed: true,
+                },
+              },
+            ],
+          },
+        ]}
+      />
+    </>
+  );
+};
+
+export const VoicePreparationFailed: Story = {
+  render: () => <VoicePreparationFailure />,
 };
 
 export const VoiceStopped: Story = {

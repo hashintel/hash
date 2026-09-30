@@ -78,6 +78,37 @@ test("does not bring back an admitted voice turn after the chat is cleared", () 
   expect(history.project([])).toEqual([]);
 });
 
+test("keeps an admitted preparation failure explicit across reload", () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => data.set(key, value),
+  };
+  const history = new VoiceMediationHistory("conversation", storage);
+  history.begin({ id: "input", text: "Use my exact words" });
+  history.preparationFailed("input");
+  expect(history.project([])[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields: {}, state: "streaming", preparationFailed: true },
+  });
+  history.admitted("input", "submission");
+  const canonical: PetrinautAiMessage[] = [
+    { id: "input", role: "user", parts: [{ type: "text", text: "raw" }] },
+  ];
+
+  expect(history.project(canonical)[0]?.parts[1]).toEqual({
+    type: "data-brief",
+    data: { fields: {}, state: "done", preparationFailed: true },
+  });
+  expect(
+    new VoiceMediationHistory("conversation", storage).project(canonical)[0]
+      ?.parts[1],
+  ).toEqual({
+    type: "data-brief",
+    data: { fields: {}, state: "done", preparationFailed: true },
+  });
+});
+
 test("keeps unsent words where they were spoken and drops them with the chat they belong to", () => {
   const history = new VoiceMediationHistory("conversation");
   history.begin({ id: "first", text: "Compare staffing" });

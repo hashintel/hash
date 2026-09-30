@@ -1,3 +1,4 @@
+import type { PetrinautAiAssistantPresentation } from "../petrinaut";
 import type { ComponentType } from "react";
 
 /** A runtime parser such as a Zod schema. */
@@ -7,7 +8,7 @@ export type PetrinautAiInteractiveToolSchema<Value> = {
 
 type InteractiveToolWidgetCommonProps<Input, Output> = {
   /** Assistant presentation selected by the embedding host. */
-  presentation?: "stock" | "brunch";
+  presentation?: PetrinautAiAssistantPresentation;
   /** Validated input supplied by the AI tool call. */
   input: Input;
   /** Submit one output for this tool call. Repeated calls are ignored. */
@@ -49,11 +50,11 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Runtime contract for the widget's submitted output. */
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
   /**
-   * Render an interaction only for matching calls. Defaults to all. Inputs
-   * the schema rejects are never handled. This runs during render; when it
+   * Render an interaction only for matching call identities. Defaults to all.
+   * This runs during render without parsing the input; when it
    * depends on host state, rebuild `interactiveTools` as that state changes.
    */
-  shouldHandle?: (input: Input, call: { toolCallId: string }) => boolean;
+  shouldHandle?: (call: { toolCallId: string }) => boolean;
   /**
    * Optionally map text submitted through the assistant composer to this
    * tool's output. Petrinaut validates both the pending input and mapped
@@ -71,7 +72,7 @@ type ErasedInteractiveToolDefinition = {
   placement?: "work" | "card";
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
-  shouldHandle?: (input: unknown, call: { toolCallId: string }) => boolean;
+  shouldHandle?: (call: { toolCallId: string }) => boolean;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
@@ -103,17 +104,7 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
       placement: definition.placement,
       parseInput: (value) => definition.inputSchema.parse(value),
       parseOutput: (value) => definition.outputSchema.parse(value),
-      shouldHandle: shouldHandle
-        ? (value, call) => {
-            let input: Input;
-            try {
-              input = definition.inputSchema.parse(value);
-            } catch {
-              return false;
-            }
-            return shouldHandle(input, call);
-          }
-        : undefined,
+      shouldHandle,
       fromComposerText: fromComposerText
         ? ({ input, text }) =>
             definition.outputSchema.parse(

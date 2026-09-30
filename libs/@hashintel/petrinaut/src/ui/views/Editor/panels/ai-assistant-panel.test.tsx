@@ -3268,6 +3268,61 @@ describe("AiAssistantPanel composer submissions", () => {
     await act(async () => streamController?.close());
   });
 
+  test("releases experiment activity when the host control unmounts", async () => {
+    const RunningExperiment = ({
+      reportExperimentRunning,
+    }: PetrinautAiComposerControlContext) => {
+      useEffect(
+        () => reportExperimentRunning?.(true),
+        [reportExperimentRunning],
+      );
+      return null;
+    };
+    const assistant: PetrinautAiAssistant = {
+      presentation: "brunch",
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+      renderComposerControl: (context) => <RunningExperiment {...context} />,
+    };
+    const rendered = renderTestPanel({ aiAssistant: assistant });
+    await screen.findByText("Experiment running");
+    rendered.rerenderPanel({ ...assistant, renderComposerControl: () => null });
+    await waitFor(() =>
+      expect(screen.queryByText("Experiment running")).toBeNull(),
+    );
+  });
+
+  test("an older activity cleanup cannot clear a newer host report", async () => {
+    let controls: PetrinautAiComposerControlContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        presentation: "brunch",
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: vi.fn(),
+        },
+        renderComposerControl: (context) => {
+          controls = context;
+          return null;
+        },
+      },
+    });
+    let clearFirst: (() => void) | undefined;
+    let clearSecond: (() => void) | undefined;
+    act(() => {
+      clearFirst = controls?.reportExperimentRunning?.(true);
+    });
+    act(() => {
+      clearSecond = controls?.reportExperimentRunning?.(true);
+    });
+    act(() => clearFirst?.());
+    expect(screen.queryByText("Experiment running")).not.toBeNull();
+    act(() => clearSecond?.());
+    expect(screen.queryByText("Experiment running")).toBeNull();
+  });
+
   test("exposes the generated useChat conversation identity to host controls", async () => {
     const chatIds: string[] = [];
     const observedConversationIds = new Set<string>();

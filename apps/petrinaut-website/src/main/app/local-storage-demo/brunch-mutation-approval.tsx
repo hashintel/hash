@@ -1,5 +1,3 @@
-import { useSyncExternalStore } from "react";
-
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -21,7 +19,6 @@ type BrunchMutationApprovalDecision =
   | { readonly decision: "deny"; readonly reason: string };
 
 type PendingApproval = {
-  readonly toolName: string;
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
   readonly removeAbortListener: () => void;
 };
@@ -34,8 +31,8 @@ export interface BrunchMutationApprovalCoordinator {
   }): Promise<BrunchMutationApprovalDecision>;
   resolve(toolCallId: string, choice: BrunchMutationApprovalChoice): boolean;
   hasPending(toolCallId: string): boolean;
-  /** Stable until the set of waiting tool names changes. */
-  pendingToolNames: () => readonly string[];
+  /** Changes whenever a call enters or leaves the approval gate. */
+  getVersion: () => number;
   subscribe: (listener: () => void) => () => void;
   /** Settles waiting approvals as stopped and refuses new ones until reopened. */
   close(): void;
@@ -53,12 +50,9 @@ export const createBrunchMutationApprovalCoordinator =
     const listeners = new Set<() => void>();
     let alwaysAllow = false;
     let closed = false;
-    let pendingToolNames: readonly string[] = [];
+    let version = 0;
     const notify = () => {
-      const next = [
-        ...new Set([...pending.values()].map((approval) => approval.toolName)),
-      ];
-      if (next.join() !== pendingToolNames.join()) pendingToolNames = next;
+      version += 1;
       listeners.forEach((listener) => listener());
     };
     const settle = (
@@ -75,7 +69,7 @@ export const createBrunchMutationApprovalCoordinator =
     };
 
     return {
-      request: ({ toolCallId, toolName, signal }) => {
+      request: ({ toolCallId, signal }) => {
         if (closed || signal.aborted)
           return Promise.resolve({ decision: "deny", reason: stoppedReason });
         if (alwaysAllow) return Promise.resolve({ decision: "allow" });
@@ -85,7 +79,6 @@ export const createBrunchMutationApprovalCoordinator =
           };
           signal.addEventListener("abort", onAbort, { once: true });
           pending.set(toolCallId, {
-            toolName,
             resolve,
             removeAbortListener: () =>
               signal.removeEventListener("abort", onAbort),
@@ -104,7 +97,7 @@ export const createBrunchMutationApprovalCoordinator =
         );
       },
       hasPending: (toolCallId) => pending.has(toolCallId),
-      pendingToolNames: () => pendingToolNames,
+      getVersion: () => version,
       subscribe: (listener) => {
         listeners.add(listener);
         return () => listeners.delete(listener);
@@ -240,33 +233,11 @@ const actionsStyle = css({ display: "flex", gap: "2", flexWrap: "wrap" });
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<unknown, unknown>;
 
-const settledText = (output: unknown): string => {
-  if (typeof output !== "object" || output === null)
-    return "Model edits completed.";
-  if ("reason" in output && typeof output.reason === "string")
-    return output.reason;
-  if ("title" in output && typeof output.title === "string")
-    return output.title;
-  return "Model edits completed.";
-};
-
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
   toolName: DestructiveToolName,
 ) => {
-  const Widget = ({
-    input,
-    toolCallId,
-    state,
-    submittedOutput,
-  }: WidgetProps) => {
-    const pending = useSyncExternalStore(
-      coordinator.subscribe,
-      () => coordinator.hasPending(toolCallId),
-      () => false,
-    );
-    if (state === "submitted") return <p>{settledText(submittedOutput)}</p>;
-    if (!pending) return null;
+  const Widget = ({ input, toolCallId }: WidgetProps) => {
     return (
       <section
         className={containerStyle}
@@ -335,8 +306,7 @@ export const createBrunchMutationApprovalInteractiveTools = (
       },
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
-      shouldHandle: (_input, { toolCallId }) =>
-        coordinator.hasPending(toolCallId),
+      shouldHandle: ({ toolCallId }) => coordinator.hasPending(toolCallId),
       component: createBrunchMutationApprovalWidget(coordinator, toolName),
     }),
   );

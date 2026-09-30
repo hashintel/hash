@@ -500,15 +500,11 @@ export const BrunchDraftExperimentWidget = ({
       ? "Could not be prepared"
       : draft.dismissed
         ? "Dismissed"
-        : draft.run.phase === "running"
-          ? "Running"
-          : draft.run.phase === "finished"
-            ? `Run ${draft.run.result.status}`
-            : draft.run.phase === "failed"
-              ? "Run failed"
-              : isCurrent
-                ? "Drafted — not run · not saved with the document"
-                : "Superseded by a later draft";
+        : draft.run.phase === "failed"
+          ? "Run failed"
+          : isCurrent
+            ? "Drafted — not run · not saved with the document"
+            : "Superseded by a later draft";
 
   const canAct =
     draft !== undefined &&

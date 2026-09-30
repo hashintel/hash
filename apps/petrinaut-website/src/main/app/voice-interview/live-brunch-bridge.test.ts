@@ -16,7 +16,12 @@ afterEach(() => {
 });
 
 const setup = (
-  mediation?: ConstructorParameters<typeof LiveBrunchBridge>[0]["mediation"],
+  mediation: ConstructorParameters<typeof LiveBrunchBridge>[0]["mediation"] = {
+    history: new VoiceMediationHistory("test-default"),
+    prepare: async () => ({}),
+    summarize: async (text) => text.slice(0, 600),
+    offered: vi.fn(),
+  },
 ) => {
   const appendCommentary = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendCommentary"]
@@ -63,6 +68,7 @@ const setup = (
   update();
   return {
     bridge,
+    mediation,
     appendCommentary,
     appendInstructions,
     appendThinking,
@@ -115,6 +121,7 @@ test("a correction evicts the stale superseded turn but keeps its own Live deleg
     text: "Old request",
     superseded: true,
   });
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
   fixture.bridge.acceptDelegation("delegation");
   await fixture.bridge.accept({ id: "correction", text: "Correction" });
   fixture.bridge.responseStarted(started);
@@ -125,9 +132,11 @@ test("a correction evicts the stale superseded turn but keeps its own Live deleg
   fixture.update({ segments: [segment()], settlements: completed });
 
   expect(fixture.submit).toHaveBeenCalledTimes(2);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    "delegation",
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      "delegation",
+    ),
   );
 });
 
@@ -135,7 +144,7 @@ test("prepares a brief before admission and summarizes only a settled rendered a
   const history = new VoiceMediationHistory("test");
   const prepare = vi.fn(async () => ({
     decide: "two to eight",
-    runs: "Still open",
+    stillOpen: "runs",
   }));
   const summarize = vi.fn(
     async () => "The comparison is drafted. Run it from the card.",
@@ -517,7 +526,7 @@ test("Stop withdraws words whose brief is still preparing", async () => {
   expect(history.project([])).toEqual([]);
 });
 
-test("submits the utterance without excerpts when brief preparation fails", async () => {
+test("records failed preparation and submits only the raw utterance", async () => {
   const history = new VoiceMediationHistory("test");
   const fixture = setup({
     history,
@@ -530,14 +539,15 @@ test("submits the utterance without excerpts when brief preparation fails", asyn
   await fixture.bridge.accept({ id: "one", text: "Compare two to eight" });
 
   expect(fixture.submit).toHaveBeenCalledOnce();
-  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
-    JSON.stringify({ utterance: "Compare two to eight", excerpts: {} }),
-  );
+  expect(fixture.submit.mock.calls[0]?.[0].text).toBe("Compare two to eight");
   expect(
     history.project([
       { id: "one", role: "user", parts: [{ type: "text", text: "Brief" }] },
-    ])[0]?.parts[0],
-  ).toEqual({ type: "text", text: "Compare two to eight" });
+    ])[0]?.parts[1],
+  ).toEqual({
+    type: "data-brief",
+    data: { fields: {}, state: "done", preparationFailed: true },
+  });
   expect(fixture.notice).not.toHaveBeenCalledWith(expect.any(String));
 });
 
@@ -669,9 +679,11 @@ test("offers one frozen correlated answer only after complete settlement, never 
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   fixture.update({ segments: [segment()], settlements: completed });
   fixture.update({ segments: [segment()], settlements: completed });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -684,9 +696,11 @@ test("offers a completed correlated answer across a ready-to-ready transition", 
     position: { batch: 2, index: 0 },
   });
   fixture.update({ segments: [segment()], settlements: completed });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -721,9 +735,11 @@ test("waits for observed prose rendered after ready settlement", async () => {
   );
 
   fixture.update({ segments: [segment()], settlements: completed, snapshot });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -773,9 +789,11 @@ test("completion retries settlement against already rendered prose", async () =>
     ...started,
     position: { batch: 2, index: 0 },
   });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -798,9 +816,11 @@ test("a stale completion cannot finish a newer response and a duplicate start ca
   });
   fixture.bridge.responseStarted(newer);
   fixture.update({ segments: [segment()], settlements: completed });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -812,6 +832,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
     appendCommentary: fixture.appendCommentary,
     appendInstructions: fixture.appendInstructions,
     appendThinking: fixture.appendThinking,
+    mediation: fixture.mediation,
     notice: fixture.notice,
     submit: async (input) => {
       signal = input.signal;
@@ -829,6 +850,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
     settlements: [],
   });
   const pending = bridge.accept({ id: "one", text: "First" });
+  await vi.waitFor(() => expect(signal).toBeDefined());
   bridge.stop();
   expect(signal?.aborted).toBe(true);
   fixture.notice.mockClear();
@@ -869,8 +891,10 @@ test.each(["failed", "aborted", "completed"] as const)(
       segments: [segment()],
       settlements: [...completed, { submissionId: "continuation", outcome }],
     });
-    expect(fixture.appendCommentary).toHaveBeenCalledTimes(
-      outcome === "completed" ? 1 : 0,
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary).toHaveBeenCalledTimes(
+        outcome === "completed" ? 1 : 0,
+      ),
     );
   },
 );
@@ -914,9 +938,11 @@ test("empty finalized input resolves its delegation before a later turn", async 
     expect.stringContaining("No usable speech"),
     "empty-delegation",
   );
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -937,9 +963,11 @@ test("a delegation that arrives just before its speech starts is kept for that s
   wrapUp(fixture);
 
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    "delegation",
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      "delegation",
+    ),
   );
 });
 
@@ -955,9 +983,11 @@ test("speech start closes older unclaimed delegations and keeps the newest", asy
   );
   await fixture.bridge.accept({ id: "one", text: "Seven reviewers" });
   wrapUp(fixture);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    "newer",
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      "newer",
+    ),
   );
 });
 
@@ -1027,12 +1057,13 @@ test("admission frees the existing waiting-input slot, but finishing an earlier 
     return { kind: "message", messageId: "two", submissionId: "correction" };
   });
   const first = fixture.bridge.accept({ id: "one", text: "Four reviewers" });
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
   fixture.update({ status: "streaming", canAcceptVoiceInput: true });
   const correction = fixture.bridge.accept({
     id: "two",
     text: "Seven, not four",
   });
-  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
 
   finishFirst();
   await first;
@@ -1099,8 +1130,10 @@ test.each(["completed", "failed", "aborted"] as const)(
     ];
     fixture.update({ segments, settlements });
     fixture.update({ segments, settlements });
-    expect(fixture.appendCommentary.mock.calls).toEqual(
-      outcome === "completed" ? [[segment().text, null]] : [],
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary.mock.calls).toEqual(
+        outcome === "completed" ? [[segment().text, null]] : [],
+      ),
     );
   },
 );
@@ -1138,9 +1171,11 @@ test("two inputs answered by one submission offer its canonical prose only once"
       { submissionId: "answering", outcome: "completed" },
     ],
   });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    "first-delegation",
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      "first-delegation",
+    ),
   );
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
     expect.stringContaining("already delivered"),
@@ -1234,8 +1269,10 @@ test.each([
     }
     fixture.update({ settlements, segments, snapshot });
     fixture.update({ settlements, segments, snapshot });
-    expect(fixture.appendCommentary.mock.calls).toEqual(
-      mode === "deliver" ? [[prose.text, null]] : [],
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary.mock.calls).toEqual(
+        mode === "deliver" ? [[prose.text, null]] : [],
+      ),
     );
   },
 );
@@ -1423,7 +1460,9 @@ test.each(["button", "snapshot", "aborted"] as const)(
     await fixture.bridge.accept({ id: "resume-input", text: "Continue" });
     await fixture.bridge.accept({ id: "resume-input", text: "Continue" });
     expect(fixture.submit).toHaveBeenCalledTimes(2);
-    expect(fixture.submit.mock.calls[1]?.[0].text).toBe("Continue");
+    expect(fixture.submit.mock.calls[1]?.[0].text).toContain(
+      JSON.stringify({ utterance: "Continue", excerpts: {} }),
+    );
     const resumed = {
       ...started,
       messageId: "resumed-answer",
@@ -1446,9 +1485,11 @@ test.each(["button", "snapshot", "aborted"] as const)(
         { submissionId: "resume", outcome: "completed" },
       ],
     });
-    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-      result.text,
-      "resume-delegation",
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+        result.text,
+        "resume-delegation",
+      ),
     );
   },
 );
@@ -1533,9 +1574,11 @@ test("response-only Stop resolves attached and unclaimed delegations before a la
     ],
     settlements: [{ submissionId: "second", outcome: "completed" }],
   });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    "Continue with the next question.",
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Continue with the next question.",
+      null,
+    ),
   );
 });
 
@@ -1571,9 +1614,11 @@ test("repeated stopped snapshots retain a later turn", async () => {
   });
   fixture.update({ segments: [segment()], settlements: completed });
   expect(fixture.submit).toHaveBeenCalledTimes(2);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    segment().text,
-    null,
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    ),
   );
 });
 
@@ -1589,6 +1634,7 @@ test("entering error interrupts pending work once and suppresses its late result
   });
   fixture.bridge.acceptDelegation("pending");
   const pending = fixture.bridge.accept({ id: "one", text: "First" });
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
   fixture.bridge.acceptDelegation("unclaimed");
 
   fixture.update({ status: "error" });
@@ -1638,6 +1684,7 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
   });
   fixture.bridge.acceptDelegation("recovery-delegation");
   const recovery = fixture.bridge.accept({ id: "two", text: "Try again" });
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
   fixture.update({ status: "error" });
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
@@ -1669,9 +1716,11 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   fixture.update(chat);
   fixture.update(chat);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    "Recovery answer",
-    "recovery-delegation",
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Recovery answer",
+      "recovery-delegation",
+    ),
   );
   expect(fixture.submit).toHaveBeenCalledTimes(2);
 
@@ -1686,8 +1735,14 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
   );
 });
 
-test("a locally refused long commentary is offered intact once without truncation or replay", async () => {
-  const fixture = setup();
+test("a long answer is mediated instead of falling back to full prose", async () => {
+  const summary = "Seven, not four.";
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: async () => ({}),
+    summarize: async () => summary,
+    offered: vi.fn(),
+  });
   fixture.appendCommentary.mockReturnValue(false);
   fixture.bridge.acceptDelegation("long-answer");
   await fixture.bridge.accept({ id: "one", text: "First" });
@@ -1700,9 +1755,11 @@ test("a locally refused long commentary is offered intact once without truncatio
   const prose = segment("Seven, not four. ".repeat(100));
   fixture.update({ segments: [prose], settlements: completed });
   fixture.update({ segments: [prose], settlements: completed });
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    prose.text,
-    "long-answer",
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      summary,
+      "long-answer",
+    ),
   );
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
 });
@@ -1762,10 +1819,12 @@ test.each(["before", "after"] as const)(
     };
     fixture.update(chat);
     fixture.update(chat);
-    expect(fixture.appendCommentary.mock.calls).toEqual([
-      [segment().text, timing === "before" ? "newer" : "older"],
-      ["Approval is optional.", timing === "before" ? "older" : "newer"],
-    ]);
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary.mock.calls).toEqual([
+        [segment().text, timing === "before" ? "newer" : "older"],
+        ["Approval is optional.", timing === "before" ? "older" : "newer"],
+      ]),
+    );
     expect(fixture.appendInstructions).not.toHaveBeenCalled();
   },
 );

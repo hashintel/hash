@@ -94,6 +94,7 @@ describe("conversation turn structure", () => {
           type: "data-brief",
           data: {
             state: "done",
+            preparationFailed: true,
             fields: { goal: "Reduce the queue", stillOpen: "Arrival rate" },
           },
         },
@@ -112,6 +113,8 @@ describe("conversation turn structure", () => {
       goal: "Reduce the queue",
       stillOpen: "Arrival rate",
     });
+    expect(turn.brief?.state).toBe("done");
+    expect(turn.brief?.preparationFailed).toBe(true);
     expect(turn.voiceAgentReply?.text).toBe("I’ll check that.");
     expect(turn.voiceAgentWrapUp?.state).toBe("streaming");
     expect(turn.answers).toEqual([]);

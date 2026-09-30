@@ -59,10 +59,7 @@ export const BrunchExperimentFollowUp = ({
       draft.run.phase === "running" && hasDraftToolCall(context, draft),
   );
   const reportRunning = context.reportExperimentRunning;
-  useEffect(() => {
-    reportRunning?.(running);
-    return () => reportRunning?.(false);
-  }, [reportRunning, running]);
+  useEffect(() => reportRunning?.(running), [reportRunning, running]);
   const pending = [...snapshot.drafts.values()].some(
     (draft) => draft.followUp === "pending",
   );

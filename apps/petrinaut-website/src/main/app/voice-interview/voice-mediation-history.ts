@@ -19,6 +19,7 @@ const turnSchema = z.object({
   responseIds: z.array(z.string()),
   anchorOnly: z.boolean().optional(),
   fields: z.record(z.string(), z.string()).optional(),
+  preparationFailed: z.boolean().optional(),
   reply: lineSchema.optional(),
   wrapUp: lineSchema.optional(),
 });
@@ -112,6 +113,14 @@ export class VoiceMediationHistory {
     const turn = this.#turns.get(id);
     if (turn) {
       turn.fields = fields;
+      this.#publish();
+    }
+  }
+  public preparationFailed(id: string): void {
+    const turn = this.#turns.get(id);
+    if (turn) {
+      turn.fields = {};
+      turn.preparationFailed = true;
       this.#publish();
     }
   }
@@ -265,6 +274,9 @@ export class VoiceMediationHistory {
                     data: {
                       fields: turn.fields,
                       state: turn.submissionId ? "done" : "streaming",
+                      ...(turn.preparationFailed
+                        ? { preparationFailed: true }
+                        : {}),
                     },
                   },
                 ]

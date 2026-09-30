@@ -188,7 +188,7 @@ test("streams a display-only user bubble, then prepares and admits only correcte
     resolveBrief(
       new Response(
         JSON.stringify({
-          fields: { decide: "seven agents", runs: "Still open" },
+          fields: { decide: "seven agents", stillOpen: "runs" },
         }),
         { status: 200 },
       ),
@@ -1137,7 +1137,7 @@ const mockMediation = () => {
         ? {
             fields: {
               goal: "Seven reviewers, not four.",
-              arrivals: "Still open",
+              stillOpen: "arrivals",
             },
           }
         : { text: "Brunch has a question for you." },
