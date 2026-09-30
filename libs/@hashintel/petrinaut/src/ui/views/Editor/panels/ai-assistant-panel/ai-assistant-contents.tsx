@@ -91,7 +91,6 @@ export type AiAssistantContentsProps = {
   composerFocusRequest?: number;
   error?: Error;
   experimentStates?: Record<string, AiExperimentState>;
-  hostExperimentRunning?: boolean;
   onCancelExperiment?: (toolCallId: string) => void;
   input: string;
   inputMode?: PetrinautAiInputMode;
@@ -926,7 +925,6 @@ export const AiAssistantContents = ({
   additionalTab,
   attentionAnnouncement,
   experimentStates,
-  hostExperimentRunning = false,
   onCancelExperiment,
   clearMessagesDisabled = false,
   composerControl,
@@ -1003,11 +1001,9 @@ export const AiAssistantContents = ({
         return tool !== undefined && tool.placement !== "card";
       }),
     );
-  const experimentRunning =
-    hostExperimentRunning ||
-    Object.values(experimentStates ?? {}).some(
-      (experimentState) => experimentState.active,
-    );
+  const experimentRunning = Object.values(experimentStates ?? {}).some(
+    (experimentState) => experimentState.active,
+  );
   const composerHint = isBrunchChat
     ? awaitingDecision
       ? "Waiting for your decision"
