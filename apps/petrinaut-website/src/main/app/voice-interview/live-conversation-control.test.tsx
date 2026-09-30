@@ -45,6 +45,8 @@ vi.mock("./live-conversation", () => ({
   })),
 }));
 beforeEach(() => {
+  vi.stubEnv("DEV", true);
+  window.history.replaceState(null, "", "/");
   const values = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -63,6 +65,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  window.history.replaceState(null, "", "/");
   window.localStorage.clear();
 });
 
@@ -161,6 +165,127 @@ test.each(["log", undefined] as const)(
     }
   },
 );
+
+test.each([
+  { development: true, search: "" },
+  { development: true, search: "?voiceDebug=0" },
+  { development: true, search: "?voiceDebug=1" },
+  { development: false, search: "?voiceDebug=1" },
+])(
+  "withholds without recovery UI: $development $search",
+  async ({ development, search }) => {
+    vi.stubEnv("DEV", development);
+    window.history.replaceState(null, "", `/${search}`);
+    window.localStorage.setItem(
+      LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        Response.json({ contribution: "control", confidence: 0.99 }),
+      );
+    const trace = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const readable = vi.spyOn(console, "log").mockImplementation(() => {});
+    const props = context();
+    try {
+      render(
+        <VoiceInterviewControl
+          {...props}
+          config={{ ...config, utteranceJudgment: "enforce" }}
+        />,
+      );
+      const [onState, , onInput] = vi.mocked(createLiveConversation).mock
+        .calls[0]!;
+      act(() => onState({ phase: "connected", message: null }));
+      await act(async () => onInput({ id: "held", text: "PRIVATE hang on" }));
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(props.submitVoiceInput).not.toHaveBeenCalled();
+      expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
+      expect(screen.queryByText("PRIVATE hang on")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Send to Brunch" }),
+      ).toBeNull();
+      if (development) {
+        expect(trace).toHaveBeenCalledWith(
+          expect.stringContaining('"applied":"withhold"'),
+        );
+      } else {
+        expect(trace).not.toHaveBeenCalled();
+      }
+      if (development && search === "?voiceDebug=1") {
+        expect(readable).toHaveBeenCalledWith(
+          expect.stringContaining("Withheld by gate"),
+        );
+      } else {
+        expect(readable).not.toHaveBeenCalled();
+      }
+      expect(JSON.stringify(readable.mock.calls)).not.toContain("PRIVATE");
+      expect(JSON.stringify(trace.mock.calls)).not.toContain("PRIVATE");
+    } finally {
+      fetch.mockRestore();
+      trace.mockRestore();
+      readable.mockRestore();
+    }
+  },
+);
+
+test("connected enforcement uses context without letting delegation release held speech", async () => {
+  window.history.replaceState(null, "", "/?voiceDebug=1");
+  window.localStorage.setItem(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+    Response.json({
+      contribution: "social_or_backchannel",
+      confidence: 0.99,
+    }),
+  );
+  const props = context();
+  props.messages.push({
+    id: "question",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "Do five staff cover weekends?", state: "done" },
+    ],
+  });
+  vi.mocked(props.submitVoiceInput).mockResolvedValue({
+    kind: "message",
+    messageId: "one",
+  });
+  try {
+    render(
+      <VoiceInterviewControl
+        {...props}
+        config={{ ...config, utteranceJudgment: "enforce" }}
+        resolveInputSubmission={() => "root"}
+      />,
+    );
+    const [onState, , onInput, onDelegation] = vi.mocked(createLiveConversation)
+      .mock.calls[0]!;
+    act(() => onState({ phase: "connected", message: null }));
+    await act(async () =>
+      onInput({ id: "one", text: "<script>PRIVATE okay</script>" }),
+    );
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    const body = fetch.mock.calls[0]?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected a JSON request");
+    expect(JSON.parse(body)).toMatchObject({
+      currentInterviewQuestion: "Do five staff cover weekends?",
+    });
+    expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
+    expect(screen.queryByText("<script>PRIVATE okay</script>")).toBeNull();
+    expect(document.querySelector("script")).toBeNull();
+    act(() => onDelegation("unmatched"));
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    act(() => onState({ phase: "ended", message: null }));
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
+  } finally {
+    fetch.mockRestore();
+  }
+});
 
 test("starts Live directly after the voice disclosure is acknowledged", () => {
   window.localStorage.setItem(

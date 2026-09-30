@@ -104,6 +104,8 @@ export const LiveConversationControl = ({
       status,
       stopped,
       canAcceptVoiceInput,
+      currentInterviewQuestion:
+        selectCanonicalSpeech(messages).questionSegment?.text ?? null,
       segments: selectCanonicalSpeech(messages).segments,
       settlements: settlements ?? [],
       snapshot,
@@ -126,18 +128,18 @@ export const LiveConversationControl = ({
     stopped,
   ]);
   useLayoutEffect(() => {
-    const segments = selectCanonicalSpeech(messages).segments.map(
-      (segment) => ({
-        ...segment,
-        submissionIds: resolveResponseSubmission?.(segment.messageId),
-      }),
-    );
+    const speech = selectCanonicalSpeech(messages);
+    const segments = speech.segments.map((segment) => ({
+      ...segment,
+      submissionIds: resolveResponseSubmission?.(segment.messageId),
+    }));
     latest.current = {
       submit,
       chat: {
         status,
         stopped,
         canAcceptVoiceInput,
+        currentInterviewQuestion: speech.questionSegment?.text ?? null,
         segments,
         settlements: settlements ?? [],
         snapshot,
@@ -252,8 +254,9 @@ export const LiveConversationControl = ({
       appendInstructions: next.appendInstructions,
       notice: setWarningMessage,
       speechPending: next.speechPending,
+      enforce: utteranceJudgment === "enforce",
       judge:
-        utteranceJudgment === "log"
+        utteranceJudgment === "log" || utteranceJudgment === "enforce"
           ? createUtteranceJudgmentRequester(globalThis.fetch.bind(globalThis))
           : undefined,
     });
