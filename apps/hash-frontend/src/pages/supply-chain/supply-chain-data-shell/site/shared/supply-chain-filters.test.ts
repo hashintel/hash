@@ -254,24 +254,6 @@ describe("applySupplyChainFilters", () => {
     ).toEqual([procurement, production]);
   });
 
-  it("detects steps that crossed their plan this period", () => {
-    const ctx = context(rows);
-    // production: previous 12 > plan 10, so it did not cross this period
-    expect(rowsAfter(rows, [filter("crossedPlan", "yes", null)], ctx)).toEqual(
-      [],
-    );
-    const crossed = row({
-      id: "prod_duration_fg2",
-      type: "production",
-      plan: 10,
-      previousValue: 9,
-      stats: stats({ median: 11 }),
-    });
-    expect(
-      rowsAfter([crossed], [filter("crossedPlan", "yes", null)], ctx),
-    ).toEqual([crossed]);
-  });
-
   it("skips filters no row is applicable to and reports them", () => {
     const ctx = context([dwell]);
     // The dwell view offers moq, but this row has no inventory policy.
@@ -434,7 +416,6 @@ describe("applicableFilterKeys", () => {
     const dwellKeys = applicableFilterKeys([], context([]), "dwell");
     expect(dwellKeys.has("moq")).toBe(true);
     expect(dwellKeys.has("costTrendPct")).toBe(true);
-    expect(dwellKeys.has("statusAge")).toBe(true);
     // Not dwell-view filters, even though an empty table data-gates nothing.
     expect(dwellKeys.has("basis")).toBe(false);
     expect(dwellKeys.has("materialValue")).toBe(false);

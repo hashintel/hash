@@ -15,7 +15,6 @@ import {
 import { combinedSampleTier } from "../../../shared/sample-confidence";
 import {
   STATUS_LABELS_IN_ORDER,
-  statusKey,
   statusLabelForNode,
   type StatusStore,
 } from "../../../shared/status";
@@ -370,20 +369,6 @@ const trendDirectionOf = (row: FilterableStepRow): string | null => {
   return tone === "up" ? "worsening" : tone === "down" ? "improving" : "flat";
 };
 
-const crossedPlanOf = (
-  row: FilterableStepRow,
-  context: SupplyChainFilterContext,
-): boolean => {
-  const current = measureValueOf(row, context);
-  return (
-    row.plan != null &&
-    row.previousValue != null &&
-    current != null &&
-    row.previousValue <= row.plan &&
-    current > row.plan
-  );
-};
-
 const supplierValuesOf = (
   row: FilterableStepRow,
   context: SupplyChainFilterContext,
@@ -394,20 +379,6 @@ const supplierValuesOf = (
   return row.material
     ? [...(context.suppliersByMaterial.get(row.material) ?? [])]
     : [];
-};
-
-const statusAgeDaysOf = (
-  row: FilterableStepRow,
-  context: SupplyChainFilterContext,
-): number | null => {
-  const entries = context.statusHistory[statusKey(context.siteId, row)];
-  if (!entries || entries.length === 0) {
-    return null;
-  }
-  const latest = Math.max(...entries.map((entry) => Date.parse(entry.at)));
-  return Number.isFinite(latest)
-    ? (Date.now() - latest) / (24 * 60 * 60 * 1000)
-    : null;
 };
 
 // ── Filter definitions ──────────────────────────────────────────────────────
@@ -739,20 +710,6 @@ export const STEP_FILTER_DEFINITIONS = [
       matchesNumberOperator(value.key, row.costTrendPct, value.value),
     isApplicable: (row) => row.costTrendPct != null,
   },
-  {
-    key: "crossedPlan",
-    label: "Crossed plan this period",
-    // "no" includes rows without a plan or previous period.
-    operators: () => [
-      { key: "yes", label: "yes", input: null },
-      { key: "no", label: "no", input: null },
-    ],
-    matches: (row, value, context) => {
-      const crossed = crossedPlanOf(row, context);
-      return value.key === "yes" ? crossed : !crossed;
-    },
-    isApplicable: (row) => row.plan != null && row.previousValue != null,
-  },
   // Workflow
   {
     key: "status",
@@ -766,18 +723,6 @@ export const STEP_FILTER_DEFINITIONS = [
         value.value,
       ),
     isApplicable: () => true,
-  },
-  {
-    key: "statusAge",
-    label: "Status age",
-    operators: dayNumberOperators,
-    matches: (row, value, context) =>
-      matchesNumberOperator(
-        value.key,
-        statusAgeDaysOf(row, context),
-        value.value,
-      ),
-    isApplicable: (row, context) => statusAgeDaysOf(row, context) != null,
   },
   // Supplier performance: vendor-only metrics matching the supplier table's
   // columns. Only the suppliers view lists them, so the step-row predicates
@@ -895,7 +840,7 @@ export const STEP_FILTER_MENUS: Record<
     { group: "Inventory policy", keys: ["moq", "safetyStock"] },
     { group: "Cost", keys: ["carryingCost", "costTrendPct"] },
     { group: "Samples", keys: ["observations", "sampleConfidence"] },
-    { group: "Status", keys: ["status", "statusAge"] },
+    { keys: ["status"] },
   ],
   planning: [
     { group: "Step", keys: ["stepName", "stepType", "product"] },
@@ -909,7 +854,6 @@ export const STEP_FILTER_MENUS: Record<
         "deviationPct",
         "deviationDirection",
         "exceedingPlan",
-        "crossedPlan",
         "planningWarnings",
       ],
     },
@@ -919,7 +863,7 @@ export const STEP_FILTER_MENUS: Record<
       group: "Trend",
       keys: ["trendPct", "trendDirection", "sampleConfidence"],
     },
-    { keys: ["status", "statusAge"] },
+    { keys: ["status"] },
   ],
   trends: [
     { group: "Step", keys: ["stepName", "stepType", "product"] },
@@ -933,7 +877,6 @@ export const STEP_FILTER_MENUS: Record<
         "deviationPct",
         "deviationDirection",
         "exceedingPlan",
-        "crossedPlan",
       ],
     },
     { group: "Samples", keys: ["observations", "sampleConfidence"] },
@@ -952,11 +895,10 @@ export const STEP_FILTER_MENUS: Record<
   opportunities: [
     { group: "Step", keys: ["stepName", "product"] },
     { group: "Supplier", keys: ["material", "supplier", "basis"] },
-    // The displayed impact values first, then the step metrics behind them:
-    // observed days (in the evidence tooltip) and the worsening-step gate.
+    // The displayed impact values first, then the worsening-step gate.
     {
       group: "Impact",
-      keys: ["carryingCost", "p95DeviationPct", "measureValue", "trendPct"],
+      keys: ["carryingCost", "p95DeviationPct", "trendPct"],
     },
     {
       group: "Sample",
