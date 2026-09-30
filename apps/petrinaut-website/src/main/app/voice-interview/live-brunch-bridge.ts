@@ -123,9 +123,25 @@ export class LiveBrunchBridge {
     this.#preparations.clear();
     for (const turn of this.#turns) {
       if (!turn.submissionId) turn.history?.failed(turn.inputId);
+      if (turn.delegationId !== null && !this.#abort.signal.aborted)
+        this.#dependencies.appendInstructions(
+          "The person started speaking again. Do not answer the earlier request; listen to them.",
+          turn.delegationId,
+        );
     }
     this.#turns.clear();
+    // The newest delegation may be for the speech that just started, and
+    // transcription and Live report on separate connections.
+    const newest = [...this.#unclaimedDelegations].at(-1);
+    for (const delegationId of this.#unclaimedDelegations) {
+      if (delegationId !== newest)
+        this.#unserved(
+          delegationId,
+          "No request admission was confirmed for this delegation.",
+        );
+    }
     this.#unclaimedDelegations.clear();
+    if (newest !== undefined) this.#unclaimedDelegations.add(newest);
     if (!this.#waitingForComposer?.submitted)
       this.#waitingForComposer = undefined;
   }

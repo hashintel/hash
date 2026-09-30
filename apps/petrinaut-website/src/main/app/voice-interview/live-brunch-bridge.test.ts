@@ -819,6 +819,67 @@ test("empty finalized input resolves its delegation before a later turn", async 
   );
 });
 
+const wrapUp = (fixture: ReturnType<typeof setup>) => {
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+};
+
+test("a delegation that arrives just before its speech starts is kept for that speech", async () => {
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("delegation");
+  fixture.bridge.speechStarted();
+  await fixture.bridge.accept({ id: "one", text: "Seven reviewers" });
+  wrapUp(fixture);
+
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    "delegation",
+  );
+});
+
+test("speech start closes older unclaimed delegations and keeps the newest", async () => {
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("older");
+  fixture.bridge.acceptDelegation("newer");
+  fixture.bridge.speechStarted();
+
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("No request admission was confirmed"),
+    "older",
+  );
+  await fixture.bridge.accept({ id: "one", text: "Seven reviewers" });
+  wrapUp(fixture);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    "newer",
+  );
+});
+
+test.each(["speech", "stop"] as const)(
+  "%s drops a submitted turn and closes its delegation only while the session runs",
+  async (cause) => {
+    const fixture = setup();
+    await fixture.bridge.accept({ id: "one", text: "Seven reviewers" });
+    fixture.bridge.acceptDelegation("delegation");
+    if (cause === "speech") fixture.bridge.speechStarted();
+    else fixture.bridge.stop();
+    wrapUp(fixture);
+
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
+    if (cause === "speech")
+      expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining("started speaking again"),
+        "delegation",
+      );
+    else expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  },
+);
+
 test("uncertain admission is visible and never automatically replayed", async () => {
   const fixture = setup();
   fixture.submit.mockRejectedValueOnce(new Error("Unknown admission"));
