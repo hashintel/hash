@@ -15,10 +15,11 @@ test-util = []
 error-stack = { workspace = true, public = true, features = ["std"] }
 
 # Public third-party dependencies
-# `opendata_common` and `opendata_log` rename the upstream libraries named `common` and `log`.
+# The upstream libraries are named `common` and `log`. The workspace sets `package` so that code
+# names them `opendata_common` and `opendata_log`.
 bytes           = { workspace = true, public = true }
 futures-core    = { workspace = true, public = true }
-opendata_common = { workspace = true, public = true }
+opendata-common = { workspace = true, public = true }
 serde           = { workspace = true, public = true, features = ["derive", "std"] }
 serde_core      = { workspace = true, public = true }
 serde_json      = { workspace = true, public = true, features = ["preserve_order", "raw_value"] }
@@ -31,7 +32,7 @@ tokio           = { workspace = true, public = true, features = ["macros", "rt",
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["std"] }
-opendata_log   = { workspace = true }
+opendata-log   = { workspace = true }
 sha2           = { workspace = true }
 simple-mermaid = { workspace = true }
 slatedb        = { workspace = true }
