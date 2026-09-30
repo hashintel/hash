@@ -705,8 +705,8 @@ export class LiveBrunchBridge {
           continue;
         sourceSegments = recovered;
       }
-      this.#turns.delete(turn);
       if (!sourceSegments.length) {
+        this.#evict(turn);
         logLiveDiagnostic("brunch.no-prose", {
           inputId: turn.inputId,
           submissionId: turn.submissionId,
@@ -727,6 +727,7 @@ export class LiveBrunchBridge {
         (segment) => !this.#offeredSegments.has(segment.id),
       );
       if (!segments.length) {
+        this.#evict(turn);
         logLiveDiagnostic("brunch.already-offered", {
           inputId: turn.inputId,
           submissionId: turn.submissionId,
@@ -741,6 +742,7 @@ export class LiveBrunchBridge {
         continue;
       }
       for (const segment of segments) this.#offeredSegments.add(segment.id);
+      this.#turns.delete(turn);
       // Freeze complete prose once. Sending is neither exact relay nor playback proof.
       const source = segments.map((segment) => segment.text).join("\n\n");
       logLiveDiagnostic("brunch.offer", {
