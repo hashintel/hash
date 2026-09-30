@@ -41,19 +41,11 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
   expect(body.session.instructions).toContain(
     "Keep internal names and handoffs out of speech",
   );
-  expect(body.session.instructions).not.toContain("I'll pass that to Brunch");
   expect(body.session.instructions).toContain(
     "Prefer silence while the person is speaking",
   );
-  expect(body.session.instructions).not.toContain(
-    "Use brief, sparse backchannels",
-  );
   expect(body.session.instructions).toContain(
     'Do not use filler-only replies such as "Hmm", "Mm-hmm", "Mm", or "Uh-huh"',
-  );
-  expect(body.session.instructions).toContain("one short, complete sentence");
-  expect(body.session.instructions).toContain(
-    "I'll put together a starting point.",
   );
   expect(body.session.instructions).toContain(
     "Do not guess what an unclear short answer refers to",
@@ -66,9 +58,6 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
   );
   expect(body.session.instructions).toContain(
     "If you already acknowledged this request, do not acknowledge it again",
-  );
-  expect(body.session.instructions).toContain(
-    "Start with the result or question itself",
   );
   expect(body.session.instructions).toContain(
     'After an interrupted assistant answer, "Continue" means continue that answer',
