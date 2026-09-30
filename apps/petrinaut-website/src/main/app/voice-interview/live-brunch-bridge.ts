@@ -82,6 +82,9 @@ const clipLiveAppend = (text: string): string =>
 const speakingAgainInstruction =
   "The person started speaking again. Do not answer the earlier request; listen to them.";
 
+const summaryStoppedInstruction =
+  "The person stopped the response before its spoken summary. Do not summarize or read the written answer; it is in the conversation. Wait for the person.";
+
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
@@ -128,13 +131,10 @@ export class LiveBrunchBridge {
     this.#preparations.clear();
     for (const turn of this.#turns) {
       if (!turn.submissionId) turn.history.failed(turn.inputId);
-      // Words cancelled before submission stay sendable; teardown withdraws them.
-      if (
-        !turn.submitted &&
-        !this.#abort.signal.aborted &&
-        turn.history === this.#dependencies.mediation.history
-      )
-        turn.history.unsent(
+      // Words cancelled before submission stay sendable in the conversation
+      // shown now, even after a switch; teardown withdraws them.
+      if (!turn.submitted && !this.#abort.signal.aborted)
+        this.#dependencies.mediation.history.unsent(
           turn.inputId,
           turn.inputText,
           this.#chat.messages?.at(-1)?.id,
@@ -443,6 +443,26 @@ export class LiveBrunchBridge {
       if (reason === "stopped" && turn.submissionId) this.#interrupted(turn);
       else this.#unconfirmed(turn);
     }
+    // Aborting preparations cancelled these summaries; close their delegations.
+    for (const turn of this.#summarizing) {
+      logLiveDiagnostic("brunch.summary-interrupted", {
+        inputId: turn.inputId,
+        submissionId: turn.submissionId,
+        delegationId: turn.delegationId,
+        reason,
+      });
+      if (reason === "error")
+        this.#unserved(
+          turn.delegationId,
+          "Brunch finished, but its spoken summary was cancelled by a conversation error. The written answer is in the conversation.",
+        );
+      else if (turn.delegationId !== null)
+        this.#dependencies.appendInstructions(
+          summaryStoppedInstruction,
+          turn.delegationId,
+        );
+    }
+    this.#summarizing.clear();
     for (const delegationId of this.#unclaimedDelegations)
       this.#unserved(
         delegationId,

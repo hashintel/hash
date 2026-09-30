@@ -368,6 +368,49 @@ test("keeps a dropped utterance's words in the conversation switched to", async 
   await first;
 });
 
+test("keeps words that speech cancels before submission in the conversation switched to", async () => {
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const original = new VoiceMediationHistory("original");
+  const switched = new VoiceMediationHistory("switched");
+  let current = original;
+  const fixture = setup({
+    get history() {
+      return current;
+    },
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept({
+    id: "first",
+    text: "Compare staffing",
+  });
+  current = switched;
+  const messages = [
+    {
+      id: "switched-answer",
+      role: "assistant" as const,
+      parts: [{ type: "text" as const, text: "Earlier answer" }],
+    },
+  ];
+  fixture.update({ messages });
+  fixture.bridge.speechStarted();
+  brief.resolve({});
+  await first;
+
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(original.project([])).toEqual([]);
+  expect(switched.project(messages)).toEqual([
+    messages[0],
+    {
+      id: "first",
+      role: "user",
+      metadata: { source: "voice" },
+      parts: [{ type: "text", text: "Compare staffing" }],
+    },
+  ]);
+});
+
 test("drops a superseded transcript quietly when another turn holds the composer", async () => {
   const history = new VoiceMediationHistory("test");
   const brief = Promise.withResolvers<Record<string, string>>();
@@ -504,6 +547,48 @@ test("speech during a spoken summary closes that summary's Live delegation", asy
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   expect(fixture.appendInstructions).toHaveBeenCalledOnce();
 });
+
+test.each([
+  ["Stop", "stopped the response before its spoken summary"],
+  ["a chat error", "spoken summary was cancelled by a conversation error"],
+])(
+  "%s during a spoken summary closes that summary's Live delegation",
+  async (interruption, instruction) => {
+    const summary = Promise.withResolvers<string>();
+    const fixture = setup({
+      history: new VoiceMediationHistory("test"),
+      prepare: vi.fn(async () => ({})),
+      summarize: () => summary.promise,
+      offered: vi.fn(),
+    });
+    fixture.bridge.acceptDelegation("summary-delegation");
+    await fixture.bridge.accept({ id: "one", text: "Compare staffing" });
+    fixture.bridge.responseStarted(started);
+    fixture.bridge.responseCompleted({
+      ...started,
+      position: { batch: 2, index: 0 },
+    });
+    fixture.update({ segments: [segment()], settlements: completed });
+
+    if (interruption === "Stop") fixture.bridge.stopResponse();
+    else
+      fixture.update({
+        status: "error",
+        segments: [segment()],
+        settlements: completed,
+      });
+    expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining(instruction),
+      "summary-delegation",
+    );
+
+    summary.resolve("Stale result.");
+    await Promise.resolve();
+    fixture.bridge.speechStarted();
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
+    expect(fixture.appendInstructions).toHaveBeenCalledOnce();
+  },
+);
 
 test("Stop withdraws words whose brief is still preparing", async () => {
   const history = new VoiceMediationHistory("test");
