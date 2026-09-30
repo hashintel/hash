@@ -48,8 +48,14 @@ interface Turn {
   submissionId?: string;
 }
 
-/** A gated input awaiting judgment or admission; it holds its delegation until then. */
-type GatedInput = Pick<Turn, "inputId" | "delegationId" | "submissionId">;
+/**
+ * A gated input awaiting judgment or admission; it holds its delegation until
+ * then. A withheld input without a delegation stays while it is the newest
+ * gated input, so a late delegation still gets the withheld policy.
+ */
+type GatedInput = Pick<Turn, "inputId" | "delegationId" | "submissionId"> & {
+  withheld?: WithheldContribution;
+};
 
 type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
@@ -148,24 +154,38 @@ export class LiveBrunchBridge {
           void this.#submitInput(input, delegationId);
         },
         withhold: (input, contribution) => {
-          const delegationId =
-            this.#gatedInputs.get(input.id)?.delegationId ?? null;
-          this.#gatedInputs.delete(input.id);
-          const delegation = delegationOnWithhold[contribution];
+          const gated = this.#gatedInputs.get(input.id);
+          const delegationId = gated?.delegationId ?? null;
+          if (
+            gated &&
+            delegationId === null &&
+            [...this.#gatedInputs.keys()].at(-1) === input.id
+          )
+            gated.withheld = contribution;
+          else this.#gatedInputs.delete(input.id);
           logLiveDiagnostic("input.withheld", {
             inputId: input.id,
             delegationId,
-            delegation,
+            delegation: delegationOnWithhold[contribution],
           });
-          if (delegation === "decline" && delegationId !== null) {
-            this.#dependencies.appendInstructions(
-              "That speech did not add to the interview and was not sent to the backend. Ask the person to continue without assuming an answer.",
-              delegationId,
-            );
-          }
+          this.#declineWithheld(contribution, delegationId);
         },
       });
     }
+  }
+
+  #declineWithheld(
+    contribution: WithheldContribution,
+    delegationId: string | null,
+  ): void {
+    if (
+      delegationOnWithhold[contribution] === "decline" &&
+      delegationId !== null
+    )
+      this.#dependencies.appendInstructions(
+        "That speech did not add to the interview and was not sent to the backend. Ask the person to continue without assuming an answer.",
+        delegationId,
+      );
   }
 
   public stop(): void {
@@ -190,7 +210,15 @@ export class LiveBrunchBridge {
     const turn = [...this.#turns, ...this.#gatedInputs.values()].findLast(
       (candidate) => candidate.delegationId === null,
     );
-    if (turn) {
+    if (turn && "withheld" in turn && turn.withheld !== undefined) {
+      this.#gatedInputs.delete(turn.inputId);
+      logLiveDiagnostic("delegation.matched", {
+        delegationId,
+        inputId: turn.inputId,
+        delegation: delegationOnWithhold[turn.withheld],
+      });
+      this.#declineWithheld(turn.withheld, delegationId);
+    } else if (turn) {
       turn.delegationId = delegationId;
       logLiveDiagnostic("delegation.matched", {
         delegationId,
@@ -302,6 +330,9 @@ export class LiveBrunchBridge {
       return;
     }
     if (this.#gate) {
+      // A newer input takes over late delegations from a withheld one.
+      for (const gated of this.#gatedInputs.values())
+        if (gated.withheld) this.#gatedInputs.delete(gated.inputId);
       this.#gatedInputs.set(input.id, { inputId: input.id, delegationId });
       this.#gate.accept(input, {
         transcript: input.text,

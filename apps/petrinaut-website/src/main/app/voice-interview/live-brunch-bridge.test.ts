@@ -318,6 +318,68 @@ test.each([
   },
 );
 
+test.each([
+  ["control", "leave"],
+  ["no_content", "decline"],
+] as const)(
+  "a delegation arriving after %s input is withheld applies policy %s",
+  async (contribution, policy) => {
+    vi.stubEnv("DEV", true);
+    const judge = vi
+      .fn()
+      .mockResolvedValueOnce({ contribution, confidence: 0.9 })
+      .mockResolvedValue(null);
+    const fixture = setup(judge, { enforce: true });
+    fixture.speechPending.mockReturnValue(false);
+    await fixture.bridge.accept(speech("held", "PRIVATE incidental"));
+    await Promise.resolve();
+    fixture.bridge.acceptDelegation("late");
+    expect(fixture.appendInstructions.mock.calls).toEqual(
+      policy === "decline"
+        ? [[expect.stringContaining("not sent to the backend"), "late"]]
+        : [],
+    );
+    expect(
+      traceRecords(diagnosticSpy.mock.calls, "delegation.matched"),
+    ).toEqual([
+      expect.objectContaining({
+        inputId: "held",
+        delegationId: "late",
+        delegation: policy,
+      }),
+    ]);
+
+    // The delegation is neither deferred nor reused by later speech.
+    await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+    await Promise.resolve();
+    expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "answer" }),
+    );
+    fixture.bridge.stop();
+    expect(fixture.appendInstructions).toHaveBeenCalledTimes(
+      policy === "decline" ? 1 : 0,
+    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+  },
+);
+
+test("a newer input takes late delegations over from a withheld one", async () => {
+  vi.stubEnv("DEV", true);
+  const judge = vi
+    .fn()
+    .mockResolvedValueOnce({ contribution: "no_content", confidence: 0.9 })
+    .mockResolvedValue(null);
+  const fixture = setup(judge, { enforce: true });
+  await fixture.bridge.accept(speech("held", "um"));
+  await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+  fixture.bridge.acceptDelegation("delegation");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(traceRecords(diagnosticSpy.mock.calls, "delegation.matched")).toEqual([
+    expect.objectContaining({ inputId: "answer", delegationId: "delegation" }),
+  ]);
+  fixture.bridge.stop();
+});
+
 test("enforcement fails open at one second and ignores a late withholding result", async () => {
   vi.useFakeTimers();
   try {

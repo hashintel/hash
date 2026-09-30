@@ -366,9 +366,11 @@ judged. GPT-Live delegation neither chooses nor releases a transcript, but it
 pairs with gated transcripts as described above, including while judgment is
 pending, so Brunch prose for a submitted transcript is offered on its
 delegation. A withheld control or relay request leaves its delegation for Live
-to answer itself; other withheld speech declines it. `judgment.result` records
-the applied decision and `input.withheld` the delegation outcome, using
-metadata only.
+to answer itself; other withheld speech declines it. A delegation that arrives
+after the judgment gets the same policy until a newer input reaches the gate.
+`judgment.result` records the applied decision and `input.withheld` (or, for a
+late delegation, `delegation.matched`) the delegation outcome, using metadata
+only.
 
 To check local enforcement, filter DevTools Console by `[Petrinaut Live trace]`:
 
