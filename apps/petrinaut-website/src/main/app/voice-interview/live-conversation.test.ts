@@ -1982,3 +1982,46 @@ test("does not count speech as overlapping output while the speaker is muted or 
   fixture.emit(0, { type: "session.closed" });
   await stopped;
 });
+
+test("reports speech as pending from its start until its transcript is finalized", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  const pendingAtFinalize: boolean[] = [];
+  fixture.onFinalizedInput.mockImplementation(() => {
+    pendingAtFinalize.push(fixture.conversation.speechPending());
+  });
+  const speechStarted = (itemId: string) =>
+    fixture.emit(1, {
+      type: "input_audio_buffer.speech_started",
+      item_id: itemId,
+    });
+  const finalize = (itemId: string, previousItemId: string | null) => {
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previousItemId,
+    });
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "Yes.",
+    });
+  };
+
+  expect(fixture.conversation.speechPending()).toBe(false);
+  speechStarted("one");
+  expect(fixture.conversation.speechPending()).toBe(true);
+  speechStarted("two");
+  finalize("one", null);
+  expect(pendingAtFinalize).toEqual([true]);
+  finalize("two", "one");
+  expect(pendingAtFinalize).toEqual([true, false]);
+  expect(fixture.conversation.speechPending()).toBe(false);
+
+  speechStarted("three");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+  expect(fixture.conversation.speechPending()).toBe(false);
+});

@@ -17,6 +17,8 @@ interface SpeechWindow {
 /**
  * Local receipt times of transcription speech against audible Live output.
  * Live's words stay in memory for the echo stage and never reach a trace.
+ * The bridge closes stray delegations when `pending` turns false, so `speech`
+ * entries are deleted only at finalize and cleared only at teardown.
  */
 export const createOutputOverlap = () => {
   const stretches: Stretch[] = [];
@@ -77,6 +79,8 @@ export const createOutputOverlap = () => {
         .map((fragment) => fragment.text)
         .join("");
     },
+    /** Some speech has started and its transcript isn't finalized yet. */
+    pending: (): boolean => speech.size > 0,
     clear: (): void => {
       stretches.length = 0;
       liveWords.length = 0;

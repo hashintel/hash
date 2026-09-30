@@ -935,6 +935,7 @@ export const createLiveConversation = (
     setSpeakerMuted,
     setSpeakerVolume,
     openDelegations: openDelegations as ReadonlySet<string>,
+    speechPending: outputOverlap.pending,
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
     appendInstructions: (text: string, delegationId: string | null) =>

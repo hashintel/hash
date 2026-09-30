@@ -211,6 +211,16 @@ GPT-Live can delegate its own echo. A real interruption of three words or fewer
 still stops Live, but its words don't reach Brunch. Neither case shows a
 notice.
 
+Each GPT-Live delegation goes to the latest finalized transcript still without
+one, or waits for speech that the transcription session already reports as
+started. Live and transcription use independent sessions, so a delegation that
+arrives while neither condition is visible has unknown ordering: it is deferred,
+never attached to later speech, and closed only by Stop, a Brunch error or the
+end of Voice mode. A delegation observed while transcription speech is pending
+is closed if that speech is later filtered, instead of shifting to the next
+answer. `delegation.deferred` and `delegation.closed` record these outcomes
+with only the delegation ID and a fixed reason.
+
 #### Speaker echo check — 10 minutes
 
 The transcription session requests English, far-field noise reduction and
@@ -259,8 +269,10 @@ each reply. Any speech start, input fragment or `startedDuringOutput: true`
 during a reply means echo reached the microphone path; also note whether Live
 stops itself mid-sentence. Then interrupt a reply once with a sentence of your
 own. Each `filter.shadow` line should match a phantom in the conversation, and
-the interruption should get none. The traces are local development diagnostics
-and contain no audio or text.
+the interruption should get none. After any `delegation.deferred` line, note
+whether Live speaks without a Brunch reply: what GPT-Live does with a delegation
+left open is not yet known. The traces are local development diagnostics and
+contain no audio or text.
 
 #### Noise check — 5 minutes
 
