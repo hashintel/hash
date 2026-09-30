@@ -187,11 +187,11 @@ export const matchesSelectionOperator = (
   if (selected.length === 0) {
     return true;
   }
+  const negated = operatorKey === "isNot" || operatorKey === "isNoneOf";
   if (!rowValues || rowValues.length === 0) {
-    return false;
+    // A row without the property is trivially "none of" the selection.
+    return negated;
   }
   const hasMatch = rowValues.some((value) => selected.includes(value));
-  return operatorKey === "isNot" || operatorKey === "isNoneOf"
-    ? !hasMatch
-    : hasMatch;
+  return negated ? !hasMatch : hasMatch;
 };

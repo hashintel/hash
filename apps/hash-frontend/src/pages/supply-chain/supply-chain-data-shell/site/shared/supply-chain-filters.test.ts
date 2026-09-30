@@ -154,6 +154,29 @@ describe("applySupplyChainFilters", () => {
     ).toEqual([dwell, production]);
   });
 
+  it("keeps rows without the property under the negative operators", () => {
+    const noMaterial = row({ id: "transit_pla_hub1", type: "transit" });
+    const mixedRows = [procurement, dwell, noMaterial];
+    const ctx = context(mixedRows);
+    // No material is trivially "none of" the selection…
+    expect(
+      rowsAfter(mixedRows, [filter("material", "isNoneOf", ["MAT-A"])], ctx),
+    ).toEqual([noMaterial]);
+    // …but still never "any of" it.
+    expect(
+      rowsAfter(mixedRows, [filter("material", "isAnyOf", ["MAT-A"])], ctx),
+    ).toEqual([procurement, dwell]);
+    // Same for single selects: procurement (+50%) is "over" and drops, while
+    // production (-20%) and the plan-less row are both not "over".
+    expect(
+      rowsAfter(
+        mixedRows.concat(production),
+        [filter("deviationDirection", "isNot", "over")],
+        context(mixedRows.concat(production)),
+      ),
+    ).toEqual([dwell, noMaterial, production]);
+  });
+
   it("matches suppliers on non-procurement rows through their material", () => {
     const ctx = context(rows);
     expect(
@@ -373,6 +396,14 @@ describe("applyVendorSupplyChainFilters", () => {
     );
     expect(application.rows).toEqual([acme]);
     expect(application.skippedKeys).toEqual([]);
+    // A vendor without a materials breakdown is "none of" any selection.
+    expect(
+      applyVendorSupplyChainFilters(
+        [acme, zeta],
+        [filter("material", "isNoneOf", ["MAT-A"])],
+        context([]),
+      ).rows,
+    ).toEqual([zeta]);
   });
 });
 
