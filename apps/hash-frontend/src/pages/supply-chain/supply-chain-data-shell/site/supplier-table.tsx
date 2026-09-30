@@ -129,6 +129,7 @@ export const SupplierTable = ({
                   <SortHeader
                     label="Lines"
                     sortKey="lines"
+                    align="right"
                     current={sort}
                     onToggle={toggleSort}
                   />
@@ -137,6 +138,8 @@ export const SupplierTable = ({
                   <SortHeader
                     label="On-time %"
                     sortKey="onTime"
+                    align="right"
+                    defaultDir="asc"
                     current={sort}
                     onToggle={toggleSort}
                   />
@@ -145,6 +148,8 @@ export const SupplierTable = ({
                   <SortHeader
                     label="OTIF %"
                     sortKey="otif"
+                    align="right"
+                    defaultDir="asc"
                     current={sort}
                     onToggle={toggleSort}
                   />
@@ -153,6 +158,7 @@ export const SupplierTable = ({
                   <SortHeader
                     label="Mean delay (all)"
                     sortKey="meanLate"
+                    align="right"
                     current={sort}
                     onToggle={toggleSort}
                   />
@@ -161,6 +167,7 @@ export const SupplierTable = ({
                   <SortHeader
                     label="Mean delay | late"
                     sortKey="meanLateWhenLate"
+                    align="right"
                     current={sort}
                     onToggle={toggleSort}
                   />
@@ -169,6 +176,7 @@ export const SupplierTable = ({
                   <SortHeader
                     label="Max delay"
                     sortKey="maxLate"
+                    align="right"
                     current={sort}
                     onToggle={toggleSort}
                   />

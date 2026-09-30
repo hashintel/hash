@@ -6,6 +6,8 @@ import type { SortDir } from "./row-types";
 export interface ColumnSort {
   active: boolean;
   dir: SortDir;
+  /** Direction a click applies while this column is not the active sort. */
+  defaultDir?: SortDir;
   onToggle: () => void;
 }
 
@@ -43,17 +45,35 @@ const sortArrow = css({
  * Shared table column header for the site overview tables: renders the label,
  * clickable when sortable, with a direction caret. Filtering lives in the
  * shared filter bar above each table (see supply-chain-filter-bar.tsx).
+ *
+ * The caret is always in layout (revealed on cell hover) so the label never
+ * shifts; while the column is unsorted it previews the direction a click
+ * would apply. `align="right"` puts it on the label's outer (left) side so a
+ * right-aligned label stays flush with the cell edge.
  */
 export const ColumnHeader = ({
   label,
   sort,
+  align = "left",
 }: {
   label: string;
   sort?: ColumnSort;
+  align?: "left" | "right";
 }) => {
   const sortStateLabel = sort?.active
     ? `, sorted ${sort.dir === "asc" ? "ascending" : "descending"}`
     : "";
+  const shownDir = sort?.active ? sort.dir : (sort?.defaultDir ?? "desc");
+  const caret = sort ? (
+    <span
+      className={sortArrow}
+      style={{
+        transform: shownDir === "asc" ? "rotate(180deg)" : "rotate(0deg)",
+      }}
+    >
+      <Icon name="arrowDown" size="xs" />
+    </span>
+  ) : null;
 
   return (
     <span className={wrap}>
@@ -64,18 +84,9 @@ export const ColumnHeader = ({
           className={sortButton}
           aria-label={`Sort by ${label}${sortStateLabel}`}
         >
+          {align === "right" && caret}
           {label}
-          {sort.active && (
-            <span
-              className={sortArrow}
-              style={{
-                transform:
-                  sort.dir === "asc" ? "rotate(180deg)" : "rotate(0deg)",
-              }}
-            >
-              <Icon name="arrowDown" size="xs" />
-            </span>
-          )}
+          {align === "left" && caret}
         </button>
       ) : (
         <span>{label}</span>

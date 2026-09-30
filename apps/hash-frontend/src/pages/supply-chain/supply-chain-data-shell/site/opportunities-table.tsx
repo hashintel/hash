@@ -511,6 +511,7 @@ export const OpportunitiesTable = ({
                   sort={{
                     active: sort?.key === "opportunity",
                     dir: sort?.dir ?? "asc",
+                    defaultDir: "asc",
                     onToggle: () => toggleSort("opportunity"),
                   }}
                 />
@@ -518,6 +519,7 @@ export const OpportunitiesTable = ({
               <th className={oppThRight}>
                 <ColumnHeader
                   label="Impact"
+                  align="right"
                   sort={{
                     active: sort?.key === "impact",
                     dir: sort?.dir ?? "desc",
@@ -529,9 +531,11 @@ export const OpportunitiesTable = ({
               <th className={oppThRight}>
                 <ColumnHeader
                   label="Status"
+                  align="right"
                   sort={{
                     active: sort?.key === "status",
                     dir: sort?.dir ?? "asc",
+                    defaultDir: "asc",
                     onToggle: () => toggleSort("status"),
                   }}
                 />

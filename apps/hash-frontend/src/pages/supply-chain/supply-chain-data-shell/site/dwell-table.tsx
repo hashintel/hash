@@ -138,6 +138,7 @@ export const DwellTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label={MEASURE_LABELS[measure]}
+                  align="right"
                   sort={{
                     active: sort.key === "median",
                     dir: sort.dir,
@@ -148,6 +149,7 @@ export const DwellTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="MOQ"
+                  align="right"
                   sort={{
                     active: sort.key === "moq",
                     dir: sort.dir,
@@ -158,6 +160,7 @@ export const DwellTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Safety stock"
+                  align="right"
                   sort={{
                     active: sort.key === "safetyStock",
                     dir: sort.dir,
@@ -168,6 +171,7 @@ export const DwellTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label={`Cost (${timeRange})`}
+                  align="right"
                   sort={{
                     active: sort.key === "cost",
                     dir: sort.dir,
@@ -178,6 +182,7 @@ export const DwellTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Samples"
+                  align="right"
                   sort={{
                     active: sort.key === "sample",
                     dir: sort.dir,
@@ -188,9 +193,11 @@ export const DwellTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Status"
+                  align="right"
                   sort={{
                     active: sort.key === "status",
                     dir: sort.dir,
+                    defaultDir: "asc",
                     onToggle: () => toggleSort("status"),
                   }}
                 />

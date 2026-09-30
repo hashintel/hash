@@ -192,6 +192,7 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Value"
+                  align="right"
                   sort={{
                     active: sort.key === "materialValue",
                     dir: sort.dir,
@@ -202,6 +203,7 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Planned"
+                  align="right"
                   sort={{
                     active: sort.key === "planned",
                     dir: sort.dir,
@@ -212,6 +214,7 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label={measureLabel}
+                  align="right"
                   sort={{
                     active: sort.key === "median",
                     dir: sort.dir,
@@ -222,6 +225,7 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Deviation"
+                  align="right"
                   sort={{
                     active: sort.key === "deviation",
                     dir: sort.dir,
@@ -232,6 +236,7 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Trend"
+                  align="right"
                   sort={{
                     active: sort.key === "trend",
                     dir: sort.dir,
@@ -242,6 +247,7 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Exceeding"
+                  align="right"
                   sort={{
                     active: sort.key === "exceeding",
                     dir: sort.dir,
@@ -252,9 +258,11 @@ export const PlanningTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Status"
+                  align="right"
                   sort={{
                     active: sort.key === "status",
                     dir: sort.dir,
+                    defaultDir: "asc",
                     onToggle: () => toggleSort("status"),
                   }}
                 />

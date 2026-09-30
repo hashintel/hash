@@ -206,6 +206,7 @@ export const TrendTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label={`Current ${measureLabel}`}
+                  align="right"
                   sort={{
                     active: sort.key === "median",
                     dir: sort.dir,
@@ -216,6 +217,7 @@ export const TrendTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label={`Previous ${measureLabel}`}
+                  align="right"
                   sort={{
                     active: sort.key === "previous",
                     dir: sort.dir,
@@ -226,6 +228,7 @@ export const TrendTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Trend"
+                  align="right"
                   sort={{
                     active: sort.key === "trend",
                     dir: sort.dir,
@@ -236,6 +239,7 @@ export const TrendTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Samples"
+                  align="right"
                   sort={{
                     active: sort.key === "sample",
                     dir: sort.dir,
@@ -246,9 +250,11 @@ export const TrendTable = ({
               <th className={threshold.thRight}>
                 <ColumnHeader
                   label="Status"
+                  align="right"
                   sort={{
                     active: sort.key === "status",
                     dir: sort.dir,
+                    defaultDir: "asc",
                     onToggle: () => toggleSort("status"),
                   }}
                 />
