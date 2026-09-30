@@ -51,8 +51,6 @@ interface OutputSample {
   readonly echoReturnLoss: number | undefined;
   readonly echoReturnLossEnhancement: number | undefined;
   readonly microphoneMuted: boolean;
-  readonly speakerMuted: boolean;
-  readonly speakerVolume: number;
   readonly selectedSpeaker: boolean;
 }
 
@@ -67,8 +65,6 @@ interface OutputStretch {
   transcriptionSpeechStarts: number;
   liveInputFragments: number;
   microphoneMuted: boolean;
-  speakerMuted: boolean;
-  speakerVolume: number;
   selectedSpeaker: boolean;
 }
 
@@ -86,8 +82,6 @@ export const createOutputEchoTrace = (sessionId: string) => {
       sessionEnded,
       outputMs: stretch.lastAudibleAt - stretch.startedAt,
       microphoneMuted: stretch.microphoneMuted,
-      speakerMuted: stretch.speakerMuted,
-      speakerVolume: stretch.speakerVolume,
       selectedSpeaker: stretch.selectedSpeaker,
       peakMicrophoneLevel: Math.round(stretch.peakMicrophoneLevel * 100) / 100,
       echoReturnLossSamples: stretch.echoReturnLossSamples,
@@ -124,8 +118,6 @@ export const createOutputEchoTrace = (sessionId: string) => {
           transcriptionSpeechStarts: 0,
           liveInputFragments: 0,
           microphoneMuted: false,
-          speakerMuted: false,
-          speakerVolume: sample.speakerVolume,
           selectedSpeaker: sample.selectedSpeaker,
         };
         stretch.lastAudibleAt = at;
@@ -149,8 +141,6 @@ export const createOutputEchoTrace = (sessionId: string) => {
           sample.echoReturnLossEnhancement;
       }
       stretch.microphoneMuted ||= sample.microphoneMuted;
-      stretch.speakerMuted ||= sample.speakerMuted;
-      stretch.speakerVolume = sample.speakerVolume;
       stretch.selectedSpeaker = sample.selectedSpeaker;
     },
     transcriptionSpeechStarted: (itemId: unknown, at: number): void => {

@@ -315,8 +315,6 @@ export const createLiveConversation = (
       echoReturnLoss,
       echoReturnLossEnhancement,
       microphoneMuted,
-      speakerMuted,
-      speakerVolume,
       selectedSpeaker: Boolean(audio?.sinkId),
     });
     utteranceLevels.sample(Date.now(), microphoneLevel);

@@ -31,8 +31,6 @@ test("does not carry an output transcript span into the next audible stretch", (
       echoReturnLoss: undefined,
       echoReturnLossEnhancement: undefined,
       microphoneMuted: false,
-      speakerMuted: false,
-      speakerVolume: 1,
       selectedSpeaker: false,
     });
 
@@ -61,8 +59,6 @@ test("counts speech as started during output only when its start is reported wit
       echoReturnLoss: undefined,
       echoReturnLossEnhancement: undefined,
       microphoneMuted: false,
-      speakerMuted: false,
-      speakerVolume: 1,
       selectedSpeaker: false,
     });
 
@@ -1531,8 +1527,6 @@ test("summarises echo evidence for each stretch of audible Live output without p
       sessionEnded: false,
       outputMs: 100,
       microphoneMuted: false,
-      speakerMuted: false,
-      speakerVolume: 1,
       selectedSpeaker: false,
       peakMicrophoneLevel: 0.12,
       echoReturnLossSamples: 2,
@@ -1804,7 +1798,6 @@ test("flushes an unfinished output summary, with its mute state, when voice ends
       sessionEnded: true,
       outputMs: 0,
       microphoneMuted: true,
-      speakerMuted: true,
       echoReturnLossSamples: 0,
       echoReturnLossEnhancementSamples: 0,
     }),
