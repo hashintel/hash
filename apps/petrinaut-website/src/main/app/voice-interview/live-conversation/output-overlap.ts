@@ -70,11 +70,11 @@ export const createOutputOverlap = () => {
       if (!overlapped) return undefined;
       return liveWords
         .filter(
-          (words) =>
-            words.at >= speechWindow.startedAt - leadMs &&
-            words.at <= stoppedAt,
+          (fragment) =>
+            fragment.at >= speechWindow.startedAt - leadMs &&
+            fragment.at <= stoppedAt,
         )
-        .map((words) => words.text)
+        .map((fragment) => fragment.text)
         .join("");
     },
     clear: (): void => {
