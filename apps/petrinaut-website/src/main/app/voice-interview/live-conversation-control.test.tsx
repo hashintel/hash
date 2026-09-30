@@ -125,7 +125,13 @@ test.each(["log", undefined] as const)(
         />,
       );
       const onInput = vi.mocked(createLiveConversation).mock.calls[0]![2];
-      act(() => onInput({ id: "one", text: "PRIVATE OKAY" }));
+      act(() =>
+        onInput({
+          id: "one",
+          text: "PRIVATE OKAY",
+          startedDuringOutput: false,
+        }),
+      );
       expect(props.submitVoiceInput).toHaveBeenCalledOnce();
       expect(fetch).toHaveBeenCalledTimes(utteranceJudgment === "log" ? 1 : 0);
       if (utteranceJudgment === "log") {

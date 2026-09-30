@@ -115,8 +115,8 @@ test("log mode does not wait for judgments or introduce new admission drops", as
   const pending = Promise.withResolvers<UtteranceJudgment | null>();
   const judge = vi.fn(() => pending.promise);
   const fixture = setup(judge);
-  await fixture.bridge.accept({ id: "one", text: "PRIVATE ONE" });
-  await fixture.bridge.accept({ id: "two", text: "PRIVATE TWO" });
+  await fixture.bridge.accept(speech("one", "PRIVATE ONE"));
+  await fixture.bridge.accept(speech("two", "PRIVATE TWO"));
   expect(fixture.submit).toHaveBeenCalledTimes(2);
   expect(judge).toHaveBeenCalledTimes(2);
   expect(judgmentRecords()).toEqual([]);
@@ -160,7 +160,7 @@ test.each([
   async (contribution, confidence, decision) => {
     vi.stubEnv("DEV", true);
     const fixture = setup(vi.fn(async () => ({ contribution, confidence })));
-    await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+    await fixture.bridge.accept(speech("one", "PRIVATE"));
     expect(fixture.submit).toHaveBeenCalledOnce();
     expect(judgmentRecords()).toEqual([
       expect.objectContaining({ decision, applied: "submit" }),
@@ -178,7 +178,7 @@ test.each(["null", "throw"])(
         return null;
       }),
     );
-    await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+    await fixture.bridge.accept(speech("one", "PRIVATE"));
     expect(fixture.submit).toHaveBeenCalledOnce();
     expect(judgmentRecords()).toEqual([
       expect.objectContaining({
@@ -196,12 +196,12 @@ test.each(["null", "throw"])(
 test("judges only eligible inputs, once per input id", async () => {
   const judge = vi.fn(async () => null);
   const fixture = setup(judge);
-  await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
-  await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
-  await fixture.bridge.accept({ id: "empty", text: " " });
-  await fixture.bridge.accept({ id: "oversize", text: "x".repeat(32_001) });
+  await fixture.bridge.accept(speech("one", "PRIVATE"));
+  await fixture.bridge.accept(speech("one", "PRIVATE"));
+  await fixture.bridge.accept(speech("empty", " "));
+  await fixture.bridge.accept(speech("oversize", "x".repeat(32_001)));
   fixture.update({ canAcceptVoiceInput: false });
-  await fixture.bridge.accept({ id: "unavailable", text: "PRIVATE" });
+  await fixture.bridge.accept(speech("unavailable", "PRIVATE"));
   expect(judge).toHaveBeenCalledOnce();
 });
 
@@ -211,7 +211,7 @@ test.each([true, false])(
     const judge = vi.fn(async () => null);
     const fixture = setup(judge);
     fixture.appendCommentary.mockReturnValue(accepted);
-    await fixture.bridge.accept({ id: "one", text: "PRIVATE FIRST" });
+    await fixture.bridge.accept(speech("one", "PRIVATE FIRST"));
     fixture.bridge.responseStarted(started);
     fixture.bridge.responseCompleted({
       ...started,
@@ -225,7 +225,7 @@ test.each([true, false])(
       "PRIVATE RELAY",
       null,
     );
-    await fixture.bridge.accept({ id: "two", text: "PRIVATE SECOND" });
+    await fixture.bridge.accept(speech("two", "PRIVATE SECOND"));
     expect(judge).toHaveBeenLastCalledWith(
       {
         transcript: "PRIVATE SECOND",
@@ -241,7 +241,7 @@ test("stop aborts an outstanding judgment without resubmission", async () => {
   const pending = Promise.withResolvers<UtteranceJudgment | null>();
   const judge = vi.fn(() => pending.promise);
   const fixture = setup(judge);
-  await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+  await fixture.bridge.accept(speech("one", "PRIVATE"));
   fixture.bridge.stop();
   expect(judge).toHaveBeenCalledWith(
     expect.anything(),
