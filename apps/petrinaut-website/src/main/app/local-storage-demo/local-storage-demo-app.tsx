@@ -60,7 +60,6 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
-import { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -112,10 +111,12 @@ import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
+import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
   DocumentRepository,
@@ -788,16 +789,7 @@ export const LocalStorageDemoApp = ({
     constructionBrowser,
     settleConstructionRevision,
   ]);
-  const mediationHistory = useMemo(
-    () =>
-      conversationId === null
-        ? undefined
-        : new VoiceMediationHistory(conversationId, {
-            getItem: (key) => window.localStorage.getItem(key),
-            setItem: (key, value) => window.localStorage.setItem(key, value),
-          }),
-    [conversationId],
-  );
+  const mediationHistory = useVoiceMediationHistory(conversationId);
   const mapVoiceMessages = useSyncExternalStore(
     mediationHistory?.subscribe ?? subscribeToNothing,
     mediationHistory?.getSnapshot ?? readNothing,
