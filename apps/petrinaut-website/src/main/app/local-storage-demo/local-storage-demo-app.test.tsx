@@ -420,7 +420,12 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.executeMutation).toBeUndefined();
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([brunchTools.draftPetrinautExperiment]);
+    ).toEqual(
+      expect.arrayContaining([
+        brunchTools.draftPetrinautExperiment,
+        "removePlace",
+      ]),
+    );
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1268,6 +1273,7 @@ describe("local storage demo Brunch controls", () => {
       );
       const assistant = editorProps.current
         ?.aiAssistant as PetrinautAiAssistant;
+      const initialTools = assistant.interactiveTools;
       const execute = vi.fn(async () => ({ applied: true }));
       const run = assistant.inBandBrowserTools?.run(
         {
@@ -1278,18 +1284,16 @@ describe("local storage demo Brunch controls", () => {
         },
         execute,
       );
-      const interactiveToolNames = () =>
-        (
-          editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined
-        )?.interactiveTools?.map(({ toolName }) => toolName);
+      const interactiveTools = () =>
+        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+          ?.interactiveTools;
       await waitFor(() => expect(claimed).toHaveBeenCalled());
-      await waitFor(() =>
-        expect(interactiveToolNames()).toContain("removePlace"),
-      );
+      await waitFor(() => expect(interactiveTools()).not.toBe(initialTools));
+      const waitingTools = interactiveTools();
       act(() => assistant.onClearMessages?.());
 
       await run;
-      expect(interactiveToolNames()).not.toContain("removePlace");
+      expect(interactiveTools()).not.toBe(waitingTools);
       expect(execute).not.toHaveBeenCalled();
       expect(posted).toEqual([
         expect.objectContaining({
@@ -1391,7 +1395,12 @@ describe("local storage demo Brunch controls", () => {
     );
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual([brunchTools.draftPetrinautExperiment]);
+    ).toEqual(
+      expect.arrayContaining([
+        brunchTools.draftPetrinautExperiment,
+        "removePlace",
+      ]),
+    );
     expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     // Every configured Brunch browser tool, the draft included, settles in band.
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(

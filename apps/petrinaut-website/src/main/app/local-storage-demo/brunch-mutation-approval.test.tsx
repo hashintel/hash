@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -29,7 +29,10 @@ vi.hoisted(() => {
   });
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const destructiveInput = {
   items: [
@@ -146,20 +149,28 @@ describe("Brunch destructive edit approval", () => {
     expect(coordinator.hasPending("delete-3")).toBe(true);
   });
 
-  test("reports which tools wait for a decision, keeping the list stable between changes", () => {
+  test("changes its snapshot for every pending call, including calls of the same tool", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
-    const idle = coordinator.pendingToolNames();
-    expect(idle).toEqual([]);
+    const idle = coordinator.getVersion();
     void coordinator.request({
       toolCallId: "remove-1",
       toolName: "removePlace",
       signal: new AbortController().signal,
     });
-    const waiting = coordinator.pendingToolNames();
-    expect(waiting).toEqual(["removePlace"]);
-    expect(coordinator.pendingToolNames()).toBe(waiting);
+    const waiting = coordinator.getVersion();
+    expect(waiting).not.toBe(idle);
+    expect(coordinator.getVersion()).toBe(waiting);
+    void coordinator.request({
+      toolCallId: "remove-2",
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+    const bothWaiting = coordinator.getVersion();
+    expect(bothWaiting).not.toBe(waiting);
     coordinator.resolve("remove-1", "deny");
-    expect(coordinator.pendingToolNames()).toEqual([]);
+    expect(coordinator.getVersion()).not.toBe(bothWaiting);
+    expect(coordinator.hasPending("remove-2")).toBe(true);
+    coordinator.close();
   });
 
   test("a malformed call is refused before it can wait for an approval that never renders", async () => {
@@ -182,7 +193,7 @@ describe("Brunch destructive edit approval", () => {
       coordinator,
       "deleteItemsByIds",
     );
-    const { container } = render(
+    render(
       <ApprovalWidget
         input={destructiveInput}
         state="awaiting"
@@ -191,7 +202,8 @@ describe("Brunch destructive edit approval", () => {
         toolCallId="historical-call"
       />,
     );
-    expect(container.innerHTML).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(coordinator.hasPending("historical-call")).toBe(false);
     expect(coordinator.resolve("historical-call", "allow")).toBe(false);
   });
 });

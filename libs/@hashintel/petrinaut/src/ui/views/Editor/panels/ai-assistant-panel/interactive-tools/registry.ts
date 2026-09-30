@@ -59,7 +59,8 @@ export const getInteractiveTool = (
         ? {
             toolName: hostDefinition.toolName,
             placement: hostDefinition.placement,
-            shouldHandle: hostDefinition.shouldHandle ?? (() => true),
+            shouldHandle: (_input, call) =>
+              hostDefinition.shouldHandle?.(call) ?? true,
             parseInput: hostDefinition.parseInput,
             parseOutput: hostDefinition.parseOutput,
             fromComposerText: hostDefinition.fromComposerText,
