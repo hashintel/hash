@@ -23,6 +23,12 @@ const hostTool = definePetrinautAiInteractiveTool({
   component: () => null,
 });
 
+const toolCall = (toolName: string, input: unknown) => ({
+  toolName,
+  toolCallId: `${toolName}-call`,
+  input,
+});
+
 describe("interactive tool registry", () => {
   test("renders host confirmation only for inputs selected by its validated predicate", () => {
     const conditional = definePetrinautAiInteractiveTool({
@@ -35,17 +41,58 @@ describe("interactive tool registry", () => {
       component: () => null,
     });
     expect(
-      getInteractiveTool("mutate", { destructive: false }, [conditional]),
+      getInteractiveTool(toolCall("mutate", { destructive: false }), [
+        conditional,
+      ]),
     ).toBeUndefined();
     expect(
-      getInteractiveTool("mutate", { destructive: true }, [conditional]),
+      getInteractiveTool(toolCall("mutate", { destructive: true }), [
+        conditional,
+      ]),
     ).toBeDefined();
+  });
+
+  test("lets a host predicate tell apart calls with identical inputs", () => {
+    const waiting = definePetrinautAiInteractiveTool({
+      toolName: "mutate",
+      inputSchema: { parse: (input: unknown) => input },
+      outputSchema: { parse: (output: unknown) => output },
+      shouldHandle: (_input, { toolCallId }) => toolCallId === "waiting",
+      component: () => null,
+    });
+    const input = { placeId: "queue" };
+    expect(
+      getInteractiveTool({ toolName: "mutate", toolCallId: "waiting", input }, [
+        waiting,
+      ]),
+    ).toBeDefined();
+    expect(
+      getInteractiveTool({ toolName: "mutate", toolCallId: "earlier", input }, [
+        waiting,
+      ]),
+    ).toBeUndefined();
+  });
+
+  test("leaves a call its predicate's schema rejects to the normal tool row", () => {
+    const conditional = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: {
+        parse: (): { question: string } => {
+          throw new Error("Expected a question");
+        },
+      },
+      outputSchema: { parse: (output: unknown) => output },
+      shouldHandle: () => true,
+      component: () => null,
+    });
+    expect(
+      getInteractiveTool(toolCall("confirmRelease", {}), [conditional]),
+    ).toBeUndefined();
   });
 
   test("resolves and validates a registered dynamic host tool", () => {
     const definition = resolveDynamicInteractiveTool(
-      "confirmRelease",
-      { question: "Ship this change?" },
+      toolCall("confirmRelease", { question: "Ship this change?" }),
       [hostTool],
     );
 
@@ -91,8 +138,7 @@ describe("interactive tool registry", () => {
       component: () => null,
     });
     const definition = resolveDynamicInteractiveTool(
-      "answerQuestion",
-      { question: "Which environment?" },
+      toolCall("answerQuestion", { question: "Which environment?" }),
       [mappedTool],
     );
 
@@ -118,8 +164,7 @@ describe("interactive tool registry", () => {
       component: () => null,
     });
     const invalidDefinition = resolveDynamicInteractiveTool(
-      "invalidAnswer",
-      {},
+      toolCall("invalidAnswer", {}),
       [invalidOutputTool],
     );
 
@@ -130,8 +175,7 @@ describe("interactive tool registry", () => {
 
   test("does not map composer text when the host omits the mapper", () => {
     const definition = resolveDynamicInteractiveTool(
-      "confirmRelease",
-      { question: "Ship this change?" },
+      toolCall("confirmRelease", { question: "Ship this change?" }),
       [hostTool],
     );
 
@@ -140,16 +184,20 @@ describe("interactive tool registry", () => {
 
   test("rejects an unregistered dynamic tool by name", () => {
     expect(() =>
-      resolveDynamicInteractiveTool("missingHostTool", {}, [hostTool]),
+      resolveDynamicInteractiveTool(toolCall("missingHostTool", {}), [
+        hostTool,
+      ]),
     ).toThrow("Unknown AI tool: missingHostTool");
   });
 
   test("preserves the built-in applyAutoLayout branching behavior", () => {
     expect(
-      getInteractiveTool("applyAutoLayout", { askUserFirst: true }, [hostTool]),
+      getInteractiveTool(toolCall("applyAutoLayout", { askUserFirst: true }), [
+        hostTool,
+      ]),
     ).toBeDefined();
     expect(
-      getInteractiveTool("applyAutoLayout", { askUserFirst: false }, [
+      getInteractiveTool(toolCall("applyAutoLayout", { askUserFirst: false }), [
         hostTool,
       ]),
     ).toBeUndefined();
@@ -164,7 +212,7 @@ describe("interactive tool registry", () => {
     });
 
     expect(() =>
-      getInteractiveTool("applyAutoLayout", { askUserFirst: true }, [
+      getInteractiveTool(toolCall("applyAutoLayout", { askUserFirst: true }), [
         conflictingTool,
       ]),
     ).toThrow("conflicts with a built-in tool");

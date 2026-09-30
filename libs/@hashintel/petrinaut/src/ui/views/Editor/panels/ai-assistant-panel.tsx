@@ -982,8 +982,7 @@ const ConversationAiAssistantPanel = ({
       }
       if (!aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
         resolveDynamicInteractiveTool(
-          toolCall.toolName,
-          toolCall.input,
+          toolCall,
           aiAssistant.interactiveTools ?? [],
         );
         return;
@@ -1163,7 +1162,10 @@ const ConversationAiAssistantPanel = ({
         toolCall.input,
       );
       if (
-        getInteractiveTool(toolName, commandInput, aiAssistant.interactiveTools)
+        getInteractiveTool(
+          { toolName, toolCallId: toolCall.toolCallId, input: commandInput },
+          aiAssistant.interactiveTools,
+        )
       ) {
         return;
       }
@@ -1870,11 +1872,7 @@ const ConversationAiAssistantPanel = ({
             continue;
           }
 
-          const definition = getInteractiveTool(
-            part.toolName,
-            part.input,
-            interactiveTools,
-          );
+          const definition = getInteractiveTool(part, interactiveTools);
           if (!definition?.fromComposerText) {
             continue;
           }

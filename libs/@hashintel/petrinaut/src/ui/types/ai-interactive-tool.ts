@@ -48,8 +48,11 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   inputSchema: PetrinautAiInteractiveToolSchema<Input>;
   /** Runtime contract for the widget's submitted output. */
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
-  /** Render an interaction only for matching validated inputs. Defaults to all. */
-  shouldHandle?: (input: Input) => boolean;
+  /**
+   * Render an interaction only for matching calls. Defaults to all. Inputs
+   * the schema rejects are never handled.
+   */
+  shouldHandle?: (input: Input, call: { toolCallId: string }) => boolean;
   /**
    * Optionally map text submitted through the assistant composer to this
    * tool's output. Petrinaut validates both the pending input and mapped
@@ -67,7 +70,7 @@ type ErasedInteractiveToolDefinition = {
   placement?: "work" | "card";
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
-  shouldHandle?: (input: unknown) => boolean;
+  shouldHandle?: (input: unknown, call: { toolCallId: string }) => boolean;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
@@ -100,7 +103,15 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
       parseInput: (value) => definition.inputSchema.parse(value),
       parseOutput: (value) => definition.outputSchema.parse(value),
       shouldHandle: shouldHandle
-        ? (value) => shouldHandle(definition.inputSchema.parse(value))
+        ? (value, call) => {
+            let input: Input;
+            try {
+              input = definition.inputSchema.parse(value);
+            } catch {
+              return false;
+            }
+            return shouldHandle(input, call);
+          }
         : undefined,
       fromComposerText: fromComposerText
         ? ({ input, text }) =>

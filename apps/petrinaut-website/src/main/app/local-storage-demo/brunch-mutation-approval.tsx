@@ -1,6 +1,5 @@
 import { useSyncExternalStore } from "react";
 
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -23,7 +22,6 @@ type BrunchMutationApprovalDecision =
 
 type PendingApproval = {
   readonly toolName: string;
-  readonly input: ReturnType<typeof canonicalContent>;
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
   readonly removeAbortListener: () => void;
 };
@@ -32,12 +30,10 @@ export interface BrunchMutationApprovalCoordinator {
   request(params: {
     readonly toolCallId: string;
     readonly toolName: string;
-    readonly input: unknown;
     readonly signal: AbortSignal;
   }): Promise<BrunchMutationApprovalDecision>;
   resolve(toolCallId: string, choice: BrunchMutationApprovalChoice): boolean;
   hasPending(toolCallId: string): boolean;
-  isPendingInput(toolName: string, input: unknown): boolean;
   /** Stable until the set of waiting tool names changes. */
   pendingToolNames: () => readonly string[];
   subscribe: (listener: () => void) => () => void;
@@ -76,7 +72,7 @@ export const createBrunchMutationApprovalCoordinator =
     };
 
     return {
-      request: ({ toolCallId, toolName, input, signal }) => {
+      request: ({ toolCallId, toolName, signal }) => {
         if (disposed || signal.aborted)
           return Promise.resolve({ decision: "deny", reason: stoppedReason });
         if (alwaysAllow) return Promise.resolve({ decision: "allow" });
@@ -87,7 +83,6 @@ export const createBrunchMutationApprovalCoordinator =
           signal.addEventListener("abort", onAbort, { once: true });
           pending.set(toolCallId, {
             toolName,
-            input: canonicalContent(input),
             resolve,
             removeAbortListener: () =>
               signal.removeEventListener("abort", onAbort),
@@ -106,13 +101,6 @@ export const createBrunchMutationApprovalCoordinator =
         );
       },
       hasPending: (toolCallId) => pending.has(toolCallId),
-      isPendingInput: (toolName, input) => {
-        const content = canonicalContent(input);
-        return [...pending.values()].some(
-          (approval) =>
-            approval.toolName === toolName && approval.input === content,
-        );
-      },
       pendingToolNames: () => pendingToolNames,
       subscribe: (listener) => {
         listeners.add(listener);
@@ -220,12 +208,9 @@ export const createBrunchMutationAdmission =
   (approval: BrunchMutationApprovalCoordinator): InBandBrowserCallAdmission =>
   async ({ toolCallId, toolName, input, signal }) => {
     if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
-    const decision = await approval.request({
-      toolCallId,
-      toolName,
-      input: mutationActionInputSchemas[toolName].parse(input),
-      signal,
-    });
+    // An approval row renders only for inputs its schema accepts.
+    mutationActionInputSchemas[toolName].parse(input);
+    const decision = await approval.request({ toolCallId, toolName, signal });
     return decision.decision === "allow"
       ? { admitted: true }
       : {
@@ -344,7 +329,8 @@ export const createBrunchMutationApprovalInteractiveTools = (
       },
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
-      shouldHandle: (input) => coordinator.isPendingInput(toolName, input),
+      shouldHandle: (_input, { toolCallId }) =>
+        coordinator.hasPending(toolCallId),
       component: createBrunchMutationApprovalWidget(coordinator, toolName),
     }),
   );
