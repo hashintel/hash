@@ -1,3 +1,4 @@
+import { compileLedgerMap, isSubjectNote } from "./map";
 import { findNote, type LedgerCommit, type LedgerNote } from "./notes";
 
 import type { LedgerProfile } from "./profile";
@@ -66,13 +67,19 @@ const standingIndex = (notes: readonly LedgerNote[]): string[] => {
 /**
  * Render every Note in a commit prefix, grouped by category in recording
  * order. Nothing is suppressed, ranked or reconciled; an exact-Note read does
- * not include its relationship closure.
+ * not include its relationship closure. An identity-addressed Ledger renders
+ * as its map followed by every Note.
  */
 export const compileLedger = (
   commits: readonly LedgerCommit[],
   profile: LedgerProfile,
   options: LedgerCompileOptions = {},
 ): LedgerCompilation => {
+  if (commits.some(({ notes }) => notes.some(isSubjectNote)))
+    return compileLedgerMap(commits, profile.title, {
+      ...(options.revision === undefined ? {} : { revision: options.revision }),
+      detail: "full",
+    });
   const latest = commits.length;
   const revision = options.revision ?? latest;
   if (!Number.isInteger(revision) || revision < 0 || revision > latest)

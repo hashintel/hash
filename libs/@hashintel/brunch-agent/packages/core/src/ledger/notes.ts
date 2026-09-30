@@ -42,8 +42,8 @@ const changeCore = {
   content: v.pipe(v.string(), v.minLength(1), v.maxLength(12_000)),
 };
 
-const typedChangeSchema = v.strictObject({
-  ...changeCore,
+/** Closed epistemic fields shared by typed and identity-addressed changes. */
+export const typedEpistemicFields = {
   source: v.pipe(
     v.picklist(ledgerSources),
     v.description(
@@ -80,6 +80,11 @@ const typedChangeSchema = v.strictObject({
       ),
     ),
   ),
+};
+
+const typedChangeSchema = v.strictObject({
+  ...changeCore,
+  ...typedEpistemicFields,
 });
 
 const openChangeSchema = v.strictObject({
@@ -106,21 +111,59 @@ export const ledgerCommitInputSchemas = {
   open: commitInput(openChangeSchema),
 } as const;
 
-/**
- * Reads a recorded change under either shape. The tool validated the input
- * when it ran, so recovery only needs the fields it folds.
- */
-const recordedChangeSchema = v.object({
-  op: v.picklist(["add", "supersede"]),
-  address: v.string(),
-  content: v.string(),
+const recordedEpistemic = {
   source: v.optional(v.picklist(ledgerSources)),
   basis: v.optional(v.picklist(ledgerBases)),
   standing: v.optional(v.picklist(ledgerStandings)),
   precision: v.optional(v.picklist(ledgerPrecisions)),
   qualifier: v.optional(v.string()),
   disposition: v.optional(v.string()),
-});
+};
+
+/**
+ * Reads a recorded change under any shape: category-addressed `add`, shared
+ * `supersede`, or the identity-addressed `identify`, `relate` and `note`. The
+ * tool validated the input when it ran, so recovery only needs the fields it
+ * folds.
+ */
+const recordedChangeSchema = v.variant("op", [
+  v.object({
+    op: v.literal("add"),
+    address: v.string(),
+    content: v.string(),
+    ...recordedEpistemic,
+  }),
+  v.object({
+    op: v.literal("supersede"),
+    address: v.string(),
+    content: v.optional(v.string()),
+    kind: v.optional(v.string()),
+    ...recordedEpistemic,
+  }),
+  v.object({
+    op: v.literal("identify"),
+    identity: v.string(),
+    kind: v.optional(v.string()),
+    content: v.optional(v.string()),
+    ...recordedEpistemic,
+  }),
+  v.object({
+    op: v.literal("relate"),
+    from: v.string(),
+    relation: v.string(),
+    label: v.optional(v.string()),
+    to: v.string(),
+    content: v.optional(v.string()),
+    ...recordedEpistemic,
+  }),
+  v.object({
+    op: v.literal("note"),
+    about: v.pipe(v.array(v.string()), v.minLength(1)),
+    content: v.string(),
+    concerns: v.optional(v.literal("draft")),
+    ...recordedEpistemic,
+  }),
+]);
 
 export const recordedCommitInputSchema = v.object({
   changes: v.pipe(v.array(recordedChangeSchema), v.minLength(1)),
@@ -131,6 +174,9 @@ export type LedgerChange = v.InferOutput<typeof recordedChangeSchema>;
 export const ledgerCommitRefusalCodes = [
   "unknown-category",
   "unknown-note",
+  "unknown-identity",
+  "duplicate-identity",
+  "invalid-change",
   "concurrent-commit",
 ] as const;
 
@@ -176,6 +222,22 @@ export interface LedgerNote {
   readonly disposition?: string;
   /** Address of the Note this one declares it supersedes. */
   readonly supersedes?: string;
+  /** Identity-addressed Ledgers: the identity this Note names and describes. */
+  readonly identity?: string;
+  readonly kind?: string;
+  /** Identity-addressed Ledgers: the relationship this Note records. */
+  readonly relation?: LedgerRelation;
+  /** Identity-addressed Ledgers: identity names or relationship Note ids. */
+  readonly about?: readonly string[];
+  /** Set when the Note concerns the net draft rather than the operation. */
+  readonly concerns?: "draft";
+}
+
+export interface LedgerRelation {
+  readonly from: string;
+  readonly relation: string;
+  readonly label?: string;
+  readonly to: string;
 }
 
 export interface LedgerCommit {
@@ -209,16 +271,95 @@ export const deriveNotes = (
       change.op === "supersede" ? findNote(prior, change.address) : undefined;
     if (change.op === "supersede" && !predecessor)
       return { missingTarget: change.address };
-    const category = predecessor?.category ?? change.address;
+    const filed = predecessor
+      ? inherit(predecessor, change)
+      : subjectOf(change);
     const id = `n${prior.length + index + 1}`;
-    const { op: _op, address: _address, ...fields } = change;
-    notes.push({
-      ...fields,
-      id,
-      address: `${category}/${id}`,
-      category,
-      ...(predecessor ? { supersedes: predecessor.address } : {}),
-    });
+    notes.push(
+      definedOnly({
+        ...epistemicOf(change),
+        ...filed,
+        id,
+        address: `${filed.category}/${id}`,
+        supersedes: predecessor?.address,
+      }),
+    );
   }
   return { notes };
 };
+
+type Filed = Pick<
+  LedgerNote,
+  | "category"
+  | "content"
+  | "identity"
+  | "kind"
+  | "relation"
+  | "about"
+  | "concerns"
+>;
+
+const subjectOf = (change: LedgerChange): Filed => {
+  switch (change.op) {
+    case "add":
+    case "supersede":
+      return { category: change.address, content: change.content ?? "" };
+    case "identify":
+      return {
+        category: `identities/${change.identity}`,
+        content: change.content ?? "",
+        identity: change.identity,
+        kind: change.kind,
+      };
+    case "relate":
+      return {
+        category: `relationships/${change.from}/${change.relation}/${change.to}`,
+        content: change.content ?? "",
+        relation: definedOnly({
+          from: change.from,
+          relation: change.relation,
+          label: change.label,
+          to: change.to,
+        }),
+      };
+    case "note":
+      return {
+        category: `notes/${change.about.join("+")}`,
+        content: change.content,
+        about: change.about,
+        concerns: change.concerns,
+      };
+  }
+};
+
+/** A superseding Note keeps its predecessor's subject; omitted content and kind carry over. */
+const inherit = (predecessor: LedgerNote, change: LedgerChange): Filed => ({
+  category: predecessor.category,
+  content: change.content ?? predecessor.content,
+  identity: predecessor.identity,
+  kind: ("kind" in change ? change.kind : undefined) ?? predecessor.kind,
+  relation: predecessor.relation,
+  about: predecessor.about,
+  concerns: predecessor.concerns,
+});
+
+const epistemicOf = ({
+  source,
+  basis,
+  standing,
+  precision,
+  qualifier,
+  disposition,
+}: LedgerChange) => ({
+  source,
+  basis,
+  standing,
+  precision,
+  qualifier,
+  disposition,
+});
+
+const definedOnly = <Value extends object>(value: Value): Value =>
+  Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as Value;

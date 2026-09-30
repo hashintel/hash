@@ -5,12 +5,26 @@
  * Flue, so the browser can render the same compilation.
  */
 
-export { prepareLedgerCommit } from "./ledger/commit";
+export {
+  prepareIdentityLedgerCommit,
+  prepareLedgerCommit,
+} from "./ledger/commit";
 export {
   compileLedger,
   type LedgerCompilation,
   type LedgerCompileOptions,
 } from "./ledger/compile";
+export {
+  compileLedgerMap,
+  isSubjectNote,
+  type LedgerMapOptions,
+} from "./ledger/map";
+export {
+  identityCommitInputSchema,
+  renderVocabulary,
+  type LedgerVocabulary,
+  type LedgerVocabularyTerm,
+} from "./ledger/vocabulary";
 export {
   ledgerCalls,
   reconstructLedger,
@@ -32,6 +46,7 @@ export {
   type LedgerCommitOutput,
   type LedgerNote,
   type LedgerNoteShape,
+  type LedgerRelation,
 } from "./ledger/notes";
 export {
   composeLedgerProfile,

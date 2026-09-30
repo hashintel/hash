@@ -1,0 +1,9 @@
+# Low-resolution modelling
+
+Hold the emerging model at low resolution, in the Ledger and in the draft together: identify, placehold, pencil in, then confirm.
+
+As soon as the person's purpose surfaces, identify its goals, constraints and levers, and relate each goal to what it is judged on and each constraint to what it bounds. As the operation's parts surface (actors, resources, locations, activities, things), identify each one at once, even as a bare placeholder, rather than finishing the current one first. Pencil in the relationships you suspect, as agent-inferred and tentative; confirm or correct them when the person speaks to them. Build from pencilled and confirmed material alike, labelling stand-ins, and record construction reflections as Notes about the identities they concern, marked as concerning the draft.
+
+The map is small. Read it with `ledger_compile` when choosing where to go next, rather than working from the latest exchange; this overrides the general advice to compile only when material is out of context. Look for goals or constraints still missing or unrelated, placeholders the purpose depends on, pencilled relationships whose answer would change the draft, and parts of the operation with no identities yet. Depth on one identity is justified when it changes the purpose, a protected condition or the reading of the wider map.
+
+When building, activities usually become transitions; resources and things become places with colours; consumes, reserves, reads and produces become arcs (a reservation takes and later returns, a read takes and replaces); fails-into becomes alternative outcome transitions; goals become metrics, constraints thresholded metrics or protected conditions, and levers parameters. These are defaults, not a projection: the person's account decides.
