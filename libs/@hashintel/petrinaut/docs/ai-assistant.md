@@ -29,7 +29,7 @@ Choose **Dock AI assistant** to return it to the right sidebar. Switching betwee
 
 Hovering a floating side highlights its straight border, fading out before each corner. Hovering a corner highlights its rounded border and fades along the two adjoining edges. Drag the corner to resize both dimensions.
 
-The header text is not selectable. Its icons animate on hover and click, respecting your reduced-motion preference.
+The header text is not selectable. Header icons animate on hover and click unless reduced motion is enabled.
 
 ## The conversation
 
@@ -44,7 +44,7 @@ Suggestion chips keep their space while hidden and cannot be activated during
 work. Once the response arrives, its **Working…** header takes over; there is no
 duplicate status or information button below it. The spinner stays still with
 reduced motion enabled. While viewing Ledger, the reserved row reports
-**Brunch is working** instead. Stock assistant loading is unchanged.
+**Brunch is working** instead. The stock assistant shows its working label without this reserved Brunch status row.
 
 Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 
@@ -264,8 +264,8 @@ interruption by speaking is enabled.
 Semantic voice detection finishes an answer automatically after a natural
 pause, so there is no required done-speaking action. Duplicate, empty, failed,
 or unavailable transcripts are not submitted. Provisional words remain
-display-only until the provider finalizes their transcript. Spoken turns then
-appear in the same conversation without a per-message badge.
+display-only until the provider finalizes their transcript. Finalized spoken turns
+appear in the same conversation. Chat marks them with the small voice-bars icon described above; Voice mode hides that per-message icon.
 Only finalized answers and canonical Brunch text become chat
 history; provisional transcription and provider audio are ephemeral.
 Completed interruptions that strongly repeat the assistant's active speech may
@@ -297,7 +297,7 @@ The assistant has tools for inspecting and modifying the current net. Expand the
 
 - **Pending tools** (amber dot) -- distinguish unfinished work from completed results.
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
-- **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Successive tools remain visible as individual chronological rows.
+- **Applied mutation tools** (completed status dot) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Successive tools remain visible as individual chronological rows. The status colour reports completion or failure, not whether a mutation added, updated, or deleted an entity.
 - **Not applied** (neutral summary) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. A completed status dot indicates execution finished, not that a mutation was applied. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors show a red dot and the error.
 - **`setNetTitle`** -- renames the net when the host supplies title editing.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Allow** / **Deny** buttons. Otherwise it'll run it without asking.
