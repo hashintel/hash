@@ -26,7 +26,7 @@ export const useNodeLever = (nodeId: string): NodeLever | null => {
 };
 
 /** "Scheduler", "Scheduler and Purchasing", "Scheduler, Purchasing and Pricing". */
-const joinNames = (names: string[]): string =>
+export const joinNames = (names: string[]): string =>
   names.length <= 1
     ? (names[0] ?? "")
     : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;

@@ -63,6 +63,8 @@ interface EntityTreeItem {
   variableName?: string;
   tag?: string;
   indent?: number;
+  onSelect?: () => void;
+  isSelected?: (selectedByDefault: boolean) => boolean;
 }
 
 const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {

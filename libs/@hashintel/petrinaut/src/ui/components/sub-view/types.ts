@@ -35,6 +35,8 @@ export interface SubView {
    * Only used in vertical (collapsible) layout.
    */
   renderHeaderAction?: () => ReactNode;
+  /** Rendered after the title in a collapsible section header, whether the section is open or not. */
+  titleAdornment?: () => ReactNode;
   /**
    * Whether the header action creates, deletes or clears something. A
    * presentation that hides mutation actions hides only these.

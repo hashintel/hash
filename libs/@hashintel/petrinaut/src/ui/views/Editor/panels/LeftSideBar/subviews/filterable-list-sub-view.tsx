@@ -168,6 +168,10 @@ interface FilterableListItem {
   renderGroupAction?: ComponentType;
   /** Extra nesting levels for a row inside a group, for rows that belong to the row above them. */
   indent?: number;
+  /** Called when a plain selection lands on this row, by click or arrow key. */
+  onSelect?: () => void;
+  /** Overrides whether the row shows as selected; receives the default. */
+  isSelected?: (selectedByDefault: boolean) => boolean;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -331,6 +335,7 @@ const FilterableListContent = <T extends FilterableListItem>({
   };
 
   const select = (item: T) => {
+    item.onSelect?.();
     selectItem(getSelectionItem(item));
     setAnchorId(item.id);
   };
@@ -430,7 +435,11 @@ const FilterableListContent = <T extends FilterableListItem>({
   // are out of `stops`, so `tabIndexFor` keeps them out of the tab order.
   const renderRow = (item: T, depth: number, isGroup: boolean) => {
     const row: VisibleRow<T> = { item, isGroup };
-    const selected = !isGroup && checkIsSelected(getSelectionItem(item).id);
+    const selectedByDefault =
+      !isGroup && checkIsSelected(getSelectionItem(item).id);
+    const selected = item.isSelected
+      ? item.isSelected(selectedByDefault)
+      : selectedByDefault;
     const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
     const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
     const action = isGroup ? (

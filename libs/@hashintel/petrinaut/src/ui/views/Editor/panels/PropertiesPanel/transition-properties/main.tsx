@@ -3,8 +3,11 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
+import { transitionPartHolders } from "../../../../../../react/controller-prototype/controllers";
+import { useControllers } from "../../../../../../react/controller-prototype/use-controllers";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { LeverSectionChip } from "../../../../../controller-prototype/lever-section-chip";
 import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
@@ -86,6 +89,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 }) => {
   const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
+  const { controllers } = useControllers();
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const logicAvailability = getTransitionLogicAvailability(
     transition,
@@ -94,16 +98,32 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     net,
   );
 
+  const withChip = (subView: SubView, part: "firing" | "results"): SubView => {
+    const holders = transitionPartHolders(controllers, transition.id, part);
+    return holders.length === 0
+      ? subView
+      : {
+          ...subView,
+          titleAdornment: () => (
+            <LeverSectionChip
+              transitionId={transition.id}
+              part={part}
+              holders={holders}
+            />
+          ),
+        };
+  };
+
   const subViews: SubView[] = [
     {
       ...transitionMainContentSubView,
       title: `${transitionMainContentSubView.title} ${transition.name}`,
     },
     ...(presentation.showSourceCode && logicAvailability.lambda
-      ? [transitionFiringTimeSubView]
+      ? [withChip(transitionFiringTimeSubView, "firing")]
       : []),
     ...(presentation.showSourceCode && logicAvailability.transitionKernel
-      ? [transitionResultsSubView]
+      ? [withChip(transitionResultsSubView, "results")]
       : []),
   ];
 

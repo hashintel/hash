@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -9,9 +9,14 @@ import {
   leverKindLabel,
   leverName,
 } from "../../react/controller-prototype/controllers";
+import {
+  setActiveLeverRow,
+  useActiveLeverRow,
+} from "../../react/controller-prototype/active-lever-row";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { useIsReadOnly } from "../../react/state/use-is-read-only";
 import {
   PlaceFilledIcon,
@@ -41,6 +46,8 @@ export type ControllerTreeRow = {
   selectionItem: SelectionItem;
   tag?: string;
   indent?: number;
+  onSelect?: () => void;
+  isSelected?: (selectedByDefault: boolean) => boolean;
 };
 
 const AddControllerAction: React.FC = () => {
@@ -78,6 +85,18 @@ export const useControllersTreeGroup = (
 ) => {
   const { controllers } = useControllers();
   const { petriNetDefinition } = use(SDCPNContext);
+  const { selection } = use(EditorContext);
+  const { updateSubViewSection } = use(UserSettingsContext);
+  const activeRow = useActiveLeverRow();
+
+  useEffect(() => {
+    if (
+      activeRow &&
+      !(selection.size === 1 && selection.has(activeRow.nodeId))
+    ) {
+      setActiveLeverRow(null);
+    }
+  }, [activeRow, selection]);
 
   const children: ControllerTreeRow[] = controllers.flatMap((controller) => [
     {
@@ -88,22 +107,39 @@ export const useControllersTreeGroup = (
     },
     ...controller.levers.map((lever): ControllerTreeRow => {
       const name = leverName(petriNetDefinition, lever);
+      const rowId = `lever:${controller.id}:${lever.id}`;
+      const selectionItem: SelectionItem =
+        name === null
+          ? { type: "controller", id: controller.id }
+          : { type: leverAnchorKind(lever), id: leverAnchorId(lever) };
+      const section =
+        name === null
+          ? undefined
+          : lever.kind === "rate"
+          ? "transition-firing-time"
+          : lever.kind === "tokenField"
+          ? "transition-results"
+          : undefined;
       return {
-        id: `lever:${controller.id}:${lever.id}`,
+        id: rowId,
         name: name ?? "Missing node",
         icon:
           leverAnchorKind(lever) === "place"
             ? PlaceFilledIcon
             : TransitionFilledIcon,
-        selectionItem:
-          name === null
-            ? { type: "controller", id: controller.id }
-            : {
-                type: leverAnchorKind(lever),
-                id: leverAnchorId(lever),
-              },
+        selectionItem,
         tag: leverKindLabel[lever.kind],
         indent: 1,
+        onSelect: () => {
+          setActiveLeverRow({ rowId, nodeId: selectionItem.id });
+          if (section) {
+            updateSubViewSection("transition-properties", section, {
+              collapsed: false,
+            });
+          }
+        },
+        isSelected: (selectedByDefault) =>
+          selectedByDefault && activeRow?.rowId === rowId,
       };
     }),
   ]);

@@ -76,7 +76,7 @@ const parseLever = (raw: unknown): Lever | null => {
             kind: "choice",
             placeId: raw.placeId,
             transitionIds: raw.transitionIds.filter(
-              (id): id is string => typeof id === "string"
+              (id): id is string => typeof id === "string",
             ),
           }
         : null;
@@ -118,11 +118,11 @@ const parseLever = (raw: unknown): Lever | null => {
                 {
                   placeId: entry.placeId,
                   elementIds: entry.elementIds.filter(
-                    (id): id is string => typeof id === "string"
+                    (id): id is string => typeof id === "string",
                   ),
                 },
               ]
-            : []
+            : [],
         ),
       };
     }
@@ -161,7 +161,7 @@ export const readControllers = (sdcpn: SDCPN): Controller[] => {
 
 export const writeControllers = (
   draft: SDCPN,
-  controllers: Controller[]
+  controllers: Controller[],
 ): void => {
   draft.metadata = {
     ...draft.metadata,
@@ -203,14 +203,14 @@ type NetLike = Pick<SDCPN, "places" | "transitions" | "types">;
  */
 export const competingTransitionIds = (
   net: NetLike,
-  placeId: string
+  placeId: string,
 ): string[] =>
   net.transitions
     .filter((transition) =>
       transition.inputArcs.some(
         (arc) =>
-          arc.type === "standard" && placeIdOf(getArcEndpoint(arc)) === placeId
-      )
+          arc.type === "standard" && placeIdOf(getArcEndpoint(arc)) === placeId,
+      ),
     )
     .map((transition) => transition.id);
 
@@ -233,7 +233,7 @@ export type TokenFieldPlace = {
 /** The output places of a transition that hold typed tokens, with the fields of each token type. */
 export const tokenFieldPlaces = (
   net: NetLike,
-  transitionId: string
+  transitionId: string,
 ): TokenFieldPlace[] =>
   [...new Set(outputPlaceIds(net, transitionId))].flatMap(
     (placeId): TokenFieldPlace[] => {
@@ -254,12 +254,12 @@ export const tokenFieldPlaces = (
             },
           ]
         : [];
-    }
+    },
   );
 
 /** How many fields a Token field lever sets in all. */
 export const tokenFieldCount = (
-  lever: Extract<Lever, { kind: "tokenField" }>
+  lever: Extract<Lever, { kind: "tokenField" }>,
 ): number =>
   lever.places.reduce((count, entry) => count + entry.elementIds.length, 0);
 
@@ -275,11 +275,11 @@ export const toggleTokenField = (
   placeId: string,
   elementId: string,
   on: boolean,
-  makeId: () => string
+  makeId: () => string,
 ): Controller => {
   const existing = controller.levers.find(
     (lever): lever is Extract<Lever, { kind: "tokenField" }> =>
-      lever.kind === "tokenField" && lever.transitionId === transitionId
+      lever.kind === "tokenField" && lever.transitionId === transitionId,
   );
   const current = existing?.places.find((entry) => entry.placeId === placeId);
   const chosen = new Set(current?.elementIds ?? []);
@@ -299,7 +299,7 @@ export const toggleTokenField = (
     ...(existing?.places.filter((entry) => entry.placeId !== placeId) ?? []),
     ...(elementIds.length > 0 ? [{ placeId, elementIds }] : []),
   ].sort(
-    (a, b) => placeOrder.indexOf(a.placeId) - placeOrder.indexOf(b.placeId)
+    (a, b) => placeOrder.indexOf(a.placeId) - placeOrder.indexOf(b.placeId),
   );
   const lever: Lever = {
     id: existing?.id ?? makeId(),
@@ -311,7 +311,7 @@ export const toggleTokenField = (
     ...controller,
     levers: existing
       ? controller.levers.map((candidate) =>
-          candidate === existing ? lever : candidate
+          candidate === existing ? lever : candidate,
         )
       : [...controller.levers, lever],
   };
@@ -334,13 +334,45 @@ export const leverAnchorKind = (lever: Lever): "place" | "transition" =>
 /** Every controller that holds a lever over the node, with the kinds it holds. */
 export const controllersOfNode = (
   controllers: Controller[],
-  nodeId: string
+  nodeId: string,
 ): { controller: Controller; kinds: LeverKind[] }[] =>
   controllers.flatMap((controller) => {
     const kinds = controller.levers
       .filter((lever) => leverNodeIds(lever).includes(nodeId))
       .map((lever) => lever.kind);
     return kinds.length > 0 ? [{ controller, kinds }] : [];
+  });
+
+export type TransitionPart = "firing" | "results";
+
+export type TransitionPartHolder = {
+  controller: Controller;
+  fieldCount: number;
+};
+
+/**
+ * The controllers that decide one part of a transition: its firing (Rate, or a
+ * Choice that includes it) or its results (Token field). `fieldCount` is the
+ * number of Token fields set, 0 for firing.
+ */
+export const transitionPartHolders = (
+  controllers: Controller[],
+  transitionId: string,
+  part: TransitionPart,
+): TransitionPartHolder[] =>
+  controllers.flatMap((controller) => {
+    const levers = controller.levers.filter((lever) =>
+      part === "results"
+        ? lever.kind === "tokenField" && lever.transitionId === transitionId
+        : (lever.kind === "rate" || lever.kind === "choice") &&
+          leverNodeIds(lever).includes(transitionId),
+    );
+    const fieldCount = levers.reduce(
+      (count, lever) =>
+        count + (lever.kind === "tokenField" ? tokenFieldCount(lever) : 0),
+      0,
+    );
+    return levers.length > 0 ? [{ controller, fieldCount }] : [];
   });
 
 /**
@@ -364,9 +396,9 @@ export const rateExpression = (lambdaCode: string): string | null => {
 
 /** Drops controllers from a selection, for actions that only know net entities. */
 export const withoutControllers = <Item extends { type: string }>(
-  items: Item[]
+  items: Item[],
 ): Exclude<Item, { type: "controller" }>[] =>
   items.filter(
     (item): item is Exclude<Item, { type: "controller" }> =>
-      item.type !== "controller"
+      item.type !== "controller",
   );
