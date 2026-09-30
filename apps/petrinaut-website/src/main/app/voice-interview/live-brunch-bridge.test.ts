@@ -311,8 +311,35 @@ test("keeps a dropped utterance's words visible so they can be sent from the com
   expect(
     history.project([]).find((message) => message.id === "second")?.parts,
   ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  expect(history.project([]).map((message) => message.id)).toEqual([
+    "first",
+    "second",
+  ]);
   brief.resolve({});
   await first;
+});
+
+test("drops a superseded transcript quietly when another turn holds the composer", async () => {
+  const history = new VoiceMediationHistory("test");
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const fixture = setup({
+    history,
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const current = fixture.bridge.accept({ id: "current", text: "Correction" });
+  fixture.notice.mockClear();
+  await fixture.bridge.accept({
+    id: "stale",
+    text: "Old request",
+    superseded: true,
+  });
+
+  expect(fixture.notice).not.toHaveBeenCalled();
+  expect(history.project([]).map((message) => message.id)).toEqual(["current"]);
+  brief.resolve({});
+  await current;
 });
 
 test("a turn keeps its annotations in the history it began in when the conversation switches", async () => {

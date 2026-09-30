@@ -30,6 +30,11 @@ export class VoiceMediationHistory {
   readonly #storage?: Pick<Storage, "getItem" | "setItem">;
   readonly #turns = new Map<string, Turn>();
   readonly #pending = new Set<string>();
+  /**
+   * Unsent turn id → the entry it was spoken after, or undefined for the start
+   * of the transcript. A turn whose entry has left the transcript is hidden.
+   */
+  readonly #unsent = new Map<string, string | undefined>();
   readonly #streamingInputs = new Set<string>();
   readonly #listeners = new Set<() => void>();
   #projection = (messages: PetrinautAiMessage[]) => this.project(messages);
@@ -88,10 +93,14 @@ export class VoiceMediationHistory {
     this.#pending.add(id);
     this.#publish();
   }
-  /** Keeps words Brunch did not receive visible, so they can be sent from the composer. */
-  public unsent(id: string, text: string): void {
+  /**
+   * Keeps words Brunch did not receive visible, so they can be sent from the
+   * composer. They stay where they were spoken, after `after` (a turn or
+   * message id), rather than trailing later turns.
+   */
+  public unsent(id: string, text: string, after: string | undefined): void {
     this.#turns.set(id, { id, text, responseIds: [] });
-    this.#pending.add(id);
+    this.#unsent.set(id, after);
     this.#publish();
   }
   public begin(input: { id: string; text: string }): void {
@@ -212,6 +221,26 @@ export class VoiceMediationHistory {
         },
       ],
     });
+    const pushUnsentAfter = (anchor: string | undefined) => {
+      for (const [id, after] of this.#unsent) {
+        const turn = this.#turns.get(id);
+        if (!turn) continue;
+        const anchored =
+          anchor === undefined
+            ? after === undefined
+            : after !== undefined &&
+              (after === anchor ||
+                this.#turns.get(after)?.canonicalId === anchor);
+        if (anchored)
+          result.push({
+            id: turn.id,
+            role: "user",
+            metadata: { source: "voice" },
+            parts: [{ type: "text", text: turn.text }],
+          });
+      }
+    };
+    pushUnsentAfter(undefined);
     for (const message of canonical) {
       const turn =
         message.role === "user"
@@ -256,6 +285,7 @@ export class VoiceMediationHistory {
         if (lastResponse?.id === message.id)
           result.push(spoken(candidate, "wrapUp"));
       }
+      pushUnsentAfter(message.id);
     }
     return result;
   };

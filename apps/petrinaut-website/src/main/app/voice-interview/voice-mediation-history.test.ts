@@ -78,6 +78,30 @@ test("does not bring back an admitted voice turn after the chat is cleared", () 
   expect(history.project([])).toEqual([]);
 });
 
+test("keeps unsent words where they were spoken and drops them with the chat they belong to", () => {
+  const history = new VoiceMediationHistory("conversation");
+  history.begin({ id: "first", text: "Compare staffing" });
+  history.unsent("dropped", "Also check the queue", "first");
+  expect(history.project([]).map((message) => message.id)).toEqual([
+    "first",
+    "dropped",
+  ]);
+  history.admitted("first", "submission");
+  history.begin({ id: "later", text: "Now try three agents" });
+  const text = (id: string): PetrinautAiMessage => ({
+    id,
+    role: id.startsWith("answer") ? "assistant" : "user",
+    parts: [{ type: "text", text: id }],
+  });
+  history.admitted("later", "later-submission");
+  expect(
+    history
+      .project([text("first"), text("answer"), text("later"), text("answer-2")])
+      .map((message) => message.id),
+  ).toEqual(["first", "dropped", "answer", "later", "answer-2"]);
+  expect(history.project([])).toEqual([]);
+});
+
 test("anchors an experiment summary after the card without fabricating a user turn", () => {
   const history = new VoiceMediationHistory("conversation");
   history.result("result", ["card"]);

@@ -220,14 +220,21 @@ export class LiveBrunchBridge {
       logLiveDiagnostic("input.dropped", {
         inputId: input.id,
         delegationId,
+        superseded: input.superseded === true,
         oversized: input.text.length > 32_000,
         waitingForComposer: this.#waitingForComposer !== undefined,
         admissionUnavailable: !this.#chat.canAcceptVoiceInput,
       });
+      // Newer speech already replaced these words; resending them is not asked for.
+      if (input.superseded) return;
       this.#dependencies.notice(
         "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       );
-      this.#dependencies.mediation?.history.unsent(input.id, input.text);
+      this.#dependencies.mediation?.history.unsent(
+        input.id,
+        input.text,
+        this.#waitingForComposer?.inputId ?? this.#chat.messages?.at(-1)?.id,
+      );
       this.#unserved(delegationId, "The request was not submitted.");
       return;
     }
