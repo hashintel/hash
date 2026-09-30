@@ -71,6 +71,7 @@ export class LiveBrunchBridge {
   readonly #offeredSegments = new Set<string>();
   readonly #turns = new Set<Turn>();
   readonly #unclaimedDelegations = new Set<string>();
+  readonly #deferredDelegations = new Set<string>();
   readonly #responses = new Map<
     string,
     Map<
@@ -94,6 +95,7 @@ export class LiveBrunchBridge {
   }
 
   public stop(): void {
+    this.#closeDeferredDelegations();
     this.#abort.abort();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
@@ -121,6 +123,7 @@ export class LiveBrunchBridge {
       this.#unclaimedDelegations.add(delegationId);
       logLiveDiagnostic("delegation.unclaimed", { delegationId });
     } else {
+      this.#deferredDelegations.add(delegationId);
       logLiveDiagnostic("delegation.deferred", {
         delegationId,
         reason: "speech-order-unknown",
@@ -135,17 +138,27 @@ export class LiveBrunchBridge {
    */
   #closeStrayDelegations(): void {
     if (this.#dependencies.speechPending()) return;
-    for (const delegationId of this.#unclaimedDelegations) {
-      logLiveDiagnostic("delegation.closed", {
-        delegationId,
-        reason: "no-pending-speech",
-      });
-      this.#dependencies.appendInstructions(
-        "This request will not be answered. Do not respond to it; keep listening.",
-        delegationId,
-      );
-    }
+    for (const delegationId of this.#unclaimedDelegations)
+      this.#closeDelegation(delegationId, "no-pending-speech");
     this.#unclaimedDelegations.clear();
+  }
+
+  /** Deferred delegations are never paired, so only Stop or teardown closes them. */
+  #closeDeferredDelegations(): void {
+    for (const delegationId of this.#deferredDelegations)
+      this.#closeDelegation(delegationId, "deferred");
+    this.#deferredDelegations.clear();
+  }
+
+  #closeDelegation(
+    delegationId: string,
+    reason: "no-pending-speech" | "deferred",
+  ): void {
+    logLiveDiagnostic("delegation.closed", { delegationId, reason });
+    this.#dependencies.appendInstructions(
+      "This request will not be answered. Do not respond to it; keep listening.",
+      delegationId,
+    );
   }
 
   #unserved(delegationId: string | null): void {
@@ -343,6 +356,7 @@ export class LiveBrunchBridge {
     }
     for (const delegationId of this.#unclaimedDelegations)
       this.#unserved(delegationId);
+    this.#closeDeferredDelegations();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
     this.#waitingForComposer = undefined;

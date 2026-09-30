@@ -669,6 +669,29 @@ test("a delegation arriving before transcription reports speech is deferred with
   expect(traceRecords(debug.mock.calls, "delegation.closed")).toEqual([]);
 });
 
+test.each(["stop", "teardown"] as const)(
+  "%s closes a deferred delegation without answering it",
+  (mode) => {
+    vi.stubEnv("DEV", true);
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const fixture = setup();
+    fixture.speechPending.mockReturnValue(false);
+    fixture.bridge.acceptDelegation("raced-delegation");
+
+    if (mode === "stop") fixture.bridge.stopResponse();
+    else fixture.bridge.stop();
+    fixture.bridge.stop();
+
+    expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining("Do not respond"),
+      "raced-delegation",
+    );
+    expect(traceRecords(debug.mock.calls, "delegation.closed")).toMatchObject([
+      { delegationId: "raced-delegation", reason: "deferred" },
+    ]);
+  },
+);
+
 test("a delegation that arrived while its phantom was transcribed is closed when the phantom is skipped", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
