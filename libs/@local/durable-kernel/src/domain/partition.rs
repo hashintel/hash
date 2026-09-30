@@ -1,5 +1,5 @@
 use error_stack::{Report, ResultExt as _};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use sha2::{Digest as _, Sha256};
 
 use super::DomainEvent;
@@ -11,11 +11,9 @@ use crate::{
 
 pub const MAX_PARTITION_KEY_BYTES: usize = 1024;
 
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, derive_more::Display,
-)]
-#[serde(try_from = "String", into = "String")]
-pub struct PartitionKey(String);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, derive_more::Display)]
+#[serde(try_from = "String")]
+pub struct PartitionKey(Box<str>);
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum InvalidPartitionKey {
@@ -50,7 +48,7 @@ impl PartitionKey {
         {
             return Err(InvalidPartitionKey::UnsafeCharacter);
         }
-        Ok(Self(value))
+        Ok(Self(value.into_boxed_str()))
     }
 
     /// Returns the routing-v1 shard for this key.
@@ -107,8 +105,8 @@ impl core::str::FromStr for PartitionKey {
     }
 }
 
-impl From<PartitionKey> for String {
-    fn from(key: PartitionKey) -> Self {
-        key.0
+impl Serialize for PartitionKey {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
     }
 }

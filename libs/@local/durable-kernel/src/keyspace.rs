@@ -17,7 +17,7 @@ pub const MAX_NAMESPACE_BYTES: usize = 256;
 /// Segments accept ASCII letters, digits, `-`, `_`, `.`, `@`, and `:`. Empty segments, `.` and
 /// `..` are rejected.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
-pub struct Namespace(String);
+pub struct Namespace(Box<str>);
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum InvalidNamespace {
@@ -69,7 +69,7 @@ impl Namespace {
         if !value.split('/').all(valid_segment) {
             return Err(InvalidNamespace::UnsafeSegment);
         }
-        Ok(Self(value))
+        Ok(Self(value.into_boxed_str()))
     }
 }
 
@@ -97,7 +97,7 @@ impl core::str::FromStr for Namespace {
 
 impl From<Namespace> for String {
     fn from(namespace: Namespace) -> Self {
-        namespace.0
+        Self::from(namespace.0)
     }
 }
 
