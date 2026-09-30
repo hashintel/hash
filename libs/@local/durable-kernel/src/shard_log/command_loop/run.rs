@@ -37,13 +37,20 @@ pub(super) fn send_reply<T: Send + 'static>(
 ) -> Result<(), CommandFailure> {
     match result {
         Ok(value) => {
-            let _: Result<_, _> = reply.send(Ok(value));
+            if reply.send(Ok(value)).is_err() {
+                tracing::trace!("caller stopped waiting before its command result was delivered");
+            }
             Ok(())
         }
         Err(error) => Err(CommandFailure {
             error,
             reply: Some(Box::new(|error| {
-                let _: Result<_, _> = reply.send(Err(error));
+                if let Err(Err(error)) = reply.send(Err(error)) {
+                    tracing::trace!(
+                        ?error,
+                        "caller stopped waiting before its command error was delivered"
+                    );
+                }
             })),
         }),
     }

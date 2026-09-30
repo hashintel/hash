@@ -39,7 +39,9 @@ where
 {
     fn answer(self: Box<Self>, projection: &KernelProjection<P>) {
         let Self { query, reply } = *self;
-        drop(reply.send(query.answer(projection)));
+        if reply.send(query.answer(projection)).is_err() {
+            tracing::trace!("caller stopped waiting before its query answer was delivered");
+        }
     }
 }
 
