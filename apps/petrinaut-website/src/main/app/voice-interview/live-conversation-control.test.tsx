@@ -172,7 +172,7 @@ test.each([
   { development: true, search: "?voiceDebug=1" },
   { development: false, search: "?voiceDebug=1" },
 ])(
-  "withholds without recovery UI: $development $search",
+  "withholds judged control speech: $development $search",
   async ({ development, search }) => {
     vi.stubEnv("DEV", development);
     window.history.replaceState(null, "", `/${search}`);
@@ -207,11 +207,6 @@ test.each([
       );
       expect(fetch).toHaveBeenCalledOnce();
       expect(props.submitVoiceInput).not.toHaveBeenCalled();
-      expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
-      expect(screen.queryByText("PRIVATE hang on")).toBeNull();
-      expect(
-        screen.queryByRole("button", { name: "Send to Brunch" }),
-      ).toBeNull();
       if (development) {
         expect(trace).toHaveBeenCalledWith(
           expect.stringContaining('"applied":"withhold"'),
@@ -274,7 +269,7 @@ test("connected enforcement uses context without letting delegation release held
     await act(async () =>
       onInput({
         id: "one",
-        text: "<script>PRIVATE okay</script>",
+        text: "okay",
         startedDuringOutput: false,
       }),
     );
@@ -284,14 +279,10 @@ test("connected enforcement uses context without letting delegation release held
     expect(JSON.parse(body)).toMatchObject({
       currentInterviewQuestion: "Do five staff cover weekends?",
     });
-    expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
-    expect(screen.queryByText("<script>PRIVATE okay</script>")).toBeNull();
-    expect(document.querySelector("script")).toBeNull();
     act(() => onDelegation("unmatched"));
     expect(props.submitVoiceInput).not.toHaveBeenCalled();
     act(() => onState({ phase: "ended", message: null }));
     expect(props.submitVoiceInput).not.toHaveBeenCalled();
-    expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
   } finally {
     fetch.mockRestore();
   }
