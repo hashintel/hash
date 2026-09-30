@@ -37,7 +37,10 @@ export interface BrunchMutationApprovalCoordinator {
   /** Stable until the set of waiting tool names changes. */
   pendingToolNames: () => readonly string[];
   subscribe: (listener: () => void) => () => void;
-  dispose(): void;
+  /** Settles waiting approvals as stopped and refuses new ones until reopened. */
+  close(): void;
+  /** React Strict Mode closes and reopens the coordinator of a mounted conversation. */
+  open(): void;
 }
 
 const stoppedReason = "The destructive edit was stopped before approval.";
@@ -49,7 +52,7 @@ export const createBrunchMutationApprovalCoordinator =
     const pending = new Map<string, PendingApproval>();
     const listeners = new Set<() => void>();
     let alwaysAllow = false;
-    let disposed = false;
+    let closed = false;
     let pendingToolNames: readonly string[] = [];
     const notify = () => {
       const next = [
@@ -73,7 +76,7 @@ export const createBrunchMutationApprovalCoordinator =
 
     return {
       request: ({ toolCallId, toolName, signal }) => {
-        if (disposed || signal.aborted)
+        if (closed || signal.aborted)
           return Promise.resolve({ decision: "deny", reason: stoppedReason });
         if (alwaysAllow) return Promise.resolve({ decision: "allow" });
         return new Promise((resolve) => {
@@ -91,7 +94,7 @@ export const createBrunchMutationApprovalCoordinator =
         });
       },
       resolve: (toolCallId, choice) => {
-        if (!pending.has(toolCallId) || disposed) return false;
+        if (!pending.has(toolCallId) || closed) return false;
         if (choice === "always-allow") alwaysAllow = true;
         return settle(
           toolCallId,
@@ -106,11 +109,14 @@ export const createBrunchMutationApprovalCoordinator =
         listeners.add(listener);
         return () => listeners.delete(listener);
       },
-      dispose: () => {
-        disposed = true;
+      close: () => {
+        closed = true;
         alwaysAllow = false;
         for (const toolCallId of pending.keys())
           settle(toolCallId, { decision: "deny", reason: stoppedReason });
+      },
+      open: () => {
+        closed = false;
       },
     };
   };

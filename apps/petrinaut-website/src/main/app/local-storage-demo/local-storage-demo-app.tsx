@@ -670,13 +670,11 @@ export const LocalStorageDemoApp = ({
   );
   // The panel stays mounted when the binding changes, so a replaced authority
   // must settle the approvals still waiting on it.
-  const liveMutationApprovalRef = useRef(mutationApproval.coordinator);
   useEffect(() => {
-    if (liveMutationApprovalRef.current !== mutationApproval.coordinator)
-      liveMutationApprovalRef.current.dispose();
-    liveMutationApprovalRef.current = mutationApproval.coordinator;
+    const { coordinator } = mutationApproval;
+    coordinator.open();
+    return () => coordinator.close();
   }, [mutationApproval]);
-  useEffect(() => () => liveMutationApprovalRef.current.dispose(), []);
   const allMutationApprovalTools = useMemo(
     () =>
       createBrunchMutationApprovalInteractiveTools(

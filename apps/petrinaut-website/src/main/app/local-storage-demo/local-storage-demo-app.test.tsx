@@ -75,7 +75,7 @@ const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
 const renderedAssistants = vi.hoisted(() => [] as PetrinautAiAssistant[]);
 const mutationApprovalCoordinators = vi.hoisted(
-  () => [] as { dispose: () => void }[],
+  () => [] as { close: () => void }[],
 );
 vi.mock("@flue/sdk", () => ({
   createFlueClient: (options: unknown) => {
@@ -99,7 +99,7 @@ vi.mock("./brunch-mutation-approval", async (importOriginal) => {
     ...actual,
     createBrunchMutationApprovalCoordinator: () => {
       const coordinator = actual.createBrunchMutationApprovalCoordinator();
-      vi.spyOn(coordinator, "dispose");
+      vi.spyOn(coordinator, "close");
       mutationApprovalCoordinators.push(coordinator);
       return coordinator;
     },
@@ -450,7 +450,7 @@ describe("local storage demo Brunch voice integration", () => {
     const mutationApprovalCoordinator = mutationApprovalCoordinators.at(-1);
     expect(mutationApprovalCoordinator).toBeDefined();
     rendered.unmount();
-    expect(mutationApprovalCoordinator?.dispose).toHaveBeenCalledOnce();
+    expect(mutationApprovalCoordinator?.close).toHaveBeenCalledOnce();
     vi.unstubAllGlobals();
   });
 

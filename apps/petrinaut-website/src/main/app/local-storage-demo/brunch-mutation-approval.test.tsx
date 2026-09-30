@@ -117,6 +117,35 @@ describe("Brunch destructive edit approval", () => {
     expect(fresh.hasPending("delete-3")).toBe(false);
   });
 
+  test("closing stops waiting approvals and reopening accepts new ones", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const waiting = coordinator.request({
+      toolCallId: "delete-1",
+      toolName: "deleteItemsByIds",
+      signal: new AbortController().signal,
+    });
+    coordinator.close();
+    await expect(waiting).resolves.toEqual({
+      decision: "deny",
+      reason: "The destructive edit was stopped before approval.",
+    });
+    await expect(
+      coordinator.request({
+        toolCallId: "delete-2",
+        toolName: "deleteItemsByIds",
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toMatchObject({ decision: "deny" });
+
+    coordinator.open();
+    void coordinator.request({
+      toolCallId: "delete-3",
+      toolName: "deleteItemsByIds",
+      signal: new AbortController().signal,
+    });
+    expect(coordinator.hasPending("delete-3")).toBe(true);
+  });
+
   test("reports which tools wait for a decision, keeping the list stable between changes", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const idle = coordinator.pendingToolNames();
