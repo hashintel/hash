@@ -4,7 +4,6 @@ import { SortMenu, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
-import { STEP_TYPE_ORDER } from "../../shared/categories";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import {
   compareStatusLabels,
@@ -358,14 +357,6 @@ function sortOpportunities(
     return [...items].sort((left, right) =>
       sort.dir === "desc" ? right.score - left.score : left.score - right.score,
     );
-  }
-  if (sort.key === "stepType") {
-    return [...items].sort((left, right) => {
-      const cmp =
-        STEP_TYPE_ORDER.indexOf(left.node.type) -
-        STEP_TYPE_ORDER.indexOf(right.node.type);
-      return sort.dir === "desc" ? -cmp : cmp;
-    });
   }
   if (sort.key === "sampleSize") {
     return [...items].sort((left, right) =>

@@ -28,19 +28,12 @@ export type SortKey =
   | "meanLate"
   | "meanLateWhenLate"
   | "maxLate"
-  // Menu-only sorts (no column): derived step metrics…
-  | "tailRatio"
-  | "variability"
+  // Menu-only sorts (no column): the change in days between periods…
   | "changeDays"
-  | "bufferReleasable"
-  // …opportunity extras…
-  | "stepType"
+  // …the opportunities' sample count…
   | "sampleSize"
   // …and supplier extras.
   | "nLate"
-  | "lateShare"
-  | "inFullGap"
-  | "severeLate"
   | "materialsCount";
 
 export type SortDir = "asc" | "desc";

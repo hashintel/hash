@@ -106,24 +106,12 @@ function sharedStepSortValue(
   measure: BaseMeasure,
 ): number | null | undefined {
   switch (key) {
-    case "tailRatio": {
-      const { median, p95 } = row.stats;
-      return median != null && median > 0 && p95 != null ? p95 / median : null;
-    }
-    case "variability": {
-      const { mean, std } = row.stats;
-      return mean != null && mean > 0 && std != null ? std / mean : null;
-    }
     case "changeDays": {
       const current = selectStat(row.stats, measure);
       return current != null && row.previousValue != null
         ? current - row.previousValue
         : null;
     }
-    case "bufferReleasable":
-      return row.plan != null && row.stats.p85 != null
-        ? Math.max(0, row.plan - row.stats.p85)
-        : null;
     case "trend":
       return row.trendPct ?? null;
     case "previous":
@@ -382,13 +370,6 @@ export function sortSupplierRows(
           return value.max_days_late;
         case "nLate":
           return value.n_late;
-        case "lateShare":
-          return value.n_lines > 0 ? value.n_late / value.n_lines : 0;
-        // Punctual-but-short-shipped gap: how much OTIF trails pure on-time.
-        case "inFullGap":
-          return (value.on_time_pct ?? 0) - (value.otif_pct ?? 0);
-        case "severeLate":
-          return value.late_buckets.ge_7d_pct ?? 0;
         case "materialsCount":
           return value.materials?.length ?? 0;
         default:

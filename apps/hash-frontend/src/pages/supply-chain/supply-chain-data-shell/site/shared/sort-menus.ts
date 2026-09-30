@@ -2,11 +2,12 @@ import type { SortDir, SortKey } from "./row-types";
 import type { SortDirection, Sorter } from "@hashintel/ds-components";
 
 /**
- * Sorter lists for each site table's SortMenu, including every column sort
- * plus menu-only derived metrics (tail ratio, variability, change, supplier
- * reliability breakdowns) that have no column of their own. The menu and the
- * column headers drive the same `{key, dir}` sort state, so either control
- * reflects the other; a menu-only sort simply shows no active column caret.
+ * Sorter lists for each site table's SortMenu, ordered and named to mirror
+ * the table's filter menu (see `STEP_FILTER_MENUS`): column sorts in
+ * column order plus the few surviving menu-only metrics (change, the
+ * opportunities' sample count). The menu and the column headers drive the
+ * same `{key, dir}` sort state, so either control reflects the other; a
+ * menu-only sort simply shows no active column caret.
  */
 
 export const sortMenuValueOf = (
@@ -48,15 +49,11 @@ export const dwellSorters = (
 ): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
   { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
-  { name: `Carrying cost${periodSuffix(display)}`, sortKey: "cost" },
-  { name: "Cost trend", sortKey: "costTrend" },
-  { name: "Timing trend", sortKey: "trend" },
-  { name: "Change", sortKey: "changeDays" },
-  { name: "Previous value", sortKey: "previous" },
+  { name: "Trend %", sortKey: "trend" },
   { name: "MOQ", sortKey: "moq" },
   { name: "Safety stock", sortKey: "safetyStock" },
-  { name: "Tail ratio (P95 ÷ median)", sortKey: "tailRatio" },
-  { name: "Variability (CV)", sortKey: "variability" },
+  { name: `Carrying cost${periodSuffix(display)}`, sortKey: "cost" },
+  { name: "Cost trend %", sortKey: "costTrend" },
   { name: "Samples", sortKey: "sample" },
   { name: "Status", sortKey: "status" },
 ];
@@ -66,7 +63,7 @@ export const planningSorters = (
 ): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
   { name: "Supplier", sortKey: "supplier" },
-  { name: "Basis", sortKey: "basis" },
+  { name: "Receipt basis", sortKey: "basis" },
   {
     name: `Material value${periodSuffix(display)}`,
     sortKey: "materialValue",
@@ -74,14 +71,9 @@ export const planningSorters = (
   { name: "Planned days", sortKey: "planned" },
   { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
   { name: "Deviation %", sortKey: "deviation" },
-  { name: "% exceeding plan", sortKey: "exceeding" },
-  { name: "Buffer releasable", sortKey: "bufferReleasable" },
-  { name: "Trend", sortKey: "trend" },
+  { name: "Trend %", sortKey: "trend" },
   { name: "Change", sortKey: "changeDays" },
-  { name: "Previous value", sortKey: "previous" },
-  { name: "Tail ratio (P95 ÷ median)", sortKey: "tailRatio" },
-  { name: "Variability (CV)", sortKey: "variability" },
-  { name: "Samples", sortKey: "sample" },
+  { name: "% exceeding plan", sortKey: "exceeding" },
   { name: "Status", sortKey: "status" },
 ];
 
@@ -89,35 +81,30 @@ export const trendSorters = ({
   measureLabel,
 }: Pick<SorterDisplay, "measureLabel">): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
-  { name: `Current value (${measureLabel})`, sortKey: "median" },
-  { name: "Previous value", sortKey: "previous" },
+  { name: `Current days (${measureLabel})`, sortKey: "median" },
+  { name: `Previous days (${measureLabel})`, sortKey: "previous" },
   { name: "Change", sortKey: "changeDays" },
   { name: "Trend %", sortKey: "trend" },
-  { name: "Tail ratio (P95 ÷ median)", sortKey: "tailRatio" },
-  { name: "Variability (CV)", sortKey: "variability" },
   { name: "Samples", sortKey: "sample" },
   { name: "Status", sortKey: "status" },
 ];
 
 export const OPPORTUNITY_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
+  // Sorts `opportunity.title`, the underlying step's display name.
+  { name: "Step name", sortKey: "opportunity" },
   { name: "Impact", sortKey: "impact" },
-  { name: "Title", sortKey: "opportunity" },
-  { name: "Step type", sortKey: "stepType" },
-  { name: "Sample size", sortKey: "sampleSize" },
+  { name: "Sample", sortKey: "sampleSize" },
   { name: "Status", sortKey: "status" },
 ];
 
 export const SUPPLIER_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
   { name: "Vendor", sortKey: "vendor" },
-  { name: "OTIF %", sortKey: "otif" },
-  { name: "On-time %", sortKey: "onTime" },
-  { name: "In-full gap", sortKey: "inFullGap" },
-  { name: "PO lines", sortKey: "lines" },
+  { name: "Materials count", sortKey: "materialsCount" },
+  { name: "Lines", sortKey: "lines" },
   { name: "Late lines", sortKey: "nLate" },
-  { name: "Late share", sortKey: "lateShare" },
-  { name: "Severe late (≥7d)", sortKey: "severeLate" },
+  { name: "On-time %", sortKey: "onTime" },
+  { name: "OTIF %", sortKey: "otif" },
   { name: "Mean delay (all)", sortKey: "meanLate" },
   { name: "Mean delay when late", sortKey: "meanLateWhenLate" },
   { name: "Max delay", sortKey: "maxLate" },
-  { name: "Materials supplied", sortKey: "materialsCount" },
 ];
