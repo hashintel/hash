@@ -2,15 +2,27 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import type { SortKey, SortDir } from "./row-types";
 
+// The hover zone is the whole header cell, not just the label text: the
+// caret reveal and label highlight both key off `th:hover`.
 const headerButton = css({
   display: "inline-flex",
   alignItems: "center",
   gap: "0.5",
   transition: "colors",
   cursor: "pointer",
-  _hover: { color: "fg.heading" },
+  "th:hover &": { color: "fg.heading" },
+  _focusVisible: { color: "fg.heading" },
 });
-const caret = css({ flexShrink: 0 });
+// The direction caret rests hidden; hovering the header cell (or keyboard
+// focus on the header button) reveals it.
+const caret = css({
+  flexShrink: 0,
+  opacity: "0",
+  transition: "[opacity 120ms ease]",
+  "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  "th:hover &": { opacity: "1" },
+  "button:focus-visible &": { opacity: "1" },
+});
 
 /** Clickable column header that toggles sort key/direction and shows a caret. */
 export const SortHeader = ({
