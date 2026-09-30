@@ -118,7 +118,7 @@ const judgmentRecords = () =>
     )
     .filter((record) => record.event === "judgment.result");
 
-test("enforcement withholds once and ignores delegation", async () => {
+test("enforcement withholds once and a later delegation cannot submit it", async () => {
   vi.stubEnv("DEV", true);
   const judge = vi.fn(async () => ({
     contribution: "social_or_backchannel" as const,
@@ -211,10 +211,16 @@ test("enforcement waits for admission, not an older response, before draining th
   fixture.bridge.stop();
 });
 
-test("enforcement relays admitted Brunch prose without assigning a delegation", async () => {
-  const fixture = setup(async () => null, { enforce: true });
+test("enforcement offers admitted Brunch prose on the delegation that arrived during judgment", async () => {
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const fixture = setup(() => pending.promise, { enforce: true });
   await fixture.bridge.accept(speech("one", "Four reviewers"));
-  fixture.bridge.acceptDelegation("unmatched");
+  fixture.bridge.acceptDelegation("delegation");
+  expect(fixture.submit).not.toHaveBeenCalled();
+  pending.resolve(null);
+  await pending.promise;
+  await Promise.resolve();
+  expect(fixture.submit).toHaveBeenCalledOnce();
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
     ...started,
@@ -223,10 +229,94 @@ test("enforcement relays admitted Brunch prose without assigning a delegation", 
   fixture.update({ segments: [segment()], settlements: completed });
   expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
     segment().text,
-    null,
+    "delegation",
   );
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
   fixture.bridge.stop();
 });
+
+test.each([
+  ["empty", speech("skipped", ".")],
+  [
+    "short-during-output",
+    { id: "skipped", text: "Yes", startedDuringOutput: true },
+  ],
+])(
+  "enforcement never judges input the %s stage skips",
+  async (_stage, input) => {
+    const judge = vi.fn(async () => null);
+    const fixture = setup(judge, { enforce: true });
+    await fixture.bridge.accept(input);
+    expect(judge).not.toHaveBeenCalled();
+    expect(fixture.submit).not.toHaveBeenCalled();
+    await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+    expect(judge).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ transcript: "Seven reviewers" }),
+      expect.any(AbortSignal),
+    );
+    fixture.bridge.stop();
+  },
+);
+
+test.each([
+  ["control", "leave"],
+  ["relay_request", "leave"],
+  ["social_or_backchannel", "decline"],
+  ["restates_assistant", "decline"],
+  ["no_content", "decline"],
+] as const)(
+  "enforcement withholding %s input applies delegation policy %s",
+  async (contribution, policy) => {
+    vi.stubEnv("DEV", true);
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(null);
+    const fixture = setup(judge, { enforce: true });
+    await fixture.bridge.accept(speech("held", "PRIVATE incidental"));
+    fixture.bridge.acceptDelegation("delegation");
+    pending.resolve({ contribution, confidence: 0.9 });
+    await pending.promise;
+    await Promise.resolve();
+    expect(fixture.submit).not.toHaveBeenCalled();
+    expect(fixture.appendInstructions.mock.calls).toEqual(
+      policy === "decline"
+        ? [[expect.stringContaining("not sent to the backend"), "delegation"]]
+        : [],
+    );
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.withheld")).toEqual([
+      expect.objectContaining({
+        inputId: "held",
+        delegationId: "delegation",
+        delegation: policy,
+      }),
+    ]);
+
+    // A released delegation is never reused for later speech or closed later.
+    await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+    await Promise.resolve();
+    expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "answer" }),
+    );
+    fixture.bridge.responseStarted(started);
+    fixture.bridge.responseCompleted({
+      ...started,
+      position: { batch: 2, index: 0 },
+    });
+    fixture.update({ segments: [segment()], settlements: completed });
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      null,
+    );
+    fixture.bridge.stopResponse();
+    fixture.bridge.stop();
+    expect(fixture.appendInstructions).toHaveBeenCalledTimes(
+      policy === "decline" ? 1 : 0,
+    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+  },
+);
 
 test("enforcement fails open at one second and ignores a late withholding result", async () => {
   vi.useFakeTimers();

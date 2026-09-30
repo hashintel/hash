@@ -1,17 +1,19 @@
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type {
+  UtteranceContribution,
   UtteranceJudgment,
   UtteranceJudgmentState,
 } from "../../../shared/live-utterance-judgment";
+import type { FinalizedInput } from "./live-conversation";
 
-export interface WithheldUtterance {
-  readonly id: string;
-  readonly text: string;
-}
+export type WithheldContribution = Exclude<
+  UtteranceContribution,
+  "interview_content"
+>;
 
 interface Entry {
-  readonly input: WithheldUtterance;
+  readonly input: FinalizedInput;
   decision: "pending" | "submit" | "withhold";
 }
 
@@ -21,7 +23,12 @@ interface Dependencies {
     signal: AbortSignal,
   ) => Promise<UtteranceJudgment | null>;
   readonly canSubmit: () => boolean;
-  readonly submit: (input: WithheldUtterance) => void;
+  readonly submit: (input: FinalizedInput) => void;
+  /** Called once per withheld input, when its judgment arrives. */
+  readonly withhold: (
+    input: FinalizedInput,
+    contribution: WithheldContribution,
+  ) => void;
 }
 
 /** Local experiment: owns decisions, never canonical admission. Withheld input is dropped. */
@@ -35,7 +42,7 @@ export class LiveUtteranceGate {
     this.#dependencies = dependencies;
   }
 
-  public accept(input: WithheldUtterance, state: UtteranceJudgmentState): void {
+  public accept(input: FinalizedInput, state: UtteranceJudgmentState): void {
     if (this.#stopped) return;
     const entry: Entry = { input, decision: "pending" };
     this.#queue.push(entry);
@@ -53,12 +60,13 @@ export class LiveUtteranceGate {
       if (settled || this.#stopped) return;
       settled = true;
       cancel();
-      entry.decision =
+      const withheld =
         judgment !== null &&
         judgment.confidence >= 0.8 &&
         judgment.contribution !== "interview_content"
-          ? "withhold"
-          : "submit";
+          ? judgment.contribution
+          : null;
+      entry.decision = withheld === null ? "submit" : "withhold";
       logLiveDiagnostic("judgment.result", {
         inputId: input.id,
         judgment: judgment !== null,
@@ -70,6 +78,7 @@ export class LiveUtteranceGate {
         applied: entry.decision,
         mode: "enforce",
       });
+      if (withheld !== null) this.#dependencies.withhold(input, withheld);
       this.drain();
     };
     timer = setTimeout(() => finish(null, true), 1_000);

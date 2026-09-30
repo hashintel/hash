@@ -14,7 +14,7 @@ import type {
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
-import type { WithheldUtterance } from "./live-utterance-gate";
+import type { WithheldContribution } from "./live-utterance-gate";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -44,6 +44,9 @@ interface Turn {
   submissionId?: string;
 }
 
+/** A gated input awaiting judgment or admission; it holds its delegation until then. */
+type GatedInput = Pick<Turn, "inputId" | "delegationId" | "submissionId">;
+
 type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
@@ -59,6 +62,21 @@ const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
   "doubtful-short-during-output": "leave",
   "short-during-output": "leave",
   empty: "decline",
+};
+
+/**
+ * The gate withholds after the input has claimed its delegation. Controls and
+ * relay requests are Live's to answer, so their delegation gets no Brunch
+ * instruction; other withheld speech declines it like empty input.
+ */
+const delegationOnWithhold: Readonly<
+  Record<WithheldContribution, "decline" | "leave">
+> = {
+  control: "leave",
+  relay_request: "leave",
+  social_or_backchannel: "decline",
+  restates_assistant: "decline",
+  no_content: "decline",
 };
 
 interface Dependencies {
@@ -87,6 +105,7 @@ export class LiveBrunchBridge {
   readonly #seenInputs = new Set<string>();
   readonly #offeredSegments = new Set<string>();
   readonly #turns = new Set<Turn>();
+  readonly #gatedInputs = new Map<string, GatedInput>();
   readonly #unclaimedDelegations = new Set<string>();
   readonly #deferredDelegations = new Set<string>();
   readonly #responses = new Map<
@@ -119,7 +138,27 @@ export class LiveBrunchBridge {
           this.#chat.canAcceptVoiceInput &&
           this.#chat.status !== "error",
         submit: (input) => {
-          void this.#submitInput(input, null);
+          const delegationId =
+            this.#gatedInputs.get(input.id)?.delegationId ?? null;
+          this.#gatedInputs.delete(input.id);
+          void this.#submitInput(input, delegationId);
+        },
+        withhold: (input, contribution) => {
+          const delegationId =
+            this.#gatedInputs.get(input.id)?.delegationId ?? null;
+          this.#gatedInputs.delete(input.id);
+          const delegation = delegationOnWithhold[contribution];
+          logLiveDiagnostic("input.withheld", {
+            inputId: input.id,
+            delegationId,
+            delegation,
+          });
+          if (delegation === "decline" && delegationId !== null) {
+            this.#dependencies.appendInstructions(
+              "That speech did not add to the interview and was not sent to the backend. Ask the person to continue without assuming an answer.",
+              delegationId,
+            );
+          }
         },
       });
     }
@@ -129,6 +168,7 @@ export class LiveBrunchBridge {
     this.#closeDeferredDelegations();
     this.#abort.abort();
     this.#gate?.stop();
+    this.#gatedInputs.clear();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
   }
@@ -141,15 +181,9 @@ export class LiveBrunchBridge {
 
   public acceptDelegation(delegationId: string): void {
     if (this.#abort.signal.aborted) return;
-    if (this.#gate) {
-      logLiveDiagnostic("delegation.unmatched", { delegationId });
-      this.#dependencies.appendInstructions(
-        "The application decides which finalized speech to send to Brunch. This delegation does not identify or submit an utterance. Wait for backend results; do not claim an answer was received or work completed without confirmation.",
-        delegationId,
-      );
-      return;
-    }
-    const turn = [...this.#turns].findLast(
+    // Gated inputs are newer than every submitted turn. Pairing never decides
+    // whether the gate submits an input.
+    const turn = [...this.#turns, ...this.#gatedInputs.values()].findLast(
       (candidate) => candidate.delegationId === null,
     );
     if (turn) {
@@ -264,6 +298,7 @@ export class LiveBrunchBridge {
       return;
     }
     if (this.#gate) {
+      this.#gatedInputs.set(input.id, { inputId: input.id, delegationId });
       this.#gate.accept(input, {
         transcript: input.text,
         // Keep the tails, where the latest question is, within the wire limit.
@@ -279,7 +314,7 @@ export class LiveBrunchBridge {
   }
 
   async #submitInput(
-    input: WithheldUtterance,
+    input: FinalizedInput,
     delegationId: string | null,
   ): Promise<void> {
     this.#dependencies.notice(null);
@@ -453,6 +488,9 @@ export class LiveBrunchBridge {
 
   #interruptTurns(): void {
     this.#gate?.cancelPending();
+    for (const { delegationId } of this.#gatedInputs.values())
+      this.#unserved(delegationId);
+    this.#gatedInputs.clear();
     for (const turn of this.#turns) {
       logLiveDiagnostic("brunch.interrupted", {
         inputId: turn.inputId,

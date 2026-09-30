@@ -355,9 +355,14 @@ cannot be recovered through the UI.** Ending voice clears session-local state
 and cancels pending work. No automatic retry or replay occurs after reconnect.
 Check canonical history if admission is unconfirmed.
 
-GPT-Live delegation neither chooses nor releases a transcript. Gated results
-are relayed as general session commentary, without arrival-order matching.
-`judgment.result` records the applied decision using metadata only.
+Transcripts skipped by the empty or short-during-output checks are never
+judged. GPT-Live delegation neither chooses nor releases a transcript, but it
+pairs with gated transcripts as described above, including while judgment is
+pending, so Brunch prose for a submitted transcript is offered on its
+delegation. A withheld control or relay request leaves its delegation for Live
+to answer itself; other withheld speech declines it. `judgment.result` records
+the applied decision and `input.withheld` the delegation outcome, using
+metadata only.
 
 For readable browser console lines, add `?voiceDebug=1` to the page URL (or
 `&voiceDebug=1` if it already has query parameters), reload, and filter DevTools
