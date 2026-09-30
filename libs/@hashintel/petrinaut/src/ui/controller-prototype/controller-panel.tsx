@@ -101,7 +101,7 @@ const leverHeaderStyle = css({
 const nodeIconStyle = css({
   display: "flex",
   flexShrink: "0",
-  color: "neutral.s60",
+  color: "[#9ca3af]",
 });
 
 const chevronStyle = css({
@@ -228,6 +228,21 @@ const placeDotStyle = css({
 
 const fieldNameStyle = css({ fontFamily: "mono", fontSize: "xs" });
 
+const fieldTypeStyle = css({ fontSize: "xs", color: "neutral.s90" });
+
+const placeGroupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+});
+
+const fieldListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+  paddingLeft: "3.5",
+});
+
 const TokenFieldChecklist: React.FC<{
   net: NetLike;
   lever: Extract<Lever, { kind: "tokenField" }>;
@@ -242,7 +257,7 @@ const TokenFieldChecklist: React.FC<{
           lever.places.find((entry) => entry.placeId === place.placeId)
             ?.elementIds ?? [];
         return (
-          <div key={place.placeId} className={choiceRowStyle}>
+          <div key={place.placeId} className={placeGroupStyle}>
             <span className={choiceLabelStyle}>
               <span
                 className={placeDotStyle}
@@ -251,23 +266,32 @@ const TokenFieldChecklist: React.FC<{
               {place.placeName}
               <span className={mutedStyle}>{place.typeName}</span>
             </span>
-            {place.fields.map((field) => (
-              <Checkbox
-                key={field.elementId}
-                size="sm"
-                value={chosen.includes(field.elementId)}
-                disabled={isReadOnly}
-                onChange={(checked) =>
-                  onToggle(place.placeId, field.elementId, checked)
-                }
-                label={
-                  <span className={choiceLabelStyle}>
-                    <span className={fieldNameStyle}>{field.name}</span>
-                    <span className={mutedStyle}>{field.type}</span>
-                  </span>
-                }
-              />
-            ))}
+            <div className={fieldListStyle}>
+              {place.fields.map((field) => (
+                <Checkbox
+                  key={field.elementId}
+                  size="sm"
+                  value={chosen.includes(field.elementId)}
+                  disabled={isReadOnly}
+                  onChange={(checked) =>
+                    onToggle(place.placeId, field.elementId, checked)
+                  }
+                  label={
+                    <span className={choiceLabelStyle}>
+                      <span
+                        className={cx(
+                          fieldNameStyle,
+                          !chosen.includes(field.elementId) && mutedStyle
+                        )}
+                      >
+                        {field.name}
+                      </span>
+                      <span className={fieldTypeStyle}>{field.type}</span>
+                    </span>
+                  }
+                />
+              ))}
+            </div>
           </div>
         );
       })}
