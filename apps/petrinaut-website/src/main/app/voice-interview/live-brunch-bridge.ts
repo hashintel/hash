@@ -1,7 +1,12 @@
 import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  liveUtteranceStages,
+  routeUtterance,
+} from "./live-brunch-bridge/utterance-pipeline";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
 import type {
   RealtimeBrunchBridge,
@@ -35,10 +40,15 @@ type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
 
-const wordCount = (text: string) =>
-  text
-    .normalize("NFKC")
-    .match(/[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu)?.length ?? 0;
+/**
+ * Leaked Live audio is skipped before a delegation is claimed: GPT-Live can
+ * delegate its own echo, and an unclaimed delegation can outlast the utterance
+ * it was created for. Other skips claim the delegation and decline it.
+ */
+const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
+  "short-during-output": "leave",
+  empty: "decline",
+};
 
 interface Dependencies {
   readonly submit: Submit;
@@ -124,25 +134,21 @@ export class LiveBrunchBridge {
       return;
     }
     this.#seenInputs.add(input.id);
-    const words = wordCount(input.text);
-    // Leaked Live audio finalizes as phantoms of a few words. Check before a
-    // delegation is claimed: GPT-Live can delegate its own echo, and an
-    // unclaimed delegation can outlast the utterance it was created for.
-    if (input.startedDuringOutput && words > 0 && words <= 3) {
+    const skipReason = routeUtterance(input, liveUtteranceStages);
+    if (skipReason !== null && delegationOnSkip[skipReason] === "leave") {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
-        reason: "short-during-output",
+        reason: skipReason,
       });
       return;
     }
     const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
-    // Transcription can finalize noise as punctuation alone, such as ".".
-    if (words === 0) {
+    if (skipReason !== null) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
         delegationId,
-        reason: "empty",
+        reason: skipReason,
       });
       if (delegationId !== null) {
         this.#dependencies.appendInstructions(
