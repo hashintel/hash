@@ -51,7 +51,10 @@ pub struct AlgorithmVersion {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecordDeclaration {
     pub name: &'static str,
-    /// Identifies the codec within this process.
+    /// The `TypeId` of the Rust type that encodes the record.
+    ///
+    /// The registry compares it to reject two types that register one name. It compares values
+    /// from one process only, because a `TypeId` can differ between builds.
     pub codec: core::any::TypeId,
     pub owning_module: &'static str,
     pub emitted_version: u32,

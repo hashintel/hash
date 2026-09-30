@@ -19,10 +19,14 @@ use crate::{
 
 pub(super) const MAX_SNAPSHOT_BYTES: usize = 15 * 1024 * 1024;
 
+/// The codec of [`DOMAIN_SNAPSHOT_DECLARATION`]. Each domain's declaration replaces it with the
+/// domain's projection type.
+struct TemplateCodec;
+
 /// Metadata shared by application snapshot declarations.
 pub(super) const DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     name: "domain_projection_snapshot",
-    codec: core::any::TypeId::of::<()>(),
+    codec: core::any::TypeId::of::<TemplateCodec>(),
     owning_module: "kernel::domain",
     emitted_version: 1,
     supported_versions: &[1],
