@@ -100,6 +100,7 @@ export const createOutputEchoTrace = (sessionId: string) => {
 
   return {
     sample: (at: number, sample: OutputSample): void => {
+      if (stretch && at - stretch.lastAudibleAt >= echoTailMs) report(false);
       if (sample.audible) {
         stretch ??= {
           startedAt: at,
@@ -117,10 +118,6 @@ export const createOutputEchoTrace = (sessionId: string) => {
         stretch.lastAudibleAt = at;
       }
       if (!stretch) return;
-      if (at - stretch.lastAudibleAt >= echoTailMs) {
-        report(false);
-        return;
-      }
       stretch.peakMicrophoneLevel = Math.max(
         stretch.peakMicrophoneLevel,
         sample.microphoneLevel,

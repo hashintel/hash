@@ -48,6 +48,31 @@ test("does not carry an output transcript span into the next audible stretch", (
   ]);
 });
 
+test("audible output a full tail after the last starts a new output stretch", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const echoTrace = createOutputEchoTrace("session");
+  const sample = (at: number) =>
+    echoTrace.sample(at, {
+      audible: true,
+      microphoneLevel: 0,
+      echoReturnLoss: undefined,
+      echoReturnLossEnhancement: undefined,
+      microphoneMuted: false,
+      selectedSpeaker: false,
+    });
+
+  sample(0);
+  sample(999);
+  sample(1_999);
+  echoTrace.end();
+
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({ sessionEnded: false, outputMs: 999 }),
+    expect.objectContaining({ sessionEnded: true, outputMs: 0 }),
+  ]);
+});
+
 test("counts speech as started during output only when its start is reported within half a second", () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});

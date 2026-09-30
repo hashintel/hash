@@ -36,7 +36,7 @@ export const createOutputOverlap = () => {
     sample: (at: number, audible: boolean): void => {
       if (!audible) return;
       const last = stretches.at(-1);
-      if (last && at - last.lastAudibleAt <= echoTailMs) {
+      if (last && at - last.lastAudibleAt < echoTailMs) {
         last.lastAudibleAt = at;
       } else {
         stretches.push({ startedAt: at, lastAudibleAt: at });
