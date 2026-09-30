@@ -30,26 +30,26 @@ const toolCall = (toolName: string, input: unknown) => ({
 });
 
 describe("interactive tool registry", () => {
-  test("renders host confirmation only for inputs selected by its validated predicate", () => {
+  test("selects host calls without parsing their input during lookup", () => {
+    const parse = vi.fn((input: unknown) => input);
     const conditional = definePetrinautAiInteractiveTool({
       toolName: "mutate",
-      inputSchema: {
-        parse: (input: unknown) => input as { destructive: boolean },
-      },
+      inputSchema: { parse },
       outputSchema: { parse: (output: unknown) => output },
-      shouldHandle: (input) => input.destructive,
+      shouldHandle: ({ toolCallId }) => toolCallId === "mutate-call",
       component: () => null,
     });
     expect(
       getInteractiveTool(toolCall("mutate", { destructive: false }), [
         conditional,
       ]),
-    ).toBeUndefined();
+    ).toBeDefined();
     expect(
       getInteractiveTool(toolCall("mutate", { destructive: true }), [
         conditional,
       ]),
     ).toBeDefined();
+    expect(parse).not.toHaveBeenCalled();
   });
 
   test("lets a host predicate tell apart calls with identical inputs", () => {
@@ -57,7 +57,7 @@ describe("interactive tool registry", () => {
       toolName: "mutate",
       inputSchema: { parse: (input: unknown) => input },
       outputSchema: { parse: (output: unknown) => output },
-      shouldHandle: (_input, { toolCallId }) => toolCallId === "waiting",
+      shouldHandle: ({ toolCallId }) => toolCallId === "waiting",
       component: () => null,
     });
     const input = { placeId: "queue" };
@@ -73,7 +73,7 @@ describe("interactive tool registry", () => {
     ).toBeUndefined();
   });
 
-  test("leaves a call its predicate's schema rejects to the normal tool row", () => {
+  test("validates selected calls when resolving them, not during lookup", () => {
     const conditional = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
       inputSchema: {
@@ -87,7 +87,12 @@ describe("interactive tool registry", () => {
     });
     expect(
       getInteractiveTool(toolCall("confirmRelease", {}), [conditional]),
-    ).toBeUndefined();
+    ).toBeDefined();
+    expect(() =>
+      resolveDynamicInteractiveTool(toolCall("confirmRelease", {}), [
+        conditional,
+      ]),
+    ).toThrow("Expected a question");
   });
 
   test("resolves and validates a registered dynamic host tool", () => {
