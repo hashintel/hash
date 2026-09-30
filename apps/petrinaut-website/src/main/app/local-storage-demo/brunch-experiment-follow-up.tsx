@@ -35,6 +35,16 @@ const sendResults = (
   );
 };
 
+const hasDraftToolCall = (
+  context: PetrinautAiComposerControlContext,
+  draft: EditorDraft,
+) =>
+  context.messages.some((message) =>
+    message.parts.some(
+      (part) => "toolCallId" in part && part.toolCallId === draft.toolCallId,
+    ),
+  );
+
 /** Sends local run results as a new turn, never as a second draft-tool output. */
 export const BrunchExperimentFollowUp = ({
   context,
@@ -46,13 +56,7 @@ export const BrunchExperimentFollowUp = ({
   const snapshot = useSyncExternalStore(drafts.subscribe, drafts.get);
   const running = [...snapshot.drafts.values()].some(
     (draft) =>
-      draft.run.phase === "running" &&
-      context.messages.some((message) =>
-        message.parts.some(
-          (part) =>
-            "toolCallId" in part && part.toolCallId === draft.toolCallId,
-        ),
-      ),
+      draft.run.phase === "running" && hasDraftToolCall(context, draft),
   );
   const reportRunning = context.reportExperimentRunning;
   useEffect(() => {
@@ -68,12 +72,7 @@ export const BrunchExperimentFollowUp = ({
       draft.run.result.status === "complete" &&
       draft.followUp !== "sent" &&
       draft.followUp !== "pending" &&
-      context.messages.some((message) =>
-        message.parts.some(
-          (part) =>
-            "toolCallId" in part && part.toolCallId === draft.toolCallId,
-        ),
-      ),
+      hasDraftToolCall(context, draft),
   );
   const unsent = completed.find((draft) => draft.followUp !== "failed");
   const failed = completed.find((draft) => draft.followUp === "failed");
