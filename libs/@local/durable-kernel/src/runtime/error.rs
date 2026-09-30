@@ -14,6 +14,8 @@ use crate::{
 pub enum KernelError {
     #[display("at least one owned shard is required")]
     NoOwnedShards,
+    #[display("shard {} is listed more than once", shard.get())]
+    DuplicateShard { shard: Shard },
     #[display("could not register domain records")]
     RegisterDomain,
     #[display("could not construct event record")]

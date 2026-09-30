@@ -27,7 +27,8 @@ pub struct KernelConfig {
     /// The storage location, as a local file URL or an S3 URL.
     pub blob_url: String,
     pub aws_region: Option<String>,
-    /// The kernel rejects submissions routed outside these shards.
+    /// The kernel rejects submissions routed outside these shards. Each shard may appear only
+    /// once.
     pub shards: Vec<Shard>,
     pub snapshot_policy: SnapshotPolicy,
     /// Idle drivers wait this long. It is also the default retry delay.

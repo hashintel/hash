@@ -552,13 +552,16 @@ fn open_empty_shards() {
 fn open_duplicate_shards() {
     let mut settings = config("file:///unused", 0);
     settings.shards = vec![Shard::from_u8(2), Shard::from_u8(1), Shard::from_u8(2)];
-    let kernel = Kernel::open(settings).expect("repeated shards should be accepted");
+    let Err(report) = Kernel::open(settings) else {
+        panic!("a shard selected twice should be rejected");
+    };
     assert_eq!(
-        kernel.shards,
-        vec![Shard::from_u8(1), Shard::from_u8(2)],
-        "shards should be opened once in sorted order"
+        report.current_context(),
+        &KernelError::DuplicateShard {
+            shard: Shard::from_u8(2)
+        },
+        "the error should name the repeated shard"
     );
-    assert_eq!(kernel.shard_capacity.get(), 2);
 }
 
 #[tokio::test]

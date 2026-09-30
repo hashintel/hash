@@ -16,19 +16,27 @@ use crate::{
 };
 
 impl Kernel {
-    /// Prepares the selected shards for [`start`](Self::start). Repeated shards are opened once.
+    /// Prepares the selected shards for [`start`](Self::start).
     ///
     /// # Errors
     ///
-    /// Returns an error for an empty shard selection.
+    /// - [`NoOwnedShards`] if no shard is selected
+    /// - [`DuplicateShard`] if a shard is selected more than once
+    ///
+    /// [`NoOwnedShards`]: KernelError::NoOwnedShards
+    /// [`DuplicateShard`]: KernelError::DuplicateShard
     pub fn open(config: KernelConfig) -> Result<Self, Report<KernelError>> {
-        let shards: Vec<_> = config
+        let shards = config
             .shards
             .iter()
-            .copied()
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect();
+            .try_fold(BTreeSet::new(), |mut shards, &shard| {
+                if shards.insert(shard) {
+                    Ok(shards)
+                } else {
+                    Err(KernelError::DuplicateShard { shard })
+                }
+            })?;
+        let shards: Vec<_> = shards.into_iter().collect();
         let shard_capacity =
             NonZeroU64::new(shards.len() as u64).ok_or(KernelError::NoOwnedShards)?;
         Ok(Self {
