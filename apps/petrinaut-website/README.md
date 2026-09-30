@@ -262,17 +262,25 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   before the speech started until it stopped. Six or more words count as a
   repeat when they mostly match Live's words in order; fewer count only when
   they appear together, in order, in Live's words.
+- `filter.shadow` with `stage: "doubtful-short-during-output"` tries a narrower
+  three-word rule: short speech during output counts only when its least
+  likely token has a log probability below -1.9 (`minLogprob`) or it repeats
+  Live's words as the echo check defines them. The three-word rule still
+  decides. An `input.ignored` line with `reason: "short-during-output"` and no
+  `filter.shadow` line from this stage is speech the narrower rule would have
+  sent to Brunch.
 
 On laptop speakers, on a speaker chosen in the audio settings, and on
 headphones, answer three Brunch questions and stay silent while Live speaks
 each reply. Any speech start, input fragment or `startedDuringOutput: true`
 during a reply means echo reached the microphone path; also note whether Live
 stops itself mid-sentence. Then interrupt a reply once with a sentence of your
-own. Each `filter.shadow` line should match a phantom in the conversation, and
-the interruption should get none. After any `delegation.deferred` line, note
-whether Live speaks without a Brunch reply: what GPT-Live does with a delegation
-left open is not yet known. The traces are local development diagnostics and
-contain no audio or text.
+own and once with a short answer such as "Yes". Each `filter.shadow` line
+should match a phantom in the conversation, and the interruptions should
+usually get none. After any `delegation.deferred` line, note whether Live
+speaks without a Brunch reply: what GPT-Live does with a delegation left open
+is not yet known. The traces are local development diagnostics and contain no
+audio or text.
 
 #### Noise check — 5 minutes
 

@@ -46,7 +46,9 @@ type Submit = ConstructorParameters<
  * it was created for. Other skips claim the delegation and decline it.
  */
 const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
+  // Shadow stages never skip, so these apply once the stage is switched on.
   echo: "leave",
+  "doubtful-short-during-output": "leave",
   "short-during-output": "leave",
   empty: "decline",
 };

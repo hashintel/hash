@@ -1679,7 +1679,7 @@ test("records transcription confidence on input.finalized from numbers only", as
       "scored",
       [
         { token: "PRIVATE", logprob: -0.1, bytes: [80] },
-        { token: " hmm", logprob: -2.25, bytes: [32, 104] },
+        { token: " hmm", logprob: -1.9004, bytes: [32, 104] },
         { token: ".", logprob: -0.0004, bytes: [46] },
       ],
     ],
@@ -1710,8 +1710,8 @@ test("records transcription confidence on input.finalized from numbers only", as
     expect.objectContaining({
       itemId: "scored",
       logprobTokens: 3,
-      meanLogprob: -0.783,
-      minLogprob: -2.25,
+      meanLogprob: -0.667,
+      minLogprob: -1.9,
     }),
     expect.objectContaining({ itemId: "unscored", logprobTokens: 0 }),
     expect.objectContaining({ itemId: "malformed", logprobTokens: 0 }),
@@ -1721,10 +1721,11 @@ test("records transcription confidence on input.finalized from numbers only", as
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
-    ["id", "text", "startedDuringOutput"],
+    ["id", "text", "startedDuringOutput", "minLogprob"],
     ["id", "text", "startedDuringOutput"],
     ["id", "text", "startedDuringOutput"],
   ]);
+  expect(fixture.onFinalizedInput.mock.calls[0]?.[0].minLogprob).toBe(-1.9004);
   const traced = JSON.stringify(debug.mock.calls);
   expect(traced).not.toContain("PRIVATE");
   expect(traced).not.toContain("hmm");

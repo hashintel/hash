@@ -5,6 +5,7 @@ import {
 } from "./live-conversation/echo-diagnostics";
 import { createOutputOverlap } from "./live-conversation/output-overlap";
 import {
+  roundForTrace,
   summarizeLogprobs,
   type TranscriptionConfidence,
 } from "./live-conversation/transcription-confidence";
@@ -37,6 +38,8 @@ export interface FinalizedInput {
   readonly startedDuringOutput: boolean;
   /** Live's words around the speech, only when it overlapped audible output. Never traced. */
   readonly liveOutputText?: string;
+  /** The transcript's lowest per-token log probability, when any were returned. */
+  readonly minLogprob?: number;
 }
 
 type ConnectionKind = "live" | "transcription";
@@ -84,7 +87,10 @@ export const createLiveConversation = (
   const committedPrevious = new Map<string, string | null>();
   const completed = new Map<
     string,
-    Omit<FinalizedInput, "startedDuringOutput" | "liveOutputText">
+    Omit<
+      FinalizedInput,
+      "startedDuringOutput" | "liveOutputText" | "minLogprob"
+    >
   >();
   const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
@@ -365,6 +371,7 @@ export const createLiveConversation = (
         emitted.add(input.id);
         const startedDuringOutput = echoTrace.startedDuringOutput(itemId);
         const liveOutputText = outputOverlap.finalize(itemId, Date.now());
+        const inputConfidence = confidence.get(itemId);
         logLiveDiagnostic("input.finalized", {
           sessionId,
           itemId,
@@ -374,15 +381,17 @@ export const createLiveConversation = (
           sinceOutputMs: echoTrace.sinceOutputMs(itemId),
           overlappedOutput: liveOutputText !== undefined,
           peakMicrophoneLevel: utteranceLevels.peak(itemId),
-          ...confidence.get(itemId),
+          ...(inputConfidence && roundForTrace(inputConfidence)),
         });
         confidence.delete(itemId);
         echoTrace.forget(itemId);
         utteranceLevels.forget(itemId);
+        const minLogprob = inputConfidence?.minLogprob;
         onFinalizedInput({
           ...input,
           startedDuringOutput,
           ...(liveOutputText === undefined ? {} : { liveOutputText }),
+          ...(minLogprob === undefined ? {} : { minLogprob }),
         });
       }
       itemId = committedAfter(itemId);
