@@ -7,10 +7,10 @@ use core::{
     time::Duration,
 };
 
-use chrono::{DateTime, Utc};
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use time::OffsetDateTime;
 
 use super::{
     DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
@@ -384,7 +384,7 @@ fn toy_snapshot(shard: &str, padding: usize) -> ProjectionSnapshot<ToyDomain> {
         &projection,
     )
     .expect("a projection with a journal sequence should be captured")
-    .into_record(DateTime::UNIX_EPOCH)
+    .into_record(OffsetDateTime::UNIX_EPOCH)
 }
 
 #[test]
@@ -484,7 +484,7 @@ async fn snapshot_timestamp_recovery() {
         .await
         .expect("capture should succeed")
         .expect("snapshot should be due")
-        .into_record(DateTime::UNIX_EPOCH);
+        .into_record(OffsetDateTime::UNIX_EPOCH);
     started
         .owner
         .shutdown()
@@ -1402,7 +1402,7 @@ async fn snapshots_bound_recovery_and_roundtrip_state() {
         .await
         .expect("snapshot capture should succeed")
         .expect("a span of two events should be snapshot-worthy");
-    let snapshot = payload.into_record(Utc::now());
+    let snapshot = payload.into_record(OffsetDateTime::now_utc());
     handle
         .commit_snapshot(snapshot)
         .await
@@ -1539,7 +1539,7 @@ async fn snapshot_failure(
         .await
         .expect("capture should succeed")
         .expect("snapshot should be due")
-        .into_record(Utc::now());
+        .into_record(OffsetDateTime::now_utc());
     let (_, snapshot_through) =
         Toy::snapshot_bounds(&snapshot).expect("captured snapshot should have valid bounds");
     journal.force_outcomes([outcome]);
@@ -1694,7 +1694,7 @@ async fn snapshot_failed_attempt_interval() {
         ),
     )
     .expect("a projection with a journal sequence should be captured")
-    .into_record(Utc::now());
+    .into_record(OffsetDateTime::now_utc());
     let error = handle
         .commit_snapshot(snapshot)
         .await

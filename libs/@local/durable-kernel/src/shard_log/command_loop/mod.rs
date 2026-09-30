@@ -18,7 +18,7 @@ mod startup;
 
 use core::num::NonZeroUsize;
 
-use chrono::{DateTime, Utc};
+use time::OffsetDateTime;
 use tokio::sync::mpsc;
 use tokio_util::sync::{CancellationToken, DropGuard};
 
@@ -153,7 +153,7 @@ struct CommandLoop<D: EventDomain, S: JournalStorage> {
 struct RecoveredProjection<D: EventDomain> {
     projection: D::Projection,
     snapshot_through_sequence: Option<JournalSequence>,
-    snapshot_created_at: Option<DateTime<Utc>>,
+    snapshot_created_at: Option<OffsetDateTime>,
     replayed_events: u64,
     corruption_fallbacks: u64,
 }

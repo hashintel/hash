@@ -4271,7 +4271,6 @@ name = "durable-kernel"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "chrono",
  "derive_more",
  "error-stack",
  "futures-core",
@@ -4287,6 +4286,7 @@ dependencies = [
  "simple-mermaid",
  "slatedb",
  "tempfile",
+ "time",
  "tokio",
  "tokio-util",
  "tracing",

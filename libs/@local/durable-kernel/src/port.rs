@@ -11,8 +11,8 @@
 
 use std::io::Write;
 
-use chrono::{DateTime, Utc};
 use error_stack::Report;
+use time::OffsetDateTime;
 
 use crate::{
     ids::EventId,
@@ -36,7 +36,7 @@ pub struct SnapshotRecoveryStats {
     pub replayed_events: u64,
     pub replay_elapsed: core::time::Duration,
     pub corruption_fallbacks: u64,
-    pub latest_snapshot_created_at: Option<DateTime<Utc>>,
+    pub latest_snapshot_created_at: Option<OffsetDateTime>,
 }
 
 /// Defines record validation, state updates, and journal replay for one shard.
@@ -202,7 +202,7 @@ pub trait SnapshotDomain: EventDomain {
         snapshot: &Self::Snapshot,
     ) -> Result<(Shard, JournalSequence), Report<Self::RecoveryError>>;
     /// Returns the timestamp recorded in the snapshot. Recovery reports it.
-    fn snapshot_created_at(snapshot: &Self::Snapshot) -> DateTime<Utc>;
+    fn snapshot_created_at(snapshot: &Self::Snapshot) -> OffsetDateTime;
     /// Loads state from a snapshot. An error makes recovery try an older snapshot, then the
     /// full journal.
     ///

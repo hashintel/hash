@@ -1,9 +1,9 @@
 use alloc::collections::BTreeMap;
 use std::io::Write;
 
-use chrono::{DateTime, Utc};
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use super::{
     Hosted, KernelProjection, PartitionKey, RecoveryError, SimpleDomain,
@@ -40,7 +40,8 @@ pub(super) const DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclarat
 pub struct ProjectionSnapshotV1<S: SimpleDomain> {
     shard: Shard,
     through_sequence: JournalSequence,
-    created_at: DateTime<Utc>,
+    #[serde(with = "time::serde::rfc3339")]
+    created_at: OffsetDateTime,
     seen: BTreeMap<EventId, JournalRecordDigest>,
     partitions: BTreeMap<PartitionKey, JournalSequence>,
     domain: S::Projection,
@@ -72,7 +73,7 @@ pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
 }
 
 impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
-    pub fn into_record(self, created_at: DateTime<Utc>) -> ProjectionSnapshot<S> {
+    pub fn into_record(self, created_at: OffsetDateTime) -> ProjectionSnapshot<S> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
             shard: self.shard,
             through_sequence: self.through_sequence,
@@ -143,7 +144,7 @@ impl<S: SimpleDomain> SnapshotDomain for Hosted<S> {
         Ok((shard, record.through_sequence))
     }
 
-    fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> DateTime<Utc> {
+    fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> OffsetDateTime {
         let ProjectionSnapshot::V1(record) = snapshot;
         record.created_at
     }

@@ -92,7 +92,7 @@ async fn maybe_snapshot<S: SimpleDomain>(
     };
     match handle.capture_snapshot(interval.get()).await {
         Ok(Some(payload)) => {
-            let record = payload.into_record(chrono::Utc::now());
+            let record = payload.into_record(time::OffsetDateTime::now_utc());
             if let Err(error) = handle.commit_snapshot(record).await {
                 tracing::warn!(error = ?error, "snapshot save failed; recovery will replay more events");
             }

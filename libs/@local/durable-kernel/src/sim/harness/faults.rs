@@ -26,9 +26,8 @@ impl Driver<'_> {
             return;
         };
 
-        let timestamp = chrono::DateTime::from_timestamp(
+        let timestamp = time::OffsetDateTime::from_unix_timestamp(
             i64::try_from(step).expect("simulation step should fit in i64"),
-            0,
         )
         .expect("simulation step should be a valid timestamp");
 

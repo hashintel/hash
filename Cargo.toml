@@ -148,7 +148,6 @@ camino                             = { version = "1.1.12", default-features = fa
 cargo_metadata                     = { version = "0.23.0", default-features = false }
 cedar-policy-core                  = { version = "4.5.1", default-features = false, features = ["decimal"] }                                                                                       # FIXME: Remove `decimal`: https://github.com/cedar-policy/cedar/issues/1700
 chacha20poly1305                   = { version = "0.10.1", default-features = false, features = ["alloc"] }
-chrono                             = { version = "0.4", default-features = false }
 circular-buffer                    = { version = "1.1.0", default-features = false }
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }

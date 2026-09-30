@@ -17,12 +17,12 @@ error-stack = { workspace = true, public = true, features = ["std"] }
 # Public third-party dependencies
 # `opendata_common` and `opendata_log` rename the upstream libraries named `common` and `log`.
 bytes           = { workspace = true, public = true }
-chrono          = { workspace = true, public = true, default-features = false, features = ["clock", "serde", "std"] }
 futures-core    = { workspace = true, public = true }
 opendata_common = { workspace = true, public = true }
 serde           = { workspace = true, public = true, features = ["derive", "std"] }
 serde_core      = { workspace = true, public = true }
 serde_json      = { workspace = true, public = true, features = ["preserve_order", "raw_value"] }
+time            = { workspace = true, public = true, features = ["formatting", "parsing", "serde", "std"] }
 tokio           = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
 
 # Private workspace dependencies
