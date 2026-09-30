@@ -264,6 +264,74 @@ test("writes Live previews and briefs to the current conversation's history afte
   expect(first.project([])).toEqual([]);
 });
 
+const renderSwitchingLive = async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const first = new VoiceMediationHistory("first");
+  const second = new VoiceMediationHistory("second");
+  const { rerender } = render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={first}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({ id: "one", text: "Compare", startMs: 100, endMs: 300 });
+  });
+  const switchConversation = () =>
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        mediationHistory={second}
+        config={config}
+      />,
+    );
+  return { call, first, second, switchConversation };
+};
+
+test("captions a Live turn in the history it began in after a switch", async () => {
+  const { call, first, second, switchConversation } =
+    await renderSwitchingLive();
+  act(() => call[2]({ id: "final", text: "Compare seven agents" }));
+  switchConversation();
+
+  act(() =>
+    call[6]?.output({
+      id: "reply",
+      text: "I'll compare those.",
+      startMs: 400,
+      endMs: 600,
+    }),
+  );
+  expect(
+    first.project([]).find((message) => message.id === "voice-reply:final")
+      ?.parts,
+  ).toEqual([
+    {
+      type: "data-voiceAgentReply",
+      data: { text: "I'll compare those.", state: "streaming" },
+    },
+  ]);
+  expect(second.project([])).toEqual([]);
+});
+
+test("retires a Live preview from the history it began in after a switch", async () => {
+  const { call, first, second, switchConversation } =
+    await renderSwitchingLive();
+  switchConversation();
+
+  act(() => call[6]?.closed());
+  expect(first.project([])).toEqual([]);
+  expect(second.project([])).toEqual([]);
+});
+
 test("a delayed superseded final never replaces the newer Live input preview", async () => {
   vi.stubGlobal(
     "fetch",

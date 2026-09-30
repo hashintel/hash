@@ -215,11 +215,23 @@ export const LiveConversationControl = ({
     setSpeakerVolumeState(1);
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
+    // Like a bridge turn, a preview or caption stays in the history it began in.
+    const pinnedHistories = new Map<string, VoiceMediationHistory>();
+    const historyFor = (id: string) => {
+      const pinned = pinnedHistories.get(id);
+      if (pinned) return pinned;
+      pinnedHistories.set(id, historyRef.current);
+      return historyRef.current;
+    };
+    const retirePreview = (id: string) => {
+      historyFor(id).failed(id);
+      pinnedHistories.delete(id);
+    };
     const captions = new LiveSpeechCaptions(
-      (id, kind, line) => historyRef.current.caption(id, kind, line),
+      (id, kind, line) => historyFor(id).caption(id, kind, line),
       {
-        update: (id, text) => historyRef.current.input(id, text),
-        discard: (id) => historyRef.current.failed(id),
+        update: (id, text) => historyFor(id).input(id, text),
+        discard: retirePreview,
       },
     );
     let offeredInput: string | undefined;
@@ -258,10 +270,11 @@ export const LiveConversationControl = ({
       connectionTimeoutMs,
       (input) => {
         if (session.current !== next) return;
+        historyFor(input.id);
         void bridge.current?.accept(input);
         if (!input.superseded) {
           const previewId = captions.begin(input.id);
-          if (previewId) historyRef.current.failed(previewId);
+          if (previewId) retirePreview(previewId);
         }
       },
       (delegationId) => {
