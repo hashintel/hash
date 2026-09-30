@@ -37,10 +37,10 @@ import {
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import {
   editorDraftsFor,
+  type PreparedExperiment,
   resetEditorDrafts,
 } from "./shared/brunch-draft-experiment-drafts";
 
-import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
 import type {

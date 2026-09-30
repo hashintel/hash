@@ -1,10 +1,12 @@
-import type { PreparedExperiment } from "../brunch-draft-experiment-interactive-tool/describe-draft";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+import type { prepareExperiment } from "@hashintel/petrinaut/react";
+
+export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 
 /** Editor-local memory only: neither the document nor Flue history stores Run or Dismiss. */
 type EditorDraftRun =
