@@ -44,5 +44,8 @@ export const createUtteranceLevels = () => {
       const peak = peaks.get(itemId);
       return peak === undefined ? undefined : Math.round(peak * 100) / 100;
     },
+    forget: (itemId: string): void => {
+      peaks.delete(itemId);
+    },
   };
 };

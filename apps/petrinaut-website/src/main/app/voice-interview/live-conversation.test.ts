@@ -84,6 +84,8 @@ test("counts speech as started during output only when its start is reported wit
     500,
     undefined,
   ]);
+  echoTrace.forget("during");
+  expect(echoTrace.sinceOutputMs("during")).toBeUndefined();
   expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
     expect.objectContaining({ transcriptionSpeechStarts: 3 }),
   ]);
@@ -104,6 +106,8 @@ test("records each utterance's peak microphone level from the second before its 
   expect(levels.peak("yes")).toBe(0.5);
   expect(levels.peak("noise")).toBe(0.12);
   expect(levels.peak("unheard")).toBeUndefined();
+  levels.forget("yes");
+  expect(levels.peak("yes")).toBeUndefined();
 });
 
 const setup = ({

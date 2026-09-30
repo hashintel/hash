@@ -179,6 +179,9 @@ export const createOutputEchoTrace = (sessionId: string) => {
     /** Set only for speech starts reported while an output stretch was open. */
     sinceOutputMs: (itemId: string): number | undefined =>
       sinceOutputMsByItem.get(itemId),
+    forget: (itemId: string): void => {
+      sinceOutputMsByItem.delete(itemId);
+    },
     end: (): void => report(true),
   };
 };

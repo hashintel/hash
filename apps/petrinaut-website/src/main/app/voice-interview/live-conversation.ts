@@ -370,6 +370,8 @@ export const createLiveConversation = (
           ...confidence.get(itemId),
         });
         confidence.delete(itemId);
+        echoTrace.forget(itemId);
+        utteranceLevels.forget(itemId);
         onFinalizedInput({ ...input, startedDuringOutput });
       }
       itemId = committedAfter(itemId);
