@@ -36,9 +36,13 @@ const constraintRowStyle = css({
   borderRadius: "md",
 });
 
-const constraintNameStyle = css({ flex: "[1]", minWidth: "0" });
+const constraintNameStyle = css({ minWidth: "0" });
+
+const removeButtonStyle = css({ marginLeft: "auto" });
 
 const alwaysTagStyle = css({ fontSize: "xs", color: "neutral.s90" });
+
+const addButtonStyle = css({ marginLeft: "0" });
 
 const goalRowStyle = css({ display: "flex", gap: "2", alignItems: "center" });
 
@@ -79,6 +83,7 @@ export const ConstraintsSection: React.FC<{
           text: name,
           selectedStyle: "checkbox",
           keepOpenOnSelect: true,
+          suffix: <span className={alwaysTagStyle}>always</span>,
           selected: chosenIds.includes(id),
           onClick: () => setChosen(id, !chosenIds.includes(id)),
         }),
@@ -101,6 +106,7 @@ export const ConstraintsSection: React.FC<{
                 size="xs"
                 variant="ghost"
                 iconName="close"
+                className={removeButtonStyle}
                 aria-label={`Remove ${name}`}
                 onClick={() => setChosen(id, false)}
               />
@@ -111,9 +117,14 @@ export const ConstraintsSection: React.FC<{
       {isReadOnly ? null : (
         <Menu
           items={menuItems}
-          position="bottom-start"
+          position="left-start"
           trigger={
-            <Button size="xs" variant="ghost" iconName="plus">
+            <Button
+              size="xs"
+              variant="ghost"
+              iconName="plus"
+              className={addButtonStyle}
+            >
               Add constraint
             </Button>
           }
