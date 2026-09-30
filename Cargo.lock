@@ -4275,7 +4275,6 @@ dependencies = [
  "error-stack",
  "futures-core",
  "futures-util",
- "hex",
  "opendata-common",
  "opendata-log",
  "proptest",

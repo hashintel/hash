@@ -3,9 +3,9 @@
 //! [`EventId`] identifies an event. [`JournalRecordDigest`] detects conflicting record contents.
 //! Use [`EffectId::for_effect`] to compute an [`EffectId`] for external operations.
 
-use core::str::FromStr;
+use core::{ascii::Char, fmt, marker::PhantomData, str::FromStr};
 
-use serde::Serialize;
+use serde::{Serialize, de};
 use sha2::{Digest as _, Sha256};
 
 pub const SHA256_HEX_BYTES: usize = 64;
@@ -24,6 +24,53 @@ pub enum IdKind {
 #[display("{kind} must be exactly 64 lowercase hexadecimal SHA-256 characters")]
 pub struct InvalidId {
     pub kind: IdKind,
+}
+
+/// Returns the value of a lowercase hexadecimal digit.
+const fn hex_digit(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        _ => None,
+    }
+}
+
+/// The lowercase hexadecimal digits, indexed by value.
+const HEX_DIGITS: [Char; 16] = match b"0123456789abcdef".as_ascii() {
+    Some(digits) => *digits,
+    None => panic!("hexadecimal digits should be ASCII"),
+};
+
+/// Encodes `bytes` as 64 lowercase hexadecimal characters.
+#[expect(
+    clippy::indexing_slicing,
+    reason = "a byte's high and low nibbles are both below 16"
+)]
+fn encode_hex(bytes: &[u8; 32]) -> [Char; SHA256_HEX_BYTES] {
+    let mut encoded = [Char::Digit0; SHA256_HEX_BYTES];
+    let (pairs, _) = encoded.as_chunks_mut::<2>();
+    for (pair, byte) in pairs.iter_mut().zip(bytes) {
+        *pair = [
+            HEX_DIGITS[usize::from(byte >> 4)],
+            HEX_DIGITS[usize::from(byte & 0x0F)],
+        ];
+    }
+    encoded
+}
+
+/// Parses a digest ID from a string without allocating.
+struct DigestVisitor<T>(PhantomData<fn() -> T>);
+
+impl<T: FromStr<Err = InvalidId>> de::Visitor<'_> for DigestVisitor<T> {
+    type Value = T;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("64 lowercase hexadecimal characters")
+    }
+
+    fn visit_str<E: de::Error>(self, value: &str) -> Result<T, E> {
+        value.parse().map_err(E::custom)
+    }
 }
 
 macro_rules! digest_id {
@@ -53,27 +100,24 @@ macro_rules! digest_id {
             type Err = InvalidId;
 
             fn from_str(value: &str) -> Result<Self, Self::Err> {
-                if value.len() != SHA256_HEX_BYTES
-                    || !value
-                        .bytes()
-                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-                {
-                    return Err(InvalidId { kind: $kind });
+                let invalid = || InvalidId { kind: $kind };
+                if value.len() != SHA256_HEX_BYTES {
+                    return Err(invalid());
                 }
+
+                let (pairs, _) = value.as_bytes().as_chunks::<2>();
                 let mut bytes = [0; 32];
-                hex::decode_to_slice(value, &mut bytes).unwrap_or_else(|_err| {
-                    unreachable!("64 lowercase hexadecimal characters should decode to 32 bytes")
-                });
+                for (byte, &[high, low]) in bytes.iter_mut().zip(pairs) {
+                    *byte = (hex_digit(high).ok_or_else(invalid)? << 4)
+                        | hex_digit(low).ok_or_else(invalid)?;
+                }
                 Ok(Self(bytes))
             }
         }
 
         impl ::core::fmt::Display for $name {
             fn fmt(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                for byte in self.0 {
-                    write!(formatter, "{byte:02x}")?;
-                }
-                Ok(())
+                formatter.write_str(encode_hex(&self.0).as_str())
             }
         }
 
@@ -82,7 +126,7 @@ macro_rules! digest_id {
             where
                 S: ::serde::Serializer,
             {
-                serializer.collect_str(self)
+                serializer.serialize_str(encode_hex(&self.0).as_str())
             }
         }
 
@@ -91,8 +135,7 @@ macro_rules! digest_id {
             where
                 D: ::serde::Deserializer<'de>,
             {
-                let text = String::deserialize(deserializer)?;
-                Self::parse(text).map_err(::serde::de::Error::custom)
+                deserializer.deserialize_str(DigestVisitor(::core::marker::PhantomData))
             }
         }
     };
@@ -143,7 +186,12 @@ mod tests {
             serde_json::from_str::<EventId>(&encoded).expect("digest should deserialize"),
             id
         );
-        for invalid in [text.to_uppercase(), "0".repeat(63), "g".repeat(64)] {
+        for invalid in [
+            text.to_uppercase(),
+            "0".repeat(63),
+            "g".repeat(64),
+            "\u{e9}".repeat(32),
+        ] {
             assert_eq!(
                 EventId::parse(&invalid),
                 Err(InvalidId {
