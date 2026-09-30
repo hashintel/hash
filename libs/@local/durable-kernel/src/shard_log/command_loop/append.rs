@@ -22,17 +22,17 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
         }
 
         let event_id = D::record_event_id(&record);
-        let integration_id = D::record_state_key(&record);
+        let state_key = D::record_state_key(&record);
         let mut safe_failures = 0_u32;
         loop {
-            let previous_state_sequence = self.checkpoint_state_sequence(&integration_id);
+            let previous_state_sequence = self.checkpoint_state_sequence(&state_key);
             let transition = match D::prepare(&self.projection, &record) {
                 Ok(transition) => transition,
                 Err(rejection) => return Ok(ShardCommandOutcome::Rejected { rejection }),
             };
 
             let Prepared::Mutation(delta) = transition else {
-                self.notify_state_change_if_established(&integration_id);
+                self.notify_state_change_if_established(&state_key);
                 return Ok(ShardCommandOutcome::AlreadyDurable { event_id });
             };
 
@@ -48,8 +48,8 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                     D::finalize(&mut self.projection, delta, sequence)
                         .change_context(ShardCommandError::FinalizeRecord { event_id, sequence })
                         .change_context(ShardCommandError::LeaseRequired { event_id })?;
-                    if self.checkpoint_state_sequence(&integration_id) != previous_state_sequence {
-                        self.notify_state_change_if_established(&integration_id);
+                    if self.checkpoint_state_sequence(&state_key) != previous_state_sequence {
+                        self.notify_state_change_if_established(&state_key);
                     }
                     return Ok(ShardCommandOutcome::Applied {
                         event_id,
@@ -120,15 +120,15 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
         }
     }
 
-    fn checkpoint_state_sequence(&self, integration_id: &D::StateKey) -> Option<JournalSequence> {
-        D::state_sequence(&self.projection, integration_id)
+    fn checkpoint_state_sequence(&self, state_key: &D::StateKey) -> Option<JournalSequence> {
+        D::state_sequence(&self.projection, state_key)
     }
 
-    fn notify_state_change_if_established(&self, integration_id: &D::StateKey) {
-        if self.checkpoint_state_sequence(integration_id).is_some() {
-            // A full channel drops the notification. Startup and later state changes send the
-            // key again.
-            let _: Result<_, _> = self.state_change_sender.try_send(integration_id.clone());
+    fn notify_state_change_if_established(&self, state_key: &D::StateKey) {
+        if self.checkpoint_state_sequence(state_key).is_some() {
+            // A full channel already holds a wake-up. The driver plans from the whole projection
+            // when it wakes, so dropping this notification loses no work.
+            let _: Result<_, _> = self.state_change_sender.try_send(state_key.clone());
         }
     }
 
