@@ -21,7 +21,10 @@ import {
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { useElapsedTime } from "./shared/use-elapsed-time";
 
-import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
+import type {
+  PetrinautAiAssistantPresentation,
+  PetrinautAiToolPresentationResolver,
+} from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
@@ -493,7 +496,7 @@ const InteractiveToolItem = ({
   tool,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  presentation: "stock" | "brunch";
+  presentation: PetrinautAiAssistantPresentation;
   tool: ToolRenderItem;
 }) => {
   const interactive = tool.interactive;
@@ -582,7 +585,7 @@ const ToolItem = ({
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tool: ToolRenderItem;
-  presentation: "stock" | "brunch";
+  presentation: PetrinautAiAssistantPresentation;
   active?: boolean;
   stopped?: boolean;
 }) => {
@@ -724,7 +727,7 @@ const ToolListContent = ({
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
-  presentation: "stock" | "brunch";
+  presentation: PetrinautAiAssistantPresentation;
 }) => (
   <>
     {tools.map((tool) => (
@@ -756,7 +759,7 @@ export const AiAssistantToolList = ({
   stopped?: boolean;
   producedCard?: boolean;
   preserveOpen?: boolean;
-  presentation?: "stock" | "brunch";
+  presentation?: PetrinautAiAssistantPresentation;
 }) => {
   const running =
     active &&

@@ -3791,6 +3791,65 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByTestId("ai-working-status")).toBeNull();
   });
 
+  test("keeps Brunch answer cards and wrapping out of the stock presentation", () => {
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant" as const,
+          parts: [{ type: "text" as const, text: "A stock answer" }],
+        },
+      ],
+      onClose: noop,
+      onInputChange: noop,
+      onSendPrompt: noop,
+      onStop: noop,
+      onSubmit: noop,
+      promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
+      status: "ready" as const,
+    };
+    const { container, rerender } = render(<AiAssistantContents {...props} />);
+
+    expect(container.querySelector('[data-answer="brunch"]')).toBeNull();
+    expect(
+      container.querySelector("[data-prompt-chips]")?.hasAttribute("data-wrap"),
+    ).toBe(false);
+    expect(container.querySelector("[data-prompt-chips]")?.className).toContain(
+      "ov-x_auto",
+    );
+
+    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+
+    expect(container.querySelector('[data-answer="brunch"]')).not.toBeNull();
+    expect(
+      container.querySelector("[data-prompt-chips]")?.getAttribute("data-wrap"),
+    ).toBe("true");
+  });
+
+  test("uses stock tabs for a stock assistant with an additional tab", () => {
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      input: "",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(<AiAssistantContents {...props} />);
+
+    expect(screen.getByRole("tablist").getAttribute("data-style-variant")).toBe(
+      "stock",
+    );
+
+    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    expect(screen.getByRole("tablist").getAttribute("data-style-variant")).toBe(
+      "brunch",
+    );
+  });
+
   test("keeps the stock AI transcript label in both input modes", () => {
     const props = {
       input: "",
