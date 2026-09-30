@@ -55,6 +55,7 @@
     "build:buildinfo": "panda ship --config panda.ship.config.ts --outfile dist/panda.buildinfo.json",
     "build:lib": "vite build",
     "dev": "bash scripts/dev.sh",
+    "dev:controller-prototype": "vite --config controller-prototype/vite.config.ts",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
