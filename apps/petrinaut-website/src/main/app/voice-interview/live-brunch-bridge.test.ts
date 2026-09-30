@@ -381,6 +381,52 @@ test("stopping a response cancels gated work but permits a fresh voice turn", as
   fixture.bridge.stop();
 });
 
+test.each([
+  [
+    "error",
+    (fixture: ReturnType<typeof setup>) => fixture.update({ status: "error" }),
+  ],
+  [
+    "stopped",
+    (fixture: ReturnType<typeof setup>) => fixture.bridge.stopResponse(),
+  ],
+  ["ended", (fixture: ReturnType<typeof setup>) => fixture.bridge.stop()],
+] as const)(
+  "enforcement traces each gated input discarded as %s without text",
+  async (reason, interrupt) => {
+    vi.stubEnv("DEV", true);
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ contribution: "control", confidence: 1 })
+      .mockReturnValueOnce(pending.promise);
+    const fixture = setup(judge, { enforce: true });
+    fixture.update({ canAcceptVoiceInput: false });
+    await fixture.bridge.accept(speech("cleared", "PRIVATE cleared answer"));
+    await fixture.bridge.accept(speech("held", "PRIVATE hang on"));
+    void fixture.bridge.accept(speech("pending", "PRIVATE pending answer"));
+    interrupt(fixture);
+    pending.resolve(null);
+    await pending.promise;
+    expect(fixture.submit).not.toHaveBeenCalled();
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+      expect.objectContaining({
+        inputId: "cleared",
+        reason,
+        decision: "submit",
+      }),
+      expect.objectContaining({
+        inputId: "pending",
+        reason,
+        decision: "pending",
+      }),
+    ]);
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+    fixture.bridge.stop();
+  },
+);
+
 test("log mode does not wait for judgments or introduce new admission drops", async () => {
   vi.stubEnv("DEV", true);
   const pending = Promise.withResolvers<UtteranceJudgment | null>();

@@ -12,6 +12,9 @@ export type WithheldContribution = Exclude<
   "interview_content"
 >;
 
+/** Why queued input was discarded: Stop, a Brunch error, or the end of voice. */
+export type DiscardReason = "stopped" | "error" | "ended";
+
 interface Entry {
   readonly input: FinalizedInput;
   decision: "pending" | "submit" | "withhold";
@@ -105,14 +108,23 @@ export class LiveUtteranceGate {
     this.#dependencies.submit(entry.input);
   }
 
-  public cancelPending(): void {
+  /** Discards inputs awaiting judgment or admission; withheld ones were already reported. */
+  public cancelPending(reason: DiscardReason): void {
     for (const cancel of this.#cancellations) cancel();
+    for (const { input, decision } of this.#queue) {
+      if (decision === "withhold") continue;
+      logLiveDiagnostic("input.dropped", {
+        inputId: input.id,
+        reason,
+        decision,
+      });
+    }
     this.#queue.length = 0;
   }
 
   public stop(): void {
     if (this.#stopped) return;
     this.#stopped = true;
-    this.cancelPending();
+    this.cancelPending("ended");
   }
 }

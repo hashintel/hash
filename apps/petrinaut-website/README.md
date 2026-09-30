@@ -349,7 +349,13 @@ classification wait, not composer/admission wait; eligible submissions queue
 in transcript order while the composer is busy.
 
 Stopping a response cancels pending gated work; a fresh voice turn can still
-submit. Withholding is silent: there is no **Not sent to Brunch** list or
+submit. Brunch entering an error state does the same: inputs still awaiting
+judgment, and inputs already cleared but waiting for the composer, are
+discarded without retry. Each discarded input gets an `input.dropped` trace
+with `reason` (`stopped`, `error`, or `ended` when voice ends) and the gate
+`decision` it had reached (`pending` or `submit`), metadata only.
+
+Withholding is silent: there is no **Not sent to Brunch** list or
 **Send to Brunch** button, even with diagnostics enabled. **A wrongly held answer
 cannot be recovered through the UI.** Ending voice clears session-local state
 and cancels pending work. No automatic retry or replay occurs after reconnect.

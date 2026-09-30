@@ -14,7 +14,10 @@ import type {
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
-import type { WithheldContribution } from "./live-utterance-gate";
+import type {
+  DiscardReason,
+  WithheldContribution,
+} from "./live-utterance-gate";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -176,7 +179,7 @@ export class LiveBrunchBridge {
   public stopResponse(): void {
     if (this.#abort.signal.aborted) return;
     this.#chat = { ...this.#chat, stopped: true };
-    this.#interruptTurns();
+    this.#interruptTurns("stopped");
   }
 
   public acceptDelegation(delegationId: string): void {
@@ -479,15 +482,15 @@ export class LiveBrunchBridge {
       chat.status === "error" && this.#chat.status !== "error";
     this.#chat = chat;
     if (stopped || enteredError) {
-      this.#interruptTurns();
+      this.#interruptTurns(stopped ? "stopped" : "error");
       return;
     }
     this.#settle();
     this.#gate?.drain();
   }
 
-  #interruptTurns(): void {
-    this.#gate?.cancelPending();
+  #interruptTurns(reason: Exclude<DiscardReason, "ended">): void {
+    this.#gate?.cancelPending(reason);
     for (const { delegationId } of this.#gatedInputs.values())
       this.#unserved(delegationId);
     this.#gatedInputs.clear();
