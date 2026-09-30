@@ -102,23 +102,6 @@ test("keeps unsent words where they were spoken and drops them with the chat the
   expect(history.project([])).toEqual([]);
 });
 
-test("anchors an experiment summary after the card without fabricating a user turn", () => {
-  const history = new VoiceMediationHistory("conversation");
-  history.result("result", ["card"]);
-  history.caption("result", "wrapUp", {
-    text: "The comparison finished.",
-    state: "done",
-  });
-  const messages: PetrinautAiMessage[] = [
-    { id: "card", role: "assistant", parts: [{ type: "data-card", data: {} }] },
-  ];
-  expect(history.project(messages).map((message) => message.id)).toEqual([
-    "card",
-    "voice-wrap-up:result",
-  ]);
-  expect(history.project([])).toEqual([]);
-});
-
 test("projects transcript, acknowledgement, work and wrap-up without changing canonical text", () => {
   const history = new VoiceMediationHistory("conversation");
   history.begin({ id: "input", text: "Um, compare two to eight agents" });

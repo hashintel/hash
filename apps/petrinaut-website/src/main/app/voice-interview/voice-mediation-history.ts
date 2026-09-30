@@ -136,10 +136,6 @@ export class VoiceMediationHistory {
       this.#publish();
     }
   }
-  public result(id: string, responseIds: string[]): void {
-    this.#turns.set(id, { id, text: "", responseIds, anchorOnly: true });
-    this.#publish();
-  }
   public caption = (
     id: string,
     kind: "reply" | "wrapUp",
