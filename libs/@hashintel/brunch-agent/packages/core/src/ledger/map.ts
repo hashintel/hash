@@ -1,5 +1,5 @@
 import { findNote, type LedgerCommit, type LedgerNote } from "./notes";
-import { isNoteId } from "./vocabulary";
+import { isNoteId, type LedgerDimension } from "./vocabulary";
 
 import type { LedgerCompilation } from "./compile";
 
@@ -9,6 +9,8 @@ export interface LedgerMapOptions {
   readonly about?: readonly string[];
   /** `map` (the default) or `full`: the map followed by every Note. */
   readonly detail?: "map" | "full";
+  /** Without them, coverage lists only the dimensions Notes name. */
+  readonly dimensions?: readonly LedgerDimension[];
 }
 
 /** Whether a Note was filed against an identity, a relationship, or both. */
@@ -41,6 +43,104 @@ const stageOf = (note: LedgerNote, hasMore: boolean): Stage => {
 };
 
 const identityKey = (name: string) => `identities/${name}`;
+
+/** The current Notes of a Ledger and how they refer to one another. */
+const viewOf = (notes: readonly LedgerNote[]) => {
+  const superseded = new Set(
+    notes.flatMap(({ supersedes }) => supersedes ?? []),
+  );
+  const current = notes.filter((note) => !superseded.has(note.address));
+  const keyOf = (reference: string) =>
+    isNoteId(reference)
+      ? findNote(notes, reference)?.category
+      : identityKey(reference);
+  const aboutKeys = (note: LedgerNote) =>
+    (note.about ?? []).flatMap((reference) => keyOf(reference) ?? []);
+  const relationKeys = (note: LedgerNote) =>
+    note.relation
+      ? [identityKey(note.relation.from), identityKey(note.relation.to)]
+      : [];
+  const subjectNotes = current.filter((note) => note.about !== undefined);
+  const relationships = current.filter((note) => note.relation !== undefined);
+  const notesAbout = (key: string) =>
+    subjectNotes.filter((note) => aboutKeys(note).includes(key));
+  const relationshipsOf = (key: string) =>
+    relationships.filter((note) => relationKeys(note).includes(key));
+  const stage = (note: LedgerNote) =>
+    stageOf(
+      note,
+      note.identity === undefined ||
+        notesAbout(note.category).length +
+          relationshipsOf(note.category).length >
+          0,
+    );
+  return {
+    current,
+    keyOf,
+    aboutKeys,
+    relationKeys,
+    subjectNotes,
+    relationships,
+    notesAbout,
+    relationshipsOf,
+    stage,
+  };
+};
+
+const stageOrder: readonly Stage[] = [
+  "confirmed",
+  "pencilled",
+  "placeholder",
+  "open",
+  "contested",
+  "inapplicable",
+];
+
+const coverageLines = (
+  view: ReturnType<typeof viewOf>,
+  dimensions: readonly LedgerDimension[] | undefined,
+): string[] => {
+  const operational = view.current.filter(
+    ({ concerns }) => concerns !== "draft",
+  );
+  const listed =
+    dimensions ??
+    [...new Set(operational.flatMap(({ covers }) => covers ?? []))].map(
+      (name) => ({ name, done: undefined }),
+    );
+  const lines = listed.map(({ name, done }) => {
+    const stages = operational
+      .filter(({ covers }) => covers?.includes(name))
+      .map(view.stage);
+    const counts = stageOrder.flatMap((stage) => {
+      const count = stages.filter((noteStage) => noteStage === stage).length;
+      return count === 0 ? [] : [`${count} ${stage}`];
+    });
+    const complete =
+      stages.includes("confirmed") || stages.includes("inapplicable");
+    return `- ${name}: ${counts.length > 0 ? counts.join(", ") : "nothing recorded"}${complete || done === undefined ? "" : `; nothing confirmed — done when ${done}`}`;
+  });
+  const placeholders = operational
+    .filter((note) => view.stage(note) === "placeholder")
+    .map(({ identity }) => `\`${identity}\``);
+  if (placeholders.length > 0)
+    lines.push(`- Placeholders: ${placeholders.join(", ")}.`);
+  return lines;
+};
+
+/**
+ * The account's coverage by dimension: how many current Notes, not counting
+ * those on the draft, name each dimension at each stage, and each incomplete
+ * dimension's done criterion.
+ */
+export const summariseCoverage = (
+  notes: readonly LedgerNote[],
+  dimensions?: readonly LedgerDimension[],
+): string =>
+  [
+    "Coverage by dimension (current Notes, not those on the draft):",
+    ...coverageLines(viewOf(notes), dimensions),
+  ].join("\n");
 
 const relationLabel = ({
   from,
@@ -78,6 +178,7 @@ const header = (note: LedgerNote, notes: readonly LedgerNote[]): string => {
     note.standing,
     note.precision,
     note.qualifier,
+    note.covers ? `covers ${note.covers.join(", ")}` : undefined,
   ].filter((annotation) => annotation !== undefined);
   return `[${note.id}${annotations.length > 0 ? ` — ${annotations.join("; ")}` : ""}] ${subjectLabel(note)}`;
 };
@@ -90,7 +191,8 @@ const rendered = (note: LedgerNote, notes: readonly LedgerNote[]) =>
 /**
  * Render an identity-addressed Ledger. The map lists every current identity
  * with its kind, stage and Note counts, every current relationship, the
- * current Notes about fixed identities, and the open and contested index. Its
+ * current Notes about fixed identities, coverage by dimension, and the open
+ * and contested index. Its
  * size follows the model, not the conversation. `about` renders every
  * version of the named subjects and every Note about them.
  */
@@ -109,20 +211,8 @@ export const compileLedgerMap = (
       revision: latest,
     };
   const notes = commits.slice(0, revision).flatMap((commit) => commit.notes);
-  const superseded = new Set(
-    notes.flatMap(({ supersedes }) => supersedes ?? []),
-  );
-  const current = notes.filter((note) => !superseded.has(note.address));
-  const keyOf = (reference: string) =>
-    isNoteId(reference)
-      ? findNote(notes, reference)?.category
-      : identityKey(reference);
-  const aboutKeys = (note: LedgerNote) =>
-    (note.about ?? []).flatMap((reference) => keyOf(reference) ?? []);
-  const relationKeys = (note: LedgerNote) =>
-    note.relation
-      ? [identityKey(note.relation.from), identityKey(note.relation.to)]
-      : [];
+  const view = viewOf(notes);
+  const { current, keyOf, aboutKeys, relationKeys, relationships } = view;
 
   const lines = [
     `# ${title}`,
@@ -162,8 +252,6 @@ export const compileLedgerMap = (
   }
 
   const identities = current.filter((note) => note.identity !== undefined);
-  const relationships = current.filter((note) => note.relation !== undefined);
-  const subjectNotes = current.filter((note) => note.about !== undefined);
   const identified = new Set(notes.flatMap(({ identity }) => identity ?? []));
   const fixed = [
     ...new Set(
@@ -180,9 +268,7 @@ export const compileLedgerMap = (
 
   for (const name of fixed) {
     lines.push("", `## ${name}`);
-    const about = subjectNotes.filter((note) =>
-      aboutKeys(note).includes(identityKey(name)),
-    );
+    const about = view.notesAbout(identityKey(name));
     if (about.length === 0) lines.push("", "_Nothing recorded._");
     for (const note of about) lines.push(...rendered(note, notes));
   }
@@ -190,14 +276,9 @@ export const compileLedgerMap = (
   lines.push("", `## Identities (${identities.length})`, "");
   if (identities.length === 0) lines.push("_None identified._");
   for (const note of identities) {
-    const key = note.category;
-    const about = subjectNotes.filter((candidate) =>
-      aboutKeys(candidate).includes(key),
-    );
+    const about = view.notesAbout(note.category);
     const draft = about.filter(({ concerns }) => concerns === "draft").length;
-    const related = relationships.filter((candidate) =>
-      relationKeys(candidate).includes(key),
-    );
+    const related = view.relationshipsOf(note.category);
     const counts = [
       about.length > 0
         ? `${about.length} note${about.length === 1 ? "" : "s"}${draft > 0 ? ` (${draft} on the draft)` : ""}`
@@ -207,7 +288,7 @@ export const compileLedgerMap = (
         : undefined,
     ].filter((count) => count !== undefined);
     lines.push(
-      `- \`${note.identity}\`${note.kind ? ` [${note.kind}]` : ""} — ${stageOf(note, about.length + related.length > 0)}; ${[note.id, ...counts].join("; ")}${note.content === "" ? "" : ` — ${note.content}`}`,
+      `- \`${note.identity}\`${note.kind ? ` [${note.kind}]` : ""} — ${view.stage(note)}; ${[note.id, ...counts].join("; ")}${note.content === "" ? "" : ` — ${note.content}`}`,
     );
   }
 
@@ -215,13 +296,22 @@ export const compileLedgerMap = (
   if (relationships.length === 0) lines.push("_None recorded._");
   for (const note of relationships) {
     if (note.relation === undefined) continue;
-    const about = subjectNotes.filter((candidate) =>
-      aboutKeys(candidate).includes(note.category),
-    );
+    const about = view.notesAbout(note.category);
     lines.push(
-      `- ${relationLabel(note.relation)} — ${stageOf(note, true)}; ${[note.id, about.length > 0 ? `${about.length} note${about.length === 1 ? "" : "s"}` : undefined].filter(Boolean).join("; ")}${note.content === "" ? "" : ` — ${note.content}`}`,
+      `- ${relationLabel(note.relation)} — ${view.stage(note)}; ${[note.id, about.length > 0 ? `${about.length} note${about.length === 1 ? "" : "s"}` : undefined].filter(Boolean).join("; ")}${note.content === "" ? "" : ` — ${note.content}`}`,
     );
   }
+
+  const coverage = coverageLines(view, options.dimensions);
+  if (coverage.length > 0)
+    lines.push(
+      "",
+      "## Coverage",
+      "",
+      "Current Notes naming each dimension, not counting those on the draft.",
+      "",
+      ...coverage,
+    );
 
   const listed = (standing: LedgerNote["standing"]) => {
     const ids = current

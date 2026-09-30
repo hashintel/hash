@@ -118,6 +118,7 @@ const recordedEpistemic = {
   precision: v.optional(v.picklist(ledgerPrecisions)),
   qualifier: v.optional(v.string()),
   disposition: v.optional(v.string()),
+  covers: v.optional(v.array(v.string())),
 };
 
 /**
@@ -188,6 +189,8 @@ export const ledgerCommitOutputSchema = v.variant("status", [
     notes: v.array(
       v.object({ address: v.string(), supersedes: v.optional(v.string()) }),
     ),
+    /** Identity-addressed Ledgers: the account's coverage after this commit. */
+    coverage: v.optional(v.string()),
   }),
   v.object({
     status: v.literal("refused"),
@@ -231,6 +234,8 @@ export interface LedgerNote {
   readonly about?: readonly string[];
   /** Set when the Note concerns the net draft rather than the operation. */
   readonly concerns?: "draft";
+  /** Identity-addressed Ledgers: the dimensions this Note helps cover. */
+  readonly covers?: readonly string[];
 }
 
 export interface LedgerRelation {
@@ -297,6 +302,7 @@ type Filed = Pick<
   | "relation"
   | "about"
   | "concerns"
+  | "covers"
 >;
 
 const subjectOf = (change: LedgerChange): Filed => {
@@ -310,6 +316,7 @@ const subjectOf = (change: LedgerChange): Filed => {
         content: change.content ?? "",
         identity: change.identity,
         kind: change.kind,
+        covers: change.covers,
       };
     case "relate":
       return {
@@ -321,6 +328,7 @@ const subjectOf = (change: LedgerChange): Filed => {
           label: change.label,
           to: change.to,
         }),
+        covers: change.covers,
       };
     case "note":
       return {
@@ -328,11 +336,12 @@ const subjectOf = (change: LedgerChange): Filed => {
         content: change.content,
         about: change.about,
         concerns: change.concerns,
+        covers: change.covers,
       };
   }
 };
 
-/** A superseding Note keeps its predecessor's subject; omitted content and kind carry over. */
+/** A superseding Note keeps its predecessor's subject; omitted content, kind and covers carry over. */
 const inherit = (predecessor: LedgerNote, change: LedgerChange): Filed => ({
   category: predecessor.category,
   content: change.content ?? predecessor.content,
@@ -341,6 +350,7 @@ const inherit = (predecessor: LedgerNote, change: LedgerChange): Filed => ({
   relation: predecessor.relation,
   about: predecessor.about,
   concerns: predecessor.concerns,
+  covers: change.covers ?? predecessor.covers,
 });
 
 const epistemicOf = ({
