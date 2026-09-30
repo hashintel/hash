@@ -312,3 +312,28 @@ describe("Initial tokens fields", () => {
     expect(read({})).not.toHaveProperty("elementIds");
   });
 });
+
+describe("constraints and goal", () => {
+  const read = (extra: object) =>
+    readControllers({
+      ...net,
+      metadata: {
+        controllerPrototype: [{ id: "c", name: "C", levers: [], ...extra }],
+      },
+    })[0];
+
+  it("reads constraint ids and a goal, and tolerates their absence", () => {
+    expect(
+      read({
+        constraintIds: ["a", 3],
+        goal: { direction: "maximise", metricId: "metric_service_level" },
+      })
+    ).toMatchObject({
+      constraintIds: ["a"],
+      goal: { direction: "maximise", metricId: "metric_service_level" },
+    });
+    const bare = read({ goal: { direction: "sideways", metricId: "m" } });
+    expect(bare).not.toHaveProperty("goal");
+    expect(bare).not.toHaveProperty("constraintIds");
+  });
+});

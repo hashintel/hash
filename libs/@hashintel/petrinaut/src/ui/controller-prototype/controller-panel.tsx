@@ -26,6 +26,7 @@ import {
   TransitionFilledIcon,
 } from "../constants/entity-icons";
 import { UI_MESSAGES } from "../constants/ui-messages";
+import { ConstraintsSection, GoalSection } from "./constraints-goal";
 import { LeverRowIcon } from "./lever-glyph";
 
 import type {
@@ -636,6 +637,10 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
           ))
         )}
       </div>
+
+      <ConstraintsSection controller={controller} update={updateThis} />
+
+      <GoalSection controller={controller} update={updateThis} />
 
       <div>
         <div className={headingStyle}>Fallback</div>

@@ -8,6 +8,8 @@ export const demoControllers: Controller[] = [
   {
     id: "controller__scheduler",
     name: "Scheduler",
+    constraintIds: ["backorders_under_20", "machine_health_above_0_2"],
+    goal: { direction: "maximise", metricId: "metric_service_level" },
     levers: [
       {
         id: "lever__machine_up",
