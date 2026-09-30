@@ -676,6 +676,7 @@ export const LocalStorageDemoApp = ({
       liveMutationApprovalRef.current.dispose();
     liveMutationApprovalRef.current = mutationApproval.coordinator;
   }, [mutationApproval]);
+  useEffect(() => () => liveMutationApprovalRef.current.dispose(), []);
   const allMutationApprovalTools = useMemo(
     () =>
       createBrunchMutationApprovalInteractiveTools(
