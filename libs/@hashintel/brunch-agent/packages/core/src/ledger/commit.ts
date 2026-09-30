@@ -1,4 +1,5 @@
 import { ledgerCalls, reconstructLedger, type LedgerHistory } from "./history";
+import { summariseCoverage } from "./map";
 import {
   deriveNotes,
   findNote,
@@ -23,11 +24,14 @@ const decideCommit = ({
   toolCallId,
   changes,
   check,
+  summarise,
 }: {
   readonly history: LedgerHistory;
   readonly toolCallId: string;
   readonly changes: readonly LedgerChange[];
   readonly check: (prior: readonly LedgerNote[]) => RefusalReason | undefined;
+  /** Adds `coverage` to a recorded result, from every Note after the commit. */
+  readonly summarise?: (notes: readonly LedgerNote[]) => string;
 }): LedgerCommitOutput => {
   const own = ledgerCalls(history).find(
     (call) => call.part.toolCallId === toolCallId,
@@ -67,6 +71,7 @@ const decideCommit = ({
     notes: derived.notes.map(({ address, supersedes }) =>
       supersedes === undefined ? { address } : { address, supersedes },
     ),
+    ...(summarise ? { coverage: summarise([...prior, ...derived.notes]) } : {}),
   };
 };
 
@@ -100,6 +105,7 @@ export const prepareLedgerCommit = ({
 /**
  * A commit to an identity-addressed Ledger. Every name a change refers to
  * must be fixed, identified earlier, or identified earlier in the same commit.
+ * A recorded result carries the account's coverage by dimension.
  */
 export const prepareIdentityLedgerCommit = ({
   vocabulary,
@@ -113,6 +119,7 @@ export const prepareIdentityLedgerCommit = ({
   decideCommit({
     ...call,
     check: (prior) => identityRefusal(vocabulary, prior, call.changes),
+    summarise: (notes) => summariseCoverage(notes, vocabulary.dimensions),
   });
 
 const identityRefusal = (

@@ -17,11 +17,13 @@ export {
 export {
   compileLedgerMap,
   isSubjectNote,
+  summariseCoverage,
   type LedgerMapOptions,
 } from "./ledger/map";
 export {
   identityCommitInputSchema,
   renderVocabulary,
+  type LedgerDimension,
   type LedgerVocabulary,
   type LedgerVocabularyTerm,
 } from "./ledger/vocabulary";

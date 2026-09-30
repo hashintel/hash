@@ -16,6 +16,23 @@ import {
 
 const vocabulary = {
   title: "Model Ledger",
+  dimensions: [
+    {
+      name: "goals",
+      description: "What it is for.",
+      done: "a measure is confirmed",
+    },
+    {
+      name: "resources",
+      description: "What is limited.",
+      done: "capacities are known",
+    },
+    {
+      name: "activities",
+      description: "The steps.",
+      done: "a case is traced",
+    },
+  ],
   kinds: [
     { name: "goal", description: "What to achieve." },
     { name: "activity", description: "A step." },
@@ -307,26 +324,128 @@ describe("identity-addressed ledger_commit", () => {
     expect(compiled.markdown).toContain("About three hours");
   });
 
-  test("the schema closes kinds and relations over the vocabulary", () => {
+  test("the schema closes kinds, relations and dimensions over the vocabulary", () => {
     const schema = identityCommitInputSchema(vocabulary);
-    const identify = (kind: string) =>
-      v.safeParse(schema, {
-        changes: [{ op: "identify", identity: "crew", kind, ...settled }],
-      }).success;
-    expect(identify("resource")).toBe(true);
-    expect(identify("machine")).toBe(false);
+    const accepts = (change: object) =>
+      v.safeParse(schema, { changes: [change] }).success;
+    const identify = { op: "identify", identity: "crew", ...settled };
     expect(
-      v.safeParse(schema, {
-        changes: [
-          {
-            op: "relate",
-            from: "a",
-            relation: "consumes",
-            to: "b",
-            ...settled,
-          },
-        ],
-      }).success,
+      accepts({ ...identify, kind: "resource", covers: ["resources"] }),
+    ).toBe(true);
+    expect(
+      accepts({ ...identify, kind: "machine", covers: ["resources"] }),
     ).toBe(false);
+    expect(accepts({ ...identify, covers: ["quantities"] })).toBe(false);
+    expect(accepts(identify)).toBe(false);
+    expect(accepts({ op: "supersede", address: "n1", ...settled })).toBe(true);
+    expect(
+      accepts({
+        op: "relate",
+        from: "a",
+        relation: "consumes",
+        to: "b",
+        covers: ["activities"],
+        ...settled,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("coverage", () => {
+  const coverageOf = (output: LedgerCommitOutput) =>
+    output.status === "recorded" ? output.coverage : undefined;
+
+  test("a recorded commit reports coverage by dimension, with the done criterion of each unconfirmed one", () => {
+    const chat = conversation();
+    const coverage = coverageOf(
+      chat.commit([
+        {
+          op: "identify",
+          identity: "cleaning",
+          kind: "activity",
+          content: "Dark-to-white cleaning.",
+          covers: ["activities"],
+          ...settled,
+        },
+        {
+          op: "identify",
+          identity: "line-2",
+          covers: ["resources"],
+          ...settled,
+        },
+        {
+          op: "relate",
+          from: "cleaning",
+          relation: "reserves",
+          to: "line-2",
+          covers: ["resources", "activities"],
+          ...inferred,
+        },
+        {
+          op: "note",
+          about: ["cleaning"],
+          content: "Draft models cleaning as one transition.",
+          concerns: "draft",
+          covers: ["goals"],
+          ...inferred,
+        },
+      ]),
+    );
+    expect(coverage).toBe(
+      [
+        "Coverage by dimension (current Notes, not those on the draft):",
+        "- goals: nothing recorded; nothing confirmed — done when a measure is confirmed",
+        "- resources: 1 confirmed, 1 pencilled",
+        "- activities: 1 confirmed, 1 pencilled",
+      ].join("\n"),
+    );
+  });
+
+  test("placeholders are listed, and superseding keeps or replaces covers", () => {
+    const chat = conversation();
+    chat.commit([
+      {
+        op: "identify",
+        identity: "demand",
+        covers: ["activities"],
+        ...inferred,
+      },
+      { op: "identify", identity: "crew", covers: ["goals"], ...inferred },
+    ]);
+    const coverage = coverageOf(
+      chat.commit([
+        {
+          op: "supersede",
+          address: "n1",
+          content: "Daily orders.",
+          ...settled,
+        },
+        { op: "supersede", address: "n2", covers: ["resources"], ...inferred },
+      ]),
+    );
+    expect(coverage).toContain("- activities: 1 confirmed");
+    expect(coverage).toContain("- goals: nothing recorded; nothing confirmed");
+    expect(coverage).toContain("- resources: 1 placeholder; nothing confirmed");
+    expect(coverage).toContain("- Placeholders: `crew`.");
+  });
+
+  test("the map renders coverage and each Note's covers", () => {
+    const chat = conversation();
+    chat.commit([
+      {
+        op: "identify",
+        identity: "line-2",
+        content: "The second line.",
+        covers: ["resources"],
+        ...settled,
+      },
+    ]);
+    const markdown = mapOf(chat, {
+      detail: "full",
+      dimensions: vocabulary.dimensions,
+    });
+    expect(markdown).toContain("## Coverage");
+    expect(markdown).toContain("- resources: 1 confirmed");
+    expect(markdown).toContain("[n1 — person; settled; covers resources]");
   });
 });

@@ -6,6 +6,15 @@ import { typedEpistemicFields } from "./notes";
 export interface LedgerVocabularyTerm {
   readonly name: string;
   readonly description: string;
+  /** Dimensions the tool description suggests for entries using this term. */
+  readonly covers?: readonly string[];
+}
+
+/** A dimension of the model's coverage, with the condition that completes it. */
+export interface LedgerDimension {
+  readonly name: string;
+  readonly description: string;
+  readonly done: string;
 }
 
 /**
@@ -16,6 +25,8 @@ export interface LedgerVocabularyTerm {
  */
 export interface LedgerVocabulary {
   readonly title: string;
+  /** What the account must cover; every entry names the ones it helps cover. */
+  readonly dimensions: readonly LedgerDimension[];
   /** Optional, revisable classifications of an identity. */
   readonly kinds: readonly LedgerVocabularyTerm[];
   /** Relationship types; `other` with a label is always available as well. */
@@ -28,7 +39,7 @@ export interface LedgerVocabulary {
 export const isNoteId = (reference: string): boolean =>
   /^n\d+$/u.test(reference);
 
-const names = (terms: readonly LedgerVocabularyTerm[]) =>
+const names = (terms: readonly { readonly name: string }[]) =>
   terms.map(({ name }) => name);
 
 const identityName = v.pipe(
@@ -50,6 +61,14 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
       "Optional; leave it out until it is clear, and revise it by superseding.",
     ),
   );
+  const covers = v.pipe(
+    v.array(v.picklist(names(vocabulary.dimensions))),
+    v.minLength(1),
+    v.maxLength(3),
+    v.description(
+      "The dimensions of the model this entry helps cover; each kind and relation suggests some.",
+    ),
+  );
   const change = v.variant("op", [
     v.strictObject({
       op: v.literal("identify"),
@@ -63,6 +82,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
           ),
         ),
       ),
+      covers,
       ...typedEpistemicFields,
     }),
     v.strictObject({
@@ -81,6 +101,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
       ),
       to: identityName,
       content: v.optional(content),
+      covers,
       ...typedEpistemicFields,
     }),
     v.strictObject({
@@ -102,6 +123,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
           ),
         ),
       ),
+      covers,
       ...typedEpistemicFields,
     }),
     v.strictObject({
@@ -118,6 +140,9 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
         ),
       ),
       kind: v.optional(kind),
+      covers: v.optional(
+        v.pipe(covers, v.description("Omit to keep the superseded Note's.")),
+      ),
       ...typedEpistemicFields,
     }),
   ]);
@@ -126,18 +151,23 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
   });
 };
 
+const term = ({ name, description, covers }: LedgerVocabularyTerm) =>
+  `- ${name}${covers ? ` (covers ${covers.join(", ")})` : ""}: ${description}`;
+
 /** The vocabulary as the tool description shows it. */
 export const renderVocabulary = (vocabulary: LedgerVocabulary): string =>
   [
-    "Kinds (optional; revise by superseding the identity Note):",
-    ...vocabulary.kinds.map(
-      ({ name, description }) => `- ${name}: ${description}`,
+    "Dimensions (what the account must cover, and when each is done):",
+    ...vocabulary.dimensions.map(
+      ({ name, description, done }) =>
+        `- ${name}: ${description} Done when ${done}.`,
     ),
     "",
+    "Kinds (optional; revise by superseding the identity Note):",
+    ...vocabulary.kinds.map(term),
+    "",
     "Relations (from -relation-> to; other takes a label):",
-    ...vocabulary.relations.map(
-      ({ name, description }) => `- ${name}: ${description}`,
-    ),
+    ...vocabulary.relations.map(term),
     "",
     "Fixed identities (exist from the start; use them in about):",
     ...vocabulary.fixed.map(

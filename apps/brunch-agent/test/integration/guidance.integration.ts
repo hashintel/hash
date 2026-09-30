@@ -100,7 +100,11 @@ faux.setResponses([
       ({ name }) => name === "ledger_commit",
     );
     const schema = JSON.stringify(commitTool?.parameters);
-    assert(schema.includes('"identify"') && schema.includes('"fails-into"'));
+    assert(
+      schema.includes('"identify"') &&
+        schema.includes('"fails-into"') &&
+        schema.includes('"validation"'),
+    );
     return fauxAssistantMessage(
       [
         fauxToolCall(
@@ -111,6 +115,7 @@ faux.setResponses([
                 op: "identify",
                 identity: "cleaning-crew",
                 kind: "resource",
+                covers: ["resources"],
                 source: "person",
                 standing: "settled",
               },
@@ -118,6 +123,7 @@ faux.setResponses([
                 op: "note",
                 about: ["purpose", "cleaning-crew"],
                 content: "Whether one crew can cover both lines.",
+                covers: ["goals"],
                 source: "person",
                 standing: "tentative",
               },
@@ -130,9 +136,9 @@ faux.setResponses([
     );
   },
   (context) => {
-    assert(
-      toolResult(context, "commit").includes("identities/cleaning-crew/n1"),
-    );
+    const receipt = toolResult(context, "commit");
+    assert(receipt.includes("identities/cleaning-crew/n1"));
+    assert(receipt.includes("- resources: 1 confirmed"));
     return fauxAssistantMessage(
       [fauxToolCall("ledger_compile", {}, { id: "map" })],
       { stopReason: "toolUse" },
