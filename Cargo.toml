@@ -308,7 +308,7 @@ supports-color                     = { version = "3.0.2", default-features = fal
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
 tachyonix                          = { version = "0.3.1", default-features = false }
-tempfile                           = { version = "3" }
+tempfile                           = { version = "3.27.0" }
 temporalio-client                  = { version = "0.5.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
 temporalio-common                  = { version = "0.5.0", default-features = false }
 test-log                           = { version = "0.2.18", default-features = false }
