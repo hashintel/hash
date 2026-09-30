@@ -319,6 +319,46 @@ test("keeps a dropped utterance's words visible so they can be sent from the com
   await first;
 });
 
+test("keeps a dropped utterance's words in the conversation switched to", async () => {
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const original = new VoiceMediationHistory("original");
+  const switched = new VoiceMediationHistory("switched");
+  let current = original;
+  const fixture = setup({
+    get history() {
+      return current;
+    },
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept({
+    id: "first",
+    text: "Compare staffing",
+  });
+  current = switched;
+  const messages = [
+    {
+      id: "switched-answer",
+      role: "assistant" as const,
+      parts: [{ type: "text" as const, text: "Earlier answer" }],
+    },
+  ];
+  fixture.update({ messages });
+  await fixture.bridge.accept({ id: "second", text: "Also check the queue" });
+
+  expect(switched.project(messages).map((message) => message.id)).toEqual([
+    "switched-answer",
+    "second",
+  ]);
+  expect(
+    switched.project(messages).find((message) => message.id === "second")
+      ?.parts,
+  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  brief.resolve({});
+  await first;
+});
+
 test("drops a superseded transcript quietly when another turn holds the composer", async () => {
   const history = new VoiceMediationHistory("test");
   const brief = Promise.withResolvers<Record<string, string>>();
