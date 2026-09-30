@@ -723,11 +723,15 @@ const ToolListContent = ({
   onSelectToolTarget,
   tools,
   presentation,
+  active,
+  stopped,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
   presentation: PetrinautAiAssistantPresentation;
+  active: boolean;
+  stopped: boolean;
 }) => (
   <>
     {tools.map((tool) => (
@@ -735,6 +739,8 @@ const ToolListContent = ({
         key={tool.id}
         tool={tool}
         presentation={presentation}
+        active={active && !stopped}
+        stopped={stopped}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onSelectToolTarget={onSelectToolTarget}
       />
@@ -784,6 +790,8 @@ export const AiAssistantToolList = ({
       <ToolListContent
         tools={tools}
         presentation={presentation}
+        active={active}
+        stopped={stopped}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onSelectToolTarget={onSelectToolTarget}
       />

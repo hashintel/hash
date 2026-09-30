@@ -452,6 +452,14 @@ const workingStatusStyle = css({
   "@media (prefers-reduced-motion: reduce)": { animation: "[none]" },
 });
 
+const stoppedNoteStyle = css({
+  alignSelf: "center",
+  marginTop: "1.5",
+  paddingY: "1",
+  fontSize: "xs",
+  color: "neutral.s80",
+});
+
 const composerWrapStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -896,18 +904,8 @@ const AiAssistantMessage = memo(
             />
           </div>
         )}
-        {wasStopped && (
-          <div
-            className={css({
-              alignSelf: "center",
-              marginTop: "1.5",
-              paddingY: "1",
-              fontSize: "xs",
-              color: "neutral.s80",
-            })}
-          >
-            Response stopped
-          </div>
+        {role === "assistant" && wasStopped && (
+          <div className={stoppedNoteStyle}>Response stopped</div>
         )}
         {presentation === "brunch" &&
           role === "assistant" &&
@@ -1584,6 +1582,9 @@ export const AiAssistantContents = ({
                 stopped={stopped && index === messages.length - 1}
               />
             ))}
+            {stopped && messages.at(-1)?.role === "user" && (
+              <div className={stoppedNoteStyle}>Response stopped</div>
+            )}
           </div>
 
           {additionalTab && (
@@ -1802,7 +1803,7 @@ export const AiAssistantContents = ({
                       <Button
                         aria-label={composerAction.label}
                         className={composerActionButtonStyle}
-                        data-stop={isBusy || undefined}
+                        data-stop={(isBrunchChat && isBusy) || undefined}
                         data-ai-assistant-submit={
                           composerAction.isSubmit || undefined
                         }
@@ -1818,7 +1819,7 @@ export const AiAssistantContents = ({
                             ) : (
                               <Icon
                                 name={composerAction.glyph}
-                                size={isBusy ? "xs" : "sm"}
+                                size={isBrunchChat && isBusy ? "xs" : "sm"}
                               />
                             )}
                           </span>
