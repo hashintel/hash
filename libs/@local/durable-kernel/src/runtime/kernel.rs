@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::{DriverSettings, Kernel, KernelConfig, KernelError, RunningKernel, driver::run_shard};
 use crate::{
-    domain::{self, Executor, Hosted, SimpleDomain},
+    domain::{Executor, Hosted, SimpleDomain},
     keyspace::Keyspace,
     registry::RecordRegistry,
     shard_log::{LogStorageOptions, OpenedShard, ShardCommandConfig, ShardLogLocation},
@@ -54,7 +54,9 @@ impl Kernel {
     ///
     /// Returns an error when the domain’s record declarations conflict with registered codecs.
     pub fn register<S: SimpleDomain>(self) -> Result<Self, Report<KernelError>> {
-        domain::register::<S>(&self.registry).change_context(KernelError::RegisterDomain)?;
+        self.registry
+            .register_domain::<Hosted<S>>()
+            .change_context(KernelError::RegisterDomain)?;
         Ok(self)
     }
 
@@ -68,7 +70,9 @@ impl Kernel {
         S: SimpleDomain,
         X: Executor<S>,
     {
-        domain::register::<S>(&self.registry).change_context(KernelError::RegisterDomain)?;
+        self.registry
+            .register_domain::<Hosted<S>>()
+            .change_context(KernelError::RegisterDomain)?;
         let executor = Arc::new(executor);
         let shutdown = CancellationToken::new();
         let storage = LogStorageOptions {

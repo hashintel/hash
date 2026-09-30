@@ -23,7 +23,7 @@ use serde::{Serialize, de::DeserializeOwned};
 
 pub use self::{
     error::{FoldError, RecoveryError},
-    hosted::{Hosted, KernelProjection, PreparedEvent, register},
+    hosted::{Hosted, KernelProjection, PreparedEvent},
     partition::{InvalidPartitionKey, MAX_PARTITION_KEY_BYTES, PartitionKey},
     query::{HostedQuery, ProjectionQuery},
     record::{EventRecord, EventRecordV1},

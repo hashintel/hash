@@ -153,7 +153,7 @@ impl<S: JournalStorage> OpenedShard<S> {
     fn register<T: DurableRecord>(&self) -> Result<(), Report<ShardCommandError>> {
         self.location
             .registry
-            .register(T::declaration())
+            .register_record::<T>()
             .change_context_lazy(|| ShardCommandError::RegisterRecord {
                 name: T::declaration().name,
             })

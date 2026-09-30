@@ -7,14 +7,12 @@ use tokio::sync::oneshot;
 
 use super::{
     EventRecord, EventRecordV1, Fold, FoldError, HostedQuery, PartitionKey, ProjectionQuery,
-    ProjectionSnapshot, RecoveryError, SimpleDomain,
+    RecoveryError, SimpleDomain,
 };
 use crate::{
     ids::{EventId, JournalRecordDigest},
     port::{EventDomain, Prepared, QueryDomain},
-    registry::{
-        CompatError, DeclarationError, DurableRecord as _, RecordRegistry, VersionedRecord as _,
-    },
+    registry::{CompatError, VersionedRecord as _},
     routing::Shard,
     sequence::JournalSequence,
     shard_log::{ShardCommandError, ShardCommandHandle},
@@ -85,20 +83,6 @@ impl<S> Clone for Hosted<S> {
 }
 
 impl<S> Copy for Hosted<S> {}
-
-/// Registers the application’s event and snapshot record names before the first append.
-///
-/// # Errors
-///
-/// Returns an error if a record name conflicts with an existing declaration or a declaration is
-/// invalid.
-pub fn register<S: SimpleDomain>(
-    registry: &RecordRegistry,
-) -> Result<(), Report<DeclarationError>> {
-    registry.register(EventRecord::<S::Event>::declaration())?;
-    registry.register(ProjectionSnapshot::<S>::declaration())?;
-    Ok(())
-}
 
 /// A validated application change and the metadata recorded after a durable append.
 pub struct PreparedEvent<S: SimpleDomain> {

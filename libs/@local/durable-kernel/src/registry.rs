@@ -7,7 +7,7 @@
 //! Applications must keep stored formats compatible across builds.
 //!
 //! [`crate::domain`] supplies these declarations for application events and snapshots. Custom
-//! records implement [`DurableRecord`] and register through [`RecordRegistry::register`].
+//! records implement [`DurableRecord`] and register through [`RecordRegistry::register_record`].
 
 use alloc::collections::BTreeMap;
 use std::{
@@ -18,7 +18,7 @@ use std::{
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
 
-use crate::{domain::PartitionKey, ids::EventId};
+use crate::{domain::PartitionKey, ids::EventId, port::SnapshotDomain};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -218,6 +218,25 @@ impl RecordRegistry {
         Ok(())
     }
 
+    /// Registers the declaration of the record type `R`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error under the same conditions as [`register`](Self::register).
+    pub fn register_record<R: DurableRecord>(&self) -> Result<(), Report<DeclarationError>> {
+        self.register(R::declaration())
+    }
+
+    /// Registers the event and snapshot records of the domain `D`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error under the same conditions as [`register`](Self::register).
+    pub fn register_domain<D: SnapshotDomain>(&self) -> Result<(), Report<DeclarationError>> {
+        self.register_record::<D::Record>()?;
+        self.register_record::<D::Snapshot>()
+    }
+
     /// Checks that the record type has a matching registered declaration.
     ///
     /// # Errors
@@ -316,7 +335,7 @@ mod tests {
         );
 
         registry
-            .register(TestRecord::<1>::declaration())
+            .register_record::<TestRecord<1>>()
             .expect("declaration should register");
         registry
             .require::<TestRecord<1>>()

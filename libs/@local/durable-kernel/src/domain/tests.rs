@@ -15,7 +15,7 @@ use serde_json::json;
 use super::{
     DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
     KernelProjection, MAX_PARTITION_KEY_BYTES, PartitionKey, ProjectionSnapshot, RecoveryError,
-    SimpleDomain, register, snapshot::MAX_SNAPSHOT_BYTES,
+    SimpleDomain, snapshot::MAX_SNAPSHOT_BYTES,
 };
 use crate::{
     DurableError,
@@ -1490,9 +1490,11 @@ impl DomainEvent for OtherCounterEvent {
 #[test]
 fn registration_conflicting_event_type() {
     let registry = RecordRegistry::default();
-    register::<ToyDomain>(&registry).expect("toy domain should register");
+    registry
+        .register_domain::<Toy>()
+        .expect("toy domain should register");
     let error = registry
-        .register(EventRecord::<OtherCounterEvent>::declaration())
+        .register_record::<EventRecord<OtherCounterEvent>>()
         .expect_err("another event type with the same name should be rejected");
     assert!(matches!(
         error.current_context(),
@@ -1501,7 +1503,7 @@ fn registration_conflicting_event_type() {
 
     let independent_registry = RecordRegistry::default();
     independent_registry
-        .register(EventRecord::<OtherCounterEvent>::declaration())
+        .register_record::<EventRecord<OtherCounterEvent>>()
         .expect("another registry should allow its own codec for the name");
     registry
         .require::<EventRecord<CounterEvent>>()

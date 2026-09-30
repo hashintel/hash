@@ -529,7 +529,7 @@ async fn unregistered_record_is_refused_before_any_append_side_effect() {
 
     let other_registry = RecordRegistry::default();
     other_registry
-        .register(UnregisteredRecord::declaration())
+        .register_record::<UnregisteredRecord>()
         .expect("the record should register in an unrelated registry");
     let capability = TestPrefixCapability::new();
     let location = capability.location(Shard::try_from(10).expect("test shard should be in range"));

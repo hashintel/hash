@@ -109,7 +109,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         durable_end_exclusive: JournalSequence,
     ) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>> {
         self.registry
-            .register(T::declaration())
+            .register_record::<T>()
             .change_context(DurableError::RegisterRecord {
                 name: T::declaration().name,
             })?;
@@ -122,7 +122,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         durable_end_exclusive: JournalSequence,
     ) -> Result<Vec<SnapshotCandidate<T>>, Report<DurableError>> {
         self.registry
-            .register(T::declaration())
+            .register_record::<T>()
             .change_context(DurableError::RegisterRecord {
                 name: T::declaration().name,
             })?;

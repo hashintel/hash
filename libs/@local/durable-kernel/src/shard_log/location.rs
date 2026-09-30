@@ -179,7 +179,7 @@ pub async fn read_journal<T: UntrimmedJournalRecord>(
 ) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>> {
     location
         .registry
-        .register(T::declaration())
+        .register_record::<T>()
         .change_context(DurableError::RegisterRecord {
             name: T::declaration().name,
         })?;
