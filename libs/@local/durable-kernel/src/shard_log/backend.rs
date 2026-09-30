@@ -4,7 +4,7 @@
 //! and scan boundaries for each backend. [`StorageConfig`] opens the object-storage backend.
 
 use core::{
-    ops::{Bound, RangeBounds},
+    ops::RangeBounds,
     pin::Pin,
     task::{Context, Poll, ready},
     time::Duration,
@@ -181,13 +181,6 @@ impl Stream for StorageStream {
     }
 }
 
-fn storage_range(range: SequenceRange) -> (Bound<u64>, Bound<u64>) {
-    (
-        range.start.map(JournalSequence::get),
-        range.end.map(JournalSequence::get),
-    )
-}
-
 impl JournalStream for StorageStream {
     fn next_sequence(&self) -> JournalSequence {
         self.next_sequence
@@ -205,7 +198,7 @@ impl JournalReader for StorageReader {
         let range = SequenceRange::from_bounds(&range);
         let inner = self
             .0
-            .scan(key.clone(), storage_range(range))
+            .scan(key.clone(), range.map(JournalSequence::get))
             .await
             .change_context_lazy(|| DurableError::Scan {
                 key: key.clone(),
@@ -231,7 +224,7 @@ impl JournalReader for StorageWriter {
         let range = SequenceRange::from_bounds(&range);
         let inner = self
             .log
-            .scan(key.clone(), storage_range(range))
+            .scan(key.clone(), range.map(JournalSequence::get))
             .await
             .change_context_lazy(|| DurableError::Scan {
                 key: key.clone(),

@@ -53,14 +53,14 @@ impl JournalSequence {
 
 /// A range of journal sequences, displayed in interval notation such as `[3, 9)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SequenceRange {
-    pub start: Bound<JournalSequence>,
-    pub end: Bound<JournalSequence>,
+pub struct SequenceRange<T = JournalSequence> {
+    pub start: Bound<T>,
+    pub end: Bound<T>,
 }
 
-impl SequenceRange {
+impl<T: Clone> SequenceRange<T> {
     #[must_use]
-    pub fn from_bounds(range: &impl RangeBounds<JournalSequence>) -> Self {
+    pub fn from_bounds(range: &impl RangeBounds<T>) -> Self {
         Self {
             start: range.start_bound().cloned(),
             end: range.end_bound().cloned(),
@@ -68,14 +68,34 @@ impl SequenceRange {
     }
 }
 
-impl fmt::Display for SequenceRange {
+impl<T> SequenceRange<T> {
+    /// Returns this range with `convert` applied to both bounds.
+    pub fn map<U>(self, mut convert: impl FnMut(T) -> U) -> SequenceRange<U> {
+        SequenceRange {
+            start: self.start.map(&mut convert),
+            end: self.end.map(convert),
+        }
+    }
+}
+
+impl<T> RangeBounds<T> for SequenceRange<T> {
+    fn start_bound(&self) -> Bound<&T> {
+        self.start.as_ref()
+    }
+
+    fn end_bound(&self) -> Bound<&T> {
+        self.end.as_ref()
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for SequenceRange<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.start {
+        match &self.start {
             Bound::Included(start) => write!(formatter, "[{start}, ")?,
             Bound::Excluded(start) => write!(formatter, "({start}, ")?,
             Bound::Unbounded => formatter.write_str("(.., ")?,
         }
-        match self.end {
+        match &self.end {
             Bound::Included(end) => write!(formatter, "{end}]"),
             Bound::Excluded(end) => write!(formatter, "{end})"),
             Bound::Unbounded => formatter.write_str("..)"),
