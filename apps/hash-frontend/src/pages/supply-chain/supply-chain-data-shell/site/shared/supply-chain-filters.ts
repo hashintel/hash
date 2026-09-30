@@ -12,6 +12,7 @@ import {
   selectStat,
   type BaseMeasure,
 } from "../../../shared/measure-context";
+import { procurementStepDisplayLabel } from "../../../shared/procurement-planning-ui";
 import { combinedSampleTier } from "../../../shared/sample-confidence";
 import {
   STATUS_LABELS_IN_ORDER,
@@ -202,11 +203,16 @@ const materialDisplayNameOf = (row: FilterableStepRow): string | null => {
   if (!MATERIAL_TITLED_TYPES.includes(row.type)) {
     return null;
   }
-  const separatorIndex = row.label.indexOf(": ");
+  // Procurement labels append " — <supplier> — <basis>" after the material.
+  const label =
+    row.type === "procurement"
+      ? procurementStepDisplayLabel(row.label, "compact")
+      : row.label;
+  const separatorIndex = label.indexOf(": ");
   if (separatorIndex === -1) {
     return null;
   }
-  const name = row.label.slice(separatorIndex + 2).trim();
+  const name = label.slice(separatorIndex + 2).trim();
   return name.length > 0 ? name : null;
 };
 

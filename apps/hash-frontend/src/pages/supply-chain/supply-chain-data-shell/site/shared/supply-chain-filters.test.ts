@@ -542,11 +542,19 @@ describe("buildSupplyChainFilterOptions", () => {
 
   it("derives material names from step labels when material_name is absent", () => {
     const rows = [
+      // The supplier/basis tail must not leak into the derived material name,
+      // regardless of which supplier's row is encountered first.
       row({
-        id: "procurement_ha",
+        id: "procurement_ha_zeta",
         type: "procurement",
         material: "90000100001",
-        label: "Procurement: Highland Arabica",
+        label: "Procurement: Highland Arabica — Zeta — Buy",
+      }),
+      row({
+        id: "procurement_ha_acme",
+        type: "procurement",
+        material: "90000100001",
+        label: "Procurement: Highland Arabica — Acme — Consignment",
       }),
       // A location-scoped step's label suffix names a hub, not the material.
       row({
