@@ -195,6 +195,23 @@ describe("interactive tool registry", () => {
     ).toThrow("Unknown AI tool: missingHostTool");
   });
 
+  test("reports a registered host tool that declines a call as declined", () => {
+    const declining = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: (input: unknown) => input },
+      outputSchema: { parse: (output: unknown) => output },
+      shouldHandle: () => false,
+      component: () => null,
+    });
+    expect(() =>
+      resolveDynamicInteractiveTool(toolCall("confirmRelease", {}), [
+        declining,
+      ]),
+    ).toThrow(
+      "AI tool confirmRelease was declined by the host for call confirmRelease-call",
+    );
+  });
+
   test("preserves the built-in applyAutoLayout branching behavior", () => {
     expect(
       getInteractiveTool(toolCall("applyAutoLayout", { askUserFirst: true }), [
