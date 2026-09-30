@@ -19,7 +19,6 @@ import {
   statusLabelForNode,
   type StatusStore,
 } from "../../../shared/status";
-import { rangeMonths, type TimeRange } from "../../../shared/time-range";
 import { trendToneFor } from "../../../shared/trend-tone";
 import { siteNodeDisplayLabel } from "./helpers";
 import {
@@ -35,6 +34,7 @@ import {
   type SupplyChainFilterOperator,
 } from "./supply-chain-filters/operators";
 
+import type { TimeRange } from "../../../shared/time-range";
 import type { SiteNode, VendorOtifStats } from "../../../shared/types";
 import type { MultiSelectItem } from "@hashintel/ds-components";
 
@@ -241,11 +241,6 @@ const trendDirectionItems: MultiSelectItem[] = [
 
 // ── Derived row values ──────────────────────────────────────────────────────
 
-const DAYS_PER_MONTH = 30.44;
-
-const daysInRange = (timeRange: TimeRange): number =>
-  rangeMonths(timeRange) * DAYS_PER_MONTH;
-
 const measureValueOf = (
   row: FilterableStepRow,
   context: SupplyChainFilterContext,
@@ -324,17 +319,6 @@ const changeDaysOf = (
   const current = measureValueOf(row, context);
   return current != null && row.previousValue != null
     ? current - row.previousValue
-    : null;
-};
-
-const valueWeightedChangeOf = (
-  row: FilterableStepRow,
-  context: SupplyChainFilterContext,
-): number | null => {
-  const change = changeDaysOf(row, context);
-  const value = materialValueOf(row, context);
-  return change != null && value != null
-    ? change * (value / daysInRange(context.timeRange))
     : null;
 };
 
@@ -718,18 +702,6 @@ export const STEP_FILTER_DEFINITIONS = [
     isApplicable: (row, context) => changeDaysOf(row, context) != null,
   },
   {
-    key: "valueWeightedChange",
-    label: "Value-weighted change",
-    operators: currencyNumberOperators,
-    matches: (row, value, context) =>
-      matchesNumberOperator(
-        value.key,
-        valueWeightedChangeOf(row, context),
-        value.value,
-      ),
-    isApplicable: (row, context) => valueWeightedChangeOf(row, context) != null,
-  },
-  {
     key: "crossedPlan",
     label: "Crossed plan this period",
     // "no" includes rows without a plan or previous period.
@@ -942,22 +914,11 @@ export const STEP_FILTER_MENUS: Record<
   opportunities: [
     { group: "Step", keys: ["stepName", "product"] },
     { group: "Supplier", keys: ["material", "supplier", "basis"] },
-    // The displayed impact values first, then the underlying step metrics
-    // the impact derives from (plan comparison, then change).
+    // The displayed impact values first, then the step metrics behind them:
+    // observed days (in the evidence tooltip) and the worsening-step gate.
     {
       group: "Impact",
-      keys: [
-        "carryingCost",
-        "p95DeviationPct",
-        "measureValue",
-        "deviationPct",
-        "deviationDirection",
-        "crossedPlan",
-        "trendPct",
-        "trendDirection",
-        "changeDays",
-        "valueWeightedChange",
-      ],
+      keys: ["carryingCost", "p95DeviationPct", "measureValue", "trendPct"],
     },
     {
       group: "Sample",
