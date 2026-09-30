@@ -48,13 +48,21 @@ export const dwellSorters = (
   display: SorterDisplay,
 ): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
-  { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
-  { name: "Days trend %", sortKey: "trend" },
-  { name: "MOQ", sortKey: "moq" },
-  { name: "Safety stock", sortKey: "safetyStock" },
-  { name: `Carrying cost${periodSuffix(display)}`, sortKey: "cost" },
-  { name: "Cost trend %", sortKey: "costTrend" },
-  { name: "Samples", sortKey: "sample" },
+  {
+    name: `Observed days (${display.measureLabel})`,
+    sortKey: "median",
+    sortIcon: "numeric",
+  },
+  { name: "Days trend %", sortKey: "trend", sortIcon: "numeric" },
+  { name: "MOQ", sortKey: "moq", sortIcon: "numeric" },
+  { name: "Safety stock", sortKey: "safetyStock", sortIcon: "numeric" },
+  {
+    name: `Carrying cost${periodSuffix(display)}`,
+    sortKey: "cost",
+    sortIcon: "numeric",
+  },
+  { name: "Cost trend %", sortKey: "costTrend", sortIcon: "numeric" },
+  { name: "Samples", sortKey: "sample", sortIcon: "numeric" },
   { name: "Status", sortKey: "status" },
 ];
 
@@ -67,12 +75,17 @@ export const planningSorters = (
   {
     name: `Material value${periodSuffix(display)}`,
     sortKey: "materialValue",
+    sortIcon: "numeric",
   },
-  { name: "Planned days", sortKey: "planned" },
-  { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
-  { name: "Deviation %", sortKey: "deviation" },
-  { name: "Trend %", sortKey: "trend" },
-  { name: "% exceeding plan", sortKey: "exceeding" },
+  { name: "Planned days", sortKey: "planned", sortIcon: "numeric" },
+  {
+    name: `Observed days (${display.measureLabel})`,
+    sortKey: "median",
+    sortIcon: "numeric",
+  },
+  { name: "Deviation %", sortKey: "deviation", sortIcon: "numeric" },
+  { name: "Trend %", sortKey: "trend", sortIcon: "numeric" },
+  { name: "% exceeding plan", sortKey: "exceeding", sortIcon: "numeric" },
   { name: "Status", sortKey: "status" },
 ];
 
@@ -80,29 +93,41 @@ export const trendSorters = ({
   measureLabel,
 }: Pick<SorterDisplay, "measureLabel">): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
-  { name: `Current days (${measureLabel})`, sortKey: "median" },
-  { name: `Previous days (${measureLabel})`, sortKey: "previous" },
-  { name: "Trend %", sortKey: "trend" },
-  { name: "Samples", sortKey: "sample" },
+  {
+    name: `Current days (${measureLabel})`,
+    sortKey: "median",
+    sortIcon: "numeric",
+  },
+  {
+    name: `Previous days (${measureLabel})`,
+    sortKey: "previous",
+    sortIcon: "numeric",
+  },
+  { name: "Trend %", sortKey: "trend", sortIcon: "numeric" },
+  { name: "Samples", sortKey: "sample", sortIcon: "numeric" },
   { name: "Status", sortKey: "status" },
 ];
 
 export const OPPORTUNITY_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
   // Sorts `opportunity.title`, the underlying step's display name.
   { name: "Step name", sortKey: "opportunity" },
-  { name: "Impact", sortKey: "impact" },
-  { name: "Sample", sortKey: "sampleSize" },
+  { name: "Impact", sortKey: "impact", sortIcon: "numeric" },
+  { name: "Sample", sortKey: "sampleSize", sortIcon: "numeric" },
   { name: "Status", sortKey: "status" },
 ];
 
 export const SUPPLIER_SORTERS: ReadonlyArray<Sorter<SortKey>> = [
   { name: "Vendor", sortKey: "vendor" },
-  { name: "Materials count", sortKey: "materialsCount" },
-  { name: "Lines", sortKey: "lines" },
-  { name: "Late lines", sortKey: "nLate" },
-  { name: "On-time %", sortKey: "onTime" },
-  { name: "OTIF %", sortKey: "otif" },
-  { name: "Mean delay (all)", sortKey: "meanLate" },
-  { name: "Mean delay when late", sortKey: "meanLateWhenLate" },
-  { name: "Max delay", sortKey: "maxLate" },
+  { name: "Materials count", sortKey: "materialsCount", sortIcon: "numeric" },
+  { name: "Lines", sortKey: "lines", sortIcon: "numeric" },
+  { name: "Late lines", sortKey: "nLate", sortIcon: "numeric" },
+  { name: "On-time %", sortKey: "onTime", sortIcon: "numeric" },
+  { name: "OTIF %", sortKey: "otif", sortIcon: "numeric" },
+  { name: "Mean delay (all)", sortKey: "meanLate", sortIcon: "numeric" },
+  {
+    name: "Mean delay when late",
+    sortKey: "meanLateWhenLate",
+    sortIcon: "numeric",
+  },
+  { name: "Max delay", sortKey: "maxLate", sortIcon: "numeric" },
 ];
