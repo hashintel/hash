@@ -32,6 +32,23 @@ const controllerItemStyle = css({
 
 const fieldNameStyle = css({ fontFamily: "mono" });
 
+/** Marks what a right-click menu acts on while the menu is open. */
+const contextTargetStyle = css({
+  display: "contents",
+  "&:is([data-state=open] > *) > [role=option]": {
+    backgroundColor: "neutral.bg.surface.hover",
+  },
+  "&:is([data-state=open] > *) > div:not([role])": {
+    filter: "[drop-shadow(0 0 4px var(--colors-blue-s70))]",
+  },
+});
+
+const buttonLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+});
+
 let leverCounter = 0;
 const newLeverId = () => `lever__${Date.now()}_${leverCounter++}`;
 const newControllerId = () => `controller__${Date.now()}`;
@@ -102,10 +119,16 @@ export const useLeverKindItems = (targetIds: string[]): MenuEntry[] => {
             }) as MenuItem,
         ),
         {
-          id: `${key}:new`,
-          text: "New controller…",
-          icon: "plus",
-          onClick: () => addTo(null, drafts),
+          id: `${key}:create`,
+          label: "",
+          items: [
+            {
+              id: `${key}:new`,
+              text: "New controller…",
+              icon: "plus",
+              onClick: () => addTo(null, drafts),
+            },
+          ],
         },
       ],
     } as MenuItem;
@@ -200,7 +223,11 @@ export const NodeContextMenu: React.FC<{
     },
   ];
 
-  return <RightClickMenu items={items}>{children}</RightClickMenu>;
+  return (
+    <RightClickMenu items={items}>
+      <div className={contextTargetStyle}>{children}</div>
+    </RightClickMenu>
+  );
 };
 
 const multiSelectionActionStyle = css({ marginTop: "3" });
@@ -239,7 +266,10 @@ export const AddToControllerButton: React.FC<{ items: SelectionItem[] }> = ({
         <Menu
           trigger={
             <Button size="sm" variant="subtle">
-              Add to controller
+              <span className={buttonLabelStyle}>
+                <LeverGlyph size={13} />
+                Add to controller
+              </span>
             </Button>
           }
           items={kindItems}
