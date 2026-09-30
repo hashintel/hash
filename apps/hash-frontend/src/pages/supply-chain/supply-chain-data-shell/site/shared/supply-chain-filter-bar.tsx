@@ -11,14 +11,14 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import {
   STEP_FILTER_MENUS,
-  stepFilterDefinition,
-  stepFilterLabel,
-  type ActiveStepFilter,
-  type StepFilterKey,
-  type StepFilterOptions,
-  type StepFilterValue,
-  type StepFilterView,
-} from "./step-filters";
+  supplyChainFilterDefinition,
+  supplyChainFilterLabel,
+  type ActiveSupplyChainFilter,
+  type SupplyChainFilterKey,
+  type SupplyChainFilterOptions,
+  type SupplyChainFilterValue,
+  type SupplyChainFilterView,
+} from "./supply-chain-filters";
 
 type MenuItems = React.ComponentProps<typeof Menu>["items"];
 
@@ -28,7 +28,7 @@ type MenuItems = React.ComponentProps<typeof Menu>["items"];
 // own fresh-chip focus treats first-mount chips as restored state) — any
 // in-component record of the addition would be lost with it. Consumed by one
 // render pass, then cleared.
-let pendingAutoFocusKey: StepFilterKey | null = null;
+let pendingAutoFocusKey: SupplyChainFilterKey | null = null;
 
 // With no chips the bar is just the add button; push it to the right edge of
 // whatever row hosts it (a block band or a flex title row).
@@ -39,7 +39,7 @@ const emptyBarAlign = css({
   justifyContent: "flex-end",
 });
 
-export const StepFilterBar = ({
+export const SupplyChainFilterBar = ({
   view,
   filters,
   onFiltersChange,
@@ -48,19 +48,19 @@ export const StepFilterBar = ({
   addableKeys,
 }: {
   /** The hosting view; selects the add menu's layout and group order. */
-  view: StepFilterView;
-  filters: ActiveStepFilter[];
-  onFiltersChange: (next: ActiveStepFilter[]) => void;
-  options: StepFilterOptions;
+  view: SupplyChainFilterView;
+  filters: ActiveSupplyChainFilter[];
+  onFiltersChange: (next: ActiveSupplyChainFilter[]) => void;
+  options: SupplyChainFilterOptions;
   /** Active filter keys not applied to the adjacent table. */
-  skippedKeys?: ReadonlySet<StepFilterKey>;
+  skippedKeys?: ReadonlySet<SupplyChainFilterKey>;
   /**
    * Filter keys the adjacent table can offer in the add menu (see
    * `applicableFilterKeys`). Filters already active render regardless, so a
    * set carried over from another view survives — it just cannot be added
    * afresh here. Omit to offer the view's whole menu.
    */
-  addableKeys?: ReadonlySet<StepFilterKey>;
+  addableKeys?: ReadonlySet<SupplyChainFilterKey>;
 }) => {
   // Read for this render, then cleared so later remounts (tab switches, the
   // other table's bar) never re-focus the same key.
@@ -71,7 +71,7 @@ export const StepFilterBar = ({
 
   const addMenuItems = useMemo<MenuItems>(() => {
     const activeKeys = new Set(filters.map((filter) => filter.filterKey));
-    const addFilter = (filterKey: StepFilterKey) => {
+    const addFilter = (filterKey: SupplyChainFilterKey) => {
       pendingAutoFocusKey = filterKey;
       onFiltersChange([...filters, { filterKey, value: null }]);
     };
@@ -81,12 +81,12 @@ export const StepFilterBar = ({
           if (activeKeys.has(key) || (addableKeys && !addableKeys.has(key))) {
             return [];
           }
-          const definition = stepFilterDefinition(key);
+          const definition = supplyChainFilterDefinition(key);
           return definition
             ? [
                 {
                   id: key,
-                  text: stepFilterLabel(definition, options),
+                  text: supplyChainFilterLabel(definition, options),
                   onClick: () => addFilter(key),
                 },
               ]
@@ -102,17 +102,17 @@ export const StepFilterBar = ({
   }, [view, filters, onFiltersChange, addableKeys, options]);
 
   const setFilterValue = (
-    filterKey: StepFilterKey,
+    filterKey: SupplyChainFilterKey,
     operatorKey: string,
     committed: unknown,
   ) => {
-    const definition = stepFilterDefinition(filterKey);
+    const definition = supplyChainFilterDefinition(filterKey);
     const operator = definition
       ?.operators(options)
       .find((candidate) => candidate.key === operatorKey);
     // Input-less operators commit `(key, null)` as their active state; for
     // every other operator a null commit means the value was cleared.
-    const value: StepFilterValue | null =
+    const value: SupplyChainFilterValue | null =
       committed == null && operator?.input !== null
         ? null
         : { key: operatorKey, value: committed };
@@ -147,12 +147,12 @@ export const StepFilterBar = ({
   return (
     <FilterGroup dismissAbandoned>
       {filters.map((filter) => {
-        const definition = stepFilterDefinition(filter.filterKey);
+        const definition = supplyChainFilterDefinition(filter.filterKey);
         if (!definition) {
           return null;
         }
         const skipped = skippedKeys?.has(filter.filterKey) ?? false;
-        const label = stepFilterLabel(definition, options);
+        const label = supplyChainFilterLabel(definition, options);
         const chip = (
           <Filter
             key={filter.filterKey}

@@ -35,17 +35,17 @@ import {
 } from "./site/opportunities";
 import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
-import { StepFilterBar } from "./site/shared/step-filter-bar";
+import { SupplyChainFilterBar } from "./site/shared/supply-chain-filter-bar";
 import {
   applicableFilterKeys,
-  applyStepFilters,
-  applyStepFiltersBy,
-  applyVendorStepFilters,
-  buildStepFilterContext,
-  buildStepFilterOptions,
+  applySupplyChainFilters,
+  applySupplyChainFiltersBy,
+  applyVendorSupplyChainFilters,
+  buildSupplyChainFilterContext,
+  buildSupplyChainFilterOptions,
   vendorApplicableFilterKeys,
-  type ActiveStepFilter,
-} from "./site/shared/step-filters";
+  type ActiveSupplyChainFilter,
+} from "./site/shared/supply-chain-filters";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
 import { buildSiteOverviewCsv } from "./site/site-overview-export";
 import { createSiteSearchMatchers } from "./site/site-search";
@@ -316,11 +316,13 @@ export const SiteOverview = ({
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
 
   // One filter set shared by the dwell/planning/trend/supplier tabs, so
-  // switching tabs never drops an active filter (see step-filters.ts for
+  // switching tabs never drops an active filter (see supply-chain-filters.ts for
   // semantics). The opportunities table keeps its own independent set.
-  const [stepFilters, setStepFilters] = useState<ActiveStepFilter[]>([]);
+  const [supplyChainFilters, setSupplyChainFilters] = useState<
+    ActiveSupplyChainFilter[]
+  >([]);
   const [opportunityFilters, setOpportunityFilters] = useState<
-    ActiveStepFilter[]
+    ActiveSupplyChainFilter[]
   >([]);
 
   // Opportunities table sort. Defaults to impact (per-section score) descending,
@@ -428,18 +430,18 @@ export const SiteOverview = ({
     () => [...dwellRows, ...planningRows, ...trendRows],
     [dwellRows, planningRows, trendRows],
   );
-  const stepFilterOptions = useMemo(
+  const supplyChainFilterOptions = useMemo(
     () =>
-      buildStepFilterOptions(allStepRows, {
+      buildSupplyChainFilterOptions(allStepRows, {
         currency: siteCurrency,
         timeRange,
         measure,
       }),
     [allStepRows, siteCurrency, timeRange, measure],
   );
-  const stepFilterContext = useMemo(
+  const supplyChainFilterContext = useMemo(
     () =>
-      buildStepFilterContext({
+      buildSupplyChainFilterContext({
         rows: allStepRows,
         measure,
         timeRange,
@@ -461,46 +463,56 @@ export const SiteOverview = ({
   // Filters run over the full table rows so applicability (skippedKeys)
   // reflects the table, not the current search; search narrows afterwards.
   const dwellApplication = useMemo(() => {
-    const { rows, skippedKeys } = applyStepFilters(
+    const { rows, skippedKeys } = applySupplyChainFilters(
       dwellRows,
-      stepFilters,
-      stepFilterContext,
+      supplyChainFilters,
+      supplyChainFilterContext,
       "dwell",
     );
     return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
-  }, [dwellRows, searchMatchers, stepFilters, stepFilterContext]);
+  }, [dwellRows, searchMatchers, supplyChainFilters, supplyChainFilterContext]);
   const planningApplication = useMemo(() => {
-    const { rows, skippedKeys } = applyStepFilters(
+    const { rows, skippedKeys } = applySupplyChainFilters(
       planningRows,
-      stepFilters,
-      stepFilterContext,
+      supplyChainFilters,
+      supplyChainFilterContext,
       "planning",
     );
     return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
-  }, [planningRows, searchMatchers, stepFilters, stepFilterContext]);
+  }, [
+    planningRows,
+    searchMatchers,
+    supplyChainFilters,
+    supplyChainFilterContext,
+  ]);
   const trendApplication = useMemo(() => {
-    const { rows, skippedKeys } = applyStepFilters(
+    const { rows, skippedKeys } = applySupplyChainFilters(
       trendRows,
-      stepFilters,
-      stepFilterContext,
+      supplyChainFilters,
+      supplyChainFilterContext,
       "trends",
     );
     return { rows: rows.filter(searchMatchers.siteNode), skippedKeys };
-  }, [trendRows, searchMatchers, stepFilters, stepFilterContext]);
+  }, [trendRows, searchMatchers, supplyChainFilters, supplyChainFilterContext]);
   const supplierApplication = useMemo(() => {
-    const { rows, skippedKeys } = applyVendorStepFilters(
+    const { rows, skippedKeys } = applyVendorSupplyChainFilters(
       supplierRows,
-      stepFilters,
-      stepFilterContext,
+      supplyChainFilters,
+      supplyChainFilterContext,
     );
     return { rows: rows.filter(searchMatchers.supplier), skippedKeys };
-  }, [supplierRows, searchMatchers, stepFilters, stepFilterContext]);
+  }, [
+    supplierRows,
+    searchMatchers,
+    supplyChainFilters,
+    supplyChainFilterContext,
+  ]);
   const opportunityApplication = useMemo(() => {
-    const { rows, skippedKeys } = applyStepFiltersBy(
+    const { rows, skippedKeys } = applySupplyChainFiltersBy(
       generatedOpportunities,
       (opportunity) => opportunity.node,
       opportunityFilters,
-      stepFilterContext,
+      supplyChainFilterContext,
       "opportunities",
     );
     return { rows: rows.filter(searchMatchers.opportunity), skippedKeys };
@@ -508,7 +520,7 @@ export const SiteOverview = ({
     generatedOpportunities,
     searchMatchers,
     opportunityFilters,
-    stepFilterContext,
+    supplyChainFilterContext,
   ]);
   const filteredDwellRows = dwellApplication.rows;
   const filteredPlanningRows = planningApplication.rows;
@@ -526,10 +538,10 @@ export const SiteOverview = ({
     () =>
       applicableFilterKeys(
         generatedOpportunities.map((opportunity) => opportunity.node),
-        stepFilterContext,
+        supplyChainFilterContext,
         "opportunities",
       ),
-    [generatedOpportunities, stepFilterContext],
+    [generatedOpportunities, supplyChainFilterContext],
   );
   const activeTabAddableKeys = useMemo(() => {
     if (tab === "suppliers") {
@@ -541,8 +553,8 @@ export const SiteOverview = ({
         : tab === "planning"
           ? planningRows
           : trendRows;
-    return applicableFilterKeys(rows, stepFilterContext, tab);
-  }, [tab, dwellRows, planningRows, trendRows, stepFilterContext]);
+    return applicableFilterKeys(rows, supplyChainFilterContext, tab);
+  }, [tab, dwellRows, planningRows, trendRows, supplyChainFilterContext]);
   const activeTabSkippedKeys = useMemo(() => {
     const application =
       tab === "dwell"
@@ -563,11 +575,11 @@ export const SiteOverview = ({
   // One bar instance handed to whichever tabbed table is active. Its filter
   // set is independent of the opportunities table's bar above.
   const activeTabFilterBar = (
-    <StepFilterBar
+    <SupplyChainFilterBar
       view={tab}
-      filters={stepFilters}
-      onFiltersChange={setStepFilters}
-      options={stepFilterOptions}
+      filters={supplyChainFilters}
+      onFiltersChange={setSupplyChainFilters}
+      options={supplyChainFilterOptions}
       skippedKeys={activeTabSkippedKeys}
       addableKeys={activeTabAddableKeys}
     />
@@ -866,11 +878,11 @@ export const SiteOverview = ({
           sort={oppSort}
           onSort={setOppSort}
           filterBar={
-            <StepFilterBar
+            <SupplyChainFilterBar
               view="opportunities"
               filters={opportunityFilters}
               onFiltersChange={setOpportunityFilters}
-              options={stepFilterOptions}
+              options={supplyChainFilterOptions}
               skippedKeys={opportunitySkippedKeys}
               addableKeys={opportunityAddableKeys}
             />
@@ -903,7 +915,7 @@ export const SiteOverview = ({
               currency={siteCurrency}
               filterBar={activeTabFilterBar}
               headerTabs={siteTabs}
-              filtersActive={stepFilters.length > 0}
+              filtersActive={supplyChainFilters.length > 0}
             />
           )}
           {tab === "planning" && (
@@ -918,7 +930,7 @@ export const SiteOverview = ({
               onStatus={openStatus}
               filterBar={activeTabFilterBar}
               headerTabs={siteTabs}
-              filtersActive={stepFilters.length > 0}
+              filtersActive={supplyChainFilters.length > 0}
             />
           )}
           {tab === "trends" && (
@@ -933,7 +945,7 @@ export const SiteOverview = ({
               onStatus={openStatus}
               filterBar={activeTabFilterBar}
               headerTabs={siteTabs}
-              filtersActive={stepFilters.length > 0}
+              filtersActive={supplyChainFilters.length > 0}
             />
           )}
           {supplierPerformanceEnabled && tab === "suppliers" && (
@@ -947,7 +959,7 @@ export const SiteOverview = ({
               }
               filterBar={activeTabFilterBar}
               headerTabs={siteTabs}
-              filtersActive={stepFilters.length > 0}
+              filtersActive={supplyChainFilters.length > 0}
             />
           )}
         </div>

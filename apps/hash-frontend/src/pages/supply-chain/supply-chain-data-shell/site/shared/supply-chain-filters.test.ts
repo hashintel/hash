@@ -4,18 +4,18 @@ import {
   applicableFilterKeys,
   STEP_FILTER_DEFINITIONS,
   STEP_FILTER_MENUS,
-  stepFilterLabel,
-  applyStepFilters,
-  applyVendorStepFilters,
-  buildStepFilterContext,
-  buildStepFilterOptions,
+  supplyChainFilterLabel,
+  applySupplyChainFilters,
+  applyVendorSupplyChainFilters,
+  buildSupplyChainFilterContext,
+  buildSupplyChainFilterOptions,
   vendorApplicableFilterKeys,
-  type ActiveStepFilter,
+  type ActiveSupplyChainFilter,
   type FilterableStepRow,
-  type StepFilterContext,
-  type StepFilterOptions,
-  type StepFilterView,
-} from "./step-filters";
+  type SupplyChainFilterContext,
+  type SupplyChainFilterOptions,
+  type SupplyChainFilterView,
+} from "./supply-chain-filters";
 
 import type {
   StepStats,
@@ -51,8 +51,8 @@ const row = (
   ...overrides,
 });
 
-const context = (rows: FilterableStepRow[]): StepFilterContext =>
-  buildStepFilterContext({
+const context = (rows: FilterableStepRow[]): SupplyChainFilterContext =>
+  buildSupplyChainFilterContext({
     rows,
     measure: "median",
     timeRange: "12m",
@@ -63,20 +63,23 @@ const context = (rows: FilterableStepRow[]): StepFilterContext =>
   });
 
 const filter = (
-  filterKey: ActiveStepFilter["filterKey"],
+  filterKey: ActiveSupplyChainFilter["filterKey"],
   operatorKey: string,
   value: unknown,
-): ActiveStepFilter => ({ filterKey, value: { key: operatorKey, value } });
+): ActiveSupplyChainFilter => ({
+  filterKey,
+  value: { key: operatorKey, value },
+});
 
 const rowsAfter = (
   rows: FilterableStepRow[],
-  filters: ActiveStepFilter[],
-  filterContext: StepFilterContext,
-  view: StepFilterView = "planning",
+  filters: ActiveSupplyChainFilter[],
+  filterContext: SupplyChainFilterContext,
+  view: SupplyChainFilterView = "planning",
 ): FilterableStepRow[] =>
-  applyStepFilters(rows, filters, filterContext, view).rows;
+  applySupplyChainFilters(rows, filters, filterContext, view).rows;
 
-describe("applyStepFilters", () => {
+describe("applySupplyChainFilters", () => {
   const procurement = row({
     id: "procurement_mat-a",
     type: "procurement",
@@ -244,7 +247,7 @@ describe("applyStepFilters", () => {
   it("skips filters no row is applicable to and reports them", () => {
     const ctx = context([dwell]);
     // The dwell view offers moq, but this row has no inventory policy.
-    const application = applyStepFilters(
+    const application = applySupplyChainFilters(
       [dwell],
       [
         filter("moq", "gte", 1),
@@ -260,7 +263,7 @@ describe("applyStepFilters", () => {
   it("skips filters the view does not offer, even when rows could match", () => {
     const ctx = context(rows);
     // Every row has stats.n, but the planning table shows no sample count.
-    const onPlanning = applyStepFilters(
+    const onPlanning = applySupplyChainFilters(
       rows,
       [filter("observations", "gte", 21)],
       ctx,
@@ -269,7 +272,7 @@ describe("applyStepFilters", () => {
     expect(onPlanning.rows).toEqual(rows);
     expect(onPlanning.skippedKeys).toEqual(["observations"]);
     // The trend table has a Samples column, so the same filter applies there.
-    const onTrends = applyStepFilters(
+    const onTrends = applySupplyChainFilters(
       rows,
       [filter("observations", "gte", 21)],
       ctx,
@@ -280,7 +283,7 @@ describe("applyStepFilters", () => {
   });
 });
 
-describe("applyVendorStepFilters", () => {
+describe("applyVendorSupplyChainFilters", () => {
   const vendor = (
     overrides: Partial<VendorOtifStats> & { vendor_id: string },
   ): VendorOtifStats => ({
@@ -327,15 +330,21 @@ describe("applyVendorStepFilters", () => {
   it("filters vendors on supplier-performance metrics", () => {
     const ctx = context([]);
     expect(
-      applyVendorStepFilters([acme, zeta], [filter("maxDelay", "gte", 5)], ctx)
-        .rows,
+      applyVendorSupplyChainFilters(
+        [acme, zeta],
+        [filter("maxDelay", "gte", 5)],
+        ctx,
+      ).rows,
     ).toEqual([acme]);
     expect(
-      applyVendorStepFilters([acme, zeta], [filter("otifPct", "gte", 90)], ctx)
-        .rows,
+      applyVendorSupplyChainFilters(
+        [acme, zeta],
+        [filter("otifPct", "gte", 90)],
+        ctx,
+      ).rows,
     ).toEqual([zeta]);
     expect(
-      applyVendorStepFilters(
+      applyVendorSupplyChainFilters(
         [acme, zeta],
         [filter("materialsCount", "gte", 1)],
         ctx,
@@ -344,7 +353,7 @@ describe("applyVendorStepFilters", () => {
   });
 
   it("applies vendor-capable filters and skips the rest", () => {
-    const application = applyVendorStepFilters(
+    const application = applyVendorSupplyChainFilters(
       [acme, zeta],
       [
         filter("supplier", "isAnyOf", ["Acme"]),
@@ -357,7 +366,7 @@ describe("applyVendorStepFilters", () => {
   });
 
   it("matches vendors by supplied material", () => {
-    const application = applyVendorStepFilters(
+    const application = applyVendorSupplyChainFilters(
       [acme, zeta],
       [filter("material", "isAnyOf", ["MAT-A"])],
       context([]),
@@ -448,8 +457,8 @@ describe("vendorApplicableFilterKeys", () => {
   });
 });
 
-describe("stepFilterLabel", () => {
-  const display: StepFilterOptions = {
+describe("supplyChainFilterLabel", () => {
+  const display: SupplyChainFilterOptions = {
     materialItems: [],
     productItems: [],
     supplierItems: [],
@@ -459,7 +468,7 @@ describe("stepFilterLabel", () => {
   };
 
   const labelOf = (key: string) =>
-    stepFilterLabel(
+    supplyChainFilterLabel(
       STEP_FILTER_DEFINITIONS.find((definition) => definition.key === key)!,
       display,
     );
@@ -480,7 +489,7 @@ describe("stepFilterLabel", () => {
   });
 });
 
-describe("buildStepFilterOptions", () => {
+describe("buildSupplyChainFilterOptions", () => {
   it("derives sorted, deduplicated items from the row union", () => {
     const rows = [
       row({
@@ -498,7 +507,7 @@ describe("buildStepFilterOptions", () => {
         products: [{ id: "prod-2", name: "Product 2" }],
       }),
     ];
-    const options = buildStepFilterOptions(rows, {
+    const options = buildSupplyChainFilterOptions(rows, {
       currency: "CHF",
       timeRange: "12m",
       measure: "median",

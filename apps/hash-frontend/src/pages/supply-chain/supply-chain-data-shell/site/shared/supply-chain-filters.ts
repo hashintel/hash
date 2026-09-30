@@ -32,8 +32,8 @@ import {
   pickOperators,
   pickSingleSelectOperators,
   stringOperators,
-  type StepFilterOperator,
-} from "./step-filters/operators";
+  type SupplyChainFilterOperator,
+} from "./supply-chain-filters/operators";
 
 import type { SiteNode, VendorOtifStats } from "../../../shared/types";
 import type { MultiSelectItem } from "@hashintel/ds-components";
@@ -64,7 +64,7 @@ export type FilterableStepRow = SiteNode & {
   previousTrendN?: number;
 };
 
-export interface StepFilterContext {
+export interface SupplyChainFilterContext {
   measure: BaseMeasure;
   timeRange: TimeRange;
   waccRate: number;
@@ -79,7 +79,7 @@ export interface StepFilterContext {
  * analysis window, active measure — that unit-aware labels and input
  * placeholders resolve against.
  */
-export interface StepFilterOptions {
+export interface SupplyChainFilterOptions {
   materialItems: MultiSelectItem[];
   productItems: MultiSelectItem[];
   supplierItems: MultiSelectItem[];
@@ -88,51 +88,54 @@ export interface StepFilterOptions {
   measure: BaseMeasure;
 }
 
-export interface StepFilterValue {
+export interface SupplyChainFilterValue {
   key: string;
   value: unknown;
 }
 
 /** The five filterable views; the tab views match the `Tab` union. */
-export type StepFilterView =
+export type SupplyChainFilterView =
   | "dwell"
   | "planning"
   | "trends"
   | "suppliers"
   | "opportunities";
 
-export interface ActiveStepFilter {
-  filterKey: StepFilterKey;
-  value: StepFilterValue | null;
+export interface ActiveSupplyChainFilter {
+  filterKey: SupplyChainFilterKey;
+  value: SupplyChainFilterValue | null;
 }
 
-interface StepFilterDefinition {
+interface SupplyChainFilterDefinition {
   key: string;
   /** Static, or resolved against the display context for unit-aware labels. */
-  label: string | ((options: StepFilterOptions) => string);
-  operators: (options: StepFilterOptions) => StepFilterOperator[];
+  label: string | ((options: SupplyChainFilterOptions) => string);
+  operators: (options: SupplyChainFilterOptions) => SupplyChainFilterOperator[];
   matches: (
     row: FilterableStepRow,
-    value: StepFilterValue,
-    context: StepFilterContext,
+    value: SupplyChainFilterValue,
+    context: SupplyChainFilterContext,
   ) => boolean;
   /**
    * Whether a row carries the property this filter tests. A filter is skipped
    * (and its chip disabled) on tables where no row does.
    */
-  isApplicable: (row: FilterableStepRow, context: StepFilterContext) => boolean;
+  isApplicable: (
+    row: FilterableStepRow,
+    context: SupplyChainFilterContext,
+  ) => boolean;
   /** Supplier-table evaluation; filters without one are skipped there. */
   vendor?: (
     vendor: VendorOtifStats,
-    value: StepFilterValue,
-    context: StepFilterContext,
+    value: SupplyChainFilterValue,
+    context: SupplyChainFilterContext,
   ) => boolean;
 }
 
 const supplierLabelOf = (row: FilterableStepRow): string =>
   row.supplier_name ?? row.supplier_id ?? "Unknown";
 
-export const buildStepFilterContext = ({
+export const buildSupplyChainFilterContext = ({
   rows,
   measure,
   timeRange,
@@ -140,9 +143,9 @@ export const buildStepFilterContext = ({
   storageCost,
   siteId,
   statusHistory,
-}: Omit<StepFilterContext, "suppliersByMaterial"> & {
+}: Omit<SupplyChainFilterContext, "suppliersByMaterial"> & {
   rows: FilterableStepRow[];
-}): StepFilterContext => {
+}): SupplyChainFilterContext => {
   const suppliersByMaterial = new Map<string, Set<string>>();
   for (const row of rows) {
     if (row.type !== "procurement" || !row.material) {
@@ -168,10 +171,10 @@ const sortedItems = (byValue: Map<string, string>): MultiSelectItem[] =>
     .map(([value, text]) => ({ value, text }))
     .sort((left, right) => left.text.localeCompare(right.text));
 
-export const buildStepFilterOptions = (
+export const buildSupplyChainFilterOptions = (
   rows: FilterableStepRow[],
-  display: Pick<StepFilterOptions, "currency" | "timeRange" | "measure">,
-): StepFilterOptions => {
+  display: Pick<SupplyChainFilterOptions, "currency" | "timeRange" | "measure">,
+): SupplyChainFilterOptions => {
   const materials = new Map<string, string>();
   const products = new Map<string, string>();
   const suppliers = new Map<string, string>();
@@ -245,12 +248,12 @@ const daysInRange = (timeRange: TimeRange): number =>
 
 const measureValueOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null => selectStat(row.stats, context.measure);
 
 const materialValueOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null =>
   row.periodMaterialValue !== undefined
     ? row.periodMaterialValue
@@ -258,7 +261,7 @@ const materialValueOf = (
 
 const carryingCostOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null => {
   if (!isDwellType(row.type)) {
     return null;
@@ -279,7 +282,7 @@ const carryingCostOf = (
 
 const deviationPctOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null => {
   if (row.deviationPct !== undefined) {
     return row.deviationPct;
@@ -296,7 +299,7 @@ const ON_PLAN_BAND_PCT = 1;
 
 const deviationDirectionOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): string | null => {
   const deviation = deviationPctOf(row, context);
   if (deviation == null) {
@@ -316,7 +319,7 @@ const p95DeviationPctOf = (row: FilterableStepRow): number | null =>
 
 const changeDaysOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null => {
   const current = measureValueOf(row, context);
   return current != null && row.previousValue != null
@@ -326,7 +329,7 @@ const changeDaysOf = (
 
 const valueWeightedChangeOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null => {
   const change = changeDaysOf(row, context);
   const value = materialValueOf(row, context);
@@ -345,7 +348,7 @@ const trendDirectionOf = (row: FilterableStepRow): string | null => {
 
 const crossedPlanOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): boolean => {
   const current = measureValueOf(row, context);
   return (
@@ -359,7 +362,7 @@ const crossedPlanOf = (
 
 const supplierValuesOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): string[] => {
   if (row.type === "procurement") {
     return [supplierLabelOf(row)];
@@ -371,7 +374,7 @@ const supplierValuesOf = (
 
 const statusAgeDaysOf = (
   row: FilterableStepRow,
-  context: StepFilterContext,
+  context: SupplyChainFilterContext,
 ): number | null => {
   const entries = context.statusHistory[statusKey(context.siteId, row)];
   if (!entries || entries.length === 0) {
@@ -395,7 +398,7 @@ const dayNumberOperators = () =>
   pickOperators(numberOperatorsFor("days"), NUMBER_OPERATOR_KEYS);
 
 /** Number operators whose empty inputs show the active currency code. */
-const currencyNumberOperators = (options: StepFilterOptions) =>
+const currencyNumberOperators = (options: SupplyChainFilterOptions) =>
   pickOperators(
     numberOperatorsFor(options.currency ?? undefined),
     NUMBER_OPERATOR_KEYS,
@@ -403,13 +406,13 @@ const currencyNumberOperators = (options: StepFilterOptions) =>
 
 /** "(12m)" suffix for period-scoped metrics; the currency itself lives in
  * the input placeholder rather than the label to avoid stating it twice. */
-const periodSuffix = (options: StepFilterOptions): string =>
+const periodSuffix = (options: SupplyChainFilterOptions): string =>
   ` (${options.timeRange})`;
 
 /** Resolve a definition's label against the display context. */
-export const stepFilterLabel = (
-  definition: Pick<StepFilterDefinition, "label">,
-  options: StepFilterOptions,
+export const supplyChainFilterLabel = (
+  definition: Pick<SupplyChainFilterDefinition, "label">,
+  options: SupplyChainFilterOptions,
 ): string =>
   typeof definition.label === "function"
     ? definition.label(options)
@@ -849,14 +852,15 @@ export const STEP_FILTER_DEFINITIONS = [
     vendor: (vendor, value) =>
       matchesNumberOperator(value.key, vendor.max_days_late, value.value),
   },
-] as const satisfies readonly StepFilterDefinition[];
+] as const satisfies readonly SupplyChainFilterDefinition[];
 
-export type StepFilterKey = (typeof STEP_FILTER_DEFINITIONS)[number]["key"];
+export type SupplyChainFilterKey =
+  (typeof STEP_FILTER_DEFINITIONS)[number]["key"];
 
-export interface StepFilterMenuGroup {
+export interface SupplyChainFilterMenuGroup {
   /** Menu heading; omit to list the keys ungrouped (used where a heading would just repeat a filter's own label). */
   group?: string;
-  keys: ReadonlyArray<StepFilterKey>;
+  keys: ReadonlyArray<SupplyChainFilterKey>;
 }
 
 /**
@@ -868,8 +872,8 @@ export interface StepFilterMenuGroup {
  * and applies, exactly the filters its layout lists (see the module doc).
  */
 export const STEP_FILTER_MENUS: Record<
-  StepFilterView,
-  ReadonlyArray<StepFilterMenuGroup>
+  SupplyChainFilterView,
+  ReadonlyArray<SupplyChainFilterMenuGroup>
 > = {
   dwell: [
     { group: "Step", keys: ["stepName", "stepType", "product"] },
@@ -964,12 +968,15 @@ export const STEP_FILTER_MENUS: Record<
 };
 
 const menuFilterKeys = (
-  menu: ReadonlyArray<StepFilterMenuGroup>,
-): ReadonlySet<StepFilterKey> =>
+  menu: ReadonlyArray<SupplyChainFilterMenuGroup>,
+): ReadonlySet<SupplyChainFilterKey> =>
   new Set(menu.flatMap((menuGroup) => menuGroup.keys));
 
 /** Flattened menu membership per view, for availability checks. */
-const viewFilterKeys: Record<StepFilterView, ReadonlySet<StepFilterKey>> = {
+const viewFilterKeys: Record<
+  SupplyChainFilterView,
+  ReadonlySet<SupplyChainFilterKey>
+> = {
   dwell: menuFilterKeys(STEP_FILTER_MENUS.dwell),
   planning: menuFilterKeys(STEP_FILTER_MENUS.planning),
   trends: menuFilterKeys(STEP_FILTER_MENUS.trends),
@@ -977,20 +984,20 @@ const viewFilterKeys: Record<StepFilterView, ReadonlySet<StepFilterKey>> = {
   opportunities: menuFilterKeys(STEP_FILTER_MENUS.opportunities),
 };
 
-const definitionByKey = new Map<string, StepFilterDefinition>(
+const definitionByKey = new Map<string, SupplyChainFilterDefinition>(
   STEP_FILTER_DEFINITIONS.map((definition) => [definition.key, definition]),
 );
 
 /** Definition lookup for rendering a chip's label and operators. */
-export const stepFilterDefinition = (key: StepFilterKey) =>
+export const supplyChainFilterDefinition = (key: SupplyChainFilterKey) =>
   definitionByKey.get(key);
 
-export interface StepFilterApplication<Item> {
+export interface SupplyChainFilterApplication<Item> {
   rows: Item[];
-  skippedKeys: StepFilterKey[];
+  skippedKeys: SupplyChainFilterKey[];
 }
 
-const resolveActiveFilters = (filters: ActiveStepFilter[]) =>
+const resolveActiveFilters = (filters: ActiveSupplyChainFilter[]) =>
   filters.flatMap((filter) => {
     if (!filter.value) {
       return [];
@@ -1001,19 +1008,19 @@ const resolveActiveFilters = (filters: ActiveStepFilter[]) =>
       : [];
   });
 
-export const applyStepFiltersBy = <Item>(
+export const applySupplyChainFiltersBy = <Item>(
   items: Item[],
   rowOf: (item: Item) => FilterableStepRow,
-  filters: ActiveStepFilter[],
-  context: StepFilterContext,
-  view: StepFilterView,
-): StepFilterApplication<Item> => {
+  filters: ActiveSupplyChainFilter[],
+  context: SupplyChainFilterContext,
+  view: SupplyChainFilterView,
+): SupplyChainFilterApplication<Item> => {
   const active = resolveActiveFilters(filters);
   if (active.length === 0) {
     return { rows: items, skippedKeys: [] };
   }
   const applied: typeof active = [];
-  const skippedKeys: StepFilterKey[] = [];
+  const skippedKeys: SupplyChainFilterKey[] = [];
   for (const entry of active) {
     if (
       viewFilterKeys[view].has(entry.key) &&
@@ -1038,13 +1045,13 @@ export const applyStepFiltersBy = <Item>(
   return { rows, skippedKeys };
 };
 
-export const applyStepFilters = <Row extends FilterableStepRow>(
+export const applySupplyChainFilters = <Row extends FilterableStepRow>(
   rows: Row[],
-  filters: ActiveStepFilter[],
-  context: StepFilterContext,
-  view: StepFilterView,
-): StepFilterApplication<Row> =>
-  applyStepFiltersBy(rows, (row) => row, filters, context, view);
+  filters: ActiveSupplyChainFilter[],
+  context: SupplyChainFilterContext,
+  view: SupplyChainFilterView,
+): SupplyChainFilterApplication<Row> =>
+  applySupplyChainFiltersBy(rows, (row) => row, filters, context, view);
 
 /**
  * Filter keys a view offers in its add-filter menu: the view's own filters,
@@ -1055,9 +1062,9 @@ export const applyStepFilters = <Row extends FilterableStepRow>(
  */
 export const applicableFilterKeys = (
   rows: FilterableStepRow[],
-  context: StepFilterContext,
-  view: StepFilterView,
-): Set<StepFilterKey> =>
+  context: SupplyChainFilterContext,
+  view: SupplyChainFilterView,
+): Set<SupplyChainFilterKey> =>
   new Set(
     [...viewFilterKeys[view]].filter((key) => {
       const definition = definitionByKey.get(key);
@@ -1070,18 +1077,18 @@ export const applicableFilterKeys = (
   );
 
 /** Supplier-table variant: only filters with a `vendor` predicate apply. */
-export const vendorApplicableFilterKeys = (): Set<StepFilterKey> =>
+export const vendorApplicableFilterKeys = (): Set<SupplyChainFilterKey> =>
   new Set(
     [...definitionByKey.values()]
       .filter((definition) => definition.vendor)
-      .map((definition) => definition.key as StepFilterKey),
+      .map((definition) => definition.key as SupplyChainFilterKey),
   );
 
-export const applyVendorStepFilters = (
+export const applyVendorSupplyChainFilters = (
   vendors: VendorOtifStats[],
-  filters: ActiveStepFilter[],
-  context: StepFilterContext,
-): StepFilterApplication<VendorOtifStats> => {
+  filters: ActiveSupplyChainFilter[],
+  context: SupplyChainFilterContext,
+): SupplyChainFilterApplication<VendorOtifStats> => {
   const active = resolveActiveFilters(filters);
   if (active.length === 0) {
     return { rows: vendors, skippedKeys: [] };

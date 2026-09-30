@@ -7,9 +7,9 @@ import type {
 
 /** Generic operator vocabulary for the step-table filters */
 
-export type StepFilterOperator = FilterOperator<Record<string, unknown>>;
+export type SupplyChainFilterOperator = FilterOperator<Record<string, unknown>>;
 
-type OperatorConfig = Omit<StepFilterOperator, "key">;
+type OperatorConfig = Omit<SupplyChainFilterOperator, "key">;
 
 export const stringOperators = {
   contains: { label: "contains", input: { type: "string" } },
@@ -88,7 +88,7 @@ export const pickOperators = <
 >(
   map: OperatorMap,
   keys: ReadonlyArray<keyof OperatorMap & string>,
-): StepFilterOperator[] =>
+): SupplyChainFilterOperator[] =>
   keys.flatMap((key) => {
     const config = map[key] as OperatorConfig | undefined;
     return config ? [{ key, label: config.label, input: config.input }] : [];
@@ -97,14 +97,14 @@ export const pickOperators = <
 export const pickSingleSelectOperators = (
   keys: ReadonlyArray<keyof typeof selectOperators>,
   items: SingleSelectItems,
-): StepFilterOperator[] =>
+): SupplyChainFilterOperator[] =>
   keys.map((key) => ({ key, ...selectOperators[key](items) }));
 
 export const pickMultiSelectOperators = (
   keys: ReadonlyArray<keyof typeof multiSelectOperators>,
   items: MultiSelectItems,
   opts?: MultiSelectOperatorOpts,
-): StepFilterOperator[] =>
+): SupplyChainFilterOperator[] =>
   keys.map((key) => ({ key, ...multiSelectOperators[key](items, opts) }));
 
 export const matchesStringOperator = (

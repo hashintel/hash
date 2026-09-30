@@ -34,7 +34,7 @@ const sortArrow = css({
 /**
  * Shared table column header for the site overview tables: renders the label,
  * clickable when sortable, with a direction caret. Filtering lives in the
- * shared filter bar above each table (see step-filter-bar.tsx).
+ * shared filter bar above each table (see supply-chain-filter-bar.tsx).
  */
 export const ColumnHeader = ({
   label,

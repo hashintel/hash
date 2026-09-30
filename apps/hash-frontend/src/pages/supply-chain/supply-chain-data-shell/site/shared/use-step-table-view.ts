@@ -17,8 +17,8 @@ import type { SortDir, SortKey } from "./row-types";
 
 /**
  * Shared sort logic for the three detail tables (dwell / planning / trend).
- * Row filtering happens upstream via the shared step-filter bar (see
- * `step-filters.ts`), so this hook owns:
+ * Row filtering happens upstream via the shared supply-chain-filter bar (see
+ * `supply-chain-filters.ts`), so this hook owns:
  *
  * - `displayedRows`: the incoming rows sorted. Status is sorted here (it needs
  *   the status history), and every other key is delegated to the
