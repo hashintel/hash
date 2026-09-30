@@ -230,6 +230,29 @@ const fieldNameStyle = css({ fontFamily: "mono", fontSize: "xs" });
 
 const fieldTypeStyle = css({ fontSize: "xs", color: "neutral.s90" });
 
+const fieldLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  color: "neutral.s120",
+});
+
+const summaryRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minWidth: "0",
+});
+
+const summaryPlaceStyle = css({ flexShrink: "0" });
+
+const summaryChipStyle = css({
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 const placeGroupStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -264,7 +287,7 @@ const TokenFieldChecklist: React.FC<{
                 style={{ backgroundColor: place.displayColor }}
               />
               {place.placeName}
-              <span className={mutedStyle}>{place.typeName}</span>
+              <span className={fieldTypeStyle}>{place.typeName}</span>
             </span>
             <div className={fieldListStyle}>
               {place.fields.map((field) => (
@@ -277,7 +300,7 @@ const TokenFieldChecklist: React.FC<{
                     onToggle(place.placeId, field.elementId, checked)
                   }
                   label={
-                    <span className={choiceLabelStyle}>
+                    <span className={fieldLabelStyle}>
                       <span
                         className={cx(
                           fieldNameStyle,
@@ -378,9 +401,14 @@ const LeverBody: React.FC<{
       return (
         <>
           {shown.map((entry) => (
-            <div key={entry.placeId} className={todayRowStyle}>
-              <span>{entry.placeName}</span>
-              <code className={codeChipStyle}>{entry.names.join(", ")}</code>
+            <div key={entry.placeId} className={summaryRowStyle}>
+              <span className={summaryPlaceStyle}>{entry.placeName}</span>
+              <code
+                className={cx(codeChipStyle, summaryChipStyle)}
+                title={entry.names.join(", ")}
+              >
+                {entry.names.join(", ")}
+              </code>
             </div>
           ))}
         </>
