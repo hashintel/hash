@@ -32,6 +32,21 @@ test.each([
   },
 );
 
+test.each([
+  ["I'll check it for you", true],
+  ["We check it for you", false],
+])(
+  "the six-word boundary counts tokens, so a contraction counts twice: %j repeats Live: %s",
+  (text, repeats) => {
+    expect(
+      repeatsLiveOutput(
+        text,
+        "I'll check it out for you. We check it out for you.",
+      ),
+    ).toBe(repeats);
+  },
+);
+
 test("nothing repeats Live when none of its words were captured", () => {
   expect(repeatsLiveOutput("Okay.", "")).toBe(false);
   expect(repeatsLiveOutput("How many staff work the morning shift", "")).toBe(
