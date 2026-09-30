@@ -50,7 +50,8 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
   /**
    * Render an interaction only for matching calls. Defaults to all. Inputs
-   * the schema rejects are never handled.
+   * the schema rejects are never handled. This runs during render; when it
+   * depends on host state, rebuild `interactiveTools` as that state changes.
    */
   shouldHandle?: (input: Input, call: { toolCallId: string }) => boolean;
   /**
