@@ -16,7 +16,7 @@ import {
   type SortDirection,
   writeSavedSort,
   directionsOf,
-  directionIcons,
+  directionIcon,
   flipped,
   type Sorter,
 } from "./sort-menu-util";
@@ -223,12 +223,12 @@ export const SortMenu = <SortKey extends string = string>({
               flipDirection(sorter);
             }}
           >
-            <Icon name={directionIcons[direction]} size="sm" />
+            <Icon name={directionIcon(sorter, direction)} size="sm" />
           </button>
         </span>
       ) : directions.length === 1 ? (
         <span className={directionSuffix()} aria-hidden="true">
-          <Icon name={directionIcons[direction]} size="sm" />
+          <Icon name={directionIcon(sorter, direction)} size="sm" />
         </span>
       ) : undefined,
     };
@@ -280,7 +280,7 @@ export const SortMenu = <SortKey extends string = string>({
         }}
       >
         <Icon
-          name={directionIcons[value.direction]}
+          name={directionIcon(selectedSorter, value.direction)}
           size={buttonIconSizeMap[size]}
           className={triggerIcon({ size })}
         />
@@ -301,7 +301,7 @@ export const SortMenu = <SortKey extends string = string>({
         : {
             iconName:
               value && selectedHasDirection
-                ? directionIcons[value.direction]
+                ? directionIcon(selectedSorter, value.direction)
                 : ("sortDown" as const),
             iconPosition: align === "right" ? ("right" as const) : undefined,
           };

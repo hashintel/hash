@@ -23,6 +23,8 @@ const sorters = [
     directionsAvailable: "descending",
   },
   { name: "Relevance", sortKey: "relevance", directionsAvailable: "none" },
+  { name: "Entity count", sortKey: "entityCount", sortIcon: "numeric" },
+  { name: "Priority", sortKey: "priority", sortIcon: "generic" },
   {
     name: "Aggregated cross-workspace entity type inheritance depth score",
     sortKey: "inheritanceDepthScore",
@@ -150,6 +152,14 @@ export const Default: Story = () => (
       <Example
         columnLabel="Direction-less sort"
         initialValue={{ sortKey: "relevance", direction: "ASCENDING" }}
+      />
+      <Example
+        columnLabel='sortIcon: "numeric"'
+        initialValue={{ sortKey: "entityCount", direction: "ASCENDING" }}
+      />
+      <Example
+        columnLabel='sortIcon: "generic"'
+        initialValue={{ sortKey: "priority", direction: "ASCENDING" }}
       />
     </Row>
     <Row label="Icon trigger">

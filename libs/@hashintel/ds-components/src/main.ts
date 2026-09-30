@@ -49,6 +49,7 @@ export {
   type SortDirection,
   type SortDirectionsAvailable,
   type Sorter,
+  type SortIcon,
   writeSavedSort,
 } from "./components/Filter/sort-menu-util";
 export { Form } from "./components/Form/form";

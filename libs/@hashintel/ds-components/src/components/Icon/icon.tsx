@@ -108,6 +108,8 @@ import Sidebar from "./svgs/regular/sidebar.svg";
 import Sliders from "./svgs/regular/sliders.svg";
 import SortAlphaAsc from "./svgs/regular/sort-alpha-asc.svg";
 import SortAlphaUp from "./svgs/regular/sort-alpha-up.svg";
+import SortNumericAsc from "./svgs/regular/sort-numeric-asc.svg";
+import SortNumericUp from "./svgs/regular/sort-numeric-up.svg";
 import Sparkles from "./svgs/regular/sparkles.svg";
 import SquareCheck from "./svgs/regular/square-check.svg";
 import SquarePlus from "./svgs/regular/square-plus.svg";
@@ -256,8 +258,10 @@ const IconMap = {
   skipForwardFilled: ForwardStepSolid,
   sliders: Sliders,
   sortDown: ArrowDownWideShort,
+  sortDown19: SortNumericAsc,
   sortDownAZ: SortAlphaAsc,
   sortUp: ArrowUpWideShort,
+  sortUp19: SortNumericUp,
   sortUpAZ: SortAlphaUp,
   sparkles: Sparkles,
   square: Square,
