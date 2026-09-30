@@ -134,21 +134,21 @@ export class LiveBrunchBridge {
       return;
     }
     this.#seenInputs.add(input.id);
-    const skipped = routeUtterance(input, liveUtteranceStages);
-    if (skipped !== null && delegationOnSkip[skipped] === "leave") {
+    const skipReason = routeUtterance(input, liveUtteranceStages);
+    if (skipReason !== null && delegationOnSkip[skipReason] === "leave") {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
-        reason: skipped,
+        reason: skipReason,
       });
       return;
     }
     const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
-    if (skipped !== null) {
+    if (skipReason !== null) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
         delegationId,
-        reason: skipped,
+        reason: skipReason,
       });
       if (delegationId !== null) {
         this.#dependencies.appendInstructions(
