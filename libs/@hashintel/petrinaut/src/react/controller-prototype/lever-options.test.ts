@@ -6,6 +6,8 @@ import {
   readControllers,
   tokenFieldCount,
   tokenFieldPlaces,
+  toggleInitialTokenField,
+  typedPlace,
   toggleTokenField,
   writeControllers,
 } from "./controllers";
@@ -259,5 +261,54 @@ describe("tokenFieldTarget", () => {
       plain
     );
     expect(tokenFieldTarget([], "trans_other", null)).toBeUndefined();
+  });
+});
+
+describe("Initial tokens fields", () => {
+  const withLever: Controller = {
+    id: "c",
+    name: "C",
+    levers: [{ id: "l", kind: "initialTokens", placeId: "place_machine_up" }],
+  };
+
+  it("ticks fields in token type order and unticks them", () => {
+    const tick = (controller: Controller, elementId: string, on: boolean) =>
+      toggleInitialTokenField(net, controller, "l", elementId, on);
+    const both = tick(
+      tick(withLever, "machine_wear", true),
+      "machine_health",
+      true
+    );
+    expect(both.levers[0]).toMatchObject({
+      elementIds: ["machine_health", "machine_wear"],
+    });
+    expect(tick(both, "machine_health", false).levers[0]).toMatchObject({
+      elementIds: ["machine_wear"],
+    });
+  });
+
+  it("finds no fields for an untyped place", () => {
+    expect(typedPlace(net, "place_raw_materials")).toBeNull();
+    expect(typedPlace(net, "place_machine_up")?.fields).toHaveLength(2);
+  });
+
+  it("parses elementIds and treats a missing list as none", () => {
+    const read = (lever: object) =>
+      readControllers({
+        ...net,
+        metadata: {
+          controllerPrototype: [
+            {
+              id: "c",
+              name: "C",
+              levers: [
+                { id: "l", kind: "initialTokens", placeId: "p", ...lever },
+              ],
+            },
+          ],
+        },
+      })[0]?.levers[0];
+    expect(read({ elementIds: ["a", 3] })).toMatchObject({ elementIds: ["a"] });
+    expect(read({})).not.toHaveProperty("elementIds");
   });
 });

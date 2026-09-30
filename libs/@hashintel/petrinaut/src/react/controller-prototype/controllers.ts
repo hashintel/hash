@@ -32,7 +32,13 @@ export type Lever =
       transitionIds: string[];
     }
   | { id: string; kind: "rate"; transitionId: string }
-  | { id: string; kind: "initialTokens"; placeId: string }
+  | {
+      id: string;
+      kind: "initialTokens";
+      placeId: string;
+      /** Fields of the place's token type the controller sets, besides the count. */
+      elementIds?: string[];
+    }
   | {
       id: string;
       kind: "tokenField";
@@ -86,7 +92,18 @@ const parseLever = (raw: unknown): Lever | null => {
         : null;
     case "initialTokens":
       return typeof raw.placeId === "string"
-        ? { id: raw.id, kind: "initialTokens", placeId: raw.placeId }
+        ? {
+            id: raw.id,
+            kind: "initialTokens",
+            placeId: raw.placeId,
+            ...(Array.isArray(raw.elementIds)
+              ? {
+                  elementIds: raw.elementIds.filter(
+                    (id): id is string => typeof id === "string",
+                  ),
+                }
+              : {}),
+          }
         : null;
     case "tokenField": {
       if (typeof raw.transitionId !== "string") {
@@ -230,32 +247,66 @@ export type TokenFieldPlace = {
   fields: { elementId: string; name: string; type: ColorElementType }[];
 };
 
+/** A place with its token type's fields, or null for an untyped place. */
+export const typedPlace = (
+  net: NetLike,
+  placeId: string,
+): TokenFieldPlace | null => {
+  const place = net.places.find((p) => p.id === placeId);
+  const type = net.types.find((t) => t.id === place?.colorId);
+  return place && type
+    ? {
+        placeId,
+        placeName: place.name,
+        typeName: type.name,
+        displayColor: type.displayColor,
+        fields: type.elements.map(({ elementId, name, type: kind }) => ({
+          elementId,
+          name,
+          type: kind,
+        })),
+      }
+    : null;
+};
+
 /** The output places of a transition that hold typed tokens, with the fields of each token type. */
 export const tokenFieldPlaces = (
   net: NetLike,
   transitionId: string,
 ): TokenFieldPlace[] =>
-  [...new Set(outputPlaceIds(net, transitionId))].flatMap(
-    (placeId): TokenFieldPlace[] => {
-      const place = net.places.find((p) => p.id === placeId);
-      const type = net.types.find((t) => t.id === place?.colorId);
-      return place && type
-        ? [
-            {
-              placeId,
-              placeName: place.name,
-              typeName: type.name,
-              displayColor: type.displayColor,
-              fields: type.elements.map(({ elementId, name, type: kind }) => ({
-                elementId,
-                name,
-                type: kind,
-              })),
-            },
-          ]
-        : [];
-    },
-  );
+  [...new Set(outputPlaceIds(net, transitionId))].flatMap((placeId) => {
+    const typed = typedPlace(net, placeId);
+    return typed ? [typed] : [];
+  });
+
+/** Ticks or unticks one field of an Initial tokens lever, keeping the token type's field order. */
+export const toggleInitialTokenField = (
+  net: NetLike,
+  controller: Controller,
+  leverId: string,
+  elementId: string,
+  on: boolean,
+): Controller => ({
+  ...controller,
+  levers: controller.levers.map((lever) => {
+    if (lever.id !== leverId || lever.kind !== "initialTokens") {
+      return lever;
+    }
+    const chosen = new Set(lever.elementIds ?? []);
+    if (on) {
+      chosen.add(elementId);
+    } else {
+      chosen.delete(elementId);
+    }
+    const order = typedPlace(net, lever.placeId)?.fields ?? [];
+    return {
+      ...lever,
+      elementIds: order
+        .map((field) => field.elementId)
+        .filter((id) => chosen.has(id)),
+    };
+  }),
+});
 
 /** How many fields a Token field lever sets in all. */
 export const tokenFieldCount = (

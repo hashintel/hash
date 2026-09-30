@@ -11,7 +11,9 @@ import {
   leverName,
   rateExpression,
   tokenFieldPlaces,
+  toggleInitialTokenField,
   toggleTokenField,
+  typedPlace,
 } from "../../react/controller-prototype/controllers";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 import { SimulationContext } from "../../react/simulation/context";
@@ -29,6 +31,7 @@ import { LeverRowIcon } from "./lever-glyph";
 import type {
   Controller,
   Lever,
+  TokenFieldPlace,
 } from "../../react/controller-prototype/controllers";
 import type { SubView } from "../components/sub-view/types";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -266,70 +269,90 @@ const fieldListStyle = css({
   paddingLeft: "3.5",
 });
 
+const PlaceFieldRows: React.FC<{
+  place: TokenFieldPlace;
+  chosen: string[];
+  onToggle: (elementId: string, on: boolean) => void;
+  leading?: React.ReactNode;
+}> = ({ place, chosen, onToggle, leading }) => {
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <div className={placeGroupStyle}>
+      <span className={choiceLabelStyle}>
+        <span
+          className={placeDotStyle}
+          style={{ backgroundColor: place.displayColor }}
+        />
+        {place.placeName}
+        <span className={fieldTypeStyle}>{place.typeName}</span>
+      </span>
+      <div className={fieldListStyle}>
+        {leading}
+        {place.fields.map((field) => (
+          <Checkbox
+            key={field.elementId}
+            size="sm"
+            value={chosen.includes(field.elementId)}
+            disabled={isReadOnly}
+            onChange={(checked) => onToggle(field.elementId, checked)}
+            label={
+              <span className={fieldLabelStyle}>
+                <span
+                  className={cx(
+                    fieldNameStyle,
+                    !chosen.includes(field.elementId) && mutedStyle
+                  )}
+                >
+                  {field.name}
+                </span>
+                <span className={fieldTypeStyle}>{field.type}</span>
+              </span>
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const TokenFieldChecklist: React.FC<{
   net: NetLike;
   lever: Extract<Lever, { kind: "tokenField" }>;
   onToggle: (placeId: string, elementId: string, on: boolean) => void;
-}> = ({ net, lever, onToggle }) => {
-  const isReadOnly = useIsReadOnly();
-
-  return (
-    <>
-      {tokenFieldPlaces(net, lever.transitionId).map((place) => {
-        const chosen =
+}> = ({ net, lever, onToggle }) => (
+  <>
+    {tokenFieldPlaces(net, lever.transitionId).map((place) => (
+      <PlaceFieldRows
+        key={place.placeId}
+        place={place}
+        chosen={
           lever.places.find((entry) => entry.placeId === place.placeId)
-            ?.elementIds ?? [];
-        return (
-          <div key={place.placeId} className={placeGroupStyle}>
-            <span className={choiceLabelStyle}>
-              <span
-                className={placeDotStyle}
-                style={{ backgroundColor: place.displayColor }}
-              />
-              {place.placeName}
-              <span className={fieldTypeStyle}>{place.typeName}</span>
-            </span>
-            <div className={fieldListStyle}>
-              {place.fields.map((field) => (
-                <Checkbox
-                  key={field.elementId}
-                  size="sm"
-                  value={chosen.includes(field.elementId)}
-                  disabled={isReadOnly}
-                  onChange={(checked) =>
-                    onToggle(place.placeId, field.elementId, checked)
-                  }
-                  label={
-                    <span className={fieldLabelStyle}>
-                      <span
-                        className={cx(
-                          fieldNameStyle,
-                          !chosen.includes(field.elementId) && mutedStyle
-                        )}
-                      >
-                        {field.name}
-                      </span>
-                      <span className={fieldTypeStyle}>{field.type}</span>
-                    </span>
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </>
-  );
-};
+            ?.elementIds ?? []
+        }
+        onToggle={(elementId, on) => onToggle(place.placeId, elementId, on)}
+      />
+    ))}
+  </>
+);
 
 const LeverBody: React.FC<{
   net: NetLike;
   lever: Lever;
   onToggleChoice: (transitionId: string, controlled: boolean) => void;
   onToggleField: (placeId: string, elementId: string, on: boolean) => void;
+  onToggleInitialField: (elementId: string, on: boolean) => void;
   open: boolean;
-}> = ({ net, lever, onToggleChoice, onToggleField, open }) => {
-  const { initialMarking } = use(SimulationContext);
+}> = ({
+  net,
+  lever,
+  onToggleChoice,
+  onToggleField,
+  onToggleInitialField,
+  open,
+}) => {
+  const { initialMarking, selectedScenarioId } = use(SimulationContext);
+  const { petriNetDefinition } = use(SDCPNContext);
 
   switch (lever.kind) {
     case "choice":
@@ -345,13 +368,15 @@ const LeverBody: React.FC<{
       const expression = rateExpression(transition.lambdaCode);
       return (
         <div className={todayRowStyle}>
-          <span>Today</span>
           {transition.lambdaType === "predicate" ? (
-            <span>Predicate</span>
+            <span>Replaces the predicate</span>
           ) : expression ? (
-            <code className={codeChipStyle}>{expression}</code>
+            <>
+              <span>Replaces</span>
+              <code className={codeChipStyle}>{expression}</code>
+            </>
           ) : (
-            <span>Custom rate code</span>
+            <span>Replaces the Firing Time code</span>
           )}
         </div>
       );
@@ -365,12 +390,54 @@ const LeverBody: React.FC<{
           : Array.isArray(marking)
           ? marking.length
           : 0;
+      const source =
+        petriNetDefinition.scenarios?.find(
+          (scenario) => scenario.id === selectedScenarioId
+        )?.name ?? "now";
+      const place = typedPlace(net, lever.placeId);
+      const chosen = lever.elementIds ?? [];
+      if (place && open) {
+        return (
+          <PlaceFieldRows
+            place={place}
+            chosen={chosen}
+            onToggle={onToggleInitialField}
+            leading={
+              <Checkbox
+                size="sm"
+                value
+                disabled
+                onChange={() => {}}
+                label={
+                  <span className={fieldLabelStyle}>
+                    <span className={fieldNameStyle}>count</span>
+                    <span className={fieldTypeStyle}>
+                      {count} in {source}
+                    </span>
+                  </span>
+                }
+              />
+            }
+          />
+        );
+      }
+      const chosenNames = place
+        ? place.fields
+            .filter((field) => chosen.includes(field.elementId))
+            .map((field) => field.name)
+        : [];
       return (
         <div className={todayRowStyle}>
-          <span>Today</span>
-          <span className={css({ color: "neutral.s120" })}>
-            {count} token{count === 1 ? "" : "s"}
-          </span>
+          <span>Count</span>
+          {place ? (
+            chosenNames.length > 0 ? (
+              <code className={codeChipStyle}>{chosenNames.join(", ")}</code>
+            ) : null
+          ) : (
+            <span className={mutedStyle}>
+              {count} in {source}
+            </span>
+          )}
         </div>
       );
     }
@@ -423,12 +490,23 @@ const LeverRow: React.FC<{
   defaultOpen: boolean;
   onToggleChoice: (transitionId: string, controlled: boolean) => void;
   onToggleField: (placeId: string, elementId: string, on: boolean) => void;
-}> = ({ net, lever, defaultOpen, onToggleChoice, onToggleField }) => {
+  onToggleInitialField: (elementId: string, on: boolean) => void;
+}> = ({
+  net,
+  lever,
+  defaultOpen,
+  onToggleChoice,
+  onToggleField,
+  onToggleInitialField,
+}) => {
   const [open, setOpen] = useState(defaultOpen);
   const NodeIcon =
     leverAnchorKind(lever) === "place" ? PlaceFilledIcon : TransitionFilledIcon;
   const missing = leverName(net, lever) === null;
-  const expandable = lever.kind === "choice" || lever.kind === "tokenField";
+  const expandable =
+    lever.kind === "choice" ||
+    lever.kind === "tokenField" ||
+    (lever.kind === "initialTokens" && typedPlace(net, lever.placeId) !== null);
 
   return (
     <>
@@ -460,6 +538,7 @@ const LeverRow: React.FC<{
             lever={lever}
             onToggleChoice={onToggleChoice}
             onToggleField={onToggleField}
+            onToggleInitialField={onToggleInitialField}
             open={open}
           />
         </div>
@@ -541,6 +620,17 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
                 defaultOpen={lever.kind === "choice"}
                 onToggleChoice={toggleChoice(lever.id)}
                 onToggleField={toggleField(lever)}
+                onToggleInitialField={(elementId, on) =>
+                  updateThis((current) =>
+                    toggleInitialTokenField(
+                      petriNetDefinition,
+                      current,
+                      lever.id,
+                      elementId,
+                      on
+                    )
+                  )
+                }
               />
             </div>
           ))
