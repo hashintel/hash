@@ -312,16 +312,6 @@ const p95DeviationPctOf = (row: FilterableStepRow): number | null =>
     ? ((row.stats.p95 - row.plan) / row.plan) * 100
     : null;
 
-const changeDaysOf = (
-  row: FilterableStepRow,
-  context: SupplyChainFilterContext,
-): number | null => {
-  const current = measureValueOf(row, context);
-  return current != null && row.previousValue != null
-    ? current - row.previousValue
-    : null;
-};
-
 const trendDirectionOf = (row: FilterableStepRow): string | null => {
   const tone = trendToneFor(row.trendPct);
   if (tone == null) {
@@ -490,7 +480,7 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "basis",
-    label: "Receipt basis",
+    label: "Basis",
     operators: () =>
       pickMultiSelectOperators(["isAnyOf", "isNoneOf"], basisItems),
     matches: (row, value) =>
@@ -587,7 +577,7 @@ export const STEP_FILTER_DEFINITIONS = [
   },
   {
     key: "observations",
-    label: "Observations",
+    label: "Samples",
     operators: allNumberOperators,
     matches: (row, value) =>
       matchesNumberOperator(value.key, row.stats.n, value.value),
@@ -692,14 +682,6 @@ export const STEP_FILTER_DEFINITIONS = [
     matches: (row, value) =>
       matchesNumberOperator(value.key, row.costTrendPct, value.value),
     isApplicable: (row) => row.costTrendPct != null,
-  },
-  {
-    key: "changeDays",
-    label: "Change",
-    operators: dayNumberOperators,
-    matches: (row, value, context) =>
-      matchesNumberOperator(value.key, changeDaysOf(row, context), value.value),
-    isApplicable: (row, context) => changeDaysOf(row, context) != null,
   },
   {
     key: "crossedPlan",
@@ -879,14 +861,14 @@ export const STEP_FILTER_MENUS: Record<
     // filter sits with the trend ones here.
     {
       group: "Trend",
-      keys: ["trendPct", "trendDirection", "changeDays", "sampleConfidence"],
+      keys: ["trendPct", "trendDirection", "sampleConfidence"],
     },
     { keys: ["status", "statusAge"] },
   ],
   trends: [
     { group: "Step", keys: ["stepName", "stepType", "product"] },
     { group: "Supplier", keys: ["material", "supplier", "basis"] },
-    { group: "Days", keys: ["measureValue", "previousValue", "changeDays"] },
+    { group: "Days", keys: ["measureValue", "previousValue"] },
     {
       group: "Trend",
       keys: [

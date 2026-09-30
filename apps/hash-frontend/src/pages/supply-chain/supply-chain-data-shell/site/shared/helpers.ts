@@ -103,15 +103,8 @@ const nullRankFor = (dir: SortDir): number =>
 function sharedStepSortValue(
   row: SiteNode & { trendPct?: number | null; previousValue?: number | null },
   key: SortKey,
-  measure: BaseMeasure,
 ): number | null | undefined {
   switch (key) {
-    case "changeDays": {
-      const current = selectStat(row.stats, measure);
-      return current != null && row.previousValue != null
-        ? current - row.previousValue
-        : null;
-    }
     case "trend":
       return row.trendPct ?? null;
     case "previous":
@@ -127,19 +120,14 @@ function compareSharedStepSort<
     trendPct?: number | null;
     previousValue?: number | null;
   },
->(
-  left: Row,
-  right: Row,
-  sort: { key: SortKey; dir: SortDir },
-  measure: BaseMeasure,
-): number | null {
-  const leftValue = sharedStepSortValue(left, sort.key, measure);
+>(left: Row, right: Row, sort: { key: SortKey; dir: SortDir }): number | null {
+  const leftValue = sharedStepSortValue(left, sort.key);
   if (leftValue === undefined) {
     return null;
   }
   const nullRank = nullRankFor(sort.dir);
   const va = leftValue ?? nullRank;
-  const vb = sharedStepSortValue(right, sort.key, measure) ?? nullRank;
+  const vb = sharedStepSortValue(right, sort.key) ?? nullRank;
   return sort.dir === "desc" ? vb - va : va - vb;
 }
 
@@ -149,7 +137,7 @@ export function sortRows(
   measure: BaseMeasure = "median",
 ): DwellRow[] {
   return [...rows].sort((left, right) => {
-    const shared = compareSharedStepSort(left, right, sort, measure);
+    const shared = compareSharedStepSort(left, right, sort);
     if (shared !== null) {
       return shared;
     }
@@ -217,7 +205,7 @@ export function sortPlanningRows(
   };
 
   return [...rows].sort((left, right) => {
-    const shared = compareSharedStepSort(left, right, sort, measure);
+    const shared = compareSharedStepSort(left, right, sort);
     if (shared !== null) {
       return shared;
     }
@@ -301,7 +289,7 @@ export function sortTrendRows(
   measure: BaseMeasure = "median",
 ): TrendRow[] {
   return [...rows].sort((left, right) => {
-    const shared = compareSharedStepSort(left, right, sort, measure);
+    const shared = compareSharedStepSort(left, right, sort);
     if (shared !== null) {
       return shared;
     }

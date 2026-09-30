@@ -28,9 +28,7 @@ export type SortKey =
   | "meanLate"
   | "meanLateWhenLate"
   | "maxLate"
-  // Menu-only sorts (no column): the change in days between periods…
-  | "changeDays"
-  // …the opportunities' sample count…
+  // Menu-only sorts (no column): the opportunities' sample count…
   | "sampleSize"
   // …and supplier extras.
   | "nLate"

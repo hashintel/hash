@@ -402,7 +402,6 @@ describe("applicableFilterKeys", () => {
     // Not dwell-view filters, even though an empty table data-gates nothing.
     expect(dwellKeys.has("basis")).toBe(false);
     expect(dwellKeys.has("materialValue")).toBe(false);
-    expect(dwellKeys.has("changeDays")).toBe(false);
     expect(dwellKeys.has("deviationPct")).toBe(false);
 
     const planningKeys = applicableFilterKeys([], context([]), "planning");

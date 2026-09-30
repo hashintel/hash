@@ -49,7 +49,7 @@ export const dwellSorters = (
 ): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
   { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
-  { name: "Trend %", sortKey: "trend" },
+  { name: "Days trend %", sortKey: "trend" },
   { name: "MOQ", sortKey: "moq" },
   { name: "Safety stock", sortKey: "safetyStock" },
   { name: `Carrying cost${periodSuffix(display)}`, sortKey: "cost" },
@@ -63,7 +63,7 @@ export const planningSorters = (
 ): ReadonlyArray<Sorter<SortKey>> => [
   { name: "Step name", sortKey: "material" },
   { name: "Supplier", sortKey: "supplier" },
-  { name: "Receipt basis", sortKey: "basis" },
+  { name: "Basis", sortKey: "basis" },
   {
     name: `Material value${periodSuffix(display)}`,
     sortKey: "materialValue",
@@ -72,7 +72,6 @@ export const planningSorters = (
   { name: `Observed days (${display.measureLabel})`, sortKey: "median" },
   { name: "Deviation %", sortKey: "deviation" },
   { name: "Trend %", sortKey: "trend" },
-  { name: "Change", sortKey: "changeDays" },
   { name: "% exceeding plan", sortKey: "exceeding" },
   { name: "Status", sortKey: "status" },
 ];
@@ -83,7 +82,6 @@ export const trendSorters = ({
   { name: "Step name", sortKey: "material" },
   { name: `Current days (${measureLabel})`, sortKey: "median" },
   { name: `Previous days (${measureLabel})`, sortKey: "previous" },
-  { name: "Change", sortKey: "changeDays" },
   { name: "Trend %", sortKey: "trend" },
   { name: "Samples", sortKey: "sample" },
   { name: "Status", sortKey: "status" },
