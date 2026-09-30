@@ -106,7 +106,7 @@ const nodeIconStyle = css({
 const chevronStyle = css({
   display: "flex",
   flexShrink: "0",
-  color: "neutral.s90",
+  color: "neutral.s110",
   transition: "[transform 150ms ease-out]",
 });
 
@@ -129,15 +129,16 @@ const choiceLabelStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1.5",
+  color: "neutral.s120",
 });
 
 const staysStochasticStyle = css({
   fontSize: "xs",
-  color: "neutral.s80",
-  paddingLeft: "[26px]",
+  color: "neutral.s100",
+  paddingLeft: "[42px]",
 });
 
-const mutedStyle = css({ color: "neutral.s80" });
+const mutedStyle = css({ color: "neutral.s100" });
 
 const todayRowStyle = css({
   display: "flex",
@@ -318,7 +319,7 @@ const LeverRow: React.FC<{
           className={chevronStyle}
           style={{ transform: open ? "rotate(90deg)" : undefined }}
         >
-          <Icon name="chevronRight" size="xxs" />
+          <Icon name="chevronRight" size="xs" />
         </span>
       </button>
       {open && !missing ? (
@@ -377,9 +378,7 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
       <div>
         <div className={headingStyle}>Levers</div>
         {controller.levers.length === 0 ? (
-          <div className={bodyTextStyle}>
-            No levers yet. Right-click a node and choose Add to controller.
-          </div>
+          <div className={bodyTextStyle}>No levers yet.</div>
         ) : (
           leverKindOrder.map((kind) => {
             const levers = controller.levers.filter(
