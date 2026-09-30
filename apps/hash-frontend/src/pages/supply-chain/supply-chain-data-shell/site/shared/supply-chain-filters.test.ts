@@ -111,6 +111,11 @@ describe("applySupplyChainFilters", () => {
     expect(
       rowsAfter(rows, [{ filterKey: "stepType", value: null }], ctx),
     ).toEqual(rows);
+    // An operator pre-selected on add, value not yet entered: still a no-op,
+    // including for rows lacking the property (dwell has no plan).
+    expect(rowsAfter(rows, [filter("deviationPct", "gte", null)], ctx)).toEqual(
+      rows,
+    );
   });
 
   it("filters by step type, with isNoneOf inverting", () => {

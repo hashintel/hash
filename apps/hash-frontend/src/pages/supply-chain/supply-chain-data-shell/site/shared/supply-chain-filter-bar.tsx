@@ -73,7 +73,17 @@ export const SupplyChainFilterBar = ({
     const activeKeys = new Set(filters.map((filter) => filter.filterKey));
     const addFilter = (filterKey: SupplyChainFilterKey) => {
       pendingAutoFocusKey = filterKey;
-      onFiltersChange([...filters, { filterKey, value: null }]);
+      // Pre-select the first operator so the chip mounts ready for a value
+      // (an input-less first operator is thereby applied immediately).
+      const firstOperator =
+        supplyChainFilterDefinition(filterKey)?.operators(options)[0];
+      onFiltersChange([
+        ...filters,
+        {
+          filterKey,
+          value: firstOperator ? { key: firstOperator.key, value: null } : null,
+        },
+      ]);
     };
     return STEP_FILTER_MENUS[view].flatMap(({ group, keys }): MenuItems => {
       const items = keys

@@ -138,14 +138,13 @@ export const matchesStringOperator = (
   }
 };
 
+/** An empty or partial filter value matches everything (drafts are no-ops);
+ * only a complete value excludes rows lacking the property. */
 export const matchesNumberOperator = (
   operatorKey: string,
   rowValue: number | null | undefined,
   filterValue: unknown,
 ): boolean => {
-  if (rowValue == null || Number.isNaN(rowValue)) {
-    return false;
-  }
   if (operatorKey === "between") {
     if (!Array.isArray(filterValue)) {
       return true;
@@ -157,12 +156,18 @@ export const matchesNumberOperator = (
     if (bounds.length !== 2 || first === undefined || second === undefined) {
       return true;
     }
+    if (rowValue == null || Number.isNaN(rowValue)) {
+      return false;
+    }
     return (
       rowValue >= Math.min(first, second) && rowValue <= Math.max(first, second)
     );
   }
   if (typeof filterValue !== "number") {
     return true;
+  }
+  if (rowValue == null || Number.isNaN(rowValue)) {
+    return false;
   }
   switch (operatorKey) {
     case "gte":
