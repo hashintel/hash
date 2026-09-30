@@ -11,7 +11,7 @@
 //! Implement [`JournalStorage`] to use another backend with the same command and recovery checks.
 
 use alloc::sync::Arc;
-use core::{ops::Bound, time::Duration};
+use core::{ops::Range, time::Duration};
 
 use error_stack::Report;
 use opendata_common::StorageConfig;
@@ -82,6 +82,5 @@ struct ShardLogWriter<W: JournalWriter = StorageWriter> {
 }
 
 struct RecoveryRange {
-    bounds: (Bound<JournalSequence>, Bound<JournalSequence>),
-    window: (JournalSequence, JournalSequence),
+    window: Range<JournalSequence>,
 }

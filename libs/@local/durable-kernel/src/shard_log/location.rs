@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{num::NonZeroU64, ops::Bound, time::Duration};
+use core::{num::NonZeroU64, time::Duration};
 use std::path::PathBuf;
 
 use error_stack::{Report, ResultExt as _};
@@ -187,7 +187,7 @@ pub async fn read_journal<T: UntrimmedJournalRecord>(
         .open_reader()
         .await
         .change_context(DurableError::OpenReader)?;
-    let result = scan_records(&reader, (Bound::Unbounded, Bound::Unbounded), None).await;
+    let result = scan_records(&reader, .., None).await;
     match (result, reader.close().await) {
         (result, Ok(())) => result,
         (Ok(_), Err(error)) => Err(error),

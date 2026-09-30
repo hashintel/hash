@@ -1,4 +1,7 @@
-use core::{ops::Bound, pin::pin};
+use core::{
+    ops::{Range, RangeBounds},
+    pin::pin,
+};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
@@ -32,11 +35,7 @@ impl RecoveryRange {
             }));
         }
         Ok(Self {
-            bounds: (
-                Bound::Included(start),
-                Bound::Excluded(durable_end_exclusive),
-            ),
-            window: (start, durable_end_exclusive),
+            window: start..durable_end_exclusive,
         })
     }
 }
@@ -44,8 +43,8 @@ impl RecoveryRange {
 /// Reads and decodes the requested journal range, checking its sequence bounds.
 pub(super) async fn scan_records<T, R>(
     reader: &R,
-    range: (Bound<JournalSequence>, Bound<JournalSequence>),
-    expected_window: Option<(JournalSequence, JournalSequence)>,
+    range: impl RangeBounds<JournalSequence> + Send,
+    expected_window: Option<Range<JournalSequence>>,
 ) -> Result<Vec<(JournalSequence, T)>, Report<DurableError>>
 where
     T: UntrimmedJournalRecord,
@@ -55,14 +54,14 @@ where
     let mut records = Vec::new();
 
     while let Some((sequence, bytes)) = stream.try_next().await? {
-        if let Some((start, end)) = expected_window
-            && (sequence < start || sequence >= end)
+        if let Some(window) = &expected_window
+            && !window.contains(&sequence)
         {
             return Err(Report::new(DurableError::RecordOutsideRecoveryRange {
                 name: T::declaration().name,
                 sequence,
-                start,
-                end,
+                start: window.start,
+                end: window.end,
             }));
         }
 
@@ -74,13 +73,13 @@ where
         records.push((sequence, record));
     }
 
-    if let Some((_start, expected_end)) = expected_window {
+    if let Some(window) = expected_window {
         let observed_end = stream.next_sequence();
-        if observed_end != expected_end {
+        if observed_end != window.end {
             return Err(Report::new(DurableError::IncompleteScan {
                 name: T::declaration().name,
                 observed_end,
-                expected_end,
+                expected_end: window.end,
             }));
         }
     }
@@ -90,7 +89,7 @@ where
 
 pub(super) async fn scan_snapshot_records<T, R>(
     reader: &R,
-    range: (Bound<JournalSequence>, Bound<JournalSequence>),
+    range: impl RangeBounds<JournalSequence> + Send,
     expected_end: JournalSequence,
 ) -> Result<Vec<SnapshotCandidate<T>>, Report<DurableError>>
 where

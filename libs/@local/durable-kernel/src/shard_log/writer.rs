@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{ops::Bound, time::Duration};
+use core::time::Duration;
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
@@ -114,7 +114,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
                 name: T::declaration().name,
             })?;
         let range = RecoveryRange::new(through_sequence, durable_end_exclusive)?;
-        scan_records(&self.backend, range.bounds, Some(range.window)).await
+        scan_records(&self.backend, range.window.clone(), Some(range.window)).await
     }
 
     pub(super) async fn scan_projection_snapshots<T: DurableRecord>(
@@ -128,7 +128,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
             })?;
         scan_snapshot_records(
             &self.backend,
-            (Bound::Unbounded, Bound::Excluded(durable_end_exclusive)),
+            ..durable_end_exclusive,
             durable_end_exclusive,
         )
         .await
