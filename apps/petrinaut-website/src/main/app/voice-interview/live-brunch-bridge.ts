@@ -138,7 +138,7 @@ export class LiveBrunchBridge {
     for (const delegationId of this.#unclaimedDelegations) {
       logLiveDiagnostic("delegation.closed", {
         delegationId,
-        reason: "no-speech",
+        reason: "no-pending-speech",
       });
       this.#dependencies.appendInstructions(
         "This request will not be answered. Do not respond to it; keep listening.",

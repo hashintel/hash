@@ -718,6 +718,9 @@ test("an answer claims the newest delegation, and older ones close once no speec
     expect.stringContaining("Do not respond"),
     "older",
   );
+  expect(traceRecords(debug.mock.calls, "delegation.closed")).toMatchObject([
+    { delegationId: "older", reason: "no-pending-speech" },
+  ]);
 });
 
 test("a turn waiting for its delegation still takes one that arrives when no speech is pending", async () => {
