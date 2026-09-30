@@ -1,6 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { liveUtteranceStages, routeUtterance } from "./utterance-pipeline";
+import {
+  doubtfulBelowLogprob,
+  liveUtteranceStages,
+  routeUtterance,
+} from "./utterance-pipeline";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -141,7 +145,11 @@ const doubtfulShadows = (calls: readonly (readonly unknown[])[]) =>
   );
 
 test.each([
-  ["a least likely token below -1.9 is doubtful", { minLogprob: -2 }, true],
+  [
+    `a least likely token below ${doubtfulBelowLogprob} is doubtful`,
+    { minLogprob: -2 },
+    true,
+  ],
   [
     "a least likely token of -1.9004 is doubtful",
     { minLogprob: -1.9004 },

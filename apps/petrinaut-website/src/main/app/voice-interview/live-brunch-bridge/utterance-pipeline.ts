@@ -28,7 +28,7 @@ export interface UtteranceStage {
   readonly skip: (utterance: Utterance) => SkipReason | null;
 }
 
-const doubtfulMinLogprob = -1.9;
+export const doubtfulBelowLogprob = -1.9;
 
 const repeatsOverlappingOutput = ({ text, liveOutputText }: Utterance) =>
   liveOutputText !== undefined && repeatsLiveOutput(text, liveOutputText);
@@ -52,7 +52,7 @@ export const liveUtteranceStages: readonly UtteranceStage[] = [
     skip: (utterance) =>
       isShortDuringOutput(utterance) &&
       ((utterance.minLogprob !== undefined &&
-        utterance.minLogprob < doubtfulMinLogprob) ||
+        utterance.minLogprob < doubtfulBelowLogprob) ||
         repeatsOverlappingOutput(utterance))
         ? "doubtful-short-during-output"
         : null,
