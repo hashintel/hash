@@ -36,8 +36,8 @@ import {
   summarizeForAgent,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import {
-  resetEditorDrafts,
   editorDraftsFor,
+  resetEditorDrafts,
 } from "./shared/brunch-draft-experiment-drafts";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
@@ -128,6 +128,7 @@ const errorStyle = css({
 
 const actionsStyle = css({
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
   justifyContent: "flex-end",
   marginTop: "1",
