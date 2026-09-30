@@ -78,6 +78,26 @@ test("a stage that is off never runs", () => {
   expect(off).not.toHaveBeenCalled();
 });
 
+test("stages see Live's words when the speech overlapped its output", () => {
+  const skip = vi.fn(() => null);
+  routeUtterance(
+    {
+      id: "one",
+      text: "Okay",
+      startedDuringOutput: true,
+      liveOutputText: "Okay?",
+    },
+    [{ name: "probe", mode: "on", skip }],
+  );
+  expect(skip).toHaveBeenCalledWith({
+    inputId: "one",
+    text: "Okay",
+    words: 1,
+    startedDuringOutput: true,
+    liveOutputText: "Okay?",
+  });
+});
+
 test.each([
   ["I'll send it", true, 3],
   ["Five.", false, 1],

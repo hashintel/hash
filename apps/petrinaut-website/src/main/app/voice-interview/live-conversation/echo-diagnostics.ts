@@ -1,11 +1,5 @@
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
-
-/**
- * An output stretch stays open this long after its last audible sample, for
- * room reverberation and provider event delivery. Output transcript fragments
- * further apart than this start a new output span.
- */
-const echoTailMs = 1_000;
+import { echoTailMs } from "./shared/echo-tail";
 
 /**
  * Speech starts are reported after the speech began, so one reported this soon
@@ -106,6 +100,7 @@ export const createOutputEchoTrace = (sessionId: string) => {
 
   return {
     sample: (at: number, sample: OutputSample): void => {
+      if (stretch && at - stretch.lastAudibleAt >= echoTailMs) report(false);
       if (sample.audible) {
         stretch ??= {
           startedAt: at,
@@ -123,10 +118,6 @@ export const createOutputEchoTrace = (sessionId: string) => {
         stretch.lastAudibleAt = at;
       }
       if (!stretch) return;
-      if (at - stretch.lastAudibleAt >= echoTailMs) {
-        report(false);
-        return;
-      }
       stretch.peakMicrophoneLevel = Math.max(
         stretch.peakMicrophoneLevel,
         sample.microphoneLevel,

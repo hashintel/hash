@@ -240,16 +240,27 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   `logprobTokens`, and when any were returned, `meanLogprob` and `minLogprob`.
   `peakMicrophoneLevel` is the loudest microphone sample from a second before
   the speech start was reported until the speech stopped. Nothing is dropped on
-  confidence or loudness yet.
+  confidence or loudness yet. `overlappedOutput` is true when the speech, from
+  its reported start until it stopped, met audible output or the second after
+  it.
 - `input.ignored` with `reason: "short-during-output"` marks a short transcript
   that started during output and was not sent to Brunch.
+- `filter.shadow` with `stage: "echo"` marks a transcript the echo check would
+  skip. The check runs in shadow, so the transcript is still handled as before
+  and can also appear as `input.ignored`. It compares speech that overlapped
+  output, in memory only, with Live's output transcript from three seconds
+  before the speech started until it stopped. Six or more words count as a
+  repeat when they mostly match Live's words in order; fewer count only when
+  they appear together, in order, in Live's words.
 
 On laptop speakers, on a speaker chosen in the audio settings, and on
 headphones, answer three Brunch questions and stay silent while Live speaks
 each reply. Any speech start, input fragment or `startedDuringOutput: true`
 during a reply means echo reached the microphone path; also note whether Live
-stops itself mid-sentence. The traces are local development diagnostics and
-contain no audio or text.
+stops itself mid-sentence. Then interrupt a reply once with a sentence of your
+own. Each `filter.shadow` line should match a phantom in the conversation, and
+the interruption should get none. The traces are local development diagnostics
+and contain no audio or text.
 
 #### Noise check — 5 minutes
 
