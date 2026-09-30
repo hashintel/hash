@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use std::io::{self, Write};
 
 use error_stack::{Report, ResultExt as _};
@@ -70,7 +71,8 @@ pub(super) fn decode_v1_envelope<'de, T: Deserialize<'de>>(
     #[derive(Deserialize)]
     #[serde(deny_unknown_fields)]
     struct Envelope<'a> {
-        version: String,
+        #[serde(borrow)]
+        version: Cow<'a, str>,
         #[serde(borrow)]
         data: &'a RawValue,
     }
@@ -89,7 +91,7 @@ pub(super) fn decode_v1_envelope<'de, T: Deserialize<'de>>(
     if envelope.version != "v1" {
         return Err(Report::new(CompatError::UnsupportedVersion {
             name,
-            version: envelope.version,
+            version: Box::from(envelope.version),
         }));
     }
 

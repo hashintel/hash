@@ -60,11 +60,11 @@ impl ShardAppendError {
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum StorageConfigError {
     #[display("unsupported shard-log blob URL {url:?}")]
-    UnsupportedUrl { url: String },
+    UnsupportedUrl { url: Box<str> },
     #[display("blob URL has an empty S3 bucket")]
     EmptyS3Bucket,
     #[display("S3 bucket {bucket:?} requires an AWS region")]
-    MissingAwsRegion { bucket: String },
+    MissingAwsRegion { bucket: Box<str> },
     #[display("could not create local storage directory {}", path.display())]
     CreateLocalDirectory { path: PathBuf },
 }

@@ -60,7 +60,7 @@ pub fn storage_for_path(
         }
         let Some(region) = options.aws_region.clone() else {
             return Err(Report::new(StorageConfigError::MissingAwsRegion {
-                bucket: bucket.to_owned(),
+                bucket: Box::from(bucket),
             }));
         };
         (
@@ -72,7 +72,7 @@ pub fn storage_for_path(
         )
     } else {
         return Err(Report::new(StorageConfigError::UnsupportedUrl {
-            url: url.clone(),
+            url: Box::from(url.as_str()),
         }));
     };
 

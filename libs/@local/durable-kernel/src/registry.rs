@@ -90,7 +90,10 @@ pub enum DeclarationError {
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum CompatError {
     #[display("unsupported {name} version {version:?}")]
-    UnsupportedVersion { name: &'static str, version: String },
+    UnsupportedVersion {
+        name: &'static str,
+        version: Box<str>,
+    },
     #[display("{name} could not be encoded")]
     Encode { name: &'static str },
     #[display("{name} could not be decoded")]

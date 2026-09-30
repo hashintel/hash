@@ -351,7 +351,7 @@ fn record_decode_envelope() {
         error.current_context(),
         &CompatError::UnsupportedVersion {
             name: CounterEvent::name(),
-            version: "v2".to_owned(),
+            version: Box::from("v2"),
         }
     );
 
