@@ -106,8 +106,10 @@ afterEach(() => {
 test("both launcher children override inherited campaign accounting", () => {
   vi.stubEnv("DEBUG", "");
   vi.stubEnv("BRUNCH_STEP_A_ACCOUNTING", "invalid inherited campaign");
+  vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", "feedback");
   const environment = personaEnvironment();
   expect(environment.BRUNCH_STEP_A_ACCOUNTING).toBe("");
+  expect(environment.BRUNCH_GUIDANCE_VARIANT).toBe("baseline");
   expect(environment.BRUNCH_CHAT_MODEL).toBe(DEFAULT_CHAT_MODEL);
   expect(environment.BRUNCH_CHAT_THINKING).toBe(DEFAULT_CHAT_THINKING);
   expect(
@@ -419,6 +421,7 @@ test("help documents the objective and agent options", async () => {
   );
   expect(stdout).toContain("--agent claude|codex|cursor-agent|pi");
   expect(stdout).toContain("{prompt}");
+  expect(stdout).toContain("--guidance baseline|replacement|feedback|identity");
 });
 
 test("resume rejects a fresh-run option before reading the retained run", async () => {

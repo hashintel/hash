@@ -4,9 +4,11 @@
 
 ## Conversation composition
 
-A conversation whose initial data carries a Petrinaut document binding (`{ binding }`) mounts the Brunch prompt, skill, Ledger tools, filtered net readers, reviewed experiment draft and explanation tool while preserving every canonical Petrinaut tool. A conversation admitted without initial data retains the plugin prompt, skill and Ledger tools but no Petrinaut tools.
+A conversation whose initial data carries a Petrinaut document binding (`{ binding }`) mounts the selected Brunch guidance, Ledger tools, filtered net readers, reviewed experiment draft and explanation tool while preserving every canonical Petrinaut tool. A conversation admitted without initial data retains the selected guidance and Ledger tools but no Petrinaut tools.
 
-The core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/` is runtime model input. Prompts are imported with `?raw`. Each skill is an Agent Skills directory whose `SKILL.md` the package exports and imports natively; library builds leave that import in place and the consuming Flue application packages the directory. Gherkin is packaged but unmounted; Dafny and Claims are unmounted experimental packages.
+`BRUNCH_GUIDANCE_VARIANT` selects one guidance owner at startup. `baseline` (the default and comparison control) mounts the core and plugin Markdown under `packages/*/src/prompts/` and `packages/*/src/skills/`. `replacement` mounts the app-owned `apps/brunch-agent/src/agents/chat-agent/guidance/` system prompt and `eliciting`/`constructing` skills, with typed epistemic guidance on the Ledger commit tool; `feedback` adds only the account–draft feedback instruction. `identity` is `feedback` with the identity-addressed Ledger: Notes filed against the emerging model's identities and relationships, whose kinds and relations the app's `guidance/ledger-vocabulary.ts` defines for both the commit schema and its description, and `ledger_compile` rendering a map; it adds a low-resolution-modelling instruction. The candidate arms use `useSdcpnTools` without the legacy plugin prompt or skill. All arms share Ledger and construction implementations and schemas. The package guidance is retained for comparison, not combined with its replacement.
+
+Prompts are imported with `?raw`. Each skill is an Agent Skills directory imported natively; library builds leave that import in place and the consuming Flue application packages the directory. Gherkin is packaged but unmounted; Dafny and Claims are unmounted experimental packages. The [persona launcher](../../../apps/brunch-agent/src/evaluations/persona/README.md) selects an arm and retains guidance hashes while using its existing browser/persona path.
 
 ## Package entries
 

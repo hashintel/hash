@@ -46,6 +46,15 @@ vi.mock(
   "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md",
   () => ({ default: { name: "sdcpn-modelling" } }),
 );
+vi.mock("../src/agents/chat-agent/guidance/skills/eliciting/SKILL.md", () => ({
+  default: { name: "eliciting" },
+}));
+vi.mock(
+  "../src/agents/chat-agent/guidance/skills/constructing/SKILL.md",
+  () => ({
+    default: { name: "constructing" },
+  }),
+);
 const bound = {
   binding: {
     conversationId: "conversation",
@@ -56,6 +65,7 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
+  vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", "baseline");
   vi.stubEnv("NODE_ENV", "test");
   mounted.initialData = undefined;
   mounted.contextProjections = 0;
@@ -107,6 +117,37 @@ test("the agent admits a document binding or no initial data", () => {
   expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
   expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
 });
+
+test.each(["replacement", "feedback", "identity"])(
+  "%s mounts only app-owned skills and the same tools",
+  async (variant) => {
+    mounted.initialData = bound;
+    const { ChatAgent: baseline } =
+      await import("../src/agents/chat-agent/agent.ts");
+    baseline({ id: "baseline" });
+    const tools = [...mounted.tools];
+    mounted.tools.length = 0;
+    mounted.skills.length = 0;
+    mounted.instructions.length = 0;
+    vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", variant);
+    vi.resetModules();
+    const { ChatAgent: candidate } =
+      await import("../src/agents/chat-agent/agent.ts");
+    expect(candidate({ id: "candidate" })).toContain("Establish early");
+    expect(mounted.skills).toEqual(["eliciting", "constructing"]);
+    expect(mounted.tools.sort()).toEqual(tools.sort());
+    expect(
+      mounted.instructions.some((text) =>
+        text.includes("# Account–draft feedback"),
+      ),
+    ).toBe(variant !== "replacement");
+    expect(
+      mounted.instructions.some((text) =>
+        text.includes("# Low-resolution modelling"),
+      ),
+    ).toBe(variant === "identity");
+  },
+);
 
 test("the Brunch catalogue classifies every canonical tool", () => {
   const canonicalNames = Object.keys(petrinautAiTools);

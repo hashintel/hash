@@ -2,9 +2,8 @@
 /**
  * Register and compose the Brunch agent for this Flue application.
  *
- * Brunch core owns the context-independent agent prompt. The SDCPN plugin owns
- * its Petrinaut-facing prompt, runbook skill, and tools. This application owns
- * deployment diagnostics and transport-specific instructions.
+ * The app selects baseline or app-owned experimental guidance. All variants
+ * retain the same Ledger, browser tools and transport contracts.
  */
 
 import {
@@ -25,8 +24,10 @@ import {
   sdcpnLedgerProfile,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
+import {
+  useSdcpnPlugin,
+  useSdcpnTools,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   selectChatModelSpecifier,
@@ -41,6 +42,8 @@ import {
 import { createQueryBasisTool } from "../../conversation/why.ts";
 import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { createBrunchContextProjection } from "./context-projection.ts";
+import { selectGuidanceVariant } from "./guidance-variant.ts";
+import { useChatGuidance } from "./guidance.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
@@ -48,6 +51,9 @@ const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
 const ledgerProfile = composeLedgerProfile(sdcpnLedgerProfile);
 const ledgerNoteShape = selectLedgerNoteShape();
+const guidanceVariant = selectGuidanceVariant();
+const useConstruction =
+  guidanceVariant === "baseline" ? useSdcpnPlugin : useSdcpnTools;
 
 const testCompactionConfig = loadTestCompactionConfig();
 const chatModelOptions = {
@@ -78,7 +84,8 @@ export function ChatAgent({ id }: AgentProps) {
         ),
     }).history();
   };
-  const coreSystemPrompt = useBrunchAgent(
+  const coreSystemPrompt = useChatGuidance(
+    guidanceVariant,
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     {
@@ -87,7 +94,7 @@ export function ChatAgent({ id }: AgentProps) {
       readHistory: history,
     },
   );
-  useSdcpnPlugin(
+  useConstruction(
     initialData
       ? {
           authorizeDraft: async (draftCallId: string) => {

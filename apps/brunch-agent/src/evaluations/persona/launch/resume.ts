@@ -46,6 +46,8 @@ const runSchema = v.pipe(
     brunchThinking: v.optional(text),
     personaModel: v.optional(text),
     personaThinking: v.optional(text),
+    guidance: v.optional(v.unknown()),
+    ledgerNoteShape: v.optional(v.picklist(["typed", "open"])),
   }),
   v.transform((config) => ({
     ...config,

@@ -23,17 +23,18 @@ import {
   type BrowserToolExecutor,
 } from "./tools/petrinaut-construction";
 
-export const useSdcpnPlugin = (options?: {
+type SdcpnToolOptions = {
   readonly executeBrowserTool?: BrowserToolExecutor;
   readonly authorizeDraft?: Parameters<
     typeof createDraftExperimentTool
   >[0]["authorizeDraft"];
-}): void => {
+};
+
+/** Shared runtime capabilities, independent of the experimental guidance owner. */
+export const useSdcpnTools = (options?: SdcpnToolOptions): void => {
   const initialData = useInitialData<SdcpnInitialData>();
   if (initialData) {
-    useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
-    useSkill(sdcpnModellingSkill);
     if (!options?.authorizeDraft)
       throw new Error(
         "A document-bound conversation requires draft history authorization.",
@@ -55,9 +56,12 @@ export const useSdcpnPlugin = (options?: {
       useTool(tool);
     for (const tool of netReaderTools(options.executeBrowserTool))
       useTool(tool);
-  } else {
-    // A conversation with no document binding offers the instruction and skill only.
-    useInstruction(sdcpnAppend.trim());
-    useSkill(sdcpnModellingSkill);
   }
+};
+
+/** Baseline guidance retained for the controlled app-owned-guidance comparison. */
+export const useSdcpnPlugin = (options?: SdcpnToolOptions): void => {
+  useInstruction(sdcpnAppend.trim());
+  useSkill(sdcpnModellingSkill);
+  useSdcpnTools(options);
 };

@@ -52,6 +52,33 @@ The persona stops by its own rule: when the person has what they came for, when 
 
 **Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper for Brunch even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. There is no built-in turn-count limit. A live-provider run requires explicit model and spend authorization; the existence of this command grants none.
 
+## Compare guidance
+
+`--guidance baseline|replacement|feedback|identity` selects one guidance owner for the whole run; the default is `baseline`. It sets `BRUNCH_GUIDANCE_VARIANT` on the owned backend, not a persona instruction.
+
+| Arm               | Model-facing guidance                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A — `baseline`    | Existing package prompts and skills, including build-first corrections                                                                                       |
+| B — `replacement` | App-owned always-on guidance, `eliciting` and `constructing` skills, and typed epistemic guidance on the Ledger commit tool                                  |
+| C — `feedback`    | Exactly B plus the always-on account–draft feedback policy: choose asking, repairing, checking or deferring by consequence for the purpose and wider account |
+| D — `identity`    | Exactly C with the identity-addressed Ledger (Notes filed against the model's identities and relationships, always typed) and its low-resolution instruction |
+
+A, B and C keep the same tool implementations and schemas; D keeps the same tool names but changes the Ledger's schema, so C versus D compares a Ledger design together with its guidance. `BRUNCH_LEDGER_NOTES` does not apply to D. C isolates the feedback addition; A versus B compares a bundle of placement and content changes, not heading words alone. Legacy package guidance remains solely as the control; it is not mounted alongside B or C. Native Flue skill references package and load the candidate resources.
+
+Use the existing persona launcher for each arm. From the repository root:
+
+```sh
+# Run only after live inference is authorised; repeat with replacement and feedback.
+BRUNCH_LEDGER_NOTES=typed yarn brunch:persona --case inventory-purchasing \
+  --guidance baseline \
+  --brunch-model openai/gpt-5.5-2026-04-23 --brunch-thinking medium \
+  --agent pi --persona-model anthropic/claude-sonnet-4-6 --persona-thinking medium
+```
+
+For a matched comparison keep the case, objective, initial net, Ledger shape, Brunch model/thinking and persona model/thinking identical; vary only `--guidance`. Every run gets a fresh database, browser profile and conversation. Do not edit guidance between arms. `run.json` records selected source hashes, the case hash and model settings; guidance drift is checked before subsequent persona turns. These are source fingerprints, not a complete environment snapshot. Resumes restore the saved arm and refuse changed guidance.
+
+Inspect the retained dialogue, Ledger and net together. The observation cases are early purpose/breadth versus local fixation, connected resource/calendar/release meaning, and correction versus contextual coexistence. They are situations to look for across arms, not extra prompt variants or a questionnaire for the persona. Check when building begins, whether new meaning reshapes the draft, and whether a construction-led question should instead have been a repair, check or deferral. Include the countercase where a local clarification is the right next move. Tool/skill tests establish wiring only; the live comparison must establish any behavioural improvement.
+
 ## Supply a context pack
 
 `--case` accepts a name under `libs/@hashintel/brunch-agent/evaluations/cases/` or an absolute or caller-relative directory. That directory supplies exactly two launcher inputs:
