@@ -10,9 +10,10 @@ export const demoControllers: Controller[] = [
     name: "Scheduler",
     levers: [
       {
-        id: "lever__start_production_rate",
-        kind: "rate",
-        transitionId: "trans_start_production",
+        id: "lever__machine_up",
+        kind: "choice",
+        placeId: "place_machine_up",
+        transitionIds: ["trans_start_production", "trans_preventive_maintenance"],
       },
       {
         id: "lever__start_production_fields",
@@ -24,11 +25,6 @@ export const demoControllers: Controller[] = [
             elementIds: ["batch_processing_left", "batch_source_mix"],
           },
         ],
-      },
-      {
-        id: "lever__maintenance_rate",
-        kind: "rate",
-        transitionId: "trans_preventive_maintenance",
       },
     ],
   },
