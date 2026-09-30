@@ -10,12 +10,13 @@ each shard, duplicate events, snapshots, and recovery.
 
 The [domain API](src/domain/mod.rs) connects application code to the kernel:
 
-| Trait          | What it does                                             |
-| -------------- | -------------------------------------------------------- |
-| `DomainEvent`  | Defines an event’s stable type name and partition key.   |
-| `Fold`         | Validates new events and applies stored events to state. |
-| `SimpleDomain` | Connects the event and state types.                      |
-| `Executor`     | Plans external operations from state and executes them.  |
+| Trait             | What it does                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `DomainEvent`     | Defines an event’s stable type name and partition key.                                                                    |
+| `Fold`            | Checks a new event and returns the state change to apply once the event is stored. Replays stored events during recovery. |
+| `SimpleDomain`    | Connects the event and state types.                                                                                       |
+| `ProjectionQuery` | Reads a value from a shard’s state. Closures implement it.                                                                |
+| `Executor`        | Plans external operations from state and executes them.                                                                   |
 
 An application uses a partition key to keep related events together, such as
 events for the same customer. The kernel maps each key to a shard: a separate
@@ -24,8 +25,8 @@ events in order, while other shards can accept events independently. Routing use
 one-byte shard IDs, so a namespace has 256 stable shards. A process can own any
 subset.
 
-The kernel validates each new event, writes it to the journal, then applies it.
-Recovery rebuilds state by applying stored events.
+The kernel validates each new event, writes it to the journal, then applies the
+validated change. Recovery applies stored events with `Fold::replay`.
 
 State updates and serialization must produce the same result for the same
 input. State updates must handle every accepted event, including events stored
@@ -69,8 +70,8 @@ contents have the same ID, so the kernel stores a repeated submission of the
 same event once. Include a request ID or another field that makes each event
 distinct when identical actions need separate records.
 
-Reads select values from an entire shard’s state. Read callbacks run inside
-the command loop and must not block.
+`RunningKernel::read` and `RunningKernel::query` select values from an entire
+shard’s state. Both run inside the command loop and must not block.
 
 ### Recovery and idempotency
 
@@ -84,9 +85,12 @@ results for repeated requests with that key.
 
 ### Custom runtimes
 
-The lower-level [`port`](src/port.rs) traits let applications define their
-own record formats, state, snapshots, scheduling, and execution. They use the
-kernel’s journal and recovery code.
+The lower-level [`port`](src/port.rs) traits let applications define their own
+record formats, state, snapshots, scheduling, and execution while using the
+kernel’s journal and recovery code. `EventDomain` defines the records, the
+state, and replay. `QueryDomain`, `ControlDomain`, and `SnapshotDomain` add
+queries, control requests, and snapshots. Custom record types register through
+`RecordRegistry::register_record`.
 
 ## Examples
 
