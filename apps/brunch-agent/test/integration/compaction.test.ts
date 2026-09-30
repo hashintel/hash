@@ -4,11 +4,11 @@ import { expect, test } from "vitest";
 
 import { runNodeScript } from "./run-node-script";
 
-test("Ledger evidence cites the ids the model is shown and survives a restart", async () => {
+test("compaction removes earlier results from the model's context while the Ledger still compiles", async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
-    join(import.meta.dirname, "workpiece-evidence.integration.ts"),
+    join(import.meta.dirname, "compaction.integration.ts"),
     join(import.meta.dirname, "../../../.."),
   );
   expect(exitCode, stderr || stdout).toBe(0);
-  expect(stdout).toContain("WORKPIECE_EVIDENCE_PASS");
+  expect(stdout).toContain("COMPACTION_PASS");
 });

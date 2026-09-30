@@ -81,13 +81,23 @@ installFauxProvider({
   },
 } satisfies Provider);
 const question = "What remains unknown?";
-const privateMarkdown =
-  "# Workpiece payload must not be spoken\nUnknown timing.";
-const makeCall = (name: string, baseRevisionId: string | null) =>
+const privateMarkdown = "Ledger payload must not be spoken. Unknown timing.";
+const ledgerChanges = (content: string) => ({
+  changes: [
+    {
+      op: "add",
+      address: "open-matters",
+      content,
+      source: "agent",
+      standing: "open",
+    },
+  ],
+});
+const makeCall = (name: string) =>
   fauxToolCall(
     name,
-    name === brunchTools.mutateWorkpiece
-      ? { markdown: privateMarkdown, baseRevisionId }
+    name === brunchTools.ledgerCommit
+      ? ledgerChanges(privateMarkdown)
       : { question },
     { id: `${caseId}-${name}` },
   );
@@ -139,11 +149,8 @@ const run = async () => {
       fauxAssistantMessage(
         [
           fauxToolCall(
-            brunchTools.mutateWorkpiece,
-            {
-              markdown: "# Synthetic settled account\nUnknown timing.",
-              baseRevisionId: null,
-            },
+            brunchTools.ledgerCommit,
+            ledgerChanges("Synthetic settled account. Unknown timing."),
             { id: revisionId },
           ),
         ],
@@ -170,7 +177,7 @@ const run = async () => {
       caseId = names.join("-");
       const conversation = clientFor();
       const requestStart = requests.length;
-      const generated = names.map((name) => makeCall(name, null));
+      const generated = names.map((name) => makeCall(name));
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
         fauxAssistantMessage([fauxText(question)]),
@@ -187,16 +194,14 @@ const run = async () => {
         providerCalls: requests.length - requestStart,
       });
     }
-    caseId = brunchTools.mutateWorkpiece;
+    caseId = brunchTools.ledgerCommit;
     const conversation = clientFor();
-    const baseRevisionId = `${caseId}-old-revision`;
-    const seeding = await seedRevision(conversation, baseRevisionId);
+    const seeding = await seedRevision(conversation, `${caseId}-old-revision`);
     const requestStart = requests.length;
     faux.setResponses([
-      fauxAssistantMessage(
-        [makeCall(brunchTools.mutateWorkpiece, baseRevisionId)],
-        { stopReason: "toolUse" },
-      ),
+      fauxAssistantMessage([makeCall(brunchTools.ledgerCommit)], {
+        stopReason: "toolUse",
+      }),
       fauxAssistantMessage([fauxText(question)]),
     ]);
     const attempt = await conversation.send({
@@ -244,7 +249,7 @@ const run = async () => {
       const message = fauxAssistantMessage(
         [
           fauxText(text),
-          makeCall(abort ? "addType" : brunchTools.mutateWorkpiece, null),
+          makeCall(abort ? "addType" : brunchTools.ledgerCommit),
         ],
         { stopReason: "toolUse" },
       );

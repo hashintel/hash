@@ -27,11 +27,11 @@ export const brunchProductName = "brunch";
 export const brunchTools = {
   activateSkill: "activate_skill",
   draftPetrinautExperiment: "draft_petrinaut_experiment",
-  mutateWorkpiece: "mutate_workpiece",
+  ledgerCommit: "ledger_commit",
+  ledgerCompile: "ledger_compile",
   ping: "ping",
-  queryWorkpiece: "query_workpiece",
+  queryBasis: "query_basis",
   readSkillResource: "read_skill_resource",
-  readWorkpiece: "read_workpiece",
 } as const;
 
 /** Request headers that carry conversation identity. */
@@ -48,11 +48,6 @@ export const brunchRoutes = {
   health: "/health",
 } as const;
 
-/** Per-conversation persistent state keys. */
-export const brunchStateKeys = {
-  workpieceRevision: "brunch.workpiece.current.v1",
-} as const;
-
 /** Environment variable names read or written by Brunch source code. */
 export const brunchEnv = {
   chatDbPath: "BRUNCH_CHAT_DB_PATH",
@@ -63,6 +58,8 @@ export const brunchEnv = {
   corsAllowedOrigins: "BRUNCH_CORS_ALLOWED_ORIGINS",
   dbKind: "BRUNCH_DB_KIND",
   devDbPath: "BRUNCH_DEV_DB_PATH",
+  /** `typed` (default) or `open`: the Ledger Note shape offered to the model. */
+  ledgerNotes: "BRUNCH_LEDGER_NOTES",
   modelStreamCancellationTimeoutMs:
     "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
   modelStreamFirstEventTimeoutMs: "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
@@ -96,9 +93,6 @@ export const brunchEnv = {
    */
   viteChatEndpoint: "VITE_BRUNCH_CHAT_ENDPOINT",
 } as const;
-
-/** Info string of the fenced Runbook IR block in a workpiece. */
-export const runbookIrFence = "runbook-ir";
 
 /** Principal for the stock Flue UI at `/`. Not a second ownership rule. */
 export const localUiPrincipal = "local";

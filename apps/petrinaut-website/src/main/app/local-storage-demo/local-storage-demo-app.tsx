@@ -79,6 +79,8 @@ import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
 } from "./brunch-draft-experiment-interactive-tool";
+import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
+import { BrunchLedgerPane } from "./brunch-ledger-pane";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -94,8 +96,6 @@ import {
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
-import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { useFlueChatHistory } from "./use-flue-chat-history";
@@ -830,6 +830,8 @@ export const LocalStorageDemoApp = ({
             prepareInput: (call) => {
               canonicalHostTools?.mapClientToolInput(call);
             },
+            acceptsRevision: (expected) =>
+              canonicalHostTools?.acceptsRevision(expected) ?? false,
           })
         : undefined,
     [constructionBrowser, flueClientPromise, canonicalHostTools],
@@ -862,10 +864,8 @@ export const LocalStorageDemoApp = ({
           ? []
           : flueHistory.snapshot === undefined
             ? undefined
-            : foldBrunchWorkpieceHistory(
-                flueHistory.snapshot.messages,
-                constructionBrowser.binding,
-              ).activityIdentities
+            : foldBrunchLedgerHistory(flueHistory.snapshot.messages)
+                .activityIdentities
         : undefined;
     return {
       additionalTab: constructionBrowser
@@ -873,9 +873,8 @@ export const LocalStorageDemoApp = ({
             label: "Ledger",
             activityIdentities,
             content: (
-              <BrunchWorkpiecePane
+              <BrunchLedgerPane
                 messages={flueHistory.snapshot?.messages ?? []}
-                binding={constructionBrowser.binding}
               />
             ),
           }

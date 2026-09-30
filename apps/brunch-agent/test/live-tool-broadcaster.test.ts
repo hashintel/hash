@@ -12,7 +12,7 @@ const startEvent = (
     kind: "tool-input-start",
     submissionId,
     toolCallId,
-    toolName: "read_workpiece",
+    toolName: "ledger_compile",
     turnId: "turn-1",
   }) as const;
 

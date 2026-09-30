@@ -3,20 +3,18 @@ import * as v from "valibot";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import {
   callsForElement,
   isAppliedChange,
   latestNetDefinition,
+  ledgerAtCall,
   netCalls,
-  workpieceRevisionAtCall,
   type ArcElement,
 } from "./net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
-import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const elementSchema = v.object({
@@ -78,48 +76,8 @@ const elements = (
   });
 };
 
-const revisionTurnRange = (
-  snapshot: FlueConversationSnapshot,
-  revisionId: string,
-) => {
-  let turn = 0;
-  let startTurn = 1;
-  let userMessageIds: string[] = [];
-  for (const message of snapshot.messages) {
-    if (message.role === "user" && message.purpose === "user") {
-      turn += 1;
-      userMessageIds.push(message.id);
-    }
-    if (message.role !== "assistant" || message.purpose !== "assistant")
-      continue;
-    if (
-      message.parts.some(
-        (part) =>
-          part.type === "dynamic-tool" &&
-          part.toolName === brunchTools.mutateWorkpiece &&
-          part.state === "output-available" &&
-          part.toolCallId === revisionId,
-      )
-    )
-      return { revisionId, startTurn, endTurn: turn, userMessageIds };
-    if (
-      message.parts.some(
-        (part) =>
-          part.type === "dynamic-tool" &&
-          part.toolName === brunchTools.mutateWorkpiece &&
-          part.state === "output-available",
-      )
-    ) {
-      startTurn = turn + 1;
-      userMessageIds = [];
-    }
-  }
-  return undefined;
-};
-
-export const queryWorkpiece = (input: {
+export const queryBasis = (input: {
   snapshot: FlueConversationSnapshot;
-  current: WorkpieceRevision | null;
   browser: BrowserContext;
   query: Selector;
 }) => {
@@ -137,9 +95,9 @@ export const queryWorkpiece = (input: {
   )
     return {
       binding: input.browser.binding,
-      currentWorkpiece: input.current,
       disposition: "stale-read" as const,
-      reason: `The net changed after the latest ${getLatestNetDefinitionToolName} read; read it again, then query.`,
+      reason:
+        "The net changed after the latest net read; read it again, then query.",
       target: undefined,
       readToolCallId: read.toolCallId,
       changes: [],
@@ -164,21 +122,18 @@ export const queryWorkpiece = (input: {
         id: target.id,
         ...(target.arc === undefined ? {} : { arc: target.arc }),
       }).map((call) => {
-        const revision = workpieceRevisionAtCall(input.snapshot, call);
+        const ledger = ledgerAtCall(input.snapshot, call);
         return {
           toolCallId: call.toolCallId,
           operation: call.toolName,
           petrinautRevisionId: call.revisionAfter,
-          workpieceRevisionId: revision?.revisionId,
-          workpieceRevisionTurns: revision
-            ? revisionTurnRange(input.snapshot, revision.revisionId)
-            : undefined,
+          ledgerRevision: ledger?.revision,
+          notesRecordedThisTurn: ledger?.notesThisTurn ?? [],
         };
       })
     : [];
   return {
     binding: input.browser.binding,
-    currentWorkpiece: input.current,
     disposition: target ? ("basis-absent" as const) : ("not-found" as const),
     reason: target
       ? "No declared basis exists; these are chronological call associations, not semantic justification."
@@ -189,22 +144,20 @@ export const queryWorkpiece = (input: {
   };
 };
 
-export const createQueryWorkpieceTool = (options: {
-  current: WorkpieceRevision | null;
+export const createQueryBasisTool = (options: {
   browser: BrowserContext;
   history: () => Promise<FlueConversationSnapshot>;
 }) =>
   defineTool({
-    name: brunchTools.queryWorkpiece,
+    name: brunchTools.queryBasis,
     description:
-      "Find an element in the latest getLatestNetDefinition result by kind and unique name or ID; for an arc use its transitionId, arcDirection (input/output) and placeId. List canonical calls associated with that element, including their settled document revision and the workpiece revision's turn range and user message IDs. Associations are temporal context, not semantic justification. A stale-read disposition means the net changed after that read: read it again, then query.",
+      "Find an element in the latest net read by kind and unique name or ID; for an arc use its transitionId, arcDirection (input/output) and placeId. List the canonical calls that changed that element, each with its settled document revision, the Ledger revision current at the call, and the ids of Notes recorded earlier in the same turn. Associations are temporal context, not semantic justification. A stale-read disposition means the net changed after that read: read it again, then query.",
     input: elementSchema,
-    output: v.custom<ReturnType<typeof queryWorkpiece>>(() => true),
+    output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {
       return {
-        output: queryWorkpiece({
+        output: queryBasis({
           snapshot: await options.history(),
-          current: options.current,
           browser: options.browser,
           query: data.selector,
         }),

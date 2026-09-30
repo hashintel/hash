@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -104,42 +103,12 @@ export const assertCrashRecovery = (
     readJson(join(directory, "receipt.json")),
     "receipt",
   );
-  if (typeof receipt.markdown !== "string") {
-    throw new Error("receipt markdown must be a string");
-  }
-  const expectedPointer = {
-    revisionId: "a4-crash-revision",
-    sha256: createHash("sha256").update(receipt.markdown).digest("hex"),
-    ordinal: 1,
-  };
-  const expected = {
-    ...expectedPointer,
-    markdown: receipt.markdown,
-  };
-  const emptySha256 = createHash("sha256").update("").digest("hex");
+  const changes = asArray(receipt.changes, "receipt changes");
   const expectedOutput = {
-    disposition: "applied",
-    applied: true,
-    ...expectedPointer,
-    mutation: {
-      baseRevisionId: null,
-      beforeSha256: null,
-      afterSha256: expected.sha256,
-      commonPrefixUtf16: 0,
-      commonSuffixUtf16: 0,
-      removed: {
-        start: 0,
-        end: 0,
-        utf16Length: 0,
-        sha256: emptySha256,
-      },
-      inserted: {
-        start: 0,
-        end: receipt.markdown.length,
-        utf16Length: receipt.markdown.length,
-        sha256: expected.sha256,
-      },
-    },
+    status: "recorded",
+    commitId: "a4-crash-revision",
+    revision: 1,
+    notes: [{ address: "purpose/n1" }],
   };
   const result = asObject(
     readJson(join(directory, "recover-plain-result.json")),
@@ -153,40 +122,37 @@ export const assertCrashRecovery = (
   const recovered = recoveredTools[0];
   const nextRevision = nextTools.at(-1);
   if (recovered === undefined || nextRevision === undefined) {
-    throw new Error(
-      "Recovery must expose the crashed revision and the next one",
-    );
+    throw new Error("Recovery must expose the crashed commit and the next one");
   }
   assert.deepEqual(
     recovered.input,
-    { markdown: receipt.markdown, baseRevisionId: null },
-    "Recovered tool input must match the crashed markdown",
+    { changes },
+    "Recovered tool input must match the crashed changes",
   );
   assert.deepEqual(
     recovered.output,
     expectedOutput,
-    "Recovered tool output must match the crashed pointer",
-  );
-  assert.ok(
-    isJsonObject(nextRevision.output) &&
-      isJsonObject(nextRevision.output.mutation) &&
-      nextRevision.output.mutation.baseRevisionId === "a4-crash-revision" &&
-      nextRevision.output.mutation.beforeSha256 === expected.sha256,
-    "Successful recovered result without exact current state",
+    "Recovered tool output must carry the same host-assigned addresses",
   );
   assert.equal(
     nextRevision.toolCallId,
     "a4-next-revision",
-    "Distinct next revision must keep its call identity",
+    "Distinct next commit must keep its call identity",
   );
-  assert.ok(
-    isJsonObject(nextRevision.output) && nextRevision.output.ordinal === 2,
-    "Distinct next revision must advance to ordinal 2",
+  assert.deepEqual(
+    nextRevision.output,
+    {
+      status: "recorded",
+      commitId: "a4-next-revision",
+      revision: 2,
+      notes: [{ address: "purpose/n2", supersedes: "purpose/n1" }],
+    },
+    "The next commit must see the recovered Note",
   );
   assert.deepEqual(
     nextTools.map((tool) => tool.toolCallId),
     ["a4-crash-revision", "a4-next-revision"],
-    "Recovery must not reissue the completed call or reuse a revision ID",
+    "Recovery must not reissue the completed call or reuse a commit ID",
   );
   const afterRecovery = loadBatches(
     join(directory, "recover-plain-store-after-recovery.json"),
@@ -199,25 +165,14 @@ export const assertCrashRecovery = (
   if (outcome === undefined) {
     throw new Error("Exactly one durable outcome, no completed call replay");
   }
-  const stateWrites = afterRecovery.flatMap((batch) =>
-    batch.data.filter(
-      (record) =>
-        record.type === "state_write" &&
-        isJsonObject(record.value) &&
-        record.value.revisionId === "a4-crash-revision",
-    ),
-  );
-  const stateWrite = stateWrites[0];
-  if (stateWrites.length !== 1 || stateWrite === undefined) {
-    throw new Error("Recovered state write must be the exact current revision");
-  }
-  assert.deepEqual(
-    stateWrite.value,
-    expected,
-    "Recovered state write must be the exact current revision",
-  );
-  if (!outcome.data.includes(stateWrite)) {
-    throw new Error("State must be atomic with the outcome, not a later flush");
+  if (
+    afterRecovery.some((batch) =>
+      batch.data.some((record) => record.type === "state_write"),
+    )
+  ) {
+    throw new Error(
+      "The Ledger's only authority is tool history; no state is written",
+    );
   }
   if (kind.startsWith("repair-") || kind === "before-outcome") {
     if (
@@ -240,28 +195,4 @@ export const assertCrashRecovery = (
     expectedFaults,
     "Exact kill boundaries, not just nonzero exits",
   );
-  for (const batch of loadBatches(
-    join(directory, "recover-plain-store-before-boot.json"),
-  )) {
-    if (
-      batch.data.some(
-        (record) =>
-          record.type === "tool_outcome" &&
-          record.toolCallId === "a4-crash-revision",
-      ) &&
-      !batch.data.some(
-        (record) =>
-          record.type === "state_write" &&
-          isJsonObject(record.value) &&
-          record.value.revisionId === expected.revisionId &&
-          record.value.sha256 === expected.sha256 &&
-          record.value.ordinal === expected.ordinal &&
-          record.value.markdown === expected.markdown,
-      )
-    ) {
-      throw new Error(
-        "Atomic invariant must hold before replacement application boot too",
-      );
-    }
-  }
 };

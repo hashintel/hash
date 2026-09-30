@@ -234,7 +234,7 @@ test("reports server tool failures to the diagnostic callback before projection"
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "visible-1",
-    toolName: "query_workpiece",
+    toolName: "query_basis",
     input: {},
     position: position(1),
   });
@@ -250,7 +250,7 @@ test("reports server tool failures to the diagnostic callback before projection"
     {
       submissionId: "submission-1",
       toolCallId: "visible-1",
-      toolName: "query_workpiece",
+      toolName: "query_basis",
       errorText: "Unknown governing revision",
     },
   ]);
@@ -336,7 +336,7 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
     conversationId: "conversation-1",
     messageId: "message-1",
     toolCallId: "canonical-call",
-    toolName: "read_workpiece",
+    toolName: "ledger_compile",
     input: {},
     position: position(1),
   });
@@ -345,7 +345,7 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
     liveEvent(3, {
       kind: "tool-input-start",
       toolCallId: "canonical-call",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
     }),
   );
   projector.acceptLive(
@@ -353,14 +353,14 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
       kind: "tool-input-delta",
       inputTextDelta: "{}",
       toolCallId: "canonical-call",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
     }),
   );
   projector.acceptLive(
     liveEvent(2, {
       kind: "tool-input-start",
       toolCallId: "late-call",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
     }),
   );
   projector.acceptLive({
@@ -395,7 +395,7 @@ test.each(["turn", "disconnect"] as const)(
       liveEvent(0, {
         kind: "tool-input-start",
         toolCallId: "abandoned-call",
-        toolName: "read_workpiece",
+        toolName: "ledger_compile",
       }),
     );
     if (terminal === "turn") {
@@ -413,7 +413,7 @@ test.each(["turn", "disconnect"] as const)(
     expect(written).toContainEqual({
       type: "tool-input-error",
       toolCallId: "abandoned-call",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
       input: undefined,
       errorText: "This tool proposal was not executed.",
     });
@@ -442,7 +442,7 @@ test("lets canonical admission win the live turn-terminal race", () => {
       liveEvent(0, {
         kind: "tool-input-start",
         toolCallId: "racing-call",
-        toolName: "read_workpiece",
+        toolName: "ledger_compile",
       }),
     );
     projector.acceptLive({
@@ -460,7 +460,7 @@ test("lets canonical admission win the live turn-terminal race", () => {
       messageId: "message-1",
       position: position(1),
       toolCallId: "racing-call",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
     });
     vi.runAllTimers();
 
@@ -472,7 +472,7 @@ test("lets canonical admission win the live turn-terminal race", () => {
       input: {},
       providerExecuted: true,
       toolCallId: "racing-call",
-      toolName: "read_workpiece",
+      toolName: "ledger_compile",
     });
   } finally {
     vi.useRealTimers();

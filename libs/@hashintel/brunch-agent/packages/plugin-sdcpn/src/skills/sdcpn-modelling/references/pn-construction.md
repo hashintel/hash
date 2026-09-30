@@ -2,13 +2,22 @@
 
 Read this only when constructing, revising, or checking a net.
 
-Construction translates established operational meaning into SDCPN structure. It may choose a representation, introduce a visibly named approximation, or report a loss. It may not invent operational facts to make the net complete unless the person explicitly authorizes purpose-bounded assumptions; label every authorized assumption rather than presenting it as elicited evidence.
+Construction translates established operational meaning into SDCPN structure. It may choose a representation, stand in for what the account has not yet established, introduce a visibly named approximation, or report a loss. It may not present an invented fact as elicited: every stand-in and assumption is labelled as yours.
 
-## Construction boundary
+## Building from an incomplete account
 
-Before constructing a fragment, confirm that the person's account states the model's purpose and supports an activity with an adjacent state or relationship. Check the flow, ordering, enabling conditions, resource use and quantities that determine that fragment's meaning. The whole process's admission, outcomes and exception paths need not yet be known.
+Build a fragment once the account supports an activity and something it changes; the rest of the process need not be known. Early on, sketch everything the person has described across the operation, then deepen where the purpose needs it.
 
-If a missing operational distinction would materially change this fragment, formulate the smallest resolving question. Continue with independently supported fragments. Keep unresolved boundaries explicit; never invent a trigger, source, sink, release rule or numeric default to close them without explicit authorization to use sensible defaults, decide on the person's behalf, make up a suitable example, or equivalent. Any authorized default must remain purpose-bounded and labelled.
+Where a fact the fragment needs is missing, use a stand-in rather than waiting:
+
+- an unknown quantity, rate, duration or threshold becomes a net parameter holding a placeholder value, named so it reads as provisional;
+- an unknown trigger, arrival, decision or outcome becomes an externally supplied event or input place that a scenario or the person can drive;
+- an unknown branch rule becomes distinct outcome paths gated on a named parameter or external input, never an invented probability;
+- unknown internal steps become one activity, noted as collapsed.
+
+Record each stand-in under `construction`, ask for the missing fact when it bears on the purpose, and replace the stand-in when the person supplies it. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
+
+An explicit request to use sensible defaults, decide on the person's behalf, make up a suitable example, or equivalent authorizes concrete purpose-bounded values; they remain labelled as yours.
 
 When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state. Use the tools for every net change; do not emit free-form net JSON. When tools are absent, leave construction-ready notes and do not claim a loadable net.
 
@@ -23,18 +32,18 @@ When Petrinaut construction tools are mounted, their accepted schemas and the in
 | Ordering, branching, joining, triggers, and practiced decision rules | Arcs, guards, priorities, and explicit enabling state |
 | Resource consumption, reservation, release, and read-only use | Consumed tokens, held and returned resource tokens, or read behavior |
 | Continuous change | Dynamics on real-valued colour elements when a rate, threshold, or objective makes it consequential |
-| Metrics and objectives | Saved metrics (`addMetric`) where representable; qualitative goals and unsupported weights remain in the workpiece |
+| Metrics and objectives | Saved metrics (`addMetric`) where representable; qualitative goals and unsupported weights remain in the Ledger |
 | Named operating regimes and decisions the person may vary | Saved scenarios (`addScenario`) carrying a per-place initial state and typed scenario parameters; a count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
-| Data bindings and validation criteria | Workpiece obligations until a separate integration represents them |
+| Data bindings and validation criteria | Ledger obligations until a separate integration represents them |
 
 A physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node; when the person names such a regime, save it as a scenario so later runs and experiments can name it. A scenario parameter reaches the net in two ways: a `per_place` initial-state expression reads it as `scenario.<identifier>` (keys are place IDs), and `parameterOverrides` maps an existing net-level parameter ID to such an expression, so a tunable that transition code reads through `parameters.<variableName>` needs both the net parameter and the override. Metric code reads the simulated state, not scenario parameters.
 
 ## Petrinaut tool sequence
 
-Use the exact mounted schemas and wait for results before depending on them. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, workpiece revisions, observation call IDs, or Ledger locators into canonical tool inputs.
+Use the exact mounted schemas. You choose every ID, so the calls that build one fragment do not depend on each other's results. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, document revisions, observation call IDs, or Ledger addresses into canonical tool inputs.
 
-1. Apply one bounded connected fragment with canonical mutation calls. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Use stable IDs and the exact canonical input schemas.
-2. Read the net again before another state-dependent mutation or a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
+1. Send a whole bounded connected fragment in one step, as parallel canonical mutation calls in dependency order: the types, parameters and differential equations it needs, then places and transitions, then arcs. The host runs a step's calls in that order, and the last change's result carries `netAfterChanges`, the net's structure after the whole step; use it instead of reading the net again. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase.
+2. Check once per fragment: after the step that writes code, call `getNetCompilationErrors` once, and send every repair it calls for in one further step. Read the net again only when you need code or fields `netAfterChanges` omits, before a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
 
 ### Keep incidental choices small
 
@@ -46,7 +55,7 @@ The mounted schemas, not this prose, govern exact payload fields.
 
 ## Construction patterns
 
-Patterns are candidate transformations whose premises must already be present in the person's account. They do not supply missing facts.
+Patterns are candidate transformations whose premises must already be present in the person's account. They do not supply missing facts; stand-ins mark where facts are missing.
 
 ### Timed work
 
@@ -54,7 +63,7 @@ When a logical activity occupies consequential time, represent start, in-progres
 
 ### Conditional or probabilistic outcome
 
-Represent mutually exclusive outcomes with distinct enabled paths. Use a recorded rule, condition, parameter, or probability. If no probability is supported, do not manufacture an even split; preserve a symbolic parameter, use a non-probabilistic condition when available, or report the gap.
+Represent mutually exclusive outcomes with distinct enabled paths. Use a recorded rule, condition, parameter, or probability. If no probability is supported, do not manufacture an even split; use a named parameter, a non-probabilistic condition when available, or an externally supplied outcome.
 
 ### Contended resource
 
@@ -100,31 +109,31 @@ Derive waiting from unavailable resources, unmet prerequisites, calendar state, 
 
 ## Inference, approximation, and target loss
 
-Name every representational choice not directly supported by the operational account. Preserve its reason, consequence, and route to checking in the workpiece.
+Name every representational choice not directly supported by the operational account. Preserve its reason, consequence, and route to checking as a construction Note.
 
-Potentially acceptable when purpose-relative and visible:
+Acceptable when visible:
 
+- a stand-in for a missing quantity, trigger, outcome or rule, as described above;
 - collapsing several named micro-steps when no objective depends on their internal order;
-- representing an unknown rate as a parameter rather than a value;
 - using a constant for variation judged immaterial to the stated purpose;
 - choosing one of several behaviorally equivalent net factorizations; and
 - supplying layout positions that carry no operational meaning.
 
 Not acceptable:
 
-- filling an empty workpiece concern from generic operations knowledge;
+- presenting generic operations knowledge, or a stand-in, as the person's account;
 - averaging conflicting or context-dependent values;
 - interpreting “unknown” as a conventional distribution;
 - treating a posted rule as practiced behavior;
-- inventing release, recovery, retry, or branch semantics; or
+- building invented release, recovery, retry, or branch semantics as if elicited, instead of a labelled stand-in; or
 - claiming a net is loadable, valid, or simulated without corresponding tool evidence.
 
-Record workpiece material the target or current tools cannot faithfully carry, including qualitative objectives without usable metrics, policy whose deciding condition remains tacit, live data bindings not connected by the current path, validation judgments outside net semantics, and contextual distinctions collapsed by an accepted simplification.
+Record, as construction Notes, account material the target or current tools cannot faithfully carry, including qualitative objectives without usable metrics, policy whose deciding condition remains tacit, live data bindings not connected by the current path, validation judgments outside net semantics, and contextual distinctions collapsed by an accepted simplification.
 
 ## Existing-net analysis and bounded change
 
 Start from the changed or disputed operational material and inspect the current net before mutation. Identify the elements whose meaning depends on that material and the desired delta.
 
-Do not claim general net revision unless mounted capabilities can update or remove existing structure. With an add-and-inspect subset, apply only genuinely additive changes that preserve the intended existing structure; otherwise stop after analysis and describe the unsupported update or removal. Never simulate replacement by adding competing elements beside obsolete ones.
+The net is a draft. When changed or newly established meaning does not fit the current representation, revise that representation with the update and remove tools: give a place a type that carries the needed quantity, replace a transition, remove superseded structure. Make the revision as one bounded change and never leave obsolete elements beside their replacements.
 
 After a supported change, report what was added, what was only inspected, which objective consequences changed, and which assumptions or losses opened or closed.
