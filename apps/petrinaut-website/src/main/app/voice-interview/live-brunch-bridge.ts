@@ -2,6 +2,7 @@ import { selectCanonicalSpeech } from "./canonical-speech";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { FinalizedInput } from "./live-conversation";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -33,6 +34,12 @@ interface Turn {
 type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
+
+const wordCount = (text: string) =>
+  text
+    .normalize("NFKC")
+    .match(/[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu)?.length ?? 0;
+
 interface Dependencies {
   readonly submit: Submit;
   readonly appendCommentary: (
@@ -107,10 +114,7 @@ export class LiveBrunchBridge {
     );
   }
 
-  public async accept(input: {
-    readonly id: string;
-    readonly text: string;
-  }): Promise<void> {
+  public async accept(input: FinalizedInput): Promise<void> {
     if (this.#abort.signal.aborted) return;
     if (this.#seenInputs.has(input.id)) {
       logLiveDiagnostic("input.ignored", {
@@ -120,9 +124,21 @@ export class LiveBrunchBridge {
       return;
     }
     this.#seenInputs.add(input.id);
+    const words = wordCount(input.text);
+    // Leaked Live audio finalizes as phantoms of a few words. Check before a
+    // delegation is claimed: GPT-Live can delegate its own echo, and an
+    // unclaimed delegation can outlast the utterance it was created for.
+    if (input.startedDuringOutput && words > 0 && words <= 3) {
+      logLiveDiagnostic("input.ignored", {
+        inputId: input.id,
+        reason: "short-during-output",
+      });
+      return;
+    }
     const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
-    if (!input.text.trim()) {
+    // Transcription can finalize noise as punctuation alone, such as ".".
+    if (words === 0) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
         delegationId,
@@ -169,7 +185,8 @@ export class LiveBrunchBridge {
     try {
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       const result = await this.#dependencies.submit({
-        ...input,
+        id: input.id,
+        text: input.text,
         admissionTarget: { kind: "user", messageId: input.id },
         signal: this.#abort.signal,
         onAdmission: (submissionId) => {

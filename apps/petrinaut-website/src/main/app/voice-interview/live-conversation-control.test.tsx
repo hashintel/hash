@@ -845,7 +845,11 @@ test("final transcription enters the real admission helper and only its settled 
   act(() => call[0]({ phase: "connected", message: null }));
   act(() => call[3]("delegation-1"));
   await act(async () =>
-    call[2]({ id: "utterance-1", text: "Seven reviewers, not four." }),
+    call[2]({
+      id: "utterance-1",
+      text: "Seven reviewers, not four.",
+      startedDuringOutput: false,
+    }),
   );
   expect(props.submitVoiceInput).toHaveBeenCalledOnce();
   expect(props.submitVoiceInput).toHaveBeenCalledWith(
@@ -901,7 +905,13 @@ test("final transcription enters the real admission helper and only its settled 
   );
   act(() => tracker.recordStopRequested());
   expect(session.stop).not.toHaveBeenCalled();
-  await act(async () => call[2]({ id: "late", text: "Late transcription" }));
+  await act(async () =>
+    call[2]({
+      id: "late",
+      text: "Late transcription",
+      startedDuringOutput: false,
+    }),
+  );
   expect(props.submitVoiceInput).toHaveBeenCalledTimes(2);
 });
 
@@ -1009,7 +1019,11 @@ test.each(["answer", "folded-answer"])(
       .value as ReturnType<typeof createLiveConversation>;
     act(() => call[0]({ phase: "connected", message: null }));
     await act(async () =>
-      call[2]({ id: "utterance", text: "Seven, not four" }),
+      call[2]({
+        id: "utterance",
+        text: "Seven, not four",
+        startedDuringOutput: false,
+      }),
     );
     rerender(
       <VoiceInterviewControl
