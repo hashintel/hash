@@ -161,6 +161,28 @@ test("a correction evicts the stale superseded turn but keeps its own Live deleg
   );
 });
 
+test("empty speech does not evict a superseded turn that is still preparing", async () => {
+  const brief = Promise.withResolvers<Record<string, string>>();
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: () => brief.promise,
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const stale = fixture.bridge.accept({
+    id: "old",
+    text: "Old request",
+    superseded: true,
+    startedDuringOutput: false,
+  });
+  await fixture.bridge.accept(speech("blip", " . "));
+  brief.resolve({});
+  await stale;
+
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("old");
+});
+
 test("prepares a brief before admission and summarizes only a settled rendered answer", async () => {
   const history = new VoiceMediationHistory("test");
   const prepare = vi.fn(async () => ({

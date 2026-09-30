@@ -301,8 +301,6 @@ export class LiveBrunchBridge {
       this.#closeStrayDelegations();
       return;
     }
-    if (!input.superseded && this.#waitingForComposer?.superseded)
-      this.#evict(this.#waitingForComposer);
     const delegationId = input.superseded
       ? null
       : ([...this.#unclaimedDelegations].at(-1) ?? null);
@@ -322,6 +320,8 @@ export class LiveBrunchBridge {
       }
       return;
     }
+    if (!input.superseded && this.#waitingForComposer?.superseded)
+      this.#evict(this.#waitingForComposer);
     if (
       input.text.length > 32_000 ||
       this.#waitingForComposer ||
