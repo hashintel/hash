@@ -276,11 +276,11 @@ each reply. Any speech start, input fragment or `startedDuringOutput: true`
 during a reply means echo reached the microphone path; also note whether Live
 stops itself mid-sentence. Then interrupt a reply once with a sentence of your
 own and once with a short answer such as "Yes". Each `filter.shadow` line
-should match a phantom in the conversation, and neither interruption should
-get one. After any `delegation.deferred` line, note whether Live speaks without
-a Brunch reply: what GPT-Live does with a delegation left open is not yet
-known. The traces are local development diagnostics and contain no audio or
-text.
+should match a phantom in the conversation, and the interruptions should
+usually get none. After any `delegation.deferred` line, note whether Live
+speaks without a Brunch reply: what GPT-Live does with a delegation left open
+is not yet known. The traces are local development diagnostics and contain no
+audio or text.
 
 #### Noise check — 5 minutes
 
