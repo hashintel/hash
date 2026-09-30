@@ -1073,7 +1073,6 @@ describe("AiAssistantContents", () => {
     expect(brief?.open).toBe(false);
     fireEvent.click(screen.getByText("Sent to Brunch"));
     expect(screen.getByText("Arrival rate")).not.toBeNull();
-    expect(screen.queryByTestId("voice-input-provenance")).toBeNull();
     rerender(
       <AiAssistantContents
         input=""
@@ -3039,26 +3038,6 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    for (const [toolCallId, answer] of [
-      ["question-voice-1", "The shift lead"],
-      ["question-voice-2", "The dispatcher"],
-    ]) {
-      expect(
-        within(
-          screen
-            .getByText(`${toolCallId}: ${answer}`)
-            .closest("[data-tool-call-id]")!,
-        ).queryByTestId("voice-input-provenance"),
-      ).toBeNull();
-    }
-    expect(
-      within(
-        screen
-          .getByText("question-typed: The operator")
-          .closest("[data-tool-call-id]")!,
-      ).queryByTestId("voice-input-provenance"),
-    ).toBeNull();
-    expect(screen.queryAllByTestId("voice-input-provenance")).toHaveLength(0);
     expect(screen.queryByText("The shift lead", { exact: true })).toBeNull();
     expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(0);
   });

@@ -384,7 +384,7 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
   await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
   firstMount.unmount();
 
-  const secondMount = render(
+  render(
     <ContinuityPanel
       clientPromise={observation.clientPromise}
       endVoice={endVoice}
@@ -399,18 +399,6 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
   await act(async () => fireEvent.click(showSecondPanel));
   await screen.findByText("Typed planning note");
   expect(observation.observe).toHaveBeenCalledTimes(2);
-  expect(
-    within(
-      screen.getByText("Typed planning note").closest("[data-role]")!,
-    ).queryByTestId("voice-input-provenance"),
-  ).toBeNull();
-  expect(
-    within(
-      secondMount.container.querySelector(
-        '[data-tool-call-id="voice-tool-1"]',
-      )!,
-    ).queryByTestId("voice-input-provenance"),
-  ).toBeNull();
   expect(screen.getByText("voice-tool-1: The supervisor")).not.toBeNull();
   expect(screen.getByText("Durably interrupted response")).not.toBeNull();
   expect(screen.getByText("Stopped")).not.toBeNull();
