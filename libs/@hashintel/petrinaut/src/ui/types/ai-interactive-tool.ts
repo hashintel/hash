@@ -53,6 +53,10 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
    * Render an interaction only for matching call identities. Defaults to all.
    * This runs during render without parsing the input; when it
    * depends on host state, rebuild `interactiveTools` as that state changes.
+   *
+   * Declining only suppresses the widget for tools the host executes itself
+   * (`inBandBrowserTools`). Any other registered tool is completed solely by
+   * its widget, so a declined call fails rather than waiting for a result.
    */
   shouldHandle?: (call: { toolCallId: string }) => boolean;
   /**
