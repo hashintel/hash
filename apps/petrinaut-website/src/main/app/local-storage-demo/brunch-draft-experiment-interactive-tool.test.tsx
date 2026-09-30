@@ -832,7 +832,8 @@ describe("BrunchDraftExperimentWidget", () => {
         ...finishedResult,
         status: "error",
         message: "Compilation failed",
-        runsCompleted: 0,
+        runsCompleted: 3,
+        metrics: [{ id: "queue", label: "Queue length", value: 4 }],
       })
       .mockResolvedValueOnce(finishedResult);
     const { submit } = renderWidget({
@@ -850,6 +851,11 @@ describe("BrunchDraftExperimentWidget", () => {
       expect(screen.getByRole("status").textContent).toBe("Failed"),
     );
     expect(screen.getByText("Compilation failed")).toBeTruthy();
+    expect(screen.getByText("3 runs")).toBeTruthy();
+    expect(screen.getByText("Queue length")).toBeTruthy();
+    expect(
+      screen.getByText("Results shown in chat; experiment is no longer open."),
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
 

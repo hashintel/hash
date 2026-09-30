@@ -15,7 +15,12 @@ type EditorDraftRun =
       progress: PetrinautExperimentProgress | null;
     }
   | { phase: "finished"; result: PetrinautExperimentResult }
-  | { phase: "failed"; message: string };
+  | {
+      phase: "failed";
+      message: string;
+      /** The host's error result, when it reported one rather than throwing. */
+      result?: PetrinautExperimentResult;
+    };
 
 export type EditorDraft = {
   toolCallId: string;

@@ -473,6 +473,7 @@ export const BrunchDraftExperimentWidget = ({
             ? {
                 phase: "failed",
                 message: result.message ?? "The experiment failed.",
+                result,
               }
             : { phase: "finished", result },
       });
@@ -516,12 +517,14 @@ export const BrunchDraftExperimentWidget = ({
     (draft.run.phase === "idle" || draft.run.phase === "failed");
   const canRun = canAct && optimizationUnavailable === null;
   const run = draft?.run;
+  const runResult =
+    run?.phase === "finished" || run?.phase === "failed"
+      ? run.result
+      : undefined;
   const experimentId =
-    run?.phase === "finished"
-      ? run.result.experimentId
-      : run?.phase === "running"
-        ? run.progress?.experimentId
-        : undefined;
+    run?.phase === "running"
+      ? run.progress?.experimentId
+      : runResult?.experimentId;
   const canViewExperiment =
     experimentId &&
     experiments.some((experiment) => experiment.id === experimentId);
@@ -540,7 +543,7 @@ export const BrunchDraftExperimentWidget = ({
         progress={
           run.phase === "running" ? (run.progress ?? undefined) : undefined
         }
-        result={run.phase === "finished" ? run.result : undefined}
+        result={runResult}
         error={run.phase === "failed" ? run.message : undefined}
         onCancel={
           run.phase === "running" ? () => run.controller.abort() : undefined
