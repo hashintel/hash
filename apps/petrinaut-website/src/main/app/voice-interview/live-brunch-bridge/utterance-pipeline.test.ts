@@ -143,6 +143,12 @@ const doubtfulShadows = (calls: readonly (readonly unknown[])[]) =>
 test.each([
   ["a least likely token below -1.9 is doubtful", { minLogprob: -2 }, true],
   [
+    "a least likely token of -1.9004 is doubtful",
+    { minLogprob: -1.9004 },
+    true,
+  ],
+  ["a least likely token of -1.9 is not doubtful", { minLogprob: -1.9 }, false],
+  [
     "a repeat of Live's words is doubtful",
     { minLogprob: -0.1, liveOutputText: "Okay, seven." },
     true,
