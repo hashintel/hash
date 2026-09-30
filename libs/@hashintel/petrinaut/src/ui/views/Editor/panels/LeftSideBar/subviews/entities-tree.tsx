@@ -15,6 +15,7 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
+import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import {
   leverTagStyle,
   useControllersTreeGroup,
@@ -256,6 +257,13 @@ export const entitiesTreeSubView: SubView = {
     },
     renderRowMenu: EntityRowMenu,
     emptyMessage: "No entities yet",
+    wrapRow: (item, row) =>
+      item.selectionItem?.type === "place" ||
+      item.selectionItem?.type === "transition" ? (
+        <NodeContextMenu nodeId={item.selectionItem.id}>{row}</NodeContextMenu>
+      ) : (
+        row
+      ),
   }),
   main: true,
   alwaysShowHeaderAction: true,

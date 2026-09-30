@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
 import {
   LeverTooltip,
@@ -86,43 +87,45 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         : "Predicate";
 
   return (
-    <NodeCard
-      cardClassName={`${nodeCardStyle} ${transitionCardStyle} ${nodeFocusStyle({ focus })}`}
-      cardRef={boxRef}
-      iconContainer={
-        <div
-          className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
-        >
-          {lever ? (
-            <LeverGlyph size={22} title={leverLabel(lever)} />
-          ) : (
-            <Icon name="squareFilled" />
-          )}
-          {data.lambdaType === "stochastic" && (
-            <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>
-              <Icon name="lambda" size="xs" />
-            </div>
-          )}
-        </div>
-      }
-      title={label}
-      subtitle={subtitle}
-      badge={
-        <>
-          <div ref={boltRef} className={firingIndicatorStyle}>
-            <Icon name="lightning" />
+    <NodeContextMenu nodeId={id}>
+      <NodeCard
+        cardClassName={`${nodeCardStyle} ${transitionCardStyle} ${nodeFocusStyle({ focus })}`}
+        cardRef={boxRef}
+        iconContainer={
+          <div
+            className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
+          >
+            {lever ? (
+              <LeverGlyph size={22} title={leverLabel(lever)} />
+            ) : (
+              <Icon name="squareFilled" />
+            )}
+            {data.lambdaType === "stochastic" && (
+              <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>
+                <Icon name="lambda" size="xs" />
+              </div>
+            )}
           </div>
-          {lever ? (
-            <LeverTooltip
-              nodeId={id}
-              lever={lever}
-              visible={data.hovered && !data.dragging}
-              lambdaType={data.lambdaType}
-            />
-          ) : null}
-        </>
-      }
-      isConnectable={isConnectable}
-    />
+        }
+        title={label}
+        subtitle={subtitle}
+        badge={
+          <>
+            <div ref={boltRef} className={firingIndicatorStyle}>
+              <Icon name="lightning" />
+            </div>
+            {lever ? (
+              <LeverTooltip
+                nodeId={id}
+                lever={lever}
+                visible={data.hovered && !data.dragging}
+                lambdaType={data.lambdaType}
+              />
+            ) : null}
+          </>
+        }
+        isConnectable={isConnectable}
+      />
+    </NodeContextMenu>
   );
 };

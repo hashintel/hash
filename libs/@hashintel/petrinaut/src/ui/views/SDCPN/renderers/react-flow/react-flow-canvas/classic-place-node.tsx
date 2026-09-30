@@ -3,6 +3,7 @@ import { type NodeProps } from "@xyflow/react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
 import {
   LeverTooltip,
@@ -97,44 +98,46 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const lever = useNodeLever(id);
 
   return (
-    <div className={containerStyle}>
-      {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
+    <NodeContextMenu nodeId={id}>
+      <div className={containerStyle}>
+        {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
 
-      <div
-        className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${classicNodeBoxStyle} ${placeBoxStyle}`}
-        style={
-          {
-            "--node-outline-color": placeBorderColor(data.typeColor),
-            backgroundColor: placeFillColor(data.typeColor),
-          } as React.CSSProperties
-        }
-      >
-        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
-          {lever ? <LeverGlyph size={16} title={leverLabel(lever)} /> : null}
-          {data.dynamicsEnabled ? (
-            <div className={dynamicsIconStyle}>
-              <Icon name="function" size="sm" />
-            </div>
-          ) : null}
+        <div
+          className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${classicNodeBoxStyle} ${placeBoxStyle}`}
+          style={
+            {
+              "--node-outline-color": placeBorderColor(data.typeColor),
+              backgroundColor: placeFillColor(data.typeColor),
+            } as React.CSSProperties
+          }
+        >
+          <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+            {lever ? <LeverGlyph size={16} title={leverLabel(lever)} /> : null}
+            {data.dynamicsEnabled ? (
+              <div className={dynamicsIconStyle}>
+                <Icon name="function" size="sm" />
+              </div>
+            ) : null}
+          </div>
+          <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
+            {label}
+          </div>
+          <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+            {tokenCount === null ? null : (
+              <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+            )}
+          </div>
         </div>
-        <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
-          {label}
-        </div>
-        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
-          {tokenCount === null ? null : (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-          )}
-        </div>
+        <NodeHandles isConnectable={isConnectable} />
+        {lever ? (
+          <LeverTooltip
+            nodeId={id}
+            lever={lever}
+            visible={data.hovered && !data.dragging && !showStateTooltip}
+            lambdaType={null}
+          />
+        ) : null}
       </div>
-      <NodeHandles isConnectable={isConnectable} />
-      {lever ? (
-        <LeverTooltip
-          nodeId={id}
-          lever={lever}
-          visible={data.hovered && !data.dragging && !showStateTooltip}
-          lambdaType={null}
-        />
-      ) : null}
-    </div>
+    </NodeContextMenu>
   );
 };

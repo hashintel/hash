@@ -1,6 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
 import {
   LeverTooltip,
@@ -83,48 +84,50 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const placeBackgroundColor = placeFillColor(data.typeColor);
 
   return (
-    <>
-      {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
-      <NodeCard
-        cardClassName={`${nodeCardStyle} ${placeCardStyle} ${nodeFocusStyle({ focus })}`}
-        cardStyle={{
-          borderColor: typeColorBorder,
-          backgroundColor: placeBackgroundColor,
-        }}
-        iconContainer={
-          <div
-            className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
-            style={{ color: typeColorBorder }}
-          >
-            {lever ? (
-              <LeverGlyph size={22} title={leverLabel(lever)} />
-            ) : (
-              <Icon name="circleFilled" />
-            )}
-            {data.dynamicsEnabled && (
-              <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
-                <Icon name="function" size="xs" />
-              </div>
-            )}
-          </div>
-        }
-        title={data.label}
-        subtitle={subtitle}
-        badge={
-          tokenCount !== null ? (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-          ) : undefined
-        }
-        isConnectable={isConnectable}
-      />
-      {lever ? (
-        <LeverTooltip
-          nodeId={id}
-          lever={lever}
-          visible={data.hovered && !data.dragging && !showStateTooltip}
-          lambdaType={null}
+    <NodeContextMenu nodeId={id}>
+      <>
+        {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
+        <NodeCard
+          cardClassName={`${nodeCardStyle} ${placeCardStyle} ${nodeFocusStyle({ focus })}`}
+          cardStyle={{
+            borderColor: typeColorBorder,
+            backgroundColor: placeBackgroundColor,
+          }}
+          iconContainer={
+            <div
+              className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
+              style={{ color: typeColorBorder }}
+            >
+              {lever ? (
+                <LeverGlyph size={22} title={leverLabel(lever)} />
+              ) : (
+                <Icon name="circleFilled" />
+              )}
+              {data.dynamicsEnabled && (
+                <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
+                  <Icon name="function" size="xs" />
+                </div>
+              )}
+            </div>
+          }
+          title={data.label}
+          subtitle={subtitle}
+          badge={
+            tokenCount !== null ? (
+              <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+            ) : undefined
+          }
+          isConnectable={isConnectable}
         />
-      ) : null}
-    </>
+        {lever ? (
+          <LeverTooltip
+            nodeId={id}
+            lever={lever}
+            visible={data.hovered && !data.dragging && !showStateTooltip}
+            lambdaType={null}
+          />
+        ) : null}
+      </>
+    </NodeContextMenu>
   );
 };

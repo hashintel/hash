@@ -184,6 +184,8 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
   renderRowMenu?: ComponentType<{ item: T }>;
   emptyMessage: string;
   renderHeaderAction?: () => ReactNode;
+  /** Wraps a non-group row, e.g. in a right-click menu. */
+  wrapRow?: (item: T, row: ReactNode) => ReactNode;
 }
 
 const FilterHeaderAction: React.FC<{
@@ -268,12 +270,14 @@ const FilterableListContent = <T extends FilterableListItem>({
   renderItem,
   renderRowMenu: RenderRowMenu,
   emptyMessage,
+  wrapRow,
 }: {
   items: T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
   renderRowMenu?: ComponentType<{ item: T }>;
   emptyMessage: string;
+  wrapRow?: (item: T, row: ReactNode) => ReactNode;
 }) => {
   const {
     isSelected: checkIsSelected,
@@ -437,7 +441,7 @@ const FilterableListContent = <T extends FilterableListItem>({
       <RenderRowMenu item={item} />
     ) : null;
 
-    return (
+    const rowElement = (
       <div
         key={item.id}
         role="option"
@@ -492,6 +496,11 @@ const FilterableListContent = <T extends FilterableListItem>({
           </RowActionCell>
         ) : null}
       </div>
+    );
+    return wrapRow && !isGroup ? (
+      <Fragment key={item.id}>{wrapRow(item, rowElement)}</Fragment>
+    ) : (
+      rowElement
     );
   };
 
@@ -563,6 +572,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     renderRowMenu,
     emptyMessage,
     renderHeaderAction: renderExtraAction,
+    wrapRow,
   } = config;
 
   const Component: React.FC = () => {
@@ -574,6 +584,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
         renderItem={renderItem}
         renderRowMenu={renderRowMenu}
         emptyMessage={emptyMessage}
+        wrapRow={wrapRow}
       />
     );
   };

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverIconBox } from "../../../../../controller-prototype/lever-glyph";
 import {
   LeverTooltip,
@@ -117,42 +118,44 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const lever = useNodeLever(id);
 
   return (
-    <div className={containerStyle}>
-      <div
-        ref={boxRef}
-        className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
-      >
-        <div className={transitionIconStyle}>
-          {lever ? (
-            <LeverIconBox title={leverLabel(lever)} />
-          ) : (
-            <Icon name="squareFilled" size="lg" />
-          )}
-          {data.lambdaType === "stochastic" ? (
-            <div className={`${iconBadgeStyle} ${stochasticIconStyle}`}>
-              <Icon name="lambda" size="xs" />
-            </div>
-          ) : null}
-        </div>
-        <div className={transitionTextStyle}>
-          <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
-            {label}
+    <NodeContextMenu nodeId={id}>
+      <div className={containerStyle}>
+        <div
+          ref={boxRef}
+          className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
+        >
+          <div className={transitionIconStyle}>
+            {lever ? (
+              <LeverIconBox title={leverLabel(lever)} />
+            ) : (
+              <Icon name="squareFilled" size="lg" />
+            )}
+            {data.lambdaType === "stochastic" ? (
+              <div className={`${iconBadgeStyle} ${stochasticIconStyle}`}>
+                <Icon name="lambda" size="xs" />
+              </div>
+            ) : null}
           </div>
-          <div className={transitionTypeStyle}>{subtitle}</div>
+          <div className={transitionTextStyle}>
+            <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
+              {label}
+            </div>
+            <div className={transitionTypeStyle}>{subtitle}</div>
+          </div>
+          <div ref={boltRef} className={firingIndicatorStyle}>
+            <Icon name="lightning" size="sm" />
+          </div>
         </div>
-        <div ref={boltRef} className={firingIndicatorStyle}>
-          <Icon name="lightning" size="sm" />
-        </div>
+        <NodeHandles isConnectable={isConnectable} />
+        {lever ? (
+          <LeverTooltip
+            nodeId={id}
+            lever={lever}
+            visible={data.hovered && !data.dragging}
+            lambdaType={data.lambdaType}
+          />
+        ) : null}
       </div>
-      <NodeHandles isConnectable={isConnectable} />
-      {lever ? (
-        <LeverTooltip
-          nodeId={id}
-          lever={lever}
-          visible={data.hovered && !data.dragging}
-          lambdaType={data.lambdaType}
-        />
-      ) : null}
-    </div>
+    </NodeContextMenu>
   );
 };

@@ -10,6 +10,7 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
+import { AddToControllerButton } from "../../../../controller-prototype/add-to-controller-menu";
 
 import type { PetrinautMutations } from "../../../../../react";
 import type { SubView } from "../../../../components/sub-view/types";
@@ -71,7 +72,12 @@ const MultiSelectionContent: React.FC = () => {
     })
     .join(", ");
 
-  return <div className={summaryStyle}>{summary}</div>;
+  return (
+    <>
+      <div className={summaryStyle}>{summary}</div>
+      <AddToControllerButton items={items} />
+    </>
+  );
 };
 
 const DeleteSelectionAction: React.FC = () => {
