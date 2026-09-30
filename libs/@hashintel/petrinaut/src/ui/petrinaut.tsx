@@ -52,6 +52,8 @@ export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+export type PetrinautAiAssistantPresentation = "stock" | "brunch";
+
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
 export type PetrinautAiToolPresentationTone =
@@ -82,7 +84,7 @@ export type PetrinautAiToolPresentationResolver = (
 
 export type PetrinautAiAssistant = {
   /** Selects the assistant's visual presentation. Defaults to "stock". */
-  presentation?: "stock" | "brunch";
+  presentation?: PetrinautAiAssistantPresentation;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls
