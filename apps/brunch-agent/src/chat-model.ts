@@ -1,14 +1,12 @@
 import { brunchEnv } from "@hashintel/brunch-agent";
 import { petrinautAiModel } from "@hashintel/petrinaut-core";
 
-/** Bare Anthropic Sonnet id used by tests, legacy resume, and the persona default. */
+/** Bare Anthropic Sonnet id used by tests and legacy resume. */
 export const STEP_A_MODEL_ID = "claude-sonnet-4-6";
 
 /** The Petrinaut assistant default, shared with the stock chat route. */
 export const DEFAULT_CHAT_MODEL = `${petrinautAiModel.provider}/${petrinautAiModel.id}`;
 export const DEFAULT_CHAT_THINKING = petrinautAiModel.reasoningEffort;
-export const PERSONA_DEFAULT_PERSONA_MODEL = `anthropic/${STEP_A_MODEL_ID}`;
-export const PERSONA_DEFAULT_PERSONA_THINKING = "low";
 export const LEGACY_PERSONA_THINKING = "medium";
 
 const thinkingLevels = [

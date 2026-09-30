@@ -59,8 +59,9 @@ export const submitPersonaBrowserTurn = async (
     exact: true,
   });
   assert(!(await stop.isVisible()), "The browser already has an active turn");
+  // Whitespace alone is not a draft; `fill` replaces it.
   assert.equal(
-    await composer.inputValue(),
+    (await composer.inputValue()).trim(),
     "",
     "Refusing to overwrite an existing browser draft",
   );

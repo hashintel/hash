@@ -21,6 +21,7 @@ const setup = () => {
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendInstructions"]
   >(() => true);
   const notice = vi.fn();
+  const speechPending = vi.fn(() => true);
   const submit = vi.fn(async (input: { onAdmission: (id: string) => void }) => {
     input.onAdmission("root");
     return {
@@ -33,6 +34,7 @@ const setup = () => {
     appendCommentary,
     appendInstructions,
     notice,
+    speechPending,
     submit,
   });
   const update = (
@@ -51,10 +53,21 @@ const setup = () => {
     appendCommentary,
     appendInstructions,
     notice,
+    speechPending,
     submit,
     update,
   };
 };
+
+const traceRecords = (calls: readonly (readonly unknown[])[], event: string) =>
+  calls
+    .map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === event);
 
 const segment = (
   text = "There are 7 reviewers, not 4. Is approval optional?",
@@ -67,6 +80,12 @@ const segment = (
   text,
   submissionIds: ["root"],
 });
+/** Speech that started while Live was quiet. */
+const speech = (id: string, text: string) => ({
+  id,
+  text,
+  startedDuringOutput: false,
+});
 const completed = [{ submissionId: "root", outcome: "completed" as const }];
 const started = {
   messageId: "answer",
@@ -78,7 +97,7 @@ test("trace distinguishes ungated admission, later delegation matching, settleme
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   const fixture = setup();
-  await fixture.bridge.accept({ id: "first-input", text: "PRIVATE INPUT" });
+  await fixture.bridge.accept(speech("first-input", "PRIVATE INPUT"));
   fixture.bridge.acceptDelegation("late-delegation");
   fixture.bridge.responseStarted(started);
   fixture.update({ status: "streaming" });
@@ -91,7 +110,7 @@ test("trace distinguishes ungated admission, later delegation matching, settleme
     settlements: completed,
   });
   fixture.update({ canAcceptVoiceInput: false });
-  await fixture.bridge.accept({ id: "dropped-input", text: "PRIVATE DROPPED" });
+  await fixture.bridge.accept(speech("dropped-input", "PRIVATE DROPPED"));
   const records = debug.mock.calls.map(
     ([line]) =>
       JSON.parse(String(line).replace("[Petrinaut Live trace] ", "")) as Record<
@@ -142,7 +161,7 @@ test("trace distinguishes ungated admission, later delegation matching, settleme
 test("offers one frozen correlated answer only after complete settlement, never streamed or historical prose", async () => {
   const fixture = setup();
   fixture.update({ segments: [segment("Old answer")] });
-  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  await fixture.bridge.accept(speech("one", "Seven, not four"));
   fixture.bridge.responseStarted(started);
   fixture.update({ status: "streaming", segments: [segment()] });
   fixture.bridge.responseCompleted({
@@ -167,7 +186,7 @@ test("offers one frozen correlated answer only after complete settlement, never 
 
 test("offers a completed correlated answer across a ready-to-ready transition", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  await fixture.bridge.accept(speech("one", "Seven, not four"));
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
     ...started,
@@ -182,7 +201,7 @@ test("offers a completed correlated answer across a ready-to-ready transition", 
 
 test("waits for observed prose rendered after ready settlement", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  await fixture.bridge.accept(speech("one", "Seven, not four"));
   fixture.bridge.responseStarted(started);
   fixture.update({ status: "streaming" });
   fixture.bridge.responseCompleted({
@@ -219,7 +238,7 @@ test("waits for observed prose rendered after ready settlement", async () => {
 
 test("a finalized snapshot confirms an observed response is textless", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  await fixture.bridge.accept(speech("one", "Seven, not four"));
   fixture.bridge.responseStarted(started);
   fixture.update({ status: "streaming" });
   fixture.bridge.responseCompleted({
@@ -253,7 +272,7 @@ test("a finalized snapshot confirms an observed response is textless", async () 
 
 test("completion retries settlement against already rendered prose", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  await fixture.bridge.accept(speech("one", "Seven, not four"));
   fixture.bridge.responseStarted(started);
   fixture.update({ status: "streaming" });
   fixture.update({ segments: [segment()], settlements: completed });
@@ -271,7 +290,7 @@ test("completion retries settlement against already rendered prose", async () =>
 
 test("a stale completion cannot finish a newer response and a duplicate start cannot reopen it", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  await fixture.bridge.accept(speech("one", "Seven, not four"));
   fixture.update({ status: "streaming" });
   fixture.bridge.responseStarted(started);
   const newer = { ...started, position: { batch: 3, index: 2 } };
@@ -302,6 +321,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
     appendCommentary: fixture.appendCommentary,
     appendInstructions: fixture.appendInstructions,
     notice: fixture.notice,
+    speechPending: fixture.speechPending,
     submit: async (input) => {
       signal = input.signal;
       await new Promise<void>((resolve) => {
@@ -317,7 +337,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
     segments: [],
     settlements: [],
   });
-  const pending = bridge.accept({ id: "one", text: "First" });
+  const pending = bridge.accept(speech("one", "First"));
   bridge.stop();
   expect(signal?.aborted).toBe(true);
   fixture.notice.mockClear();
@@ -331,7 +351,7 @@ test.each(["failed", "aborted", "completed"] as const)(
   "textless continuation settlement %s cannot be skipped",
   async (outcome) => {
     const fixture = setup();
-    await fixture.bridge.accept({ id: "one", text: "Please explain" });
+    await fixture.bridge.accept(speech("one", "Please explain"));
     fixture.bridge.responseStarted(started);
     fixture.bridge.responseCompleted({
       ...started,
@@ -373,25 +393,25 @@ test("duplicates, empty input and one waiting composer submission never create a
     });
     return { kind: "message", messageId: "user", submissionId: "root" };
   });
-  const pending = fixture.bridge.accept({ id: "one", text: "First" });
-  await fixture.bridge.accept({ id: "one", text: "First" });
-  await fixture.bridge.accept({ id: "empty", text: "  " });
-  await fixture.bridge.accept({ id: "two", text: "Follow-up" });
+  const pending = fixture.bridge.accept(speech("one", "First"));
+  await fixture.bridge.accept(speech("one", "First"));
+  await fixture.bridge.accept(speech("empty", "  "));
+  await fixture.bridge.accept(speech("two", "Follow-up"));
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.notice).toHaveBeenLastCalledWith(
     expect.stringContaining("not retained"),
   );
   release();
   await pending;
-  await fixture.bridge.accept({ id: "three", text: "First" });
+  await fixture.bridge.accept(speech("three", "First"));
   expect(fixture.submit).toHaveBeenCalledTimes(2);
 });
 
 test("empty finalized input resolves its delegation before a later turn", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("empty-delegation");
-  await fixture.bridge.accept({ id: "empty", text: "  " });
-  await fixture.bridge.accept({ id: "next", text: "Continue" });
+  await fixture.bridge.accept(speech("empty", "  "));
+  await fixture.bridge.accept(speech("next", "Continue"));
   fixture.update({ status: "streaming" });
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
@@ -409,11 +429,351 @@ test("empty finalized input resolves its delegation before a later turn", async 
   );
 });
 
+test("punctuation-only finalized input is ignored like empty input", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("punctuation-delegation");
+  await fixture.bridge.accept(speech("punctuation", " . "));
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("No usable speech"),
+    "punctuation-delegation",
+  );
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining('"reason":"empty"'),
+  );
+});
+
+test("input of up to three words that started while Live was audible is not sent to Brunch", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  await fixture.bridge.accept({
+    id: "one-word",
+    text: "Kristof.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "two-words",
+    text: "Got it.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "three-words",
+    text: "That sounds good.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "contraction",
+    text: "I’ll be back.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept({
+    id: "ascii-contraction",
+    text: "I'll be back.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.notice).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  const ignored = debug.mock.calls
+    .map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === "input.ignored");
+  expect(ignored).toEqual([
+    expect.objectContaining({
+      inputId: "one-word",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "two-words",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "three-words",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "contraction",
+      reason: "short-during-output",
+    }),
+    expect.objectContaining({
+      inputId: "ascii-contraction",
+      reason: "short-during-output",
+    }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("Kristof");
+});
+
+test("short input while Live was quiet and four words during Live speech still reach Brunch", async () => {
+  const fixture = setup();
+  await fixture.bridge.accept({
+    id: "quiet",
+    text: "Yes.",
+    startedDuringOutput: false,
+  });
+  await fixture.bridge.accept({
+    id: "correction",
+    text: "Seven reviewers, not four.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ id: "quiet", text: "Yes." }),
+  );
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({
+      id: "correction",
+      text: "Seven reviewers, not four.",
+    }),
+  );
+  expect(
+    fixture.submit.mock.calls.some(([input]) => "startedDuringOutput" in input),
+  ).toBe(false);
+});
+
+test("a pending delegation neither exempts a short input during Live speech nor is used up by it", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("pending");
+  await fixture.bridge.accept({
+    id: "echo",
+    text: "Yes.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers, not four.",
+    startedDuringOutput: false,
+  });
+  expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ id: "answer" }),
+  );
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":"pending"',
+    ),
+  );
+});
+
+test("an input repeating Live's overlapping words is traced by the echo stage in shadow and handled as before", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("pending");
+  await fixture.bridge.accept({
+    id: "echo",
+    text: "PRIVATE how many staff work the morning shift",
+    startedDuringOutput: true,
+    liveOutputText:
+      "PRIVATE how many staff work the morning shift on weekdays?",
+  });
+  await fixture.bridge.accept({
+    id: "short-echo",
+    text: "Okay.",
+    startedDuringOutput: true,
+    liveOutputText: "Okay, seven.",
+  });
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven.",
+    startedDuringOutput: false,
+    liveOutputText: "How many?",
+  });
+
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ id: "echo" }),
+  );
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({ id: "answer" }),
+  );
+  expect(
+    fixture.submit.mock.calls.some(([input]) => "liveOutputText" in input),
+  ).toBe(false);
+  const records = debug.mock.calls.map(
+    ([line]) =>
+      JSON.parse(String(line).replace("[Petrinaut Live trace] ", "")) as Record<
+        string,
+        unknown
+      >,
+  );
+  expect(
+    records.filter((record) => record.event === "filter.shadow"),
+  ).toMatchObject([
+    { inputId: "echo", stage: "echo", reason: "echo" },
+    { inputId: "short-echo", stage: "echo", reason: "echo" },
+    {
+      inputId: "short-echo",
+      stage: "doubtful-short-during-output",
+      reason: "doubtful-short-during-output",
+    },
+  ]);
+  expect(
+    records.filter((record) => record.event === "input.ignored"),
+  ).toMatchObject([{ inputId: "short-echo", reason: "short-during-output" }]);
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"echo","delegationId":"pending"',
+    ),
+  );
+  const traced = JSON.stringify(debug.mock.calls);
+  expect(traced).not.toContain("PRIVATE");
+  expect(traced).not.toContain("Okay");
+});
+
+test("a delegation arriving before transcription reports speech is deferred without shifting the next answer", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.speechPending.mockReturnValue(false);
+
+  fixture.bridge.acceptDelegation("raced-delegation");
+
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  fixture.speechPending.mockReturnValue(true);
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  fixture.speechPending.mockReturnValue(false);
+  expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ id: "answer" }),
+  );
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":null',
+    ),
+  );
+  const deferred = traceRecords(debug.mock.calls, "delegation.deferred");
+  expect(deferred).toMatchObject([
+    {
+      delegationId: "raced-delegation",
+      reason: "speech-order-unknown",
+    },
+  ]);
+  expect(Object.keys(deferred[0] ?? {}).sort()).toEqual([
+    "at",
+    "delegationId",
+    "event",
+    "reason",
+  ]);
+  expect(traceRecords(debug.mock.calls, "delegation.closed")).toEqual([]);
+});
+
+test.each(["stop", "teardown"] as const)(
+  "%s closes a deferred delegation without answering it",
+  (mode) => {
+    vi.stubEnv("DEV", true);
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const fixture = setup();
+    fixture.speechPending.mockReturnValue(false);
+    fixture.bridge.acceptDelegation("raced-delegation");
+
+    if (mode === "stop") fixture.bridge.stopResponse();
+    else fixture.bridge.stop();
+    fixture.bridge.stop();
+
+    expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining("Do not respond"),
+      "raced-delegation",
+    );
+    expect(traceRecords(debug.mock.calls, "delegation.closed")).toMatchObject([
+      { delegationId: "raced-delegation", reason: "deferred" },
+    ]);
+  },
+);
+
+test("a delegation that arrived while its phantom was transcribed is closed when the phantom is skipped", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("phantom-delegation");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "phantom",
+    text: "Okay.",
+    startedDuringOutput: true,
+  });
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Do not respond"),
+    "phantom-delegation",
+  );
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":null',
+    ),
+  );
+});
+
+test("an answer claims the newest delegation, and older ones close once no speech awaits", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("older");
+  fixture.bridge.acceptDelegation("newer");
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  expect(debug).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '"event":"brunch.submit","inputId":"answer","delegationId":"newer"',
+    ),
+  );
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Do not respond"),
+    "older",
+  );
+  expect(traceRecords(debug.mock.calls, "delegation.closed")).toMatchObject([
+    { delegationId: "older", reason: "no-pending-speech" },
+  ]);
+});
+
+test("a turn waiting for its delegation still takes one that arrives when no speech is pending", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  fixture.speechPending.mockReturnValue(false);
+  await fixture.bridge.accept({
+    id: "answer",
+    text: "Seven reviewers.",
+    startedDuringOutput: false,
+  });
+  fixture.bridge.acceptDelegation("late");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(traceRecords(debug.mock.calls, "delegation.matched")).toMatchObject([
+    { delegationId: "late", inputId: "answer" },
+  ]);
+  expect(traceRecords(debug.mock.calls, "delegation.closed")).toEqual([]);
+});
+
 test("uncertain admission is visible and never automatically replayed", async () => {
   const fixture = setup();
   fixture.submit.mockRejectedValueOnce(new Error("Unknown admission"));
-  await fixture.bridge.accept({ id: "one", text: "First" });
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
+  await fixture.bridge.accept(speech("one", "First"));
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.notice).toHaveBeenLastCalledWith(
     expect.stringContaining("Check canonical history"),
@@ -426,8 +786,8 @@ test("a response failure after confirmed admission does not report uncertain adm
     input.onAdmission("root");
     throw new Error("401 invalid x-api-key");
   });
-  await fixture.bridge.accept({ id: "one", text: "First" });
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
+  await fixture.bridge.accept(speech("one", "First"));
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   expect(fixture.notice).toHaveBeenLastCalledWith(
@@ -454,24 +814,21 @@ test("admission frees the existing waiting-input slot, but finishing an earlier 
     });
     return { kind: "message", messageId: "two", submissionId: "correction" };
   });
-  const first = fixture.bridge.accept({ id: "one", text: "Four reviewers" });
+  const first = fixture.bridge.accept(speech("one", "Four reviewers"));
   fixture.update({ status: "streaming", canAcceptVoiceInput: true });
-  const correction = fixture.bridge.accept({
-    id: "two",
-    text: "Seven, not four",
-  });
+  const correction = fixture.bridge.accept(speech("two", "Seven, not four"));
   expect(fixture.submit).toHaveBeenCalledTimes(2);
 
   finishFirst();
   await first;
-  await fixture.bridge.accept({ id: "three", text: "Another pending input" });
+  await fixture.bridge.accept(speech("three", "Another pending input"));
   expect(fixture.submit).toHaveBeenCalledTimes(2);
   expect(fixture.notice).toHaveBeenLastCalledWith(
     expect.stringContaining("not retained"),
   );
 
   admitCorrection();
-  await fixture.bridge.accept({ id: "four", text: "Approval is optional" });
+  await fixture.bridge.accept(speech("four", "Approval is optional"));
   expect(fixture.submit).toHaveBeenCalledTimes(3);
   finishCorrection();
   await correction;
@@ -481,7 +838,7 @@ test.each(["completed", "failed", "aborted"] as const)(
   "follows the answering submission and waits for its %s settlement and textless continuation",
   async (outcome) => {
     const fixture = setup();
-    await fixture.bridge.accept({ id: "one", text: "Explain the result" });
+    await fixture.bridge.accept(speech("one", "Explain the result"));
     fixture.update({ status: "streaming" });
     const answer = { ...started, submissionId: "answering" };
     fixture.bridge.responseStarted(answer);
@@ -536,13 +893,13 @@ test.each(["completed", "failed", "aborted"] as const)(
 test("two inputs answered by one submission offer its canonical prose only once", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("first-delegation");
-  await fixture.bridge.accept({ id: "one", text: "First question" });
+  await fixture.bridge.accept(speech("one", "First question"));
   fixture.submit.mockImplementationOnce(async (input) => {
     input.onAdmission("second");
     return { kind: "message", messageId: "two", submissionId: "second" };
   });
   fixture.bridge.acceptDelegation("second-delegation");
-  await fixture.bridge.accept({ id: "two", text: "Clarification" });
+  await fixture.bridge.accept(speech("two", "Clarification"));
   fixture.update({ status: "streaming" });
   const answer = { ...started, submissionId: "answering" };
   fixture.bridge.responseStarted(answer);
@@ -616,7 +973,7 @@ test.each([
     const segments = [{ ...prose, submissionIds: undefined }];
     if (mode === "historical") fixture.update({ segments, snapshot });
     if (mode === "historical-render") fixture.update({ segments });
-    await fixture.bridge.accept({ id: "input", text: "Seven, not four" });
+    await fixture.bridge.accept(speech("input", "Seven, not four"));
     fixture.update({ status: "streaming" });
     // Settlement can arrive before the snapshot/render. Do not discard the turn.
     fixture.update({ settlements });
@@ -671,7 +1028,7 @@ test.each([
 test("a finalized textless unobserved answer cannot fall through to an observed response", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("delegation");
-  await fixture.bridge.accept({ id: "input", text: "Explain the result" });
+  await fixture.bridge.accept(speech("input", "Explain the result"));
   fixture.update({ status: "streaming" });
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
@@ -741,7 +1098,7 @@ test("a finalized textless unobserved answer cannot fall through to an observed 
 
 test("Stop withdraws only unsubmitted input and suppresses late settlements and later input", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   const signal = vi.mocked(fixture.submit).mock.calls[0]?.[0];
   fixture.bridge.stop();
   fixture.bridge.responseStarted(started);
@@ -750,7 +1107,7 @@ test("Stop withdraws only unsubmitted input and suppresses late settlements and 
     position: { batch: 2, index: 0 },
   });
   fixture.update({ segments: [segment()], settlements: completed });
-  await fixture.bridge.accept({ id: "late", text: "Late" });
+  await fixture.bridge.accept(speech("late", "Late"));
   expect(signal).toBeDefined();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   expect(fixture.submit).toHaveBeenCalledOnce();
@@ -759,7 +1116,7 @@ test("Stop withdraws only unsubmitted input and suppresses late settlements and 
 test("response-only Stop resolves attached and unclaimed delegations before a later utterance", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("attached");
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   fixture.bridge.acceptDelegation("unclaimed");
 
   fixture.bridge.stopResponse();
@@ -787,7 +1144,7 @@ test("response-only Stop resolves attached and unclaimed delegations before a la
       submissionId: "second",
     };
   });
-  await fixture.bridge.accept({ id: "two", text: "Continue" });
+  await fixture.bridge.accept(speech("two", "Continue"));
   const secondResponse = {
     ...started,
     messageId: "second-answer",
@@ -822,7 +1179,7 @@ test("response-only Stop resolves attached and unclaimed delegations before a la
 
 test("a locally stopped or failed turn cannot turn earlier successful prose into success speech", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
     ...started,
@@ -840,9 +1197,9 @@ test("a locally stopped or failed turn cannot turn earlier successful prose into
 
 test("repeated stopped snapshots retain a later turn", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   fixture.update({ stopped: true });
-  await fixture.bridge.accept({ id: "two", text: "Second" });
+  await fixture.bridge.accept(speech("two", "Second"));
   fixture.update({ stopped: true });
   fixture.bridge.responseStarted(started);
   fixture.update({ status: "streaming" });
@@ -869,7 +1226,7 @@ test("entering error interrupts pending work once and suppresses its late result
     return { kind: "message", messageId: "user", submissionId: "root" };
   });
   fixture.bridge.acceptDelegation("pending");
-  const pending = fixture.bridge.accept({ id: "one", text: "First" });
+  const pending = fixture.bridge.accept(speech("one", "First"));
   fixture.bridge.acceptDelegation("unclaimed");
 
   fixture.update({ status: "error" });
@@ -896,7 +1253,7 @@ test("entering error interrupts pending work once and suppresses its late result
 test("repeated error snapshots retain a pending recovery turn until ready settlement", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("original");
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
     expect.stringContaining("Ask the person to continue"),
@@ -913,7 +1270,7 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
     return { kind: "message", messageId: "two", submissionId: "recovery" };
   });
   fixture.bridge.acceptDelegation("recovery-delegation");
-  const recovery = fixture.bridge.accept({ id: "two", text: "Try again" });
+  const recovery = fixture.bridge.accept(speech("two", "Try again"));
   fixture.update({ status: "error" });
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
@@ -952,7 +1309,7 @@ test("repeated error snapshots retain a pending recovery turn until ready settle
   expect(fixture.submit).toHaveBeenCalledTimes(2);
 
   fixture.bridge.acceptDelegation("next");
-  await fixture.bridge.accept({ id: "three", text: "Next question" });
+  await fixture.bridge.accept(speech("three", "Next question"));
   fixture.update({ status: "error" });
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
     expect.stringContaining("Ask the person to continue"),
@@ -964,7 +1321,7 @@ test("a locally refused long commentary is offered intact once without truncatio
   const fixture = setup();
   fixture.appendCommentary.mockReturnValue(false);
   fixture.bridge.acceptDelegation("long-answer");
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
     ...started,
@@ -990,7 +1347,7 @@ test.each(["before", "after"] as const)(
       fixture.bridge.acceptDelegation("newer");
     }
     expect(fixture.submit).not.toHaveBeenCalled();
-    await fixture.bridge.accept({ id: "first", text: "Seven reviewers" });
+    await fixture.bridge.accept(speech("first", "Seven reviewers"));
     fixture.submit.mockImplementationOnce(async (input) => {
       input.onAdmission("second");
       return {
@@ -999,10 +1356,7 @@ test.each(["before", "after"] as const)(
         submissionId: "second",
       };
     });
-    await fixture.bridge.accept({
-      id: "second-input",
-      text: "Approval is optional",
-    });
+    await fixture.bridge.accept(speech("second-input", "Approval is optional"));
     if (timing === "after") {
       fixture.bridge.acceptDelegation("newer");
       fixture.bridge.acceptDelegation("older");
@@ -1054,10 +1408,10 @@ test("dropped input resolves only its claimed delegation, once, without changing
     });
     return { kind: "message", messageId: "first", submissionId: "root" };
   });
-  const pending = fixture.bridge.accept({ id: "first", text: "First" });
+  const pending = fixture.bridge.accept(speech("first", "First"));
   fixture.bridge.acceptDelegation("dropped");
-  await fixture.bridge.accept({ id: "second", text: "Second" });
-  await fixture.bridge.accept({ id: "second", text: "Second" });
+  await fixture.bridge.accept(speech("second", "Second"));
+  await fixture.bridge.accept(speech("second", "Second"));
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
     "The backend could not take that request now. Ask the person to continue. Do not claim the work completed or was cancelled.",
     "dropped",
@@ -1089,7 +1443,7 @@ test.each([
         input.onAdmission("root");
         throw new Error("Response failed");
       });
-    await fixture.bridge.accept({ id: "one", text: "Describe the process" });
+    await fixture.bridge.accept(speech("one", "Describe the process"));
     if (failure !== "failed-without-busy")
       fixture.update({ status: "streaming" });
     expect(fixture.appendCommentary).not.toHaveBeenCalled();
@@ -1106,7 +1460,7 @@ test.each([
     ];
     fixture.update({ settlements });
     fixture.update({ settlements });
-    await fixture.bridge.accept({ id: "one", text: "Describe the process" });
+    await fixture.bridge.accept(speech("one", "Describe the process"));
     expect(fixture.appendInstructions.mock.calls).toEqual(
       failure === "stop"
         ? []
@@ -1124,10 +1478,10 @@ test.each([
 
 test("textless and dropped inputs without delegations do not inject session-wide instructions", async () => {
   const fixture = setup();
-  await fixture.bridge.accept({ id: "one", text: "First" });
+  await fixture.bridge.accept(speech("one", "First"));
   fixture.update({ status: "streaming" });
   fixture.update({ settlements: completed, canAcceptVoiceInput: false });
-  await fixture.bridge.accept({ id: "two", text: "Dropped" });
+  await fixture.bridge.accept(speech("two", "Dropped"));
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });

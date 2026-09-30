@@ -83,6 +83,7 @@ const renderAssistant = (
       onInputChange={noop}
       onStop={noop}
       onSubmit={noop}
+      presentation="brunch"
       resolveToolPresentation={resolveBrunchToolPresentation}
       status={status}
     />,

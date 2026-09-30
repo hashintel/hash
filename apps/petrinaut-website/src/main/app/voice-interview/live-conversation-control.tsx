@@ -247,6 +247,7 @@ export const LiveConversationControl = ({
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
       notice: setWarningMessage,
+      speechPending: next.speechPending,
     });
     bridge.current.update(latest.current.chat);
     session.current = next;
