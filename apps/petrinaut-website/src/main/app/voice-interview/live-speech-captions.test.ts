@@ -114,6 +114,37 @@ test("anchors autonomous result speech at its injection boundary rather than the
   });
 });
 
+test("assigns a fragment crossing a turn boundary to the window where it starts", () => {
+  const lines = new Map<string, string>();
+  const captions = new LiveSpeechCaptions((id, kind, line) => {
+    lines.set(`${id}:${kind}`, line.text);
+  });
+  captions.input({
+    id: "first-input",
+    text: "First",
+    startMs: 100,
+    endMs: 200,
+  });
+  captions.begin("first");
+  captions.output({
+    id: "crossing",
+    text: "Crossing",
+    startMs: 300,
+    endMs: 600,
+  });
+  captions.speechStarted();
+  captions.input({
+    id: "second-input",
+    text: "Second",
+    startMs: 700,
+    endMs: 800,
+  });
+  captions.begin("second");
+
+  expect(lines.get("first:reply")).toBe("Crossing");
+  expect(lines.get("second:reply")).toBe("");
+});
+
 test("groups by provider time, preserves repeated words, and never uses append content as captions", () => {
   const caption = vi.fn();
   const captions = new LiveSpeechCaptions(caption);
