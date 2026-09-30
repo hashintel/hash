@@ -45,9 +45,19 @@ export const lastAdmittedUtterance = async (run: string) => {
       );
     },
   );
-  const messages = contents.split("\n").flatMap((line) => {
+  const messages = contents.split("\n").flatMap((line, index) => {
     if (!line.trim()) return [];
-    const entry = v.safeParse(admittedEntrySchema, JSON.parse(line));
+    let record: unknown;
+    try {
+      record = JSON.parse(line);
+    } catch (cause) {
+      // An interrupted append can leave a torn final line; resume cannot guess what it held.
+      throw new Error(
+        `${bridgeLogPath(run)} line ${index + 1} is not valid JSON; refusing automatic resume`,
+        { cause },
+      );
+    }
+    const entry = v.safeParse(admittedEntrySchema, record);
     return entry.success ? [entry.output.message] : [];
   });
   const last = messages.at(-1);

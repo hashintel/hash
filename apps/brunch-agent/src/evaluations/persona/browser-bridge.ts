@@ -100,6 +100,9 @@ export const openPersonaBrowserBridge = async (
           broadcast({ type: "turn_start", message: command.message });
         },
       });
+      // The sender waits for the admission response before reading events.
+      if (!turn.admitted)
+        throw new Error("The persona turn replied without being admitted");
       completedTurns += 1;
       broadcast({ type: "assistant_message", text: reply.text });
       broadcast({

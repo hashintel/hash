@@ -88,6 +88,21 @@ test("a failure before admission is a failed response; after admission it settle
     }),
   ]);
 
+  const unadmitted = await openBridge({
+    prompt: async () => ({ text: "Tell me more.", submissionIds: [] }),
+  });
+  expect(
+    await sendPersonaCommand(unadmitted.socketPath, {
+      type: "prompt",
+      message: "Hello.",
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      success: false,
+      error: "The persona turn replied without being admitted",
+    }),
+  ]);
+
   const late = await openBridge({
     prompt: async (_message, turn) => {
       turn.admitted();
