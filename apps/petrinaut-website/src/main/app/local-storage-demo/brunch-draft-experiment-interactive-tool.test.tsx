@@ -875,7 +875,8 @@ describe("BrunchDraftExperimentWidget", () => {
       runExperiment: vi.fn().mockReturnValue(result.promise),
     });
     await waitFor(() => expect(submit).toHaveBeenCalledOnce());
-    const reportExperimentRunning = vi.fn();
+    const clearRunning = vi.fn();
+    const reportExperimentRunning = vi.fn(() => clearRunning);
     const context: PetrinautAiComposerControlContext = {
       conversationId: "original",
       messages: [
@@ -913,8 +914,9 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
     followUp.rerender(wrap(<BrunchExperimentFollowUp context={context} />));
     expect(reportExperimentRunning).toHaveBeenLastCalledWith(true);
+    clearRunning.mockClear();
     followUp.unmount();
-    expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
+    expect(clearRunning).toHaveBeenCalledOnce();
     await act(async () => result.resolve(finishedResult));
   });
 
