@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   prepareVoiceBrief,
   validateVoiceWrapUp,
+  voiceWrapUpResponseSchema,
 } from "../../shared/voice-mediation.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
@@ -96,7 +97,7 @@ export const createVoiceMediationHandler =
           ? { fields: prepareVoiceBrief(input.text, result) }
           : {
               text: validateVoiceWrapUp(
-                z.object({ text: z.string() }).parse(result).text,
+                voiceWrapUpResponseSchema.parse(result).text,
               ),
             };
       return Response.json(data, { headers: { "cache-control": "no-store" } });

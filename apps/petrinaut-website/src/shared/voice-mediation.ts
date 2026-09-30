@@ -16,6 +16,7 @@ export const voiceBriefExtractionSchema = z.object({
 
 export type VoiceBriefFields = Record<string, string>;
 export type VoiceLine = { text: string; state: "streaming" | "done" };
+export const voiceWrapUpResponseSchema = z.object({ text: z.string() });
 
 /** Only extractive, verbatim evidence can become a modelling value. */
 export const prepareVoiceBrief = (

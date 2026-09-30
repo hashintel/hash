@@ -8,7 +8,7 @@ import {
 } from "react";
 import { z } from "zod";
 
-import { validateVoiceWrapUp } from "../../../shared/voice-mediation";
+import { voiceWrapUpResponseSchema } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import {
@@ -332,11 +332,9 @@ export const LiveConversationControl = ({
             .object({ fields: z.record(z.string(), z.string()) })
             .parse(await prepareVoice("brief", text, signal)).fields,
         summarize: async (text, signal) =>
-          validateVoiceWrapUp(
-            z
-              .object({ text: z.string() })
-              .parse(await prepareVoice("wrap-up", text, signal)).text,
-          ),
+          voiceWrapUpResponseSchema.parse(
+            await prepareVoice("wrap-up", text, signal),
+          ).text,
         offered: (inputId) => {
           offeredInput = inputId;
         },
