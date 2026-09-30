@@ -60,8 +60,9 @@ interface OutputStretch {
   readonly startedAt: number;
   lastAudibleAt: number;
   peakMicrophoneLevel: number;
-  echoSamples: number;
+  echoReturnLossSamples: number;
   echoReturnLossTotal: number;
+  echoReturnLossEnhancementSamples: number;
   echoReturnLossEnhancementTotal: number;
   transcriptionSpeechStarts: number;
   liveInputFragments: number;
@@ -89,14 +90,16 @@ export const createOutputEchoTrace = (sessionId: string) => {
       speakerVolume: stretch.speakerVolume,
       selectedSpeaker: stretch.selectedSpeaker,
       peakMicrophoneLevel: Math.round(stretch.peakMicrophoneLevel * 100) / 100,
-      echoSamples: stretch.echoSamples,
+      echoReturnLossSamples: stretch.echoReturnLossSamples,
       echoReturnLossDb: meanDb(
         stretch.echoReturnLossTotal,
-        stretch.echoSamples,
+        stretch.echoReturnLossSamples,
       ),
+      echoReturnLossEnhancementSamples:
+        stretch.echoReturnLossEnhancementSamples,
       echoReturnLossEnhancementDb: meanDb(
         stretch.echoReturnLossEnhancementTotal,
-        stretch.echoSamples,
+        stretch.echoReturnLossEnhancementSamples,
       ),
       transcriptionSpeechStarts: stretch.transcriptionSpeechStarts,
       liveOutputFragments,
@@ -114,8 +117,9 @@ export const createOutputEchoTrace = (sessionId: string) => {
           startedAt: at,
           lastAudibleAt: at,
           peakMicrophoneLevel: 0,
-          echoSamples: 0,
+          echoReturnLossSamples: 0,
           echoReturnLossTotal: 0,
+          echoReturnLossEnhancementSamples: 0,
           echoReturnLossEnhancementTotal: 0,
           transcriptionSpeechStarts: 0,
           liveInputFragments: 0,
@@ -135,12 +139,12 @@ export const createOutputEchoTrace = (sessionId: string) => {
         stretch.peakMicrophoneLevel,
         sample.microphoneLevel,
       );
-      if (
-        sample.echoReturnLoss !== undefined &&
-        sample.echoReturnLossEnhancement !== undefined
-      ) {
-        stretch.echoSamples++;
+      if (sample.echoReturnLoss !== undefined) {
+        stretch.echoReturnLossSamples++;
         stretch.echoReturnLossTotal += sample.echoReturnLoss;
+      }
+      if (sample.echoReturnLossEnhancement !== undefined) {
+        stretch.echoReturnLossEnhancementSamples++;
         stretch.echoReturnLossEnhancementTotal +=
           sample.echoReturnLossEnhancement;
       }

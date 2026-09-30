@@ -265,7 +265,8 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   switch.
 - `echo.output` follows each stretch of audible Live output plus a one-second
   tail. It reports the peak microphone level, the browser's mean echo return
-  loss and enhancement in dB when reported (`echoSamples` counts them),
+  loss and mean echo return loss enhancement in dB, each when reported
+  (`echoReturnLossSamples` and `echoReturnLossEnhancementSamples` count them),
   transcription speech starts, and GPT-Live input transcript fragments that
   began after its output did. `liveOutputFragments` shows whether output
   transcripts arrived; without them `liveInputFragments` stays at zero.
