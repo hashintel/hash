@@ -198,7 +198,13 @@ test.each([
       const [onState, , onInput] = vi.mocked(createLiveConversation).mock
         .calls[0]!;
       act(() => onState({ phase: "connected", message: null }));
-      await act(async () => onInput({ id: "held", text: "PRIVATE hang on" }));
+      await act(async () =>
+        onInput({
+          id: "held",
+          text: "PRIVATE hang on",
+          startedDuringOutput: false,
+        }),
+      );
       expect(fetch).toHaveBeenCalledOnce();
       expect(props.submitVoiceInput).not.toHaveBeenCalled();
       expect(screen.queryByText(/Not sent to Brunch/)).toBeNull();
@@ -266,7 +272,11 @@ test("connected enforcement uses context without letting delegation release held
       .mock.calls[0]!;
     act(() => onState({ phase: "connected", message: null }));
     await act(async () =>
-      onInput({ id: "one", text: "<script>PRIVATE okay</script>" }),
+      onInput({
+        id: "one",
+        text: "<script>PRIVATE okay</script>",
+        startedDuringOutput: false,
+      }),
     );
     expect(props.submitVoiceInput).not.toHaveBeenCalled();
     const body = fetch.mock.calls[0]?.[1]?.body;

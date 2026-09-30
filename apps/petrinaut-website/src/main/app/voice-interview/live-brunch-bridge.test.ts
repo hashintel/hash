@@ -125,7 +125,7 @@ test("enforcement withholds once and ignores delegation", async () => {
     confidence: 0.8,
   }));
   const fixture = setup(judge, { enforce: true });
-  const input = { id: "one", text: "PRIVATE okay" };
+  const input = speech("one", "PRIVATE okay");
   fixture.bridge.acceptDelegation("early");
   await fixture.bridge.accept(input);
   await fixture.bridge.accept(input);
@@ -145,7 +145,7 @@ test.each([
   null,
 ])("enforcement submits content or uncertainty: %j", async (judgment) => {
   const fixture = setup(async () => judgment, { enforce: true });
-  await fixture.bridge.accept({ id: "one", text: "original answer" });
+  await fixture.bridge.accept(speech("one", "original answer"));
   expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ id: "one", text: "original answer" }),
   );
@@ -160,8 +160,8 @@ test("enforcement preserves input order across judgments and busy admission", as
     .mockReturnValueOnce(second.promise);
   const fixture = setup(judge, { enforce: true });
   fixture.update({ canAcceptVoiceInput: false });
-  void fixture.bridge.accept({ id: "one", text: "first" });
-  void fixture.bridge.accept({ id: "two", text: "second" });
+  void fixture.bridge.accept(speech("one", "first"));
+  void fixture.bridge.accept(speech("two", "second"));
   second.resolve(null);
   await Promise.resolve();
   fixture.update();
@@ -188,9 +188,9 @@ test("enforcement waits for admission, not an older response, before draining th
     await secondResponse.promise;
     return { kind: "message", messageId: input.id, submissionId: "second" };
   });
-  await fixture.bridge.accept({ id: "one", text: "Four reviewers" });
-  await fixture.bridge.accept({ id: "two", text: "Seven, not four" });
-  await fixture.bridge.accept({ id: "three", text: "Approval is optional" });
+  await fixture.bridge.accept(speech("one", "Four reviewers"));
+  await fixture.bridge.accept(speech("two", "Seven, not four"));
+  await fixture.bridge.accept(speech("three", "Approval is optional"));
   expect(fixture.submit).toHaveBeenCalledTimes(1);
   fixture.submit.mock.calls[0]![0].onAdmission("first");
   await Promise.resolve();
@@ -213,7 +213,7 @@ test("enforcement waits for admission, not an older response, before draining th
 
 test("enforcement relays admitted Brunch prose without assigning a delegation", async () => {
   const fixture = setup(async () => null, { enforce: true });
-  await fixture.bridge.accept({ id: "one", text: "Four reviewers" });
+  await fixture.bridge.accept(speech("one", "Four reviewers"));
   fixture.bridge.acceptDelegation("unmatched");
   fixture.bridge.responseStarted(started);
   fixture.bridge.responseCompleted({
@@ -236,7 +236,7 @@ test("enforcement fails open at one second and ignores a late withholding result
       NonNullable<ConstructorParameters<typeof LiveBrunchBridge>[0]["judge"]>
     >(() => pending.promise);
     const fixture = setup(judge, { enforce: true });
-    void fixture.bridge.accept({ id: "one", text: "answer" });
+    void fixture.bridge.accept(speech("one", "answer"));
     await vi.advanceTimersByTimeAsync(999);
     expect(fixture.submit).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
@@ -258,8 +258,8 @@ test("stopping enforcement cancels pending input", async () => {
     .mockResolvedValueOnce({ contribution: "control", confidence: 1 })
     .mockReturnValueOnce(pending.promise);
   const fixture = setup(judge, { enforce: true });
-  await fixture.bridge.accept({ id: "held", text: "hang on" });
-  void fixture.bridge.accept({ id: "pending", text: "answer" });
+  await fixture.bridge.accept(speech("held", "hang on"));
+  void fixture.bridge.accept(speech("pending", "answer"));
   fixture.bridge.stop();
   pending.resolve(null);
   await pending.promise;
@@ -276,15 +276,15 @@ test("stopping a response cancels gated work but permits a fresh voice turn", as
     .mockResolvedValueOnce(null);
   const fixture = setup(judge, { enforce: true });
   fixture.update({ canAcceptVoiceInput: false });
-  await fixture.bridge.accept({ id: "queued", text: "old queued input" });
-  void fixture.bridge.accept({ id: "pending", text: "old pending judgment" });
+  await fixture.bridge.accept(speech("queued", "old queued input"));
+  void fixture.bridge.accept(speech("pending", "old pending judgment"));
   fixture.bridge.stopResponse();
   expect(judge.mock.calls[1]?.[1].aborted).toBe(true);
   fixture.update({ stopped: true });
   pending.resolve(null);
   await pending.promise;
   expect(fixture.submit).not.toHaveBeenCalled();
-  await fixture.bridge.accept({ id: "fresh", text: "new answer" });
+  await fixture.bridge.accept(speech("fresh", "new answer"));
   expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ id: "fresh", text: "new answer" }),
   );
