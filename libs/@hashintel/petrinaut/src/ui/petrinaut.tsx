@@ -81,6 +81,8 @@ export type PetrinautAiToolPresentationResolver = (
 ) => PetrinautAiToolPresentation | undefined;
 
 export type PetrinautAiAssistant = {
+  /** Selects the assistant's visual presentation. Defaults to "stock". */
+  presentation?: "stock" | "brunch";
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls

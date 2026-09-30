@@ -401,7 +401,7 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
   expect(observation.observe).toHaveBeenCalledTimes(2);
   expect(screen.getByText("voice-tool-1: The supervisor")).not.toBeNull();
   expect(screen.getByText("Durably interrupted response")).not.toBeNull();
-  expect(screen.getByText("Stopped")).not.toBeNull();
+  expect(screen.getByText("Response stopped")).not.toBeNull();
 
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" })),

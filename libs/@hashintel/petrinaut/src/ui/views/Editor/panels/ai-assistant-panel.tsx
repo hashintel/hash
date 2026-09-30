@@ -2482,6 +2482,7 @@ const ConversationAiAssistantPanel = ({
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
+      presentation={aiAssistant.presentation}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}

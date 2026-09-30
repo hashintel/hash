@@ -883,6 +883,7 @@ export const LocalStorageDemoApp = ({
       ...(brunchSelected
         ? {
             primaryLabel: "Chat",
+            presentation: "brunch" as const,
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
           }

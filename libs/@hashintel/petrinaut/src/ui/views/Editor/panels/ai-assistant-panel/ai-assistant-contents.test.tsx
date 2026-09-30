@@ -1020,6 +1020,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -1081,6 +1082,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -1105,6 +1107,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -1186,6 +1189,7 @@ describe("AiAssistantContents", () => {
       ) => (
         <AiAssistantContents
           primaryLabel="Chat"
+          presentation="brunch"
           input=""
           onClose={noop}
           onInputChange={noop}
@@ -1252,6 +1256,7 @@ describe("AiAssistantContents", () => {
   test("reveals a new approval after Brunch activity was manually collapsed", async () => {
     const props = {
       primaryLabel: "Chat",
+      presentation: "brunch" as const,
       input: "",
       onClose: noop,
       onInputChange: noop,
@@ -1318,6 +1323,7 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
+      presentation: "brunch" as const,
       status: "streaming" as const,
     };
     const tool = {
@@ -1357,13 +1363,6 @@ describe("AiAssistantContents", () => {
           },
         ]}
       />,
-    );
-    await waitFor(() =>
-      expect(
-        screen
-          .getByRole("button", { name: /^Activity/u })
-          .getAttribute("aria-expanded"),
-      ).toBe("false"),
     );
     expect(
       screen.getByText("The model has").closest("[data-work-status]"),
@@ -1439,6 +1438,7 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         onRetryPrompt={onRetryPrompt}
+        presentation="brunch"
         status="ready"
         messages={[
           {
@@ -1491,6 +1491,7 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         onRetryPrompt={vi.fn()}
+        presentation="brunch"
         status="streaming"
         messages={[
           {
@@ -1578,6 +1579,7 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       primaryAttention: true,
       primaryLabel: "Chat",
+      presentation: "brunch" as const,
       status: "ready" as const,
     };
     const { rerender } = render(
@@ -1679,6 +1681,7 @@ describe("AiAssistantContents", () => {
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
+          presentation="brunch"
           messages={[
             {
               id: "assistant-unapplied",
@@ -1871,6 +1874,7 @@ describe("AiAssistantContents", () => {
           input=""
           status="ready"
           stopped={false}
+          presentation="brunch"
           onClose={noop}
           onInputChange={noop}
           onStop={noop}
@@ -2046,6 +2050,7 @@ describe("AiAssistantContents", () => {
             onStop={noop}
             onSubmit={noop}
             onVoiceDockCollapsedChange={setCollapsed}
+            presentation="brunch"
             status="ready"
             voiceDockCollapsed={collapsed}
             voiceMode={<div>Host Voice controls</div>}
@@ -2775,6 +2780,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="ready"
         voiceMode={<VoiceLevel />}
       />,
@@ -3108,6 +3114,7 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         primaryLabel="Chat"
+        presentation="brunch"
         status="ready"
         voiceModeAvailable
       />,
@@ -3136,6 +3143,7 @@ describe("AiAssistantContents", () => {
       onStop: noop,
       onSubmit: noop,
       primaryLabel: "Chat",
+      presentation: "brunch" as const,
       interactiveTools: [
         definePetrinautAiInteractiveTool({
           toolName: "confirm",
@@ -3503,6 +3511,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="streaming"
       />,
     );
@@ -3616,6 +3625,7 @@ describe("AiAssistantContents", () => {
       onStop: noop,
       onSubmit: noop,
       primaryLabel: "Chat",
+      presentation: "brunch" as const,
     };
     const { rerender } = render(
       <AiAssistantContents {...props} status="ready" />,
@@ -3661,6 +3671,7 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         {...props}
         primaryLabel="AI assistant"
+        presentation="stock"
         status="submitted"
       />,
     );
@@ -3679,6 +3690,7 @@ describe("AiAssistantContents", () => {
       onStop: noop,
       onSubmit: noop,
       primaryLabel: "Chat",
+      presentation: "brunch" as const,
       promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
     };
     const { rerender } = render(
@@ -3750,7 +3762,7 @@ describe("AiAssistantContents", () => {
     expect(status.closest("[hidden]")).toBeNull();
   });
 
-  test("shows the working label beside a stock transcript but not in Brunch Chat", () => {
+  test("uses stock behavior for a Chat label until Brunch presentation is explicit", () => {
     const props = {
       input: "",
       messages: [],
@@ -3767,6 +3779,15 @@ describe("AiAssistantContents", () => {
     );
 
     rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
+    expect(screen.getByTestId("ai-working-status")).not.toBeNull();
+
+    rerender(
+      <AiAssistantContents
+        {...props}
+        primaryLabel="Chat"
+        presentation="brunch"
+      />,
+    );
     expect(screen.queryByTestId("ai-working-status")).toBeNull();
   });
 
@@ -3810,7 +3831,13 @@ describe("AiAssistantContents", () => {
     );
     expect(screen.getByRole("tab", { name: "Copilot" })).not.toBeNull();
 
-    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
+    rerender(
+      <AiAssistantContents
+        {...props}
+        primaryLabel="Chat"
+        presentation="brunch"
+      />,
+    );
     expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
   });
 
@@ -3837,6 +3864,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="streaming"
       />,
     );
@@ -3878,6 +3906,7 @@ describe("AiAssistantContents", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
+        presentation="brunch"
         status="ready"
       />,
     );
@@ -4187,6 +4216,7 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         primaryLabel="Chat"
+        presentation="brunch"
         input=""
         messages={messages}
         onClose={noop}

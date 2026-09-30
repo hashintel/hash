@@ -6,6 +6,8 @@ export type PetrinautAiInteractiveToolSchema<Value> = {
 };
 
 type InteractiveToolWidgetCommonProps<Input, Output> = {
+  /** Assistant presentation selected by the embedding host. */
+  presentation?: "stock" | "brunch";
   /** Validated input supplied by the AI tool call. */
   input: Input;
   /** Submit one output for this tool call. Repeated calls are ignored. */

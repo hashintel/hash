@@ -489,9 +489,11 @@ export const toToolRenderItem = (
 
 const InteractiveToolItem = ({
   onInteractiveToolSubmit,
+  presentation,
   tool,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
+  presentation: "stock" | "brunch";
   tool: ToolRenderItem;
 }) => {
   const interactive = tool.interactive;
@@ -542,6 +544,7 @@ const InteractiveToolItem = ({
       <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
         <Widget
           input={typedInput}
+          presentation={presentation}
           state="submitted"
           submit={() => {}}
           submitAndWait={() => Promise.resolve()}
@@ -556,6 +559,7 @@ const InteractiveToolItem = ({
     <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
       <Widget
         input={typedInput}
+        presentation={presentation}
         state="awaiting"
         submit={(output) => {
           void submitAndWait(output);
@@ -571,12 +575,14 @@ const ToolItem = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   tool,
+  presentation,
   active = false,
   stopped = false,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tool: ToolRenderItem;
+  presentation: "stock" | "brunch";
   active?: boolean;
   stopped?: boolean;
 }) => {
@@ -588,6 +594,7 @@ const ToolItem = ({
     return (
       <InteractiveToolItem
         onInteractiveToolSubmit={onInteractiveToolSubmit}
+        presentation={presentation}
         tool={tool}
       />
     );
@@ -712,16 +719,19 @@ const ToolListContent = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   tools,
+  presentation,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
+  presentation: "stock" | "brunch";
 }) => (
   <>
     {tools.map((tool) => (
       <ToolItem
         key={tool.id}
         tool={tool}
+        presentation={presentation}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onSelectToolTarget={onSelectToolTarget}
       />
@@ -737,6 +747,7 @@ export const AiAssistantToolList = ({
   stopped = false,
   producedCard = false,
   preserveOpen = false,
+  presentation = "stock",
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
@@ -745,6 +756,7 @@ export const AiAssistantToolList = ({
   stopped?: boolean;
   producedCard?: boolean;
   preserveOpen?: boolean;
+  presentation?: "stock" | "brunch";
 }) => {
   const running =
     active &&
@@ -768,13 +780,14 @@ export const AiAssistantToolList = ({
     <div className={toolListStyle}>
       <ToolListContent
         tools={tools}
+        presentation={presentation}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onSelectToolTarget={onSelectToolTarget}
       />
     </div>
   );
 
-  if (producedCard) return content;
+  if (producedCard || presentation === "stock") return content;
   return (
     <>
       <Collapsible.Root
@@ -813,6 +826,7 @@ export const AiAssistantToolList = ({
                 <ToolItem
                   key={tool.id}
                   tool={tool}
+                  presentation={presentation}
                   active={active && !stopped}
                   stopped={stopped}
                   onInteractiveToolSubmit={onInteractiveToolSubmit}
@@ -828,6 +842,7 @@ export const AiAssistantToolList = ({
           <ToolItem
             key={tool.id}
             tool={tool}
+            presentation={presentation}
             stopped={stopped}
             onInteractiveToolSubmit={onInteractiveToolSubmit}
             onSelectToolTarget={onSelectToolTarget}

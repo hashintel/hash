@@ -22,6 +22,7 @@ describe("ApplyAutoLayoutWidget", () => {
     render(
       <Widget
         input={{ askUserFirst: true }}
+        presentation="brunch"
         submit={submit}
         state="awaiting"
         toolCallId="apply-auto-layout-1"
@@ -43,6 +44,7 @@ describe("ApplyAutoLayoutWidget", () => {
     render(
       <Widget
         input={{ askUserFirst: true }}
+        presentation="brunch"
         submit={submit}
         state="awaiting"
         toolCallId="apply-auto-layout-2"
@@ -71,6 +73,24 @@ describe("ApplyAutoLayoutWidget", () => {
 
     expect(screen.getByText("Auto-laid out 3 nodes")).toBeDefined();
     expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+  });
+
+  test("keeps the stock auto-layout decision labels", () => {
+    render(
+      <Widget
+        input={{ askUserFirst: true }}
+        submit={() => {}}
+        state="awaiting"
+        toolCallId="apply-auto-layout-stock"
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Yes, auto-layout" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "No, keep current layout" }),
+    ).toBeTruthy();
   });
 });
 

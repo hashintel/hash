@@ -374,6 +374,7 @@ const Frame = ({
   inputMode = "text",
   messages,
   primaryLabel,
+  presentation,
   promptChips,
   resolveToolPresentation,
   status = "ready",
@@ -399,6 +400,7 @@ const Frame = ({
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   primaryLabel?: string;
+  presentation?: "stock" | "brunch";
   promptChips?: ComponentProps<typeof AiAssistantContents>["promptChips"];
   resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   status?: "submitted" | "streaming" | "ready" | "error";
@@ -449,6 +451,7 @@ const Frame = ({
             messages={messages}
             isOpen={isOpen}
             primaryLabel={primaryLabel}
+            presentation={presentation}
             promptChips={promptChips}
             onSendPrompt={setInput}
             onRetryPrompt={fn()}
@@ -517,7 +520,14 @@ export const EmptyWithVoiceAvailable: Story = {
 };
 
 export const BrunchWithVoiceAvailable: Story = {
-  render: () => <Frame primaryLabel="Chat" messages={[]} voiceModeAvailable />,
+  render: () => (
+    <Frame
+      primaryLabel="Chat"
+      presentation="brunch"
+      messages={[]}
+      voiceModeAvailable
+    />
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const textarea = canvas.getByRole("textbox", {
@@ -1308,6 +1318,7 @@ export const BrunchComposerExperimentRunning: Story = {
       experimentStates={{ running: { active: true } }}
       messages={[userMessage, assistantMarkdownMessage]}
       primaryLabel="Chat"
+      presentation="brunch"
       promptChips={[
         { id: "review", label: "Review this net", prompt: "Review this net" },
       ]}
@@ -1325,6 +1336,7 @@ export const StreamingReasoning: Story = {
   render: () => (
     <Frame
       primaryLabel="Chat"
+      presentation="brunch"
       messages={[userMessage, streamingReasoningMessage]}
       status="streaming"
     />
@@ -1527,6 +1539,7 @@ const BrunchWaitingPreview = () => {
         key={String(voice)}
         additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
         primaryLabel="Chat"
+        presentation="brunch"
         messages={[userMessage]}
         promptChips={REVIEW_CHIPS}
         status={waiting ? "submitted" : "ready"}
@@ -1591,6 +1604,7 @@ const BrunchStreamingPreview = () => {
       <Button onClick={() => setFinished(true)}>Finish response</Button>
       <Frame
         primaryLabel="Chat"
+        presentation="brunch"
         status={finished ? "ready" : "streaming"}
         messages={[
           userMessage,
@@ -1858,6 +1872,7 @@ const PendingToolLifecycleHarness = () => {
       <Frame
         messages={[userMessage, toolMessage]}
         primaryLabel="Chat"
+        presentation="brunch"
         resolveToolPresentation={toolLifecycleResolver}
         status={running ? "streaming" : "ready"}
         workingLabel="Brunch is working"

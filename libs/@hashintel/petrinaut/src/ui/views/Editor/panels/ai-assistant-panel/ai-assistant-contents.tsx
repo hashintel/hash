@@ -83,6 +83,7 @@ export type AiAssistantContentsProps = {
   onHostTabSelectedChange?: (selected: boolean) => void;
   primaryAttention?: boolean;
   primaryLabel?: string;
+  presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
   hiddenToolNames?: ReadonlySet<string>;
   workingLabel?: string;
@@ -636,6 +637,7 @@ const AiAssistantMessage = memo(
     experimentStates,
     onCancelExperiment,
     resolveToolPresentation,
+    presentation,
     voice,
     expandReasoning,
     active,
@@ -650,6 +652,7 @@ const AiAssistantMessage = memo(
     experimentStates?: Record<string, AiExperimentState>;
     onCancelExperiment?: (toolCallId: string) => void;
     resolveToolPresentation?: PetrinautAiToolPresentationResolver;
+    presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
     voice: boolean;
     expandReasoning: boolean;
     active: boolean;
@@ -770,7 +773,7 @@ const AiAssistantMessage = memo(
             />
           </div>
         )}
-        {showWork && (
+        {showWork && presentation === "brunch" && (
           <BrunchWorkFold status={workStatus} preserveOpen={expandReasoning}>
             {work.reasoning.map((item) => (
               <AiAssistantReasoning
@@ -785,6 +788,7 @@ const AiAssistantMessage = memo(
               active={active}
               stopped={wasStopped}
               preserveOpen={expandReasoning}
+              presentation={presentation}
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }
@@ -816,7 +820,33 @@ const AiAssistantMessage = memo(
             )}
           </BrunchWorkFold>
         )}
-        {role === "assistant" && !voice && writtenAnswer}
+        {showWork && presentation === "stock" && (
+          <>
+            {work.reasoning.map((item) => (
+              <AiAssistantReasoning
+                key={item.key}
+                isStreaming={active && item.part.state === "streaming"}
+                expandWhileStreaming={active && item.part.state === "streaming"}
+                part={item.part}
+              />
+            ))}
+            <AiAssistantToolList
+              tools={work.tools}
+              active={active}
+              stopped={wasStopped}
+              presentation={presentation}
+              onInteractiveToolSubmit={(params) =>
+                handlersRef.current.onInteractiveToolSubmit?.(params)
+              }
+              onSelectToolTarget={(target) =>
+                handlersRef.current.onSelectToolTarget?.(target)
+              }
+            />
+          </>
+        )}
+        {role === "assistant" &&
+          (!voice || presentation === "stock") &&
+          writtenAnswer}
         {cards.map((item) =>
           item.type === "experiment" ? (
             <ExperimentCard
@@ -830,6 +860,7 @@ const AiAssistantMessage = memo(
               key={item.key}
               tools={[item.tool]}
               producedCard
+              presentation={presentation}
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }
@@ -864,60 +895,69 @@ const AiAssistantMessage = memo(
             Response stopped
           </div>
         )}
-        {role === "assistant" && !voice && writtenAnswer && !active && (
-          <div
-            className={css({ display: "flex", gap: "1", color: "neutral.s80" })}
-            data-answer-actions
-          >
-            <Button
-              size="xs"
-              variant="ghost"
-              aria-label={copied ? "Answer copied" : "Copy answer"}
-              tooltip={copied ? "Copied" : "Copy"}
-              prefix={
-                <ExperimentalIcon name={copied ? "check" : "copy"} size={14} />
-              }
-              onClick={() => {
-                void (async () => {
-                  try {
-                    await navigator.clipboard.writeText(
-                      answers.map((answer) => answer.part.text).join("\n\n"),
-                    );
-                    setCopied(true);
-                  } catch {
-                    addNotification(
-                      errorNotification("Could not copy the answer"),
-                    );
-                  }
-                })();
-              }}
-            />
-            {canRetry && (
+        {presentation === "brunch" &&
+          role === "assistant" &&
+          !voice &&
+          writtenAnswer &&
+          !active && (
+            <div
+              className={css({
+                display: "flex",
+                gap: "1",
+                color: "neutral.s80",
+              })}
+              data-answer-actions
+            >
               <Button
                 size="xs"
                 variant="ghost"
-                aria-label="Retry answer"
-                tooltip="Retry as a new turn"
-                prefix={<ExperimentalIcon name="rotate" size={14} />}
-                onClick={() => handlersRef.current.onRetryMessage(message.id)}
+                aria-label={copied ? "Answer copied" : "Copy answer"}
+                tooltip={copied ? "Copied" : "Copy"}
+                prefix={
+                  <ExperimentalIcon
+                    name={copied ? "check" : "copy"}
+                    size={14}
+                  />
+                }
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        answers.map((answer) => answer.part.text).join("\n\n"),
+                      );
+                      setCopied(true);
+                    } catch {
+                      addNotification(
+                        errorNotification("Could not copy the answer"),
+                      );
+                    }
+                  })();
+                }}
               />
-            )}
-          </div>
-        )}
+              {canRetry && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  aria-label="Retry answer"
+                  tooltip="Retry as a new turn"
+                  prefix={<ExperimentalIcon name="rotate" size={14} />}
+                  onClick={() => handlersRef.current.onRetryMessage(message.id)}
+                />
+              )}
+            </div>
+          )}
       </div>
     );
   },
 );
 AiAssistantMessage.displayName = "AiAssistantMessage";
 
-const isBrunchChatLabel = (primaryLabel: string | undefined) =>
-  primaryLabel === "Chat";
-
 export const getTranscriptLabel = (
   primaryLabel: string | undefined,
   inputMode: PetrinautAiInputMode,
+  presentation: NonNullable<PetrinautAiAssistant["presentation"]> = "stock",
 ) =>
-  isBrunchChatLabel(primaryLabel) && inputMode === "voice"
+  presentation === "brunch" && inputMode === "voice"
     ? "Voice"
     : (primaryLabel ?? "AI");
 
@@ -953,6 +993,7 @@ export const AiAssistantContents = ({
   onVoiceDockCollapsedChange,
   promptChips,
   primaryLabel,
+  presentation = "stock",
   primaryAttention = false,
   status,
   stopped = false,
@@ -977,8 +1018,12 @@ export const AiAssistantContents = ({
   const isBusy = status === "submitted" || status === "streaming";
   const hasInput = input.trim().length > 0;
   const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
-  const isBrunchChat = isBrunchChatLabel(primaryLabel);
-  const transcriptLabel = getTranscriptLabel(primaryLabel, inputMode);
+  const isBrunchChat = presentation === "brunch";
+  const transcriptLabel = getTranscriptLabel(
+    primaryLabel,
+    inputMode,
+    presentation,
+  );
   const pendingLabel =
     isBrunchChat && isBusy
       ? showingHostTab
@@ -1028,9 +1073,9 @@ export const AiAssistantContents = ({
         isSubmit: false,
         label: "Stop AI response",
         onClick: onStop,
-        tone: "brand",
+        tone: isBrunchChat ? "brand" : "neutral",
         type: "button",
-        variant: "solid",
+        variant: isBrunchChat ? "solid" : "subtle",
       }
     : canSubmit
       ? {
@@ -1505,6 +1550,7 @@ export const AiAssistantContents = ({
                 experimentStates={experimentStates}
                 onCancelExperiment={onCancelExperiment}
                 resolveToolPresentation={resolveToolPresentation}
+                presentation={presentation}
                 voice={inputMode === "voice"}
                 expandReasoning={isBrunchChat}
                 latestAnswer={message.id === latestAnswerId}
@@ -1711,7 +1757,11 @@ export const AiAssistantContents = ({
                           }
                         }
                       }}
-                      placeholder="Continue iterating..."
+                      placeholder={
+                        isBrunchChat || messages.length > 0
+                          ? "Continue iterating..."
+                          : "Describe the process you want to create"
+                      }
                       aria-label="Message AI assistant"
                       disabled={voiceHandoffPending}
                     />
