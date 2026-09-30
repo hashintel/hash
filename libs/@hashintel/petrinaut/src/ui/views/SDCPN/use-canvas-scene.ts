@@ -5,10 +5,15 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
+import {
+  leverNodeIds,
+  readControllers,
+} from "../../../react/controller-prototype/controllers";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { resolveControllerFocus } from "../../controller-prototype/controller-focus";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
@@ -59,6 +64,19 @@ export const useCanvasScene = (
   // hover causes and only rebuilds it when the net itself changes.
   const adjacency = buildNetAdjacency(activeNet);
 
+  // A selected controller focuses its levers and holds that focus under a
+  // hover, so pointing at a lever to read its tooltip keeps the others ringed.
+  const selectedControllerIds = new Set(
+    Array.from(selection.values())
+      .filter((item) => item.type === "controller")
+      .map((item) => item.id),
+  );
+  const controllerLeverIds = new Set(
+    readControllers(petriNetDefinition)
+      .filter((controller) => selectedControllerIds.has(controller.id))
+      .flatMap((controller) => controller.levers.flatMap(leverNodeIds)),
+  );
+
   return buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
@@ -69,11 +87,14 @@ export const useCanvasScene = (
     hoveredId: settledHoverId,
     // With the highlight off, the neighbourhood answers to the selection
     // alone; the hover still reaches the node it rests on.
-    focus: resolveCanvasFocus({
-      adjacency,
-      hoveredId: highlightOnHover ? settledHoverId : null,
-      selectedIds: new Set(selection.keys()),
-    }),
+    focus:
+      selectedControllerIds.size > 0
+        ? resolveControllerFocus(controllerLeverIds)
+        : resolveCanvasFocus({
+            adjacency,
+            hoveredId: highlightOnHover ? settledHoverId : null,
+            selectedIds: new Set(selection.keys()),
+          }),
     pinnedVisualizerIds: pinnedVisualizerPlaceIds,
   });
 };

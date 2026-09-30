@@ -3,6 +3,12 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
+import {
+  LeverTooltip,
+  leverLabel,
+  useNodeLever,
+} from "../../../../../controller-prototype/lever-node";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { nodeFocusStyle } from "../../../styles/focus";
@@ -70,6 +76,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
+  const lever = useNodeLever(id);
 
   const subtitle =
     data.lambdaType === "none"
@@ -86,7 +93,11 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         <div
           className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
         >
-          <Icon name="squareFilled" />
+          {lever ? (
+            <LeverGlyph size={22} title={leverLabel(lever)} />
+          ) : (
+            <Icon name="squareFilled" />
+          )}
           {data.lambdaType === "stochastic" && (
             <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>
               <Icon name="lambda" size="xs" />
@@ -97,9 +108,19 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       title={label}
       subtitle={subtitle}
       badge={
-        <div ref={boltRef} className={firingIndicatorStyle}>
-          <Icon name="lightning" />
-        </div>
+        <>
+          <div ref={boltRef} className={firingIndicatorStyle}>
+            <Icon name="lightning" />
+          </div>
+          {lever ? (
+            <LeverTooltip
+              nodeId={id}
+              lever={lever}
+              visible={data.hovered && !data.dragging}
+              lambdaType={data.lambdaType}
+            />
+          ) : null}
+        </>
       }
       isConnectable={isConnectable}
     />

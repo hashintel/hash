@@ -4,6 +4,7 @@ import {
   usePetrinautMutations,
   usePetrinautCommands,
 } from "../../../../../react";
+import { withoutControllers } from "../../../../../react/controller-prototype/controllers";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
@@ -157,7 +158,9 @@ export function useKeyboardShortcuts(
       hasSelection
     ) {
       event.preventDefault();
-      deleteItemsByIds({ items: Array.from(selection.values()) });
+      deleteItemsByIds({
+        items: withoutControllers(Array.from(selection.values())),
+      });
       clearSelection();
       return;
     }

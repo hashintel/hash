@@ -73,8 +73,10 @@ export function useSelectionCleanup() {
 
     // Check if any selected ID is stale
     let hasStale = false;
-    for (const id of selection.keys()) {
-      if (!validIds.has(id)) {
+    // Controllers live in the net's metadata, not the active net, so a
+    // controller selection is left for the panel to resolve.
+    for (const [id, item] of selection) {
+      if (!validIds.has(id) && item.type !== "controller") {
         hasStale = true;
         break;
       }
@@ -85,7 +87,7 @@ export function useSelectionCleanup() {
         (prev) => {
           const cleaned: SelectionMap = new Map();
           for (const [id, item] of prev) {
-            if (validIds.has(id)) {
+            if (validIds.has(id) || item.type === "controller") {
               cleaned.set(id, item);
             }
           }

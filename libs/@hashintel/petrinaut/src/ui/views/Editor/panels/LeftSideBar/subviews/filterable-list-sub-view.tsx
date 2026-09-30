@@ -166,6 +166,8 @@ interface FilterableListItem {
   emptyGroupMessage?: string;
   /** Optional action component shown on the right side of a group row (e.g. an add button). */
   renderGroupAction?: ComponentType;
+  /** Extra nesting levels for a row inside a group, for rows that belong to the row above them. */
+  indent?: number;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -424,7 +426,7 @@ const FilterableListContent = <T extends FilterableListItem>({
   // are out of `stops`, so `tabIndexFor` keeps them out of the tab order.
   const renderRow = (item: T, depth: number, isGroup: boolean) => {
     const row: VisibleRow<T> = { item, isGroup };
-    const selected = !isGroup && checkIsSelected(item.id);
+    const selected = !isGroup && checkIsSelected(getSelectionItem(item).id);
     const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
     const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
     const action = isGroup ? (
@@ -444,7 +446,11 @@ const FilterableListContent = <T extends FilterableListItem>({
         tabIndex={tabIndexFor(rowTarget)}
         className={listItemRowStyle({ isSelected: selected })}
         style={
-          depth > 0 ? { paddingLeft: depth * NESTING_INDENT + 4 } : undefined
+          depth > 0
+            ? {
+                paddingLeft: (depth + (item.indent ?? 0)) * NESTING_INDENT + 4,
+              }
+            : undefined
         }
         onClick={(event) => onRowClick(event, row)}
         onKeyDown={onRowKeyDown(row)}

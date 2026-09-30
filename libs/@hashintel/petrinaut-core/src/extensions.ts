@@ -507,6 +507,10 @@ export const sanitizeSDCPNForExtensions = (
     next.metrics = sdcpn.metrics.map((metric) => ({ ...metric }));
   }
 
+  if (sdcpn.metadata) {
+    next.metadata = sdcpn.metadata;
+  }
+
   if (sdcpn.subnets) {
     next.subnets = sdcpn.subnets.map(cloneSubnet);
   }

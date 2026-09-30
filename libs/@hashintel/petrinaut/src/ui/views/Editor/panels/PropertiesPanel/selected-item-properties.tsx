@@ -6,6 +6,7 @@ import { usePetrinautMutations } from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
+import { ControllerProperties } from "../../../../controller-prototype/controller-panel";
 import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
@@ -146,6 +147,9 @@ const SelectedItemPropertiesContent: React.FC = () => {
           />
         ) : null;
       }
+
+      case "controller":
+        return <ControllerProperties controllerId={item.id} />;
 
       case "componentInstance": {
         const instance = petriNetDefinition.componentInstances.find(

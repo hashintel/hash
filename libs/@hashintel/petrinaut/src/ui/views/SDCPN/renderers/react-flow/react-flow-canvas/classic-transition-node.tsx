@@ -4,6 +4,12 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { LeverIconBox } from "../../../../../controller-prototype/lever-glyph";
+import {
+  LeverTooltip,
+  leverLabel,
+  useNodeLever,
+} from "../../../../../controller-prototype/lever-node";
 import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
@@ -108,6 +114,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   });
 
   const focus = selected ? "focused" : data.focus;
+  const lever = useNodeLever(id);
 
   return (
     <div className={containerStyle}>
@@ -116,7 +123,11 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
       >
         <div className={transitionIconStyle}>
-          <Icon name="squareFilled" size="lg" />
+          {lever ? (
+            <LeverIconBox title={leverLabel(lever)} />
+          ) : (
+            <Icon name="squareFilled" size="lg" />
+          )}
           {data.lambdaType === "stochastic" ? (
             <div className={`${iconBadgeStyle} ${stochasticIconStyle}`}>
               <Icon name="lambda" size="xs" />
@@ -134,6 +145,14 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         </div>
       </div>
       <NodeHandles isConnectable={isConnectable} />
+      {lever ? (
+        <LeverTooltip
+          nodeId={id}
+          lever={lever}
+          visible={data.hovered && !data.dragging}
+          lambdaType={data.lambdaType}
+        />
+      ) : null}
     </div>
   );
 };

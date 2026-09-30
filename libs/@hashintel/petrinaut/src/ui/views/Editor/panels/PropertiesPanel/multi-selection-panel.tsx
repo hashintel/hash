@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 const MultipleIcon = () => <Icon name="layer" />;
 
+import { withoutControllers } from "../../../../../react/controller-prototype/controllers";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
@@ -87,7 +88,7 @@ const DeleteSelectionAction: React.FC = () => {
       iconName="trash"
       disabled={isReadOnly}
       onClick={() => {
-        deleteItemsByIds({ items });
+        deleteItemsByIds({ items: withoutControllers(items) });
         clearSelection();
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}

@@ -3,6 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
+import { useControllers } from "../../../../../../react/controller-prototype/use-controllers";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -14,6 +15,10 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
+import {
+  leverTagStyle,
+  useControllersTreeGroup,
+} from "../../../../../controller-prototype/controller-tree";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { AddDifferentialEquationAction } from "./entities-tree/add-differential-equation-action";
@@ -27,6 +32,16 @@ import {
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 import type { ComponentType } from "react";
+
+const taggedRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  "& > span:first-child": {
+    flex: "[1]",
+    minWidth: "[0]",
+  },
+});
 
 const parameterVarNameStyle = css({
   margin: "0",
@@ -45,11 +60,14 @@ interface EntityTreeItem {
   renderGroupAction?: ComponentType;
   selectionItem?: SelectionItem;
   variableName?: string;
+  tag?: string;
+  indent?: number;
 }
 
 const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { removeType, removeDifferentialEquation, removeParameter } =
     usePetrinautMutations();
+  const { updateControllers } = useControllers();
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
@@ -79,8 +97,13 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
     differentialEquation: () =>
       removeDifferentialEquation({ equationId: item.id }),
     parameter: () => removeParameter({ parameterId: item.id }),
+    controller: () =>
+      updateControllers((current) =>
+        current.filter((controller) => controller.id !== item.id),
+      ),
   };
-  const deleteAction = deleteActions[type];
+  // A lever row selects its node, but it is not the node's own row.
+  const deleteAction = item.tag ? undefined : deleteActions[type];
 
   if (!deleteAction && codeItems.length === 0) {
     return null;
@@ -119,6 +142,9 @@ function useEntityTreeItems(): EntityTreeItem[] {
   } = use(ActiveNetContext);
   const { extensions } = use(SDCPNContext);
   const presentation = usePetrinautPresentation();
+  const controllersGroup = useControllersTreeGroup((action) =>
+    presentation.showMutationActions ? action : undefined,
+  );
 
   // Adding an entity is a mutation, so a presentation that hides authoring
   // chrome hides a group's Add button with it.
@@ -126,6 +152,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
     presentation.showMutationActions ? action : undefined;
 
   return [
+    controllersGroup,
     {
       id: "group-nodes",
       name: "Nodes",
@@ -209,6 +236,14 @@ export const entitiesTreeSubView: SubView = {
     getSelectionItem: (item) =>
       item.selectionItem ?? { type: "place", id: item.id },
     renderItem: (item) => {
+      if (item.tag) {
+        return (
+          <div className={taggedRowStyle}>
+            <span>{item.name}</span>
+            <span className={leverTagStyle}>{item.tag}</span>
+          </div>
+        );
+      }
       if (item.variableName) {
         return (
           <div>

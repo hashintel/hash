@@ -1,6 +1,12 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
+import {
+  LeverTooltip,
+  leverLabel,
+  useNodeLever,
+} from "../../../../../controller-prototype/lever-node";
 import { usePlaceTokenCount } from "../../../canvas-frame-store";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
@@ -68,6 +74,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
+  const lever = useNodeLever(id);
 
   const subtitle = data.dynamicsEnabled ? "Place (Dynamics)" : "Place";
 
@@ -89,7 +96,11 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
             style={{ color: typeColorBorder }}
           >
-            <Icon name="circleFilled" />
+            {lever ? (
+              <LeverGlyph size={22} title={leverLabel(lever)} />
+            ) : (
+              <Icon name="circleFilled" />
+            )}
             {data.dynamicsEnabled && (
               <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
                 <Icon name="function" size="xs" />
@@ -106,6 +117,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         }
         isConnectable={isConnectable}
       />
+      {lever ? (
+        <LeverTooltip
+          nodeId={id}
+          lever={lever}
+          visible={data.hovered && !data.dragging && !showStateTooltip}
+          lambdaType={null}
+        />
+      ) : null}
     </>
   );
 };

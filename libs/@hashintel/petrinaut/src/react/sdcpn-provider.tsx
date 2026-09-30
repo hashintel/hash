@@ -5,6 +5,7 @@ import {
   isSelectionTypeAvailableForExtensions,
 } from "@hashintel/petrinaut-core";
 
+import { readControllers } from "./controller-prototype/controllers";
 import { NetManagementContext } from "./net-management-context";
 import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
@@ -90,6 +91,14 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
         )
       ) {
         return "componentInstance";
+      }
+
+      if (
+        readControllers(petriNetDefinition).some(
+          (controller) => controller.id === id,
+        )
+      ) {
+        return "controller";
       }
 
       return null;

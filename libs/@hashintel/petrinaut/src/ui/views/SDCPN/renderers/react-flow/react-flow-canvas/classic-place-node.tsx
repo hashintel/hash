@@ -3,6 +3,12 @@ import { type NodeProps } from "@xyflow/react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
+import {
+  LeverTooltip,
+  leverLabel,
+  useNodeLever,
+} from "../../../../../controller-prototype/lever-node";
 import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { usePlaceTokenCount } from "../../../canvas-frame-store";
 import {
@@ -88,6 +94,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const label = withLabelWrapPoints(data.label);
 
   const focus = selected ? "focused" : data.focus;
+  const lever = useNodeLever(id);
 
   return (
     <div className={containerStyle}>
@@ -103,6 +110,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         }
       >
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
+          {lever ? <LeverGlyph size={16} title={leverLabel(lever)} /> : null}
           {data.dynamicsEnabled ? (
             <div className={dynamicsIconStyle}>
               <Icon name="function" size="sm" />
@@ -119,6 +127,14 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         </div>
       </div>
       <NodeHandles isConnectable={isConnectable} />
+      {lever ? (
+        <LeverTooltip
+          nodeId={id}
+          lever={lever}
+          visible={data.hovered && !data.dragging && !showStateTooltip}
+          lambdaType={null}
+        />
+      ) : null}
     </div>
   );
 };
