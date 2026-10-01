@@ -28,7 +28,7 @@ add-bounds = "major" # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
 exclude-newer = "7 days" # mirrors npm release age
 package = false
 constraint-dependencies = [
-    "datamodel-code-generator<0.83.0,>=0.82.0",
+    "datamodel-code-generator<0.84.0,>=0.83.0",
     "deptry<0.26,>=0.25.1",
     "fastapi<0.142.0,>=0.141.1",
     "httpx<0.29.0,>=0.28",
