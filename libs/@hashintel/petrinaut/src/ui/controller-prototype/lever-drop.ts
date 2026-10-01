@@ -1,15 +1,24 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 /**
- * Drag a canvas node onto a lever field to point the lever at it: either
- * long-press the node first, or drag it straight out of the canvas. Only
- * active while a lever field is mounted. Once a lever drag starts, a name
- * chip follows the pointer, the canvas's own drag, pan and click are held
- * off, and the node goes back to where it was.
+ * Drag a canvas node onto a lever field to point the lever at it. Only
+ * active while a lever field is mounted.
+ *
+ * Long-press the node, or drag it straight out of the canvas: a copy of the
+ * node lifts off and follows the pointer while the node dims in place.
+ * Dropping it on a field that accepts it shrinks the ghost into the field;
+ * anywhere else, or Escape, flies it back. The node keeps its position, and
+ * the canvas's own drag, pan and click are held off once the ghost is out.
  */
 
 const LONG_PRESS_MS = 300;
 const MOVE_TOLERANCE_PX = 6;
+const LIFT_MS = 180;
+const DROP_MS = 120;
+const CANCEL_MS = 220;
+const LIFT_SCALE = 1.04;
+const DIMMED_OPACITY = "0.4";
+const DECELERATE = "cubic-bezier(0.2, 0.9, 0.25, 1)";
 
 type DropTarget = {
   element: HTMLElement;
@@ -37,20 +46,24 @@ const emit = (next: LeverDragState) => {
   }
 };
 
-let press: {
+type Press = {
   nodeId: string;
-  label: string;
-  canvas: Element | null;
+  node: HTMLElement;
+  /** The node's box on screen when pressed. */
+  rect: DOMRect;
   x: number;
   y: number;
   timer: number;
+  canvas: Element | null;
   /** The pointer moved before the long press: the canvas is dragging the node. */
   moving: boolean;
-} | null = null;
-/** The node a lever drag just dropped, so the canvas does not commit its move. */
-let claimed: string | null = null;
-let chip: HTMLDivElement | null = null;
+};
+
+let press: Press | null = null;
+let ghost: HTMLElement | null = null;
 let cursorStyle: HTMLStyleElement | null = null;
+/** The node a lever drag just ended on, so the canvas does not commit a move. */
+let claimed: string | null = null;
 
 const targetAt = (x: number, y: number, nodeId: string): DropTarget | null => {
   for (const target of targets) {
@@ -68,58 +81,121 @@ const targetAt = (x: number, y: number, nodeId: string): DropTarget | null => {
   return null;
 };
 
-const placeChip = (x: number, y: number) => {
-  if (chip) {
-    chip.style.transform = `translate(${x + 14}px, ${y + 10}px)`;
+/** Petrinaut's root, where its styles apply: the ghost mounts there. */
+const layerFor = (node: HTMLElement): HTMLElement =>
+  node.closest<HTMLElement>(".petrinaut-root") ?? document.body;
+
+const placeGhost = (x: number, y: number, scale: number) => {
+  if (!ghost || !press) {
+    return;
   }
+  ghost.style.transform = `translate(${x - press.x}px, ${y - press.y}px) scale(${scale})`;
 };
 
-const startDrag = () => {
+const lift = () => {
   if (!press) {
     return;
   }
-  chip = document.createElement("div");
-  chip.textContent = press.label;
-  Object.assign(chip.style, {
+  const { node, rect } = press;
+
+  // The clone renders outside the canvas's zoom, so scale it to match.
+  const zoom = rect.width / Math.max(1, node.offsetWidth);
+  const copy = node.cloneNode(true) as HTMLElement;
+  copy.removeAttribute("data-id");
+  copy.classList.remove("selected");
+  for (const handle of copy.querySelectorAll(".react-flow__handle")) {
+    handle.remove();
+  }
+  ghost = document.createElement("div");
+  ghost.setAttribute("aria-hidden", "true");
+  Object.assign(ghost.style, {
     position: "fixed",
-    left: "0",
-    top: "0",
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
     zIndex: "2147483647",
     pointerEvents: "none",
-    padding: "4px 10px",
-    borderRadius: "6px",
-    background: "white",
-    border: "1px solid rgba(0, 0, 0, 0.12)",
-    boxShadow: "0 4px 14px rgba(0, 0, 0, 0.14)",
-    font: "500 13px system-ui, sans-serif",
-    color: "#262626",
-    whiteSpace: "nowrap",
-    opacity: "0",
-    transition: "opacity 90ms ease-out",
+    transformOrigin: "center",
+    transition: `transform ${LIFT_MS}ms ${DECELERATE}, filter ${LIFT_MS}ms ${DECELERATE}`,
+    filter: "drop-shadow(0 0 0 rgba(0, 0, 0, 0))",
   });
-  document.body.append(chip);
-  placeChip(press.x, press.y);
+  Object.assign(copy.style, {
+    position: "absolute",
+    left: "0",
+    top: "0",
+    transform: `scale(${zoom})`,
+    transformOrigin: "top left",
+    opacity: "1",
+    pointerEvents: "none",
+  });
+  ghost.append(copy);
+  layerFor(node).append(ghost);
+  placeGhost(press.x, press.y, 1);
   requestAnimationFrame(() => {
-    if (chip) {
-      chip.style.opacity = "1";
+    if (!ghost || !press) {
+      return;
     }
+    ghost.style.filter = "drop-shadow(0 10px 18px rgba(0, 0, 0, 0.22))";
+    placeGhost(press.x, press.y, LIFT_SCALE);
+    // After the lift, the ghost tracks the pointer without easing.
+    window.setTimeout(() => {
+      if (ghost) {
+        ghost.style.transition = `filter ${LIFT_MS}ms ${DECELERATE}, opacity 90ms ease-out`;
+      }
+    }, LIFT_MS);
   });
+
+  node.style.transition = `opacity ${LIFT_MS}ms ease-out`;
+  node.style.opacity = DIMMED_OPACITY;
+
   cursorStyle = document.createElement("style");
   cursorStyle.textContent = "* { cursor: grabbing !important; }";
   document.head.append(cursorStyle);
   emit({ nodeId: press.nodeId, over: null });
 };
 
-const endPress = () => {
+/** Removes everything the gesture added, after the ghost's last animation. */
+const finish = (afterMs: number) => {
+  const done = { ghost, node: press?.node };
   if (press) {
     window.clearTimeout(press.timer);
   }
   press = null;
-  chip?.remove();
-  chip = null;
+  ghost = null;
   cursorStyle?.remove();
   cursorStyle = null;
   emit(null);
+  if (done.node) {
+    done.node.style.opacity = "";
+    window.setTimeout(() => {
+      if (done.node) {
+        done.node.style.transition = "";
+      }
+    }, LIFT_MS);
+  }
+  window.setTimeout(() => done.ghost?.remove(), afterMs);
+};
+
+const dropInto = (field: HTMLElement) => {
+  if (!ghost || !press) {
+    return;
+  }
+  const box = field.getBoundingClientRect();
+  const dx = box.left + box.width / 2 - (press.rect.left + press.rect.width / 2);
+  const dy = box.top + box.height / 2 - (press.rect.top + press.rect.height / 2);
+  ghost.style.transition = `transform ${DROP_MS}ms ease-in, opacity ${DROP_MS}ms ease-in`;
+  ghost.style.transform = `translate(${dx}px, ${dy}px) scale(0.4)`;
+  ghost.style.opacity = "0";
+};
+
+const flyBack = () => {
+  if (!ghost) {
+    return;
+  }
+  ghost.style.transition = `transform ${CANCEL_MS}ms ${DECELERATE}, filter ${CANCEL_MS}ms ${DECELERATE}`;
+  ghost.style.transform = "translate(0px, 0px) scale(1)";
+  ghost.style.filter = "drop-shadow(0 0 0 rgba(0, 0, 0, 0))";
 };
 
 /** Holds a canvas event back while a lever drag is running. */
@@ -130,26 +206,25 @@ const swallow = (event: Event) => {
 };
 
 const onPointerDown = (event: PointerEvent) => {
-  if (event.button !== 0 || targets.size === 0) {
+  if (event.button !== 0 || targets.size === 0 || press) {
     return;
   }
-  const nodeElement = (event.target as Element | null)?.closest<HTMLElement>(
+  const node = (event.target as Element | null)?.closest<HTMLElement>(
     ".react-flow__node[data-id]",
   );
-  const nodeId = nodeElement?.dataset.id;
-  if (!nodeElement || !nodeId) {
+  const nodeId = node?.dataset.id;
+  if (!node || !nodeId) {
     return;
   }
-  const label =
-    nodeElement.innerText.split("\n").find((line) => line.trim() !== "") ??
-    nodeId;
+  const rect = node.getBoundingClientRect();
   press = {
     nodeId,
-    label: label.trim(),
-    canvas: nodeElement.closest(".react-flow"),
+    node,
+    rect,
     x: event.clientX,
     y: event.clientY,
-    timer: window.setTimeout(startDrag, LONG_PRESS_MS),
+    timer: window.setTimeout(lift, LONG_PRESS_MS),
+    canvas: node.closest(".react-flow"),
     moving: false,
   };
 };
@@ -168,53 +243,72 @@ const onMove = (event: PointerEvent | MouseEvent) => {
       window.clearTimeout(press.timer);
       press.moving = true;
     }
-    // Panels overlay the canvas, so test what is on top under the pointer.
-    const under = document.elementFromPoint(event.clientX, event.clientY);
-    const outside =
-      press.canvas !== null && under !== null && !press.canvas.contains(under);
-    if (!press.moving || !outside) {
+    if (!press.moving) {
       return;
     }
-    // The node left the canvas: it becomes a lever drag from here.
+    // Panels overlay the canvas, so test what is on top under the pointer.
+    const under = document.elementFromPoint(event.clientX, event.clientY);
+    if (!press.canvas || !under || press.canvas.contains(under)) {
+      return;
+    }
+    // The node left the canvas: its ghost takes over where it is now.
+    press.rect = press.node.getBoundingClientRect();
     press.x = event.clientX;
     press.y = event.clientY;
-    startDrag();
+    lift();
   }
   swallow(event);
-  placeChip(event.clientX, event.clientY);
-  const { nodeId } = press;
-  emit({
-    nodeId,
-    over: targetAt(event.clientX, event.clientY, nodeId)?.element ?? null,
-  });
+  placeGhost(event.clientX, event.clientY, LIFT_SCALE);
+  const over =
+    targetAt(event.clientX, event.clientY, press.nodeId)?.element ?? null;
+  if (ghost) {
+    // See-through over a field, so the field's own state shows beneath.
+    ghost.style.opacity = over ? "0.7" : "1";
+  }
+  emit({ nodeId: press.nodeId, over });
 };
 
 const onPointerUp = (event: PointerEvent) => {
   if (!press) {
     return;
   }
-  if (state) {
-    const target = targetAt(event.clientX, event.clientY, state.nodeId);
-    const { nodeId } = state;
-    claimed = nodeId;
-    // The release would otherwise click the node and select it.
-    window.addEventListener("click", swallow, { capture: true, once: true });
-    window.setTimeout(
-      () => window.removeEventListener("click", swallow, true),
-      0,
-    );
-    endPress();
-    target?.drop(nodeId);
+  if (!state) {
+    finish(0);
     return;
   }
-  endPress();
+  const { nodeId } = press;
+  const target = targetAt(event.clientX, event.clientY, nodeId);
+  claimed = nodeId;
+  // The release would otherwise click the node and select it.
+  window.addEventListener("click", swallow, { capture: true, once: true });
+  window.setTimeout(() => window.removeEventListener("click", swallow, true), 0);
+  if (target) {
+    dropInto(target.element);
+    finish(DROP_MS);
+    target.drop(nodeId);
+  } else {
+    flyBack();
+    finish(CANCEL_MS);
+  }
 };
 
 const onKeyDown = (event: KeyboardEvent) => {
-  if (state && event.key === "Escape") {
+  if (press && event.key === "Escape") {
     swallow(event);
-    endPress();
+    claimed = press.nodeId;
+    flyBack();
+    finish(CANCEL_MS);
   }
+};
+
+/**
+ * Called as the canvas commits a node drag: true when a lever drag took the
+ * node, so its position must not change.
+ */
+export const takeLeverDropClaim = (nodeId: string): boolean => {
+  const taken = claimed === nodeId;
+  claimed = null;
+  return taken;
 };
 
 const install = () => {
@@ -231,17 +325,9 @@ const uninstall = () => {
   window.removeEventListener("mousemove", onMove, true);
   window.removeEventListener("pointerup", onPointerUp, true);
   window.removeEventListener("keydown", onKeyDown, true);
-  endPress();
-};
-
-/**
- * Called as the canvas commits a node drag: true when a lever drag took the
- * node, so its position must not change.
- */
-export const takeLeverDropClaim = (nodeId: string): boolean => {
-  const taken = claimed === nodeId;
-  claimed = null;
-  return taken;
+  if (press) {
+    finish(0);
+  }
 };
 
 const subscribe = (listener: () => void) => {
