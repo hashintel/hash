@@ -17,6 +17,7 @@ import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { takeLeverDropClaim } from "../../controller-prototype/lever-drop";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
@@ -349,6 +350,7 @@ export const useCanvasInteractions = (
     const commits = drops.flatMap(({ id, position }) => {
       const itemType = getItemType(id);
       if (
+        takeLeverDropClaim(id) ||
         !position ||
         (itemType !== "place" &&
           itemType !== "transition" &&

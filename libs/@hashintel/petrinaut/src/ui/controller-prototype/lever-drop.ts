@@ -1,10 +1,11 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 /**
- * Long-press a canvas node, then drag it onto a lever field to point the
- * lever at it. Only active while a lever field is mounted. The node itself
- * never moves: a name chip follows the pointer, and the canvas's own drag,
- * pan and click are held off until the press ends.
+ * Drag a canvas node onto a lever field to point the lever at it: either
+ * long-press the node first, or drag it straight out of the canvas. Only
+ * active while a lever field is mounted. Once a lever drag starts, a name
+ * chip follows the pointer, the canvas's own drag, pan and click are held
+ * off, and the node goes back to where it was.
  */
 
 const LONG_PRESS_MS = 300;
@@ -39,10 +40,15 @@ const emit = (next: LeverDragState) => {
 let press: {
   nodeId: string;
   label: string;
+  canvas: Element | null;
   x: number;
   y: number;
   timer: number;
+  /** The pointer moved before the long press: the canvas is dragging the node. */
+  moving: boolean;
 } | null = null;
+/** The node a lever drag just dropped, so the canvas does not commit its move. */
+let claimed: string | null = null;
 let chip: HTMLDivElement | null = null;
 let cursorStyle: HTMLStyleElement | null = null;
 
@@ -140,9 +146,11 @@ const onPointerDown = (event: PointerEvent) => {
   press = {
     nodeId,
     label: label.trim(),
+    canvas: nodeElement.closest(".react-flow"),
     x: event.clientX,
     y: event.clientY,
     timer: window.setTimeout(startDrag, LONG_PRESS_MS),
+    moving: false,
   };
 };
 
@@ -152,21 +160,32 @@ const onMove = (event: PointerEvent | MouseEvent) => {
   }
   if (!state) {
     if (
+      !press.moving &&
       Math.hypot(event.clientX - press.x, event.clientY - press.y) >
-      MOVE_TOLERANCE_PX
+        MOVE_TOLERANCE_PX
     ) {
-      // Moved before the long press: an ordinary drag or pan.
+      // Moved before the long press: the canvas drags the node as usual.
       window.clearTimeout(press.timer);
-      press = null;
+      press.moving = true;
     }
-    return;
+    // Panels overlay the canvas, so test what is on top under the pointer.
+    const under = document.elementFromPoint(event.clientX, event.clientY);
+    const outside =
+      press.canvas !== null && under !== null && !press.canvas.contains(under);
+    if (!press.moving || !outside) {
+      return;
+    }
+    // The node left the canvas: it becomes a lever drag from here.
+    press.x = event.clientX;
+    press.y = event.clientY;
+    startDrag();
   }
   swallow(event);
   placeChip(event.clientX, event.clientY);
+  const { nodeId } = press;
   emit({
-    nodeId: state.nodeId,
-    over:
-      targetAt(event.clientX, event.clientY, state.nodeId)?.element ?? null,
+    nodeId,
+    over: targetAt(event.clientX, event.clientY, nodeId)?.element ?? null,
   });
 };
 
@@ -177,6 +196,7 @@ const onPointerUp = (event: PointerEvent) => {
   if (state) {
     const target = targetAt(event.clientX, event.clientY, state.nodeId);
     const { nodeId } = state;
+    claimed = nodeId;
     // The release would otherwise click the node and select it.
     window.addEventListener("click", swallow, { capture: true, once: true });
     window.setTimeout(
@@ -212,6 +232,16 @@ const uninstall = () => {
   window.removeEventListener("pointerup", onPointerUp, true);
   window.removeEventListener("keydown", onKeyDown, true);
   endPress();
+};
+
+/**
+ * Called as the canvas commits a node drag: true when a lever drag took the
+ * node, so its position must not change.
+ */
+export const takeLeverDropClaim = (nodeId: string): boolean => {
+  const taken = claimed === nodeId;
+  claimed = null;
+  return taken;
 };
 
 const subscribe = (listener: () => void) => {
