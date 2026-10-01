@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -58,6 +64,28 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   expect(
     screen.getByRole("button", { name: "Interview budget: Off · No budget" }),
   ).toBeTruthy();
+});
+
+test("Escape closes the control and returns focus to its trigger", async () => {
+  render(<Harness />);
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Interview budget: Standard · ~10 min",
+    }),
+  );
+  const slider = await screen.findByRole("slider", {
+    name: "Interview budget level",
+  });
+  await waitFor(() => expect(document.activeElement).toBe(slider));
+  fireEvent.keyDown(slider, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("slider")).toBeNull());
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", {
+        name: "Interview budget: Standard · ~10 min",
+      }),
+    ),
+  );
 });
 
 test("pill counts canonical replies, changes with mode and disappears for Off", async () => {

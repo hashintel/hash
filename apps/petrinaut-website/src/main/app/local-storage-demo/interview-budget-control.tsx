@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   PiGauge,
   PiLightning,
@@ -62,6 +62,14 @@ export const InterviewBudgetControl = ({
   const [hovered, setHovered] = useState<InterviewBudgetLevel | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
+  // Toggling `disableTooltip` remounts the trigger, so the Popover's own focus
+  // return lands on a detached button. Restore it after an Escape dismissal.
+  const refocusTrigger = useRef(false);
+  useEffect(() => {
+    if (open || !refocusTrigger.current) return;
+    refocusTrigger.current = false;
+    triggerRef.current?.focus();
+  }, [open]);
   const config = interviewBudgetLevelsConfig[level];
   const CurrentIcon = icons[level];
   const selectedIndex = interviewBudgetLevels.indexOf(level);
@@ -140,6 +148,9 @@ export const InterviewBudgetControl = ({
           <div
             role="group"
             aria-label="Interview budget"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") refocusTrigger.current = true;
+            }}
             onMouseLeave={() => setHovered(null)}
             className={`${levelTheme[level]} ${css({
               width: "[324px]",
