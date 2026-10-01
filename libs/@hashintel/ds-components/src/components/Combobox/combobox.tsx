@@ -304,15 +304,16 @@ const flattenListItems = (items: Array<ItemOrGroup<Item>>): Item[] => {
  * `value` is an option's `value` (or, with `allowNewValue`, any typed
  * text); the text being typed is internal state reported via
  * `onChangeInput`. Abandoning uncommitted text (Escape, or closing the
- * dropdown without a selection) reverts the input to the committed value
- * unless `allowNewValue` commits it instead.
+ * dropdown without a selection) reverts the input to the committed value;
+ * with `allowNewValue`, typed text commits through Enter or its dropdown
+ * option, never by closing.
  *
  * With `multiple`, `value` is instead the array of selected values, rendered
  * as a row of chips inside the input, and the typed text is a transient
  * filter/draft: committing it or toggling an option clears it (see
- * `clearInputOnSelect`), and closing the dropdown behaves as for a single
- * value — `allowNewValue` commits an abandoned draft, otherwise it is
- * discarded.
+ * `clearInputOnSelect`), and closing the dropdown discards it — with
+ * `allowNewValue`, typed text only becomes a value through an explicit
+ * selection of its dropdown option.
  */
 export const Combobox = <TValue extends string>({
   items: itemsProp = [],
@@ -788,15 +789,17 @@ export const Combobox = <TValue extends string>({
         revertInput();
         return;
       }
-      // A selection has already re-synced both texts by the time the close
-      // fires, so a difference here means the text was abandoned mid-type.
+      // An item-select close (option click, Enter) fires before the
+      // machine's value/input callbacks, so the typed text must survive it
+      // for them to read — the selection's own re-sync, or the keydown
+      // handler around the machine's Enter processing, settles the text.
+      if (reason === "item-select") {
+        return;
+      }
+      // Any other close abandons the typed text. Closing never commits —
+      // typed text becomes a value only through Enter or the dropdown — so
+      // the input snaps back to the committed text (a multi draft clears).
       if (inputTextRef.current !== committedTextRef.current) {
-        if (newValueOptions !== undefined) {
-          commitTypedText(inputTextRef.current);
-        }
-        // No-op after a commit of new text; snaps the input to the option's
-        // text when the commit resolved typed text to an option, and reverts
-        // abandoned text when there is no commit at all.
         revertInput();
       }
     },
@@ -1055,17 +1058,28 @@ export const Combobox = <TValue extends string>({
           emitMultiChange(selectedValuesRef.current.slice(0, -1), false);
         }
       }
-      // Enter that abandons unacceptable text must not submit a form; decided
+      // Enter with nothing highlighted acts on the typed text; decided
       // before the machine processes the key (which closes and clears the
-      // highlight), applied after so the machine still sees the key.
-      const rejectsTypedText =
+      // highlight). Acceptable text commits here in a single combobox — the
+      // close that follows only reverts, never commits — while Enter that
+      // abandons unacceptable text must not submit a form (applied after,
+      // so the machine still sees the key).
+      const entersTypedText =
         event.key === "Enter" &&
         openRef.current &&
         highlightedValueRef.current === null &&
-        inputTextRef.current !== committedTextRef.current &&
+        inputTextRef.current !== committedTextRef.current;
+      const rejectsTypedText =
+        entersTypedText &&
         (newValueOptions === undefined ||
           atMaxItems ||
           isBlockedTypedText(effectiveItems, inputTextRef.current));
+      if (!multiple && entersTypedText && !rejectsTypedText) {
+        commitTypedText(inputTextRef.current);
+        // Snaps loosely-cased text to the named option's text — the
+        // item-select close this Enter triggers leaves the text alone.
+        revertInput();
+      }
       if (event.key === "Escape" && !openRef.current) {
         revertInput();
       }
@@ -1085,6 +1099,12 @@ export const Combobox = <TValue extends string>({
       }
       if (rejectsTypedText) {
         event.preventDefault();
+        if (!multiple) {
+          // The Enter-triggered close leaves the text alone (item-select);
+          // the abandoned text reverts here instead. A multi draft stays:
+          // without a close, the user is still editing it.
+          revertInput();
+        }
       }
       if (multiple) {
         onKeyDown?.(event);
