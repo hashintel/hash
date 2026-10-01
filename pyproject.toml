@@ -1,17 +1,17 @@
 [project]
-name = "hash"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.14,<3.15"
-dependencies = []
 authors = [
     { name = "HASH" },
 ]
+dependencies = []
+description = "Add your description here"
+name = "hash"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+version = "0.1.0"
 
 [build-system]
-requires      = ["uv_build>=0.12.16,<0.13.0"]
 build-backend = "uv_build"
+requires      = ["uv_build>=0.12.16,<0.13.0"]
 
 [dependency-groups]
 dev = [
@@ -22,12 +22,9 @@ dev = [
 ]
 
 [tool.uv]
-preview = true
 add-bounds = "major" # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
-exclude-newer = "7 days" # mirrors npm release age
-package = false
 constraint-dependencies = [
-    "datamodel-code-generator<0.75.0,>=0.74.0",
+    "datamodel-code-generator<0.84.0,>=0.83.0",
     "fastapi<0.129.0,>=0.128.8",
     "httpx<0.29.0,>=0.28",
     "license-expression<31.0.0,>=30.4.4",
@@ -38,10 +35,13 @@ constraint-dependencies = [
     "optuna<5,>=4.9",
     "packaging<27.0,>=26.3",
     "pydantic<3.0.0,>=2.13.4",
+    "pydantic-settings<3.0.0,>=2.15.0",
     "pytest<10,>=9.1.1",
+    "pytest-asyncio<2,>=1.4",
     "python-dotenv<2.0.0,>=1.0.0",
     "rich<16.0.0,>=15.0.0",
     "ruff<0.17,>=0.16.8",
+    "starlette<0.53.0,>=0.52.1",
     "sympy<2.0.0,>=1.13",
     "tach<0.36,>=0.35",
     "tomlkit<0.16.0,>=0.15.1",
@@ -49,6 +49,9 @@ constraint-dependencies = [
     "uv-build<0.13.0,>=0.12.16",
     "uvicorn<0.40.0,>=0.39.0",
 ]
+exclude-newer = "7 days" # mirrors npm release age
+package = false
+preview = true
 
 [tool.uv.workspace]
 members = [
@@ -60,18 +63,153 @@ members = [
 
 [tool.pytest.ini_options]
 addopts = "-q --import-mode=importlib"
+pythonpath = [
+    "apps/petrinaut-opt/src",
+    "libs/@local/petrinaut-optimizer-core/python/src",
+    "libs/@local/petrinaut-python/src",
+    "libs/@local/repo-chores/python/src",
+]
 testpaths = [
     "apps/petrinaut-opt/tests",
     "libs/@local/petrinaut-optimizer-core/python/tests",
     "libs/@local/petrinaut-python/tests",
     "libs/@local/repo-chores/python/tests",
 ]
-pythonpath = [
-    "apps/petrinaut-opt",
+
+[tool.ruff]
+line-length = 100
+preview = true
+src = [
+    "apps/petrinaut-opt/src",
+    "libs/@local/petrinaut-optimizer-core/python/src",
+    "libs/@local/petrinaut-python/src",
+    "libs/@local/repo-chores/python/src",
+]
+target-version = "py314"
+
+[tool.ruff.lint]
+ignore = [
+    # Conflicts with the formatter.
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "E501",
+    "D203",
+    "D206",
+    "D300",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "Q004",
+    "COM812",
+    "COM819",
+    "ISC001",
+    # This repository has no copyright-header convention.
+    "CPY001",
+    # Put summaries on the first line, without a blank before class docstrings.
+    "D203",
+    "D213",
+    # Self-explanatory APIs need no docstring that restates the signature.
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "DOC201",
+    "DOC402",
+    "DOC501",
+    # Keep informative exception messages at their call sites.
+    "EM101",
+    "EM102",
+    "TRY003",
+    # Limit positional arguments rather than keyword arguments.
+    "PLR0913",
+    # Python 3.14 evaluates annotations lazily.
+    "TC001",
+    "TC002",
+    "TC003",
+]
+select = ["ALL"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Python 3.14 evaluates annotations lazily (PEP 649). The future import changes annotation semantics and can break tooling such as Pydantic."
+"typing.Any".msg             = "Use object for pass-through values, a TypeVar for generic code, or pydantic's JsonValue for opaque JSON."
+
+[tool.ruff.lint.per-file-ignores]
+"**/cli.py"   = ["PLC0415", "T201"]
+"**/cli/**"   = ["PLC0415", "T201"]
+"**/tests/**" = ["S101", "PLR2004", "SLF001", "PLC2701", "D100", "S603", "INP001"]
+# Array comments live in tomlkit's private entry groups, separate from their values.
+"libs/@local/repo-chores/python/src/repo_chores/constraints/_engine/document.py"        = ["PLC2701", "SLF001"]
+"libs/@local/repo-chores/python/src/repo_chores/constraints/_engine/document_native.py" = ["PLC2701", "SLF001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.pylint]
+max-positional-args = 3
+
+[tool.tach]
+exact = true
+exclude = []
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+root_module = "forbid"
+source_roots = [
+    "apps/petrinaut-opt/src",
     "libs/@local/petrinaut-optimizer-core/python/src",
     "libs/@local/petrinaut-python/src",
     "libs/@local/repo-chores/python/src",
 ]
 
+[[tool.tach.modules]]
+depends_on = []
+path       = "petrinaut"
+
+[[tool.tach.modules]]
+depends_on = []
+path       = "petrinaut_optimization"
+
+[[tool.tach.modules]]
+depends_on = []
+path       = "petrinaut_optimizer_core"
+
+[[tool.tach.modules]]
+depends_on = ["repo_chores.constraints"]
+path       = "repo_chores"
+
+[[tool.tach.modules]]
+depends_on = ["repo_chores.constraints._engine"]
+path       = "repo_chores.constraints"
+
+[[tool.tach.modules]]
+depends_on = []
+path       = "repo_chores.constraints._engine"
+
+[tool.tach.rules]
+require_ignore_directive_reasons = "error"
+unused_external_dependencies     = "error"
+unused_ignore_directives         = "error"
+
 [tool.turbo]
 name = "hash-python"
+
+[tool.ty.environment]
+python = "./.venv"
+
+[tool.ty.rules]
+blanket-ignore-comment        = "error"
+division-by-zero              = "error"
+missing-override-decorator    = "error"
+missing-type-argument         = "error"
+possibly-missing-attribute    = "error"
+possibly-missing-import       = "error"
+possibly-unresolved-reference = "error"
+unsupported-dynamic-base      = "error"
+unused-ignore-comment         = "error"
+
+[tool.ty.terminal]
+error-on-warning = true

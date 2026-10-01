@@ -1,39 +1,40 @@
-from __future__ import annotations
-
 import asyncio
 import json
 import warnings
-from typing import Any
+from typing import cast
 
 import pytest
+from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 
-from petrinaut_optimizer_core import MAX_STUDY_TRIALS
+from petrinaut_optimizer_core import MAX_STUDY_TRIALS, importance, pyodide_entry
 from petrinaut_optimizer_core.pyodide_entry import (
     create_browser_study,
     release_browser_study,
     run_browser_study,
     to_python,
 )
+from petrinaut_optimizer_core.reports import TrialEvent
+from petrinaut_optimizer_core.study import Scalar
 
-from .conftest import objective_of_values
+from ._support import OptimizationDescription, completed, objective_of_values
 
 
 class FakeJsProxy:
     """Stands in for a Pyodide JsProxy: only `to_py` matters to the entry point."""
 
-    def __init__(self, value: Any) -> None:
+    def __init__(self, value: object) -> None:
         self.value = value
 
-    def to_py(self) -> Any:
+    def to_py(self) -> object:
         return self.value
 
 
-async def evaluate(values: dict[str, Any]) -> dict[str, Any]:
-    return {"objective": objective_of_values(values)}
+def evaluate(values: dict[str, Scalar]) -> asyncio.Future[dict[str, float]]:
+    return completed({"objective": objective_of_values(values)})
 
 
-def ignore_event(_event: dict[str, Any]) -> None:
+def ignore_event(_event: TrialEvent) -> None:
     pass
 
 
@@ -41,27 +42,30 @@ def never_cancelled() -> bool:
     return False
 
 
-def test_to_python_unwraps_proxies_and_passes_plain_values_through() -> None:
+def test_to_python_proxy_and_plain() -> None:
     assert to_python(FakeJsProxy({"objective": 1.0})) == {"objective": 1.0}
     assert to_python({"objective": 2.0}) == {"objective": 2.0}
     assert to_python(3) == 3
 
 
-def test_runs_a_study_from_json_with_javascript_style_callbacks(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_js_callbacks(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
-    evaluated: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
+    evaluated: list[dict[str, Scalar]] = []
 
-    async def evaluate_as_javascript(values: dict[str, Any]) -> FakeJsProxy:
+    def evaluate_as_javascript(values: dict[str, Scalar]) -> asyncio.Future[FakeJsProxy]:
         evaluated.append(values)
-        return FakeJsProxy({"objective": objective_of_values(values)})
+        return completed(FakeJsProxy({"objective": objective_of_values(values)}))
 
-    summary = asyncio.run(
-        run_browser_study(
-            handle, 3, evaluate_as_javascript, events.append, never_cancelled
-        )
+    summary = await run_browser_study(
+        handle,
+        3,
+        evaluate=evaluate_as_javascript,
+        on_trial=events.append,
+        is_cancelled=never_cancelled,
     )
 
     assert len(evaluated) == 3
@@ -83,30 +87,35 @@ def test_runs_a_study_from_json_with_javascript_style_callbacks(
     assert handle.running is False
 
 
-def test_a_stopped_study_continues_from_the_trials_it_holds(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_cancel_continue(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
     evaluations = 0
     cancelled = False
 
-    async def evaluate_then_stop(values: dict[str, Any]) -> dict[str, Any]:
+    async def evaluate_then_stop(values: dict[str, Scalar]) -> dict[str, float]:
         nonlocal evaluations, cancelled
         evaluations += 1
         cancelled = evaluations == 2
         return await evaluate(values)
 
-    stopped = asyncio.run(
-        run_browser_study(
-            handle, 4, evaluate_then_stop, events.append, lambda: cancelled
-        )
+    stopped = await run_browser_study(
+        handle,
+        4,
+        evaluate=evaluate_then_stop,
+        on_trial=events.append,
+        is_cancelled=lambda: cancelled,
     )
     cancelled = False
-    resumed = asyncio.run(
-        run_browser_study(
-            handle, 2, evaluate_then_stop, events.append, lambda: cancelled
-        )
+    resumed = await run_browser_study(
+        handle,
+        2,
+        evaluate=evaluate_then_stop,
+        on_trial=events.append,
+        is_cancelled=lambda: cancelled,
     )
 
     assert stopped["cancelled"] is True
@@ -135,41 +144,38 @@ def test_a_stopped_study_continues_from_the_trials_it_holds(
     ]
 
 
-def test_a_paused_study_reports_the_trial_in_flight_and_continues(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_pause_continue(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
     evaluations = 0
     paused = False
 
-    async def evaluate_then_pause(values: dict[str, Any]) -> dict[str, Any]:
+    async def evaluate_then_pause(values: dict[str, Scalar]) -> dict[str, float]:
         nonlocal evaluations, paused
         evaluations += 1
         paused = evaluations == 2
         return await evaluate(values)
 
-    first = asyncio.run(
-        run_browser_study(
-            handle,
-            4,
-            evaluate_then_pause,
-            events.append,
-            never_cancelled,
-            lambda: paused,
-        )
+    first = await run_browser_study(
+        handle,
+        4,
+        evaluate=evaluate_then_pause,
+        on_trial=events.append,
+        is_cancelled=never_cancelled,
+        is_paused=lambda: paused,
     )
     requested_after_pause = handle.requested
     paused = False
-    resumed = asyncio.run(
-        run_browser_study(
-            handle,
-            2,
-            evaluate_then_pause,
-            events.append,
-            never_cancelled,
-            lambda: paused,
-        )
+    resumed = await run_browser_study(
+        handle,
+        2,
+        evaluate=evaluate_then_pause,
+        on_trial=events.append,
+        is_cancelled=never_cancelled,
+        is_paused=lambda: paused,
     )
 
     assert first["paused"] is True
@@ -190,14 +196,15 @@ def test_a_paused_study_reports_the_trial_in_flight_and_continues(
     ] * 4
 
 
-def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_error_continue(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
     evaluations = 0
 
-    async def evaluate_then_crash(values: dict[str, Any]) -> dict[str, Any]:
+    async def evaluate_then_crash(values: dict[str, Scalar]) -> dict[str, float]:
         nonlocal evaluations
         evaluations += 1
         if evaluations == 2:
@@ -205,10 +212,12 @@ def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
         return await evaluate(values)
 
     with pytest.raises(RuntimeError, match="worker crashed"):
-        asyncio.run(
-            run_browser_study(
-                handle, 3, evaluate_then_crash, events.append, never_cancelled
-            )
+        await run_browser_study(
+            handle,
+            3,
+            evaluate=evaluate_then_crash,
+            on_trial=events.append,
+            is_cancelled=never_cancelled,
         )
     assert handle.running is False
     assert handle.requested == 1
@@ -218,10 +227,12 @@ def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
         TrialState.FAIL,
     ]
 
-    resumed = asyncio.run(
-        run_browser_study(
-            handle, 2, evaluate_then_crash, events.append, never_cancelled
-        )
+    resumed = await run_browser_study(
+        handle,
+        2,
+        evaluate=evaluate_then_crash,
+        on_trial=events.append,
+        is_cancelled=never_cancelled,
     )
 
     assert [event["trial"] for event in events] == [0, 2, 3]
@@ -238,73 +249,100 @@ def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
     assert handle.requested == 3
 
 
-def test_release_drops_the_study(optimization_description: dict[str, Any]) -> None:
+def test_release_study(optimization_description: OptimizationDescription) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
 
     release_browser_study(handle)
 
     assert handle.study is None
     with pytest.raises(ValueError, match="released"):
-        run_browser_study(handle, 1, evaluate, ignore_event, never_cancelled)
+        run_browser_study(
+            handle, 1, evaluate=evaluate, on_trial=ignore_event, is_cancelled=never_cancelled
+        )
 
 
-def test_a_study_runs_one_segment_at_a_time(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_concurrent_segment(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
 
-    async def scenario() -> dict[str, Any]:
-        gate: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+    gate: asyncio.Future[None] = asyncio.get_running_loop().create_future()
 
-        async def evaluate_after_gate(values: dict[str, Any]) -> dict[str, Any]:
-            await gate
-            return await evaluate(values)
+    async def evaluate_after_gate(values: dict[str, Scalar]) -> dict[str, float]:
+        await gate
+        return await evaluate(values)
 
-        run = asyncio.ensure_future(
-            run_browser_study(
-                handle, 1, evaluate_after_gate, ignore_event, never_cancelled
-            )
+    run = asyncio.ensure_future(
+        run_browser_study(
+            handle,
+            1,
+            evaluate=evaluate_after_gate,
+            on_trial=ignore_event,
+            is_cancelled=never_cancelled,
         )
-        with pytest.raises(ValueError, match="already running"):
-            run_browser_study(handle, 1, evaluate, ignore_event, never_cancelled)
-        gate.set_result(None)
-        return await run
-
-    summary = asyncio.run(scenario())
+    )
+    with pytest.raises(ValueError, match="already running"):
+        run_browser_study(
+            handle, 1, evaluate=evaluate, on_trial=ignore_event, is_cancelled=never_cancelled
+        )
+    gate.set_result(None)
+    summary = await run
 
     assert summary["completedTrials"] == 1
     assert handle.requested == 1
     assert handle.running is False
 
 
-def test_the_trial_cap_spans_every_segment(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_trial_cap(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
     handle.requested = MAX_STUDY_TRIALS - 1
 
     with pytest.raises(ValueError, match="must not exceed"):
-        run_browser_study(handle, 2, evaluate, ignore_event, never_cancelled)
-    summary = asyncio.run(
-        run_browser_study(handle, 1, evaluate, ignore_event, never_cancelled)
+        run_browser_study(
+            handle, 2, evaluate=evaluate, on_trial=ignore_event, is_cancelled=never_cancelled
+        )
+    summary = await run_browser_study(
+        handle, 1, evaluate=evaluate, on_trial=ignore_event, is_cancelled=never_cancelled
     )
 
     assert summary["requestedTrials"] == MAX_STUDY_TRIALS
 
 
-@pytest.mark.parametrize("trials", [0, -1, 2.0, True])
-def test_rejects_a_trial_count_that_is_not_a_positive_integer(
-    optimization_description: dict[str, Any],
-    trials: Any,
+def test_browser_nonpositive_trials(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
 
     with pytest.raises(ValueError, match="trials must be a positive integer"):
-        run_browser_study(handle, trials, evaluate, ignore_event, never_cancelled)
+        run_browser_study(
+            handle, 0, evaluate=evaluate, on_trial=ignore_event, is_cancelled=never_cancelled
+        )
 
 
-def test_parallelism_makes_the_tpe_sampler_account_for_trials_in_flight_without_a_warning(
-    optimization_description: dict[str, Any],
+@pytest.mark.parametrize("trials", [2.0, True])
+def test_browser_trials_type(
+    optimization_description: OptimizationDescription,
+    trials: object,
+) -> None:
+    handle = create_browser_study(json.dumps(optimization_description))
+
+    with pytest.raises(TypeError, match="trials must be a positive integer"):
+        run_browser_study(
+            handle,
+            cast("int", trials),
+            evaluate=evaluate,
+            on_trial=ignore_event,
+            is_cancelled=never_cancelled,
+        )
+    assert handle.requested == 0
+
+
+def test_browser_parallel_sampler(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["sampler"] = "tpe"
     description_json = json.dumps(optimization_description)
@@ -318,14 +356,23 @@ def test_parallelism_makes_the_tpe_sampler_account_for_trials_in_flight_without_
     assert parallel.parallelism == 3
     assert sequential.study is not None
     assert parallel.study is not None
+    assert isinstance(sequential.study.sampler, TPESampler)
+    assert isinstance(parallel.study.sampler, TPESampler)
     assert sequential.study.sampler._constant_liar is False
     assert parallel.study.sampler._constant_liar is True
     with pytest.raises(ValueError, match="parallelism must be a positive integer"):
         create_browser_study(description_json, parallelism=0)
+    with pytest.raises(TypeError, match="parallelism must be a positive integer"):
+        create_browser_study(description_json, parallelism=True)
 
 
-def test_rejects_a_description_that_breaks_a_rule(
-    optimization_description: dict[str, Any],
+def test_browser_description_type() -> None:
+    with pytest.raises(TypeError, match="description must be a JSON object"):
+        create_browser_study(json.dumps([]))
+
+
+def test_browser_invalid_description(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["seed"] = -1
 
@@ -333,37 +380,39 @@ def test_rejects_a_description_that_breaks_a_rule(
         create_browser_study(json.dumps(optimization_description))
 
 
-def test_rejects_an_outcome_that_is_not_an_object(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_outcome_type(
+    optimization_description: OptimizationDescription,
 ) -> None:
     handle = create_browser_study(json.dumps(optimization_description))
 
-    async def evaluate_to_a_number(_values: dict[str, Any]) -> float:
-        return 1.0
+    def evaluate_to_a_number(_values: dict[str, Scalar]) -> asyncio.Future[float]:
+        return completed(1.0)
 
-    with pytest.raises(ValueError, match="trial outcome must be a JSON object"):
-        asyncio.run(
-            run_browser_study(
-                handle, 3, evaluate_to_a_number, ignore_event, never_cancelled
-            )
+    with pytest.raises(TypeError, match="trial outcome must be a JSON object"):
+        await run_browser_study(
+            handle,
+            3,
+            evaluate=evaluate_to_a_number,
+            on_trial=ignore_event,
+            is_cancelled=never_cancelled,
         )
 
 
-def test_importances_ride_the_trials_at_the_cadence_past_the_floor_and_the_summary(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_importance_cadence(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["trials"] = 60
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
 
-    summary = asyncio.run(
-        run_browser_study(handle, 60, evaluate, events.append, never_cancelled)
+    summary = await run_browser_study(
+        handle, 60, evaluate=evaluate, on_trial=events.append, is_cancelled=never_cancelled
     )
 
     carrying = [event["trial"] for event in events if "importances" in event]
-    assert carrying == [49, 59], (
-        "the 50th and 60th completed trials, floor 50, cadence 10"
-    )
+    assert carrying == [49, 59], "the 50th and 60th completed trials, floor 50, cadence 10"
     for event in events:
         if "importances" in event:
             block = event["importances"]
@@ -374,40 +423,41 @@ def test_importances_ride_the_trials_at_the_cadence_past_the_floor_and_the_summa
     assert set(summary["importances"]["values"]) == {"rate", "count", "enabled"}
 
 
-def test_a_short_study_streams_no_importances_but_its_summary_still_estimates(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_importance_below_floor(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["trials"] = 20
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
 
-    summary = asyncio.run(
-        run_browser_study(handle, 20, evaluate, events.append, never_cancelled)
+    summary = await run_browser_study(
+        handle, 20, evaluate=evaluate, on_trial=events.append, is_cancelled=never_cancelled
     )
 
     assert all("importances" not in event for event in events)
     assert summary["importances"]["completedTrials"] == 20
 
 
-def test_a_study_whose_importances_cannot_be_estimated_still_completes(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_browser_importance_failure(
+    optimization_description: OptimizationDescription,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from petrinaut_optimizer_core import importance, pyodide_entry
-
     def explode(*_args: object, **_kwargs: object) -> dict[str, float]:
         raise RuntimeError("numpy went away")
 
     monkeypatch.setattr(importance, "get_param_importances", explode)
     optimization_description["study"]["trials"] = 60
     handle = create_browser_study(json.dumps(optimization_description))
-    events: list[dict[str, Any]] = []
+    events: list[TrialEvent] = []
 
-    summary = asyncio.run(
-        run_browser_study(handle, 60, evaluate, events.append, never_cancelled)
+    summary = await run_browser_study(
+        handle, 60, evaluate=evaluate, on_trial=events.append, is_cancelled=never_cancelled
     )
 
-    assert pyodide_entry.importances_of(handle.study) is None  # type: ignore[arg-type]
+    assert handle.study is not None
+    assert pyodide_entry.importances_of(handle.study) is None
     assert all("importances" not in event for event in events)
     assert "importances" not in summary
     assert summary["completedTrials"] == 60

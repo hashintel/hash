@@ -24,7 +24,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "datamodel-code-generator<0.75.0,>=0.74.0",
+    "datamodel-code-generator<0.84.0,>=0.83.0",
     "pytest>=9.1.1,<10",
     "ruff<0.17,>=0.16.8",
     "sympy<2.0.0,>=1.13",

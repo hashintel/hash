@@ -135,6 +135,30 @@
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
+    "hash-python#lint:tach": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "hash-python#lint:tach:external": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check-external"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
     "lint:tsc": {
       "dependsOn": ["codegen", "^build"]
     },

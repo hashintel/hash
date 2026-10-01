@@ -1,5 +1,6 @@
-"""Evaluation of serialized HIR expressions — Petrinaut's shared expression
-representation. ``hir/hir.ts`` in ``@hashintel/petrinaut-core`` owns the
+"""Evaluate serialized HIR expressions, Petrinaut's shared expression representation.
+
+``hir/hir.ts`` in ``@hashintel/petrinaut-core`` owns the
 grammar; :mod:`petrinaut.models` carries it as pydantic models generated from
 the CLI's protocol schema, so a document is validated node by node before
 anything here runs. Constraints travel as ``{code, hir}`` pairs; this module
@@ -25,11 +26,9 @@ cannot evaluate (distributions, UUID generation, ``Math.random()``) raise
 is not an integer, and a ``Math`` call with the wrong number of arguments.
 """
 
-from __future__ import annotations
-
 import math
+import operator
 from collections.abc import Callable, Mapping, Sequence
-from typing import TypeAlias
 
 from pydantic import TypeAdapter
 
@@ -46,14 +45,14 @@ __all__ = [
     "validate_hir_function",
 ]
 
-Scalar: TypeAlias = float | int | bool
+type Scalar = float | int | bool
 
 #: What HIR evaluates to: scalars and strings, plus the arrays and records
 #: the metric surface reads from the simulation state.
-Value: TypeAlias = float | int | bool | str | list["Value"] | dict[str, "Value"]
+type Value = float | int | bool | str | list[Value] | dict[str, Value]
 
 #: One expression node, any kind. The members are the generated models.
-HirExpr: TypeAlias = (
+type HirExpr = (
     m.HirNumberLit
     | m.HirBoolLit
     | m.HirStringLit
@@ -84,11 +83,12 @@ HirExpr: TypeAlias = (
 
 #: A lowered function: the generic shape, or one of the two surface-pinned
 #: shapes a constraint carries.
-HirFunction: TypeAlias = m.HirFunction | m.ParameterConstraintHir | m.StateConstraintHir
+type HirFunction = m.HirFunction | m.ParameterConstraintHir | m.StateConstraintHir
 
 _FUNCTION_ADAPTER = TypeAdapter(m.HirFunction)
 
 _MAX_RANGE_LENGTH = 1_000_000
+_ROUND_HALF = 0.5
 
 
 class HirEvaluationError(Exception):
@@ -96,25 +96,28 @@ class HirEvaluationError(Exception):
 
 
 def validate_hir_function(fn: HirFunction | Mapping[str, object]) -> HirFunction:
-    """The function as a model: a mapping is validated against the grammar
-    (raising :class:`pydantic.ValidationError` when it does not fit), a
-    model passes through."""
+    """Validate a mapping against the grammar, or pass a model through.
+
+    Raise :class:`pydantic.ValidationError` when a mapping does not fit.
+    """
     if isinstance(fn, (m.HirFunction, m.ParameterConstraintHir, m.StateConstraintHir)):
         return fn
     return _FUNCTION_ADAPTER.validate_python(fn)
 
 
-# -- ECMAScript arithmetic ------------------------------------------------------
+# ECMAScript arithmetic.
 
 
 def _js_round(value: float) -> float:
-    """ECMAScript ``Math.round``: half-up toward positive infinity (Python's
-    ``round`` is banker's), keeping the sign of a negative input that rounds
-    to zero (``Math.round(-0.3)`` is ``-0``)."""
+    """Round half-up toward positive infinity, like ECMAScript ``Math.round``.
+
+    Python's ``round`` is banker's. Keep the sign of a negative input that rounds
+    to zero (``Math.round(-0.3)`` is ``-0``).
+    """
     if not math.isfinite(value):
         return value  # JS: round(±Infinity) is ±Infinity, round(NaN) is NaN
     floored = math.floor(value)
-    rounded = floored + 1 if value - floored >= 0.5 else floored
+    rounded = floored + 1 if value - floored >= _ROUND_HALF else floored
     if rounded == 0:
         return math.copysign(0.0, value)
     return float(rounded)
@@ -133,9 +136,11 @@ def _is_odd_integer(value: float) -> bool:
 
 
 def _js_pow(base: float, exponent: float) -> float:
-    """ECMAScript exponentiation (``**`` and ``Math.pow``): IEEE-754 via
-    ``math.pow``, never raising and never going complex, with the spec's
-    deviations from C ``pow`` restored."""
+    """Implement ECMAScript exponentiation (``**`` and ``Math.pow``).
+
+    Use IEEE-754 via ``math.pow``, never raising and never going complex, with the spec's
+    deviations from C ``pow`` restored.
+    """
     # JS: any NaN exponent, and ±Infinity exponents on a |base| of exactly
     # 1, yield NaN where C pow returns 1.
     if math.isnan(exponent) or (math.isinf(exponent) and abs(base) == 1):
@@ -162,8 +167,10 @@ _Unary = Callable[[float], float]
 
 
 def _js_log(fn: _Unary) -> _Unary:
-    """JS ``Math.log`` family: 0 yields -Infinity and negatives yield NaN,
-    where Python raises for both."""
+    """Adapt the JS ``Math.log`` family.
+
+    Zero yields -Infinity and negatives yield NaN; Python raises for both.
+    """
 
     def wrapped(value: float) -> float:
         if value == 0:
@@ -176,9 +183,11 @@ def _js_log(fn: _Unary) -> _Unary:
 
 
 def _js_grows(fn: _Unary, *, odd: bool) -> _Unary:
-    """JS ``Math.exp``/``cosh``/``sinh``: a result too large for a double is
-    ±Infinity, where Python raises OverflowError. ``odd`` functions take the
-    argument's sign."""
+    """Adapt JS ``Math.exp``/``cosh``/``sinh`` overflow.
+
+    A result too large for a double is ±Infinity, where Python raises OverflowError.
+    ``odd`` functions take the argument's sign.
+    """
 
     def wrapped(value: float) -> float:
         try:
@@ -190,8 +199,10 @@ def _js_grows(fn: _Unary, *, odd: bool) -> _Unary:
 
 
 def _js_integral(fn: Callable[[float], int]) -> _Unary:
-    """JS ``Math.ceil``/``floor``/``trunc`` pass non-finite values through,
-    where Python raises."""
+    """Pass non-finite values through JS ``Math.ceil``/``floor``/``trunc``.
+
+    Python raises instead.
+    """
 
     def wrapped(value: float) -> float:
         if not math.isfinite(value):
@@ -206,8 +217,10 @@ def _cbrt(value: float) -> float:
 
 
 def _max(*values: float) -> float:
-    """ECMAScript ``Math.max``: NaN wins over every argument and ``+0`` over
-    ``-0``, where Python's ``max`` keeps whichever came first."""
+    """Implement ECMAScript ``Math.max``.
+
+    NaN wins over every argument and ``+0`` over ``-0``; Python keeps the first.
+    """
     if not values:
         return -math.inf  # JS: Math.max() is -Infinity
     if any(math.isnan(value) for value in values):
@@ -220,8 +233,10 @@ def _max(*values: float) -> float:
 
 
 def _min(*values: float) -> float:
-    """ECMAScript ``Math.min``: NaN wins over every argument and ``-0`` over
-    ``+0``, where Python's ``min`` keeps whichever came first."""
+    """Implement ECMAScript ``Math.min``.
+
+    NaN wins over every argument and ``-0`` over ``+0``; Python keeps the first.
+    """
     if not values:
         return math.inf  # JS: Math.min() is Infinity
     if any(math.isnan(value) for value in values):
@@ -269,23 +284,51 @@ _CONSTANTS: dict[str, float] = {
     "NaN": math.nan,
 }
 
-_COMPARISONS = ("<", "<=", ">", ">=")
+
+def _js_divide(left: float, right: float) -> float:
+    if right == 0:
+        # ECMAScript division never raises.
+        if left == 0 or math.isnan(left):
+            return math.nan
+        return math.copysign(math.inf, left) * math.copysign(1, right)
+    return left / right
+
+
+def _js_remainder(left: float, right: float) -> float:
+    if right == 0 or math.isinf(left):
+        return math.nan
+    # ECMAScript remainder takes the dividend's sign (math.fmod).
+    return math.fmod(left, right)
+
+
+_ARITHMETIC: dict[str, Callable[[float, float], float]] = {
+    "+": operator.add,
+    "-": operator.sub,
+    "*": operator.mul,
+    "/": _js_divide,
+    "%": _js_remainder,
+    "**": _js_pow,
+}
+_COMPARISONS = frozenset({"<", "<=", ">", ">="})
 
 
 def _strict_slack(slack: float) -> float:
-    """A strict comparison is violated at the boundary, so its margin must
-    go negative there: a zero slack becomes the smallest representable step
-    below zero, keeping "margin >= 0 iff satisfied" exact for ``<``, ``>``
-    and ``!=`` while staying negligible for any consumer of magnitudes."""
-    if slack != 0.0:
+    """Make a strict comparison's zero slack negative at the boundary.
+
+    Use a negative machine epsilon, keeping "margin >= 0 iff satisfied" exact for ``<``, ``>``
+    and ``!=`` while staying negligible for any consumer of magnitudes.
+    """
+    if slack != 0:
         return slack
     return -math.ulp(1.0)
 
 
 def _strict_equal(left: Value, right: Value) -> bool:
-    """ECMAScript strict equality on the value kinds HIR produces: booleans
-    never equal numbers (`1 === true` is false in JS, unlike Python), and
-    arrays and records compare by identity, not by content."""
+    """Implement ECMAScript strict equality on the value kinds HIR produces.
+
+    Booleans never equal numbers (`1 === true` is false in JS, unlike Python), and
+    arrays and records compare by identity, not by content.
+    """
     if isinstance(left, bool) != isinstance(right, bool):
         return False
     if isinstance(left, (list, dict)) or isinstance(right, (list, dict)):
@@ -294,8 +337,10 @@ def _strict_equal(left: Value, right: Value) -> bool:
 
 
 def _truthy(value: Value) -> bool:
-    """ECMAScript truthiness: NaN is falsy, an empty array or record is
-    truthy; Python's ``bool`` says the opposite for both."""
+    """Implement ECMAScript truthiness.
+
+    NaN is falsy, an empty array or record is truthy; Python says the opposite.
+    """
     if isinstance(value, (list, dict)):
         return True
     if isinstance(value, float) and math.isnan(value):
@@ -304,9 +349,11 @@ def _truthy(value: Value) -> bool:
 
 
 def _number(value: Value, context: str) -> float:
-    """The value as a JS number: booleans coerce to 0/1, an int too large for
-    a double becomes ±Infinity; anything else is a type error the frontend's
-    typechecker would have refused."""
+    """Convert the value to a JS number.
+
+    Booleans coerce to 0/1, an int too large for a double becomes ±Infinity.
+    Anything else is a type error the frontend's typechecker would have refused.
+    """
     if isinstance(value, bool):
         return float(value)
     if isinstance(value, (int, float)):
@@ -327,17 +374,28 @@ def _compare(op: str, left: float, right: float) -> bool:
     return left >= right
 
 
+def _range_bounds(args: Sequence[float]) -> tuple[float, float, float]:
+    match args:
+        case [end]:
+            start, step = 0, 1
+        case [start, end]:
+            step = 1
+        case [start, end, step]:
+            pass
+        case _:
+            raise HirEvaluationError(f"range() takes 1 to 3 arguments, got {len(args)}")
+    return start, end, step
+
+
 def _range(args: Sequence[float]) -> list[Value]:
-    """The scenario ``range(...)`` helper, matching the TypeScript
-    implementation (Python-style bounds, fractional steps allowed)."""
-    if not 1 <= len(args) <= 3:
-        raise HirEvaluationError(f"range() takes 1 to 3 arguments, got {len(args)}")
+    """Evaluate the scenario ``range(...)`` helper.
+
+    Match TypeScript: Python-style bounds, fractional steps allowed.
+    """
+    start, end, step = _range_bounds(args)
     for argument in args:
         if not math.isfinite(argument):
             raise HirEvaluationError("range() arguments must be finite numbers.")
-    start = args[0] if len(args) > 1 else 0
-    end = args[1] if len(args) > 1 else args[0]
-    step = args[2] if len(args) > 2 else 1
     if step == 0:
         raise HirEvaluationError("range() step must not be zero.")
     span = (end - start) / step
@@ -346,9 +404,7 @@ def _range(args: Sequence[float]) -> list[Value]:
         # the span to 0 and yields nothing.
         return []
     if not math.isfinite(span):
-        raise HirEvaluationError(
-            f"range() would produce more than {_MAX_RANGE_LENGTH} elements."
-        )
+        raise HirEvaluationError(f"range() would produce more than {_MAX_RANGE_LENGTH} elements.")
     maximum_length = max(0, math.ceil(span))
     if maximum_length > _MAX_RANGE_LENGTH:
         raise HirEvaluationError(
@@ -364,7 +420,16 @@ def _range(args: Sequence[float]) -> list[Value]:
     return values
 
 
-# -- The walker -----------------------------------------------------------------
+def _length(target: Value) -> int:
+    if isinstance(target, str):
+        # ECMAScript counts UTF-16 code units, not code points.
+        return len(target.encode("utf-16-le")) // 2
+    if not isinstance(target, list):
+        raise HirEvaluationError(".length target is not an array or string")
+    return len(target)
+
+
+# HIR evaluation.
 
 
 class _Evaluator:
@@ -380,6 +445,52 @@ class _Evaluator:
 
     def eval(self, node: HirExpr) -> Value:
         match node:
+            case (
+                m.HirNumberLit()
+                | m.HirBoolLit()
+                | m.HirStringLit()
+                | m.HirConstant()
+                | m.HirLocalRef()
+                | m.HirParamRef()
+                | m.HirScenarioRef()
+            ):
+                return self._leaf(node)
+            case (
+                m.HirRangeCall()
+                | m.HirFieldAccess()
+                | m.HirIndexAccess()
+                | m.HirLength()
+                | m.HirStringCall()
+            ):
+                return self._access(node)
+            case m.HirUnary() | m.HirBinary() | m.HirMathCall():
+                return self._operation(node)
+            case m.HirCond() | m.HirLet():
+                return self._scoped(node)
+            case (
+                m.HirRecordLit()
+                | m.HirArrayLit()
+                | m.HirArrayMap()
+                | m.HirArrayReduce()
+                | m.HirArrayConcat()
+            ):
+                return self._collection(node)
+            case _:
+                raise HirEvaluationError(
+                    f'HIR node kind "{node.kind}" is not evaluable in a constraint'
+                )
+
+    def _leaf(
+        self,
+        node: m.HirNumberLit
+        | m.HirBoolLit
+        | m.HirStringLit
+        | m.HirConstant
+        | m.HirLocalRef
+        | m.HirParamRef
+        | m.HirScenarioRef,
+    ) -> Value:
+        match node:
             case m.HirNumberLit() | m.HirBoolLit() | m.HirStringLit():
                 return node.value
             case m.HirConstant():
@@ -394,14 +505,16 @@ class _Evaluator:
                 return self.parameters[node.name]
             case m.HirScenarioRef():
                 if node.name not in self.scenario:
-                    raise HirEvaluationError(
-                        f'Unknown scenario parameter "{node.name}"'
-                    )
+                    raise HirEvaluationError(f'Unknown scenario parameter "{node.name}"')
                 return self.scenario[node.name]
+
+    def _access(
+        self,
+        node: m.HirRangeCall | m.HirFieldAccess | m.HirIndexAccess | m.HirLength | m.HirStringCall,
+    ) -> Value:
+        match node:
             case m.HirRangeCall():
-                return _range(
-                    [_number(self.eval(argument), "range()") for argument in node.args]
-                )
+                return _range([_number(self.eval(argument), "range()") for argument in node.args])
             case m.HirFieldAccess():
                 target = self.eval(node.target)
                 if not isinstance(target, Mapping) or node.field not in target:
@@ -418,14 +531,12 @@ class _Evaluator:
                 return target[index]
             case m.HirLength():
                 target = self.eval(node.target)
-                if isinstance(target, str):
-                    # ECMAScript counts UTF-16 code units, not code points.
-                    return len(target.encode("utf-16-le")) // 2
-                if not isinstance(target, list):
-                    raise HirEvaluationError(".length target is not an array or string")
-                return len(target)
+                return _length(target)
             case m.HirStringCall():
                 return self._string_call(node)
+
+    def _operation(self, node: m.HirUnary | m.HirBinary | m.HirMathCall) -> Value:
+        match node:
             case m.HirUnary():
                 operand = self.eval(node.operand)
                 op = node.op.value
@@ -435,39 +546,37 @@ class _Evaluator:
                 return -number if op == "-" else number
             case m.HirBinary():
                 return self._binary(node)
-            case m.HirCond():
-                taken = (
-                    node.thenBranch
-                    if _truthy(self.eval(node.condition))
-                    else node.elseBranch
-                )
-                return self.eval(taken)
-            case m.HirLet():
-                saved = dict(self.locals)
-                try:
-                    for binding in node.bindings:
-                        self.locals[binding.name] = self.eval(binding.value)
-                    return self.eval(node.body)
-                finally:
-                    self.locals = saved
             case m.HirMathCall():
                 fn = node.fn.value
                 if fn == "random":
-                    raise HirEvaluationError(
-                        "Math.random() is not evaluable in a constraint"
-                    )
-                args = [
-                    _number(self.eval(argument), f"Math.{fn}()")
-                    for argument in node.args
-                ]
+                    raise HirEvaluationError("Math.random() is not evaluable in a constraint")
+                args = [_number(self.eval(argument), f"Math.{fn}()") for argument in node.args]
                 try:
                     return _MATH_FNS[fn](*args)
-                except (ValueError, OverflowError):
+                except ValueError, OverflowError:
                     return math.nan
                 except TypeError as error:
                     raise HirEvaluationError(
                         f"Math.{fn}() called with {len(args)} argument(s)"
                     ) from error
+
+    def _scoped(self, node: m.HirCond | m.HirLet) -> Value:
+        if isinstance(node, m.HirCond):
+            taken = node.then_branch if _truthy(self.eval(node.condition)) else node.else_branch
+            return self.eval(taken)
+        saved = dict(self.locals)
+        try:
+            for binding in node.bindings:
+                self.locals[binding.name] = self.eval(binding.value)
+            return self.eval(node.body)
+        finally:
+            self.locals = saved
+
+    def _collection(
+        self,
+        node: m.HirRecordLit | m.HirArrayLit | m.HirArrayMap | m.HirArrayReduce | m.HirArrayConcat,
+    ) -> Value:
+        match node:
             case m.HirRecordLit():
                 return {entry.key: self.eval(entry.value) for entry in node.entries}
             case m.HirArrayLit():
@@ -482,15 +591,6 @@ class _Evaluator:
                 if not isinstance(left, list) or not isinstance(right, list):
                     raise HirEvaluationError(".concat operands must be arrays")
                 return [*left, *right]
-            case (
-                m.HirDistribution()
-                | m.HirDistributionMap()
-                | m.HirUuidGenerate()
-                | m.HirUuidFrom()
-            ):
-                raise HirEvaluationError(
-                    f'HIR node kind "{node.kind}" is not evaluable in a constraint'
-                )
 
     def _string_call(self, node: m.HirStringCall) -> Value:
         target = self.eval(node.target)
@@ -522,30 +622,7 @@ class _Evaluator:
         right_number = _number(right, f'"{op}"')
         if op in _COMPARISONS:
             return _compare(op, left_number, right_number)
-        if op == "+":
-            return left_number + right_number
-        if op == "-":
-            return left_number - right_number
-        if op == "*":
-            return left_number * right_number
-        if op == "/":
-            if right_number == 0:
-                # ECMAScript division never raises.
-                if left_number == 0 or math.isnan(left_number):
-                    return math.nan
-                return math.copysign(math.inf, left_number) * math.copysign(
-                    1, right_number
-                )
-            return left_number / right_number
-        if op == "%":
-            if right_number == 0 or math.isinf(left_number):
-                return math.nan
-            # ECMAScript remainder takes the dividend's sign (math.fmod).
-            return math.fmod(left_number, right_number)
-        # `**`, through the JS-faithful pow: Python's `**` raises on overflow
-        # and 0**negative, and goes complex for a negative base with a
-        # fractional exponent, where JS yields ±Infinity / NaN.
-        return _js_pow(left_number, right_number)
+        return _ARITHMETIC[op](left_number, right_number)
 
     def _array_map(self, node: m.HirArrayMap) -> list[Value]:
         target = self.eval(node.target)
@@ -556,8 +633,8 @@ class _Evaluator:
         try:
             for index, element in enumerate(target):
                 self.locals[node.param.name] = element
-                if node.indexParam is not None:
-                    self.locals[node.indexParam.name] = index
+                if node.index_param is not None:
+                    self.locals[node.index_param.name] = index
                 out.append(self.eval(node.body))
         finally:
             self.locals = saved
@@ -571,22 +648,23 @@ class _Evaluator:
         saved = dict(self.locals)
         try:
             for index, element in enumerate(target):
-                self.locals[node.accParam.name] = accumulator
+                self.locals[node.acc_param.name] = accumulator
                 self.locals[node.param.name] = element
-                if node.indexParam is not None:
-                    self.locals[node.indexParam.name] = index
+                if node.index_param is not None:
+                    self.locals[node.index_param.name] = index
                 accumulator = self.eval(node.body)
         finally:
             self.locals = saved
         return accumulator
 
-    # -- Signed margins ----------------------------------------------------
+    # Signed margins.
 
     def margin(self, node: HirExpr) -> float:
-        """Robustness of a boolean expression: ``>= 0`` iff it evaluates to
-        ``True``, with magnitude measuring the distance to the boundary.
-        Comparisons yield signed slack; ``&&`` = ``min``, ``||`` = ``max``,
-        ``!`` negates; a plain boolean is ``±inf`` (no boundary to measure).
+        """Measure robustness: ``>= 0`` iff the expression evaluates to ``True``.
+
+        Magnitude measures the distance to the boundary. Comparisons yield signed
+        slack; ``&&`` = ``min``, ``||`` = ``max``, ``!`` negates; a plain boolean
+        is ``±inf`` (no boundary to measure).
 
         A slack that comes out NaN never leaves a comparison, because
         ``min``/``max`` would drop it by argument order and let a compound
@@ -597,7 +675,8 @@ class _Evaluator:
 
         ``&&`` and ``||`` short-circuit exactly as evaluation does, so an
         arm guarded by the one before it — a count checked before the token
-        it indexes — is never walked when evaluation would not walk it."""
+        it indexes — is never walked when evaluation would not walk it.
+        """
         match node:
             case m.HirBinary():
                 margin = self._binary_margin(node)
@@ -608,11 +687,7 @@ class _Evaluator:
                 # violated, so the sign must go negative there too.
                 return _strict_slack(-self.margin(node.operand))
             case m.HirCond():
-                taken = (
-                    node.thenBranch
-                    if _truthy(self.eval(node.condition))
-                    else node.elseBranch
-                )
+                taken = node.then_branch if _truthy(self.eval(node.condition)) else node.else_branch
                 return self.margin(taken)
             case m.HirLet():
                 saved = dict(self.locals)
@@ -633,52 +708,54 @@ class _Evaluator:
         return math.inf if value else -math.inf
 
     def _binary_margin(self, node: m.HirBinary) -> float | None:
-        """The margin of a logical or comparison node; ``None`` for an
-        arithmetic operator, which is a leaf for :meth:`margin`."""
+        """Compute the margin of a logical or comparison node.
+
+        Return ``None`` for an arithmetic operator, a leaf for :meth:`margin`.
+        """
         op = node.op.value
         if op == "&&":
             left_margin = self.margin(node.left)
-            if left_margin < 0:
-                return left_margin
-            return min(left_margin, self.margin(node.right))
+            return left_margin if left_margin < 0 else min(left_margin, self.margin(node.right))
         if op == "||":
             left_margin = self.margin(node.left)
-            if left_margin >= 0:
-                return left_margin
-            return max(left_margin, self.margin(node.right))
+            return left_margin if left_margin >= 0 else max(left_margin, self.margin(node.right))
         if op in _COMPARISONS:
-            left_value = _number(self.eval(node.left), f'"{op}"')
-            right_value = _number(self.eval(node.right), f'"{op}"')
-            slack = (
-                right_value - left_value
-                if op in ("<", "<=")
-                else left_value - right_value
-            )
-            if math.isnan(slack):
-                satisfied = _compare(op, left_value, right_value)
-                return math.inf if satisfied else -math.inf
-            return slack if op in ("<=", ">=") else _strict_slack(slack)
-        if op in ("==", "!="):
-            left, right = self.eval(node.left), self.eval(node.right)
-            equal = _strict_equal(left, right)
-            wanted = equal if op == "==" else not equal
-            if (
-                isinstance(left, bool)
-                or isinstance(right, bool)
-                or not isinstance(left, (int, float))
-                or not isinstance(right, (int, float))
-            ):
-                # Booleans, strings, and composites have no distance to
-                # measure: the boolean's sign is the whole answer.
-                return math.inf if wanted else -math.inf
-            distance = abs(float(left) - float(right))
-            if math.isnan(distance):
-                return math.inf if wanted else -math.inf
-            return -distance if op == "==" else _strict_slack(distance)
+            return self._comparison_margin(node)
+        if op in {"==", "!="}:
+            return self._equality_margin(node)
         return None
 
+    def _comparison_margin(self, node: m.HirBinary) -> float:
+        op = node.op.value
+        left_value = _number(self.eval(node.left), f'"{op}"')
+        right_value = _number(self.eval(node.right), f'"{op}"')
+        slack = right_value - left_value if op in {"<", "<="} else left_value - right_value
+        if math.isnan(slack):
+            satisfied = _compare(op, left_value, right_value)
+            return math.inf if satisfied else -math.inf
+        return slack if op in {"<=", ">="} else _strict_slack(slack)
 
-# -- Entry points -----------------------------------------------------------------
+    def _equality_margin(self, node: m.HirBinary) -> float:
+        op = node.op.value
+        left, right = self.eval(node.left), self.eval(node.right)
+        equal = _strict_equal(left, right)
+        wanted = equal if op == "==" else not equal
+        if (
+            isinstance(left, bool)
+            or isinstance(right, bool)
+            or not isinstance(left, (int, float))
+            or not isinstance(right, (int, float))
+        ):
+            # Booleans, strings, and composites have no distance to
+            # measure: the boolean's sign is the whole answer.
+            return math.inf if wanted else -math.inf
+        distance = abs(float(left) - float(right))
+        if math.isnan(distance):
+            return math.inf if wanted else -math.inf
+        return -distance if op == "==" else _strict_slack(distance)
+
+
+# Entry points.
 
 
 def evaluate_hir(
@@ -696,9 +773,7 @@ def evaluate_hir(
     lists). A mapping is validated against the grammar first.
     """
     function = validate_hir_function(fn)
-    return _Evaluator(scenario or {}, parameters or {}, dict(locals_ or {})).eval(
-        function.body
-    )
+    return _Evaluator(scenario or {}, parameters or {}, dict(locals_ or {})).eval(function.body)
 
 
 def hir_margin(
@@ -708,10 +783,10 @@ def hir_margin(
     parameters: Mapping[str, Scalar] | None = None,
     locals_: Mapping[str, Value] | None = None,
 ) -> float:
-    """The signed robustness margin of one boolean HIR function: ``>= 0``
-    iff :func:`evaluate_hir` would return ``True``. Bindings as for
-    :func:`evaluate_hir`."""
+    """Compute the signed robustness margin of one boolean HIR function.
+
+    ``>= 0`` iff :func:`evaluate_hir` would return ``True``. Bindings as for
+    :func:`evaluate_hir`.
+    """
     function = validate_hir_function(fn)
-    return _Evaluator(scenario or {}, parameters or {}, dict(locals_ or {})).margin(
-        function.body
-    )
+    return _Evaluator(scenario or {}, parameters or {}, dict(locals_ or {})).margin(function.body)

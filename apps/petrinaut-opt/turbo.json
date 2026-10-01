@@ -1,11 +1,7 @@
 {
   "extends": ["//"],
   "tasks": {
-    // TODO(SRE-1089): run type checking on all Python files, instead of just source files
-    "check:ty": {
-      "command": ["uv", "run", "--active", "--frozen", "ty", "check", "src"],
-      "passThroughEnv": ["UV_CACHE_DIR"]
-    },
+    "check:ty": { "dependsOn": ["petrinaut-python#codegen"] },
     "build:docker": {
       "command": [
         "docker",
@@ -33,7 +29,7 @@
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
     "start": {
-      "command": ["uv", "run", "uvicorn", "src.optimization_api:app"],
+      "command": ["uv", "run", "uvicorn", "petrinaut_optimization.api:app"],
       "dependsOn": ["petrinaut-python#codegen"]
     },
     "start:dev": {
@@ -41,7 +37,7 @@
         "uv",
         "run",
         "uvicorn",
-        "src.optimization_api:app",
+        "petrinaut_optimization.api:app",
         "--reload"
       ],
       "cache": false,
@@ -49,9 +45,16 @@
       "dependsOn": ["petrinaut-python#codegen"]
     },
     "check:openapi": {
-      "command": ["git", "diff", "--exit-code", "--", "openapi/openapi.json"],
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "scripts.generate_openapi",
+        "--check"
+      ],
       "cache": false,
-      "dependsOn": ["codegen"]
+      "dependsOn": ["petrinaut-python#codegen"]
     },
     "test": {
       "dependsOn": ["check:openapi", "^manifest"]

@@ -16,7 +16,7 @@
     },
     "check:openapi": {
       "dependsOn": [
-        "codegen"
+        "petrinaut-python#codegen"
       ],
       "cache": false,
       "affectedBy": [
