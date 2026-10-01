@@ -47,7 +47,7 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
     toJSON: () => ({}),
   });
   fireEvent.mouseMove(slider, { clientX: 394 });
-  expect(screen.getByText("Deep · No limit")).toBeTruthy();
+  expect(screen.getByText("Deep", { selector: "strong" })).toBeTruthy();
   // Previewing a stop must not change the current selection in the header.
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   fireEvent.mouseEnter(screen.getByRole("button", { name: "Deep" }));
@@ -80,7 +80,7 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
   if (!trigger) throw new Error("Missing estimate tooltip trigger");
   fireEvent.focus(trigger);
   const card = await screen.findByRole("tooltip");
-  expect(card.textContent).toContain("6 questions in text; 5 asked, 1 left.");
+  expect(card.textContent).toContain("6 questions · 5 asked · 1 left");
   expect(card.textContent).toContain("open");
   rerender(
     <InterviewBudgetPill

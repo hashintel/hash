@@ -404,11 +404,15 @@ export const InterviewBudgetControl = ({
                 minHeight: "[18px]",
               })}
             >
-              <strong
-                className={`${levelTheme[previewLevel]} ${css({ color: "var(--budget-color)", fontWeight: "semibold" })}`}
-              >
-                {preview.name} · {preview.guide}
-              </strong>{" "}
+              {previewLevel !== level && (
+                <>
+                  <strong
+                    className={`${levelTheme[previewLevel]} ${css({ color: "var(--budget-color)", fontWeight: "semibold" })}`}
+                  >
+                    {preview.name}
+                  </strong>{" "}
+                </>
+              )}
               {preview.description}
             </p>
           </div>
@@ -439,14 +443,16 @@ export const InterviewBudgetPill = ({
   const nearCap = budget.remaining !== null && budget.remaining <= 1;
   const mechanism =
     budget.questionCap === null
-      ? `${asked} asked; no cap. Brunch offers a pause between topics instead of closing.`
-      : `${budget.questionCap} questions in ${mode}; ${asked} asked, ${budget.remaining} left.`;
+      ? `${asked} asked · no cap`
+      : `${budget.questionCap} questions · ${asked} asked · ${budget.remaining} left`;
   const note =
-    budget.remaining === 0
-      ? "Cap reached. Brunch closes after this answer with what it has; anything open is listed, not invented."
-      : budget.remaining === 1
-        ? "After this question Brunch closes with stated facts, recorded assumptions and open items."
-        : "Minutes are an estimate, not a countdown. Change the level any time.";
+    budget.questionCap === null
+      ? "Brunch pauses between topics instead of closing."
+      : budget.remaining === 0
+        ? "Brunch closes after this answer; open items stay listed."
+        : budget.remaining === 1
+          ? "Brunch closes after this question; open items stay listed."
+          : "An estimate, not a countdown.";
   return (
     <div
       className={css({

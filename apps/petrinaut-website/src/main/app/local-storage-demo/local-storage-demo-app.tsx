@@ -1028,7 +1028,7 @@ export const LocalStorageDemoApp = ({
                             parts: [
                               {
                                 type: "text",
-                                text: `Interview budget changed to ${config.name} · ${config.guide}. Earlier questions still count.`,
+                                text: `Budget: ${config.name} · ${config.guide}`,
                               },
                             ],
                           },

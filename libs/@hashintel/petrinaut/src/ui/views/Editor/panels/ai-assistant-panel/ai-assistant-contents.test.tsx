@@ -2932,9 +2932,7 @@ describe("AiAssistantContents", () => {
             {
               id: "budget-change",
               role: "system",
-              parts: [
-                { type: "text", text: "Interview budget changed to Quick." },
-              ],
+              parts: [{ type: "text", text: "Budget: Quick · ~5 min" }],
             },
           ]}
           onClose={noop}
@@ -2947,7 +2945,7 @@ describe("AiAssistantContents", () => {
       );
 
       expect(screen.getByRole("note").textContent).toBe(
-        "Interview budget changed to Quick.",
+        "Budget: Quick · ~5 min",
       );
       expect(screen.queryByText("Activity")).toBeNull();
     },
