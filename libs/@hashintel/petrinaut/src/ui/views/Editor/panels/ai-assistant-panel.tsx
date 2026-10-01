@@ -818,6 +818,17 @@ const ConversationAiAssistantPanel = ({
     kind: "stopped" | "failed";
   } | null>(null);
   const automaticToolAbortsRef = useRef(new Set<AbortController>());
+  const [hostExperimentReport, setHostExperimentReport] = useState<{
+    running: boolean;
+  } | null>(null);
+  const reportExperimentRunning = useCallback((running: boolean) => {
+    const report = { running };
+    setHostExperimentReport(report);
+    return () =>
+      setHostExperimentReport((current) =>
+        current === report ? null : current,
+      );
+  }, []);
   const abortAutomaticTools = () => {
     for (const controller of automaticToolAbortsRef.current) {
       controller.abort();
@@ -2301,6 +2312,7 @@ const ConversationAiAssistantPanel = ({
     stopped,
     stop: stopComposer,
     submitText,
+    reportExperimentRunning,
   };
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
@@ -2334,6 +2346,7 @@ const ConversationAiAssistantPanel = ({
       composerControl={composerControl}
       error={streamError ?? error}
       experimentStates={experimentStates}
+      hostExperimentRunning={hostExperimentReport?.running ?? false}
       onCancelExperiment={cancelExperiment}
       input={input}
       inputMode={interactionMode}

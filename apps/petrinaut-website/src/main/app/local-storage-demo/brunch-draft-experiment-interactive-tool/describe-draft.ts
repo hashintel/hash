@@ -1,10 +1,8 @@
+import type { PreparedExperiment } from "../shared/brunch-draft-experiment-drafts";
 import type {
   PetrinautExperimentRequest,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { prepareExperiment } from "@hashintel/petrinaut/react";
-
-export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 
 const nameOfScenario = (definition: SDCPN, scenarioId: string) =>
   definition.scenarios?.find((scenario) => scenario.id === scenarioId)?.name ??

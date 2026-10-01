@@ -31,6 +31,8 @@ import {
   describeBudget,
   describeExperiment,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
+import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
+import { editorDraftsFor } from "./shared/brunch-draft-experiment-drafts";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
 vi.hoisted(() => {
@@ -65,7 +67,10 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type { OptimizationsContextValue } from "@hashintel/petrinaut/react";
-import type { PetrinautAiInteractiveToolWidgetProps } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiInteractiveToolWidgetProps,
+  PetrinautAiComposerControlContext,
+} from "@hashintel/petrinaut/ui";
 import type { ReactNode } from "react";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.
@@ -753,9 +758,17 @@ describe("BrunchDraftExperimentWidget", () => {
       execution: { mode: "optimize", direction: "minimize" },
     });
     expect(seenSignal?.aborted).toBe(false);
-    await waitFor(() => expect(heading()).toEqual(["Running"]));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Optimizing"),
+    );
     expect(screen.getByRole("status").textContent).toBe("Optimizing");
     expect(screen.getByText("Step 1 of 3")).toBeTruthy();
+    expect(screen.getAllByText("Staffing under peak demand")).toHaveLength(1);
+    expect(screen.queryByText("Metrics")).toBeNull();
+    expect(screen.queryByText("Declared")).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Drafted experiment" }),
+    ).toBeNull();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
       "5",
     );
@@ -771,7 +784,9 @@ describe("BrunchDraftExperimentWidget", () => {
     await act(async () => {
       resolveRun(finishedResult);
     });
-    await waitFor(() => expect(heading()).toEqual(["Run complete"]));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Finished"),
+    );
     expect(screen.getByRole("status").textContent).toBe("Finished");
     expect(screen.getByText("15 runs")).toBeTruthy();
     expect(runExperiment).toHaveBeenCalledTimes(1);
@@ -794,14 +809,355 @@ describe("BrunchDraftExperimentWidget", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
-    await waitFor(() => expect(heading()).toEqual(["Run failed"]));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Failed"),
+    );
     expect(screen.getByRole("status").textContent).toBe("Failed");
     expect(screen.getByText("Compilation failed")).toBeTruthy();
+    expect(screen.queryByText("Metrics")).toBeNull();
+    expect(screen.queryByText("Declared")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
 
     await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(heading()).toEqual(["Run complete"]));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Finished"),
+    );
+  });
+
+  it("retries a run the host resolves as an error", async () => {
+    const runExperiment = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...finishedResult,
+        status: "error",
+        message: "Compilation failed",
+        runsCompleted: 3,
+        metrics: [{ id: "queue", label: "Queue length", value: 4 }],
+      })
+      .mockResolvedValueOnce(finishedResult);
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "call_draft_error_result",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Failed"),
+    );
+    expect(screen.getByText("Compilation failed")).toBeTruthy();
+    expect(screen.getByText("3 runs")).toBeTruthy();
+    expect(screen.getByText("Queue length")).toBeTruthy();
+    expect(
+      screen.getByText("Results shown in chat; experiment is no longer open."),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Finished"),
+    );
+  });
+
+  it("reports active runs only to their conversation and clears the hint on unmount", async () => {
+    const result = Promise.withResolvers<typeof finishedResult>();
+    const { submit, wrap } = renderWidget({
+      input: makeInput(),
+      toolCallId: "running-hint",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn().mockReturnValue(result.promise),
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    const clearRunning = vi.fn();
+    const reportExperimentRunning = vi.fn(() => clearRunning);
+    const context: PetrinautAiComposerControlContext = {
+      conversationId: "original",
+      messages: [
+        {
+          id: "draft",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "draft_petrinaut_experiment",
+              toolCallId: "running-hint",
+              state: "output-available",
+              input: {},
+              output: {},
+            },
+          ],
+        },
+      ],
+      status: "streaming",
+      submitText: vi.fn(),
+      stop: async () => {},
+      reportExperimentRunning,
+    };
+    const followUp = render(
+      wrap(<BrunchExperimentFollowUp context={context} />),
+    );
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await waitFor(() =>
+      expect(reportExperimentRunning).toHaveBeenLastCalledWith(true),
+    );
+    followUp.rerender(
+      wrap(<BrunchExperimentFollowUp context={{ ...context, messages: [] }} />),
+    );
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
+    followUp.rerender(wrap(<BrunchExperimentFollowUp context={context} />));
+    expect(reportExperimentRunning).toHaveBeenLastCalledWith(true);
+    clearRunning.mockClear();
+    followUp.unmount();
+    expect(clearRunning).toHaveBeenCalledOnce();
+    await act(async () => result.resolve(finishedResult));
+  });
+
+  it("sends completed results once, only to the originating idle conversation", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const { submit, wrap } = renderWidget({
+      input: makeInput(),
+      toolCallId: "follow-up",
+      state: awaiting,
+      definition,
+      runExperiment: vi.fn().mockResolvedValue(finishedResult),
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await screen.findByText("Finished");
+    const submitText = vi
+      .fn<PetrinautAiComposerControlContext["submitText"]>()
+      .mockRejectedValueOnce(new Error("Connection lost"))
+      .mockResolvedValue({ kind: "message", messageId: "completion" });
+    const context = {
+      conversationId: "original",
+      messages: [
+        {
+          id: "original-tool",
+          role: "assistant" as const,
+          parts: [
+            {
+              type: "dynamic-tool" as const,
+              toolCallId: "follow-up",
+              toolName: "draft_petrinaut_experiment",
+              state: "output-available" as const,
+              input: {},
+              output: {},
+            },
+          ],
+        },
+      ],
+      status: "streaming" as const,
+      submitText,
+      stop: async () => {},
+    };
+    const followUp = render(
+      wrap(<BrunchExperimentFollowUp context={context} />),
+    );
+    expect(submitText).not.toHaveBeenCalled();
+    followUp.rerender(
+      wrap(
+        <BrunchExperimentFollowUp
+          context={{ ...context, status: "ready", messages: [] }}
+        />,
+      ),
+    );
+    expect(submitText).not.toHaveBeenCalled();
+    followUp.rerender(
+      wrap(
+        <BrunchExperimentFollowUp
+          context={{ ...context, status: "ready", stopped: true }}
+        />,
+      ),
+    );
+    expect(submitText).not.toHaveBeenCalled();
+    followUp.rerender(
+      wrap(
+        <BrunchExperimentFollowUp context={{ ...context, status: "ready" }} />,
+      ),
+    );
+    await waitFor(() => expect(submitText).toHaveBeenCalledOnce());
+    const submission = submitText.mock.calls[0]?.[0];
+    expect(submission).toMatchObject({
+      target: "message",
+      preserveDraft: true,
+    });
+    expect(submission?.text).toContain(JSON.stringify(finishedResult));
+    await screen.findByRole("button", { name: "Retry result summary" });
+    followUp.rerender(
+      wrap(
+        <BrunchExperimentFollowUp
+          context={{ ...context, status: "error", stopped: true }}
+        />,
+      ),
+    );
+    expect(submitText).toHaveBeenCalledOnce();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry result summary" }),
+    );
+    await waitFor(() => expect(submitText).toHaveBeenCalledTimes(2));
+    followUp.unmount();
+    render(
+      wrap(
+        <BrunchExperimentFollowUp context={{ ...context, status: "ready" }} />,
+      ),
+    );
+    expect(submitText).toHaveBeenCalledTimes(2);
+    expect(submit).toHaveBeenCalledOnce();
+  });
+
+  it("shows model review when retrying a failed run against a changed model", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const runExperiment = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Unavailable"))
+      .mockResolvedValueOnce(finishedResult);
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "retry-review",
+      state: awaiting,
+      definition,
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await screen.findByRole("button", { name: "Retry run" });
+    definition.set({
+      ...definition.get(),
+      places: [
+        {
+          id: "new-place",
+          name: "New place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+    expect(
+      await screen.findByRole("button", { name: "Accept current model" }),
+    ).toBeTruthy();
+    expect(runExperiment).toHaveBeenCalledOnce();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Accept current model" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry against current model" }),
+    );
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
+  });
+
+  it("shows the run error when a run against an accepted model fails", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const runExperiment = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Unavailable"))
+      .mockRejectedValueOnce(new Error("Still unavailable"));
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "retry-review-failure",
+      state: awaiting,
+      definition,
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await screen.findByRole("button", { name: "Retry run" });
+    definition.set({
+      ...definition.get(),
+      places: [
+        {
+          id: "new-place",
+          name: "New place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Accept current model" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry against current model" }),
+    );
+
+    expect(await screen.findByText("Still unavailable")).toBeTruthy();
+    expect(
+      screen.queryByText(/model changed since this was drafted/u),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Retry run" })).toBeTruthy();
+  });
+
+  it("sends a later completed result after an earlier summary fails", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const drafts = editorDraftsFor(definition);
+    for (const toolCallId of ["earlier", "later"]) {
+      drafts.register({
+        toolCallId,
+        input: makeInput(),
+        definition: makeDefinition(),
+        prepared: null,
+        invalid: null,
+        dismissed: false,
+        run: { phase: "finished", result: finishedResult },
+      });
+    }
+    drafts.update("earlier", { followUp: "failed" });
+    const submitText = vi
+      .fn<PetrinautAiComposerControlContext["submitText"]>()
+      .mockResolvedValue({ kind: "message", messageId: "completion" });
+    const toolPart = (toolCallId: string) => ({
+      type: "dynamic-tool" as const,
+      toolCallId,
+      toolName: "draft_petrinaut_experiment",
+      state: "output-available" as const,
+      input: {},
+      output: {},
+    });
+    render(
+      <PetrinautInstanceContext.Provider
+        value={{ definition } as unknown as Petrinaut}
+      >
+        <BrunchExperimentFollowUp
+          context={{
+            conversationId: "original",
+            messages: [
+              {
+                id: "drafts",
+                role: "assistant",
+                parts: [toolPart("earlier"), toolPart("later")],
+              },
+            ],
+            status: "ready",
+            submitText,
+            stop: async () => {},
+          }}
+        />
+      </PetrinautInstanceContext.Provider>,
+    );
+
+    await waitFor(() =>
+      expect(drafts.get().drafts.get("later")?.followUp).toBe("sent"),
+    );
+    expect(submitText).toHaveBeenCalledOnce();
+    expect(drafts.get().drafts.get("earlier")?.followUp).toBe("failed");
+    expect(
+      screen.getByRole("button", { name: "Retry result summary" }),
+    ).toBeTruthy();
   });
 
   it.each(["simulate", "optimize"] as const)(
@@ -832,7 +1188,9 @@ describe("BrunchDraftExperimentWidget", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
-      await waitFor(() => expect(heading()).toEqual(["Run failed"]));
+      await waitFor(() =>
+        expect(screen.getByRole("status").textContent).toBe("Failed"),
+      );
       expect(screen.getByRole("status").textContent).toBe("Failed");
       expect(screen.getByText("Compilation failed")).toBeTruthy();
     },
@@ -900,6 +1258,15 @@ describe("BrunchDraftExperimentWidget", () => {
       expect(screen.getByRole("status").textContent).toBe(
         mode === "simulate" ? "Running" : "Refining",
       );
+      const kind = screen.getByText(
+        mode === "simulate" ? "Simulation" : "Optimization",
+      );
+      expect(
+        screen.getByText("Staffing under peak demand").nextElementSibling,
+      ).toBe(kind.parentElement);
+      expect(
+        screen.queryByRole("region", { name: "Drafted experiment" }),
+      ).toBeNull();
       expect(
         screen.getByRole("progressbar").getAttribute("aria-valuenow"),
       ).toBe("7");
@@ -1055,6 +1422,9 @@ describe("BrunchDraftExperimentWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
 
     expect(heading()).toEqual(["Dismissed"]);
+    expect(screen.getByText("Staffing under peak demand")).toBeTruthy();
+    expect(screen.getByText("Metrics")).toBeTruthy();
+    expect(screen.getByText("Declared")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
     expect(runExperiment).not.toHaveBeenCalled();
   });

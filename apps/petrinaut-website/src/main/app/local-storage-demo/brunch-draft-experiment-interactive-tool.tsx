@@ -10,6 +10,7 @@ import {
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
@@ -35,11 +36,11 @@ import {
   summarizeForAgent,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import {
-  resetEditorDrafts,
   editorDraftsFor,
-} from "./brunch-draft-experiment-interactive-tool/editor-drafts";
+  type PreparedExperiment,
+  resetEditorDrafts,
+} from "./shared/brunch-draft-experiment-drafts";
 
-import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
@@ -60,7 +61,7 @@ const containerStyle = css({
 });
 
 const statusStyle = css({
-  color: "neutral.s80",
+  color: "neutral.s90",
   fontSize: "xs",
   fontWeight: "medium",
   letterSpacing: "wide",
@@ -127,37 +128,10 @@ const errorStyle = css({
 
 const actionsStyle = css({
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
   justifyContent: "flex-end",
   marginTop: "1",
-});
-
-const primaryButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderRadius: "md",
-  backgroundColor: "blue.a85",
-  color: "white",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  _hover: { backgroundColor: "blue.a100" },
-  _disabled: { cursor: "not-allowed", opacity: 0.45 },
-});
-
-const secondaryButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a30",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-  color: "neutral.s90",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  _hover: { backgroundColor: "neutral.a10" },
 });
 
 /** Forget every draft, as a reload would. For tests that share the module. */
@@ -473,6 +447,10 @@ export const BrunchDraftExperimentWidget = ({
     }
     if (reviewed && !reviewAccepted) return;
     setRunError(null);
+    // The accepted model becomes the draft's own below, so a later failure
+    // shows the run error instead of an empty model-change review.
+    setReviewed(null);
+    setReviewAccepted(false);
     const controller = new AbortController();
     editorDrafts.update(toolCallId, {
       prepared: current.prepared,
@@ -490,7 +468,16 @@ export const BrunchDraftExperimentWidget = ({
             }),
         },
       );
-      editorDrafts.update(toolCallId, { run: { phase: "finished", result } });
+      editorDrafts.update(toolCallId, {
+        run:
+          result.status === "error"
+            ? {
+                phase: "failed",
+                message: result.message ?? "The experiment failed.",
+                result,
+              }
+            : { phase: "finished", result },
+      });
     } catch (caught) {
       editorDrafts.update(toolCallId, {
         run: {
@@ -513,15 +500,11 @@ export const BrunchDraftExperimentWidget = ({
       ? "Could not be prepared"
       : draft.dismissed
         ? "Dismissed"
-        : draft.run.phase === "running"
-          ? "Running"
-          : draft.run.phase === "finished"
-            ? `Run ${draft.run.result.status}`
-            : draft.run.phase === "failed"
-              ? "Run failed"
-              : isCurrent
-                ? "Drafted — not run · not saved with the document"
-                : "Superseded by a later draft";
+        : draft.run.phase === "failed"
+          ? "Run failed"
+          : isCurrent
+            ? "Drafted — not run · not saved with the document"
+            : "Superseded by a later draft";
 
   const canAct =
     draft !== undefined &&
@@ -531,15 +514,56 @@ export const BrunchDraftExperimentWidget = ({
     (draft.run.phase === "idle" || draft.run.phase === "failed");
   const canRun = canAct && optimizationUnavailable === null;
   const run = draft?.run;
+  const runResult =
+    run?.phase === "finished" || run?.phase === "failed"
+      ? run.result
+      : undefined;
   const experimentId =
-    run?.phase === "finished"
-      ? run.result.experimentId
-      : run?.phase === "running"
-        ? run.progress?.experimentId
-        : undefined;
+    run?.phase === "running"
+      ? run.progress?.experimentId
+      : runResult?.experimentId;
   const canViewExperiment =
     experimentId &&
     experiments.some((experiment) => experiment.id === experimentId);
+
+  if (
+    run &&
+    run.phase !== "idle" &&
+    draft.prepared &&
+    !draft.dismissed &&
+    !(run.phase === "failed" && (reviewed || runError))
+  ) {
+    return (
+      <ExperimentExecutionCard
+        request={draft.prepared.request}
+        active={run.phase === "running"}
+        progress={
+          run.phase === "running" ? (run.progress ?? undefined) : undefined
+        }
+        result={runResult}
+        error={run.phase === "failed" ? run.message : undefined}
+        onCancel={
+          run.phase === "running" ? () => run.controller.abort() : undefined
+        }
+        onRetry={
+          run.phase === "failed" && canRun ? () => void onRun() : undefined
+        }
+        onViewExperiment={
+          canViewExperiment
+            ? () => {
+                navigate(
+                  openPetrinautSimulationResource({
+                    type: "experiment",
+                    id: experimentId,
+                  }),
+                  { cause: "user", action: "simulation-resource" },
+                );
+              }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <section
@@ -661,55 +685,31 @@ export const BrunchDraftExperimentWidget = ({
           </details>
         </div>
       ) : null}
-      {run && run.phase !== "idle" && draft.prepared ? (
-        <ExperimentExecutionCard
-          request={draft.prepared.request}
-          active={run.phase === "running"}
-          progress={
-            run.phase === "running" ? (run.progress ?? undefined) : undefined
-          }
-          result={run.phase === "finished" ? run.result : undefined}
-          error={run.phase === "failed" ? run.message : undefined}
-          onCancel={
-            run.phase === "running" ? () => run.controller.abort() : undefined
-          }
-          onViewExperiment={
-            canViewExperiment
-              ? () => {
-                  navigate(
-                    openPetrinautSimulationResource({
-                      type: "experiment",
-                      id: experimentId,
-                    }),
-                    { cause: "user", action: "simulation-resource" },
-                  );
-                }
-              : undefined
-          }
-        />
-      ) : null}
       {canAct ? (
         <div className={actionsStyle}>
-          <button
-            className={secondaryButtonStyle}
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => editorDrafts.update(toolCallId, { dismissed: true })}
             type="button"
           >
             Dismiss
-          </button>
+          </Button>
           {canRun ? (
             reviewed && !reviewAccepted ? (
-              <button
-                className={primaryButtonStyle}
+              <Button
+                size="sm"
+                tone="brand"
                 disabled={blocksRun}
                 onClick={() => setReviewAccepted(true)}
                 type="button"
               >
                 Accept current model
-              </button>
+              </Button>
             ) : (
-              <button
-                className={primaryButtonStyle}
+              <Button
+                size="sm"
+                tone="brand"
                 disabled={blocksRun}
                 onClick={() => void onRun()}
                 type="button"
@@ -721,7 +721,7 @@ export const BrunchDraftExperimentWidget = ({
                   : reviewed
                     ? "Run against current model"
                     : "Run"}
-              </button>
+              </Button>
             )
           ) : null}
         </div>
