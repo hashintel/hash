@@ -17,6 +17,7 @@ from repo_chores.constraints._rules.python_version import enforce_python_version
 from repo_chores.constraints._rules.ruff import enforce_ruff_configuration
 from repo_chores.constraints._rules.ruff_source_roots import enforce_ruff_source_roots
 from repo_chores.constraints._rules.tach_paths import enforce_tach_paths
+from repo_chores.constraints._rules.turbo_task import enforce_turbo_task
 from repo_chores.constraints._rules.workspace_dev_dependencies import (
     enforce_workspace_dev_dependencies,
 )
@@ -44,3 +45,4 @@ enforce_build_layout = rule(enforce_build_layout)
 enforce_workspace_sources = rule(enforce_workspace_sources)
 enforce_pinned_dependency_versions = rule(enforce_pinned_dependencies)
 enforce_workspace_dev_dependencies = rule(enforce_workspace_dev_dependencies)
+enforce_turbo_task = rule(enforce_turbo_task)

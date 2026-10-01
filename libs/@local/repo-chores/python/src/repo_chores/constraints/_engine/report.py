@@ -29,16 +29,16 @@ class ManifestDiff:
     """A manifest's original bytes and the bytes a fix would write."""
 
     path: Path
-    before: bytes
+    before: bytes | None
     after: bytes
 
     def unified(self, *, name: str | None = None) -> str:
         label = name if name is not None else str(self.path)
         return "".join(
             difflib.unified_diff(
-                self.before.decode("utf-8").splitlines(keepends=True),
+                (self.before or b"").decode("utf-8").splitlines(keepends=True),
                 self.after.decode("utf-8").splitlines(keepends=True),
-                fromfile=f"a/{label}",
+                fromfile=f"a/{label}" if self.before is not None else "/dev/null",
                 tofile=f"b/{label}",
             )
         )

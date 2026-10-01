@@ -6,12 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from repo_chores.constraints._engine.diagnostics import FixError
-from repo_chores.constraints._engine.manifest import Manifest
+from repo_chores.constraints._engine.source_file import SourceFile
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PreparedManifest:
-    manifest: Manifest
+    manifest: SourceFile
     content: bytes
 
 
@@ -22,12 +22,12 @@ class StagedManifest:
 
 
 class ManifestWrites:
-    def __init__(self, *, manifests: Iterable[Manifest]) -> None:
+    def __init__(self, *, manifests: Iterable[SourceFile]) -> None:
         self._manifests = tuple(manifests)
         self._prepared = tuple(
             PreparedManifest(manifest=manifest, content=content)
             for manifest in sorted(self._manifests, key=lambda manifest: manifest.path)
-            if (content := manifest.render()) != manifest.original
+            if (content := manifest.render()) is not None and content != manifest.original
         )
 
     @staticmethod
@@ -54,7 +54,12 @@ class ManifestWrites:
                 output.flush()
 
                 os.fsync(output.fileno())
-                temporary.chmod(stat.S_IMODE(path.stat().st_mode))
+                mode = (
+                    stat.S_IMODE(path.stat().st_mode)
+                    if prepared.manifest.original is not None
+                    else 0o644
+                )
+                temporary.chmod(mode)
         except OSError as error:
             raise FixError(path=path, written=tuple(written)) from error
 
@@ -70,7 +75,11 @@ class ManifestWrites:
             manifest.verify()
 
             try:
-                replacement.temporary.replace(manifest.path)
+                if manifest.original is None:
+                    # A concurrent creator must win even after our last absence check.
+                    os.link(replacement.temporary, manifest.path)
+                else:
+                    replacement.temporary.replace(manifest.path)
             except OSError as error:
                 raise FixError(path=manifest.path, written=tuple(written)) from error
 

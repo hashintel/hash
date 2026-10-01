@@ -9,6 +9,9 @@
     "lint:constraints": {
       "dependsOn": [],
       "cache": false
+    },
+    "lint:deptry": {
+      "dependsOn": []
     }
   }
 }

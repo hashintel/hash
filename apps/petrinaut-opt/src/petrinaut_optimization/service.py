@@ -217,7 +217,7 @@ class OptimizationService:
 
             # Backend diagnostics may quote user expressions. Only the response
             # carries their text; logs carry the exception's classification.
-            log.exception(
+            log.error(  # ruff: ignore[error-instead-of-exception] - Exception text can contain user expressions.
                 "optimization initialization failed",
                 extra={
                     "event": "initialization_failed",

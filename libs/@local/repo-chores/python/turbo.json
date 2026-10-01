@@ -1,6 +1,22 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:deptry": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        "src/repo_chores",
+        "--known-first-party",
+        "repo_chores",
+        "--extend-exclude",
+        "(^|.*[/\\\\])tests([/\\\\]|$)"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
     "lint:constraints": {
       "command": [
         "uv",

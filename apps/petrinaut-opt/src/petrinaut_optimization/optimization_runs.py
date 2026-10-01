@@ -354,9 +354,9 @@ class OptimizationRunRegistry:
             # cancelled frame after it would corrupt the replay.
             state = RunState(recorded_outcomes[0]) if recorded_outcomes else RunState.cancelled
             cancellation = error
-        except Exception as error:
+        except Exception as error:  # ruff: ignore[blind-except] - Terminate the run for any backend failure.
             # Backend messages may quote user content; omit the traceback too.
-            log.exception(
+            log.error(  # ruff: ignore[error-instead-of-exception] - Exception text can contain user expressions.
                 "optimization run pump failed",
                 extra={
                     "event": "run_pump_failed",

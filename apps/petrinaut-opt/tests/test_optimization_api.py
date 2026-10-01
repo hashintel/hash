@@ -123,7 +123,8 @@ def test_create_init_log_sanitized(
     assert getattr(record, "error_type", None) == "RuntimeError"
     assert not hasattr(record, "error_category")
     assert not hasattr(record, "error")
-    assert "user_secret_xyz" not in record.getMessage()
+    assert record.exc_info is None
+    assert "user_secret_xyz" not in caplog.text
     # The full message still reaches the requester in the response detail.
     assert "user_secret_xyz" in response.json()["detail"]
 

@@ -1,6 +1,22 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:deptry": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        "src/petrinaut_optimizer_core",
+        "--known-first-party",
+        "petrinaut_optimizer_core",
+        "--extend-exclude",
+        "(^|.*[/\\\\])tests([/\\\\]|$)"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
     "test:unit": {
       "dependsOn": ["test"]
     }

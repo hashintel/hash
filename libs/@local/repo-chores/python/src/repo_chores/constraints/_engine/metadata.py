@@ -1,5 +1,5 @@
 from collections.abc import Iterator, Mapping
-from typing import Self
+from typing import Self, override
 
 from license_expression import (
     AND,
@@ -19,6 +19,7 @@ from repo_chores.constraints._engine.location import Location
 
 class PythonVersion:
     __slots__ = ("_value",)
+    __hash__ = None
 
     def __init__(self, value: DocumentString) -> None:
         self._value = value
@@ -44,9 +45,11 @@ class PythonVersion:
     def value(self) -> DocumentString:
         return self._value
 
+    @override
     def __str__(self) -> str:
         return str(self._read())
 
+    @override
     def __eq__(self, other: object) -> bool:
         match other:
             case PythonVersion():
@@ -77,6 +80,7 @@ class LicenseExpression:
     def __init__(self, value: DocumentString) -> None:
         self._value = value
 
+    @override
     def __str__(self) -> str:
         return str(self._read())
 

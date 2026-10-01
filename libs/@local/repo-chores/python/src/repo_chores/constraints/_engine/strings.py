@@ -1,16 +1,20 @@
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import suppress
 from pathlib import Path
+from typing import override
 
 from repo_chores.constraints._engine.diagnostics import ManifestError
 from repo_chores.constraints._engine.document import DocumentArray, DocumentString, DocumentTable
+from repo_chores.constraints._engine.document_native import NativeTable
 from repo_chores.constraints._engine.location import Location, LocationPath
 
 
 class StringList(Iterable[str]):
     """A live string collection at a document field."""
 
-    def __init__(self, owner: DocumentTable, path: LocationPath, *, scalar: bool = False) -> None:
+    def __init__(
+        self, owner: DocumentTable[NativeTable], path: LocationPath, *, scalar: bool = False
+    ) -> None:
         self._owner = owner
         self._path = path
         self._scalar = scalar
@@ -25,6 +29,7 @@ class StringList(Iterable[str]):
     def exists(self) -> bool:
         return self._owner.at(self._path) is not None
 
+    @override
     def __iter__(self) -> Iterator[str]:
         value = self._owner.at(self._path)
 
@@ -63,7 +68,7 @@ class StringList(Iterable[str]):
 class PathList(Iterable[Path]):
     def __init__(
         self,
-        owner: DocumentTable,
+        owner: DocumentTable[NativeTable],
         path: LocationPath,
         *,
         directory: Path,
@@ -73,6 +78,7 @@ class PathList(Iterable[Path]):
         self._directory = directory
         self._directories = directories
 
+    @override
     def __iter__(self) -> Iterator[Path]:
         return (Path(value) for value in self._strings)
 
@@ -89,20 +95,23 @@ class PathList(Iterable[Path]):
 
 
 class StringMap(Mapping[str, str]):
-    def __init__(self, owner: DocumentTable, path: LocationPath) -> None:
+    def __init__(self, owner: DocumentTable[NativeTable], path: LocationPath) -> None:
         self._owner = owner
         self._path = path
 
+    @override
     def __getitem__(self, name: str) -> str:
         value = self._owner.expect((*self._path, name), DocumentString)
         if value is None:
             raise KeyError(name)
         return value.item
 
+    @override
     def __iter__(self) -> Iterator[str]:
         table = self._owner.expect(self._path, DocumentTable)
         return iter(table) if table is not None else iter(())
 
+    @override
     def __len__(self) -> int:
         return sum(1 for _ in self)
 

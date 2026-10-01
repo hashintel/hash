@@ -9,6 +9,7 @@ authors = [
 ]
 requires-python = "<3.15,>=3.14"
 dependencies = [
+    "json-five==1.1.2",                   # The preserving model API is not stable across minor releases.
     "license-expression>=30.4.4,<31.0.0",
     "packaging>=26.3,<27.0",
     "rich>=15.0.0,<16.0.0",
@@ -24,10 +25,15 @@ requires      = ["uv_build>=0.12.16,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pytest<10,>=9.1.1", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]
+dev = ["deptry<0.26,>=0.25.1", "pytest<10,>=9.1.1", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]
 
 [tool.ruff]
 extend = "../../../../pyproject.toml"
+
+[tool.ruff.lint.extend-per-file-ignores]
+# Native TOML adapters preserve comments and entry identity through tomlkit internals.
+"src/repo_chores/constraints/_engine/document.py"        = ["import-private-name", "private-member-access"]
+"src/repo_chores/constraints/_engine/document_native.py" = ["import-private-name", "private-member-access"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15

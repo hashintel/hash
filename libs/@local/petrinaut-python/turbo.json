@@ -1,6 +1,23 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:deptry": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        "src/petrinaut",
+        "scripts",
+        "--known-first-party",
+        "petrinaut",
+        "--extend-exclude",
+        "(^|.*[/\\\\])tests([/\\\\]|$)"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
     "check:ty": { "dependsOn": ["codegen"] },
     "manifest": {
       "dependsOn": ["^manifest", "@hashintel/petrinaut-cli#manifest"]

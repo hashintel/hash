@@ -1,11 +1,12 @@
 from collections.abc import Iterator, Mapping, Sequence
-from typing import overload
+from typing import overload, override
 
 from packaging.dependency_groups import DependencyGroupResolver
 from packaging.requirements import Requirement
 
 from repo_chores.constraints._engine.diagnostics import ManifestError
 from repo_chores.constraints._engine.document import DocumentArray, DocumentString, DocumentTable
+from repo_chores.constraints._engine.document_native import NativeTable
 from repo_chores.constraints._engine.strings import StringMap
 
 type GroupInput = str | Mapping[str, str]
@@ -15,6 +16,7 @@ class GroupEntries(Sequence[GroupInput]):
     def __init__(self, value: DocumentArray) -> None:
         self._value = value
 
+    @override
     def __len__(self) -> int:
         return len(self._value)
 
@@ -23,6 +25,7 @@ class GroupEntries(Sequence[GroupInput]):
     @overload
     def __getitem__(self, index: slice) -> list[GroupInput]: ...
 
+    @override
     def __getitem__(self, index: int | slice) -> GroupInput | list[GroupInput]:
         if isinstance(index, slice):
             return [self[position] for position in range(*index.indices(len(self)))]
@@ -42,9 +45,10 @@ class GroupEntries(Sequence[GroupInput]):
 
 
 class GroupDefinitions(Mapping[str, GroupEntries]):
-    def __init__(self, document: DocumentTable) -> None:
+    def __init__(self, document: DocumentTable[NativeTable]) -> None:
         self._document = document
 
+    @override
     def __getitem__(self, name: str) -> GroupEntries:
         value = self._document.expect(("dependency-groups", name), DocumentArray)
         if value is None:
@@ -52,10 +56,12 @@ class GroupDefinitions(Mapping[str, GroupEntries]):
 
         return GroupEntries(value)
 
+    @override
     def __iter__(self) -> Iterator[str]:
         table = self._document.expect(("dependency-groups",), DocumentTable)
         return iter(table) if table is not None else iter(())
 
+    @override
     def __len__(self) -> int:
         return sum(1 for _ in self)
 
@@ -63,7 +69,7 @@ class GroupDefinitions(Mapping[str, GroupEntries]):
 class DependencyGroups:
     """Resolve the current declarations without retaining the resolver's parsed cache."""
 
-    def __init__(self, document: DocumentTable) -> None:
+    def __init__(self, document: DocumentTable[NativeTable]) -> None:
         self._document = document
         self._definitions = GroupDefinitions(document)
 

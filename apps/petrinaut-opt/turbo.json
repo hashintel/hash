@@ -2,6 +2,27 @@
   "extends": ["//"],
   "tasks": {
     "check:ty": { "dependsOn": ["petrinaut-python#codegen"] },
+    "lint:deptry": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        "src/petrinaut_optimization",
+        "scripts",
+        "--known-first-party",
+        "petrinaut_optimization",
+        "--known-first-party",
+        "scripts",
+        "--extend-exclude",
+        "(^|.*[/\\\\])tests([/\\\\]|$)",
+        "--package-module-name-map",
+        "petrinaut-python=petrinaut"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
     "build:docker": {
       "command": [
         "docker",

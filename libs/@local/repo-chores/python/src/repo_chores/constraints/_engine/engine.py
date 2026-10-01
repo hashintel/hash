@@ -59,8 +59,8 @@ class Engine:
         def finish(diagnostics: Iterable[Diagnostic], passes: int) -> Evaluation:
             diffs = tuple(
                 ManifestDiff(path=manifest.path, before=manifest.original, after=rendered)
-                for manifest in sorted(inputs.manifests, key=lambda manifest: manifest.path)
-                if (rendered := manifest.render()) != manifest.original
+                for manifest in sorted(inputs.files, key=lambda manifest: manifest.path)
+                if (rendered := manifest.render()) is not None and rendered != manifest.original
             )
             errors = (entry for entry in diagnostics if isinstance(entry, RuleError))
             return Evaluation(
@@ -128,5 +128,5 @@ class Engine:
         if evaluation.report.status is CheckStatus.BLOCKED:
             return FixReport(report=evaluation.report, written=())
 
-        written = ManifestWrites(manifests=evaluation.inputs.manifests).apply()
+        written = ManifestWrites(manifests=evaluation.inputs.files).apply()
         return FixReport(report=evaluation.report, written=written)

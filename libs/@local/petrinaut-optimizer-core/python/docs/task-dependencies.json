@@ -1,5 +1,9 @@
 {
   "package": "petrinaut-optimizer-core",
   "dependencies": [],
-  "tasks": {}
+  "tasks": {
+    "lint:deptry": {
+      "dependsOn": []
+    }
+  }
 }

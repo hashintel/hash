@@ -147,18 +147,6 @@
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
-    "hash-python#lint:tach:external": {
-      "command": [
-        "uv",
-        "run",
-        "--active",
-        "--frozen",
-        "--all-packages",
-        "tach",
-        "check-external"
-      ],
-      "passThroughEnv": ["UV_CACHE_DIR"]
-    },
     "lint:tsc": {
       "dependsOn": ["codegen", "^build"]
     },

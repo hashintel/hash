@@ -9,6 +9,7 @@ from tomlkit.items import (
     AoT,
     Array,
     Bool,
+    Comment,
     InlineTable,
     Item,
     Key,
@@ -35,11 +36,34 @@ def native(table: NativeTable, name: str) -> NativeItem:
 def copy_native(value: NativeItem) -> Item:
     match value:
         case OutOfOrderTableProxy():
-            return Table(deepcopy(value._internal_container), Trivia(), False)
+            return Table(deepcopy(value._internal_container), Trivia(), is_aot_element=False)
         case Container():
-            return Table(deepcopy(value), Trivia(), False)
+            return Table(deepcopy(value), Trivia(), is_aot_element=False)
         case _:
             return deepcopy(value)
+
+
+def inline_table(entry: Table) -> tuple[InlineTable, Body]:
+    inline = InlineTable(Container(), Trivia(), new=True)
+    comments: Body = []
+    if entry.trivia.comment:
+        comments.append((None, Comment(Trivia(comment=entry.trivia.comment))))
+
+    for name, value in entry.value.body:
+        if name is None:
+            if isinstance(value, Comment):
+                comments.append((None, value))
+            continue
+
+        if value.trivia.comment:
+            comments.append((None, Comment(Trivia(comment=value.trivia.comment))))
+
+        copied = copy_native(value)
+        copied.trivia.comment = copied.trivia.comment_ws = ""
+        copied.trivia.indent = copied.trivia.trail = ""
+        inline[name] = copied
+
+    return inline, comments
 
 
 def equivalent(left: NativeItem, right: NativeItem) -> bool:
@@ -57,9 +81,7 @@ def equivalent(left: NativeItem, right: NativeItem) -> bool:
                 equivalent(left.item(index), right.item(index)) for index in range(len(left))
             )
         case AoT(), AoT():
-            return len(left) == len(right) and all(
-                equivalent(first, second) for first, second in zip(left, right, strict=True)
-            )
+            return len(left) == len(right) and all(map(equivalent, left, right, strict=True))
         case Bool(), Bool():
             return left.value == right.value
         case _:
@@ -245,7 +267,7 @@ def order_sections(
                 ]
 
                 first.body[:] = entries
-                list.__setitem__(first, slice(None), entries)
+                list.__setitem__(first, slice(None), entries)  # ruff: ignore[unnecessary-dunder-call] - Synchronize AoT's inherited list after moving its native body.
                 for entry in entries:
                     rebuild(
                         entry.value,

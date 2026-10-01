@@ -30,6 +30,7 @@ requires      = ["uv_build<0.13.0,>=0.12.16"]
 build-backend = "uv_build"
 [dependency-groups]
 dev = [
+    "deptry<0.26,>=0.25.1",
     "httpx<0.29.0,>=0.28",
     "pytest>=9.1.1,<10",
     "pytest-asyncio>=1.4,<2",

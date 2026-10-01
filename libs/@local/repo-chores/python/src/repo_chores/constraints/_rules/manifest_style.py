@@ -36,7 +36,7 @@ def _requirement_name(requirement: Requirement) -> str:
 def enforce_manifest_style(workspace: Workspace) -> None:
     for package in chain((workspace,), workspace.members):
         # Converting authors can introduce the [project] header that sections then rank.
-        package.inline_authors()
+        package.authors.inline()
         package.sort_sections(key=_rank)
         for requirements in package.requirement_lists:
             requirements.sort(key=_requirement_name)

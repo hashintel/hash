@@ -12,8 +12,10 @@ from repo_chores.constraints._engine.document import MutationRecorder, mutation
 from repo_chores.constraints._engine.manifest import Manifest
 from repo_chores.constraints._engine.package import Package
 from repo_chores.constraints._engine.ruff import ManifestRuff, RuffConfiguration
+from repo_chores.constraints._engine.source_file import SourceFile
 from repo_chores.constraints._engine.strings import StringList
 from repo_chores.constraints._engine.tach import ManifestTach, TachConfiguration
+from repo_chores.constraints._engine.turbo import TurboConfiguration
 
 _MEMBERS = ("tool", "uv", "workspace", "members")
 
@@ -80,6 +82,7 @@ class WorkspaceInputs:
         self.members = members
         self.recorder = MutationRecorder()
         self._manifests = {root.path.parent: root}
+        self._turbo: dict[Path, TurboConfiguration] = {}
         self._ruff_files: tuple[Path, ...] | None = None
 
         for directory in members:
@@ -146,10 +149,23 @@ class WorkspaceInputs:
         for manifest in self._manifests.values():
             manifest.verify()
 
-    def fingerprint(self) -> tuple[tuple[Path, ...], tuple[tuple[Path, bytes], ...]]:
+    @property
+    def files(self) -> tuple[SourceFile, ...]:
+        return (*self._manifests.values(), *self._turbo.values())
+
+    def turbo(self, directory: Path) -> TurboConfiguration:
+        if directory not in self._manifests:
+            raise WorkspaceError(directory=directory, message="not a loaded package")
+
+        if directory not in self._turbo:
+            self._turbo[directory] = TurboConfiguration.load(directory)
+
+        return self._turbo[directory]
+
+    def fingerprint(self) -> tuple[tuple[Path, ...], tuple[tuple[Path, bytes | None], ...]]:
         return self.members, tuple(
-            (manifest.path, manifest.render())
-            for manifest in sorted(self._manifests.values(), key=lambda manifest: manifest.path)
+            (source.path, source.render())
+            for source in sorted(self.files, key=lambda source: source.path)
         )
 
 
@@ -229,6 +245,9 @@ class Workspace(Package):
         self._inputs.members = tuple(sorted(directories))
         self._members = self._packages(self._inputs.members)
 
+    def turbo(self, package: Package) -> TurboConfiguration:
+        return self._inputs.turbo(package.directory)
+
     def member_module_roots(self) -> list[Path]:
         return sorted({member.module_root() for member in self.members})
 
@@ -247,5 +266,6 @@ class Workspace(Package):
     def standalone_ruff_files(self) -> Iterable[Path]:
         return tuple(path for path in self._inputs.ruff_files if path.name != "pyproject.toml")
 
-    def reason(self, reason: str) -> AbstractContextManager[None]:
+    @staticmethod
+    def reason(reason: str) -> AbstractContextManager[None]:
         return mutation(reason=reason)

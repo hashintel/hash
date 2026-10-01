@@ -35,6 +35,9 @@
         "@local/petrinaut-optimizer-core"
       ]
     },
+    "lint:deptry": {
+      "dependsOn": []
+    },
     "start": {
       "dependsOn": [
         "petrinaut-python#codegen"

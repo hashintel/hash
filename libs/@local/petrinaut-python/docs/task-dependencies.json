@@ -12,6 +12,9 @@
         "@local/petrinaut-optimizer-core",
         "petrinaut-optimizer-core"
       ]
+    },
+    "lint:deptry": {
+      "dependsOn": []
     }
   }
 }

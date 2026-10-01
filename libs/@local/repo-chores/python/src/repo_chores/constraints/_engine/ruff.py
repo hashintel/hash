@@ -95,7 +95,7 @@ class RuffConfiguration(ExceptionSink, ABC):
 def _populated(value: DocumentItem) -> bool:
     match value:
         case DocumentTable():
-            return any(_populated(child) for _, child in value.items())
+            return any(_populated(value[name]) for name in value)
         case _:
             return True
 

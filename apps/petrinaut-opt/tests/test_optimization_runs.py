@@ -545,7 +545,8 @@ async def test_pump_crash_sanitized(caplog: pytest.LogCaptureFixture) -> None:
     assert vars(failure)["error_type"] == "RuntimeError"
     # The raw pump error may quote user content, so it is never logged or
     # replayed to consumers.
-    assert "user_secret_xyz" not in failure.getMessage()
+    assert failure.exc_info is None
+    assert "user_secret_xyz" not in caplog.text
 
 
 @pytest.mark.asyncio

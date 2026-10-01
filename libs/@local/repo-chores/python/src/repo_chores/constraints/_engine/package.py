@@ -15,6 +15,7 @@ from repo_chores.constraints._engine.dependencies import (
     DependencySet,
     ManifestDependencies,
 )
+from repo_chores.constraints._engine.deptry import DeptryConfiguration
 from repo_chores.constraints._engine.diagnostics import (
     Diagnostics,
     LocatedDiagnostics,
@@ -42,6 +43,7 @@ class Package(LocatedDiagnostics):
         )
 
         self.manifest = manifest
+        self.deptry = DeptryConfiguration(manifest)
         self._document = manifest.document
         self._diagnostics = diagnostics
         self._sources = ManifestSources(manifest)
@@ -98,16 +100,7 @@ class Package(LocatedDiagnostics):
 
     @property
     def authors(self) -> AuthorList:
-        return AuthorList(self._document, ("project", "authors"))
-
-    def inline_authors(self) -> None:
-        try:
-            self._document.inline_array_of_tables(("project", "authors"))
-        except (TypeError, ValueError) as error:
-            self._diagnostics.error(
-                location=Location(manifest=self.manifest.path, path=("project", "authors")),
-                exception=error,
-            )
+        return AuthorList(self._document, ("project", "authors"), diagnostics=self._diagnostics)
 
     def sort_sections(self, *, key: Callable[[tuple[str, ...]], SupportsRichComparison]) -> None:
         self._document.sort_sections(key)
