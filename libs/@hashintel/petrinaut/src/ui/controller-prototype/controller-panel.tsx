@@ -1,11 +1,12 @@
 import { createContext, use, useState } from "react";
 
-import { Checkbox, Form, Icon } from "@hashintel/ds-components";
+import { Button, Checkbox, Form, Icon, Menu } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import {
   competingTransitionIds,
+  leverAnchorId,
   leverAnchorKind,
   leverKindLabel,
   leverName,
@@ -16,6 +17,7 @@ import {
 } from "../../react/controller-prototype/controllers";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 import { SimulationContext } from "../../react/simulation/context";
+import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../components/draft-field-input";
@@ -27,6 +29,7 @@ import {
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { ConstraintsSection, GoalSection } from "./constraints-goal";
 import { LeverRowIcon } from "./lever-glyph";
+import { requestShowOnCanvas } from "./show-on-canvas";
 
 import type {
   Controller,
@@ -72,6 +75,15 @@ const kindCardStyle = css({
   borderRadius: "lg",
   marginBottom: "2",
 });
+
+const kindHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+});
+
+const leverMenuStyle = css({ marginY: "[-4px]", flexShrink: "0" });
 
 const kindLabelStyle = css({
   fontSize: "xs",
@@ -532,6 +544,59 @@ const LeverRow: React.FC<{
   );
 };
 
+/** The ••• menu at a lever card's top right. */
+const LeverMenu: React.FC<{
+  net: NetLike;
+  lever: Lever;
+  onRemove: () => void;
+}> = ({ net, lever, onRemove }) => {
+  const { selectItem } = use(EditorContext);
+  const isReadOnly = useIsReadOnly();
+  const missing = leverName(net, lever) === null;
+
+  return (
+    <span className={leverMenuStyle}>
+      <Menu
+        position="bottom-end"
+        trigger={
+          <Button
+            aria-label="Lever actions"
+            tooltip="More options"
+            size="xxs"
+            variant="ghost"
+            iconName="ellipsis"
+          />
+        }
+        items={[
+          {
+            id: "show-on-canvas",
+            text: "Show on canvas",
+            disabled: missing,
+            onClick: () => {
+              const id = leverAnchorId(lever);
+              selectItem({ type: leverAnchorKind(lever), id });
+              requestShowOnCanvas(id);
+            },
+          },
+          {
+            id: "remove-lever",
+            label: "",
+            items: [
+              {
+                id: "remove-lever-item",
+                text: "Remove lever",
+                tone: "error",
+                disabled: isReadOnly,
+                onClick: onRemove,
+              },
+            ],
+          },
+        ]}
+      />
+    </span>
+  );
+};
+
 const ControllerMainFields: React.FC<{ controller: Controller }> = ({
   controller,
 }) => {
@@ -597,8 +662,24 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
           <div className={bodyTextStyle}>No levers yet.</div>
         ) : (
           controller.levers.map((lever) => (
-            <div key={lever.id} className={kindCardStyle}>
-              <div className={kindLabelStyle}>{leverKindLabel[lever.kind]}</div>
+            <div key={lever.id} className={kindCardStyle} data-lever-card>
+              <div className={kindHeaderStyle}>
+                <div className={kindLabelStyle}>
+                  {leverKindLabel[lever.kind]}
+                </div>
+                <LeverMenu
+                  net={petriNetDefinition}
+                  lever={lever}
+                  onRemove={() =>
+                    updateThis((current) => ({
+                      ...current,
+                      levers: current.levers.filter(
+                        (candidate) => candidate.id !== lever.id
+                      ),
+                    }))
+                  }
+                />
+              </div>
               <LeverRow
                 net={petriNetDefinition}
                 lever={lever}

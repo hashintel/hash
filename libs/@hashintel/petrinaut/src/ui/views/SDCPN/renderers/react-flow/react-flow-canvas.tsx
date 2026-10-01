@@ -24,6 +24,7 @@ import { CanvasViewportContext } from "../../../../../react/state/canvas-viewpor
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
+import { useShowOnCanvasRequests } from "../../../../controller-prototype/show-on-canvas";
 import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
 import { readDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
@@ -191,6 +192,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   }, [controller, registerController]);
 
   useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
+  useShowOnCanvasRequests(controller, containerSize, scene.nodes, insets);
   useMonacoKeyboardIsolation();
 
   // The viewport at mount: where this net was last left, or centered on the
