@@ -60,14 +60,6 @@
   ],
   "rewrites": [
     {
-      "source": "/controller-prototype",
-      "destination": "/controller-prototype/index.html"
-    },
-    {
-      "source": "/controller-prototype/",
-      "destination": "/controller-prototype/index.html"
-    },
-    {
       "source": "/((?!api(?:/|$)).*)",
       "destination": "/"
     }
@@ -82,12 +74,5 @@
     "api/voice/realtime-call.ts": {
       "maxDuration": 30
     }
-  },
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/controller-prototype/",
-      "permanent": false
-    }
-  ]
+  }
 }
