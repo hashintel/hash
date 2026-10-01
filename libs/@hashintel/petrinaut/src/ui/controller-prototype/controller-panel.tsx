@@ -1,6 +1,13 @@
 import { createContext, use, useState } from "react";
 
-import { Button, Checkbox, Form, Icon, Menu } from "@hashintel/ds-components";
+import {
+  Button,
+  Checkbox,
+  Form,
+  Icon,
+  Menu,
+  Select,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
@@ -30,7 +37,8 @@ import {
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { ConstraintsSection, GoalSection } from "./constraints-goal";
 import { LeverRowIcon } from "./lever-glyph";
-import { LeverPicker } from "./lever-picker";
+import { useLeverDrag, useLeverDropTarget } from "./lever-drop";
+import { clearLeverPreviewSoon, setLeverPreview } from "./lever-preview";
 import { requestShowOnCanvas } from "./show-on-canvas";
 
 import type {
@@ -116,6 +124,44 @@ const leverHeaderStyle = css({
   },
 });
 
+const dropFieldStyle = css({
+  width: "[fit-content]",
+  maxWidth: "[100%]",
+  borderRadius: "md",
+  outline: "[2px solid transparent]",
+  outlineOffset: "[2px]",
+  transition: "[outline-color 90ms ease-out, background-color 90ms ease-out]",
+});
+
+const dropReadyStyle = css({
+  outline: "[2px dashed {colors.blue.s60}]",
+  backgroundColor: "blue.s10",
+});
+
+const dropOverStyle = css({
+  outline: "[2px solid {colors.blue.s70}]",
+  backgroundColor: "blue.s20",
+});
+
+const targetItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  width: "[100%]",
+});
+
+const targetNameStyle = css({ flex: "1", minWidth: "0" });
+
+const addedTagStyle = css({
+  flexShrink: "0",
+  fontSize: "[11px]",
+  lineHeight: "[16px]",
+  color: "neutral.s100",
+  backgroundColor: "neutral.s20",
+  borderRadius: "md",
+  paddingX: "1.5",
+});
+
 const nodeIconStyle = css({
   display: "flex",
   flexShrink: "0",
@@ -137,6 +183,8 @@ const leverBodyStyle = css({
   fontSize: "sm",
   color: "neutral.s100",
 });
+
+const openBodyStyle = css({ paddingLeft: "1", paddingTop: "1" });
 
 const choiceRowStyle = css({
   display: "flex",
@@ -501,11 +549,20 @@ const LeverRow: React.FC<{
   const NodeIcon =
     leverAnchorKind(lever) === "place" ? PlaceFilledIcon : TransitionFilledIcon;
   const missing = leverName(net, lever) === null;
-  const expandable =
-    lever.kind === "choice" ||
-    lever.kind === "tokenField" ||
-    (lever.kind === "initialTokens" && typedPlace(net, lever.placeId) !== null);
-
+  if (lever.kind !== "choice") {
+    return missing || lever.kind === "rate" ? null : (
+      <div className={cx(leverBodyStyle, openBodyStyle)}>
+        <LeverBody
+          net={net}
+          lever={lever}
+          onToggleChoice={onToggleChoice}
+          onToggleField={onToggleField}
+          onToggleInitialField={onToggleInitialField}
+          open
+        />
+      </div>
+    );
+  }
   return (
     <>
       <button
@@ -520,18 +577,14 @@ const LeverRow: React.FC<{
         <span className={missing ? missingStyle : undefined}>
           {leverTitle(net, lever)}
         </span>
-        {expandable ? (
-          <span
-            className={chevronStyle}
-            style={{ transform: open ? "rotate(90deg)" : undefined }}
-          >
-            <Icon name="chevronRight" size="xs" />
-          </span>
-        ) : null}
+        <span
+          className={chevronStyle}
+          style={{ transform: open ? "rotate(90deg)" : undefined }}
+        >
+          <Icon name="chevronRight" size="xs" />
+        </span>
       </button>
-      {!missing &&
-      lever.kind !== "rate" &&
-      (open || lever.kind !== "choice") ? (
+      {!missing && open ? (
         <div className={leverBodyStyle}>
           <LeverBody
             net={net}
@@ -551,9 +604,8 @@ const LeverRow: React.FC<{
 const LeverMenu: React.FC<{
   net: NetLike;
   lever: Lever;
-  onChange: () => void;
   onRemove: () => void;
-}> = ({ net, lever, onChange, onRemove }) => {
+}> = ({ net, lever, onRemove }) => {
   const { selectItem } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
   const missing = leverName(net, lever) === null;
@@ -572,19 +624,6 @@ const LeverMenu: React.FC<{
           />
         }
         items={[
-          ...(lever.kind === "choice"
-            ? []
-            : [
-                {
-                  id: "change-target",
-                  text:
-                    leverAnchorKind(lever) === "place"
-                      ? "Change place…"
-                      : "Change transition…",
-                  disabled: isReadOnly,
-                  onClick: onChange,
-                },
-              ]),
           {
             id: "show-on-canvas",
             text: "Show on canvas",
@@ -679,38 +718,106 @@ const LeverCard: React.FC<{
   onRemove: () => void;
   children: React.ReactNode;
 }> = ({ net, controller, lever, onRetarget, onRemove, children }) => {
-  const [card, setCard] = useState<HTMLDivElement | null>(null);
-  const [picking, setPicking] = useState(false);
+  const isReadOnly = useIsReadOnly();
+  const anchorId = leverAnchorId(lever);
+  const NodeIcon =
+    leverAnchorKind(lever) === "place" ? PlaceFilledIcon : TransitionFilledIcon;
+  const groups = changeTargets(net, controller, lever);
+  const added = new Set(
+    groups.flatMap((group) =>
+      group.rows.filter((row) => row.disabled).map((row) => row.id)
+    )
+  );
+  const [field, setField] = useState<HTMLDivElement | null>(null);
+  const accepts = (nodeId: string) =>
+    !isReadOnly &&
+    nodeId !== anchorId &&
+    groups.some((group) =>
+      group.rows.some((row) => row.id === nodeId && !row.disabled)
+    );
+  useLeverDropTarget(field, accepts, onRetarget);
+  const drag = useLeverDrag();
+  const dropReady = drag !== null && accepts(drag.nodeId);
+  const dropOver = dropReady && drag.over === field;
 
   return (
-    <div ref={setCard} className={kindCardStyle} data-lever-card>
+    <div className={kindCardStyle} data-lever-card>
       <div className={kindHeaderStyle}>
         <div className={kindLabelStyle}>{leverKindLabel[lever.kind]}</div>
-        <LeverMenu
-          net={net}
-          lever={lever}
-          onChange={() => setPicking(true)}
-          onRemove={onRemove}
-        />
+        <LeverMenu net={net} lever={lever} onRemove={onRemove} />
       </div>
-      {children}
-      {picking && card ? (
-        <LeverPicker
-          anchor={card}
-          placeholder={
-            leverAnchorKind(lever) === "place"
-              ? "Find a place"
-              : "Find a transition"
-          }
-          groups={changeTargets(net, controller, lever)}
-          onPick={(_groupId, targetId) => {
-            if (targetId !== leverAnchorId(lever)) {
-              onRetarget(targetId);
+      {lever.kind === "choice" ? null : (
+        <div
+          ref={setField}
+          className={cx(
+            dropFieldStyle,
+            dropReady && dropReadyStyle,
+            dropOver && dropOverStyle
+          )}
+        >
+          <Select
+            onOpenChange={(open) => {
+              if (!open) {
+                setLeverPreview(null);
+              }
+            }}
+            size="sm"
+            searchable
+            disabled={isReadOnly}
+            aria-label={
+              leverAnchorKind(lever) === "place" ? "Place" : "Transition"
             }
-          }}
-          onClose={() => setPicking(false)}
-        />
-      ) : null}
+            width="fitContent"
+            placeholder="Missing node"
+            required
+            value={anchorId}
+            prefix={{
+              content: (
+                <span className={nodeIconStyle}>
+                  <NodeIcon size={10} />
+                </span>
+              ),
+            }}
+            items={groups.map((group) => ({
+              id: group.id,
+              label: group.label,
+              items: group.rows.map((row) => ({
+                value: row.id,
+                text: row.name,
+                disabled: row.disabled,
+              })),
+            }))}
+            renderItem={(value) => (
+              <span
+                className={targetItemStyle}
+                onMouseEnter={() => setLeverPreview(value)}
+              onMouseLeave={clearLeverPreviewSoon}
+                >
+                <span className={targetNameStyle}>
+                  {groups
+                    .flatMap((group) => group.rows)
+                    .find((row) => row.id === value)?.name ?? value}
+                </span>
+                {added.has(value) ? (
+                  <span className={addedTagStyle}>Added</span>
+                ) : null}
+              </span>
+            )}
+            renderSelectedItem={(value) =>
+              groups
+                .flatMap((group) => group.rows)
+                .find((row) => row.id === value)?.name ?? "Missing node"
+            }
+            onChange={(value: string) => {
+              setLeverPreview(null);
+              if (value !== anchorId) {
+                onRetarget(value);
+              }
+            }}
+          />
+        </div>
+      )}
+      {children}
     </div>
   );
 };

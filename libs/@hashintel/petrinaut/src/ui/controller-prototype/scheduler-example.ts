@@ -62,3 +62,11 @@ export const withControllers = (
     [CONTROLLERS_METADATA_KEY]: controllers,
   },
 });
+
+/** Production batches drawn in a neutral grey, so no place reads as highlighted next to the levers. */
+export const withNeutralBatchColor = (sdcpn: SDCPN): SDCPN => ({
+  ...sdcpn,
+  types: sdcpn.types.map((type) =>
+    type.id === "type_batch" ? { ...type, displayColor: "#a1a1aa" } : type
+  ),
+});

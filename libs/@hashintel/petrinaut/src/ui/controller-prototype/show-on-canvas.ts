@@ -2,7 +2,11 @@ import { useEffect } from "react";
 
 import { getBoundsOfCenteredBoxes } from "@hashintel/petrinaut-core";
 
-import { fitViewportToBounds, MAX_FIT_ZOOM } from "../views/SDCPN/canvas-viewport";
+import {
+  fitViewportToBounds,
+  getViewportRect,
+  MAX_FIT_ZOOM,
+} from "../views/SDCPN/canvas-viewport";
 
 import type { CanvasInsets } from "../hooks/use-canvas-insets";
 import type { CanvasController } from "../views/SDCPN/canvas-renderer";
@@ -13,16 +17,25 @@ import type { Size } from "@hashintel/petrinaut-core";
 const SHOW_PADDING = 4;
 const SHOW_MIN_ZOOM = 0.4;
 
-const listeners = new Set<(nodeId: string) => void>();
+type Request = { nodeId: string; mode: "show" | "reveal" };
+
+const listeners = new Set<(request: Request) => void>();
 
 /** Asks the canvas to centre one node and zoom in on it. */
 export const requestShowOnCanvas = (nodeId: string): void => {
   for (const listener of listeners) {
-    listener(nodeId);
+    listener({ nodeId, mode: "show" });
   }
 };
 
-/** Answers {@link requestShowOnCanvas} for the renderer it runs in. */
+/** Asks the canvas to pan a node into view, at the same zoom, when it is off screen. */
+export const requestRevealOnCanvas = (nodeId: string): void => {
+  for (const listener of listeners) {
+    listener({ nodeId, mode: "reveal" });
+  }
+};
+
+/** Answers {@link requestShowOnCanvas} and {@link requestRevealOnCanvas} for the renderer it runs in. */
 export const useShowOnCanvasRequests = (
   controller: CanvasController,
   containerSize: Size,
@@ -30,10 +43,34 @@ export const useShowOnCanvasRequests = (
   insets: CanvasInsets,
 ): void => {
   useEffect(() => {
-    const show = (nodeId: string) => {
+    const show = ({ nodeId, mode }: Request) => {
       const node = nodes.find((candidate) => candidate.id === nodeId);
       const bounds = node ? getBoundsOfCenteredBoxes([node]) : null;
       if (!bounds) {
+        return;
+      }
+      if (mode === "reveal") {
+        const current = controller.getViewport();
+        const visible = getViewportRect(containerSize, current, insets);
+        const inView =
+          bounds.x >= visible.x &&
+          bounds.y >= visible.y &&
+          bounds.x + bounds.width <= visible.x + visible.width &&
+          bounds.y + bounds.height <= visible.y + visible.height;
+        if (inView) {
+          return;
+        }
+        const { left } = insets;
+        const width = containerSize.width - left - insets.right;
+        const height = containerSize.height - insets.bottom;
+        controller.setViewport(
+          {
+            zoom: current.zoom,
+            x: left + width / 2 - (bounds.x + bounds.width / 2) * current.zoom,
+            y: height / 2 - (bounds.y + bounds.height / 2) * current.zoom,
+          },
+          { animate: true },
+        );
         return;
       }
       controller.setViewport(

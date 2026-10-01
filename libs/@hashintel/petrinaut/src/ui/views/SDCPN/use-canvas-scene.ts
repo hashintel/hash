@@ -14,6 +14,7 @@ import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { resolveControllerFocus } from "../../controller-prototype/controller-focus";
+import { useLeverPreview } from "../../controller-prototype/lever-preview";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
@@ -36,6 +37,7 @@ export const useCanvasScene = (
     pinnedVisualizerPlaceIds,
   } = use(EditorContext);
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
+  const leverPreviewId = useLeverPreview();
 
   /*
    * The hover follows the pointer only once it stops. Sweeping across the
@@ -88,7 +90,9 @@ export const useCanvasScene = (
     // With the highlight off, the neighbourhood answers to the selection
     // alone; the hover still reaches the node it rests on.
     focus:
-      selectedControllerIds.size > 0
+      leverPreviewId !== null
+        ? resolveControllerFocus(new Set([leverPreviewId]))
+        : selectedControllerIds.size > 0
         ? resolveControllerFocus(controllerLeverIds)
         : resolveCanvasFocus({
             adjacency,

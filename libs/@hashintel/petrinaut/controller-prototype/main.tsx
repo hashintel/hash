@@ -6,6 +6,7 @@ import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 import {
   demoControllers,
   withControllers,
+  withNeutralBatchColor,
 } from "../src/ui/controller-prototype/scheduler-example";
 import {
   setFieldsView,
@@ -77,14 +78,14 @@ const App = () => (
     <PetrinautStoryProvider
       readonly={params.has("readonly")}
       initialTitle={supplyChainWithDisruption.title}
-      initialDefinition={
+      initialDefinition={withNeutralBatchColor(
         params.has("empty")
           ? supplyChainWithDisruption.petriNetDefinition
           : withControllers(
               supplyChainWithDisruption.petriNetDefinition,
               demoControllers
             )
-      }
+      )}
     />
     <FieldsViewPill />
   </div>
