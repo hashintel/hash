@@ -97,7 +97,7 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
 | `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for Live utterance experiments.                                                         |
-| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` observes; `enforce` gates and drops withheld speech. Local development only; others are off.               |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` observes; `enforce` gates and drops withheld speech. Local development and previews only; others are off.  |
 | `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the model id; the default is `petrinautAiModel` in `@hashintel/petrinaut-core`.                        |
 | `PETRINAUT_AI_REASONING_EFFORT`     | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `petrinautAiModel.reasoningEffort`.                               |
 | `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
@@ -323,10 +323,11 @@ safety bound. This longer window measures results missed by the initial
 one-second cutoff; it is not an enforcement deadline and never delays submission.
 Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
 and 2 seconds separately from failures/timeouts, which are not successful latency
-samples. Log mode runs only in local development (`NODE_ENV=development`,
-no `VERCEL_ENV`), where its diagnostics are recorded.
-This endpoint inherits the unauthenticated Voice boundary; origin checks are
-not authentication. Do not enable it on a public deployment.
+samples. Log mode runs in local development (`NODE_ENV=development`, no
+`VERCEL_ENV`) and on Vercel preview deployments; production keeps it off.
+Browser traces are recorded only in local development; previews rely on the
+server log described under [utterance gating](#utterance-gating-trial-fe-1779).
+Origin checks and the per-client rate limit are not authentication.
 
 Acceptance requires a real log-only support-desk run: opening modelling request,
 "okay", a staffing range, Brunch's question repeated back, and "hang on". Retain
@@ -335,12 +336,29 @@ per eligible utterance, and check `JSON.stringify(trace)` contains none of the
 spoken or offered text. Synthetic fixtures and a working endpoint do not prove
 classification quality or real latency. Log mode never enforces its decisions.
 
-#### Local utterance gating (FE-1779)
+#### Utterance gating trial (FE-1779)
 
-The owner-approved local trial uses `PETRINAUT_LIVE_UTTERANCE_JUDGMENT=enforce`
-with the same server-side keys and Live enablement as above. Start with
-`NODE_ENV=development`; `VERCEL_ENV` must be unset. Preview/production enforcement
-is disabled. This is not authentication: keep the dev server private.
+The trial uses `PETRINAUT_LIVE_UTTERANCE_JUDGMENT=enforce` with the same
+server-side keys and Live enablement as above. It runs in local development
+(`NODE_ENV=development`, `VERCEL_ENV` unset) and on Vercel preview deployments
+(`VERCEL_ENV=preview`). Production keeps both modes off whatever the variable
+says.
+
+The endpoint has no caller authentication. Its same-origin check stops other
+websites, not scripts, so each client IP is limited to 30 judgments a minute;
+on Vercel, requests without a resolvable client IP are rejected. The limit
+lives in function memory, resets on cold start and is not shared between
+instances, so it slows misuse of `TYPESAFE_API_KEY` rather than preventing it.
+Give previews a dedicated TypeSafe key with low usage limits and alerts, keep
+local dev servers private, and unset the variable and redeploy to end the trial.
+
+Each request that passes the mode check writes one `[Petrinaut voice]` line
+with `operation: "utterance-judgment"` to the server log (the Vite terminal
+locally, Vercel runtime logs on previews): `mode`, `outcome`, `status`,
+`durationMs`, and when known `contribution`, `confidence` and `upstreamStatus`.
+It never includes text, client IPs or provider bodies. The server cannot see
+the browser's one-second deadline or the gate's decision; browser
+`[Petrinaut Live trace]` records cover those, in local development only.
 
 Each eligible finalized transcript is judged once with the latest finalized
 Brunch turn and last successfully offered Brunch prose as context. All three
@@ -386,14 +404,18 @@ To check local enforcement, filter DevTools Console by `[Petrinaut Live trace]`:
 2. Check meaningful short answers and corrections still reach Brunch.
 3. End voice and start again. Confirm old held inputs are not replayed.
 
+On a preview, run the same script and filter Vercel runtime logs by
+`utterance-judgment`: compare `contribution` and `outcome` counts with what was
+said, and check `durationMs` and any `rate-limited` or `upstream-error` lines.
+
 The threshold and deadline (`utteranceWithholdConfidence`, which log-mode
 recommendations also use, and `utteranceJudgmentDeadlineMs`, both in
 `src/shared/live-utterance-judgment.ts`) are trial settings, not validated
 production policy.
-Before shared enablement, run the support-desk script plus contextual short
+Before production enablement, run the support-desk script plus contextual short
 answers; measure false withholding, Brunch-start delay, and avoided
 submissions. Synthetic tests do not establish classification quality, real Live
-responsiveness, or latency reliability. Shared enforcement needs separate sign-off.
+responsiveness, or latency reliability. Production enforcement needs separate sign-off.
 
 ### Brunch Voice mode
 

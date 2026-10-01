@@ -3,13 +3,52 @@ import {
   maxUtteranceTextLength,
   utteranceJudgmentUpstreamTimeoutMs,
 } from "../../shared/live-utterance-judgment.js";
+import { voiceDurationMs } from "../../voice-diagnostics.js";
 import { getUtteranceJudgmentMode } from "./openai-voice-config.js";
 import { readBoundedBody } from "./read-bounded-body.js";
+import {
+  createClientRateLimiter,
+  resolveClientIp,
+} from "./typesafe-utterance-judgment/client-rate-limit.js";
 
 import type {
   UtteranceContribution,
+  UtteranceJudgmentMode,
   UtteranceJudgmentState,
 } from "../../shared/live-utterance-judgment.js";
+
+/** Roughly twice the finalized-transcript rate of continuous speech. */
+const judgmentRateLimit = {
+  windowMs: 60_000,
+  maxRequests: 30,
+  maxTrackedClients: 10_000,
+};
+
+/** Scalar metadata only: never transcript, context, provider body or client IP. */
+export interface UtteranceJudgmentDiagnostic {
+  readonly operation: "utterance-judgment";
+  readonly mode: Exclude<UtteranceJudgmentMode, "off">;
+  readonly outcome:
+    | "judged"
+    | "rate-limited"
+    | "unidentified-client"
+    | "invalid-request"
+    | "upstream-error"
+    | "unusable-answer"
+    | "failed";
+  readonly status: number;
+  readonly durationMs: number;
+  readonly contribution?: UtteranceContribution;
+  readonly confidence?: number;
+  readonly upstreamStatus?: number;
+}
+
+export const reportUtteranceJudgmentDiagnostic = (
+  event: UtteranceJudgmentDiagnostic,
+): void => {
+  // oxlint-disable-next-line no-console -- metadata-only runtime log, read from Vercel runtime logs.
+  console.info("[Petrinaut voice]", JSON.stringify(event));
+};
 
 // Admit all three text fields at their longest, even if every UTF-16 unit needs
 // a six-byte JSON escape, so eligible browser input cannot hit the byte limit.
@@ -71,14 +110,23 @@ const parseState = (body: unknown): UtteranceJudgmentState | null => {
   };
 };
 
-/** Same-origin experiment switch, not caller authentication. Never log text or upstream errors. */
+/**
+ * Same-origin experiment switch with a per-client rate limit; neither is
+ * caller authentication. Never log text, client IPs or upstream errors.
+ */
 export const createUtteranceJudgmentHandler =
   ({
     environment,
     fetch,
+    allowClient = createClientRateLimiter(judgmentRateLimit),
+    report,
+    now = () => performance.now(),
   }: {
     environment: Parameters<typeof getUtteranceJudgmentMode>[0];
     fetch: typeof globalThis.fetch;
+    allowClient?: (client: string) => boolean;
+    report?: (event: UtteranceJudgmentDiagnostic) => void;
+    now?: () => number;
   }) =>
   async (request: Request): Promise<Response> => {
     const respond = (
@@ -106,6 +154,40 @@ export const createUtteranceJudgmentHandler =
     if (mode === "off")
       return respond("Utterance judgment is unavailable.", 404);
 
+    const startedAt = now();
+    const finish = (
+      response: Response,
+      outcome: UtteranceJudgmentDiagnostic["outcome"],
+      details: Pick<
+        UtteranceJudgmentDiagnostic,
+        "contribution" | "confidence" | "upstreamStatus"
+      > = {},
+    ) => {
+      report?.({
+        operation: "utterance-judgment",
+        mode,
+        outcome,
+        status: response.status,
+        durationMs: voiceDurationMs(startedAt, now()),
+        ...details,
+      });
+      return response;
+    };
+
+    const clientIp = resolveClientIp(request);
+    if (clientIp === null) {
+      if (environment.VERCEL_ENV)
+        return finish(
+          respond("Could not identify the client.", 400),
+          "unidentified-client",
+        );
+    } else if (!allowClient(clientIp)) {
+      return finish(
+        respond("Too many judgment requests.", 429),
+        "rate-limited",
+      );
+    }
+
     const signal = AbortSignal.any([
       request.signal,
       AbortSignal.timeout(utteranceJudgmentUpstreamTimeoutMs),
@@ -113,14 +195,16 @@ export const createUtteranceJudgmentHandler =
     try {
       signal.throwIfAborted();
       const bytes = await readBoundedBody(request, maxBodyBytes, signal);
-      if (!bytes) return respond("Body too large.", 413);
+      if (!bytes)
+        return finish(respond("Body too large.", 413), "invalid-request");
       let state: UtteranceJudgmentState | null;
       try {
         state = parseState(JSON.parse(new TextDecoder().decode(bytes)));
       } catch {
-        return respond("Invalid JSON.", 400);
+        return finish(respond("Invalid JSON.", 400), "invalid-request");
       }
-      if (!state) return respond("Invalid state.", 400);
+      if (!state)
+        return finish(respond("Invalid state.", 400), "invalid-request");
       signal.throwIfAborted();
       const upstream = await fetch("https://api.typesafe.ai/v1/systemone", {
         method: "POST",
@@ -145,9 +229,13 @@ export const createUtteranceJudgmentHandler =
       });
       if (!upstream.ok) {
         await upstream.body?.cancel();
-        return respond("Judgment failed. No automatic retry was made.", 502, {
-          "x-voice-upstream-status": String(upstream.status),
-        });
+        return finish(
+          respond("Judgment failed. No automatic retry was made.", 502, {
+            "x-voice-upstream-status": String(upstream.status),
+          }),
+          "upstream-error",
+          { upstreamStatus: upstream.status },
+        );
       }
       const body = (await upstream.json()) as {
         answers?: {
@@ -164,11 +252,26 @@ export const createUtteranceJudgmentHandler =
         confidence: answer?.confidence,
       };
       if (answer?.type !== "choice" || !isUtteranceJudgment(judgment))
-        return respond("Judgment answer was not usable.", 502);
-      return Response.json(judgment, {
-        headers: { "cache-control": "no-store" },
-      });
+        return finish(
+          respond("Judgment answer was not usable.", 502),
+          "unusable-answer",
+          { upstreamStatus: upstream.status },
+        );
+      return finish(
+        Response.json(judgment, {
+          headers: { "cache-control": "no-store" },
+        }),
+        "judged",
+        {
+          contribution: judgment.contribution,
+          confidence: judgment.confidence,
+          upstreamStatus: upstream.status,
+        },
+      );
     } catch {
-      return respond("Judgment failed. No automatic retry was made.", 502);
+      return finish(
+        respond("Judgment failed. No automatic retry was made.", 502),
+        "failed",
+      );
     }
   };

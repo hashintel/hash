@@ -15,7 +15,7 @@ export type WithheldContribution = Exclude<
   "interview_content"
 >;
 
-/** Enforcement is an owner-approved local trial, not a shared rollout. */
+/** Enforcement is a local and preview trial, not a production rollout. */
 export type UtteranceJudgmentMode = "off" | "log" | "enforce";
 
 /** Longest finalized transcript Live submits, in UTF-16 code units. Also bounds judgment context. */

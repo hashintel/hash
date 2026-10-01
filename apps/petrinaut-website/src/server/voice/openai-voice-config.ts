@@ -26,15 +26,17 @@ export const getVoiceProvider = (
 };
 
 /**
- * Both modes run only in local development, where their results are logged;
- * shared rollout is not approved. Unknown modes remain off.
+ * Both modes run in local development and on Vercel preview deployments;
+ * production rollout is not approved. Unknown modes remain off.
  */
 export const getUtteranceJudgmentMode = (
   environment: VoiceEnvironment,
 ): UtteranceJudgmentMode => {
+  const permittedDeployment =
+    environment.VERCEL_ENV === "preview" ||
+    (environment.NODE_ENV === "development" && !environment.VERCEL_ENV);
   if (
-    environment.NODE_ENV !== "development" ||
-    environment.VERCEL_ENV ||
+    !permittedDeployment ||
     !getOpenAIVoiceAvailability(environment).available ||
     getVoiceProvider(environment) !== "live" ||
     !environment.TYPESAFE_API_KEY?.trim()
