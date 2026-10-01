@@ -16,21 +16,13 @@ export {
 } from "./ledger/compile";
 export {
   compileLedgerMap,
-  coverageOf,
-  defaultCoverageRenderer,
   isSubjectNote,
   summariseCoverage,
-  type LedgerCoverage,
-  type LedgerCoverageRenderer,
   type LedgerMapOptions,
-  type LedgerStage,
-  type LedgerUnmetNeeds,
 } from "./ledger/map";
 export {
-  defaultIdentityLedgerText,
   identityCommitInputSchema,
   renderVocabulary,
-  type IdentityLedgerText,
   type LedgerCoverageTerms,
   type LedgerDimension,
   type LedgerExpectation,

@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import { renderCoverage } from "../src/agents/chat-agent/guidance/receipt/coverage-renderer.ts";
+import { renderCoverage } from "../src/agents/chat-agent/guidance/receipt/ledger/coverage-renderer.ts";
 
-import type { LedgerCoverage } from "@hashintel/brunch-agent";
+import type { LedgerCoverage } from "../src/agents/chat-agent/guidance/receipt/ledger/map.ts";
 
 const need = (name: string) => ({
   need: { name, description: `its ${name}`, covers: "quantities" },

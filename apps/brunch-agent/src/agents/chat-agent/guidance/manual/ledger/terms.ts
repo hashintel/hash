@@ -1,4 +1,4 @@
-import type { LedgerVocabulary } from "@hashintel/brunch-agent";
+import type { LedgerVocabulary } from "./vocabulary.ts";
 
 /**
  * The identity Ledger's terms. The `ledger_commit` schema's dimensions, kinds
@@ -64,13 +64,14 @@ export const ledgerVocabulary = {
     {
       name: "goal",
       description:
-        "What the model should reveal or prove, or what the operation should achieve or maximise. Record what it is judged on as a Note about it, or relate it with measures to an identity that is.",
+        "What the model should reveal or prove, or what the operation should achieve or maximise. Relate it with measures to what it is judged on.",
       covers: ["goals"],
       expects: [
         {
           name: "measure",
-          description: "what it is judged on and how that is computed",
-          covers: "quantities",
+          description: "what it is judged on",
+          covers: "goals",
+          relation: { names: ["measures"], end: "from" },
         },
         {
           name: "target",
@@ -161,10 +162,10 @@ export const ledgerVocabulary = {
           covers: "quantities",
         },
         {
-          name: "capacity",
-          description:
-            "what limits how much of it can run at once, and who or what carries it out",
-          covers: "resources",
+          name: "performer",
+          description: "who or what carries it out",
+          covers: "actors",
+          relation: { names: ["performs"], end: "to" },
         },
       ],
     },

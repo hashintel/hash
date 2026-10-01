@@ -1,21 +1,9 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import {
-  createIdentityLedgerCommitTool,
-  createIdentityLedgerCompileTool,
-  renderVocabulary,
-  type LedgerServices,
-} from "@hashintel/brunch-agent";
-
-import { renderCoverage } from "./receipt/coverage-renderer.ts";
 import experimentDrafting from "./receipt/experiment-drafting.md?raw";
 import feedback from "./receipt/feedback.md?raw";
 import identityLedger from "./receipt/identity-ledger.md?raw";
-import ledgerCommit from "./receipt/ledger-commit.md?raw";
-import ledgerCompile from "./receipt/ledger-compile.md?raw";
-import ledgerFields from "./receipt/ledger-fields.md?raw";
-import { ledgerText } from "./receipt/ledger-text.ts";
-import { ledgerVocabulary } from "./receipt/ledger-vocabulary.ts";
+import { createLedgerTools } from "./receipt/ledger-tools.ts";
 import petrinautCapability from "./receipt/petrinaut-capability.md?raw";
 import queryBasis from "./receipt/query-basis.md?raw";
 import runtimeBound from "./receipt/runtime-bound.md?raw";
@@ -24,44 +12,24 @@ import constructing from "./receipt/skills/constructing/SKILL.md";
 import eliciting from "./receipt/skills/eliciting/SKILL.md";
 import system from "./receipt/system.md?raw";
 
-import type { ChatGuidance } from "./shared/chat-guidance.ts";
-import type { useBrunchAgent } from "@hashintel/brunch-agent/flue";
+import type { LedgerHistory } from "./receipt/ledger.ts";
 
 /**
  * `identity` as of round 4c, but each turn's question is chosen from the
  * commit receipt's needs, which it ranks nearest a goal first and caps at
- * five, and the needs that read as noise are revised. Everything the model
- * reads comes from `receipt/`: instructions, tool and argument descriptions,
- * and how the commit receipt and the map render coverage. The Ledger's
- * semantics (what is stored, refused, and counted as met) stay the shared
- * package's.
+ * five, and the needs that read as noise are revised. Like `manual`,
+ * everything the model reads and every tool it uses to keep the Ledger comes
+ * from `receipt/`.
  */
 export const useReceiptGuidance = (
   model: string,
-  options: Parameters<typeof useBrunchAgent>[1],
-  ledger: LedgerServices,
-): ChatGuidance => {
+  options: Parameters<typeof useModel>[1],
+  readHistory: () => Promise<LedgerHistory>,
+) => {
   useModel(model, options);
   useSkill(eliciting);
   useSkill(constructing);
-  const services = {
-    vocabulary: ledgerVocabulary,
-    readHistory: ledger.readHistory,
-    text: ledgerText,
-    renderCoverage,
-  };
-  useTool({
-    ...createIdentityLedgerCommitTool(services),
-    description: [
-      ledgerCommit.trim(),
-      renderVocabulary(ledgerVocabulary, ledgerText),
-      ledgerFields.trim(),
-    ].join("\n\n"),
-  });
-  useTool({
-    ...createIdentityLedgerCompileTool(services),
-    description: ledgerCompile.trim(),
-  });
+  for (const tool of createLedgerTools(readHistory)) useTool(tool);
   useInstruction(feedback.trim());
   useInstruction(identityLedger.trim());
   return {

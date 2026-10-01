@@ -12,6 +12,7 @@ import {
   namesId,
   netCalls,
   type ArcElement,
+  type LedgerReader,
 } from "./net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
@@ -81,6 +82,7 @@ export const queryBasis = (input: {
   snapshot: FlueConversationSnapshot;
   browser: BrowserContext;
   query: Selector;
+  reconstruct?: LedgerReader;
 }) => {
   const latest = latestNetDefinition(input.snapshot);
   const read = latest?.call;
@@ -123,7 +125,7 @@ export const queryBasis = (input: {
         id: target.id,
         ...(target.arc === undefined ? {} : { arc: target.arc }),
       }).map((call) => {
-        const ledger = ledgerAtCall(input.snapshot, call);
+        const ledger = ledgerAtCall(input.snapshot, call, input.reconstruct);
         return {
           toolCallId: call.toolCallId,
           operation: call.toolName,
@@ -148,6 +150,8 @@ export const queryBasis = (input: {
 export const createQueryBasisTool = (options: {
   browser: BrowserContext;
   history: () => Promise<FlueConversationSnapshot>;
+  /** Defaults to the shared Ledger's reader. */
+  reconstruct?: LedgerReader;
 }) =>
   defineTool({
     name: brunchTools.queryBasis,
@@ -161,6 +165,7 @@ export const createQueryBasisTool = (options: {
           snapshot: await options.history(),
           browser: options.browser,
           query: data.selector,
+          ...(options.reconstruct ? { reconstruct: options.reconstruct } : {}),
         }),
         terminate: false,
       };
