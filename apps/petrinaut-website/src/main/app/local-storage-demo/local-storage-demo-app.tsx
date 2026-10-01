@@ -1050,7 +1050,7 @@ export const LocalStorageDemoApp = ({
                             parts: [
                               {
                                 type: "text",
-                                text: `Budget: ${config.name} · ${config.guide}`,
+                                text: `${config.name} · ${config.guide}`,
                               },
                             ],
                           },

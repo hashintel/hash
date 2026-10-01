@@ -702,14 +702,27 @@ const AiAssistantMessage = memo(
           role="note"
           data-role="system"
           className={css({
-            paddingY: "2",
+            display: "flex",
+            alignItems: "center",
+            gap: "1.5",
+            paddingY: "0.5",
             color: "neutral.fg.body",
             fontSize: "xs",
           })}
         >
-          {answers.map((item) => (
-            <div key={item.key}>{item.part.text}</div>
-          ))}
+          <Icon
+            name="sliders"
+            className={css({
+              width: "[12px]",
+              height: "[12px]",
+              flexShrink: 0,
+            })}
+          />
+          <div>
+            {answers.map((item) => (
+              <div key={item.key}>{item.part.text}</div>
+            ))}
+          </div>
         </div>
       );
     }

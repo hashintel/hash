@@ -2932,7 +2932,7 @@ describe("AiAssistantContents", () => {
             {
               id: "budget-change",
               role: "system",
-              parts: [{ type: "text", text: "Budget: Quick · ~5 min" }],
+              parts: [{ type: "text", text: "Quick · ~5 min" }],
             },
           ]}
           onClose={noop}
@@ -2944,9 +2944,9 @@ describe("AiAssistantContents", () => {
         />,
       );
 
-      expect(screen.getByRole("note").textContent).toBe(
-        "Budget: Quick · ~5 min",
-      );
+      const note = screen.getByRole("note");
+      expect(note.textContent).toBe("Quick · ~5 min");
+      expect(note.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
       expect(screen.queryByText("Activity")).toBeNull();
     },
   );
