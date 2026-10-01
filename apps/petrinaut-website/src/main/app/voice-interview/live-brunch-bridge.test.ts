@@ -472,7 +472,7 @@ test("drops a superseded transcript quietly when another turn holds the composer
   await current;
 });
 
-test("a turn keeps its annotations in the history it began in when the conversation switches", async () => {
+test("does not admit a turn prepared in a conversation that was switched away from", async () => {
   const brief = Promise.withResolvers<Record<string, string>>();
   const original = new VoiceMediationHistory("original");
   const switched = new VoiceMediationHistory("switched");
@@ -485,25 +485,66 @@ test("a turn keeps its annotations in the history it began in when the conversat
     summarize: vi.fn(),
     offered: vi.fn(),
   });
+  fixture.bridge.acceptDelegation("delegation");
   const turn = fixture.bridge.accept(
     speech("one", "Compare two to eight agents"),
   );
   current = switched;
-  const fields = { decide: "two to eight agents" };
-  brief.resolve(fields);
+  brief.resolve({ decide: "two to eight agents" });
   await turn;
-  const admitted = [
+
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(original.project([])).toEqual([]);
+  expect(switched.project([])).toEqual([
     {
       id: "one",
-      role: "user" as const,
-      parts: [{ type: "text" as const, text: "Brief" }],
+      role: "user",
+      metadata: { source: "voice" },
+      parts: [{ type: "text", text: "Compare two to eight agents" }],
     },
-  ];
-  expect(original.project(admitted)[0]?.parts[1]).toEqual({
-    type: "data-brief",
-    data: { fields, state: "done" },
+  ]);
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    expect.stringContaining("the conversation changed"),
+  );
+  expect(fixture.appendInstructions).toHaveBeenCalledWith(
+    expect.stringContaining("not submitted because the conversation changed"),
+    "delegation",
+  );
+
+  await fixture.bridge.accept(speech("two", "Then check the queue"));
+  expect(fixture.submit).toHaveBeenCalledOnce();
+});
+
+test("stops waiting on an admitted turn once its conversation is switched away from", async () => {
+  const original = new VoiceMediationHistory("original");
+  const switched = new VoiceMediationHistory("switched");
+  let current = original;
+  const fixture = setup({
+    get history() {
+      return current;
+    },
+    prepare: async () => ({}),
+    summarize: vi.fn(async (text: string) => text),
+    offered: vi.fn(),
   });
-  expect(switched.project(admitted)[0]?.parts).toHaveLength(1);
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Compare two to eight"));
+  current = switched;
+  fixture.update({ messages: [] });
+
+  expect(fixture.appendInstructions).toHaveBeenCalledWith(
+    expect.stringContaining("answer stays in the original conversation"),
+    "delegation",
+  );
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  await Promise.resolve();
+  expect(fixture.mediation.summarize).not.toHaveBeenCalled();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });
 
 test("speech cancels preparation and stale asynchronous wrap-ups without cancelling admitted Brunch work", async () => {
