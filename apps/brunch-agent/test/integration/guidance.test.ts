@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 
 import { runNodeScript } from "./run-node-script";
 
-test.each(["baseline", "replacement", "feedback", "identity"])(
+test.each(["baseline", "replacement", "feedback", "identity", "manual"])(
   "%s activates native skills and reads packaged resources in the built app",
   async (variant) => {
     const { exitCode, stdout, stderr } = await runNodeScript(

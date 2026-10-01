@@ -25,6 +25,7 @@ import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   guidanceVariantEnvironment,
+  guidanceVariants,
   selectGuidanceVariant,
   type GuidanceVariant,
 } from "../../agents/chat-agent/guidance-variant.ts";
@@ -814,7 +815,7 @@ if (
   });
   if (values.help) {
     report(
-      "Guidance comparison: --guidance baseline|replacement|feedback|identity (default baseline). Each run retains its selected guidance and source hashes.",
+      `Guidance comparison: --guidance ${guidanceVariants.join("|")} (default baseline). Each run retains its selected guidance and source hashes.`,
     );
     report(
       `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,

@@ -55,6 +55,14 @@ vi.mock(
     default: { name: "constructing" },
   }),
 );
+vi.mock(
+  "../src/agents/chat-agent/guidance/manual/skills/eliciting/SKILL.md",
+  () => ({ default: { name: "manual eliciting" } }),
+);
+vi.mock(
+  "../src/agents/chat-agent/guidance/manual/skills/constructing/SKILL.md",
+  () => ({ default: { name: "manual constructing" } }),
+);
 const bound = {
   binding: {
     conversationId: "conversation",
@@ -148,6 +156,35 @@ test.each(["replacement", "feedback", "identity"])(
     ).toBe(variant === "identity");
   },
 );
+
+test("manual mounts only its own guidance copies and the same tools", async () => {
+  mounted.initialData = bound;
+  const { ChatAgent: baseline } =
+    await import("../src/agents/chat-agent/agent.ts");
+  baseline({ id: "baseline" });
+  const tools = [...mounted.tools];
+  mounted.tools.length = 0;
+  mounted.skills.length = 0;
+  mounted.instructions.length = 0;
+  vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", "manual");
+  vi.resetModules();
+  const [{ ChatAgent: manual }, system, feedback, identityLedger] =
+    await Promise.all([
+      import("../src/agents/chat-agent/agent.ts"),
+      import("../src/agents/chat-agent/guidance/manual/system.md?raw"),
+      import("../src/agents/chat-agent/guidance/manual/feedback.md?raw"),
+      import("../src/agents/chat-agent/guidance/manual/identity-ledger.md?raw"),
+    ]);
+  expect(manual({ id: "manual" })).toBe(system.default.trim());
+  expect(mounted.skills).toEqual(["manual eliciting", "manual constructing"]);
+  expect(mounted.tools.sort()).toEqual(tools.sort());
+  expect(mounted.instructions).toEqual(
+    expect.arrayContaining([
+      feedback.default.trim(),
+      identityLedger.default.trim(),
+    ]),
+  );
+});
 
 test("the Brunch catalogue classifies every canonical tool", () => {
   const canonicalNames = Object.keys(petrinautAiTools);

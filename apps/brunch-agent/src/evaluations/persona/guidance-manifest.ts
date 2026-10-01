@@ -26,6 +26,7 @@ const filesWithin = async (directory: string): Promise<string[]> => {
 
 /** Source fingerprint for reproduction and drift detection, not an inference result. */
 export const guidanceManifest = async (variant: GuidanceVariant) => {
+  const manual = `${app}/guidance/manual`;
   const directories =
     variant === "baseline"
       ? [
@@ -34,12 +35,15 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
           `${packages}/plugin-sdcpn/src/prompts`,
           `${packages}/plugin-sdcpn/src/skills/sdcpn-modelling`,
         ]
-      : [`${app}/guidance`];
+      : variant === "manual"
+        ? [manual]
+        : [`${app}/guidance`];
   const identityOnly = ["/identity-ledger.md", "/ledger-vocabulary.ts"];
   const paths = [
     `${app}/agent.ts`,
     `${app}/guidance.ts`,
     `${app}/guidance-variant.ts`,
+    ...(variant === "manual" ? [`${manual}.ts`] : []),
     `${packages}/core/src/ledger-tools.ts`,
     ...(await filesWithin(join(repoRoot, `${packages}/core/src/ledger`))).map(
       (path) => relative(repoRoot, path),
@@ -59,11 +63,13 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
       .flat()
       .filter(
         (path) =>
-          (variant === "feedback" ||
-            variant === "identity" ||
-            !path.endsWith("/feedback.md")) &&
-          (variant === "identity" ||
-            !identityOnly.some((suffix) => path.endsWith(suffix))),
+          variant === "manual" ||
+          (!path.startsWith(manual) &&
+            (variant === "feedback" ||
+              variant === "identity" ||
+              !path.endsWith("/feedback.md")) &&
+            (variant === "identity" ||
+              !identityOnly.some((suffix) => path.endsWith(suffix)))),
       ),
   ];
   const files = await Promise.all(

@@ -13,6 +13,7 @@ import feedback from "./guidance/feedback.md?raw";
 import identityLedger from "./guidance/identity-ledger.md?raw";
 import ledgerFields from "./guidance/ledger-fields.md?raw";
 import { ledgerVocabulary } from "./guidance/ledger-vocabulary.ts";
+import { useManualGuidance } from "./guidance/manual.ts";
 import constructing from "./guidance/skills/constructing/SKILL.md";
 import eliciting from "./guidance/skills/eliciting/SKILL.md";
 import system from "./guidance/system.md?raw";
@@ -25,7 +26,8 @@ const withFields = (description: string) =>
 /**
  * A single guidance owner per run. The category-addressed arms share one
  * Ledger implementation; `identity` swaps in the identity-addressed Ledger,
- * which is always typed, and otherwise matches `feedback`.
+ * which is always typed, and otherwise matches `feedback`. `manual` mounts
+ * only its own copies of every source.
  */
 export const useChatGuidance = (
   variant: GuidanceVariant,
@@ -34,6 +36,7 @@ export const useChatGuidance = (
   ledger: LedgerServices,
 ): string => {
   if (variant === "baseline") return useBrunchAgent(model, options, ledger);
+  if (variant === "manual") return useManualGuidance(model, options, ledger);
   useModel(model, options);
   useSkill(eliciting);
   useSkill(constructing);
