@@ -1,7 +1,7 @@
 [project]
 name = "repo-chores"
 version = "0.1.0"
-description = "Add your description here"
+description = "Check and repair Python workspace policies"
 readme = "README.md"
 license = "AGPL-3.0-only"
 authors = [
