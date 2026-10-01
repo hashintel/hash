@@ -492,6 +492,7 @@ const FilterableListContent = <T extends FilterableListItem>({
               aria-hidden="true"
               data-row-chevron={item.expanded ? "expanded" : "collapsed"}
               className={chevronStyle({ expanded: item.expanded })}
+              style={{ padding: 6, margin: -6, cursor: "pointer" }}
               onClick={(event) => {
                 event.stopPropagation();
                 item.onToggleExpanded?.();

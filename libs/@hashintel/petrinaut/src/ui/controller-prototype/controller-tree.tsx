@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -13,6 +13,10 @@ import {
   setActiveLeverRow,
   useActiveLeverRow,
 } from "../../react/controller-prototype/active-lever-row";
+import {
+  toggleControllerExpanded,
+  useExpandedControllers,
+} from "../../react/controller-prototype/expanded-controllers";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
@@ -90,15 +94,7 @@ export const useControllersTreeGroup = (
   const { selection } = use(EditorContext);
   const { updateSubViewSection } = use(UserSettingsContext);
   const activeRow = useActiveLeverRow();
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
-  const toggleCollapsed = (controllerId: string) =>
-    setCollapsed((current) => {
-      const next = new Set(current);
-      if (!next.delete(controllerId)) {
-        next.add(controllerId);
-      }
-      return next;
-    });
+  const expanded = useExpandedControllers();
 
   useEffect(() => {
     if (
@@ -115,10 +111,10 @@ export const useControllersTreeGroup = (
       name: controller.name,
       icon: LeverRowIcon,
       selectionItem: { type: "controller", id: controller.id },
-      expanded: !collapsed.has(controller.id),
-      onToggleExpanded: () => toggleCollapsed(controller.id),
+      expanded: expanded.has(controller.id),
+      onToggleExpanded: () => toggleControllerExpanded(controller.id),
     },
-    ...(collapsed.has(controller.id) ? [] : controller.levers).map(
+    ...(expanded.has(controller.id) ? controller.levers : []).map(
       (lever): ControllerTreeRow => {
       const name = leverName(petriNetDefinition, lever);
       const rowId = `lever:${controller.id}:${lever.id}`;
