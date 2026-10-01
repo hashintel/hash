@@ -98,16 +98,12 @@ export const VoiceInterviewDisclosure = ({
         })}
       >
         {experimental
-          ? "OpenAI processes microphone audio for voice and transcription. Petrinaut saves text, not audio."
+          ? "OpenAI processes microphone audio for voice and transcription, and text to prepare briefs and summaries. Brunch saves your finalized spoken words, the brief and its answer. Spoken captions stay in this browser; Petrinaut does not save audio."
           : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
       </p>
       <Checkbox
         className={disclosureConsentStyle}
-        label={
-          experimental
-            ? "Allow microphone audio for voice and transcription."
-            : "I understand how voice data is handled."
-        }
+        label="I understand how voice data is handled."
         onChange={onConsentChange}
         size="xs"
         tone="neutral"

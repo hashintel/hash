@@ -65,7 +65,7 @@ pending, completed, and failed tools.
 
 Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies that removal; **Deny** withholds that call and tells Brunch nothing was changed. Brunch's later calls in the same response wait until you answer, then continue to run. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Auto-layout asks separately; see `applyAutoLayout` below.
 
-When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
+When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. Missing excerpts display **Still open**; that placeholder is not sent as an extracted fact. If preparation fails, your original words are sent without prepared fields: the brief says **Sending without preparation**, then **Sent without preparation** after acceptance. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
 Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
 
@@ -126,8 +126,42 @@ browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 Some hosts offer a Brunch-backed GPT-Live voice interview. It uses one Live
 session for conversational audio and a separate transcription session for
 finalized user messages. Brunch remains responsible for domain answers, chat
-history, and changes to the net; settled Brunch prose is supplied to Live for
-best-effort spoken delivery. Before the first Live session, the permission
+history, and changes to the net. In the website's Live mode, your complete
+finalized words go to Brunch alongside excerpts from a prepared brief, so short
+replies, corrections and requests to use defaults are not lost during preparation.
+If the brief cannot be prepared, your words are sent without excerpts.
+Brunch uses the prior conversation to interpret them. Expand **Sent to Brunch**
+to inspect the brief. **Still open** means a detail was not extracted from this
+turn, not that a previous answer has been forgotten. Those placeholders are not
+sent to Brunch. The brief is not editable before sending in this version.
+
+Live is asked to acknowledge each request briefly, then summarize Brunch's
+settled answer after its work and cards appear. Spoken replies are intended to
+feel like one natural conversation, without internal handoff names or unsolicited
+waiting updates. Live is asked to listen silently while you speak, then use one
+short, meaningful sentence rather than filler such as “Hmm” or “Mm-hmm”. It does
+not read the full written answer.
+Acknowledgement timing and wording are best effort and can
+overlap Brunch's work. Blue voice cards show Live's output transcript, not a
+copy of Brunch's written answer or confirmation that you heard the audio.
+Captions update during the session. The acknowledgement and wrap-up are grouped
+at sentence boundaries rather than cutting a sentence between cards. A completed
+acknowledgement stays above the activity when the next sentence starts at the
+handoff, even if the transcript omits the separating space. An unfinished sentence
+can move to the wrap-up as later text arrives; this grouping is approximate,
+not a record of when the audio played. Repeated spoken words stay in the captions.
+Grouping closes on the next turn or when the session ends. Speaking again
+suppresses pending older summaries but does not cancel work already admitted by Brunch.
+
+Your finalized words, extracted brief and Brunch's answer are saved in the
+conversation. Spoken captions and the original-word display are also retained
+as local annotations in this browser for the most recent 100 voice turns; those
+annotations are not synchronized to another device. Clearing browser storage
+removes the annotations without deleting the words saved in Brunch's history.
+Reopening never replays speech. Realtime-based Voice retains its existing
+transcript-and-readback behaviour.
+
+Before the first Live session, the permission
 panel explains both OpenAI audio streams and text retention, with a permission
 checkbox, **Start voice**, and **Cancel**. Petrinaut remembers this
 Live-specific versioned acknowledgement in browser storage, so later Live
@@ -184,6 +218,15 @@ During a Live session, Stop leaves both media sessions and the microphone
 available for the next turn. **End voice mode** tears down Voice but does not
 cancel canonical Brunch work already in progress, so select Stop first when
 you also need to cancel that work.
+
+If you stop a written answer mid-response, Live receives quiet context identifying
+the request and the available partial answer, rather than treating it as a failed
+or unaccepted request. Say **Continue** to request the rest of that answer through
+Brunch. This starts a new turn in the same conversation; it does not automatically
+resubmit the stopped turn or replay its tools or speech. Live is instructed not to
+read the partial answer aloud or finish it itself. Delivery and interpretation of
+this context are best effort; an interrupted answer is not proof that unfinished
+backend work was cancelled.
 
 Open **Audio options** for session-local speaker controls. Both Live and
 Realtime Voice provide **Mute speaker** / **Unmute speaker** and **Volume**.

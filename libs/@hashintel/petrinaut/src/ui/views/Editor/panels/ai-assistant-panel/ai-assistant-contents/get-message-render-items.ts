@@ -24,6 +24,7 @@ export type VoiceAgentLine = { text: string; state: "streaming" | "done" };
 export type VoiceBrief = {
   fields: Record<string, string>;
   state: "streaming" | "done";
+  preparationFailed?: boolean;
 };
 
 export type MessageRenderItems = {
@@ -102,7 +103,13 @@ export const getMessageRenderItems = (
             (entry): entry is [string, string] => typeof entry[1] === "string",
           ),
         );
-        turn.brief = { fields, state };
+        turn.brief = {
+          fields,
+          state,
+          ...(data.preparationFailed === true
+            ? { preparationFailed: true }
+            : {}),
+        };
       } else if (typeof data.text === "string") {
         if (part.type === "data-voiceAgentReply")
           turn.voiceAgentReply = { text: data.text, state };

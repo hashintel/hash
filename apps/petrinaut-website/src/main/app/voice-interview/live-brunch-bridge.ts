@@ -1,3 +1,4 @@
+import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import {
   liveUtteranceStages,
@@ -5,6 +6,7 @@ import {
 } from "./live-brunch-bridge/utterance-pipeline";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
+import type { VoiceBriefFields } from "../../../shared/voice-mediation";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
@@ -12,16 +14,22 @@ import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
+import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 interface Chat {
   readonly canAcceptVoiceInput: boolean;
   readonly segments: readonly CanonicalSpeechSegment[];
+  /** Visible text, including streaming/stopped parts, for quiet interruption context only. */
+  readonly messages?: readonly PetrinautAiMessage[];
   readonly settlements: readonly VoiceSubmissionSettlement[];
   readonly snapshot?: FlueConversationState;
   readonly status: PetrinautAiVoiceModeContext["status"];
@@ -30,10 +38,16 @@ interface Chat {
 
 interface Turn {
   readonly inputId: string;
+  readonly inputText: string;
+  readonly superseded?: boolean;
+  readonly preparation: AbortController;
   readonly baseline: ReadonlySet<string>;
   readonly baselineMessages: ReadonlySet<string>;
   delegationId: string | null;
+  submitted?: boolean;
   submissionId?: string;
+  /** The conversation history the turn began in, so a switch cannot split it. */
+  readonly history: VoiceMediationHistory;
 }
 
 type Submit = ConstructorParameters<
@@ -55,15 +69,43 @@ const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
 
 interface Dependencies {
   readonly submit: Submit;
+  readonly mediation: {
+    readonly history: VoiceMediationHistory;
+    readonly prepare: (
+      text: string,
+      signal: AbortSignal,
+    ) => Promise<VoiceBriefFields>;
+    readonly summarize: (text: string, signal: AbortSignal) => Promise<string>;
+    readonly offered: (inputId: string) => void;
+  };
   readonly appendCommentary: (
     text: string,
     delegationId: string | null,
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
+  /** Quiet interruption context, never spoken or bound to a delegation. */
+  readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
   /** Transcription speech has started and its transcript isn't finalized yet. */
   readonly speechPending: () => boolean;
 }
+
+/** GPT-Live accepts at most 500 tokens per append; stay well inside it. */
+const liveAppendCharacterBudget = 1_400;
+
+const tail = (text: string, limit: number): string =>
+  text.length <= limit ? text : `…${text.slice(-(limit - 1))}`;
+
+const clipLiveAppend = (text: string): string =>
+  text.length <= liveAppendCharacterBudget
+    ? text
+    : `${text.slice(0, liveAppendCharacterBudget - 1).trimEnd()}…`;
+
+const speakingAgainInstruction =
+  "The person started speaking again. Do not answer the earlier request; listen to them.";
+
+const summaryStoppedInstruction =
+  "The person stopped the response before its spoken summary. Do not summarize or read the written answer; it is in the conversation. Wait for the person.";
 
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
@@ -72,6 +114,9 @@ export class LiveBrunchBridge {
   readonly #seenInputs = new Set<string>();
   readonly #offeredSegments = new Set<string>();
   readonly #turns = new Set<Turn>();
+  /** Settled turns whose spoken summary is still being prepared. */
+  readonly #summarizing = new Set<Turn>();
+  readonly #preparations = new Set<AbortController>();
   readonly #unclaimedDelegations = new Set<string>();
   readonly #deferredDelegations = new Set<string>();
   readonly #responses = new Map<
@@ -99,20 +144,82 @@ export class LiveBrunchBridge {
   public stop(): void {
     this.#closeDeferredDelegations();
     this.#abort.abort();
+    this.speechStarted();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
+  }
+
+  /** Stop future speech offers, not work already admitted by Brunch. */
+  public speechStarted(): void {
+    for (const preparation of this.#preparations) preparation.abort();
+    this.#preparations.clear();
+    let withdrew = false;
+    for (const turn of this.#turns) {
+      if (!turn.submissionId) turn.history.failed(turn.inputId);
+      // Words cancelled before submission stay sendable in the conversation
+      // shown now, even after a switch; teardown withdraws them.
+      if (!turn.submitted && !this.#abort.signal.aborted) {
+        this.#dependencies.mediation.history.unsent(
+          turn.inputId,
+          turn.inputText,
+          this.#chat.messages?.at(-1)?.id,
+        );
+        withdrew = true;
+      }
+      if (turn.delegationId !== null && !this.#abort.signal.aborted)
+        this.#dependencies.appendInstructions(
+          speakingAgainInstruction,
+          turn.delegationId,
+        );
+    }
+    this.#turns.clear();
+    if (withdrew)
+      this.#dependencies.notice(
+        "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",
+      );
+    for (const turn of this.#summarizing) {
+      if (turn.delegationId !== null && !this.#abort.signal.aborted)
+        this.#dependencies.appendInstructions(
+          speakingAgainInstruction,
+          turn.delegationId,
+        );
+    }
+    this.#summarizing.clear();
+    // The newest delegation may be for the speech that just started, and
+    // transcription and Live report on separate connections.
+    const newest = [...this.#unclaimedDelegations].at(-1);
+    for (const delegationId of this.#unclaimedDelegations) {
+      if (delegationId !== newest)
+        this.#unserved(
+          delegationId,
+          "No request admission was confirmed for this delegation.",
+        );
+    }
+    this.#unclaimedDelegations.clear();
+    if (newest !== undefined) this.#unclaimedDelegations.add(newest);
+    if (!this.#waitingForComposer?.submitted)
+      this.#waitingForComposer = undefined;
+  }
+
+  /** Frees the composer from one stale turn; other turns and delegations stay. */
+  #evict(turn: Turn): void {
+    turn.preparation.abort();
+    this.#preparations.delete(turn.preparation);
+    if (!turn.submissionId) turn.history.failed(turn.inputId);
+    this.#turns.delete(turn);
+    if (this.#waitingForComposer === turn) this.#waitingForComposer = undefined;
   }
 
   public stopResponse(): void {
     if (this.#abort.signal.aborted) return;
     this.#chat = { ...this.#chat, stopped: true };
-    this.#interruptTurns();
+    this.#interruptTurns("stopped");
   }
 
   public acceptDelegation(delegationId: string): void {
     if (this.#abort.signal.aborted) return;
     const turn = [...this.#turns].findLast(
-      (candidate) => candidate.delegationId === null,
+      (candidate) => !candidate.superseded && candidate.delegationId === null,
     );
     if (turn) {
       turn.delegationId = delegationId;
@@ -163,11 +270,22 @@ export class LiveBrunchBridge {
     );
   }
 
-  #unserved(delegationId: string | null): void {
+  #unserved(delegationId: string | null, status: string): void {
     if (delegationId === null || this.#abort.signal.aborted) return;
     this.#dependencies.appendInstructions(
-      "The backend could not take that request now. Ask the person to continue. Do not claim the work completed or was cancelled.",
+      `${status} Explain the limitation briefly without asking the person to continue speaking. Do not claim work completed or was cancelled. Do not retry or replay automatically; check the conversation before any new attempt.`,
       delegationId,
+    );
+  }
+
+  #unconfirmed(turn: Turn): void {
+    this.#unserved(
+      turn.delegationId,
+      turn.submissionId
+        ? "The request was admitted, but its response could not be confirmed."
+        : turn.submitted
+          ? "Request admission is unconfirmed; it may already have been accepted."
+          : "The request was not submitted.",
     );
   }
 
@@ -190,7 +308,9 @@ export class LiveBrunchBridge {
       this.#closeStrayDelegations();
       return;
     }
-    const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
+    const delegationId = input.superseded
+      ? null
+      : ([...this.#unclaimedDelegations].at(-1) ?? null);
     if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
     this.#closeStrayDelegations();
     if (skipReason !== null) {
@@ -207,6 +327,8 @@ export class LiveBrunchBridge {
       }
       return;
     }
+    if (!input.superseded && this.#waitingForComposer?.superseded)
+      this.#evict(this.#waitingForComposer);
     if (
       input.text.length > 32_000 ||
       this.#waitingForComposer ||
@@ -215,37 +337,73 @@ export class LiveBrunchBridge {
       logLiveDiagnostic("input.dropped", {
         inputId: input.id,
         delegationId,
+        superseded: input.superseded === true,
         oversized: input.text.length > 32_000,
         waitingForComposer: this.#waitingForComposer !== undefined,
         admissionUnavailable: !this.#chat.canAcceptVoiceInput,
       });
+      // Newer speech already replaced these words; resending them is not asked for.
+      if (input.superseded) return;
       this.#dependencies.notice(
         "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
       );
-      this.#unserved(delegationId);
+      const history = this.#dependencies.mediation.history;
+      const waiting = this.#waitingForComposer;
+      history.unsent(
+        input.id,
+        input.text,
+        waiting && waiting.history === history
+          ? waiting.inputId
+          : this.#chat.messages?.at(-1)?.id,
+      );
+      this.#unserved(delegationId, "The request was not submitted.");
       return;
     }
     this.#dependencies.notice(null);
     const turn: Turn = {
       inputId: input.id,
+      inputText: input.text,
+      superseded: input.superseded,
+      preparation: new AbortController(),
       delegationId,
+      history: this.#dependencies.mediation.history,
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
       baselineMessages: new Set([
         ...this.#chat.segments.map((segment) => segment.messageId),
+        ...(this.#chat.messages?.map((message) => message.id) ?? []),
         ...(this.#chat.snapshot?.messages.map((message) => message.id) ?? []),
       ]),
     };
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
+    this.#preparations.add(turn.preparation);
     try {
+      let text = input.text;
+      const mediation = this.#dependencies.mediation;
+      turn.history.begin(input);
+      try {
+        const fields = await mediation.prepare(
+          input.text,
+          turn.preparation.signal,
+        );
+        turn.preparation.signal.throwIfAborted();
+        turn.history.prepared(input.id, fields);
+        text = serializeVoiceBrief(input.text, fields);
+      } catch {
+        turn.preparation.signal.throwIfAborted();
+        logLiveDiagnostic("brief.unavailable", { inputId: input.id });
+        turn.history.preparationFailed(input.id);
+      }
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
+      turn.submitted = true;
       const result = await this.#dependencies.submit({
         id: input.id,
-        text: input.text,
+        text,
         admissionTarget: { kind: "user", messageId: input.id },
         signal: this.#abort.signal,
         onAdmission: (submissionId) => {
           turn.submissionId = submissionId;
+          turn.history.admitted(input.id, submissionId);
           logLiveDiagnostic("brunch.admitted", {
             inputId: input.id,
             submissionId,
@@ -269,6 +427,8 @@ export class LiveBrunchBridge {
       turn.submissionId = result.submissionId;
       this.#settle();
     } catch {
+      this.#preparations.delete(turn.preparation);
+      if (!turn.submissionId) turn.history.failed(input.id);
       if (this.#turns.delete(turn)) {
         logLiveDiagnostic("brunch.unconfirmed", {
           inputId: input.id,
@@ -280,7 +440,7 @@ export class LiveBrunchBridge {
             ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
             : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
         );
-        this.#unserved(turn.delegationId);
+        this.#unconfirmed(turn);
       }
     } finally {
       if (this.#waitingForComposer === turn)
@@ -340,28 +500,127 @@ export class LiveBrunchBridge {
       chat.status === "error" && this.#chat.status !== "error";
     this.#chat = chat;
     if (stopped || enteredError) {
-      this.#interruptTurns();
+      this.#interruptTurns(stopped ? "stopped" : "error");
       return;
     }
     this.#settle();
   }
 
-  #interruptTurns(): void {
+  #interruptTurns(reason: "stopped" | "error"): void {
+    for (const preparation of this.#preparations) preparation.abort();
+    this.#preparations.clear();
     for (const turn of this.#turns) {
+      if (!turn.submissionId) turn.history.failed(turn.inputId);
       logLiveDiagnostic("brunch.interrupted", {
         inputId: turn.inputId,
         submissionId: turn.submissionId,
         stopped: this.#chat.stopped === true,
         status: this.#chat.status,
       });
-      this.#unserved(turn.delegationId);
+      if (reason === "stopped" && turn.submissionId) this.#interrupted(turn);
+      else this.#unconfirmed(turn);
     }
+    // Aborting preparations cancelled these summaries; close their delegations.
+    for (const turn of this.#summarizing) {
+      logLiveDiagnostic("brunch.summary-interrupted", {
+        inputId: turn.inputId,
+        submissionId: turn.submissionId,
+        delegationId: turn.delegationId,
+        reason,
+      });
+      if (reason === "error")
+        this.#unserved(
+          turn.delegationId,
+          "Brunch finished, but its spoken summary was cancelled by a conversation error. The written answer is in the conversation.",
+        );
+      else if (turn.delegationId !== null)
+        this.#dependencies.appendInstructions(
+          summaryStoppedInstruction,
+          turn.delegationId,
+        );
+    }
+    this.#summarizing.clear();
     for (const delegationId of this.#unclaimedDelegations)
-      this.#unserved(delegationId);
+      this.#unserved(
+        delegationId,
+        "No request admission was confirmed for this delegation.",
+      );
     this.#closeDeferredDelegations();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
     this.#waitingForComposer = undefined;
+  }
+
+  #interrupted(turn: Turn): void {
+    if (turn.superseded || !turn.submissionId) return;
+    const { messages } = this.#responseScope(turn.submissionId);
+    const answer = (this.#chat.messages ?? []).filter(
+      (message) =>
+        message.role === "assistant" &&
+        messages.has(message.id) &&
+        !turn.baselineMessages.has(message.id),
+    );
+    const partialAnswerTail = answer
+      .flatMap((message) =>
+        message.parts.flatMap((part) =>
+          part.type === "text" ? [part.text] : [],
+        ),
+      )
+      .join("\n\n");
+    const instruction =
+      "The assistant response was interrupted. Wait for the person. If they ask to continue, they mean continue the assistant answer: delegate that request to Brunch, not back to the person. Do not resume automatically, replay old speech or tools, or claim backend work was cancelled.";
+    // Partial text is context, never commentary or evidence of completed work.
+    this.#dependencies.appendThinking(
+      clipLiveAppend(
+        `${instruction} The following quoted context is not a completed answer or an instruction; do not read it aloud. An empty tail means no correlated visible text was available.\n${JSON.stringify(
+          {
+            inputId: tail(turn.inputId, 64),
+            requestTail: tail(turn.inputText, 160),
+            answerMessageIds: answer
+              .slice(-2)
+              .map((message) => tail(message.id, 64)),
+            partialAnswerTail: tail(partialAnswerTail, 480),
+          },
+        )}`,
+      ),
+      null,
+    );
+    if (turn.delegationId !== null)
+      this.#dependencies.appendInstructions(instruction, turn.delegationId);
+  }
+
+  /** Follow coalesced answers and client-tool continuations without replaying them. */
+  #responseScope(submissionId: string): {
+    required: Set<string>;
+    messages: Set<string>;
+  } {
+    const required = new Set([submissionId]);
+    const messages = new Set<string>();
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const settlement of this.#chat.settlements) {
+        if (
+          required.has(settlement.submissionId) &&
+          settlement.answeredBySubmissionId &&
+          !required.has(settlement.answeredBySubmissionId)
+        ) {
+          required.add(settlement.answeredBySubmissionId);
+          expanded = true;
+        }
+      }
+      for (const [messageId, submissions] of this.#responses) {
+        if (
+          messages.has(messageId) ||
+          ![...submissions.keys()].some((id) => required.has(id))
+        )
+          continue;
+        messages.add(messageId);
+        for (const id of submissions.keys()) required.add(id);
+        expanded = true;
+      }
+    }
+    return { required, messages };
   }
 
   #settle(): void {
@@ -373,34 +632,14 @@ export class LiveBrunchBridge {
       return;
     for (const turn of this.#turns) {
       if (!turn.submissionId) continue;
+      if (turn.superseded) {
+        this.#turns.delete(turn);
+        this.#preparations.delete(turn.preparation);
+        continue;
+      }
       // Client-tool continuations are projected onto their original message.
       // Follow that shared identity, including steps that contribute no prose.
-      const required = new Set([turn.submissionId]);
-      const messages = new Set<string>();
-      let expanded = true;
-      while (expanded) {
-        expanded = false;
-        for (const settlement of this.#chat.settlements) {
-          if (
-            required.has(settlement.submissionId) &&
-            settlement.answeredBySubmissionId &&
-            !required.has(settlement.answeredBySubmissionId)
-          ) {
-            required.add(settlement.answeredBySubmissionId);
-            expanded = true;
-          }
-        }
-        for (const [messageId, submissions] of this.#responses) {
-          if (
-            messages.has(messageId) ||
-            ![...submissions.keys()].some((id) => required.has(id))
-          )
-            continue;
-          messages.add(messageId);
-          for (const id of submissions.keys()) required.add(id);
-          expanded = true;
-        }
-      }
+      const { required, messages } = this.#responseScope(turn.submissionId);
       const settlements = [...required].map((id) =>
         this.#chat.settlements.find(
           (settlement) => settlement.submissionId === id,
@@ -420,7 +659,10 @@ export class LiveBrunchBridge {
         this.#dependencies.notice(
           "Brunch did not complete this turn. Check the conversation; no result was offered to Live.",
         );
-        this.#unserved(turn.delegationId);
+        this.#preparations.delete(turn.preparation);
+        if (settlements.some((settlement) => settlement?.outcome === "aborted"))
+          this.#interrupted(turn);
+        else this.#unserved(turn.delegationId, "The response failed.");
         continue;
       }
       if (settlements.some((settlement) => !settlement)) continue;
@@ -575,8 +817,8 @@ export class LiveBrunchBridge {
           continue;
         sourceSegments = recovered;
       }
-      this.#turns.delete(turn);
       if (!sourceSegments.length) {
+        this.#evict(turn);
         logLiveDiagnostic("brunch.no-prose", {
           inputId: turn.inputId,
           submissionId: turn.submissionId,
@@ -585,7 +827,10 @@ export class LiveBrunchBridge {
         this.#dependencies.notice(
           "Brunch settled without a spoken answer. Check the conversation.",
         );
-        this.#unserved(turn.delegationId);
+        this.#unserved(
+          turn.delegationId,
+          "Brunch finished without a spoken answer.",
+        );
         continue;
       }
       // Coalesced admissions can share an answer. Offer each frozen segment
@@ -594,6 +839,7 @@ export class LiveBrunchBridge {
         (segment) => !this.#offeredSegments.has(segment.id),
       );
       if (!segments.length) {
+        this.#evict(turn);
         logLiveDiagnostic("brunch.already-offered", {
           inputId: turn.inputId,
           submissionId: turn.submissionId,
@@ -608,6 +854,7 @@ export class LiveBrunchBridge {
         continue;
       }
       for (const segment of segments) this.#offeredSegments.add(segment.id);
+      this.#turns.delete(turn);
       // Freeze complete prose once. Sending is neither exact relay nor playback proof.
       const source = segments.map((segment) => segment.text).join("\n\n");
       logLiveDiagnostic("brunch.offer", {
@@ -617,7 +864,50 @@ export class LiveBrunchBridge {
         segmentCount: segments.length,
         characters: source.length,
       });
-      this.#dependencies.appendCommentary(source, turn.delegationId);
+      const mediation = this.#dependencies.mediation;
+      turn.history.settled(turn.inputId, [
+        ...messages,
+        ...segments.map((segment) => segment.messageId),
+        ...this.#chat.segments
+          .filter(
+            (visible) =>
+              !turn.baselineMessages.has(visible.messageId) &&
+              segments.some((segment) => segment.text === visible.text),
+          )
+          .map((visible) => visible.messageId),
+      ]);
+      this.#summarizing.add(turn);
+      void this.#summarize(turn, source, mediation);
+    }
+  }
+
+  async #summarize(
+    turn: Turn,
+    source: string,
+    mediation: Dependencies["mediation"],
+  ): Promise<void> {
+    try {
+      const summary = await mediation.summarize(
+        source,
+        turn.preparation.signal,
+      );
+      if (turn.preparation.signal.aborted || this.#abort.signal.aborted) return;
+      // Only provider output transcripts prove that these words were spoken.
+      mediation.offered(turn.inputId);
+      this.#dependencies.appendCommentary(summary, turn.delegationId);
+    } catch {
+      if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted) {
+        this.#dependencies.notice(
+          "Brunch finished, but its spoken summary could not be prepared. Read the written answer; no automatic retry was made.",
+        );
+        this.#unserved(
+          turn.delegationId,
+          "Brunch finished, but its spoken summary could not be prepared. The written answer is in the conversation.",
+        );
+      }
+    } finally {
+      this.#preparations.delete(turn.preparation);
+      this.#summarizing.delete(turn);
     }
   }
 }

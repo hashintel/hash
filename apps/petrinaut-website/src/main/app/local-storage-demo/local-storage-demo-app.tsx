@@ -111,10 +111,12 @@ import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
+import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
   DocumentRepository,
@@ -231,6 +233,7 @@ export const getBrunchVoiceMode = (
   tracker?: BrunchPanelConversationTracker,
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
+  mediationHistory?: VoiceMediationHistory,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -257,6 +260,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      mediationHistory={mediationHistory}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
       // independently by followMessages.canReplace below.
@@ -281,6 +285,9 @@ const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
   });
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
+
+const subscribeToNothing = () => () => {};
+const readNothing = () => undefined;
 
 // The stock assistant's transport is the same whether or not Brunch is
 // configured: selecting the stock assistant must not route it through Brunch.
@@ -783,6 +790,15 @@ export const LocalStorageDemoApp = ({
     constructionBrowser,
     settleConstructionRevision,
   ]);
+  const mediationHistory = useVoiceMediationHistory(conversationId);
+  const mapVoiceMessages = useSyncExternalStore(
+    mediationHistory?.subscribe ?? subscribeToNothing,
+    mediationHistory?.getSnapshot ?? readNothing,
+    mediationHistory?.getSnapshot ?? readNothing,
+  );
+  useLayoutEffect(() => {
+    mediationHistory?.sync(flueHistory.snapshot);
+  }, [mediationHistory, flueHistory.snapshot]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;
     reportBrunchFailure("history", flueHistory.error, {
@@ -805,12 +821,14 @@ export const LocalStorageDemoApp = ({
         conversationTracker,
         flueHistory.settlements,
         flueHistory.snapshot,
+        mediationHistory,
       ),
     [
       brunchSelected,
       conversationTracker,
       flueHistory.settlements,
       flueHistory.snapshot,
+      mediationHistory,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -949,6 +967,7 @@ export const LocalStorageDemoApp = ({
         ? {
             primaryLabel: "Chat",
             presentation: "brunch" as const,
+            mapMessagesForDisplay: mapVoiceMessages,
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
             renderComposerControl: (
@@ -1026,6 +1045,7 @@ export const LocalStorageDemoApp = ({
     };
   }, [
     aiMessagesByNetId,
+    mapVoiceMessages,
     brunchSelected,
     brunchVoiceMode,
     canonicalHostTools,

@@ -213,6 +213,12 @@ const setup = ({
     vi.fn<Parameters<typeof createLiveConversation>[2]>();
   const onDelegation = vi.fn<Parameters<typeof createLiveConversation>[3]>();
   const onAppendResult = vi.fn<Parameters<typeof createLiveConversation>[4]>();
+  const speech = {
+    started: vi.fn(),
+    input: vi.fn(),
+    output: vi.fn(),
+    closed: vi.fn(),
+  };
   const conversation = createLiveConversation(
     onState,
     15_000,
@@ -220,6 +226,7 @@ const setup = ({
     onDelegation,
     onAppendResult,
     audioSettings,
+    speech,
   );
   const emit = (connection: 0 | 1, data: unknown) =>
     channels[connection].dispatchEvent(
@@ -241,6 +248,7 @@ const setup = ({
     onFinalizedInput,
     onDelegation,
     onAppendResult,
+    speech,
   };
 };
 
@@ -256,6 +264,95 @@ const connect = async (fixture: ReturnType<typeof setup>) => {
   fixture.emit(0, { type: "session.started" });
   fixture.emit(1, { type: "session.created" });
 };
+
+test("a transcript finalized after newer speech keeps its identity but cannot revive old speech", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "old",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "old",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "new",
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "old",
+    content_index: 0,
+    transcript: "Old request",
+  });
+  expect(fixture.onFinalizedInput).toHaveBeenCalledWith(
+    expect.objectContaining({ text: "Old request", superseded: true }),
+  );
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("projects only actual Live transcript deltas and reports injection time without claiming playback", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "input",
+  });
+  expect(fixture.speech.started).toHaveBeenCalledOnce();
+  fixture.emit(0, {
+    type: "session.input_transcript.delta",
+    event_id: "in",
+    delta: "Hello",
+    start_ms: 100,
+    end_ms: 200,
+  });
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    event_id: "out",
+    delta: "I can help.",
+    start_ms: 300,
+    end_ms: 400,
+  });
+  expect(fixture.speech.input).toHaveBeenCalledWith({
+    id: "in",
+    text: "Hello",
+    startMs: 100,
+    endMs: 200,
+  });
+  expect(fixture.speech.output).toHaveBeenCalledExactlyOnceWith({
+    id: "out",
+    text: "I can help.",
+    startMs: 300,
+    endMs: 400,
+  });
+  fixture.conversation.appendCommentary("Not a caption", null);
+  const sent = JSON.parse(fixture.sent[0].at(-1)!) as { event_id: string };
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: sent.event_id,
+    start_ms: 500,
+    end_ms: 600,
+  });
+  expect(fixture.onAppendResult).toHaveBeenLastCalledWith(
+    expect.objectContaining({ status: "accepted", startMs: 500 }),
+  );
+  expect(fixture.speech.output).toHaveBeenCalledOnce();
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    delta: "Malformed",
+    start_ms: -1,
+    end_ms: "400",
+  });
+  expect(fixture.speech.output).toHaveBeenCalledOnce();
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+  expect(fixture.speech.closed).toHaveBeenCalled();
+});
 
 test("stops voice preview before reopening the Live microphone", async () => {
   const settings = new VoiceAudioSettings("live", undefined);
@@ -1421,6 +1518,56 @@ test("telemetry shows activity but silence and late samples never settle or revi
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
 });
 
+test("quiet interruption context requires its own acknowledgement and leaves the delegation open", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(0, {
+    type: "session.delegation.created",
+    delegation: { id: "opaque", target: "client" },
+  });
+  expect(
+    fixture.conversation.appendThinking(
+      "The previous answer was interrupted.",
+      null,
+    ),
+  ).toBe(true);
+  const pending = fixture.onAppendResult.mock.lastCall![0];
+  expect(pending).toMatchObject({
+    kind: "thinking",
+    delegationId: null,
+    status: "unknown",
+  });
+  expect(JSON.parse(fixture.sent[0][0]!)).toEqual({
+    type: "session.thinking.append",
+    event_id: pending.eventId,
+    delegation_id: null,
+    content: "The previous answer was interrupted.",
+  });
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: pending.eventId,
+  });
+  expect(fixture.onAppendResult).toHaveBeenCalledOnce();
+  fixture.emit(0, {
+    type: "session.thinking.appended",
+    client_event_id: pending.eventId,
+  });
+  expect(fixture.onAppendResult.mock.lastCall![0]).toEqual({
+    ...pending,
+    status: "accepted",
+  });
+  expect(
+    fixture.conversation.appendThinking("Wait for a new request.", "opaque"),
+  ).toBe(true);
+  const context = fixture.onAppendResult.mock.lastCall![0];
+  fixture.emit(0, {
+    type: "session.thinking.appended",
+    client_event_id: context.eventId,
+  });
+  expect(fixture.onAppendResult.mock.lastCall![0].status).toBe("accepted");
+  expect(fixture.conversation.openDelegations.has("opaque")).toBe(true);
+});
+
 test("records the microphone processing the browser applied at start and after a switch", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
@@ -1907,7 +2054,7 @@ test("passes Live's recent words only with speech that overlapped its audible ou
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
-    ["id", "text", "startedDuringOutput", "liveOutputText"],
+    ["id", "text", "superseded", "startedDuringOutput", "liveOutputText"],
     ["id", "text", "startedDuringOutput"],
   ]);
   expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([

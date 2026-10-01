@@ -2231,6 +2231,41 @@ export const VoiceSending: Story = {
   ),
 };
 
+const VoicePreparationFailure = () => {
+  const [admitted, setAdmitted] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setAdmitted(true)}>Confirm admission</Button>
+      <Frame
+        presentation="brunch"
+        inputMode="voice"
+        voiceModeAvailable
+        voiceSession={liveSession({ phase: "thinking" })}
+        messages={[
+          {
+            ...supportDeskUser,
+            parts: [
+              ...supportDeskUser.parts,
+              {
+                type: "data-brief",
+                data: {
+                  state: admitted ? "done" : "streaming",
+                  fields: {},
+                  preparationFailed: true,
+                },
+              },
+            ],
+          },
+        ]}
+      />
+    </>
+  );
+};
+
+export const VoicePreparationFailed: Story = {
+  render: () => <VoicePreparationFailure />,
+};
+
 export const VoiceStopped: Story = {
   render: () => (
     <Frame

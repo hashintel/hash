@@ -19,6 +19,57 @@ const request = (overrides: RequestInit & { duplex?: "half" } = {}) =>
     ...overrides,
   });
 
+test("Live mediation policy requests a brief acknowledgement and a summary, never independent modelling", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json({
+      session: { id: "session" },
+      transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+    }),
+  );
+  await createOpenAILiveSessionHandler({ environment, fetch })(request());
+  const payload = fetch.mock.calls[0]?.[1]?.body;
+  if (typeof payload !== "string") throw new Error("Expected JSON body");
+  const body = JSON.parse(payload) as {
+    session: { instructions: string };
+  };
+  expect(body.session.instructions).toContain("one or two short sentences");
+  expect(body.session.instructions).toContain("before delegating");
+  expect(body.session.instructions).toContain(
+    "Do not read Brunch's full written answer",
+  );
+  expect(body.session.instructions).toContain("unspecified values remain open");
+  expect(body.session.instructions).toContain(
+    "Keep internal names and handoffs out of speech",
+  );
+  expect(body.session.instructions).toContain(
+    "Prefer silence while the person is speaking",
+  );
+  expect(body.session.instructions).toContain(
+    'Do not use filler-only replies such as "Hmm", "Mm-hmm", "Mm", or "Uh-huh"',
+  );
+  expect(body.session.instructions).toContain(
+    "Do not guess what an unclear short answer refers to",
+  );
+  expect(body.session.instructions).toContain(
+    "Do not fill silence with status updates",
+  );
+  expect(body.session.instructions).toContain(
+    "Ask a supplied clarification directly",
+  );
+  expect(body.session.instructions).toContain(
+    "If you already acknowledged this request, do not acknowledge it again",
+  );
+  expect(body.session.instructions).toContain(
+    'After an interrupted assistant answer, "Continue" means continue that answer',
+  );
+  expect(body.session.instructions).toContain(
+    "Delegate that request to Brunch; do not ask the person to continue speaking",
+  );
+  expect(body.session.instructions).toContain(
+    "Partial-answer context is not a completed result",
+  );
+});
+
 describe("Live configuration and session creation", () => {
   test.each([
     [undefined, "live", true],
@@ -253,7 +304,7 @@ describe("Live configuration and session creation", () => {
         delegation: { type: "client" },
         store: false,
         instructions: expect.stringMatching(
-          /Backchannel policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:[\s\S]*Backend tools:[\s\S]*Brunch:[\s\S]*Delegate to the backend when:[\s\S]*Do not delegate to the backend when:[\s\S]*Delegate before giving an answer that depends on backend work\. Do not guess the result while waiting\.[\s\S]*Brunch is the sole authority[\s\S]*You have no tools[\s\S]*supplied settled Brunch context[\s\S]*best-effort/i,
+          /Acknowledgement policy:[\s\S]*Interruption policy:[\s\S]*Delegation policy:[\s\S]*Backend tools:[\s\S]*Brunch:[\s\S]*Delegate to the backend when:[\s\S]*Do not delegate to the backend when:[\s\S]*Delegate before giving an answer that depends on backend work\. Do not guess the result while waiting\.[\s\S]*Brunch is the sole authority[\s\S]*You have no tools[\s\S]*supplied settled Brunch context[\s\S]*best-effort/i,
         ) as unknown,
         audio: { output: { voice: "marin" } },
       },
