@@ -9,7 +9,7 @@ authors = [
 ]
 requires-python = "<3.15,>=3.14"
 dependencies = [
-    "json-five==1.1.2",                   # The preserving model API is not stable across minor releases.
+    "json-five==1.1.2",
     "license-expression>=30.4.4,<31.0.0",
     "packaging>=26.3,<27.0",
     "rich>=15.0.0,<16.0.0",

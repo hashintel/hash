@@ -63,6 +63,7 @@ class Engine:
                 if (rendered := manifest.render()) is not None and rendered != manifest.original
             )
             errors = (entry for entry in diagnostics if isinstance(entry, RuleError))
+
             return Evaluation(
                 inputs=inputs,
                 report=CheckReport(
