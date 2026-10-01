@@ -27,7 +27,12 @@ export type SortKey =
   | "otif"
   | "meanLate"
   | "meanLateWhenLate"
-  | "maxLate";
+  | "maxLate"
+  // Menu-only sorts (no column): the opportunities' sample count…
+  | "sampleSize"
+  // …and supplier extras.
+  | "nLate"
+  | "materialsCount";
 
 export type SortDir = "asc" | "desc";
 

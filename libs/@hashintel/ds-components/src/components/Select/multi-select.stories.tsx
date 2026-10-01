@@ -378,7 +378,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
       </div>
       <div className={groupStyle}>
         <span style={subheadingStyle}>
-          renderItem + renderSelectedItem (receives all selected values)
+          renderItem + renderSelectedAll (receives all selected values)
         </span>
         <Select
           {...spreadArgs}
@@ -391,7 +391,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
             setColors(narrowed);
           }}
           renderItem={renderColorItem}
-          renderSelectedItem={(values) => (
+          renderSelectedAll={(values) => (
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {values.map((val) => (
                 <ColorSwatch key={val} value={val} />
