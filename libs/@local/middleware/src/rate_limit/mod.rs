@@ -566,7 +566,6 @@ impl RateLimiters {
             loop {
                 interval.tick().await;
                 let Some(limiters) = limiters.upgrade() else {
-                    tracing::debug!("rate-limiter state dropped, ending its maintenance");
                     break;
                 };
                 limiters.maintain();
@@ -652,14 +651,6 @@ impl RateLimiters {
         self.metrics
             .maintenance_runs
             .add(1, core::slice::from_ref(&self.metrics.scope));
-
-        tracing::debug!(
-            scope = %self.metrics.scope.value,
-            gate_keys = self.parent.is_none().then(|| self.gate.len()),
-            anonymous_keys = self.anonymous.len(),
-            actor_keys = self.actor.len(),
-            "rate limiter maintenance run"
-        );
     }
 
     /// Charges one request against the store the budget names.

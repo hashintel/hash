@@ -1,0 +1,102 @@
+import { expect, test } from "vitest";
+
+import {
+  prepareVoiceBrief,
+  serializeVoiceBrief,
+  validateVoiceWrapUp,
+} from "./voice-mediation";
+
+test("keeps absent modelling details open and uses only verbatim evidence", () => {
+  const transcript =
+    "We handle support tickets. Arrivals vary through the day.";
+  const brief = prepareVoiceBrief(transcript, {
+    kind: "modelling",
+    goal: "support tickets",
+    arrivals: "Arrivals vary through the day",
+    handling: "5 minutes",
+    queue: null,
+  });
+  expect(brief).toEqual({
+    goal: "support tickets",
+    arrivals: "Arrivals vary through the day",
+    stillOpen: "handling, queue",
+  });
+  const serialized = serializeVoiceBrief(transcript, brief);
+  expect(serialized).not.toContain("5 minutes");
+  expect(JSON.parse(serialized.slice(serialized.indexOf("\n") + 1))).toEqual({
+    utterance: transcript,
+    excerpts: {
+      goal: "support tickets",
+      arrivals: "Arrivals vary through the day",
+    },
+  });
+});
+
+test.each([
+  "Continue.",
+  "The first one.",
+  "Just do something, default to something, yeah.",
+  'No, not "10 per hour".\nUse defaults only for handling.',
+])(
+  "preserves the complete request when no brief field captures it: %s",
+  (transcript) => {
+    const brief = prepareVoiceBrief(transcript, { kind: "modelling" });
+    const serialized = serializeVoiceBrief(transcript, brief);
+    expect(JSON.parse(serialized.slice(serialized.indexOf("\n") + 1))).toEqual({
+      utterance: transcript,
+      excerpts: {},
+    });
+    expect(serialized).not.toContain("Still open");
+    expect(serialized).not.toContain("stillOpen");
+    expect(serialized).toContain("prior conversation");
+    expect(serialized).toContain("do not reset previously established facts");
+  },
+);
+
+test("preserves decision ranges and negation without inventing a run budget", () => {
+  expect(
+    prepareVoiceBrief("Compare 2–8 agents. Measure waiting time, not cost.", {
+      kind: "decision",
+      decide: "Compare 2–8 agents",
+      measure: "waiting time, not cost",
+      constraints: null,
+      runs: null,
+      ask: null,
+    }),
+  ).toEqual({
+    decide: "Compare 2–8 agents",
+    measure: "waiting time, not cost",
+    stillOpen: "constraints, runs, ask",
+  });
+});
+
+test("retains and serializes verbatim evidence whose actual words are Still open", () => {
+  const brief = prepareVoiceBrief("The run budget is Still open.", {
+    kind: "decision",
+    runs: "Still open",
+  });
+
+  expect(brief.runs).toBe("Still open");
+  expect(
+    JSON.parse(
+      serializeVoiceBrief("The run budget is Still open.", brief).split(
+        "\n",
+      )[1]!,
+    ),
+  ).toMatchObject({
+    excerpts: { runs: "Still open" },
+  });
+});
+
+test("wrap-ups allow any sentence count within the character limit", () => {
+  expect(
+    validateVoiceWrapUp(
+      "Brunch drafted the comparison. Select Run to start it.",
+    ),
+  ).toBe("Brunch drafted the comparison. Select Run to start it.");
+  expect(validateVoiceWrapUp("Drafted. Not run. Select Run.")).toBe(
+    "Drafted. Not run. Select Run.",
+  );
+  expect(() => validateVoiceWrapUp("x".repeat(601))).toThrow();
+  expect(() => validateVoiceWrapUp("")).toThrow();
+});

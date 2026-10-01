@@ -16,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -39,6 +40,7 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
+  type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
   type PetrinautAiStopResult,
   type PetrinautAiVoiceMode,
@@ -73,12 +75,20 @@ import {
 import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
+  getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
 } from "./brunch-conversation-id";
 import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
 } from "./brunch-draft-experiment-interactive-tool";
+import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+} from "./brunch-mutation-approval";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -101,10 +111,12 @@ import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
+import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
   DocumentRepository,
@@ -221,6 +233,7 @@ export const getBrunchVoiceMode = (
   tracker?: BrunchPanelConversationTracker,
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
+  mediationHistory?: VoiceMediationHistory,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -247,6 +260,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      mediationHistory={mediationHistory}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
       // independently by followMessages.canReplace below.
@@ -271,6 +285,9 @@ const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
   });
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
+
+const subscribeToNothing = () => () => {};
+const readNothing = () => undefined;
 
 // The stock assistant's transport is the same whether or not Brunch is
 // configured: selecting the stock assistant must not route it through Brunch.
@@ -610,10 +627,22 @@ export const LocalStorageDemoApp = ({
             documentId: currentDocument.documentId,
             title,
           });
-  const baseConstructionConversationId =
-    currentDocument === null || !brunchSelected
-      ? undefined
-      : ordinaryConstructionConversationIdFrom(currentDocument.incarnationId);
+  const [freshConversationIds, setFreshConversationIds] = useState<
+    Record<string, string>
+  >({});
+  const incarnationId = currentDocument?.incarnationId;
+  const baseConstructionConversationId = useMemo(() => {
+    if (!brunchSelected || incarnationId === undefined) return undefined;
+    const initialId = ordinaryConstructionConversationIdFrom(incarnationId);
+    return (
+      freshConversationIds[incarnationId] ??
+      getOrCreateBrunchConversationId(
+        initialId,
+        window.localStorage,
+        () => initialId,
+      )
+    );
+  }, [brunchSelected, freshConversationIds, incarnationId]);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -640,6 +669,43 @@ export const LocalStorageDemoApp = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
+  // Each binding gets its own non-persisted approval authority.
+  const mutationApproval = useMemo(
+    () => ({
+      binding: processAgentBinding,
+      coordinator: createBrunchMutationApprovalCoordinator(),
+    }),
+    [processAgentBinding],
+  );
+  // The panel stays mounted when the binding changes, so a replaced authority
+  // must settle the approvals still waiting on it.
+  useEffect(() => {
+    const { coordinator } = mutationApproval;
+    coordinator.open();
+    return () => coordinator.close();
+  }, [mutationApproval]);
+  const allMutationApprovalTools = useMemo(
+    () =>
+      createBrunchMutationApprovalInteractiveTools(
+        mutationApproval.coordinator,
+      ),
+    [mutationApproval],
+  );
+  // A registered widget replaces the tool's row, so only calls still waiting
+  // for a decision render as approvals. Refresh the registry when call identities
+  // change; shouldHandle is the single gate, including for same-name calls.
+  const approvalVersion = useSyncExternalStore(
+    mutationApproval.coordinator.subscribe,
+    mutationApproval.coordinator.getVersion,
+    mutationApproval.coordinator.getVersion,
+  );
+  const mutationApprovalTools = useMemo(
+    () => ({
+      version: approvalVersion,
+      tools: [...allMutationApprovalTools],
+    }),
+    [allMutationApprovalTools, approvalVersion],
+  ).tools;
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected,
@@ -724,6 +790,15 @@ export const LocalStorageDemoApp = ({
     constructionBrowser,
     settleConstructionRevision,
   ]);
+  const mediationHistory = useVoiceMediationHistory(conversationId);
+  const mapVoiceMessages = useSyncExternalStore(
+    mediationHistory?.subscribe ?? subscribeToNothing,
+    mediationHistory?.getSnapshot ?? readNothing,
+    mediationHistory?.getSnapshot ?? readNothing,
+  );
+  useLayoutEffect(() => {
+    mediationHistory?.sync(flueHistory.snapshot);
+  }, [mediationHistory, flueHistory.snapshot]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;
     reportBrunchFailure("history", flueHistory.error, {
@@ -746,12 +821,14 @@ export const LocalStorageDemoApp = ({
         conversationTracker,
         flueHistory.settlements,
         flueHistory.snapshot,
+        mediationHistory,
       ),
     [
       brunchSelected,
       conversationTracker,
       flueHistory.settlements,
       flueHistory.snapshot,
+      mediationHistory,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -830,9 +907,15 @@ export const LocalStorageDemoApp = ({
             prepareInput: (call) => {
               canonicalHostTools?.mapClientToolInput(call);
             },
+            admit: createBrunchMutationAdmission(mutationApproval.coordinator),
           })
         : undefined,
-    [constructionBrowser, flueClientPromise, canonicalHostTools],
+    [
+      constructionBrowser,
+      flueClientPromise,
+      canonicalHostTools,
+      mutationApproval,
+    ],
   );
 
   const draftInteractiveTool = useMemo(
@@ -883,18 +966,26 @@ export const LocalStorageDemoApp = ({
       ...(brunchSelected
         ? {
             primaryLabel: "Chat",
+            presentation: "brunch" as const,
+            mapMessagesForDisplay: mapVoiceMessages,
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
+            renderComposerControl: (
+              context: PetrinautAiComposerControlContext,
+            ) => <BrunchExperimentFollowUp context={context} />,
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
-      canClearMessages: flueClientPromise === null,
+      canClearMessages: true,
       // These exact-name tools override the static registry only while a
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
       inBandBrowserTools,
       automaticTools: [...(canonicalHostTools?.tools ?? [])],
-      interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],
+      interactiveTools: [
+        ...(inBandBrowserTools ? mutationApprovalTools : []),
+        ...(draftInteractiveTool ? [draftInteractiveTool] : []),
+      ],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
         ? {}
@@ -925,6 +1016,17 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
+        if (flueClientPromise !== null && incarnationId !== undefined) {
+          const initialId =
+            ordinaryConstructionConversationIdFrom(incarnationId);
+          const nextId = `${initialId}:${crypto.randomUUID()}`;
+          replaceBrunchConversationId(initialId, nextId);
+          setFreshConversationIds((current) => ({
+            ...current,
+            [incarnationId]: nextId,
+          }));
+          return;
+        }
         if (!currentNetId || flueClientPromise !== null) {
           return;
         }
@@ -943,11 +1045,14 @@ export const LocalStorageDemoApp = ({
     };
   }, [
     aiMessagesByNetId,
+    mapVoiceMessages,
     brunchSelected,
     brunchVoiceMode,
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
+    incarnationId,
+    mutationApprovalTools,
     constructionBrowser,
     conversationTracker,
     conversationId,

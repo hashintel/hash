@@ -28,7 +28,9 @@ use hash_middleware::{
     },
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
+use opentelemetry::{KeyValue, trace::TraceContextExt as _};
 use problematic::Expose;
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
 use crate::serve::{
     document::{
@@ -358,12 +360,25 @@ impl From<Report<VisibilityProofError>> for Problem<'static> {
 /// Carries an authentication failure as this crate's problem document.
 ///
 /// The status and detail are those of the middleware's public problem, and a failure the
-/// middleware answers with status `500` becomes `/problems/atlas/internal`. The report is expected
-/// to belong to an [`AuthenticationRejection`], which logs it when dropped.
+/// middleware answers with status `500` becomes `/problems/atlas/internal`. A failure answered with
+/// a server error is logged with its report, and any other failure is added to the current span.
 impl From<&Report<AuthenticationError>> for Problem<'static> {
     fn from(report: &Report<AuthenticationError>) -> Self {
         let answer = Expose::<AuthenticationProblem>::expose(report);
         let details = answer.details();
+        // TODO(BE-909): answer through `problematic` rejections, which the tracing layer records.
+        if details.status.is_server_error() {
+            tracing::error!(error = ?report, "credential verification failed");
+        } else {
+            let span = tracing::Span::current();
+            // A span that is not recorded drops the event, so the report is not formatted.
+            if span.context().span().is_recording() {
+                span.add_event(
+                    "credential rejected",
+                    vec![KeyValue::new("error", format!("{report:?}"))],
+                );
+            }
+        }
         if details.status == StatusCode::INTERNAL_SERVER_ERROR {
             return Self::internal_response(Cow::Borrowed("the credential could not be verified"));
         }

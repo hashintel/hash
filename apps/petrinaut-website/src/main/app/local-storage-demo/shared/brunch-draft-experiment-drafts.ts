@@ -1,10 +1,12 @@
-import type { PreparedExperiment } from "./describe-draft";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+import type { prepareExperiment } from "@hashintel/petrinaut/react";
+
+export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 
 /** Editor-local memory only: neither the document nor Flue history stores Run or Dismiss. */
 type EditorDraftRun =
@@ -15,9 +17,14 @@ type EditorDraftRun =
       progress: PetrinautExperimentProgress | null;
     }
   | { phase: "finished"; result: PetrinautExperimentResult }
-  | { phase: "failed"; message: string };
+  | {
+      phase: "failed";
+      message: string;
+      /** The host's error result, when it reported one rather than throwing. */
+      result?: PetrinautExperimentResult;
+    };
 
-type EditorDraft = {
+export type EditorDraft = {
   toolCallId: string;
   input: DraftPetrinautExperimentInput;
   /** Frozen model the person reviewed, including simulation-only inputs. */
@@ -28,6 +35,8 @@ type EditorDraft = {
   invalid: string | null;
   dismissed: boolean;
   run: EditorDraftRun;
+  /** One completion turn per local run, independent of the original tool output. */
+  followUp?: "pending" | "sent" | "failed";
 };
 
 type EditorDraftsState = {

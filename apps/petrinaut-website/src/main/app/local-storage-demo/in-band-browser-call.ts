@@ -23,6 +23,20 @@ const issuedInputSchemas: Readonly<
   [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
 };
 
+/**
+ * Decides, after the claim and before `prepareInput`, whether a call may
+ * start. A refused call settles with the given output and never starts.
+ */
+export type InBandBrowserCallAdmission = (call: {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: unknown;
+  readonly signal: AbortSignal;
+}) => Promise<
+  | { readonly admitted: true }
+  | { readonly admitted: false; readonly output: unknown }
+>;
+
 /** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
 export const createInBandBrowserCalls = (input: {
   readonly client: Promise<FlueClient>;
@@ -37,6 +51,7 @@ export const createInBandBrowserCalls = (input: {
     toolName: string;
     input: unknown;
   }) => void;
+  readonly admit?: InBandBrowserCallAdmission;
 }) => {
   const claim = async (call: {
     readonly toolCallId: string;
@@ -183,6 +198,11 @@ export const createInBandBrowserCalls = (input: {
       let started = false;
       try {
         if (call.signal.aborted) return;
+        const admission = (await input.admit?.(call)) ?? { admitted: true };
+        if (!admission.admitted) {
+          await issued.submit(admission.output);
+          return;
+        }
         input.prepareInput({
           toolCallId: call.toolCallId,
           toolName: call.toolName,

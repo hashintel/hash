@@ -9,6 +9,13 @@ import type { ComponentType } from "react";
 export type InteractiveToolWidgetProps<Input, Output> =
   PetrinautAiInteractiveToolWidgetProps<Input, Output>;
 
+/** A tool call as the interactive-tool registry sees it. */
+export type InteractiveToolCall = {
+  toolName: string;
+  toolCallId: string;
+  input: unknown;
+};
+
 /**
  * Descriptor for an AI tool that requires synchronous user input rendered
  * inline in the chat. The registry maps tool names to a definition; the panel
@@ -18,13 +25,14 @@ export type InteractiveToolWidgetProps<Input, Output> =
  */
 export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   toolName: string;
+  placement?: "work" | "card";
   /**
    * Whether this tool call should be handled interactively. Lets a single
    * tool branch between interactive and non-interactive paths based on its
    * input shape (e.g. `applyAutoLayout` is interactive only when
    * `askUserFirst: true`).
    */
-  shouldHandle: (input: unknown) => boolean;
+  shouldHandle: (input: unknown, call: { toolCallId: string }) => boolean;
   /** Parse the raw input into the widget's typed input. */
   parseInput: (raw: unknown) => Input;
   /** Parse the widget's output before submitting it to the AI SDK. */

@@ -16,7 +16,7 @@ import {
   type SortDirection,
   writeSavedSort,
   directionsOf,
-  directionIcons,
+  directionIcon,
   flipped,
   type Sorter,
 } from "./sort-menu-util";
@@ -38,6 +38,7 @@ export const SortMenu = <SortKey extends string = string>({
   onChange,
   saveSortId,
   searchable = false,
+  align = "left",
   renderTrigger = "default",
   variant = "subtle",
   size = "sm",
@@ -54,6 +55,8 @@ export const SortMenu = <SortKey extends string = string>({
   saveSortId?: string | null; // id to save selection to localStorage
   /** Adds a search bar to the top of the dropdown that filters the sorters */
   searchable?: boolean;
+  /** Which side of the trigger label the sort icon sits on. Defaults to left. */
+  align?: "left" | "right";
   /**
    * "default" labels the trigger with the active sorter's name; "icon"
    * collapses it to an icon-only button. A function renders a fully custom trigger
@@ -220,12 +223,12 @@ export const SortMenu = <SortKey extends string = string>({
               flipDirection(sorter);
             }}
           >
-            <Icon name={directionIcons[direction]} size="sm" />
+            <Icon name={directionIcon(sorter, direction)} size="sm" />
           </button>
         </span>
       ) : directions.length === 1 ? (
         <span className={directionSuffix()} aria-hidden="true">
-          <Icon name={directionIcons[direction]} size="sm" />
+          <Icon name={directionIcon(sorter, direction)} size="sm" />
         </span>
       ) : undefined,
     };
@@ -256,7 +259,7 @@ export const SortMenu = <SortKey extends string = string>({
       <span
         role="button"
         tabIndex={-1}
-        className={triggerDirectionToggle({ size })}
+        className={triggerDirectionToggle({ size, align })}
         aria-label={`Sort by ${selectedSorter.name}, ${flipped(value.direction).toLowerCase()}`}
         onPointerDown={(event) => {
           event.preventDefault();
@@ -277,27 +280,30 @@ export const SortMenu = <SortKey extends string = string>({
         }}
       >
         <Icon
-          name={directionIcons[value.direction]}
+          name={directionIcon(selectedSorter, value.direction)}
           size={buttonIconSizeMap[size]}
           className={triggerIcon({ size })}
         />
       </span>
     ) : undefined;
 
-  // Default to a direction-aware sort glyph, but let a caller's own icon
-  // props (either Button icon flavour) take over wholesale.
+  // Default to a direction-aware sort glyph on the `align` side, but let a
+  // caller's own icon props (either Button icon flavour) take over wholesale.
   const triggerIconProps =
     iconName !== undefined || prefix !== undefined || suffix !== undefined
       ? iconName !== undefined
         ? { iconName, iconPosition }
         : { prefix, suffix }
       : flippableTriggerIcon !== undefined
-        ? { prefix: flippableTriggerIcon }
+        ? align === "right"
+          ? { suffix: flippableTriggerIcon }
+          : { prefix: flippableTriggerIcon }
         : {
             iconName:
               value && selectedHasDirection
-                ? directionIcons[value.direction]
+                ? directionIcon(selectedSorter, value.direction)
                 : ("sortDown" as const),
+            iconPosition: align === "right" ? ("right" as const) : undefined,
           };
 
   const trigger =
@@ -316,7 +322,7 @@ export const SortMenu = <SortKey extends string = string>({
             : "Sort"
         }
         {...buttonProps}
-        className={cx(triggerButton(), className)}
+        className={cx(triggerButton({ align }), className)}
         variant={variant}
         size={size}
         {...triggerIconProps}

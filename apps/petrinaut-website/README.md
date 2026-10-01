@@ -125,6 +125,12 @@ Brunch prose is offered to Live as delegation-correlated commentary; Live has no
 tools and must not answer domain questions independently. These instructions are
 best effort, not an enforced speech boundary.
 
+Each admitted Live turn includes the complete finalized transcript and optional
+verbatim brief excerpts. Missing-field placeholders are not submitted as facts
+or unresolved questions. Brunch interprets short replies and instructions in the
+existing conversation; the extractor does not resolve their meaning. Finalized
+words are saved in Brunch history, while spoken captions remain browser-local.
+
 From the repository root, with `OPENAI_VOICE_API_KEY` already exported (or in
 this worktree's `apps/petrinaut-website/.env.local`):
 
@@ -140,8 +146,8 @@ PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunc
 
 Open [http://localhost:4915/new](http://localhost:4915/new), dismiss the tour if shown, open the AI panel,
 and select the waveform **Start voice mode** action in the empty composer.
-Read the short audio-processing disclosure, allow microphone audio for voice and
-transcription, then choose **Start voice**. **Cancel** returns to text without starting a session.
+Read the audio-processing and text-retention disclosure, acknowledge how voice
+data is handled, then choose **Start voice**. **Cancel** returns to text without starting a session.
 Only that last action requests microphone access and a billable Live session.
 Use headphones for the first trial. HTTPS or localhost and an OpenAI project
 with GPT-Live-1 access are required.
@@ -423,6 +429,12 @@ Flue history is the source used when the same net is reopened. Automated
 coverage guards a locally submitted turn from an older hydration snapshot and
 does not resubmit turns or replay settled audio. The real hard-reload witness is
 still pending, so reload parity is not yet claimed for this preview.
+Stopping an admitted response supplies Live with quiet, bounded context identifying
+the request and its correlated visible partial answer. Failed responses and
+unconfirmed admissions receive separate status instructions. **Continue** enters
+Brunch as a new request in the existing conversation, not a replay of the stopped
+submission or its tools. Partial-answer context never enters the completed-answer
+speech path. Delivery and provider interpretation remain best effort.
 Voice-origin client-tool results retain their markers in Flue history. Direct
 spoken user turns remain canonical text, but Flue 2.0.3 does not yet expose the
 caller delivery metadata needed to restore their Voice chip after reopening.
@@ -489,7 +501,9 @@ speech segments to Realtime. It instructs Realtime to speak only those
 segments. Generated audio is not a verbatim recording: canonical Brunch text
 remains visible and authoritative. **Interruption by speaking** is enabled by
 default: speech detection immediately cancels generation and clears output audio,
-never the input buffer. The completed answer waits if Brunch is still busy.
+never the input buffer. If new speech cancels brief preparation before admission,
+the finalized words remain in the composer as an unsent message. Stop and session
+teardown still withdraw them. The completed answer waits if Brunch is still busy.
 False speech detection may still stop playback even if the transcript is later
 discarded. Disable this browser-saved preference for half-duplex capture: the
 microphone closes during assistant output, and audio captured before a completed

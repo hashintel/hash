@@ -66,7 +66,8 @@ const phaseLevel: Record<
   // Connectivity alone is not evidence that either side is speaking.
   connected: () => 0,
   connecting: (seconds) => 0.1 + Math.sin(seconds * 2.2) * 0.04,
-  error: () => 0,
+  // Slow, self-driven motion signals interruption, not microphone activity.
+  error: (seconds) => 0.22 + Math.sin(seconds * 1.5) * 0.06,
   listening: (_seconds, microphoneLevel) =>
     clamp01(microphoneLevel) ** microphoneCurve * microphoneGain,
   muted: () => 0,
@@ -94,7 +95,7 @@ const ribbonStyle = cva({
     phase: {
       connected: { color: "blue.s90" },
       connecting: { color: "neutral.s80" },
-      error: { color: "neutral.s80" },
+      error: { color: "red.s90" },
       listening: { color: "blue.s90" },
       muted: { color: "neutral.s80" },
       paused: { color: "neutral.s80" },
@@ -217,7 +218,11 @@ export const VoiceSessionIndicator = ({
 
     const levelOf = phaseLevel[phase];
     const travelSpeed =
-      phase === "speaking" ? speakingTravelSpeed : listeningTravelSpeed;
+      phase === "error"
+        ? 1.6
+        : phase === "speaking"
+          ? speakingTravelSpeed
+          : listeningTravelSpeed;
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;

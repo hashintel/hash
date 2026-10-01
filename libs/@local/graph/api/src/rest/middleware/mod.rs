@@ -2,20 +2,24 @@
 mod tests;
 
 use alloc::sync::Arc;
+use core::any::Any;
 
 use aide::{
     transform::{TransformOpenApi, TransformOperation},
     util::iter_operations_mut,
 };
-use axum::Router;
+use axum::{Router, response::Response};
 use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
     },
+    problem::InternalServerError,
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
     response::{problem_response, status_problem},
 };
 use http::{Method, StatusCode, Uri};
+use problematic::{ProblemDetails, ProblemVariant as _};
+use tower_http::catch_panic::CatchPanicLayer;
 use type_system::principal::actor::ActorId;
 
 use super::{Api, Audience, legacy};
@@ -36,6 +40,24 @@ pub(super) fn document(mut document: TransformOpenApi<'_>) -> TransformOpenApi<'
         }
     }
     document
+}
+
+/// Answers a request with a method its path does not serve.
+///
+/// Axum adds the `Allow` header.
+pub(super) async fn method_not_allowed(method: Method, uri: Uri) -> Response {
+    tracing::debug!(%method, path = uri.path(), "path does not serve the method");
+    problem_response(&status_problem(StatusCode::METHOD_NOT_ALLOWED))
+}
+
+/// Answers a request whose handling panicked.
+///
+/// Sentry's panic hook reports the panic.
+fn panicked(_panic: Box<dyn Any + Send>) -> Response {
+    problem_response(
+        &ProblemDetails::from(InternalServerError::TYPE)
+            .with_detail(InternalServerError.to_string()),
+    )
 }
 
 pub(super) struct Middleware<P, I> {
@@ -61,13 +83,17 @@ where
         }
     }
 
-    /// Attaches authentication and the caller budget to the legacy routes and to each API,
-    /// then puts the address gate over everything, including the documentation routes and the 404
-    /// fallback. The legacy routes and every API draw on the same budgets.
+    /// Attaches authentication and the caller budget to the legacy routes and to each API, and puts
+    /// the address gate over everything.
+    ///
+    /// The address gate also covers the documentation routes and the problem documents for an
+    /// unknown path and for a method its path does not serve. The legacy routes and every API draw
+    /// on the same budgets, and answer a method a path does not serve after authentication. A
+    /// request whose handling panics is answered with [`InternalServerError`].
     ///
     /// # Panics
     ///
-    /// Panics if the routes of two groups overlap.
+    /// Panics if two groups serve the same path.
     pub(super) fn assemble(
         &self,
         legacy_routes: Router,
@@ -82,8 +108,11 @@ where
         for api in apis {
             router = router.merge(self.attach_api(api));
         }
+        // Axum sets the method-not-allowed fallback only on routes without one, which leaves the
+        // documentation routes.
         router
             .merge(documentation)
+            .method_not_allowed_fallback(method_not_allowed)
             .fallback(|method: Method, uri: Uri| async move {
                 tracing::debug!(%method, path = uri.path(), "no route matched");
                 problem_response(&status_problem(StatusCode::NOT_FOUND))
@@ -92,6 +121,7 @@ where
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Arc::clone(&self.service_secret),
             })
+            .layer(CatchPanicLayer::custom(panicked))
     }
 
     fn attach<A>(
@@ -108,8 +138,10 @@ where
             return routes;
         }
 
-        // Authentication runs before the caller limiter; route layers skip unmatched paths.
+        // Authentication runs before the caller limiter; route layers skip unmatched paths. The
+        // method-not-allowed fallback is set first, so the route layers wrap it too.
         routes
+            .method_not_allowed_fallback(method_not_allowed)
             .route_layer(CallerLimitLayer {
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Arc::clone(&self.service_secret),

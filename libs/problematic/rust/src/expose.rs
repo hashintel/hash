@@ -5,7 +5,7 @@ use http::HeaderMap;
 use serde_core::Serialize;
 
 use crate::{
-    Problem, ProblemDetails, ProblemVariant,
+    Problem, ProblemDetails, ProblemType, ProblemVariant,
     problem::{Occurrence, contains},
 };
 
@@ -102,6 +102,11 @@ impl<'s, K: Problem> Answer<'s, K> {
 }
 
 impl<K> Answer<'_, K> {
+    /// The problem type of the variant.
+    pub(crate) fn problem_type(&self) -> ProblemType {
+        self.occurrence.problem_type()
+    }
+
     /// The [`ProblemDetails`] the client receives.
     #[must_use]
     pub fn details(&self) -> ProblemDetails<'_, impl Serialize + '_> {

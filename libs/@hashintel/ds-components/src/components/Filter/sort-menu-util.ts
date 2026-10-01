@@ -8,17 +8,31 @@ export type SortDirectionsAvailable =
   | "descending"
   | "both";
 
+export type SortIcon = "alphabetical" | "numeric" | "generic";
+
 export type Sorter<SortKey> = {
   name: string;
   sortKey: SortKey;
   /** Defaults to "both" */
   directionsAvailable?: SortDirectionsAvailable;
+  /** Glyph family for the direction icons. Defaults to "alphabetical" */
+  sortIcon?: SortIcon;
 };
 
-export const directionIcons: Record<SortDirection, IconName> = {
-  ASCENDING: "sortDownAZ",
-  DESCENDING: "sortUpAZ",
+const directionIconsBySortIcon: Record<
+  SortIcon,
+  Record<SortDirection, IconName>
+> = {
+  alphabetical: { ASCENDING: "sortUpAZ", DESCENDING: "sortDownAZ" },
+  numeric: { ASCENDING: "sortUp19", DESCENDING: "sortDown19" },
+  generic: { ASCENDING: "sortUp", DESCENDING: "sortDown" },
 };
+
+export const directionIcon = (
+  sorter: Pick<Sorter<string>, "sortIcon"> | undefined,
+  direction: SortDirection,
+): IconName =>
+  directionIconsBySortIcon[sorter?.sortIcon ?? "alphabetical"][direction];
 
 const directionsByAvailability: Record<
   SortDirectionsAvailable,

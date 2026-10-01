@@ -89,6 +89,12 @@ it.each(["simulate", "optimize"] as const)(
     expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe(
       "6",
     );
+    const kind = screen.getByText(
+      mode === "simulate" ? "Simulation" : "Optimization",
+    );
+    expect(screen.getByText("Staffing").nextElementSibling).toBe(
+      kind.parentElement,
+    );
     if (mode === "optimize") {
       expect(screen.getByText("Step 3 of 4")).toBeTruthy();
       view.rerender(
@@ -159,16 +165,20 @@ it.each(["simulate", "optimize"] as const)(
 );
 
 it("distinguishes an execution error from an unavailable result", () => {
+  const onRetry = vi.fn();
   const view = render(
     <ExperimentExecutionCard
       request={request}
       active
       error="Compilation failed"
+      onRetry={onRetry}
     />,
   );
   expect(screen.getByRole("status").textContent).toBe("Failed");
   expect(screen.getByText("Compilation failed")).toBeTruthy();
   expect(screen.queryByText(/No result is available/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+  expect(onRetry).toHaveBeenCalledTimes(1);
   view.rerender(<ExperimentExecutionCard request={request} active={false} />);
   expect(screen.getByRole("status").textContent).toBe("Not running");
   expect(screen.getByText(/No result is available/)).toBeTruthy();

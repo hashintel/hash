@@ -13,6 +13,7 @@ import {
   OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
 } from "./openai-voice-policy.js";
 import { createVoiceRequestDiagnostics } from "./voice-request-diagnostics.js";
+import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const OPENAI_REALTIME_CALLS_ENDPOINT =
   "https://api.openai.com/v1/realtime/calls";
@@ -85,27 +86,28 @@ export const createOpenAIRealtimeCallHandler =
         errorCode,
       );
 
-    if (request.method !== "POST") {
+    const rejection = guardVoiceRequest(
+      request,
+      "application/sdp",
+      MAX_SDP_BYTES,
+    );
+    if (rejection === "method") {
       return diagnostics.respond(
         response("Method not allowed.", 405, { allow: "POST" }),
       );
     }
 
-    const requestOrigin = new URL(request.url).origin;
-    if (request.headers.get("origin") !== requestOrigin) {
+    if (rejection === "origin") {
       return diagnostics.respond(response("Forbidden.", 403));
     }
 
-    const contentType = request.headers
-      .get("content-type")
-      ?.split(";", 1)[0]
-      ?.trim()
-      .toLowerCase();
-    if (contentType !== "application/sdp") {
+    if (rejection === "content-type") {
       return diagnostics.respond(
         response("The request must contain an SDP offer.", 415),
       );
     }
+    if (rejection === "content-length")
+      return diagnostics.respond(response("The SDP offer is too large.", 413));
 
     if (!getOpenAIVoiceAvailability(environment).available) {
       return voiceFailure("unavailable", 404);

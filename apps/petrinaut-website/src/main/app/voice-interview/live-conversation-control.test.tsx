@@ -20,6 +20,7 @@ import {
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
 } from "./voice-interview-control";
+import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
@@ -38,6 +39,7 @@ vi.mock("./live-conversation", () => ({
     stop: liveConversationMocks.stop,
     appendCommentary: vi.fn(() => true),
     appendInstructions: vi.fn(() => true),
+    appendThinking: vi.fn(() => true),
     speechPending: vi.fn(() => true),
     setMicrophoneMuted: liveConversationMocks.setMicrophoneMuted,
     setSpeakerMuted: liveConversationMocks.setSpeakerMuted,
@@ -65,6 +67,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   window.localStorage.clear();
 });
 
@@ -89,6 +92,34 @@ const config = {
   provider: "live" as const,
   connectionTimeoutMs: 15_000,
 };
+test("checks the Live microphone locally, releases tracks and never starts a session", async () => {
+  const stopTrack = vi.fn();
+  const getUserMedia = vi.fn(async () => ({
+    getTracks: () => [{ stop: stopTrack }],
+  }));
+  const previous = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia },
+  });
+  try {
+    render(<VoiceInterviewControl {...context()} config={config} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Test microphone" }),
+    );
+    await screen.findByText("Microphone ready. No audio was sent.");
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+    expect(stopTrack).toHaveBeenCalledOnce();
+    expect(createLiveConversation).not.toHaveBeenCalled();
+    expect(screen.getByRole("checkbox").getAttribute("aria-checked")).not.toBe(
+      "true",
+    );
+  } finally {
+    if (previous) Object.defineProperty(navigator, "mediaDevices", previous);
+    else Reflect.deleteProperty(navigator, "mediaDevices");
+  }
+});
+
 const start = async () => {
   fireEvent.click(screen.getByRole("checkbox"));
   await waitFor(() =>
@@ -105,9 +136,16 @@ test.each(["log", undefined] as const)(
   "wires judgment mode %s without waiting for it to submit",
   async (utteranceJudgment) => {
     const pending = Promise.withResolvers<Response>();
-    const fetch = vi
-      .spyOn(globalThis, "fetch")
-      .mockReturnValue(pending.promise);
+    const fetch = vi.fn<typeof globalThis.fetch>(async (url) =>
+      url === "/api/voice/utterance-judgment"
+        ? pending.promise
+        : Response.json({ fields: {} }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const judgmentCalls = () =>
+      fetch.mock.calls.filter(
+        ([url]) => url === "/api/voice/utterance-judgment",
+      );
     const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
     window.localStorage.setItem(
       LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
@@ -134,11 +172,12 @@ test.each(["log", undefined] as const)(
           startedDuringOutput: false,
         }),
       );
-      expect(props.submitVoiceInput).toHaveBeenCalledOnce();
-      expect(fetch).toHaveBeenCalledTimes(utteranceJudgment === "log" ? 1 : 0);
+      await waitFor(() =>
+        expect(props.submitVoiceInput).toHaveBeenCalledOnce(),
+      );
+      expect(judgmentCalls()).toHaveLength(utteranceJudgment === "log" ? 1 : 0);
       if (utteranceJudgment === "log") {
-        expect(fetch.mock.calls[0]?.[0]).toBe("/api/voice/utterance-judgment");
-        expect(fetch.mock.calls[0]?.[1]?.body).toBe(
+        expect(judgmentCalls()[0]?.[1]?.body).toBe(
           JSON.stringify({
             transcript: "PRIVATE OKAY",
             offeredBrunchText: null,
@@ -158,11 +197,292 @@ test.each(["log", undefined] as const)(
       expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
     } finally {
       pending.resolve(Response.json({}));
-      fetch.mockRestore();
       debug.mockRestore();
     }
   },
 );
+test("streams a display-only user bubble, then prepares and admits only corrected final text", async () => {
+  let resolveBrief!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveBrief = resolve;
+        }),
+    ),
+  );
+  const props = context();
+  props.submitVoiceInput = vi.fn<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(async () => ({
+    kind: "message",
+    messageId: "final",
+  }));
+  const history = new VoiceMediationHistory("standalone");
+  const { unmount } = render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={history}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "partial",
+      text: "Compare four",
+      startMs: 100,
+      endMs: 300,
+    });
+  });
+  expect(history.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare four", state: "streaming" },
+  ]);
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  expect(fetch).not.toHaveBeenCalled();
+  act(() =>
+    call[2]({
+      id: "final",
+      text: "Compare seven agents",
+      startedDuringOutput: false,
+    }),
+  );
+  expect(history.project([])).toHaveLength(1);
+  expect(history.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare seven agents" },
+    { type: "data-brief", data: { fields: {}, state: "streaming" } },
+  ]);
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/voice/mediation",
+    expect.objectContaining({
+      body: JSON.stringify({ kind: "brief", text: "Compare seven agents" }),
+    }),
+  );
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  await act(async () =>
+    resolveBrief(
+      new Response(
+        JSON.stringify({
+          fields: { decide: "seven agents", stillOpen: "runs" },
+        }),
+        { status: 200 },
+      ),
+    ),
+  );
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+  const submitted = vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0];
+  expect(submitted?.id).toBe("final");
+  expect(submitted?.text).toContain('"utterance":"Compare seven agents"');
+  expect(submitted?.text).not.toContain("Compare four");
+  expect(submitted?.text).not.toContain("Still open");
+  act(() =>
+    call[6]?.input({ id: "late", text: "wrong", startMs: 300, endMs: 400 }),
+  );
+  expect(
+    history
+      .project([])
+      .some((message) =>
+        message.parts.some((part) => "text" in part && part.text === "wrong"),
+      ),
+  ).toBe(false);
+  unmount();
+  act(() =>
+    call[6]?.input({ id: "closed", text: "ghost", startMs: 500, endMs: 600 }),
+  );
+  expect(
+    history
+      .project([])
+      .some((message) =>
+        message.parts.some((part) => "text" in part && part.text === "ghost"),
+      ),
+  ).toBe(false);
+});
+
+test("writes Live previews and briefs to the current conversation's history after a switch", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const first = new VoiceMediationHistory("first");
+  const second = new VoiceMediationHistory("second");
+  const { rerender } = render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={first}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={second}
+      config={config}
+    />,
+  );
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "preview",
+      text: "Compare four",
+      startMs: 100,
+      endMs: 300,
+    });
+  });
+  expect(second.project([])[0]?.parts).toEqual([
+    { type: "text", text: "Compare four", state: "streaming" },
+  ]);
+  act(() =>
+    call[2]({
+      id: "final",
+      text: "Compare seven agents",
+      startedDuringOutput: false,
+    }),
+  );
+  expect(second.project([]).map((message) => message.id)).toEqual(["final"]);
+  expect(first.project([])).toEqual([]);
+});
+
+const renderSwitchingLive = async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const first = new VoiceMediationHistory("first");
+  const second = new VoiceMediationHistory("second");
+  const { rerender } = render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={first}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({ id: "one", text: "Compare", startMs: 100, endMs: 300 });
+  });
+  const switchConversation = () =>
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        mediationHistory={second}
+        config={config}
+      />,
+    );
+  return { call, first, second, switchConversation };
+};
+
+test("captions a Live turn in the history it began in after a switch", async () => {
+  const { call, first, second, switchConversation } =
+    await renderSwitchingLive();
+  act(() =>
+    call[2]({
+      id: "final",
+      text: "Compare seven agents",
+      startedDuringOutput: false,
+    }),
+  );
+  switchConversation();
+
+  act(() =>
+    call[6]?.output({
+      id: "reply",
+      text: "I'll compare those.",
+      startMs: 400,
+      endMs: 600,
+    }),
+  );
+  expect(
+    first.project([]).find((message) => message.id === "voice-reply:final")
+      ?.parts,
+  ).toEqual([
+    {
+      type: "data-voiceAgentReply",
+      data: { text: "I'll compare those.", state: "streaming" },
+    },
+  ]);
+  expect(second.project([])).toEqual([]);
+});
+
+test("retires a Live preview from the history it began in after a switch", async () => {
+  const { call, first, second, switchConversation } =
+    await renderSwitchingLive();
+  switchConversation();
+
+  act(() => call[6]?.closed());
+  expect(first.project([])).toEqual([]);
+  expect(second.project([])).toEqual([]);
+});
+
+test("a delayed superseded final never replaces the newer Live input preview", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const history = new VoiceMediationHistory("standalone");
+  render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={history}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({ id: "old", text: "four", startMs: 100, endMs: 200 });
+    call[6]?.started();
+    call[6]?.input({
+      id: "current",
+      text: "seven",
+      startMs: 1000,
+      endMs: 1200,
+    });
+  });
+  const preview = history.project([])[0];
+  expect(preview?.parts).toEqual([
+    { type: "text", text: "seven", state: "streaming" },
+  ]);
+  act(() =>
+    call[2]({
+      id: "old-final",
+      text: "Four agents",
+      superseded: true,
+      startedDuringOutput: false,
+    }),
+  );
+  expect(
+    history.project([]).find((message) => message.id === preview?.id),
+  ).toEqual(preview);
+  expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  act(() => call[6]?.closed());
+  expect(
+    history.project([]).some((message) => message.id === preview?.id),
+  ).toBe(false);
+  act(() =>
+    call[6]?.input({
+      id: "after-close",
+      text: "ghost",
+      startMs: 1300,
+      endMs: 1400,
+    }),
+  );
+  expect(
+    history
+      .project([])
+      .some((message) => message.id.startsWith("voice-preview:")),
+  ).toBe(false);
+});
 
 test.each([true, false])(
   "withholds judged control speech with development traces %s",
@@ -297,6 +617,28 @@ test("does not reuse the Realtime voice disclosure acknowledgement", () => {
   expect(createLiveConversation).not.toHaveBeenCalled();
 });
 
+test("requires renewed consent to save finalized spoken words beyond the browser", () => {
+  window.localStorage.setItem(
+    "petrinaut:live-voice-interview-disclosure:v2",
+    "acknowledged",
+  );
+  render(<VoiceInterviewControl {...context()} config={config} />);
+  expect(
+    screen.getByRole("region", { name: "Voice mode consent" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(
+      /Brunch saves your finalized spoken words, the brief and its answer/,
+    ),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("checkbox", {
+      name: "I understand how voice data is handled.",
+    }),
+  ).toBeTruthy();
+  expect(createLiveConversation).not.toHaveBeenCalled();
+});
+
 test("starts acknowledged Live after the previous session finishes stopping", () => {
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
@@ -316,6 +658,13 @@ test("starts acknowledged Live after the previous session finishes stopping", ()
 
   rerender(<VoiceInterviewControl {...props} config={config} />);
 
+  expect(screen.getByText("Stopping voice…")).toBeTruthy();
+  expect(screen.queryByText("Voice disconnected")).toBeNull();
+  expect(
+    screen
+      .getByRole("button", { name: "Retry voice" })
+      .hasAttribute("disabled"),
+  ).toBe(true);
   expect(createLiveConversation).toHaveBeenCalledOnce();
   act(() =>
     onState({
@@ -358,6 +707,15 @@ test("retries an acknowledged Live failure without requesting consent again", as
   ).toBeNull();
   expect(screen.getByRole("region", { name: "Voice mode retry" })).toBeTruthy();
   expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(screen.getByText("Voice disconnected")).toBeTruthy();
+  expect(screen.getByText("Try again, or continue in chat.")).toBeTruthy();
+  const details = screen
+    .getByText("Live media connection ended.")
+    .closest("details");
+  expect(details).not.toBeNull();
+  expect(details?.open).toBe(false);
+  expect(screen.getByText("Technical details")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Back to chat" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Retry voice" }));
 
@@ -969,8 +1327,30 @@ test.each(["live", "realtime", "live-experience"])(
   },
 );
 
-test("final transcription enters the real admission helper and only its settled canonical prose reaches Live", async () => {
+const mockMediation = () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async (_url, options) => {
+    if (typeof options?.body !== "string")
+      throw new Error("Expected JSON body");
+    const input = JSON.parse(options.body) as { kind: string };
+    return Response.json(
+      input.kind === "brief"
+        ? {
+            fields: {
+              goal: "Seven reviewers, not four.",
+              stillOpen: "arrivals",
+            },
+          }
+        : { text: "Brunch has a question for you." },
+    );
+  });
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+};
+
+test("the prepared brief enters the real admission helper and only its settled canonical prose is summarized for Live", async () => {
+  const fetch = mockMediation();
   const tracker = new BrunchPanelConversationTracker();
+  const history = new VoiceMediationHistory("test");
   const props = context();
   props.submitVoiceInput = vi.fn<
     PetrinautAiVoiceModeContext["submitVoiceInput"]
@@ -989,6 +1369,7 @@ test("final transcription enters the real admission helper and only its settled 
     return { kind: "message", messageId: id };
   });
   const wiring = {
+    mediationHistory: history,
     resolveInputSubmission: tracker.submissionForInput.bind(tracker),
     resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
     subscribeToAdmission: (
@@ -1014,6 +1395,21 @@ test("final transcription enters the real admission helper and only its settled 
   const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
     .value as ReturnType<typeof createLiveConversation>;
   act(() => call[0]({ phase: "connected", message: null }));
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "in",
+      text: "Seven reviewers, not four.",
+      startMs: 100,
+      endMs: 200,
+    });
+    call[6]?.output({
+      id: "ack",
+      text: "I'll check. Do all",
+      startMs: 300,
+      endMs: 400,
+    });
+  });
   act(() => call[3]("delegation-1"));
   await act(async () =>
     call[2]({
@@ -1022,10 +1418,13 @@ test("final transcription enters the real admission helper and only its settled 
       startedDuringOutput: false,
     }),
   );
-  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
-  expect(props.submitVoiceInput).toHaveBeenCalledWith(
-    expect.objectContaining({ text: "Seven reviewers, not four." }),
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+  expect(vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0].text).toContain(
+    '"utterance":"Seven reviewers, not four."',
   );
+  expect(
+    vi.mocked(props.submitVoiceInput).mock.calls[0]?.[0].text,
+  ).not.toContain("Still open");
   const response = {
     messageId: "answer",
     submissionId: "root",
@@ -1070,10 +1469,62 @@ test("final transcription enters the real admission helper and only its settled 
       config={config}
     />,
   );
-  expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    "Are all seven reviewers required?",
-    "delegation-1",
+  await waitFor(() =>
+    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Brunch has a question for you.",
+      "delegation-1",
+    ),
   );
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/voice/mediation",
+    expect.objectContaining({
+      body: JSON.stringify({
+        kind: "wrap-up",
+        text: "Are all seven reviewers required?",
+      }),
+    }),
+  );
+  act(() => {
+    const append = {
+      eventId: "summary",
+      kind: "commentary" as const,
+      delegationId: "delegation-1",
+    };
+    call[4]({ ...append, status: "unknown" });
+    call[4]({ ...append, status: "accepted", startMs: 500 });
+    call[6]?.output({
+      id: "spoken",
+      text: " seven need to review?",
+      startMs: 600,
+      endMs: 900,
+    });
+  });
+  const projected = history.project([
+    {
+      id: "utterance-1",
+      role: "user",
+      parts: [{ type: "text", text: "Canonical brief" }],
+    },
+    ...messages,
+  ]);
+  expect(projected.map((entry) => entry.id)).toEqual([
+    "utterance-1",
+    "voice-reply:utterance-1",
+    "answer",
+    "voice-wrap-up:utterance-1",
+  ]);
+  expect(projected[0]?.parts[0]).toEqual({
+    type: "text",
+    text: "Seven reviewers, not four.",
+  });
+  expect(projected[1]?.parts[0]).toEqual({
+    type: "data-voiceAgentReply",
+    data: { text: "I'll check. ", state: "done" },
+  });
+  expect(projected.at(-1)?.parts[0]).toEqual({
+    type: "data-voiceAgentWrapUp",
+    data: { text: "Do all seven need to review?", state: "streaming" },
+  });
   act(() => tracker.recordStopRequested());
   expect(session.stop).not.toHaveBeenCalled();
   await act(async () =>
@@ -1083,13 +1534,200 @@ test("final transcription enters the real admission helper and only its settled 
       startedDuringOutput: false,
     }),
   );
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
+});
+
+test("Stop sends the partial answer to Live quietly and Continue admits one new turn", async () => {
+  const fetch = mockMediation();
+  const tracker = new BrunchPanelConversationTracker();
+  const props = context();
+  props.submitVoiceInput = vi.fn<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(async ({ id }) => {
+    if (!id) throw new Error("Missing stable input identity");
+    tracker.recordAdmission({
+      kind: "user",
+      messageId: id,
+      admission: {
+        submissionId: `submission-${id}`,
+        uid: "test",
+        offset: "opaque",
+        streamUrl: "http://local/stream",
+      },
+    });
+    return { kind: "message", messageId: id };
+  });
+  const wiring = {
+    resolveInputSubmission: tracker.submissionForInput.bind(tracker),
+    resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
+    subscribeToAdmission: (
+      target: Parameters<typeof tracker.subscribeToAdmission>[0],
+      listener: (id: string) => void,
+    ) =>
+      tracker.subscribeToAdmission(target, (event) =>
+        listener(event.admission.submissionId),
+      ),
+    subscribeToResponseMessageStarted:
+      tracker.subscribeToResponseMessageStarted.bind(tracker),
+    subscribeToResponseMessageCompleted:
+      tracker.subscribeToResponseMessageCompleted.bind(tracker),
+    subscribeToStopRequested: tracker.subscribeToStopRequested.bind(tracker),
+  };
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} {...wiring} config={config} />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+    .value as ReturnType<typeof createLiveConversation>;
+  act(() => call[0]({ phase: "connected", message: null }));
+  act(() => call[3]("original-delegation"));
+  await act(async () =>
+    call[2]({
+      id: "original",
+      text: "Use sensible defaults",
+      startedDuringOutput: false,
+    }),
+  );
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+  const response = {
+    messageId: "partial-answer",
+    submissionId: "submission-original",
+    position: { batch: 1, index: 0 },
+  };
+  act(() => tracker.recordResponse(response));
+  const messages: PetrinautAiVoiceModeContext["messages"] = [
+    {
+      id: "partial-answer",
+      role: "assistant",
+      parts: [
+        {
+          type: "text",
+          text: "Orders queue until a handler is available. Then",
+          state: "streaming",
+        },
+      ],
+    },
+  ];
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      status="streaming"
+      config={config}
+    />,
+  );
+  act(() => tracker.recordStopRequested());
+  expect(session.appendThinking).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining(
+      '"partialAnswerTail":"Orders queue until a handler is available. Then"',
+    ),
+    null,
+  );
+  expect(session.appendCommentary).not.toHaveBeenCalled();
+  expect(session.stop).not.toHaveBeenCalled();
+
+  const settlements = [
+    { submissionId: "submission-original", outcome: "aborted" as const },
+  ];
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={messages}
+      settlements={settlements}
+      config={config}
+    />,
+  );
+  act(() => {
+    call[6]?.started();
+    call[3]("resume-delegation");
+  });
+  await act(async () =>
+    call[2]({ id: "resume", text: "Continue", startedDuringOutput: false }),
+  );
+  await act(async () =>
+    call[2]({ id: "resume", text: "Continue", startedDuringOutput: false }),
+  );
+  await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(props.submitVoiceInput).mock.calls[1]?.[0].text).toContain(
+    '"utterance":"Continue"',
+  );
+
+  // Late completion from the stopped response cannot offer it or submit its tools again.
+  act(() =>
+    tracker.recordResponseMessageCompleted({
+      ...response,
+      position: { batch: 2, index: 0 },
+    }),
+  );
+  expect(session.appendCommentary).not.toHaveBeenCalled();
+  const resumed = {
+    messageId: "resumed-answer",
+    submissionId: "submission-resume",
+    position: { batch: 3, index: 0 },
+  };
+  act(() => {
+    tracker.recordResponse(resumed);
+    tracker.recordResponseMessageCompleted({
+      ...resumed,
+      position: { batch: 4, index: 0 },
+    });
+  });
+  rerender(
+    <VoiceInterviewControl
+      {...props}
+      {...wiring}
+      messages={[
+        ...messages,
+        {
+          id: "resumed-answer",
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Then handling starts and holds that handler until completion.",
+              state: "done",
+            },
+          ],
+        },
+      ]}
+      settlements={[
+        ...settlements,
+        { submissionId: "submission-resume", outcome: "completed" },
+      ]}
+      config={config}
+    />,
+  );
+  await waitFor(() =>
+    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Brunch has a question for you.",
+      "resume-delegation",
+    ),
+  );
+  const wrapUps = fetch.mock.calls.flatMap(([, options]) => {
+    if (typeof options?.body !== "string")
+      throw new Error("Expected JSON body");
+    const body = JSON.parse(options.body) as {
+      kind: string;
+      text?: string;
+    };
+    return body.kind === "wrap-up" ? [body.text] : [];
+  });
+  expect(wrapUps).toEqual([
+    "Then handling starts and holds that handler until completion.",
+  ]);
   expect(props.submitVoiceInput).toHaveBeenCalledTimes(2);
+  expect(session.appendThinking).toHaveBeenCalledOnce();
 });
 
 test.each(["answer", "folded-answer"])(
   "the real transport's unobserved answered-by response reaches Live with rendered ID %s",
   async (renderedId) => {
+    const fetch = mockMediation();
     const tracker = new BrunchPanelConversationTracker();
+    const history = new VoiceMediationHistory("test");
     const props = context();
     const text = "Seven reviewers, not four. Is approval optional?";
     const snapshot: FlueConversationState = {
@@ -1174,6 +1812,7 @@ test.each(["answer", "folded-answer"])(
       return { kind: "message", messageId: id };
     };
     const wiring = {
+      mediationHistory: history,
       resolveInputSubmission: tracker.submissionForInput.bind(tracker),
       resolveResponseSubmission: tracker.submissionsForResponse.bind(tracker),
       subscribeToResponseMessageStarted:
@@ -1231,10 +1870,33 @@ test.each(["answer", "folded-answer"])(
         config={config}
       />,
     );
-    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-      text,
-      null,
+    await waitFor(() =>
+      expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+        "Brunch has a question for you.",
+        null,
+      ),
     );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/voice/mediation",
+      expect.objectContaining({
+        body: JSON.stringify({ kind: "wrap-up", text }),
+      }),
+    );
+    history.caption("utterance", "wrapUp", {
+      text: "Spoken result",
+      state: "done",
+    });
+    expect(
+      history
+        .project([
+          {
+            id: renderedId,
+            role: "assistant",
+            parts: [{ type: "text", text }],
+          },
+        ])
+        .some((entry) => entry.id === "voice-wrap-up:utterance"),
+    ).toBe(true);
   },
 );
 

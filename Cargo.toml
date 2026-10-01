@@ -12,6 +12,7 @@ members = [
     "libs/@local/codec/rust",
     "libs/@local/codegen",
     "libs/@local/config",
+    "libs/@local/durable-kernel",
     "libs/@local/effect-dns/hickory/rust",
     "libs/@local/graph/api",
     "libs/@local/graph/atlas",
@@ -133,6 +134,7 @@ aws-smithy-types                   = { version = "1.6.3", default-features = fal
 aws-types                          = { version = "1.6.0", default-features = false }
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
+axum-extra                         = { version = "0.12.6", default-features = false }
 base16ct                           = { version = "1.0.0", default-features = false }
 base64                             = { version = "0.22.1" }
 bitvec                             = { version = "1.0.1", default-features = false }
@@ -235,6 +237,8 @@ napi-derive                        = { version = "3.5.6", default-features = fal
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
+opendata-common                    = { package = "opendata-common", version = ">=0.1.17, <0.1.18", default-features = false }                                                                      # 0.1.18 requires `slatedb` 0.14, but `opendata-log` 1.0.0 requires 0.13. `package` names the crate `opendata_common` in code; its library target is `common`
+opendata-log                       = { package = "opendata-log", version = "1.0.0", default-features = false }                                                                                     # `package` names the crate `opendata_log` in code; its library target is `log`
 opentelemetry                      = { version = "0.32.0", default-features = false }
 opentelemetry-appender-tracing     = { version = "0.32.0", default-features = false }
 opentelemetry-otlp                 = { version = "0.32.0", default-features = false }
@@ -289,6 +293,7 @@ sha2                               = { version = "0.11.0", default-features = fa
 similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
 siphasher                          = { version = "1.0.3", default-features = false }
+slatedb                            = { version = "0.13.1", default-features = false, features = ["aws", "foyer"] }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }
@@ -303,6 +308,7 @@ supports-color                     = { version = "3.0.2", default-features = fal
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
 tachyonix                          = { version = "0.3.1", default-features = false }
+tempfile                           = { version = "3.27.0", default-features = false }
 temporalio-client                  = { version = "0.5.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
 temporalio-common                  = { version = "0.5.0", default-features = false }
 test-log                           = { version = "0.2.18", default-features = false }
