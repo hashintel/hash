@@ -4,6 +4,7 @@ import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 
 import {
   readControllers,
+  retargetLever,
   tokenFieldCount,
   tokenFieldPlaces,
   toggleInitialTokenField,
@@ -18,7 +19,7 @@ import {
   tokenFieldTarget,
 } from "./lever-options";
 
-import type { Controller } from "./controllers";
+import type { Controller, Lever } from "./controllers";
 import type { LeverDraft } from "./lever-options";
 
 const net = supplyChainWithDisruption.petriNetDefinition;
@@ -331,5 +332,62 @@ describe("constraints and goal", () => {
     const bare = read({ goal: { direction: "sideways", metricId: "m" } });
     expect(bare).not.toHaveProperty("goal");
     expect(bare).not.toHaveProperty("constraintIds");
+  });
+});
+
+describe("retargetLever", () => {
+  it("keeps the Token fields that the new transition's outputs still have", () => {
+    const lever: Lever = {
+      id: "l",
+      kind: "tokenField",
+      transitionId: "trans_start_production",
+      places: [
+        { placeId: "place_machine_up", elementIds: ["machine_wear"] },
+        {
+          placeId: "place_wip",
+          elementIds: ["batch_processing_left", "batch_source_mix"],
+        },
+      ],
+    };
+    expect(
+      retargetLever(net, lever, "trans_preventive_maintenance")
+    ).toMatchObject({
+      transitionId: "trans_preventive_maintenance",
+      places: [{ placeId: "place_machine_up", elementIds: ["machine_wear"] }],
+    });
+    expect(
+      retargetLever(net, lever, "trans_machine_breakdown_random")
+    ).toMatchObject({
+      places: [{ placeId: "place_machine_down", elementIds: ["machine_wear"] }],
+    });
+  });
+
+  it("moves a Rate and keeps Initial tokens fields only on the same token type", () => {
+    expect(
+      retargetLever(
+        net,
+        { id: "r", kind: "rate", transitionId: "trans_start_production" },
+        "trans_preventive_maintenance"
+      )
+    ).toEqual({
+      id: "r",
+      kind: "rate",
+      transitionId: "trans_preventive_maintenance",
+    });
+    const initial: Lever = {
+      id: "i",
+      kind: "initialTokens",
+      placeId: "place_machine_up",
+      elementIds: ["machine_health"],
+    };
+    expect(retargetLever(net, initial, "place_machine_down")).toEqual({
+      ...initial,
+      placeId: "place_machine_down",
+    });
+    expect(retargetLever(net, initial, "place_wip")).toEqual({
+      id: "i",
+      kind: "initialTokens",
+      placeId: "place_wip",
+    });
   });
 });

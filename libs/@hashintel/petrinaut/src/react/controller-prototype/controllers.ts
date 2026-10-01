@@ -399,6 +399,57 @@ export const toggleTokenField = (
   };
 };
 
+/**
+ * Points a lever at another node of the same kind. Fields that still exist
+ * stay ticked: for a Token field, each output place keeps the fields it had,
+ * or those of an old place with the same token type; for Initial tokens, the
+ * fields the new place's token type also has.
+ */
+export const retargetLever = (
+  net: NetLike,
+  lever: Lever,
+  targetId: string,
+): Lever => {
+  switch (lever.kind) {
+    case "choice":
+      return lever;
+    case "rate":
+      return { ...lever, transitionId: targetId };
+    case "initialTokens": {
+      const fields =
+        typedPlace(net, targetId)?.fields.map((field) => field.elementId) ??
+        [];
+      const kept = (lever.elementIds ?? []).filter((id) =>
+        fields.includes(id),
+      );
+      return {
+        id: lever.id,
+        kind: "initialTokens",
+        placeId: targetId,
+        ...(kept.length > 0 ? { elementIds: kept } : {}),
+      };
+    }
+    case "tokenField": {
+      const colorOf = (placeId: string) =>
+        net.places.find((place) => place.id === placeId)?.colorId;
+      const places = tokenFieldPlaces(net, targetId).flatMap((place) => {
+        const held =
+          lever.places.find((entry) => entry.placeId === place.placeId) ??
+          lever.places.find(
+            (entry) => colorOf(entry.placeId) === colorOf(place.placeId),
+          );
+        const elementIds = place.fields
+          .map((field) => field.elementId)
+          .filter((id) => held?.elementIds.includes(id));
+        return elementIds.length > 0
+          ? [{ placeId: place.placeId, elementIds }]
+          : [];
+      });
+      return { ...lever, transitionId: targetId, places };
+    }
+  }
+};
+
 /** The name shown for a lever, or null when the node it points at is gone. */
 export const leverName = (net: NetLike, lever: Lever): string | null => {
   const anchor = leverAnchorId(lever);

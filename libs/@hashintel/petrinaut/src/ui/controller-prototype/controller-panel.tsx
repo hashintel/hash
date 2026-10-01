@@ -10,6 +10,7 @@ import {
   leverAnchorKind,
   leverKindLabel,
   leverName,
+  retargetLever,
   tokenFieldPlaces,
   toggleInitialTokenField,
   toggleTokenField,
@@ -29,6 +30,7 @@ import {
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { ConstraintsSection, GoalSection } from "./constraints-goal";
 import { LeverRowIcon } from "./lever-glyph";
+import { LeverPicker } from "./lever-picker";
 import { requestShowOnCanvas } from "./show-on-canvas";
 
 import type {
@@ -37,6 +39,7 @@ import type {
   TokenFieldPlace,
 } from "../../react/controller-prototype/controllers";
 import type { SubView } from "../components/sub-view/types";
+import type { PickerGroup, PickerRow } from "./lever-picker";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
@@ -548,8 +551,9 @@ const LeverRow: React.FC<{
 const LeverMenu: React.FC<{
   net: NetLike;
   lever: Lever;
+  onChange: () => void;
   onRemove: () => void;
-}> = ({ net, lever, onRemove }) => {
+}> = ({ net, lever, onChange, onRemove }) => {
   const { selectItem } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
   const missing = leverName(net, lever) === null;
@@ -568,6 +572,19 @@ const LeverMenu: React.FC<{
           />
         }
         items={[
+          ...(lever.kind === "choice"
+            ? []
+            : [
+                {
+                  id: "change-target",
+                  text:
+                    leverAnchorKind(lever) === "place"
+                      ? "Change place…"
+                      : "Change transition…",
+                  disabled: isReadOnly,
+                  onClick: onChange,
+                },
+              ]),
           {
             id: "show-on-canvas",
             text: "Show on canvas",
@@ -594,6 +611,107 @@ const LeverMenu: React.FC<{
         ]}
       />
     </span>
+  );
+};
+
+/** What a lever can be pointed at instead: nodes its kind fits, names only. */
+const changeTargets = (
+  net: NetLike,
+  controller: Controller,
+  lever: Lever
+): PickerGroup[] => {
+  const heldBy = (id: string) =>
+    controller.levers.some(
+      (other) =>
+        other.id !== lever.id &&
+        other.kind === lever.kind &&
+        leverAnchorId(other) === id
+    );
+  const row = (id: string, name: string): PickerRow => {
+    const current = leverAnchorId(lever) === id;
+    const held = !current && heldBy(id);
+    return {
+      id,
+      name,
+      current,
+      disabled: held,
+      suffix: held ? "Added" : undefined,
+    };
+  };
+  switch (lever.kind) {
+    case "choice":
+      return [];
+    case "initialTokens":
+      return [
+        {
+          id: "places",
+          label: "Places",
+          rows: net.places.map((place) => row(place.id, place.name)),
+        },
+      ];
+    case "rate":
+      return [
+        {
+          id: "transitions",
+          label: "Transitions",
+          rows: net.transitions.map((t) => row(t.id, t.name)),
+        },
+      ];
+    case "tokenField":
+      return [
+        {
+          id: "transitions",
+          label: "Transitions with typed outputs",
+          rows: net.transitions
+            .filter((t) => tokenFieldPlaces(net, t.id).length > 0)
+            .map((t) => row(t.id, t.name)),
+        },
+      ];
+  }
+};
+
+/** One lever's card: kind label, ••• menu, its row, and the change picker. */
+const LeverCard: React.FC<{
+  net: NetLike;
+  controller: Controller;
+  lever: Lever;
+  onRetarget: (targetId: string) => void;
+  onRemove: () => void;
+  children: React.ReactNode;
+}> = ({ net, controller, lever, onRetarget, onRemove, children }) => {
+  const [card, setCard] = useState<HTMLDivElement | null>(null);
+  const [picking, setPicking] = useState(false);
+
+  return (
+    <div ref={setCard} className={kindCardStyle} data-lever-card>
+      <div className={kindHeaderStyle}>
+        <div className={kindLabelStyle}>{leverKindLabel[lever.kind]}</div>
+        <LeverMenu
+          net={net}
+          lever={lever}
+          onChange={() => setPicking(true)}
+          onRemove={onRemove}
+        />
+      </div>
+      {children}
+      {picking && card ? (
+        <LeverPicker
+          anchor={card}
+          placeholder={
+            leverAnchorKind(lever) === "place"
+              ? "Find a place"
+              : "Find a transition"
+          }
+          groups={changeTargets(net, controller, lever)}
+          onPick={(_groupId, targetId) => {
+            if (targetId !== leverAnchorId(lever)) {
+              onRetarget(targetId);
+            }
+          }}
+          onClose={() => setPicking(false)}
+        />
+      ) : null}
+    </div>
   );
 };
 
@@ -662,24 +780,30 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
           <div className={bodyTextStyle}>No levers yet.</div>
         ) : (
           controller.levers.map((lever) => (
-            <div key={lever.id} className={kindCardStyle} data-lever-card>
-              <div className={kindHeaderStyle}>
-                <div className={kindLabelStyle}>
-                  {leverKindLabel[lever.kind]}
-                </div>
-                <LeverMenu
-                  net={petriNetDefinition}
-                  lever={lever}
-                  onRemove={() =>
-                    updateThis((current) => ({
-                      ...current,
-                      levers: current.levers.filter(
-                        (candidate) => candidate.id !== lever.id
-                      ),
-                    }))
-                  }
-                />
-              </div>
+            <LeverCard
+              key={lever.id}
+              net={petriNetDefinition}
+              controller={controller}
+              lever={lever}
+              onRetarget={(targetId) =>
+                updateThis((current) => ({
+                  ...current,
+                  levers: current.levers.map((candidate) =>
+                    candidate.id === lever.id
+                      ? retargetLever(petriNetDefinition, candidate, targetId)
+                      : candidate
+                  ),
+                }))
+              }
+              onRemove={() =>
+                updateThis((current) => ({
+                  ...current,
+                  levers: current.levers.filter(
+                    (candidate) => candidate.id !== lever.id
+                  ),
+                }))
+              }
+            >
               <LeverRow
                 net={petriNetDefinition}
                 lever={lever}
@@ -698,7 +822,7 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
                   )
                 }
               />
-            </div>
+            </LeverCard>
           ))
         )}
       </div>
