@@ -12,10 +12,6 @@
 //!
 //! Base62 digits are `0-9A-Za-z`, and numbers are written most significant digit first.
 //!
-//! A 128-bit number has at most 7 as the first of its 22 Base62 digits. The first digit of the
-//! token ID in a token is that digit plus eight times the version. Version 0 leaves the digit as it
-//! is, and a first digit of 8 or more is reserved for later versions.
-//!
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
 //! a [`HashedApiToken`].
 
@@ -28,7 +24,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
 use rand::{TryRng as _, rngs::SysRng};
 use sha2::{Digest as _, Sha256};
-use uuid::{Builder, Uuid};
+use uuid::Uuid;
 
 const PREFIX: &str = "hsh_";
 const SEPARATOR: char = '_';
@@ -190,7 +186,7 @@ impl ApiToken {
             token_type,
             environment,
             version: ApiTokenVersion::V0,
-            token_id: ApiTokenId::new(Builder::from_random_bytes(token_id).into_uuid()),
+            token_id: ApiTokenId::new(uuid::Builder::from_random_bytes(token_id).into_uuid()),
             secret,
         })
     }
