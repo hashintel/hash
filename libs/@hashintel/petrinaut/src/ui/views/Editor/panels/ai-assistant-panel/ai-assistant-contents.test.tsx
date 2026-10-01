@@ -3015,13 +3015,53 @@ describe("AiAssistantContents", () => {
     };
     const { rerender } = render(<AiAssistantContents {...props} />);
     const tablist = () => screen.getByRole("tablist");
+    const inactiveTab = () => screen.getByRole("tab", { name: "Ledger" });
 
     expect(tablist().getAttribute("data-style-variant")).toBe("stock");
     expect(tablist().querySelector("[data-mark]")).toBeNull();
+    expect(inactiveTab().className).toContain("op_[0.6]");
 
     rerender(<AiAssistantContents {...props} presentation="brunch" />);
     expect(tablist().getAttribute("data-style-variant")).toBe("brunch");
     expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
+    expect(inactiveTab().className).not.toContain("op_[0.6]");
+  });
+
+  test("keeps the stock transcript chrome for a stock assistant", () => {
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "user-1",
+          role: "user" as const,
+          parts: [{ type: "text" as const, text: "A stock prompt" }],
+        },
+        {
+          id: "assistant-1",
+          role: "assistant" as const,
+          parts: [{ type: "text" as const, text: "A stock answer" }],
+        },
+      ],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { container, rerender } = render(<AiAssistantContents {...props} />);
+    const userMessage = () => container.querySelector('[data-role="user"]');
+    const userBubble = () => container.querySelector("[data-user-bubble]");
+    const assistantMessage = () =>
+      container.querySelector('[data-role="assistant"]');
+
+    expect(userMessage()?.className).toContain("bg-c_neutral.bg.subtle");
+    expect(userBubble()).toBeNull();
+    expect(assistantMessage()?.className).not.toContain("p_[6px_0]");
+
+    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    expect(userMessage()?.className).not.toContain("bg-c_neutral.bg.subtle");
+    expect(userBubble()?.className).toContain("bg-c_neutral.a20");
+    expect(assistantMessage()?.className).toContain("p_[6px_0]");
   });
 
   test("keeps the stock AI transcript label in both input modes", () => {
