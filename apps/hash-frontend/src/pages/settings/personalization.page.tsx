@@ -1,5 +1,4 @@
 import { Box, Stack, Switch, Typography } from "@mui/material";
-import { useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../../components/hooks/use-update-authenticated-user";
 import { useUserPreferences } from "../../shared/use-user-preferences";
@@ -14,28 +13,14 @@ const SidebarItemDisplaySwitch = ({
   section: "entities" | "entityTypes";
 }) => {
   const preferences = useUserPreferences();
-  const { sidebarSections } = preferences;
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
-  const [currentDisplay, setCurrentDisplay] = useState<"list" | "link">(
-    sidebarSections[section].variant,
-  );
+  const currentDisplay = preferences.sidebarSections[section].variant;
 
   const setSidebarDisplay = ({ variant }: { variant: "link" | "list" }) => {
-    setCurrentDisplay(variant);
-
     void updateUser({
-      preferences: {
-        ...preferences,
-        sidebarSections: {
-          ...sidebarSections,
-          [section]: {
-            ...sidebarSections[section],
-            variant,
-          },
-        },
-      },
+      preferences: { sidebarSections: { [section]: { variant } } },
     });
   };
 

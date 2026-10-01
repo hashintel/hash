@@ -22,26 +22,13 @@ import type { SortType } from "./shared/sort-actions-dropdown";
 export const FavoritesList = () => {
   const preferences = useUserPreferences();
 
-  const [expanded, setExpanded] = useState<boolean>(
-    preferences.sidebarSections.favorites.expanded,
-  );
+  const expanded = preferences.sidebarSections.favorites.expanded;
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
   const toggleFavoritesExpanded = () => {
-    setExpanded(!expanded);
-
     void updateUser({
-      preferences: {
-        ...preferences,
-        sidebarSections: {
-          ...preferences.sidebarSections,
-          favorites: {
-            ...preferences.sidebarSections.favorites,
-            expanded: !expanded,
-          },
-        },
-      },
+      preferences: { sidebarSections: { favorites: { expanded: !expanded } } },
     });
   };
 

@@ -72,12 +72,18 @@ pub trait ProblemVariant: Display + Serialize + JsonSchema + Sized {
 
 /// One occurrence of a [`ProblemVariant`], with its type erased.
 pub(crate) trait Occurrence {
+    fn problem_type(&self) -> ProblemType;
+
     fn details(&self) -> ProblemDetails<'_, &dyn erased_serde::Serialize>;
 
     fn headers(&self, headers: &mut HeaderMap);
 }
 
 impl<V: ProblemVariant> Occurrence for V {
+    fn problem_type(&self) -> ProblemType {
+        V::TYPE
+    }
+
     fn details(&self) -> ProblemDetails<'_, &dyn erased_serde::Serialize> {
         ProblemDetails::from(V::TYPE)
             .with_detail(self.to_string())

@@ -6,19 +6,23 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { z } from "zod";
 
+import { voiceWrapUpResponseSchema } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
+import { LiveSpeechCaptions } from "./live-speech-captions";
 import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
   VoiceInterviewRetry,
 } from "./voice-interview-disclosure";
+import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type {
   OpenAIVoiceConfig,
@@ -39,6 +43,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
   > & {
+    readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
       typeof LiveBrunchBridge
@@ -48,7 +53,23 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     readonly utteranceJudgment?: OpenAIVoiceConfig["utteranceJudgment"];
   };
 
+const prepareVoice = async (
+  kind: "brief" | "wrap-up",
+  text: string,
+  signal: AbortSignal,
+): Promise<unknown> => {
+  const response = await fetch("/api/voice/mediation", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind, text }),
+    signal,
+  });
+  if (!response.ok) throw new Error("Voice preparation failed");
+  return response.json();
+};
+
 export const LiveConversationControl = ({
+  mediationHistory,
   acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
@@ -71,6 +92,14 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
 }: LiveControlsContext) => {
+  const [localHistory] = useState(() => new VoiceMediationHistory("session"));
+  const history = mediationHistory ?? localHistory;
+  // A running session outlives conversation switches; each new write or turn
+  // uses the current conversation's history.
+  const historyRef = useRef(history);
+  useLayoutEffect(() => {
+    historyRef.current = history;
+  }, [history]);
   const [audioSettingsStore] = useState(
     () => new VoiceAudioSettings("live", navigator.mediaDevices),
   );
@@ -80,6 +109,8 @@ export const LiveConversationControl = ({
     audioSettingsStore.getSnapshot,
   );
   const [consented, setConsented] = useState(false);
+  const [checkingMicrophone, setCheckingMicrophone] = useState(false);
+  const [microphoneCheck, setMicrophoneCheck] = useState("");
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [microphoneMuted, setMicrophoneMutedState] = useState(false);
   const [speakerMuted, setSpeakerMutedState] = useState(false);
@@ -100,10 +131,12 @@ export const LiveConversationControl = ({
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
+    messages,
     chat: {
       status,
       stopped,
       canAcceptVoiceInput,
+      messages,
       segments: selectCanonicalSpeech(messages).segments,
       settlements: settlements ?? [],
       snapshot,
@@ -134,10 +167,12 @@ export const LiveConversationControl = ({
     );
     latest.current = {
       submit,
+      messages,
       chat: {
         status,
         stopped,
         canAcceptVoiceInput,
+        messages,
         segments,
         settlements: settlements ?? [],
         snapshot,
@@ -186,6 +221,27 @@ export const LiveConversationControl = ({
     setSpeakerVolumeState(1);
     setWarningMessage(null);
     setState({ phase: "connecting", message: null });
+    // Like a bridge turn, a preview or caption stays in the history it began in.
+    const pinnedHistories = new Map<string, VoiceMediationHistory>();
+    const historyFor = (id: string) => {
+      const pinned = pinnedHistories.get(id);
+      if (pinned) return pinned;
+      pinnedHistories.set(id, historyRef.current);
+      return historyRef.current;
+    };
+    const retirePreview = (id: string) => {
+      historyFor(id).failed(id);
+      pinnedHistories.delete(id);
+    };
+    const captions = new LiveSpeechCaptions(
+      (id, kind, line) => historyFor(id).caption(id, kind, line),
+      {
+        update: (id, text) => historyFor(id).input(id, text),
+        discard: retirePreview,
+      },
+    );
+    let offeredInput: string | undefined;
+    const appendInputs = new Map<string, string>();
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
@@ -219,7 +275,13 @@ export const LiveConversationControl = ({
       },
       connectionTimeoutMs,
       (input) => {
-        if (session.current === next) void bridge.current?.accept(input);
+        if (session.current !== next) return;
+        historyFor(input.id);
+        void bridge.current?.accept(input);
+        if (!input.superseded) {
+          const previewId = captions.begin(input.id);
+          if (previewId) retirePreview(previewId);
+        }
       },
       (delegationId) => {
         if (session.current === next)
@@ -227,10 +289,26 @@ export const LiveConversationControl = ({
       },
       (result) => {
         if (session.current !== next) return;
+        if (result.kind === "commentary") {
+          if (offeredInput) {
+            appendInputs.set(result.eventId, offeredInput);
+            offeredInput = undefined;
+          }
+          const inputId = appendInputs.get(result.eventId);
+          if (
+            inputId &&
+            result.status === "accepted" &&
+            result.startMs !== undefined
+          )
+            captions.wrapUp(inputId, result.startMs);
+          if (result.status !== "unknown") appendInputs.delete(result.eventId);
+        }
         // Every successful local send starts as unknown. Neither waiting
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
         if (result.status === "unknown" || result.status === "accepted") return;
+        // Quiet interruption context is best effort, not an audible answer.
+        if (result.kind === "thinking") return;
         const label =
           result.kind === "commentary" ? "answer" : "continuation instruction";
         const outcome =
@@ -242,14 +320,47 @@ export const LiveConversationControl = ({
         );
       },
       audioSettingsStore,
+      {
+        started: () => {
+          if (session.current !== next) return;
+          captions.speechStarted();
+          bridge.current?.speechStarted();
+          offeredInput = undefined;
+          appendInputs.clear();
+        },
+        input: (fragment) => {
+          if (session.current === next) captions.input(fragment);
+        },
+        output: (fragment) => {
+          if (session.current === next) captions.output(fragment);
+        },
+        closed: () => captions.close(),
+      },
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
     next.setSpeakerVolume(1);
     bridge.current = new LiveBrunchBridge({
       submit: (input) => latest.current.submit(input),
+      mediation: {
+        get history() {
+          return historyRef.current;
+        },
+        prepare: async (text, signal) =>
+          z
+            .object({ fields: z.record(z.string(), z.string()) })
+            .parse(await prepareVoice("brief", text, signal)).fields,
+        summarize: async (text, signal) =>
+          voiceWrapUpResponseSchema.parse(
+            await prepareVoice("wrap-up", text, signal),
+          ).text,
+        offered: (inputId) => {
+          offeredInput = inputId;
+        },
+      },
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
+      appendThinking: next.appendThinking,
       notice: setWarningMessage,
       speechPending: next.speechPending,
       judge:
@@ -279,7 +390,6 @@ export const LiveConversationControl = ({
       handledVoiceSelection.current = true;
       return;
     }
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes persisted disclosure state with the Live session
     handledVoiceSelection.current = tryStartLiveConversation();
   }, [
     disclosureAcknowledged,
@@ -441,10 +551,36 @@ export const LiveConversationControl = ({
       experimental
       consented={consented}
       onConsentChange={setConsented}
-      startDisabled={phase === "stopping"}
-      microphoneCheck={phase === "error" ? (state.message ?? "") : ""}
+      checkingMicrophone={checkingMicrophone}
+      startDisabled={phase === "stopping" || checkingMicrophone}
+      microphoneCheck={
+        phase === "error" ? (state.message ?? "") : microphoneCheck
+      }
+      onCheckMicrophone={() => {
+        if (checkingMicrophone) return;
+        setCheckingMicrophone(true);
+        setMicrophoneCheck("");
+        void (async () => {
+          try {
+            const microphoneId = audioSettings.devices.microphoneId;
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: microphoneId
+                ? { deviceId: { exact: microphoneId } }
+                : true,
+            });
+            for (const track of stream.getTracks()) track.stop();
+            setMicrophoneCheck("Microphone ready. No audio was sent.");
+          } catch {
+            setMicrophoneCheck(
+              "Microphone access was not available. Check your browser permissions and try again.",
+            );
+          } finally {
+            setCheckingMicrophone(false);
+          }
+        })();
+      }}
       onStart={() => {
-        if (!consented) return;
+        if (!consented || checkingMicrophone) return;
         acknowledgeDisclosure();
         setDisclosureAcknowledged(true);
         tryStartLiveConversation();

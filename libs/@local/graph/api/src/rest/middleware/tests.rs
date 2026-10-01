@@ -9,11 +9,12 @@ use hash_middleware::{
     authentication::{
         AuthenticatedActorId, AuthenticationMetrics, provider::StaticAuthenticationProvider,
     },
+    problem::InternalServerError,
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use http::{
-    HeaderValue, Request, StatusCode,
-    header::{AUTHORIZATION, CONTENT_TYPE},
+    HeaderValue, Method, Request, StatusCode,
+    header::{ALLOW, AUTHORIZATION, CONTENT_TYPE},
 };
 use serde_json::json;
 use tower::ServiceExt as _;
@@ -78,6 +79,12 @@ fn request_from(path: &str, peer: IpAddr) -> Request<Body> {
 
 fn request_to(path: &str) -> Request<Body> {
     request_from(path, client(1))
+}
+
+fn request_with(method: Method, path: &str) -> Request<Body> {
+    let mut request = request_to(path);
+    *request.method_mut() = method;
+    request
 }
 
 async fn send_request(router: &Router, request: Request<Body>) -> Response {
@@ -209,6 +216,206 @@ async fn fallback_draws_on_address_gate() {
         send(&router, "/does-not-exist").await.status(),
         StatusCode::TOO_MANY_REQUESTS,
         "an unmatched path should draw from the address budget like any other request"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_problem_document() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    let response = send_request(&router, request_with(Method::DELETE, "/first/test")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "a path that does not serve the method should answer 405"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "the answer should be a problem document like every other rejection"
+    );
+    assert!(
+        response.headers()[ALLOW]
+            .to_str()
+            .is_ok_and(|allow| allow.split(',').any(|method| method.trim() == "GET")),
+        "the answer should name the methods the path serves"
+    );
+    assert_eq!(
+        response_json(response).await["status"],
+        json!(405),
+        "the problem document should carry the response status"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_legacy_route() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route("/legacy", get(async || ())),
+        [],
+        Router::new(),
+    );
+
+    let response = send_request(&router, request_with(Method::DELETE, "/legacy")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "a legacy path that does not serve the method should answer 405"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "a legacy route should answer the same problem document as the APIs"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_after_authentication() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(
+        Router::new().route("/legacy", get(async || ())),
+        [test_utils::api("/first")],
+        Router::new(),
+    );
+
+    for path in ["/legacy", "/first/test"] {
+        assert_eq!(
+            send_request(&router, request_with(Method::DELETE, path))
+                .await
+                .status(),
+            StatusCode::SERVICE_UNAVAILABLE,
+            "{path} should authenticate a request before answering that it does not serve its \
+             method, and the provider is unreachable here"
+        );
+    }
+}
+
+#[tokio::test]
+async fn method_not_allowed_documentation_route() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(
+        Router::new(),
+        [],
+        Router::new().route("/reference", get(async || ())),
+    );
+
+    let response = send_request(&router, request_with(Method::DELETE, "/reference")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "a documentation path that does not serve the method should answer 405"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "a documentation route should answer the same problem document as the APIs"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_draws_on_address_gate() {
+    let router = middleware(
+        &config(1, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(
+        Router::new(),
+        [],
+        Router::new().route("/reference", get(async || ())),
+    );
+
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/reference"))
+            .await
+            .status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "the first request with a method the path does not serve should pass the gate"
+    );
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/reference"))
+            .await
+            .status(),
+        StatusCode::TOO_MANY_REQUESTS,
+        "a method the path does not serve should draw from the address budget like any other \
+         request"
+    );
+}
+
+#[tokio::test]
+async fn method_not_allowed_draws_on_caller_budget() {
+    let router = middleware(
+        &config(10, 1),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/first/test"))
+            .await
+            .status(),
+        StatusCode::METHOD_NOT_ALLOWED,
+        "the first request with a method the path does not serve should pass the caller budget"
+    );
+    assert_eq!(
+        send_request(&router, request_with(Method::DELETE, "/first/test"))
+            .await
+            .status(),
+        StatusCode::TOO_MANY_REQUESTS,
+        "a method the path does not serve should draw from the caller budget like any other \
+         request"
+    );
+}
+
+#[tokio::test]
+async fn panic_problem_document() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route(
+            "/legacy",
+            get(async || -> StatusCode { panic!("the handler failed") }),
+        ),
+        [],
+        Router::new(),
+    );
+
+    let response = send(&router, "/legacy").await;
+    assert_eq!(
+        response.status(),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "a request whose handler panics should answer 500"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "a panic should answer a problem document like every other failure"
+    );
+    assert_eq!(
+        response_json(response).await["detail"],
+        json!(InternalServerError.to_string()),
+        "the problem document should not describe the panic"
     );
 }
 

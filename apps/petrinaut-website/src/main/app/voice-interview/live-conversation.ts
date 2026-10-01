@@ -12,6 +12,7 @@ import {
 import { createUtteranceLevels } from "./live-conversation/utterance-levels";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
+import type { LiveTranscriptFragment } from "./live-speech-captions";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
 
 export interface LiveConversationState {
@@ -34,6 +35,7 @@ export interface LiveConversationState {
 export interface FinalizedInput {
   readonly id: string;
   readonly text: string;
+  readonly superseded?: boolean;
   /** Speech start was reported while Live was audible or within half a second after. */
   readonly startedDuringOutput: boolean;
   /** Live's words around the speech, only when it overlapped audible output. Never traced. */
@@ -46,10 +48,12 @@ type ConnectionKind = "live" | "transcription";
 
 export interface LiveAppendResult {
   readonly eventId: string;
-  readonly kind: "commentary" | "instructions";
+  readonly kind: "commentary" | "instructions" | "thinking";
   readonly delegationId: string | null;
   /** Unknown means sent locally, but provider acceptance is not yet confirmed. */
   readonly status: "local-failure" | "unknown" | "accepted" | "rejected";
+  /** Provider context-injection time, never playback completion. */
+  readonly startMs?: number;
 }
 
 /** One disposable Live plus transcription session sharing one consented capture. */
@@ -60,6 +64,12 @@ export const createLiveConversation = (
   onDelegation: (delegationId: string) => void,
   onAppendResult: (result: LiveAppendResult) => void,
   audioSettings?: VoiceAudioSettings,
+  speech?: {
+    readonly started: () => void;
+    readonly input: (fragment: LiveTranscriptFragment) => void;
+    readonly output: (fragment: LiveTranscriptFragment) => void;
+    readonly closed: () => void;
+  },
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
@@ -94,6 +104,7 @@ export const createLiveConversation = (
   >();
   const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
+  let latestSpeechItem: string | undefined;
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
   let microphoneMuted = false;
@@ -136,6 +147,7 @@ export const createLiveConversation = (
   };
 
   const stopMedia = () => {
+    speech?.closed();
     echoTrace.end();
     outputOverlap.clear();
     detachAudioSettings?.();
@@ -389,6 +401,9 @@ export const createLiveConversation = (
         const minLogprob = inputConfidence?.minLogprob;
         onFinalizedInput({
           ...input,
+          ...(latestSpeechItem && latestSpeechItem !== itemId
+            ? { superseded: true }
+            : {}),
           startedDuringOutput,
           ...(liveOutputText === undefined ? {} : { liveOutputText }),
           ...(minLogprob === undefined ? {} : { minLogprob }),
@@ -430,6 +445,8 @@ export const createLiveConversation = (
       return;
     }
     if (data.type === "input_audio_buffer.speech_started") {
+      if (typeof data.item_id === "string") latestSpeechItem = data.item_id;
+      speech?.started();
       echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
       outputOverlap.speechStarted(data.item_id, Date.now());
       utteranceLevels.speechStarted(data.item_id, Date.now());
@@ -541,6 +558,7 @@ export const createLiveConversation = (
         "session.delegation.created",
         "session.commentary.appended",
         "session.instructions.appended",
+        "session.thinking.appended",
         "input_audio_buffer.speech_started",
         "input_audio_buffer.speech_stopped",
         "input_audio_buffer.committed",
@@ -597,6 +615,37 @@ export const createLiveConversation = (
       handleTranscriptionEvent(data as Record<string, unknown>);
       return;
     }
+    if (
+      data.type === "session.input_transcript.delta" ||
+      data.type === "session.output_transcript.delta"
+    ) {
+      const fields = data as Record<string, unknown>;
+      if (data.type === "session.output_transcript.delta") {
+        echoTrace.liveOutputFragment(fields.start_ms, fields.end_ms);
+        outputOverlap.liveOutput(Date.now(), fields.delta);
+      } else echoTrace.liveInputFragment(fields.start_ms);
+      if (
+        typeof fields.event_id !== "string" ||
+        typeof fields.delta !== "string" ||
+        typeof fields.start_ms !== "number" ||
+        !Number.isFinite(fields.start_ms) ||
+        fields.start_ms < 0 ||
+        typeof fields.end_ms !== "number" ||
+        !Number.isFinite(fields.end_ms) ||
+        fields.end_ms < fields.start_ms
+      )
+        return;
+      const fragment = {
+        id: fields.event_id,
+        text: fields.delta,
+        startMs: fields.start_ms,
+        endMs: fields.end_ms,
+      };
+      if (data.type === "session.input_transcript.delta")
+        speech?.input(fragment);
+      else speech?.output(fragment);
+      return;
+    }
     if (data.type === "session.closed") {
       finish(true);
     } else if (
@@ -628,7 +677,8 @@ export const createLiveConversation = (
       onDelegation(delegation.id);
     } else if (
       data.type === "session.commentary.appended" ||
-      data.type === "session.instructions.appended"
+      data.type === "session.instructions.appended" ||
+      data.type === "session.thinking.appended"
     ) {
       if (
         !("client_event_id" in data) ||
@@ -638,22 +688,19 @@ export const createLiveConversation = (
       const pending = pendingAppends.get(data.client_event_id);
       if (!pending || data.type !== `session.${pending.kind}.appended`) return;
       pendingAppends.delete(pending.eventId);
-      if (pending.delegationId !== null)
+      // Quiet context does not answer a delegation; only speech or a redirect does.
+      if (pending.delegationId !== null && pending.kind !== "thinking")
         openDelegations.delete(pending.delegationId);
-      reportAppendResult({ ...pending, status: "accepted" });
-    } else if (data.type === "session.output_transcript.delta") {
-      echoTrace.liveOutputFragment(
-        "start_ms" in data ? data.start_ms : undefined,
-        "end_ms" in data ? data.end_ms : undefined,
-      );
-      outputOverlap.liveOutput(
-        Date.now(),
-        "delta" in data ? data.delta : undefined,
-      );
-    } else if (data.type === "session.input_transcript.delta") {
-      echoTrace.liveInputFragment(
-        "start_ms" in data ? data.start_ms : undefined,
-      );
+      reportAppendResult({
+        ...pending,
+        status: "accepted",
+        ...("start_ms" in data &&
+        typeof data.start_ms === "number" &&
+        Number.isFinite(data.start_ms) &&
+        data.start_ms >= 0
+          ? { startMs: data.start_ms }
+          : {}),
+      });
     } else if (
       !stopping &&
       (data.type === "error" || data.type === "session.error")
@@ -949,5 +996,7 @@ export const createLiveConversation = (
       append("commentary", text, delegationId),
     appendInstructions: (text: string, delegationId: string | null) =>
       append("instructions", text, delegationId),
+    appendThinking: (text: string, delegationId: string | null) =>
+      append("thinking", text, delegationId),
   };
 };

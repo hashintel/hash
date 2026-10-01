@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { Button, type ButtonElementProps } from "../Button/button";
@@ -7,6 +9,13 @@ import {
   clearFiltersButton,
   styles,
 } from "./filter-group.recipe";
+import {
+  attachAbandonmentController,
+  FilterGroupAbandonmentContext,
+  focusWithoutRing,
+  type AbandonableChip,
+  type FilterGroupAbandonment,
+} from "./filter-util";
 
 import type { DistributedOmit } from "type-fest";
 
@@ -61,26 +70,111 @@ const ClearFilters = ({
   </Button>
 );
 
+/** A `Filter` chip's root element, as rendered anywhere inside the group. */
+const chipSelector = '[role="group"][data-property]';
+
+/** A chip's first interactive segment (operator trigger or input) — never its remove button. */
+const firstSegmentOf = (chip: HTMLElement) =>
+  chip.querySelector<HTMLElement>(
+    'button:enabled:not([data-part="remove"]), input:enabled',
+  );
+
 /**
  * Lays out a collection of `Filter` chips — and any interleaved controls
- * (buttons, dropdowns, ...) — as a wrapping flex row. Purely presentational:
- * the children manage their own state.
- *
- * `FilterGroup.AddFilter` and `FilterGroup.ClearFilters` are pre-styled
- * buttons for the group's two standard actions; wiring them up (and any
- * conditional disabling) is the consumer's job.
- */
+ * (buttons, dropdowns, ...)
+ * */
 const FilterGroupRoot = ({
   className,
   children,
+  dismissAbandoned = false,
 }: {
   className?: string;
   children?: React.ReactNode;
+  /**
+   * Auto-dismiss abandoned chips: once the user focuses or clicks outside
+   * the group while any member chip's draft is incomplete removes the chip after a delay
+   * */
+  dismissAbandoned?: boolean;
 }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const seenPropertiesRef = useRef<ReadonlySet<string> | null>(null);
+  const chipsRef = useRef(new Set<AbandonableChip>());
+  const [fading, setFading] = useState(false);
+
+  const registerChip = useCallback((chip: AbandonableChip) => {
+    chipsRef.current.add(chip);
+    return () => {
+      chipsRef.current.delete(chip);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dismissAbandoned) {
+      return;
+    }
+    return attachAbandonmentController({
+      getRoot: () => rootRef.current,
+      getChips: () => chipsRef.current,
+      onFadingChange: setFading,
+    });
+  }, [dismissAbandoned]);
+
+  const abandonment = useMemo<FilterGroupAbandonment | null>(
+    () => (dismissAbandoned ? { fading, register: registerChip } : null),
+    [dismissAbandoned, fading, registerChip],
+  );
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    const chips = Array.from(root.querySelectorAll<HTMLElement>(chipSelector));
+    const seenProperties = seenPropertiesRef.current;
+    seenPropertiesRef.current = new Set(
+      chips.map((chip) => chip.getAttribute("data-property") ?? ""),
+    );
+    // The initial render's chips are restored state, not a user addition.
+    if (seenProperties === null) {
+      return;
+    }
+    const freshChip = chips.find(
+      (chip) => !seenProperties.has(chip.getAttribute("data-property") ?? ""),
+    );
+    if (!freshChip) {
+      return;
+    }
+    // Double rAF so the focus lands after ark-ui restores focus to the
+    // add-menu trigger when the menu closes (mirrors Filter's focusFirstInput).
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!freshChip.isConnected) {
+          return;
+        }
+        const active = document.activeElement;
+        // The user already moved into a chip; don't yank focus from them.
+        if (active instanceof Element && active.closest(chipSelector)) {
+          return;
+        }
+        const segment = firstSegmentOf(freshChip);
+        if (segment) {
+          focusWithoutRing(freshChip, segment);
+        }
+      });
+    });
+  });
+
   return (
-    <div role="group" className={cx(styles, className)}>
-      {children}
-    </div>
+    <FilterGroupAbandonmentContext.Provider value={abandonment}>
+      <div
+        role="group"
+        data-part="filter-group"
+        ref={rootRef}
+        className={cx(styles, className)}
+      >
+        {children}
+      </div>
+    </FilterGroupAbandonmentContext.Provider>
   );
 };
 

@@ -3,7 +3,7 @@ import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
 
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { AiToolOutput } from "../tool-summaries";
-import type { InteractiveToolDefinition } from "./types";
+import type { InteractiveToolCall, InteractiveToolDefinition } from "./types";
 
 /**
  * Registry of AI tools that require an inline chat widget for user input.
@@ -27,8 +27,7 @@ export const interactiveTools: Record<
 };
 
 export const getInteractiveTool = (
-  toolName: string,
-  input: unknown,
+  { toolName, toolCallId, input }: InteractiveToolCall,
   hostTools: readonly PetrinautAiInteractiveTool[] = [],
 ): InteractiveToolDefinition<unknown, unknown> | undefined => {
   const builtInDescriptor = interactiveTools[toolName];
@@ -59,7 +58,9 @@ export const getInteractiveTool = (
       : hostDefinition
         ? {
             toolName: hostDefinition.toolName,
-            shouldHandle: () => true,
+            placement: hostDefinition.placement,
+            shouldHandle: (_input, call) =>
+              hostDefinition.shouldHandle?.(call) ?? true,
             parseInput: hostDefinition.parseInput,
             parseOutput: hostDefinition.parseOutput,
             fromComposerText: hostDefinition.fromComposerText,
@@ -69,24 +70,27 @@ export const getInteractiveTool = (
   if (!descriptor) {
     return undefined;
   }
-  return descriptor.shouldHandle(input) ? descriptor : undefined;
+  return descriptor.shouldHandle(input, { toolCallId })
+    ? descriptor
+    : undefined;
 };
 
 /** Resolve a dynamic call only when the host explicitly registered its name. */
 export const resolveDynamicInteractiveTool = (
-  toolName: string,
-  input: unknown,
+  call: InteractiveToolCall,
   hostTools: readonly PetrinautAiInteractiveTool[],
 ): InteractiveToolDefinition<unknown, unknown> => {
-  if (!hostTools.some((tool) => tool.toolName === toolName)) {
-    throw new Error(`Unknown AI tool: ${toolName}`);
+  if (!hostTools.some((tool) => tool.toolName === call.toolName)) {
+    throw new Error(`Unknown AI tool: ${call.toolName}`);
   }
 
-  const descriptor = getInteractiveTool(toolName, input, hostTools);
+  const descriptor = getInteractiveTool(call, hostTools);
   if (!descriptor) {
-    throw new Error(`Unknown AI tool: ${toolName}`);
+    throw new Error(
+      `AI tool ${call.toolName} was declined by the host for call ${call.toolCallId}`,
+    );
   }
 
-  descriptor.parseInput(input);
+  descriptor.parseInput(call.input);
   return descriptor;
 };

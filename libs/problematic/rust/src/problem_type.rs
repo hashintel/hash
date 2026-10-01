@@ -29,7 +29,7 @@ use crate::ProblemDetails;
 /// let details = ProblemDetails::from(&USER_NOT_FOUND).with_detail("The user does not exist.");
 /// assert_eq!(details.title, "User not found");
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProblemType {
     /// The stable URI identifying this problem type.
     ///

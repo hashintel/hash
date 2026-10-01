@@ -44,5 +44,7 @@ where
         .with_tracer(::opentelemetry::trace::TracerProvider::tracer(
             provider, "graph",
         ))
+        .with_error_events_to_status(false)
+        .with_error_events_to_exceptions(false)
         .with_filter(crate::logging::env_filter(None))
 }

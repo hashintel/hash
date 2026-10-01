@@ -109,6 +109,8 @@ export const petriconHints = {
   ruler: "tilt",
   sortDown: "down",
   sortUp: "up",
+  sortDown19: "down",
+  sortUp19: "up",
   sortDownAZ: "down",
   sortUpAZ: "up",
   squareCheck: "sequence",
