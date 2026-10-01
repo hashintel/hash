@@ -8,11 +8,12 @@ import {
   callsForElement,
   isAppliedChange,
   latestNetDefinition,
-  ledgerAtCall,
-  namesId,
   netCalls,
   type ArcElement,
-} from "./net-changes.ts";
+  type NetCall,
+} from "../../../../conversation/net-changes.ts";
+import { reconstructLedger } from "./ledger.ts";
+import description from "./query-basis-tool.md?raw";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -77,6 +78,29 @@ const elements = (
   });
 };
 
+/** This Ledger as it stood when a call was made, and the Notes its turn had recorded so far. */
+const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
+  const message = snapshot.messages[call.messageIndex];
+  if (!message) return undefined;
+  const prefix = {
+    messages: [
+      ...snapshot.messages.slice(0, call.messageIndex),
+      { ...message, parts: message.parts.slice(0, call.partIndex) },
+    ],
+  };
+  const commits = reconstructLedger(prefix);
+  const latest = commits.at(-1);
+  const userMessageId = prefix.messages.findLast(
+    (entry) => entry.role === "user" && entry.purpose === "user",
+  )?.id;
+  return {
+    revision: latest?.revision ?? 0,
+    notesThisTurn: commits
+      .filter(({ afterMessageId }) => afterMessageId === userMessageId)
+      .flatMap(({ notes }) => notes.map(({ id }) => id)),
+  };
+};
+
 export const queryBasis = (input: {
   snapshot: FlueConversationSnapshot;
   browser: BrowserContext;
@@ -106,14 +130,14 @@ export const queryBasis = (input: {
   const candidates = latest
     ? elements(latest.definition, input.query.kind).filter(
         (element) =>
-          namesId(input.query.id, element.id) ||
+          (input.query.id !== undefined && element.id === input.query.id) ||
           (input.query.name !== undefined &&
             element.name === input.query.name) ||
           (input.query.kind === "arc" &&
             element.arc !== undefined &&
-            namesId(input.query.transitionId, element.arc.transitionId) &&
+            input.query.transitionId === element.arc.transitionId &&
             input.query.arcDirection === element.arc.arcDirection &&
-            namesId(input.query.placeId, element.arc.placeId)),
+            input.query.placeId === element.arc.placeId),
       )
     : [];
   const target = candidates.length === 1 ? candidates.at(0) : undefined;
@@ -145,14 +169,14 @@ export const queryBasis = (input: {
   };
 };
 
+/** `query_basis` over the net's recorded changes and this arm's own Ledger. */
 export const createQueryBasisTool = (options: {
   browser: BrowserContext;
   history: () => Promise<FlueConversationSnapshot>;
 }) =>
   defineTool({
     name: brunchTools.queryBasis,
-    description:
-      "Find an element in the latest net read by kind and unique name or ID; for an arc use its transitionId, arcDirection (input/output) and placeId. List the canonical calls that changed that element, each with its settled document revision, the Ledger revision current at the call, and the ids of Notes recorded earlier in the same turn. Associations are temporal context, not semantic justification. A stale-read disposition means the net changed after that read: read it again, then query.",
+    description: description.trim(),
     input: elementSchema,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {

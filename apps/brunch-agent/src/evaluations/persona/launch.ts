@@ -23,7 +23,6 @@ import { loadEnv } from "vite";
 import { brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { ownLedger } from "../../agents/chat-agent/guidance-ledger.ts";
 import {
   guidanceVariantEnvironment,
   guidanceVariants,
@@ -612,7 +611,7 @@ const launchPersona = async ({
     await writeProofArtifacts(
       join(run, "evidence"),
       opened.snapshot,
-      ownLedger(manifest.variant),
+      manifest.variant,
     );
     const flue = createFlueClient({
       url: opened.session.url,
@@ -650,7 +649,7 @@ const launchPersona = async ({
           await writeProofArtifacts(
             join(run, "evidence"),
             result.snapshot,
-            ownLedger(manifest.variant),
+            manifest.variant,
           );
           if (documentId !== undefined)
             await retainPersonaDocument(

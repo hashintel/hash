@@ -59,7 +59,6 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
   const paths = [
     `${app}/agent.ts`,
     `${app}/guidance.ts`,
-    `${app}/guidance-ledger.ts`,
     `${app}/guidance-variant.ts`,
     ...(selfContained === undefined
       ? sharedLedger

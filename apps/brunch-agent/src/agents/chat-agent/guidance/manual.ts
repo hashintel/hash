@@ -5,6 +5,7 @@ import feedback from "./manual/feedback.md?raw";
 import identityLedger from "./manual/identity-ledger.md?raw";
 import { createLedgerTools } from "./manual/ledger-tools.ts";
 import petrinautCapability from "./manual/petrinaut-capability.md?raw";
+import { createQueryBasisTool } from "./manual/query-basis-tool.ts";
 import queryBasis from "./manual/query-basis.md?raw";
 import runtimeBound from "./manual/runtime-bound.md?raw";
 import runtimeUnbound from "./manual/runtime-unbound.md?raw";
@@ -16,10 +17,10 @@ import type { LedgerHistory } from "./manual/ledger.ts";
 
 /**
  * A hand-edited arm, copied from `identity` as of round 4c. Everything the
- * model reads and every tool it uses to keep the Ledger comes from `manual/`:
- * instructions, skills, the Ledger tools with their schema, refusals,
- * coverage and map, and the runtime instructions it hands back for the agent
- * to mount in their usual places.
+ * model reads and every tool that writes or reads the Ledger comes from
+ * `manual/`: instructions, skills, the Ledger tools with their schema,
+ * refusals, coverage and map, and the runtime instructions and `query_basis`
+ * it hands back for the agent to mount in their usual places.
  */
 export const useManualGuidance = (
   model: string,
@@ -41,5 +42,6 @@ export const useManualGuidance = (
       capability: petrinautCapability.trim(),
       experimentDrafting: experimentDrafting.trim(),
     },
+    createQueryBasisTool,
   };
 };

@@ -20,6 +20,7 @@ import {
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
   contextProjections: 0,
+  descriptions: new Map<string, string>(),
   instructions: [] as string[],
   models: [] as string[],
   skills: [] as string[],
@@ -39,7 +40,10 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
     vi.fn<(value: unknown) => void>(),
   ],
   useSkill: (skill: { name: string }) => mounted.skills.push(skill.name),
-  useTool: (tool: { name: string }) => mounted.tools.push(tool.name),
+  useTool: (tool: { name: string; description: string }) => {
+    mounted.descriptions.set(tool.name, tool.description);
+    mounted.tools.push(tool.name);
+  },
 }));
 // Only the Flue build packages skills; these tests exercise the composition around them.
 vi.mock("@hashintel/brunch-agent/skills/elicitation/SKILL.md", () => ({
@@ -88,6 +92,7 @@ beforeEach(() => {
   vi.stubEnv("NODE_ENV", "test");
   mounted.initialData = undefined;
   mounted.contextProjections = 0;
+  mounted.descriptions.clear();
   mounted.instructions.length = 0;
   mounted.models.length = 0;
   mounted.skills.length = 0;
@@ -181,6 +186,15 @@ test.each(selfContainedGuidanceVariants)(
     mounted.instructions.length = 0;
     vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", arm);
     vi.resetModules();
+    const toolDescriptions = [
+      "query-basis-tool.md",
+      "ledger-commit.md",
+      "ledger-compile.md",
+    ];
+    for (const name of toolDescriptions)
+      vi.doMock(`../src/agents/chat-agent/guidance/${arm}/${name}?raw`, () => ({
+        default: `${arm} ${name}`,
+      }));
     const sources = new URL(
       `../src/agents/chat-agent/guidance/${arm}/`,
       import.meta.url,
@@ -216,6 +230,15 @@ test.each(selfContainedGuidanceVariants)(
           "query-basis.md",
         ].map((name) => texts.get(name)),
       ),
+    );
+    expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
+      `${arm} query-basis-tool.md`,
+    );
+    expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
+      `${arm} ledger-compile.md`,
+    );
+    expect(mounted.descriptions.get(brunchTools.ledgerCommit)).toMatch(
+      new RegExp(`^${arm} ledger-commit\\.md\\n`, "u"),
     );
 
     mounted.initialData = undefined;

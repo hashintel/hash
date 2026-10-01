@@ -2,23 +2,16 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
-import {
-  brunchTools,
-  compileLedger,
-  composeLedgerProfile,
-  reconstructLedger,
-} from "@hashintel/brunch-agent";
-import { sdcpnLedgerProfile } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
+import { ledgerEvidence } from "./ledger-evidence.ts";
 
-import type { OwnLedger } from "../../agents/chat-agent/guidance-ledger.ts";
+import type { GuidanceVariant } from "../../agents/chat-agent/guidance-variant.ts";
 import type { ToolExecution } from "@hashintel/brunch-agent";
-
-const ledgerProfile = composeLedgerProfile(sdcpnLedgerProfile);
 
 interface ProofEventBase {
   readonly sequence: number;
@@ -248,25 +241,14 @@ export const refreshProofManifest = async (
   return manifest;
 };
 
-const sharedLedger: OwnLedger["evidence"] = (snapshot) => {
-  const commits = reconstructLedger(snapshot);
-  const compiled = compileLedger(commits, ledgerProfile);
-  return compiled.status === "compiled"
-    ? { commits, markdown: compiled.markdown }
-    : { commits };
-};
-
-/** `ownLedger` reads a self-contained arm's Ledger with that arm's own reader. */
 export const writeProofArtifacts = async (
   directory: string,
   snapshot: FlueConversationSnapshot,
-  ownLedger?: OwnLedger,
+  variant?: GuidanceVariant,
 ): Promise<void> => {
   await mkdir(directory, { recursive: true });
   const trace = deriveProofTrace(snapshot);
-  const ledger = ownLedger
-    ? ownLedger.evidence(snapshot)
-    : sharedLedger(snapshot);
+  const ledger = ledgerEvidence(snapshot, variant);
   await Promise.all([
     atomicWrite(
       join(directory, "snapshot.json"),
