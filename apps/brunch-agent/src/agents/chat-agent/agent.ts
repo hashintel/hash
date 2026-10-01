@@ -84,7 +84,7 @@ export function ChatAgent({ id }: AgentProps) {
         ),
     }).history();
   };
-  const coreSystemPrompt = useChatGuidance(
+  const { system: coreSystemPrompt, instructions } = useChatGuidance(
     guidanceVariant,
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
@@ -97,6 +97,7 @@ export function ChatAgent({ id }: AgentProps) {
   useConstruction(
     initialData
       ? {
+          ...(instructions === undefined ? {} : { instructions }),
           authorizeDraft: async (draftCallId: string) => {
             if (!latestNetReadBefore(await history(), draftCallId))
               throw new Error(
@@ -138,7 +139,8 @@ export function ChatAgent({ id }: AgentProps) {
     useTool(createQueryBasisTool({ browser: initialData, history }));
 
   useInstruction(
-    `
+    instructions?.[initialData ? "bound" : "unbound"] ??
+      `
 Call ping when you need to confirm the server tool path.
 ${
   initialData
@@ -149,7 +151,8 @@ ${
   );
   if (initialData)
     useInstruction(
-      `
+      instructions?.queryBasis ??
+        `
 When the user asks why a visible element exists, do not answer from memory. If no current net read exists or the net may have changed since it, read the net first, then call ${brunchTools.queryBasis} with the element's kind and recorded name or ID (for an arc, the transition ID, direction and place ID). The answer lists the calls that changed it, the Ledger revision current at each, and the Notes recorded earlier in the same turn; compile those Notes when you need their content. Chronological association is not semantic justification. If no call is associated, say so plainly.
 `.replace(/^\s+|\s+$/gu, ""),
     );

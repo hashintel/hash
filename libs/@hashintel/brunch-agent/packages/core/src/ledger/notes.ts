@@ -42,45 +42,47 @@ const changeCore = {
   content: v.pipe(v.string(), v.minLength(1), v.maxLength(12_000)),
 };
 
-/** Closed epistemic fields shared by typed and identity-addressed changes. */
-export const typedEpistemicFields = {
-  source: v.pipe(
-    v.picklist(ledgerSources),
-    v.description(
-      "Who supplied this: the person, material they showed or cited, or the agent itself.",
-    ),
-  ),
-  basis: v.optional(
-    v.pipe(
-      v.picklist(ledgerBases),
-      v.description(
-        "What it rests on: observed records or events, a documented rule, practiced judgment, an estimate, an assumption (by anyone), or the agent's inference.",
-      ),
-    ),
-  ),
-  standing: v.pipe(
-    v.picklist(ledgerStandings),
-    v.description(
-      "settled: accepted as stated. tentative: held but hedged or unconfirmed. contested: two recorded accounts disagree. open: consequential and unknown, unasked or deferred. inapplicable: covered and judged not to apply to this model.",
-    ),
-  ),
+/** What the model reads about each closed epistemic field. */
+export interface LedgerEpistemicText {
+  readonly source: string;
+  readonly basis: string;
+  readonly standing: string;
+  readonly precision: string;
+  readonly qualifier: string;
+}
+
+export const defaultEpistemicText: LedgerEpistemicText = {
+  source:
+    "Who supplied this: the person, material they showed or cited, or the agent itself.",
+  basis:
+    "What it rests on: observed records or events, a documented rule, practiced judgment, an estimate, an assumption (by anyone), or the agent's inference.",
+  standing:
+    "settled: accepted as stated. tentative: held but hedged or unconfirmed. contested: two recorded accounts disagree. open: consequential and unknown, unasked or deferred. inapplicable: covered and judged not to apply to this model.",
+  precision: "For quantities: approximate or only qualitative.",
+  qualifier:
+    "Short remaining qualification the fields cannot express, e.g. 'not site-validated'.",
+};
+
+/** Closed epistemic fields, described by `text`. */
+export const epistemicFields = (text: LedgerEpistemicText) => ({
+  source: v.pipe(v.picklist(ledgerSources), v.description(text.source)),
+  basis: v.optional(v.pipe(v.picklist(ledgerBases), v.description(text.basis))),
+  standing: v.pipe(v.picklist(ledgerStandings), v.description(text.standing)),
   precision: v.optional(
-    v.pipe(
-      v.picklist(ledgerPrecisions),
-      v.description("For quantities: approximate or only qualitative."),
-    ),
+    v.pipe(v.picklist(ledgerPrecisions), v.description(text.precision)),
   ),
   qualifier: v.optional(
     v.pipe(
       v.string(),
       v.minLength(1),
       v.maxLength(300),
-      v.description(
-        "Short remaining qualification the fields cannot express, e.g. 'not site-validated'.",
-      ),
+      v.description(text.qualifier),
     ),
   ),
-};
+});
+
+/** Closed epistemic fields shared by typed and identity-addressed changes. */
+export const typedEpistemicFields = epistemicFields(defaultEpistemicText);
 
 const typedChangeSchema = v.strictObject({
   ...changeCore,

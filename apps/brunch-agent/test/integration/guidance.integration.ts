@@ -14,6 +14,7 @@ import { createFlueClient } from "@flue/sdk";
 
 import { selectGuidanceVariant } from "../../src/agents/chat-agent/guidance-variant.ts";
 import { ledgerVocabulary as manualVocabulary } from "../../src/agents/chat-agent/guidance/manual/ledger-vocabulary.ts";
+import { ledgerVocabulary as receiptVocabulary } from "../../src/agents/chat-agent/guidance/receipt/ledger-vocabulary.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -23,13 +24,20 @@ import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const variant = selectGuidanceVariant();
 const baseline = variant === "baseline";
-/** The hand-edited arm is checked for wiring only, never for its wording or terms. */
-const manual = variant === "manual";
-const identityLedger = variant === "identity" || manual;
-const [manualKind] = manualVocabulary.kinds;
-const [manualDimension] = manualVocabulary.dimensions;
-const probe = manual
-  ? { kind: manualKind.name, dimension: manualDimension.name }
+/** Self-contained arms are checked for wiring only, never for their wording or terms. */
+const ownVocabulary =
+  variant === "manual"
+    ? manualVocabulary
+    : variant === "receipt"
+      ? receiptVocabulary
+      : undefined;
+const selfContained = ownVocabulary !== undefined;
+const identityLedger = variant === "identity" || selfContained;
+const probe = ownVocabulary
+  ? {
+      kind: ownVocabulary.kinds[0].name,
+      dimension: ownVocabulary.dimensions[0].name,
+    }
   : { kind: "resource", dimension: "resources" };
 const skill = baseline ? "sdcpn-modelling" : "constructing";
 const directory = mkdtempSync(join(tmpdir(), "brunch-guidance-"));
@@ -57,7 +65,7 @@ let completed = false;
 faux.setResponses([
   (context) => {
     const prompt = context.systemPrompt ?? "";
-    if (!manual) {
+    if (!selfContained) {
       assert.equal(
         prompt.includes("# Account–draft feedback"),
         variant === "feedback" || variant === "identity",
@@ -101,7 +109,7 @@ faux.setResponses([
   },
   (context) => {
     const resource = toolResult(context, "resource");
-    if (!manual) {
+    if (!selfContained) {
       assert(resource.includes("netAfterChanges"));
       assert(resource.includes("getNetCompilationErrors"));
     }
@@ -114,7 +122,7 @@ faux.setResponses([
     );
     const schema = JSON.stringify(commitTool?.parameters);
     assert(schema.includes('"identify"'));
-    if (!manual)
+    if (!selfContained)
       assert(
         schema.includes('"fails-into"') && schema.includes('"validation"'),
       );
@@ -128,12 +136,14 @@ faux.setResponses([
                 op: "identify",
                 identity: "cleaning-crew",
                 kind: probe.kind,
-                ...(manual ? { content: "One crew for both lines." } : {}),
+                ...(selfContained
+                  ? { content: "One crew for both lines." }
+                  : {}),
                 covers: [probe.dimension],
                 source: "person",
                 standing: "settled",
               },
-              ...(manual
+              ...(selfContained
                 ? []
                 : [
                     {
@@ -165,7 +175,7 @@ faux.setResponses([
   (context) => {
     assert(
       toolResult(context, "map").includes(
-        manual
+        selfContained
           ? `- \`cleaning-crew\` [${probe.kind}] — confirmed; n1`
           : "- `cleaning-crew` [resource] — confirmed; n1; 1 note",
       ),

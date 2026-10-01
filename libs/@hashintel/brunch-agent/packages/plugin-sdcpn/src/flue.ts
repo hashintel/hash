@@ -23,18 +23,30 @@ import {
   type BrowserToolExecutor,
 } from "./tools/petrinaut-construction";
 
+const experimentDraftingInstruction =
+  "For experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution; it carries no restrictions, so first name each restriction or threshold the person stated that the run will not enforce. Draft preparation is not execution; Run and Dismiss are editor-local human actions.";
+
 type SdcpnToolOptions = {
   readonly executeBrowserTool?: BrowserToolExecutor;
   readonly authorizeDraft?: Parameters<
     typeof createDraftExperimentTool
   >[0]["authorizeDraft"];
+  /** Replace the instructions mounted in a document-bound conversation. */
+  readonly instructions?: {
+    /** Mounted before the tools; defaults to Petrinaut's AI capability guidance. */
+    readonly capability: string;
+    /** Mounted after the experiment draft tool. */
+    readonly experimentDrafting: string;
+  };
 };
 
 /** Shared runtime capabilities, independent of the experimental guidance owner. */
 export const useSdcpnTools = (options?: SdcpnToolOptions): void => {
   const initialData = useInitialData<SdcpnInitialData>();
   if (initialData) {
-    useInstruction(petrinautAiCapabilityGuidance);
+    useInstruction(
+      options?.instructions?.capability ?? petrinautAiCapabilityGuidance,
+    );
     if (!options?.authorizeDraft)
       throw new Error(
         "A document-bound conversation requires draft history authorization.",
@@ -50,7 +62,7 @@ export const useSdcpnTools = (options?: SdcpnToolOptions): void => {
       }),
     );
     useInstruction(
-      "For experiment proposals, prefer draft_petrinaut_experiment after a canonical getLatestNetDefinition read. Only call canonical createExperiment directly when the person explicitly requests immediate execution; it carries no restrictions, so first name each restriction or threshold the person stated that the run will not enforce. Draft preparation is not execution; Run and Dismiss are editor-local human actions.",
+      options.instructions?.experimentDrafting ?? experimentDraftingInstruction,
     );
     for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
       useTool(tool);
