@@ -11,11 +11,12 @@ import type {
 } from "../../../shared/live-utterance-judgment";
 import type { FinalizedInput } from "./live-conversation";
 
-/** Why queued input was discarded: Stop, a Brunch error, or the end of voice. */
-export type DiscardReason = "stopped" | "error" | "ended";
+/** Why queued input was discarded: Stop, a Brunch error, the end of voice, or newer speech. */
+export type DiscardReason = "stopped" | "error" | "ended" | "superseded";
 
 interface Entry {
   readonly input: FinalizedInput;
+  readonly cancel: () => void;
   decision: "pending" | "submit" | "withhold";
 }
 
@@ -46,8 +47,6 @@ export class LiveUtteranceGate {
 
   public accept(input: FinalizedInput, state: UtteranceJudgmentState): void {
     if (this.#stopped) return;
-    const entry: Entry = { input, decision: "pending" };
-    this.#queue.push(entry);
     const controller = new AbortController();
     const startedAt = performance.now();
     let settled = false;
@@ -58,6 +57,8 @@ export class LiveUtteranceGate {
       controller.abort();
       this.#cancellations.delete(cancel);
     };
+    const entry: Entry = { input, cancel, decision: "pending" };
+    this.#queue.push(entry);
     const finish = (judgment: UtteranceJudgment | null, timedOut = false) => {
       if (settled || this.#stopped) return;
       settled = true;
@@ -102,6 +103,25 @@ export class LiveUtteranceGate {
     if (entry?.decision !== "submit" || !this.#dependencies.canSubmit()) return;
     this.#queue.shift();
     this.#dependencies.submit(entry.input);
+  }
+
+  /** Discards superseded inputs not yet submitted and returns their IDs. */
+  public evictSuperseded(): string[] {
+    const evicted: string[] = [];
+    for (let i = this.#queue.length - 1; i >= 0; i--) {
+      const entry = this.#queue[i];
+      if (!entry?.input.superseded || entry.decision === "withhold") continue;
+      entry.cancel();
+      this.#queue.splice(i, 1);
+      evicted.unshift(entry.input.id);
+      logLiveDiagnostic("input.dropped", {
+        inputId: entry.input.id,
+        reason: "superseded",
+        decision: entry.decision,
+      });
+    }
+    this.drain();
+    return evicted;
   }
 
   /** Discards inputs awaiting judgment or admission; withheld ones were already reported. */

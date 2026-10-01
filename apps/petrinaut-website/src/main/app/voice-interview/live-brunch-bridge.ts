@@ -434,11 +434,15 @@ export class LiveBrunchBridge {
       }
       return;
     }
-    if (!input.superseded && this.#waitingForComposer?.superseded)
-      this.#evict(this.#waitingForComposer);
+    if (!input.superseded) {
+      if (this.#waitingForComposer?.superseded)
+        this.#evict(this.#waitingForComposer);
+      for (const inputId of this.#gate?.evictSuperseded() ?? [])
+        this.#gatedInputs.delete(inputId);
+    }
     if (
       input.text.length > maxUtteranceTextLength ||
-      (!this.#gate &&
+      ((input.superseded || !this.#gate) &&
         (this.#waitingForComposer || !this.#chat.canAcceptVoiceInput))
     ) {
       logLiveDiagnostic("input.dropped", {

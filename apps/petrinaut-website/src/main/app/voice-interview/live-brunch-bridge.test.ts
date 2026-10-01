@@ -1046,6 +1046,70 @@ test("a superseded input awaiting judgment never claims a Live delegation", asyn
   fixture.bridge.stop();
 });
 
+test("enforcement drops a superseded transcript quietly when another turn holds the composer", async () => {
+  const judge = vi.fn(async () => null);
+  const fixture = setup(undefined, judge, { enforce: true });
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  await fixture.bridge.accept(speech("current", "Correction"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.notice.mockClear();
+  await fixture.bridge.accept({
+    ...speech("stale", "Old request"),
+    superseded: true,
+  });
+  fixture.update();
+  await Promise.resolve();
+
+  expect(judge).toHaveBeenCalledOnce();
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.notice).not.toHaveBeenCalled();
+  fixture.bridge.stop();
+});
+
+test.each([
+  ["awaiting judgment", false],
+  ["waiting for the composer", true],
+] as const)(
+  "a correction evicts a superseded gated input %s",
+  async (_state, judged) => {
+    vi.stubEnv("DEV", true);
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(null);
+    const fixture = setup(undefined, judge, { enforce: true });
+    await fixture.bridge.accept({
+      ...speech("old", "Old request"),
+      superseded: true,
+    });
+    if (judged) {
+      fixture.update({ canAcceptVoiceInput: false });
+      pending.resolve(null);
+      await pending.promise;
+      await Promise.resolve();
+      expect(fixture.submit).not.toHaveBeenCalled();
+    }
+    await fixture.bridge.accept(speech("correction", "Correction"));
+    fixture.update();
+    pending.resolve(null);
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+    await Promise.resolve();
+
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    expect(fixture.submit.mock.calls[0]?.[0].id).toBe("correction");
+    expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+      expect.objectContaining({
+        inputId: "old",
+        reason: "superseded",
+        decision: judged ? "submit" : "pending",
+      }),
+    ]);
+    fixture.bridge.stop();
+  },
+);
+
 test("enforcement fails open at one second and ignores a late withholding result", async () => {
   vi.useFakeTimers();
   try {
