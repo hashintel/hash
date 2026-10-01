@@ -400,10 +400,8 @@ export const InterviewBudgetControl = ({
                 fontSize: "xs",
                 lineHeight: "[1.45]",
                 color: "neutral.s100",
-                margin: "[10px 0 0]",
-                paddingTop: "[10px]",
+                margin: "[12px 0 0]",
                 minHeight: "[18px]",
-                borderTop: "[1px solid token(colors.neutral.a10)]",
               })}
             >
               <strong
