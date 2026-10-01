@@ -59,8 +59,10 @@ test.each(selfContainedGuidanceVariants)(
       path.startsWith(`${guidance}/${arm}/`);
     const ownPaths = own.files.map(({ path }) => path);
     expect(ownPaths).toContain(`${guidance}/${arm}.ts`);
-    expect(ownPaths).toContain(`${guidance}/${arm}/identity-ledger.md`);
-    expect(ownPaths).toContain(`${guidance}/${arm}/ledger/commit.ts`);
+    for (const file of ["/identity-ledger.md", "/ledger/commit.ts"])
+      expect(ownPaths.some((path) => isOwn(path) && path.endsWith(file))).toBe(
+        true,
+      );
     expect(
       ownPaths.filter((path) =>
         path.startsWith(

@@ -1,4 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
+import { basename } from "node:path";
 
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -186,32 +187,40 @@ test.each(selfContainedGuidanceVariants)(
     mounted.instructions.length = 0;
     vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", arm);
     vi.resetModules();
+    const sources = new URL(
+      `../src/agents/chat-agent/guidance/${arm}/`,
+      import.meta.url,
+    );
+    const files = (await readdir(sources, { recursive: true })).filter((path) =>
+      path.endsWith(".md"),
+    );
+    const pathOf = (name: string) =>
+      files.find((path) => basename(path) === name) ?? name;
     const toolDescriptions = [
       "query-basis-tool.md",
       "ledger-commit.md",
       "ledger-compile.md",
     ];
     for (const name of toolDescriptions)
-      vi.doMock(`../src/agents/chat-agent/guidance/${arm}/${name}?raw`, () => ({
-        default: `${arm} ${name}`,
-      }));
-    const sources = new URL(
-      `../src/agents/chat-agent/guidance/${arm}/`,
-      import.meta.url,
-    );
-    const texts = new Map(
+      vi.doMock(
+        `../src/agents/chat-agent/guidance/${arm}/${pathOf(name)}?raw`,
+        () => ({ default: `${arm} ${name}` }),
+      );
+    const textsByPath = new Map(
       await Promise.all(
-        (await readdir(sources))
-          .filter((name) => name.endsWith(".md"))
-          .map(
-            async (name) =>
-              [
-                name,
-                String(await readFile(new URL(name, sources))).trim(),
-              ] as const,
-          ),
+        files.map(
+          async (path) =>
+            [
+              path,
+              String(await readFile(new URL(path, sources))).trim(),
+            ] as const,
+        ),
       ),
     );
+    const texts = {
+      get: (name: string) => textsByPath.get(pathOf(name)),
+      values: () => textsByPath.values(),
+    };
     const { ChatAgent: candidate } =
       await import("../src/agents/chat-agent/agent.ts");
     expect(candidate({ id: arm })).toBe(texts.get("system.md"));

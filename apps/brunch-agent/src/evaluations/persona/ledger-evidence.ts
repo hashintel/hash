@@ -6,7 +6,7 @@ import {
 } from "@hashintel/brunch-agent";
 import { sdcpnLedgerProfile } from "@hashintel/brunch-agent-plugin-sdcpn";
 
-import * as manual from "../../agents/chat-agent/guidance/manual/ledger.ts";
+import * as manual from "../../agents/chat-agent/guidance/manual/tools/ledger.ts";
 import * as receipt from "../../agents/chat-agent/guidance/receipt/ledger.ts";
 
 import type { GuidanceVariant } from "../../agents/chat-agent/guidance-variant.ts";

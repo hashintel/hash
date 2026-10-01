@@ -62,7 +62,7 @@ export default defineConfig({
     // Brunch Markdown is created and maintained by agents
     "libs/@hashintel/brunch-agent/**/*.md",
     // Verbatim copies of Petrinaut's AI guidance, which a Brunch arm mounts as is
-    "apps/brunch-agent/src/agents/chat-agent/guidance/*/petrinaut-capability.md",
+    "apps/brunch-agent/src/agents/chat-agent/guidance/**/petrinaut-capability.md",
     // While supported, it doesn't yet support the full breadth
     // of taplo configuration options that we have set
     // see: https://github.com/oxc-project/oxc/issues/18580
