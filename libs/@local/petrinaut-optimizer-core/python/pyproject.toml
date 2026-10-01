@@ -19,8 +19,6 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = ["pytest>=9.1.1,<10", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/petrinaut_optimizer_core"]
 
 [tool.ruff]
 target-version = "py310"

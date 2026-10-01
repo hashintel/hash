@@ -34,8 +34,6 @@ dev = [
 
 [tool.uv.build-backend]
 module-name = "petrinaut"
-[tool.hatch.build.targets.wheel]
-packages = ["src/petrinaut"]
 
 [tool.ruff]
 target-version = "py310"
