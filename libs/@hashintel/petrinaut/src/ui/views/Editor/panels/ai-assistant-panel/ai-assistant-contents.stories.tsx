@@ -1546,7 +1546,7 @@ const BrunchWaitingPreview = () => {
         messages={[userMessage]}
         promptChips={REVIEW_CHIPS}
         status={waiting ? "submitted" : "ready"}
-        workingLabel="Brunch is working"
+        workingLabel="Working…"
         inputMode={voice ? "voice" : "text"}
         voiceModeAvailable
         voiceSession={voice ? liveSession({ phase: "listening" }) : undefined}
@@ -1580,7 +1580,7 @@ export const BrunchWaitingForResponse: Story = {
         canvas.getByRole("button", { name: "Toggle waiting" }),
       );
       const waiting = within(transcript).getByRole("status");
-      await expect(waiting).toHaveTextContent("Waiting for Brunch");
+      await expect(waiting).toHaveTextContent("Working…");
       await expect(waiting).toBeVisible();
       await expect(positions()).toEqual(before);
       await expect(within(waiting).queryByRole("button")).toBeNull();
@@ -1588,7 +1588,7 @@ export const BrunchWaitingForResponse: Story = {
         canvas.getByRole("button", { name: "Toggle waiting" }),
       );
       await expect(
-        canvas.queryByText("Waiting for Brunch"),
+        canvasElement.querySelector('[data-work-status="pending"]'),
       ).not.toBeInTheDocument();
       await expect(positions()).toEqual(before);
     }
@@ -1832,7 +1832,7 @@ export const BrunchVoiceTurnActivity: Story = {
       }
       await expect(
         within(canvas.getByTestId("ai-transcript")).getByRole("status"),
-      ).toHaveTextContent("Waiting for Brunch");
+      ).toHaveTextContent("Working…");
       const labelOffset = activityLabelOffset(canvasElement);
       for (let i = 1; i < voiceTurnSteps.length; i++) {
         await userEvent.click(
@@ -2018,7 +2018,7 @@ const PendingToolLifecycleHarness = () => {
         presentation="brunch"
         resolveToolPresentation={toolLifecycleResolver}
         status={running ? "streaming" : "ready"}
-        workingLabel="Brunch is working"
+        workingLabel="Working…"
       />
     </>
   );
@@ -2212,7 +2212,7 @@ export const VoiceMediatedTurn: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const summary = canvas.getByText("Sent to Brunch").closest("summary")!;
+    const summary = canvas.getByText("Request sent").closest("summary")!;
     const userTurn = summary.closest("[data-role=user]")!;
     const assistantTurn = canvasElement.querySelector("[data-role=assistant]")!;
     await expect(getComputedStyle(userTurn).gap).toBe("2px");

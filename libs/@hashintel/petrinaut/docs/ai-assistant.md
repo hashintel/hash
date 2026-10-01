@@ -37,13 +37,14 @@ In the stock assistant, an empty conversation asks you to **Describe the process
 
 The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. The stock assistant keeps plain answers and a horizontally scrolling row of suggestion chips; Brunch's chips wrap to fit the panel.
 
-Before Brunch starts a response, **Waiting for Brunch** and a small blue spinner
-appear in the transcript, where that turn's activity will appear. Once the
-response arrives, its **Working…** activity header takes over in the same place
-and keeps the spinner until the work ends; there is no duplicate status below
-it. Suggestion chips keep their space while hidden and cannot be activated
-during work. The spinner stays still with reduced motion enabled. While viewing
-Ledger, a status row above the composer reports **Brunch is working** instead.
+As soon as you send, **Working…** and a small blue spinner appear in the
+transcript, where that turn's activity will appear, below any spoken Voice
+reply. Once the response arrives, its **Working…** activity header takes over
+in the same place and keeps the spinner until the work ends; there is no
+duplicate status below it. Suggestion chips keep their space while hidden and
+cannot be activated during work. The spinner stays still with reduced motion
+enabled. While viewing Ledger, a status row above the composer reports
+**Working…** instead.
 The stock assistant shows its working label without these Brunch statuses.
 
 Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
@@ -65,7 +66,7 @@ pending, completed, and failed tools.
 
 Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies that removal; **Deny** withholds that call and tells Brunch nothing was changed. Brunch's later calls in the same response wait until you answer, then continue to run. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Auto-layout asks separately; see `applyAutoLayout` below.
 
-When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing for Brunch** while its fields are being prepared, **Sending to Brunch** once the fields are ready but not yet accepted, and **Sent to Brunch** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. Missing excerpts display **Still open**; that placeholder is not sent as an extracted fact. If preparation fails, your original words are sent without prepared fields: the brief says **Sending without preparation**, then **Sent without preparation** after acceptance. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
+When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing request** while its fields are being prepared, **Sending request** once the fields are ready but not yet accepted, and **Request sent** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. Missing excerpts display **Still open**; that placeholder is not sent as an extracted fact. If preparation fails, your original words are sent without prepared fields: the brief says **Sending without preparation**, then **Sent without preparation** after acceptance. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
 Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
 
@@ -130,7 +131,7 @@ history, and changes to the net. In the website's Live mode, your complete
 finalized words go to Brunch alongside excerpts from a prepared brief, so short
 replies, corrections and requests to use defaults are not lost during preparation.
 If the brief cannot be prepared, your words are sent without excerpts.
-Brunch uses the prior conversation to interpret them. Expand **Sent to Brunch**
+Brunch uses the prior conversation to interpret them. Expand **Request sent**
 to inspect the brief. **Still open** means a detail was not extracted from this
 turn, not that a previous answer has been forgotten. Those placeholders are not
 sent to Brunch. The brief is not editable before sending in this version.
@@ -299,7 +300,7 @@ pause, or an error makes playback unsafe.
 With **Allow interruptions** enabled, start speaking while Brunch is
 talking to stop its audio and give your answer. Your interrupting words are
 captured; you do not need to repeat them. If Brunch is still finishing its
-previous turn, the dock shows **Answer captured. Waiting for Brunch.** and
+previous turn, the dock shows **Answer captured. Working on it.** and
 sends that answer when it is ready. Wait for it to be sent before giving
 another one. Disable **Allow interruptions** to use manual handover. In
 manual mode, select **Your turn**, wait for cancellation to finish, then speak;

@@ -969,7 +969,7 @@ export const LocalStorageDemoApp = ({
             presentation: "brunch" as const,
             mapMessagesForDisplay: mapVoiceMessages,
             resolveToolPresentation: resolveBrunchToolPresentation,
-            workingLabel: "Brunch is working",
+            workingLabel: "Working…",
             renderComposerControl: (
               context: PetrinautAiComposerControlContext,
             ) => <BrunchExperimentFollowUp context={context} />,

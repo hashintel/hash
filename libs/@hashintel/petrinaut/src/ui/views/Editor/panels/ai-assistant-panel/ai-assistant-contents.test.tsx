@@ -226,7 +226,7 @@ describe("AiAssistantContents", () => {
       />,
     );
     expect(container.textContent).toMatch(
-      /Sent to Brunch[\s\S]*I’ll ask Brunch\.[\s\S]*Activity[\s\S]*Written answer[\s\S]*Experiment draft[\s\S]*Your draft is ready\./u,
+      /Request sent[\s\S]*I’ll ask Brunch\.[\s\S]*Activity[\s\S]*Written answer[\s\S]*Experiment draft[\s\S]*Your draft is ready\./u,
     );
     expect(
       screen
@@ -238,9 +238,9 @@ describe("AiAssistantContents", () => {
         .getByRole("region", { name: "Drafted experiment" })
         .closest("[data-work-status]"),
     ).toBeNull();
-    const brief = screen.getByText("Sent to Brunch").closest("details");
+    const brief = screen.getByText("Request sent").closest("details");
     expect(brief?.open).toBe(false);
-    fireEvent.click(screen.getByText("Sent to Brunch"));
+    fireEvent.click(screen.getByText("Request sent"));
     expect(screen.getByText("Arrival rate")).not.toBeNull();
     rerender(
       <AiAssistantContents
@@ -261,7 +261,7 @@ describe("AiAssistantContents", () => {
         ]}
       />,
     );
-    expect(screen.queryByText("Sent to Brunch")).toBeNull();
+    expect(screen.queryByText("Request sent")).toBeNull();
     expect(screen.queryByText("I’ll ask Brunch.")).toBeNull();
     await expandWork();
     expect(screen.getByText("Plain reply")).not.toBeNull();
@@ -720,7 +720,7 @@ describe("AiAssistantContents", () => {
       .getByText("Compare three agents")
       .closest("[data-user-bubble]");
     expect(bubble).not.toBeNull();
-    expect(bubble?.contains(screen.getByText("Sent to Brunch"))).toBe(false);
+    expect(bubble?.contains(screen.getByText("Request sent"))).toBe(false);
   });
 
   test("copies an answer and retries its own user prompt rather than the latest prompt", async () => {
@@ -2855,7 +2855,7 @@ describe("AiAssistantContents", () => {
 
     rerender(<AiAssistantContents {...props} status="submitted" />);
     const waiting = within(transcript).getByRole("status");
-    expect(waiting.textContent).toBe("Waiting for Brunch");
+    expect(waiting.textContent).toBe("Working…");
     expect(waiting.closest('[data-work-status="pending"]')).not.toBeNull();
     expect(within(waiting).queryByRole("button")).toBeNull();
     expect(screen.queryByRole("button", { name: "Working…" })).toBeNull();
@@ -2877,7 +2877,7 @@ describe("AiAssistantContents", () => {
     );
     const working = screen.getByRole("button", { name: "Working…" });
     expect(working.querySelector('[data-work-status="pending"]')).toBeNull();
-    expect(screen.queryByText("Waiting for Brunch")).toBeNull();
+    expect(document.querySelector('[data-work-status="pending"]')).toBeNull();
 
     rerender(<AiAssistantContents {...props} status="ready" />);
     expect(within(transcript).queryByRole("status")).toBeNull();
@@ -2941,7 +2941,7 @@ describe("AiAssistantContents", () => {
       const waiting = within(screen.getByTestId("ai-transcript")).getByRole(
         "status",
       );
-      expect(waiting.textContent).toBe("Waiting for Brunch");
+      expect(waiting.textContent).toBe("Working…");
       expect(replyTurn().nextElementSibling?.contains(waiting)).toBe(true);
 
       rerender(
@@ -2966,7 +2966,7 @@ describe("AiAssistantContents", () => {
       expect(screen.getAllByRole("button", { name: "Working…" })).toHaveLength(
         1,
       );
-      expect(screen.queryByText("Waiting for Brunch")).toBeNull();
+      expect(document.querySelector('[data-work-status="pending"]')).toBeNull();
 
       rerender(
         <AiAssistantContents
@@ -3061,15 +3061,16 @@ describe("AiAssistantContents", () => {
         onSubmit={noop}
         presentation="brunch"
         status="submitted"
-        workingLabel="Brunch is working"
       />,
     );
 
     const status = screen.getByTestId("brunch-response-status");
-    expect(status.textContent).toBe("Brunch is working");
+    expect(status.textContent).toBe("Working…");
     expect(status.closest("[hidden]")).toBeNull();
     expect(
-      screen.getByText("Waiting for Brunch").closest("[hidden]"),
+      document
+        .querySelector('[data-work-status="pending"]')
+        ?.closest("[hidden]"),
     ).not.toBeNull();
   });
 

@@ -456,7 +456,7 @@ export const BrunchTranscript = ({
           data-role="assistant"
           data-input-mode={voice ? "voice" : "text"}
         >
-          <BrunchWorkPending label="Waiting for Brunch" />
+          <BrunchWorkPending label="Working…" />
         </div>
       )}
       {stopped && responseRole === "user" && (

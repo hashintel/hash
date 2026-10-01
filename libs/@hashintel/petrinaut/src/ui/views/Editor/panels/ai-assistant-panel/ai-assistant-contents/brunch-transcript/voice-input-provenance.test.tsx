@@ -18,19 +18,19 @@ test.each<{
   {
     state: "streaming" as const,
     fields: {},
-    label: "Preparing for Brunch",
+    label: "Preparing request",
     note: "Preparing from what you said",
   },
   {
     state: "streaming" as const,
     fields: { goal: "Compare staffing" },
-    label: "Sending to Brunch",
+    label: "Sending request",
     note: "Prepared from what you said",
   },
   {
     state: "done" as const,
     fields: { goal: "Compare staffing" },
-    label: "Sent to Brunch",
+    label: "Request sent",
     note: "Prepared from what you said",
   },
   {

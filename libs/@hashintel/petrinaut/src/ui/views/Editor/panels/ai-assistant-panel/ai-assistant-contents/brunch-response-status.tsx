@@ -14,7 +14,7 @@ export const BrunchResponseStatus = ({
   className?: string;
   workingLabel?: string;
 }) => {
-  const label = busy ? (workingLabel ?? "Brunch is working") : undefined;
+  const label = busy ? (workingLabel ?? "Working…") : undefined;
 
   return (
     <div
