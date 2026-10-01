@@ -399,3 +399,30 @@ export const constraintCode = (
       : `[${places}]`;
   return `forEvery(${scope}, (${forEveryVariable(net, constraint.forEvery.typeId)}) => ${line})`;
 };
+
+/** The hover text on "For every", with the token type's name in place of "order". */
+export const forEveryHint = (typeName: string): string => {
+  const noun = typeName.trim().toLowerCase() || "token";
+  return `Tracks one ${noun} across firings only if the net gives each ${noun} an ID. Without one, the check runs on whichever tokens are there.`;
+};
+
+/**
+ * The unit shown after a check's bound. The net does not give fields a unit,
+ * so a field named `age` reads as days.
+ */
+export const subjectUnit = (
+  net: SDCPN,
+  subject: CheckSubject | null,
+): string | null => {
+  if (subject?.kind !== "tokenField") {
+    return null;
+  }
+  const place = net.places.find(({ id }) => id === subject.id);
+  const type = net.types.find(
+    ({ id }) => id === subject.id || id === place?.colorId,
+  );
+  const element = type?.elements.find(
+    ({ elementId }) => elementId === subject.field,
+  );
+  return element?.name === "age" ? "days" : null;
+};

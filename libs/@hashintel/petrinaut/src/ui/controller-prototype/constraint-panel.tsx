@@ -15,9 +15,11 @@ import { validateDisplayName } from "@hashintel/petrinaut-core";
 import {
   constraintCode,
   emptyCheck,
+  forEveryHint,
   constraintModeLabel,
   parseSubjectValue,
   subjectGroups,
+  subjectUnit,
   subjectValue,
   timeWordHint,
   timeWordLabel,
@@ -101,6 +103,12 @@ const ruleRowStyle = css({
   gap: "2",
   flexWrap: "wrap",
 });
+
+// Controls keep their width; the bound wraps to the next line instead.
+const tightRowStyle = css({ gap: "1.5", "& > *": { flexShrink: "0" } });
+
+// Keeps a comparison, its bound and unit together on one line.
+const noWrapStyle = css({ flexWrap: "nowrap" });
 
 const numberStyle = css({ width: "[56px]" });
 
@@ -250,6 +258,187 @@ const TimeWordMenu: React.FC<{
         </Button>
       }
     />
+  );
+};
+
+const forEveryLabelStyle = css({
+  fontSize: "sm",
+  color: "neutral.s100",
+  textDecoration: "underline dotted",
+  textUnderlineOffset: "[3px]",
+  cursor: "help",
+});
+
+const swatchStyle = css({
+  display: "inline-block",
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "[2px]",
+  marginRight: "1.5",
+  flexShrink: "0",
+});
+
+const whereItems: { value: "in" | "reaches"; text: string }[] = [
+  { value: "in", text: "in" },
+  { value: "reaches", text: "that reaches" },
+];
+
+const ForEveryRows: React.FC<{
+  forEvery: NonNullable<ModelConstraint["forEvery"]>;
+  disabled: boolean;
+  update: UpdateConstraint;
+}> = ({ forEvery, disabled, update }) => {
+  const { petriNetDefinition } = use(SDCPNContext);
+  const types = petriNetDefinition.types;
+  const type = types.find(({ id }) => id === forEvery.typeId);
+  const setForEvery = (patch: Partial<typeof forEvery>) =>
+    update((current) =>
+      current.forEvery
+        ? { ...current, forEvery: { ...current.forEvery, ...patch } }
+        : current,
+    );
+
+  return (
+    <>
+      <div className={ruleRowStyle}>
+        <Tooltip
+          content={
+            <span className={hintTextStyle}>{forEveryHint(type?.name ?? "")}</span>
+          }
+          position="left-start"
+        >
+          <span
+            className={cx(forEveryLabelStyle, disabled && disabledTextStyle)}
+          >
+            For every
+          </span>
+        </Tooltip>
+        <Select
+          size="sm"
+          width="fitContent"
+          aria-label="Token type"
+          disabled={disabled}
+          required
+          value={forEvery.typeId}
+          items={types.map((candidate) => ({
+            value: candidate.id,
+            text: candidate.name,
+          }))}
+          renderItem={(value) => {
+            const candidate = types.find(({ id }) => id === value);
+            return (
+              <span>
+                <span
+                  className={swatchStyle}
+                  style={{ backgroundColor: candidate?.displayColor }}
+                />
+                {candidate?.name ?? value}
+              </span>
+            );
+          }}
+          onChange={(typeId) =>
+            update((current) => ({
+              ...current,
+              forEvery: current.forEvery && { ...current.forEvery, typeId },
+              checks: current.checks.map((check) => ({
+                ...check,
+                subject: null,
+              })),
+              trigger: current.trigger && { ...current.trigger, subject: null },
+            }))
+          }
+        />
+        <Select
+          size="sm"
+          width="fitContent"
+          aria-label="Where to watch"
+          disabled={disabled}
+          required
+          value={forEvery.where}
+          items={whereItems}
+          onChange={(where) => {
+            if (where === "in" || where === "reaches") {
+              setForEvery({ where });
+            }
+          }}
+        />
+        {disabled ? null : (
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="close"
+            aria-label="Remove For every"
+            onClick={() =>
+              update(({ forEvery: _forEvery, ...current }) => ({
+                ...current,
+                checks: current.checks.map((check) => ({
+                  ...check,
+                  subject:
+                    check.subject?.id === forEvery.typeId ? null : check.subject,
+                })),
+                trigger: current.trigger && {
+                  ...current.trigger,
+                  subject:
+                    current.trigger.subject?.id === forEvery.typeId
+                      ? null
+                      : current.trigger.subject,
+                },
+              }))
+            }
+          />
+        )}
+      </div>
+      <div className={ruleRowStyle}>
+        <Menu
+          items={[
+            {
+              id: "places",
+              label: "",
+              items: petriNetDefinition.places
+                .filter(
+                  (place) =>
+                    place.colorId === forEvery.typeId ||
+                    forEvery.placeIds.includes(place.id),
+                )
+                .map(
+                  (place): MenuItem => ({
+                    id: place.id,
+                    text: place.name,
+                    selectedStyle: "checkbox",
+                    keepOpenOnSelect: true,
+                    selected: forEvery.placeIds.includes(place.id),
+                    onClick: () =>
+                      setForEvery({
+                        placeIds: forEvery.placeIds.includes(place.id)
+                          ? forEvery.placeIds.filter((id) => id !== place.id)
+                          : [...forEvery.placeIds, place.id],
+                      }),
+                  }),
+                ),
+            },
+          ]}
+          trigger={
+            <Button
+              size="sm"
+              variant="subtle"
+              className={timeButtonStyle}
+              suffix={<span className={chevronStyle} />}
+              aria-label="Places"
+              disabled={disabled}
+            >
+              {forEvery.placeIds
+                .map(
+                  (id) =>
+                    petriNetDefinition.places.find((place) => place.id === id)
+                      ?.name,
+                )
+                .filter(Boolean)
+                .join(", ") || "Choose places"}
+            </Button>
+          }
+        />
+      </div>
+    </>
   );
 };
 
@@ -489,6 +678,15 @@ const RuleRows: React.FC<{
         : { ...current, window: { kind: "within", to: value } };
     });
 
+  const { petriNetDefinition: net } = use(SDCPNContext);
+  const forEveryRows = constraint.forEvery ? (
+    <ForEveryRows
+      forEvery={constraint.forEvery}
+      disabled={disabled}
+      update={update}
+    />
+  ) : null;
+
   const windowRow = (
     <div className={ruleRowStyle}>
       <Select
@@ -567,13 +765,86 @@ const RuleRows: React.FC<{
           If … then
         </Button>
       )}
+      {constraint.forEvery || net.types.length === 0 ? null : (
+        <Button
+          size="xs"
+          variant="ghost"
+          iconName="plus"
+          onClick={() =>
+            update((current) => {
+              // Start from the type of the place the first check reads, if any.
+              const subject = current.checks[0]?.subject;
+              const place = net.places.find(
+                ({ id }) => subject?.kind !== "metric" && id === subject?.id,
+              );
+              const typed = net.types.find(({ id }) => id === place?.colorId);
+              return {
+              ...current,
+              forEvery: {
+                typeId: (typed ?? net.types[0]!).id,
+                where: "in",
+                placeIds: typed && place ? [place.id] : [],
+              },
+              checks: current.checks.map((check) => ({
+                ...check,
+                subject: null,
+              })),
+              trigger: current.trigger && { ...current.trigger, subject: null },
+              };
+            })
+          }
+        >
+          For every…
+        </Button>
+      )}
     </div>
   );
 
   if (!asList) {
     const check = constraint.checks[0] ?? emptyCheck();
+    const unit = subjectUnit(net, check.subject);
+    if (constraint.forEvery) {
+      return (
+        <>
+          {forEveryRows}
+          <div className={cx(ruleRowStyle, tightRowStyle)}>
+            <TimeWordMenu
+              constraint={constraint}
+              disabled={disabled}
+              update={update}
+            />
+            <SubjectSelect
+              constraint={constraint}
+              check={check}
+              disabled={disabled}
+              placeholder="Choose field"
+              onChange={(subject) => updateCheck(0, { subject })}
+            />
+            <div className={cx(ruleRowStyle, tightRowStyle, noWrapStyle)}>
+              <OpSelect
+                check={check}
+                disabled={disabled}
+                items={opItems}
+                onChange={(op) => updateCheck(0, { op })}
+              />
+              <BoundInput
+                check={check}
+                disabled={disabled}
+                onChange={(bound) => updateCheck(0, { bound })}
+              />
+              {unit ? (
+                <span className={mutedText(disabled)}>{unit}</span>
+              ) : null}
+            </div>
+          </div>
+          {windowRow}
+          {addButtons}
+        </>
+      );
+    }
     return (
       <>
+        {forEveryRows}
         <div className={ruleRowStyle}>
           <TimeWordMenu
             constraint={constraint}
@@ -600,6 +871,7 @@ const RuleRows: React.FC<{
             disabled={disabled}
             onChange={(bound) => updateCheck(0, { bound })}
           />
+          {unit ? <span className={mutedText(disabled)}>{unit}</span> : null}
         </div>
         {windowRow}
         {addButtons}
@@ -609,6 +881,7 @@ const RuleRows: React.FC<{
 
   return (
     <>
+      {forEveryRows}
       <div className={ruleRowStyle}>
         <TimeWordMenu
           constraint={constraint}
@@ -811,19 +1084,20 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
                 update={update}
               />
               <div className={codeLineStyle}>{generated}</div>
-              <div className={codeActionsStyle}>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  iconName="code"
-                  disabled={isReadOnly}
-                  onClick={() =>
-                    update((current) => ({ ...current, code: generated }))
-                  }
-                >
-                  Edit as code
-                </Button>
-              </div>
+              {isReadOnly ? null : (
+                <div className={codeActionsStyle}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    iconName="code"
+                    onClick={() =>
+                      update((current) => ({ ...current, code: generated }))
+                    }
+                  >
+                    Edit as code
+                  </Button>
+                </div>
+              )}
             </>
           ) : (
             <CodeEditor

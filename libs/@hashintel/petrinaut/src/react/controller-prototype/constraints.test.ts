@@ -6,10 +6,12 @@ import { demoConstraints } from "../../ui/controller-prototype/scheduler-example
 import {
   CONSTRAINTS_METADATA_KEY,
   constraintCode,
+  forEveryHint,
   newConstraint,
   parseSubjectValue,
   readConstraints,
   subjectGroups,
+  subjectUnit,
   subjectValue,
   writeConstraints,
 } from "./constraints";
@@ -157,6 +159,20 @@ describe("read and write", () => {
 
   it("reads nothing from a net without constraints", () => {
     expect(readConstraints(net)).toEqual([]);
+  });
+});
+
+describe("for every", () => {
+  it("names the token type in the hint", () => {
+    expect(forEveryHint("Customer order")).toContain(
+      "Tracks one customer order across firings",
+    );
+  });
+
+  it("reads an age field as days, and no other field", () => {
+    expect(subjectUnit(net, demoConstraints[3]!.checks[0]!.subject)).toBe("days");
+    expect(subjectUnit(net, demoConstraints[1]!.checks[0]!.subject)).toBeNull();
+    expect(subjectUnit(net, demoConstraints[0]!.checks[0]!.subject)).toBeNull();
   });
 });
 
