@@ -262,6 +262,39 @@ export const competingTransitionIds = (
     )
     .map((transition) => transition.id);
 
+/**
+ * The other Rate levers in a controller whose transitions take tokens from a
+ * place the given Rate lever's transition also takes from.
+ */
+export const rivalLeverIds = (
+  net: NetLike,
+  controller: Controller,
+  leverId: string,
+): string[] => {
+  const lever = controller.levers.find((candidate) => candidate.id === leverId);
+  if (lever?.kind !== "rate") {
+    return [];
+  }
+  const inputPlaceIds = (
+    net.transitions.find((t) => t.id === lever.transitionId)?.inputArcs ?? []
+  ).flatMap((arc) => {
+    const id = arc.type === "standard" ? placeIdOf(getArcEndpoint(arc)) : null;
+    return id === null ? [] : [id];
+  });
+  const competing = new Set(
+    inputPlaceIds.flatMap((placeId) => competingTransitionIds(net, placeId)),
+  );
+  return controller.levers
+    .filter(
+      (candidate) =>
+        candidate.id !== leverId &&
+        candidate.kind === "rate" &&
+        candidate.transitionId !== lever.transitionId &&
+        competing.has(candidate.transitionId),
+    )
+    .map((candidate) => candidate.id);
+};
+
 export const outputPlaceIds = (net: NetLike, transitionId: string): string[] =>
   (
     net.transitions.find((t) => t.id === transitionId)?.outputArcs ?? []

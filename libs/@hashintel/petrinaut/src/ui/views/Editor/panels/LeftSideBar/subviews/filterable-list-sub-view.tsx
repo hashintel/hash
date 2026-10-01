@@ -71,6 +71,13 @@ const listItemRowStyle = cva({
       },
   },
   variants: {
+    isLinked: {
+      true: {
+        outline: "[1px dashed var(--colors-blue-s70)]",
+        outlineOffset: "[-1px]",
+        backgroundColor: "blue.s10",
+      },
+    },
     isSelected: {
       true: {
         backgroundColor: "blue.s30",
@@ -177,6 +184,8 @@ interface FilterableListItem {
   onToggleExpanded?: () => void;
   /** Called as the pointer enters and leaves the row. */
   onHoverChange?: (hovered: boolean) => void;
+  /** Soft-highlights a row tied to something selected elsewhere, without selecting it. */
+  linked?: boolean;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -462,7 +471,10 @@ const FilterableListContent = <T extends FilterableListItem>({
         aria-selected={selected}
         ref={registerTarget(rowTarget)}
         tabIndex={tabIndexFor(rowTarget)}
-        className={listItemRowStyle({ isSelected: selected })}
+        className={listItemRowStyle({
+          isSelected: selected,
+          isLinked: !selected && item.linked === true,
+        })}
         style={
           depth > 0
             ? {

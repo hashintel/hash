@@ -5,6 +5,7 @@ import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 import {
   readControllers,
   retargetLever,
+  rivalLeverIds,
   tokenFieldCount,
   tokenFieldPlaces,
   toggleInitialTokenField,
@@ -389,5 +390,35 @@ describe("retargetLever", () => {
       kind: "initialTokens",
       placeId: "place_wip",
     });
+  });
+});
+
+describe("rivalLeverIds", () => {
+  const controller: Controller = {
+    id: "c",
+    name: "Scheduler",
+    levers: [
+      { id: "start", kind: "rate", transitionId: "trans_start_production" },
+      {
+        id: "maintain",
+        kind: "rate",
+        transitionId: "trans_preventive_maintenance",
+      },
+      {
+        id: "field",
+        kind: "tokenField",
+        transitionId: "trans_start_production",
+        places: [],
+      },
+    ],
+  };
+
+  it("finds Rate levers whose transitions take from the same place", () => {
+    expect(rivalLeverIds(net, controller, "start")).toEqual(["maintain"]);
+    expect(rivalLeverIds(net, controller, "maintain")).toEqual(["start"]);
+  });
+
+  it("finds none for a lever that is not Rate", () => {
+    expect(rivalLeverIds(net, controller, "field")).toEqual([]);
   });
 });

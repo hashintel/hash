@@ -8,6 +8,7 @@ import {
   leverAnchorKind,
   leverKindLabel,
   leverName,
+  rivalLeverIds,
 } from "../../react/controller-prototype/controllers";
 import {
   setActiveLeverRow,
@@ -33,6 +34,7 @@ import {
   endLeverPreviewKeepingView,
   setLeverPreview,
 } from "./lever-preview";
+import { useLeverSelection } from "./lever-selection";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 import type { ComponentType } from "react";
@@ -60,6 +62,7 @@ export type ControllerTreeRow = {
   expanded?: boolean;
   onToggleExpanded?: () => void;
   onHoverChange?: (hovered: boolean) => void;
+  linked?: boolean;
 };
 
 const AddControllerAction: React.FC = () => {
@@ -101,6 +104,7 @@ export const useControllersTreeGroup = (
   const { updateSubViewSection } = use(UserSettingsContext);
   const activeRow = useActiveLeverRow();
   const expanded = useExpandedControllers();
+  const leverSelection = useLeverSelection();
 
   useEffect(() => {
     if (
@@ -111,7 +115,21 @@ export const useControllersTreeGroup = (
     }
   }, [activeRow, selection]);
 
-  const children: ControllerTreeRow[] = controllers.flatMap((controller) => [
+  const children: ControllerTreeRow[] = controllers.flatMap((controller) => {
+    // The selected Rate lever and its rivals, dashed in the list.
+    const linkedIds = new Set(
+      leverSelection?.controllerId === controller.id
+        ? [
+            leverSelection.leverId,
+            ...rivalLeverIds(
+              petriNetDefinition,
+              controller,
+              leverSelection.leverId,
+            ),
+          ]
+        : [],
+    );
+    return [
     {
       id: controller.id,
       name: controller.name,
@@ -164,10 +182,12 @@ export const useControllersTreeGroup = (
                   : clearLeverPreviewSoon(),
         isSelected: (selectedByDefault) =>
           selectedByDefault && activeRow?.rowId === rowId,
+        linked: linkedIds.has(lever.id),
       };
       },
     ),
-  ]);
+    ];
+  });
 
   return {
     id: "group-controllers",

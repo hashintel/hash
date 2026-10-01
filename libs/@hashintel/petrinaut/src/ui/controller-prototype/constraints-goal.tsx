@@ -178,6 +178,7 @@ export const GoalSection: React.FC<{
       ) : (
         <div className={goalRowStyle}>
           <Select
+            required
             size="sm"
             className={goalMetricStyle}
             aria-label="Goal metric"
@@ -186,7 +187,7 @@ export const GoalSection: React.FC<{
             value={
               controller.goal
                 ? `${MODEL_METRIC_VALUE_PREFIX}${controller.goal.metricId}`
-                : null
+                : ""
             }
             items={metricGroups}
             renderItem={(value) => {

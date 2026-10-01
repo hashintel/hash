@@ -20,6 +20,7 @@ const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
 const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";
 const BIDIRECTIONAL_COLOR = "var(--colors-purple-s90)";
+const LINKED_COLOR = "var(--colors-neutral-s80)";
 
 /**
  * The focus ring for a canvas node, keyed by its focus role. Every node style
@@ -66,6 +67,11 @@ export const nodeFocusStyle = cva({
         "--focus-glow": "0 0 0 3px white",
         outline:
           "[4px solid color-mix(in oklab, var(--colors-purple-s90), transparent 25%)]",
+      },
+      linked: {
+        "--focus-glow": "0 0 0 3px white",
+        outline:
+          "[4px solid color-mix(in oklab, var(--colors-neutral-s115), transparent 75%)]",
       },
     },
   },
@@ -115,6 +121,8 @@ export const miniMapFocusColor = (
       return DOWNSTREAM_COLOR;
     case "bidirectional":
       return BIDIRECTIONAL_COLOR;
+    case "linked":
+      return LINKED_COLOR;
     case "none":
       return undefined;
   }

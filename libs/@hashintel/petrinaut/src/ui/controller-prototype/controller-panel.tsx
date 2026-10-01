@@ -1,4 +1,4 @@
-import { createContext, use, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 
 import {
   Button,
@@ -18,6 +18,7 @@ import {
   leverKindLabel,
   leverName,
   retargetLever,
+  rivalLeverIds,
   tokenFieldPlaces,
   toggleInitialTokenField,
   toggleTokenField,
@@ -45,6 +46,7 @@ import {
   endLeverPreviewKeepingView,
   setLeverPreview,
 } from "./lever-preview";
+import { setLeverSelection, useLeverSelection } from "./lever-selection";
 import { requestShowOnCanvas } from "./show-on-canvas";
 
 import type {
@@ -94,6 +96,19 @@ const kindCardStyle = css({
   borderRadius: "lg",
   marginBottom: "2",
 });
+
+// A clicked Rate card is outlined; its rivals are tinted.
+const selectedCardStyle = css({
+  borderColor: "blue.s70",
+  boxShadow: "[0 0 0 1px {colors.blue.s70}]",
+});
+
+const rivalCardStyle = css({
+  borderColor: "blue.s40",
+  backgroundColor: "blue.s10",
+});
+
+const selectableCardStyle = css({ cursor: "pointer" });
 
 const addLeverStyle = css({ display: "inline-flex" });
 
@@ -749,9 +764,45 @@ const LeverCard: React.FC<{
   const drag = useLeverDrag();
   const dropReady = drag !== null && accepts(drag.nodeId);
   const dropOver = dropReady && drag.over === field;
+  const leverSelection = useLeverSelection();
+  const selectedHere =
+    leverSelection?.controllerId === controller.id
+      ? leverSelection.leverId
+      : null;
+  const isSelected = selectedHere === lever.id;
+  const isRival =
+    selectedHere !== null &&
+    rivalLeverIds(net, controller, selectedHere).includes(lever.id);
+  const selectable = lever.kind === "rate";
 
   return (
-    <div className={kindCardStyle} data-lever-card>
+    // The card's controls stay the way to act on it; the click on its
+    // background only links it to its rivals, so it needs no key handler.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div
+      className={cx(
+        kindCardStyle,
+        selectable && selectableCardStyle,
+        isSelected && selectedCardStyle,
+        isRival && rivalCardStyle
+      )}
+      data-lever-card
+      data-selected={isSelected ? "" : undefined}
+      data-rival={isRival ? "" : undefined}
+      onClick={(event) => {
+        if (
+          !selectable ||
+          (event.target as Element).closest(
+            "button, input, [role=combobox], [data-scope=select]"
+          )
+        ) {
+          return;
+        }
+        setLeverSelection(
+          isSelected ? null : { controllerId: controller.id, leverId: lever.id }
+        );
+      }}
+    >
       <div className={kindHeaderStyle}>
         <div className={kindLabelStyle}>{leverKindLabel[lever.kind]}</div>
         <LeverMenu net={net} lever={lever} onRemove={onRemove} />
@@ -1062,6 +1113,13 @@ const ControllerContext = createContext<Controller | null>(null);
 
 const ControllerMainContent: React.FC = () => {
   const controller = use(ControllerContext);
+  // The lever selection belongs to this panel: it ends when the panel closes
+  // or shows another controller.
+  const controllerId = controller?.id;
+  useEffect(() => {
+    setLeverSelection(null);
+    return () => setLeverSelection(null);
+  }, [controllerId]);
   if (!controller) {
     throw new Error(
       "ControllerMainContent must be used within ControllerProperties"

@@ -33,7 +33,9 @@ export type CanvasNodeFocus =
   /** Fed by the focused item. */
   | "downstream"
   /** Both, so a cycle runs through the focused item. */
-  | "bidirectional";
+  | "bidirectional"
+  /** Tied to the focused item by something outside the net, such as a rival lever. */
+  | "linked";
 
 /** Where an arc sits relative to the focused item. */
 export type CanvasArcFocus =

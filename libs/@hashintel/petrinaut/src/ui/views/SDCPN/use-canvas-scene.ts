@@ -9,8 +9,17 @@ import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import { resolveControllerFocus } from "../../controller-prototype/controller-focus";
+import {
+  leverAnchorId,
+  rivalLeverIds,
+} from "../../../react/controller-prototype/controllers";
+import { useControllers } from "../../../react/controller-prototype/use-controllers";
+import {
+  resolveControllerFocus,
+  resolveLeverSelectionFocus,
+} from "../../controller-prototype/controller-focus";
 import { useLeverPreview } from "../../controller-prototype/lever-preview";
+import { useLeverSelection } from "../../controller-prototype/lever-selection";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
@@ -34,6 +43,8 @@ export const useCanvasScene = (
   } = use(EditorContext);
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
   const leverPreviewId = useLeverPreview();
+  const leverSelection = useLeverSelection();
+  const { controllers } = useControllers();
 
   /*
    * The hover follows the pointer only once it stops. Sweeping across the
@@ -73,6 +84,33 @@ export const useCanvasScene = (
       .map((item) => item.id),
   );
 
+  // A Rate lever selected in the controller panel rings its node and, faintly,
+  // its rivals' nodes.
+  const selectedController = controllers.find(
+    (controller) => controller.id === leverSelection?.controllerId,
+  );
+  const selectedLever = selectedController?.levers.find(
+    (lever) => lever.id === leverSelection?.leverId,
+  );
+  const leverSelectionFocus =
+    selectedController && selectedLever
+      ? resolveLeverSelectionFocus(
+          leverAnchorId(selectedLever),
+          new Set(
+            rivalLeverIds(
+              petriNetDefinition,
+              selectedController,
+              selectedLever.id,
+            ).flatMap((id) => {
+              const rival = selectedController.levers.find(
+                (lever) => lever.id === id,
+              );
+              return rival ? [leverAnchorId(rival)] : [];
+            }),
+          ),
+        )
+      : null;
+
   return buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
@@ -86,14 +124,15 @@ export const useCanvasScene = (
     focus:
       leverPreviewId !== null
         ? resolveControllerFocus(new Set([leverPreviewId]))
-        : resolveCanvasFocus({
+        : (leverSelectionFocus ??
+          resolveCanvasFocus({
             adjacency,
             // While a controller is open, pointing at the canvas (to drag a
             // node onto a lever) focuses nothing.
             hoveredId:
               highlightOnHover && !controllerSelected ? settledHoverId : null,
             selectedIds: selectedNodeIds,
-          }),
+          })),
     pinnedVisualizerIds: pinnedVisualizerPlaceIds,
   });
 };
