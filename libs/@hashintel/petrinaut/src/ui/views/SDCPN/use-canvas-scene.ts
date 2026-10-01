@@ -64,6 +64,9 @@ export const useCanvasScene = (
 
   // A selected controller leaves the net as it is, so any node can be dragged
   // onto its levers; hovering a lever row or dropdown row rings that node.
+  const controllerSelected = Array.from(selection.values()).some(
+    (item) => item.type === "controller",
+  );
   const selectedNodeIds = new Set(
     Array.from(selection.values())
       .filter((item) => item.type !== "controller")
@@ -85,7 +88,10 @@ export const useCanvasScene = (
         ? resolveControllerFocus(new Set([leverPreviewId]))
         : resolveCanvasFocus({
             adjacency,
-            hoveredId: highlightOnHover ? settledHoverId : null,
+            // While a controller is open, pointing at the canvas (to drag a
+            // node onto a lever) focuses nothing.
+            hoveredId:
+              highlightOnHover && !controllerSelected ? settledHoverId : null,
             selectedIds: selectedNodeIds,
           }),
     pinnedVisualizerIds: pinnedVisualizerPlaceIds,

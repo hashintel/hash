@@ -28,7 +28,11 @@ import {
 } from "../constants/entity-icons";
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { LeverRowIcon } from "./lever-glyph";
-import { clearLeverPreviewSoon, setLeverPreview } from "./lever-preview";
+import {
+  clearLeverPreviewSoon,
+  endLeverPreviewKeepingView,
+  setLeverPreview,
+} from "./lever-preview";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 import type { ComponentType } from "react";
@@ -143,6 +147,7 @@ export const useControllersTreeGroup = (
         tag: leverKindLabel[lever.kind],
         indent: 1,
         onSelect: () => {
+          endLeverPreviewKeepingView();
           setActiveLeverRow({ rowId, nodeId: selectionItem.id });
           if (section) {
             updateSubViewSection("transition-properties", section, {

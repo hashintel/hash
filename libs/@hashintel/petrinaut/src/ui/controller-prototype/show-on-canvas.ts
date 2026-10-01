@@ -17,7 +17,9 @@ import type { Size } from "@hashintel/petrinaut-core";
 const SHOW_PADDING = 4;
 const SHOW_MIN_ZOOM = 0.4;
 
-type Request = { nodeId: string; mode: "show" | "reveal" };
+type Request =
+  | { nodeId: string; mode: "show" | "reveal" }
+  | { nodeId?: undefined; mode: "restore" | "keep" };
 
 const listeners = new Set<(request: Request) => void>();
 
@@ -35,6 +37,20 @@ export const requestRevealOnCanvas = (nodeId: string): void => {
   }
 };
 
+/**
+ * After previews panned the canvas: "restore" goes back to the view before
+ * the first pan, "keep" stays where the canvas is now.
+ */
+export const requestRestoreOnCanvas = (mode: "restore" | "keep"): void => {
+  for (const listener of listeners) {
+    listener({ mode });
+  }
+};
+
+/** The view before a run of preview pans, for {@link requestRestoreOnCanvas}. */
+let viewBeforePreview: ReturnType<CanvasController["getViewport"]> | null =
+  null;
+
 /** Answers {@link requestShowOnCanvas} and {@link requestRevealOnCanvas} for the renderer it runs in. */
 export const useShowOnCanvasRequests = (
   controller: CanvasController,
@@ -43,7 +59,15 @@ export const useShowOnCanvasRequests = (
   insets: CanvasInsets,
 ): void => {
   useEffect(() => {
-    const show = ({ nodeId, mode }: Request) => {
+    const show = (request: Request) => {
+      if (request.mode === "restore" || request.mode === "keep") {
+        if (request.mode === "restore" && viewBeforePreview) {
+          controller.setViewport(viewBeforePreview, { animate: true });
+        }
+        viewBeforePreview = null;
+        return;
+      }
+      const { nodeId, mode } = request;
       const node = nodes.find((candidate) => candidate.id === nodeId);
       const bounds = node ? getBoundsOfCenteredBoxes([node]) : null;
       if (!bounds) {
@@ -60,6 +84,7 @@ export const useShowOnCanvasRequests = (
         if (inView) {
           return;
         }
+        viewBeforePreview ??= current;
         const { left } = insets;
         const width = containerSize.width - left - insets.right;
         const height = containerSize.height - insets.bottom;

@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from "react";
 
-import { requestRevealOnCanvas } from "./show-on-canvas";
+import {
+  requestRestoreOnCanvas,
+  requestRevealOnCanvas,
+} from "./show-on-canvas";
 
 /** The node a lever field's dropdown row is hovered on, ringed on the canvas. */
 let previewId: string | null = null;
@@ -8,6 +11,7 @@ const listeners = new Set<() => void>();
 
 let pending: string | null = null;
 let restoreTimer = 0;
+let keepView = false;
 let clearTimer = 0;
 let frame: number | null = null;
 
@@ -35,6 +39,9 @@ export const setLeverPreview = (nodeId: string | null): void => {
     window.clearTimeout(restoreTimer);
     root.style.setProperty("--canvas-focus-duration", PREVIEW_FOCUS_DURATION);
     if (previewId === null) {
+      // Nothing was picked: go back to the view before the preview panned.
+      requestRestoreOnCanvas(keepView ? "keep" : "restore");
+      keepView = false;
       // The fade back runs fast too; the usual timing returns after it.
       restoreTimer = window.setTimeout(
         () => root.style.removeProperty("--canvas-focus-duration"),
@@ -71,4 +78,10 @@ export const useLeverPreview = (): string | null =>
 export const clearLeverPreviewSoon = (): void => {
   window.clearTimeout(clearTimer);
   clearTimer = window.setTimeout(() => setLeverPreview(null), 80);
+};
+
+/** Ends the preview after a pick: the canvas stays where the preview took it. */
+export const endLeverPreviewKeepingView = (): void => {
+  keepView = true;
+  setLeverPreview(null);
 };

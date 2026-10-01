@@ -38,7 +38,11 @@ import { UI_MESSAGES } from "../constants/ui-messages";
 import { ConstraintsSection, GoalSection } from "./constraints-goal";
 import { LeverRowIcon } from "./lever-glyph";
 import { useLeverDrag, useLeverDropTarget } from "./lever-drop";
-import { clearLeverPreviewSoon, setLeverPreview } from "./lever-preview";
+import {
+  clearLeverPreviewSoon,
+  endLeverPreviewKeepingView,
+  setLeverPreview,
+} from "./lever-preview";
 import { requestShowOnCanvas } from "./show-on-canvas";
 
 import type {
@@ -809,7 +813,7 @@ const LeverCard: React.FC<{
                 .find((row) => row.id === value)?.name ?? "Missing node"
             }
             onChange={(value: string) => {
-              setLeverPreview(null);
+              endLeverPreviewKeepingView();
               if (value !== anchorId) {
                 onRetarget(value);
               }
