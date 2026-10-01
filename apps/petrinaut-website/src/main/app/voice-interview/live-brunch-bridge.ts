@@ -270,6 +270,25 @@ export class LiveBrunchBridge {
         );
     }
     this.#turns.clear();
+    // Gated inputs awaiting judgment or the composer are unsubmitted turns too.
+    if (this.#gate && !this.#abort.signal.aborted) {
+      for (const input of this.#gate.cancelPending("speech-started")) {
+        const delegationId =
+          this.#gatedInputs.get(input.id)?.delegationId ?? null;
+        this.#gatedInputs.delete(input.id);
+        this.#dependencies.mediation.history.unsent(
+          input.id,
+          input.text,
+          this.#chat.messages?.at(-1)?.id,
+        );
+        withdrew = true;
+        if (delegationId !== null)
+          this.#dependencies.appendInstructions(
+            speakingAgainInstruction,
+            delegationId,
+          );
+      }
+    }
     if (withdrew)
       this.#dependencies.notice(
         "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",

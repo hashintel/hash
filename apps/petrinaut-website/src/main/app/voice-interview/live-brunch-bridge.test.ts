@@ -1110,6 +1110,90 @@ test.each([
   },
 );
 
+test.each([
+  ["awaiting judgment", false],
+  ["waiting for the composer", true],
+] as const)(
+  "speech start withdraws a gated input %s like an unsent turn",
+  async (_state, judged) => {
+    vi.stubEnv("DEV", true);
+    const history = new VoiceMediationHistory("test");
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(null);
+    const fixture = setup(
+      {
+        history,
+        prepare: async () => ({}),
+        summarize: async (text) => text,
+        offered: vi.fn(),
+      },
+      judge,
+      { enforce: true },
+    );
+    await fixture.bridge.accept(speech("old", "PRIVATE earlier answer"));
+    fixture.bridge.acceptDelegation("old-delegation");
+    if (judged) {
+      fixture.update({ canAcceptVoiceInput: false });
+      pending.resolve(null);
+      await pending.promise;
+      await Promise.resolve();
+      expect(fixture.submit).not.toHaveBeenCalled();
+    }
+
+    fixture.bridge.speechStarted();
+    fixture.bridge.acceptDelegation("new-delegation");
+    fixture.update();
+    pending.resolve(null);
+    await pending.promise;
+    await Promise.resolve();
+
+    expect(fixture.submit).not.toHaveBeenCalled();
+    expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+    expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining("started speaking again"),
+      "old-delegation",
+    );
+    expect(fixture.notice).toHaveBeenLastCalledWith(
+      expect.stringContaining("started speaking again"),
+    );
+    expect(
+      history.project([]).find((message) => message.id === "old")?.parts,
+    ).toEqual([{ type: "text", text: "PRIVATE earlier answer" }]);
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+      expect.objectContaining({
+        inputId: "old",
+        reason: "speech-started",
+        decision: judged ? "submit" : "pending",
+      }),
+    ]);
+
+    // The new speech keeps the delegation that arrived after it started.
+    await fixture.bridge.accept(speech("new", "Seven reviewers"));
+    await vi.waitFor(() =>
+      expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ id: "new" }),
+      ),
+    );
+    fixture.bridge.responseStarted(started);
+    fixture.bridge.responseCompleted({
+      ...started,
+      position: { batch: 2, index: 0 },
+    });
+    fixture.update({ segments: [segment()], settlements: completed });
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+        segment().text,
+        "new-delegation",
+      ),
+    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+    fixture.bridge.stop();
+  },
+);
+
 test("enforcement fails open at one second and ignores a late withholding result", async () => {
   vi.useFakeTimers();
   try {

@@ -11,8 +11,13 @@ import type {
 } from "../../../shared/live-utterance-judgment";
 import type { FinalizedInput } from "./live-conversation";
 
-/** Why queued input was discarded: Stop, a Brunch error, the end of voice, or newer speech. */
-export type DiscardReason = "stopped" | "error" | "ended" | "superseded";
+/** Why queued input was discarded: Stop, a Brunch error, the end of voice, newer speech, or speech starting again. */
+export type DiscardReason =
+  | "stopped"
+  | "error"
+  | "ended"
+  | "superseded"
+  | "speech-started";
 
 interface Entry {
   readonly input: FinalizedInput;
@@ -124,11 +129,16 @@ export class LiveUtteranceGate {
     return evicted;
   }
 
-  /** Discards inputs awaiting judgment or admission; withheld ones were already reported. */
-  public cancelPending(reason: DiscardReason): void {
+  /**
+   * Discards inputs awaiting judgment or admission and returns them; withheld
+   * ones were already reported.
+   */
+  public cancelPending(reason: DiscardReason): FinalizedInput[] {
     for (const cancel of this.#cancellations) cancel();
+    const discarded: FinalizedInput[] = [];
     for (const { input, decision } of this.#queue) {
       if (decision === "withhold") continue;
+      discarded.push(input);
       logLiveDiagnostic("input.dropped", {
         inputId: input.id,
         reason,
@@ -136,6 +146,7 @@ export class LiveUtteranceGate {
       });
     }
     this.#queue.length = 0;
+    return discarded;
   }
 
   public stop(): void {
