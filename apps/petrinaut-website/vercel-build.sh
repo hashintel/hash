@@ -21,7 +21,10 @@ turbo build --filter='@apps/petrinaut-website' --env-mode=loose
 # Controller prototype branch only: the prototype page ships beside the site
 # at /controller-prototype/, and vercel.json sends the site root there.
 echo "Building the controller prototype page"
+# Vite resolves --outDir from the config's root, so pass an absolute path.
+prototype_out="$PWD/apps/petrinaut-website/dist/controller-prototype"
 (
   cd libs/@hashintel/petrinaut
-  node ../../../node_modules/vite/bin/vite.js build     --config controller-prototype/vite.config.ts     --base /controller-prototype/     --outDir ../../../apps/petrinaut-website/dist/controller-prototype     --emptyOutDir     --minify false
+  node ../../../node_modules/vite/bin/vite.js build --config controller-prototype/vite.config.ts --base /controller-prototype/ --outDir "$prototype_out" --emptyOutDir --minify false
 )
+test -f "$prototype_out/index.html"
