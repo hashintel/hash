@@ -460,7 +460,11 @@ export const LocalStorageDemoApp = ({
   const { level: interviewBudgetLevel, setLevel: setInterviewBudgetLevel } =
     useInterviewBudgetPreference();
   const [budgetNotes, setBudgetNotes] = useState<
-    { conversationId: string; after: string; message: PetrinautAiMessage }[]
+    {
+      conversationId: string;
+      after: { id: string; role: string; ordinal: number };
+      message: PetrinautAiMessage;
+    }[]
   >([]);
   const {
     enabled: realtimeEnabled,
@@ -991,16 +995,28 @@ export const LocalStorageDemoApp = ({
             primaryLabel: "Chat",
             presentation: "brunch" as const,
             mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
-              const withNotes = messages.flatMap((message) => [
-                message,
-                ...budgetNotes
-                  .filter(
-                    (note) =>
-                      note.conversationId === conversationId &&
-                      note.after === message.id,
-                  )
-                  .map((note) => note.message),
-              ]);
+              // Canonical history re-identifies an optimistic user message
+              // once its turn settles, so an anchor whose id is gone falls
+              // back to its position among messages of the same role.
+              const ids = new Set(messages.map((message) => message.id));
+              const ordinals = new Map<string, number>();
+              const withNotes = messages.flatMap((message) => {
+                const ordinal = (ordinals.get(message.role) ?? 0) + 1;
+                ordinals.set(message.role, ordinal);
+                return [
+                  message,
+                  ...budgetNotes
+                    .filter(
+                      (note) =>
+                        note.conversationId === conversationId &&
+                        (ids.has(note.after.id)
+                          ? note.after.id === message.id
+                          : note.after.role === message.role &&
+                            note.after.ordinal === ordinal),
+                    )
+                    .map((note) => note.message),
+                ];
+              });
               return mapVoiceMessages?.(withNotes) ?? withNotes;
             },
             resolveToolPresentation: resolveBrunchToolPresentation,
@@ -1014,14 +1030,20 @@ export const LocalStorageDemoApp = ({
                   level={interviewBudgetLevel}
                   onChange={(level) => {
                     if (level === interviewBudgetLevel) return;
-                    const after = context.messages.at(-1)?.id;
-                    if (after) {
+                    const last = context.messages.at(-1);
+                    if (last) {
                       const config = interviewBudgetLevelsConfig[level];
                       setBudgetNotes((notes) => [
                         ...notes,
                         {
                           conversationId: context.conversationId,
-                          after,
+                          after: {
+                            id: last.id,
+                            role: last.role,
+                            ordinal: context.messages.filter(
+                              (message) => message.role === last.role,
+                            ).length,
+                          },
                           message: {
                             id: `interview-budget:${crypto.randomUUID()}`,
                             role: "system",
