@@ -33,6 +33,16 @@ The header text is not selectable. Header icons animate on hover and click unles
 
 ## The conversation
 
+### Interview budget
+
+In the website's Brunch assistant, the round icon beside Send opens an interview budget. The same control appears in the Voice dock. Choose **Off**, **Quick · ~5 min**, **Standard · ~10 min** (the default), **Thorough · ~20 min**, or **Deep · no limit**. Click a stop name, drag the rail, or focus it and use the arrow keys. The browser remembers the level.
+
+The pill above the composer estimates time from questions left; it is not a countdown. Hover it for the question count. Quick, Standard and Thorough allow respectively 3, 6 and 10 replies in text, or 2, 4 and 7 in Voice. A grouped question or a confirmation-only reply counts once. The pill progresses to **Last question**, then **Wrapping up**. Deep shows the running count and offers pauses; Off hides the pill and uses the ordinary interview without a budget.
+
+Changing the level adds a note to this session's transcript. Earlier questions still count towards the new cap; Brunch applies the change on the next submission. At the cap, Brunch records the latest answer and closes with stated facts, labelled assumptions and open items. A cap does not mean the model is complete or runnable: missing facts, ranges and units remain open rather than being invented. You can choose a higher level to continue.
+
+### Messages and activity
+
 In the stock assistant, an empty conversation asks you to **Describe the process you want to create**; later turns say **Continue iterating...**. Press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, the field always says **Continue iterating...**, and its button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
 The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. The stock assistant keeps plain answers and a horizontally scrolling row of suggestion chips; Brunch's chips wrap to fit the panel.

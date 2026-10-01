@@ -89,6 +89,7 @@ export type AiAssistantContentsProps = {
   workingLabel?: string;
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
+  composerStatus?: ReactNode;
   composerFocusRequest?: number;
   error?: Error;
   experimentStates?: Record<string, AiExperimentState>;
@@ -695,6 +696,23 @@ const AiAssistantMessage = memo(
     );
     const { work, answers, cards, brief, voiceAgentReply, voiceAgentWrapUp } =
       renderItems;
+    if (message.role === "system") {
+      return (
+        <div
+          role="note"
+          data-role="system"
+          className={css({
+            paddingY: "2",
+            color: "neutral.fg.body",
+            fontSize: "xs",
+          })}
+        >
+          {answers.map((item) => (
+            <div key={item.key}>{item.part.text}</div>
+          ))}
+        </div>
+      );
+    }
     const wasStopped = stopped || message.metadata?.stopped === true;
     const awaitingApproval = work.tools.some(
       (tool) => tool.interactive && tool.state === "input-available",
@@ -982,6 +1000,7 @@ export const AiAssistantContents = ({
   onCancelExperiment,
   clearMessagesDisabled = false,
   composerControl,
+  composerStatus,
   composerFocusRequest = 0,
   error,
   input,
@@ -1665,11 +1684,13 @@ export const AiAssistantContents = ({
             </div>
           )}
 
+          {composerStatus}
           {isVoiceSessionLive ? (
             <div ref={voiceDockRef}>
               <LiveVoiceDock
                 assistantBusy={isBusy}
                 collapsed={isVoiceDockCollapsed}
+                composerControl={composerControl}
                 errorIndicator={voiceAlertIndicator}
                 onCollapsedEnd={onCollapsedVoiceEnd}
                 onStop={onStop}

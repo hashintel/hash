@@ -130,6 +130,7 @@ const visuallyHiddenStyle = css({
 
 type VoiceDockSharedProps = {
   audioSettings?: VoiceAudioSettingsState;
+  composerControl?: ReactNode;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   canRetryPlayback?: boolean;
@@ -177,6 +178,7 @@ export const VoiceDock = ({
   canRetryPlayback = false,
   canTakeTurn,
   collapsed,
+  composerControl,
   errorIndicator,
   indicator,
   interruptionBySpeaking = false,
@@ -271,6 +273,7 @@ export const VoiceDock = ({
         className={`${sideStyle} ${actionsStyle}`}
         data-part="right-actions"
       >
+        {composerControl}
         {actions !== null && (
           <>
             {canRetryPlayback && actions.retryPlayback && (
@@ -411,6 +414,7 @@ export const VoiceDock = ({
 export const LiveVoiceDock = ({
   assistantBusy,
   collapsed,
+  composerControl,
   errorIndicator,
   onCollapsedEnd,
   onCollapsedToggle,
@@ -418,6 +422,7 @@ export const LiveVoiceDock = ({
 }: {
   assistantBusy: boolean;
   collapsed: boolean;
+  composerControl?: ReactNode;
   errorIndicator?: ReactNode;
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
@@ -450,6 +455,7 @@ export const LiveVoiceDock = ({
       canRetryPlayback={canRetryPlayback}
       canTakeTurn={canTakeTurn}
       collapsed={collapsed}
+      composerControl={composerControl}
       errorIndicator={errorIndicator}
       interruptionBySpeaking={interruptionBySpeaking}
       microphoneMuted={microphoneMuted}

@@ -30,6 +30,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { InterviewBudgetLevel } from "../../../shared/interview-budget";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
@@ -631,6 +632,7 @@ const AvailableVoiceInterviewControl = ({
 
 const PinnedVoiceInterviewControl = ({
   config,
+  interviewBudgetLevel,
   mediationHistory,
   resolveInputSubmission,
   resolveResponseSubmission,
@@ -644,6 +646,7 @@ const PinnedVoiceInterviewControl = ({
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly interviewBudgetLevel?: InterviewBudgetLevel;
   readonly mediationHistory?: VoiceMediationHistory;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
@@ -670,6 +673,7 @@ const PinnedVoiceInterviewControl = ({
     return (
       <LiveConversationControl
         {...context}
+        interviewBudgetLevel={interviewBudgetLevel}
         mediationHistory={mediationHistory}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}

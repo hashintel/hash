@@ -1,3 +1,8 @@
+import {
+  interviewBudgetHeader,
+  liveInterviewBudgetInstruction,
+  type InterviewBudgetLevel,
+} from "../../../shared/interview-budget";
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import {
   createOutputEchoTrace,
@@ -70,6 +75,7 @@ export const createLiveConversation = (
     readonly output: (fragment: LiveTranscriptFragment) => void;
     readonly closed: () => void;
   },
+  initialBudgetLevel: InterviewBudgetLevel = "off",
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
@@ -111,6 +117,8 @@ export const createLiveConversation = (
   let speakerMuted = false;
   let speakerVolume = 1;
   let voice = "marin";
+  let budgetLevel = initialBudgetLevel;
+  let sentBudgetLevel = initialBudgetLevel;
   let detachAudioSettings: (() => void) | undefined;
   let started = false;
   let playbackBlocked = false;
@@ -823,13 +831,23 @@ export const createLiveConversation = (
     abort.signal.throwIfAborted();
     const sdp = connection.localDescription?.sdp;
     if (!sdp) throw new Error("Missing local SDP");
-    if (kind === "live") liveCreationRequested = true;
+    if (kind === "live") {
+      liveCreationRequested = true;
+      sentBudgetLevel = budgetLevel;
+    }
     connectionStages.set(kind, "waiting for session HTTP response");
     const response = await fetch(`/api/voice/${kind}-session`, {
       method: "POST",
       headers: {
         "content-type": "application/sdp",
-        ...(kind === "live" ? { [voicePreferenceHeader]: voice } : {}),
+        ...(kind === "live"
+          ? {
+              [voicePreferenceHeader]: voice,
+              ...(budgetLevel === "off"
+                ? {}
+                : { [interviewBudgetHeader]: budgetLevel }),
+            }
+          : {}),
       },
       body: sdp,
       signal: abort.signal,
@@ -987,6 +1005,30 @@ export const createLiveConversation = (
     retryPlayback: playAudio,
     start,
     stop,
+    setInterviewBudgetLevel: (level: InterviewBudgetLevel) => {
+      budgetLevel = level;
+      // Coalesce changes made in the same turn; this is quiet context, never
+      // an instruction redirect and never a reason to interrupt speech.
+      queueMicrotask(() => {
+        if (
+          stopping ||
+          finished ||
+          budgetLevel === sentBudgetLevel ||
+          ready.size !== 2
+        )
+          return;
+        if (
+          append(
+            "thinking",
+            budgetLevel === "off"
+              ? "Interview budget is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
+              : liveInterviewBudgetInstruction(budgetLevel),
+            null,
+          )
+        )
+          sentBudgetLevel = budgetLevel;
+      });
+    },
     setMicrophoneMuted,
     setSpeakerMuted,
     setSpeakerVolume,

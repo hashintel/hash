@@ -1,3 +1,7 @@
+import {
+  isInterviewBudgetLevel,
+  type InterviewBudgetLevel,
+} from "../../../shared/interview-budget";
 import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
 import { usePersistedState } from "./use-persisted-state";
 
@@ -16,6 +20,23 @@ export const useVoicePreference = () => {
     write: writeVoicePreference,
   });
   return { enabled, ready, setEnabled };
+};
+
+const interviewBudgetStorageKey = "petrinaut-website:interview-budget";
+const readInterviewBudget = (): InterviewBudgetLevel => {
+  const value = readBrowserStorage(localStorage, interviewBudgetStorageKey);
+  return isInterviewBudgetLevel(value) ? value : "standard";
+};
+const writeInterviewBudget = (level: InterviewBudgetLevel): void =>
+  writeBrowserStorage(localStorage, interviewBudgetStorageKey, level);
+
+export const useInterviewBudgetPreference = () => {
+  const [level, setLevel] = usePersistedState<InterviewBudgetLevel>({
+    fallback: "standard",
+    read: readInterviewBudget,
+    write: writeInterviewBudget,
+  });
+  return { level, setLevel };
 };
 
 const realtimePreferenceStorageKey = "petrinaut-website:realtime-enabled";

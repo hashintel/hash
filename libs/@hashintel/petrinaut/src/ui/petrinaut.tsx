@@ -171,6 +171,8 @@ export type PetrinautAiAssistant = {
   requestStop?: () => Promise<PetrinautAiStopResult>;
   /** Render a host-owned control inside the assistant composer. */
   renderComposerControl?: PetrinautAiComposerControl;
+  /** Render host-owned status above the text composer or Voice dock. */
+  renderComposerStatus?: PetrinautAiComposerControl;
   /** Render one persistent, provider-neutral Voice mode. */
   renderVoiceMode?: PetrinautAiVoiceMode;
   transport: PetrinautAiTransport;

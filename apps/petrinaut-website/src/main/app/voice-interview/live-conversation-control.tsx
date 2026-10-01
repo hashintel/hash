@@ -23,6 +23,7 @@ import {
 } from "./voice-interview-disclosure";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
+import type { InterviewBudgetLevel } from "../../../shared/interview-budget";
 import type { VoiceInterviewControl } from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -39,6 +40,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
   > & {
+    readonly interviewBudgetLevel?: InterviewBudgetLevel;
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
@@ -64,6 +66,7 @@ const prepareVoice = async (
 };
 
 export const LiveConversationControl = ({
+  interviewBudgetLevel = "off",
   mediationHistory,
   acknowledgeDisclosure,
   inputMode,
@@ -330,6 +333,7 @@ export const LiveConversationControl = ({
         },
         closed: () => captions.close(),
       },
+      interviewBudgetLevel,
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
@@ -363,7 +367,16 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
+  }, [
+    audioSettingsStore,
+    connectionTimeoutMs,
+    phase,
+    setVoiceActive,
+    interviewBudgetLevel,
+  ]);
+  useEffect(() => {
+    session.current?.setInterviewBudgetLevel(interviewBudgetLevel);
+  }, [interviewBudgetLevel, state.phase]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;

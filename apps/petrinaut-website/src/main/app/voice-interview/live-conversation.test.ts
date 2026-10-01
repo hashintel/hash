@@ -200,7 +200,7 @@ const setup = ({
   );
   const getUserMedia = vi.fn(async () => stream);
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
-  const fetch = vi.fn(async (url: string) =>
+  const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
     Response.json(
       url.endsWith("transcription-session")
         ? { sdp: "v=0\r\no=transcription-answer" }
@@ -1516,6 +1516,37 @@ test("telemetry shows activity but silence and late samples never settle or revi
   release(new Map());
   await vi.advanceTimersByTimeAsync(500);
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
+});
+
+test("sends the startup budget once and coalesces quiet session-wide changes", async () => {
+  const fixture = setup();
+  fixture.conversation.setInterviewBudgetLevel("standard");
+  await connect(fixture);
+  const startup = fixture.fetch.mock.calls.find(
+    ([url]) => url === "/api/voice/live-session",
+  );
+  expect(
+    new Headers(startup?.[1]?.headers).get("x-petrinaut-interview-budget"),
+  ).toBe("standard");
+  fixture.conversation.setInterviewBudgetLevel("standard");
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(0);
+  fixture.conversation.setInterviewBudgetLevel("quick");
+  fixture.conversation.setInterviewBudgetLevel("deep");
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(1);
+  expect(JSON.parse(fixture.sent[0][0]!)).toMatchObject({
+    type: "session.thinking.append",
+    delegation_id: null,
+  });
+  expect(fixture.sent[0][0]).toContain("Deep (No limit)");
+  fixture.conversation.setInterviewBudgetLevel("off");
+  await Promise.resolve();
+  expect(JSON.parse(fixture.sent[0][1]!)).toMatchObject({
+    type: "session.thinking.append",
+    delegation_id: null,
+  });
+  expect(fixture.sent[0][1]).toContain("now Off");
 });
 
 test("quiet interruption context requires its own acknowledgement and leaves the delegation open", async () => {

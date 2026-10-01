@@ -52,6 +52,10 @@ import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
+import {
+  interviewBudgetLevelsConfig,
+  type InterviewBudgetLevel,
+} from "../../../shared/interview-budget";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -108,11 +112,19 @@ import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
+import {
+  InterviewBudgetControl,
+  InterviewBudgetPill,
+} from "./interview-budget-control";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoiceMediationHistory } from "./use-voice-mediation-history";
-import { useRealtimePreference, useVoicePreference } from "./voice-preference";
+import {
+  useInterviewBudgetPreference,
+  useRealtimePreference,
+  useVoicePreference,
+} from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -234,6 +246,7 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
+  interviewBudgetLevel?: InterviewBudgetLevel,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -260,6 +273,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      interviewBudgetLevel={interviewBudgetLevel}
       mediationHistory={mediationHistory}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
@@ -443,6 +457,11 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
+  const { level: interviewBudgetLevel, setLevel: setInterviewBudgetLevel } =
+    useInterviewBudgetPreference();
+  const [budgetNotes, setBudgetNotes] = useState<
+    { conversationId: string; after: string; message: PetrinautAiMessage }[]
+  >([]);
   const {
     enabled: realtimeEnabled,
     ready: realtimePreferenceReady,
@@ -822,6 +841,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        interviewBudgetLevel,
       ),
     [
       brunchSelected,
@@ -829,6 +849,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       mediationHistory,
+      interviewBudgetLevel,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -843,6 +864,7 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
+          interviewBudgetLevel,
           ...(constructionBrowser
             ? { initialData: { binding: constructionBrowser.binding } }
             : {}),
@@ -890,6 +912,7 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
+    interviewBudgetLevel,
   ]);
 
   const inBandBrowserTools = useMemo(
@@ -967,12 +990,64 @@ export const LocalStorageDemoApp = ({
         ? {
             primaryLabel: "Chat",
             presentation: "brunch" as const,
-            mapMessagesForDisplay: mapVoiceMessages,
+            mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
+              const withNotes = messages.flatMap((message) => [
+                message,
+                ...budgetNotes
+                  .filter(
+                    (note) =>
+                      note.conversationId === conversationId &&
+                      note.after === message.id,
+                  )
+                  .map((note) => note.message),
+              ]);
+              return mapVoiceMessages?.(withNotes) ?? withNotes;
+            },
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
             renderComposerControl: (
               context: PetrinautAiComposerControlContext,
-            ) => <BrunchExperimentFollowUp context={context} />,
+            ) => (
+              <>
+                <BrunchExperimentFollowUp context={context} />
+                <InterviewBudgetControl
+                  level={interviewBudgetLevel}
+                  onChange={(level) => {
+                    if (level === interviewBudgetLevel) return;
+                    const after = context.messages.at(-1)?.id;
+                    if (after) {
+                      const config = interviewBudgetLevelsConfig[level];
+                      setBudgetNotes((notes) => [
+                        ...notes,
+                        {
+                          conversationId: context.conversationId,
+                          after,
+                          message: {
+                            id: `interview-budget:${crypto.randomUUID()}`,
+                            role: "system",
+                            parts: [
+                              {
+                                type: "text",
+                                text: `Interview budget changed to ${config.name} · ${config.guide}. Earlier questions still count.`,
+                              },
+                            ],
+                          },
+                        },
+                      ]);
+                    }
+                    setInterviewBudgetLevel(level);
+                  }}
+                />
+              </>
+            ),
+            renderComposerStatus: (
+              context: PetrinautAiComposerControlContext,
+            ) => (
+              <InterviewBudgetPill
+                level={interviewBudgetLevel}
+                context={context}
+              />
+            ),
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
@@ -1045,6 +1120,9 @@ export const LocalStorageDemoApp = ({
     };
   }, [
     aiMessagesByNetId,
+    budgetNotes,
+    interviewBudgetLevel,
+    setInterviewBudgetLevel,
     mapVoiceMessages,
     brunchSelected,
     brunchVoiceMode,

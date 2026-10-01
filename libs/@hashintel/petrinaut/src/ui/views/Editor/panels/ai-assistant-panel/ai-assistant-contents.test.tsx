@@ -191,6 +191,7 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
       canRepeatQuestion={false}
       canTakeTurn={false}
       collapsed={false}
+      composerControl={<button type="button">Interview budget</button>}
       indicator={<span />}
       microphoneMuted={false}
       onStop={noop}
@@ -201,6 +202,7 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
     />,
   );
   expect(screen.getByText("Connected")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Interview budget" })).toBeTruthy();
   const microphone = screen.getByRole("button", { name: "Mute microphone" });
   expect(microphone).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
@@ -2918,6 +2920,38 @@ describe("AiAssistantContents", () => {
     ).not.toBeNull();
     expect(renderMarkdown).toHaveBeenCalledOnce();
   });
+
+  test.each(["text", "voice"] as const)(
+    "keeps system notes visible outside assistant activity in %s mode",
+    (inputMode) => {
+      render(
+        <AiAssistantContents
+          input=""
+          inputMode={inputMode}
+          messages={[
+            {
+              id: "budget-change",
+              role: "system",
+              parts: [
+                { type: "text", text: "Interview budget changed to Quick." },
+              ],
+            },
+          ]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="ready"
+        />,
+      );
+
+      expect(screen.getByRole("note").textContent).toBe(
+        "Interview budget changed to Quick.",
+      );
+      expect(screen.queryByText("Activity")).toBeNull();
+    },
+  );
 
   test("hides a closed chat-only panel from the accessibility tree", () => {
     const { container } = render(

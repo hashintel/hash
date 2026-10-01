@@ -41,6 +41,7 @@ vi.mock("./live-conversation", () => ({
     appendInstructions: vi.fn(() => true),
     appendThinking: vi.fn(() => true),
     speechPending: vi.fn(() => true),
+    setInterviewBudgetLevel: vi.fn(),
     setMicrophoneMuted: liveConversationMocks.setMicrophoneMuted,
     setSpeakerMuted: liveConversationMocks.setSpeakerMuted,
     setSpeakerVolume: liveConversationMocks.setSpeakerVolume,
