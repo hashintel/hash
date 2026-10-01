@@ -1,3 +1,4 @@
+import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import] - Exercise the pinned deptry CLI without a shell.
 import sys
 from pathlib import Path
@@ -157,132 +158,12 @@ def test_layout_repairs_feed_derived_paths(
     inputs = WorkspaceInputs.load(workspace_directory)
     command = inputs.turbo(member).task("lint:deptry").command
     assert command is not None
-    assert command[6] == "actual"
-    assert "tests" not in command
+    assert command[6:] == ["."]
     assert engine.fix(rules).status is FixStatus.UNCHANGED
 
 
 @pytest.fixture
 def deptry_workspace(workspace_directory: Path) -> Path:
-    root = workspace_directory
-    member = root / "packages/member"
-    manifest = member / "pyproject.toml"
-    manifest.write_text(
-        manifest.read_text()
-        + """dependencies = ["library-python"]
-[build-system]
-build-backend = "uv_build"
-requires = ["uv_build>=0.12"]
-[tool.uv.build-backend]
-module-root = ""
-module-name = "service"
-[tool.pytest.ini_options]
-testpaths = ["service/checks", "tests"]
-[tool.deptry]
-known_first_party = ["custom_local"]
-extend_exclude = ["generated"]
-package_module_name_map = { external = ["external_a", "external_b"], library_python = "stale" }
-"""
-    )
-    library = root / "packages/library"
-    library.mkdir()
-    (library / "pyproject.toml").write_text("""[project]
-name = "library-python"
-version = "0.1.0"
-[build-system]
-build-backend = "uv_build"
-requires = ["uv_build>=0.12"]
-[tool.uv.build-backend]
-module-name = ["namespace.child", "second"]
-""")
-    for directory in (
-        member / "service",
-        member / "scripts",
-        library / "src/namespace/child",
-        library / "src/second",
-    ):
-        directory.mkdir(parents=True)
-        (directory / "__init__.py").touch()
-    root_turbo = root / "turbo.json"
-    root_turbo.write_text("""{"tasks": {
-  "test-member#lint:deptry": {"command": "old", "cache": false},
-  "departed#lint:deptry": {"command": "keep"}
-}}
-""")
-
-    return root
-
-
-@pytest.mark.parametrize("membership_first", [False, True])
-def test_deptry_tracks_members_layouts_and_config(
-    deptry_workspace: Path, *, membership_first: bool
-) -> None:
-    root = deptry_workspace
-    member = root / "packages/member"
-    manifest = member / "pyproject.toml"
-    library = root / "packages/library"
-    root_turbo = root / "turbo.json"
-
-    def add_library(workspace: Workspace) -> None:
-        if not any(package.name == "library-python" for package in workspace.members):
-            workspace.members = (*workspace.members, Path("packages/library"))
-
-    rules = (
-        (add_library, enforce_turbo_task) if membership_first else (enforce_turbo_task, add_library)
-    )
-    engine = Engine(directory=root)
-    original = {path: path.read_bytes() for path in (manifest, root / "pyproject.toml", root_turbo)}
-    assert engine.check(rules).status is CheckStatus.CHANGES
-    assert not (member / "turbo.json").exists()
-    assert {path: path.read_bytes() for path in original} == original
-    fixed = engine.fix(rules)
-    assert fixed.status is FixStatus.APPLIED, str(fixed)
-    inputs = WorkspaceInputs.load(root)
-    command = inputs.turbo(member).task("lint:deptry").command
-    assert command is not None
-    assert command[6:8] == ["service", "scripts"]
-    assert "custom_local" in command
-    assert "generated" in command
-    assert r"(^|[/\\])service[/\\]checks([/\\]|$)" in command
-    assert "external=external_a|external_b,library-python=namespace|second" in command
-    assert '"cache": false' in root_turbo.read_text()
-    assert '"departed#lint:deptry": {"command": "keep"}' in root_turbo.read_text()
-    assert inputs.turbo(root).task("test-member#lint:deptry").command is None
-    assert engine.check(rules).status is CheckStatus.CLEAN
-    assert engine.fix(rules).status is FixStatus.UNCHANGED
-
-    # Physical script removal and a dependency layout change invalidate old argv.
-    (member / "scripts/__init__.py").unlink()
-    (member / "scripts").rmdir()
-    library_manifest = library / "pyproject.toml"
-    library_manifest.write_text(
-        library_manifest.read_text().replace('["namespace.child", "second"]', '"second"')
-    )
-    assert engine.fix(rules).status is FixStatus.APPLIED
-    changed = WorkspaceInputs.load(root).turbo(member).task("lint:deptry").command
-    assert changed is not None
-    assert "scripts" not in changed
-    assert "external=external_a|external_b,library-python=second" in changed
-    assert engine.check(rules).status is CheckStatus.CLEAN
-
-    # Omitting a default-name alias would let the stale TOML setting take effect.
-    default_module = library / "src/library_python"
-    default_module.mkdir()
-    (default_module / "__init__.py").touch()
-    library_manifest.write_text(
-        library_manifest.read_text().replace('"second"', '"library_python"')
-    )
-    manifest.write_text(
-        manifest.read_text().replace('external = ["external_a", "external_b"], ', "")
-    )
-    assert engine.fix(rules).status is FixStatus.APPLIED
-    command = WorkspaceInputs.load(root).turbo(member).task("lint:deptry").command
-    assert command is not None
-    assert command[-1] == "library-python=library_python"
-    assert engine.fix(rules).status is FixStatus.UNCHANGED
-
-
-def test_deptry_exclusions_have_a_firing_control(workspace_directory: Path) -> None:
     member = workspace_directory / "packages/member"
     manifest = member / "pyproject.toml"
     manifest.write_text(
@@ -293,67 +174,96 @@ build-backend = "uv_build"
 requires = ["uv_build>=0.12"]
 [tool.uv.build-backend]
 module-name = "service"
-[tool.pytest.ini_options]
-testpaths = ["src/service/qa+cases"]
 [tool.deptry]
-exclude = []
-extend_exclude = [".*/generated/"]
+known_first_party = ["custom_local"]
+extend_exclude = ["^src/service/tests/", ".*/qa\\\\+cases/", ".*/generated/"]
+[tool.deptry.package_module_name_map]
+external = ["external_a", "external_b"] # native mapping
 """
     )
     source = member / "src/service"
     source.mkdir(parents=True)
     (source / "__init__.py").write_text("import os\n")
+    (member / "scripts").mkdir()
+    (workspace_directory / "turbo.json").write_text("""{"tasks": {
+  "test-member#lint:deptry": {"command": "old", "cache": false},
+  "departed#lint:deptry": {"command": "keep"}
+}}
+""")
+    return workspace_directory
+
+
+@pytest.mark.parametrize("root", ["src", ""])
+@pytest.mark.parametrize("existing_task", [False, True])
+def test_deptry_task_repairs_source_roots(
+    deptry_workspace: Path, root: str, *, existing_task: bool
+) -> None:
+    member = deptry_workspace / "packages/member"
+    manifest = member / "pyproject.toml"
+    manifest.write_text(
+        manifest.read_text().replace('module-name = "service"', f'module-root = "{root}"')
+    )
+    member_turbo = member / "turbo.json"
+    if existing_task:
+        member_turbo.write_text(
+            '{"extends":["//"],"tasks":{"lint:deptry":{"command":"old","cache":false}}}\n'
+        )
+    root_turbo = deptry_workspace / "turbo.json"
+    original = {path: path.read_bytes() for path in (manifest, root_turbo)}
+    engine = Engine(directory=deptry_workspace)
+    rules = (enforce_turbo_task,)
+    assert engine.check(rules).status is CheckStatus.CHANGES
+    assert {path: path.read_bytes() for path in original} == original
+    assert member_turbo.exists() is existing_task
+    assert engine.fix(rules).status is FixStatus.APPLIED
+    inputs = WorkspaceInputs.load(deptry_workspace)
+    command = inputs.turbo(member).task("lint:deptry").command
+    assert command == [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        *(["src", "scripts"] if root else ["."]),
+    ]
+    assert manifest.read_bytes() == original[manifest]
+    if existing_task:
+        assert '"cache":false' in member_turbo.read_text()
+    assert '"cache": false' in root_turbo.read_text()
+    assert '"departed#lint:deptry": {"command": "keep"}' in root_turbo.read_text()
+    assert inputs.turbo(deptry_workspace).task("test-member#lint:deptry").command is None
+    assert engine.check(rules).status is CheckStatus.CLEAN
+    assert engine.fix(rules).status is FixStatus.UNCHANGED
+
+    (member / "scripts").rmdir()
+    assert engine.fix(rules).status is (FixStatus.APPLIED if root else FixStatus.UNCHANGED)
+    command = WorkspaceInputs.load(deptry_workspace).turbo(member).task("lint:deptry").command
+    assert command is not None
+    assert command[6:] == [root or "."]
+    assert engine.fix(rules).status is FixStatus.UNCHANGED
+
+
+@pytest.mark.parametrize("production_root", ["src/service", "scripts"])
+def test_deptry_native_config_firing_control(deptry_workspace: Path, production_root: str) -> None:
+    copied = deptry_workspace.with_name(deptry_workspace.name + "-copy")
+    shutil.copytree(deptry_workspace, copied)
+    member = copied / "packages/member"
+    source = member / "src/service"
     for path in ("tests/ignore.py", "qa+cases/ignore.py", "generated/ignore.py"):
         excluded = source / path
         excluded.parent.mkdir()
         excluded.write_text("import excluded_missing_dependency\n")
-    engine = Engine(directory=workspace_directory)
+    engine = Engine(directory=copied)
     assert engine.fix((enforce_turbo_task,)).status is FixStatus.APPLIED
-    command = WorkspaceInputs.load(workspace_directory).turbo(member).task("lint:deptry").command
+    command = WorkspaceInputs.load(copied).turbo(member).task("lint:deptry").command
     assert command is not None
     argv = [sys.executable, "-m", "deptry", *command[6:]]
     clean = subprocess.run(argv, cwd=member, check=False, capture_output=True, text=True)
     assert clean.returncode == 0, clean.stderr
-    (source / "production.py").write_text("import included_missing_dependency\n")
+    (member / production_root / "production.py").write_text("import included_missing_dependency\n")
     failing = subprocess.run(argv, cwd=member, check=False, capture_output=True, text=True)
     assert failing.returncode == 1
     assert "DEP001" in failing.stderr
     assert "included_missing_dependency" in failing.stderr
     assert "excluded_missing_dependency" not in failing.stderr
-
-
-@pytest.mark.parametrize("problem", ["backend", "missing", "test-root", "outside"])
-def test_deptry_undecidable_layout_blocks_all_files(
-    workspace_directory: Path, problem: str
-) -> None:
-    member = workspace_directory / "packages/member"
-    source = member / "service"
-    source.mkdir()
-    (source / "__init__.py").touch()
-    manifest = member / "pyproject.toml"
-    settings = """[build-system]
-build-backend = "uv_build"
-requires = ["uv_build>=0.12"]
-[tool.uv.build-backend]
-module-root = ""
-module-name = "service"
-"""
-    match problem:
-        case "backend":
-            settings = settings.replace('"uv_build"', '"other_backend"')
-        case "missing":
-            settings = settings.replace('"service"', '"missing"')
-        case "test-root":
-            settings += '[tool.pytest.ini_options]\ntestpaths = ["service"]\n'
-        case "outside":
-            settings = settings.replace('module-root = ""', 'module-root = "../../.."')
-    manifest.write_text(manifest.read_text() + settings)
-    original = manifest.read_bytes()
-    report = Engine(directory=workspace_directory).fix((
-        enforce_manifest_style,
-        enforce_turbo_task,
-    ))
-    assert report.status is FixStatus.BLOCKED
-    assert report.written == ()
-    assert manifest.read_bytes() == original
-    assert not (member / "turbo.json").exists()

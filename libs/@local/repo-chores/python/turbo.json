@@ -9,11 +9,7 @@
         "--frozen",
         "--all-packages",
         "deptry",
-        "src/repo_chores",
-        "--known-first-party",
-        "repo_chores",
-        "--extend-exclude",
-        "(^|.*[/\\\\])tests([/\\\\]|$)"
+        "src"
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
@@ -62,6 +58,7 @@
       ],
       "cache": false,
       "passThroughEnv": ["UV_CACHE_DIR"]
-    }
+    },
+    "test:unit": { "dependsOn": ["test"] }
   }
 }

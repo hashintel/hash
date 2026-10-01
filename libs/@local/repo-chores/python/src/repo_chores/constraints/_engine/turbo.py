@@ -45,7 +45,7 @@ class TurboTask:
     @property
     def depends_on(self) -> list[str] | None:
         document = self._configuration.document
-        return document.strings((*self._field, "depends_on")) if document is not None else None
+        return document.strings((*self._field, "dependsOn")) if document is not None else None
 
     @depends_on.setter
     def depends_on(self, value: Iterable[str] | None) -> None:
@@ -56,7 +56,7 @@ class TurboTask:
             return
 
         document = self._bootstrap()
-        document.assign((*self._field, "depends_on"), value)
+        document.assign((*self._field, "dependsOn"), value)
         configuration.document = document
 
 

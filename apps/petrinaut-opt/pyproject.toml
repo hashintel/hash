@@ -42,3 +42,6 @@ dev = [
 [tool.uv.sources]
 petrinaut-optimizer-core = { workspace = true }
 petrinaut-python         = { workspace = true }
+
+[tool.deptry.package_module_name_map]
+petrinaut-python = "petrinaut"

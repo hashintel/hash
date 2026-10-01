@@ -9,11 +9,7 @@
         "--frozen",
         "--all-packages",
         "deptry",
-        "src/petrinaut_optimizer_core",
-        "--known-first-party",
-        "petrinaut_optimizer_core",
-        "--extend-exclude",
-        "(^|.*[/\\\\])tests([/\\\\]|$)"
+        "src"
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },

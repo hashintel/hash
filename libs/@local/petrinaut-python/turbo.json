@@ -9,12 +9,8 @@
         "--frozen",
         "--all-packages",
         "deptry",
-        "src/petrinaut",
-        "scripts",
-        "--known-first-party",
-        "petrinaut",
-        "--extend-exclude",
-        "(^|.*[/\\\\])tests([/\\\\]|$)"
+        "src",
+        "scripts"
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },

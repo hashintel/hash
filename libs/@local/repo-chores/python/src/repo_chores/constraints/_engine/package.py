@@ -15,7 +15,6 @@ from repo_chores.constraints._engine.dependencies import (
     DependencySet,
     ManifestDependencies,
 )
-from repo_chores.constraints._engine.deptry import DeptryConfiguration
 from repo_chores.constraints._engine.diagnostics import (
     Diagnostics,
     LocatedDiagnostics,
@@ -43,7 +42,6 @@ class Package(LocatedDiagnostics):
         )
 
         self.manifest = manifest
-        self.deptry = DeptryConfiguration(manifest)
         self._document = manifest.document
         self._diagnostics = diagnostics
         self._sources = ManifestSources(manifest)
