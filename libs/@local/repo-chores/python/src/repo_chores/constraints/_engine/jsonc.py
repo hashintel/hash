@@ -176,6 +176,32 @@ def _replace_array(array: JSONArray, values: list[str]) -> None:
         _append(array, node=node, value=node)
 
 
+def _remove_array_entry(array: JSONArray, index: int) -> None:
+    if index == len(array.values) - 1:
+        _replace_array(
+            array, [entry.characters for entry in array.values[:index] if isinstance(entry, String)]
+        )
+        return
+
+    removed = array.values[index]
+    following = array.values[index + 1]
+
+    # Prefix trivia starts with the preceding entry's same-line comment. Keep
+    # that comment and the following entry's own leading block, not the removed one's.
+    inline, terminator = _line(removed.wsc_before)
+    _, leading = _line(following.wsc_before)
+    if not leading:
+        leading = [_spacing(array.values)]
+
+    if any(isinstance(entry, LineComment) for entry in inline) and not any(
+        isinstance(entry, str) and ("\n" in entry or "\r" in entry) for entry in leading
+    ):
+        leading = [*(terminator[:1] or ["\n"]), *leading]
+
+    following.wsc_before = [*inline, *leading]
+    del array.values[index]
+
+
 def _remove(container: JSONObject, index: int) -> None:
     last = index == len(container.values) - 1
     removed = container.values.pop(index)
@@ -253,6 +279,52 @@ class JsoncDocument:
 
         return [entry.characters for entry in value.values if isinstance(entry, String)]
 
+    def _commit(
+        self,
+        candidate: JSONText,
+        field: tuple[str, ...],
+        *,
+        before: object,
+        after: list[str] | None,
+    ) -> None:
+        # Validate edited syntax before exposing any part of the mutation.
+        validated = JsoncDocument(path=self.path, source=_dump(candidate))
+        if validated.strings(field) != after:
+            raise ManifestError(
+                path=self.path, field=field, message="edited JSONC changed the assigned value"
+            )
+
+        self._model = validated._model
+        MutationRecorder.current().record(
+            location=Location(manifest=self.path, path=field),
+            operation=OperationKind.DELETE if after is None else OperationKind.SET,
+            before=before,
+            after=after,
+        )
+
+    def remove_string(self, field: tuple[str, ...], value: str) -> None:
+        before = self.strings(field)
+        if before is None or value not in before:
+            return
+
+        candidate = copy.deepcopy(self._model)
+        table = self._table(candidate, field[:-1], create=False)
+        index = self._index(table, field) if table is not None else None
+        if table is None or index is None:
+            return
+
+        array = table.values[index]
+        if not isinstance(array, JSONArray):
+            raise ManifestError(path=self.path, field=field, message="expected an array of strings")
+
+        for index in reversed(range(len(before))):
+            if before[index] == value:
+                _remove_array_entry(array, index)
+
+        self._commit(
+            candidate, field, before=before, after=[entry for entry in before if entry != value]
+        )
+
     def assign(self, field: tuple[str, ...], values: Iterable[str] | None) -> None:
         replacement = list(values) if values is not None else None
         candidate = copy.deepcopy(self._model)
@@ -284,18 +356,4 @@ class JsoncDocument:
                 array.wsc_before = [" "]
                 _append(table, node=_string(field[-1]), value=array)
 
-        # Validate edited syntax before exposing any part of the mutation.
-        rendered = _dump(candidate)
-        validated = JsoncDocument(path=self.path, source=rendered)
-        if validated.strings(field) != replacement:
-            raise ManifestError(
-                path=self.path, field=field, message="edited JSONC changed the assigned value"
-            )
-
-        self._model = validated._model
-        MutationRecorder.current().record(
-            location=Location(manifest=self.path, path=field),
-            operation=OperationKind.DELETE if replacement is None else OperationKind.SET,
-            before=before,
-            after=replacement,
-        )
+        self._commit(candidate, field, before=before, after=replacement)

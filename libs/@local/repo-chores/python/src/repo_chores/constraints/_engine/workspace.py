@@ -14,7 +14,6 @@ from repo_chores.constraints._engine.package import Package
 from repo_chores.constraints._engine.ruff import ManifestRuff, RuffConfiguration
 from repo_chores.constraints._engine.source_file import SourceFile
 from repo_chores.constraints._engine.strings import StringList
-from repo_chores.constraints._engine.tach import ManifestTach, TachConfiguration
 from repo_chores.constraints._engine.turbo import TurboConfiguration
 
 _MEMBERS = ("tool", "uv", "workspace", "members")
@@ -174,7 +173,6 @@ class Workspace(Package):
         super().__init__(manifest=inputs.root, diagnostics=diagnostics)
 
         self._inputs = inputs
-        self._tach = ManifestTach(manifest=inputs.root, diagnostics=diagnostics)
         self._dependency_constraints = self._dependencies(("tool", "uv", "constraint-dependencies"))
         self._members = self._packages(inputs.members)
         self._validate_names(self._members)
@@ -208,10 +206,6 @@ class Workspace(Package):
         return [
             directory.relative_to(self.directory).as_posix() for directory in sorted(directories)
         ]
-
-    @property
-    def tach(self) -> TachConfiguration:
-        return self._tach
 
     @property
     def dependency_constraints(self) -> DependencySet:

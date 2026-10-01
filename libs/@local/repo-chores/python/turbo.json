@@ -1,6 +1,18 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:tach": {
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check"
+      ]
+    },
     "lint:deptry": {
       "command": [
         "uv",
@@ -59,6 +71,18 @@
       "cache": false,
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
-    "test:unit": { "dependsOn": ["test"] }
+    "test:unit": {
+      "dependsOn": ["^manifest"],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "pytest",
+        "."
+      ]
+    }
   }
 }

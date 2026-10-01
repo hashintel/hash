@@ -15,6 +15,24 @@
     },
     "lint:deptry": {
       "dependsOn": []
+    },
+    "lint:tach": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/petrinaut-cli#build",
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core",
+        "petrinaut-optimizer-core"
+      ]
     }
   }
 }

@@ -44,12 +44,7 @@ jobs:
           PACKAGES=$(
             .github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff format:ruff check:ty lint:tach lint:deptry |
             jq --compact-output '
-              .include |= map(
-                if .name == "hash-python" then
-                  {name, path} + with_entries(select(.key == "lint:tach"))
-                else . end
-                | select(.name != "hash-python" or has("lint:tach"))
-              )
+              .include |= map(select(.name != "hash-python"))
               | .name = [.include[].name]
             '
           )

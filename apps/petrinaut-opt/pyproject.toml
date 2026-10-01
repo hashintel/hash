@@ -45,3 +45,19 @@ petrinaut-python         = { workspace = true }
 
 [tool.deptry.package_module_name_map]
 petrinaut-python = "petrinaut"
+
+[tool.tach]
+source_roots                 = ["src"]
+exclude                      = []
+exact                        = true
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+root_module                  = "forbid"
+
+[[tool.tach.modules]]
+path       = "petrinaut_optimization"
+depends_on = []
+
+[tool.tach.rules]
+require_ignore_directive_reasons = "error"
+unused_ignore_directives         = "error"

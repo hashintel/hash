@@ -152,3 +152,41 @@ def test_no_op_keeps_jsonc_spelling(newline: str) -> None:
     with MutationRecorder().activate():
         document.assign(FIELD, ["uv", "deptry"])
     assert document.render() == source
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+@pytest.mark.parametrize("trailing", ["", ","])
+@pytest.mark.parametrize("index", [0, 1, 2])
+def test_remove_dependency_comments(newline: str, trailing: str, index: int) -> None:
+    entries = [f'  // leading {name}\n  "{name}"' for name in ("first", "middle", "last")]
+    source = '{"dependsOn": [\n' + ", // inline first\n".join(entries[:2])
+    source += ", // inline middle\n" + entries[2] + trailing + " // inline last\n  // closing\n]}"
+    source = source.replace("\n", newline)
+    field = ("dependsOn",)
+    removed = ("first", "middle", "last")[index]
+    document = JsoncDocument(path=Path("turbo.json"), source=source)
+    recorder = MutationRecorder()
+    with recorder.activate():
+        document.remove_string(field, removed)
+        assert document.strings(field) == [
+            name for name in ("first", "middle", "last") if name != removed
+        ]
+        rendered = document.render()
+        for name in ("first", "middle", "last"):
+            if name != removed:
+                assert f"// leading {name}" in rendered
+                assert f"// inline {name}" in rendered
+        assert "// closing" in rendered
+        document.remove_string(field, removed)
+    assert len(recorder.operations) == 1
+
+
+def test_remove_dependency_duplicates() -> None:
+    document = JsoncDocument(path=Path("turbo.json"), source='{"dependsOn":["test","test"]}')
+    recorder = MutationRecorder()
+    with recorder.activate():
+        document.remove_string(("missing",), "test")
+        document.remove_string(("dependsOn",), "test")
+        assert document.strings(("dependsOn",)) == []
+        document.remove_string(("dependsOn",), "test")
+    assert len(recorder.operations) == 1

@@ -58,7 +58,7 @@
     "lint:markdownlint": "mise exec --env dev markdownlint-cli2 -- markdownlint-cli2",
     "lint:ruff": "turbo run lint:ruff --continue=always --filter '!hash-python'",
     "lint:skill": "yarn agents:skill-management validate",
-    "lint:tach": "turbo run lint:tach --continue=always --filter hash-python",
+    "lint:tach": "turbo run lint:tach --continue=always --filter '!hash-python'",
     "lint:taplo": "taplo fmt --check",
     "lint:tsc": "mise run lint:tsc",
     "lint:ty": "turbo run check:ty --continue=always --filter '!hash-python'",

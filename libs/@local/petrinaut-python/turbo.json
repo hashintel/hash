@@ -1,6 +1,18 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:tach": {
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check"
+      ]
+    },
     "lint:deptry": {
       "command": [
         "uv",
@@ -33,7 +45,17 @@
       "dependsOn": ["codegen", "manifest", "@hashintel/petrinaut-cli#build"]
     },
     "test:unit": {
-      "dependsOn": ["test"]
+      "dependsOn": ["codegen", "manifest", "@hashintel/petrinaut-cli#build"],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "pytest",
+        "."
+      ]
     }
   }
 }

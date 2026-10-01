@@ -59,6 +59,11 @@ class TurboTask:
         document.assign((*self._field, "dependsOn"), value)
         configuration.document = document
 
+    def remove_dependency(self, name: str) -> None:
+        document = self._configuration.document
+        if document is not None:
+            document.remove_string((*self._field, "dependsOn"), name)
+
 
 class TurboConfiguration(SourceFile):
     def __init__(self, *, path: Path, original: bytes | None) -> None:

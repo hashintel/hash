@@ -603,11 +603,11 @@ def test_layout_and_path_views(engine_case: EngineCase) -> None:
         member = next(iter(workspace.members))
         layout = member.uv_build_layout
         tests = member.pytest.test_paths
-        roots = workspace.tach.source_roots
+        roots = member.tach.source_roots
         layout.module_names = ("module",)
         layout.module_root = "lib"
         member.pytest.test_paths = (member.directory / "tests",)
-        workspace.tach.source_roots = (workspace.directory / "lib",)
+        member.tach.source_roots = (member.directory / "lib",)
         assert list(layout.module_names or ()) == ["module"]
         assert layout.module_root == "lib"
         assert list(tests) == [Path("tests")]

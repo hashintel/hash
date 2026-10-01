@@ -1,5 +1,5 @@
 import shutil
-import subprocess  # ruff: ignore[suspicious-subprocess-import] - Exercise the pinned deptry CLI without a shell.
+import subprocess  # ruff: ignore[suspicious-subprocess-import] - Exercise check tools without a shell.
 import sys
 from pathlib import Path
 
@@ -17,6 +17,7 @@ from repo_chores.constraints.rules import (
     enforce_manifest_style,
     enforce_pinned_dependency_versions,
     enforce_pytest_paths,
+    enforce_tach_paths,
     enforce_turbo_task,
     enforce_workspace_dev_dependencies,
     enforce_workspace_sources,
@@ -127,9 +128,7 @@ def test_incompatible_pins_block_writes(workspace_directory: Path) -> None:
 
 
 @pytest.mark.parametrize("layout_first", [False, True])
-def test_layout_repairs_feed_derived_paths(
-    workspace_directory: Path, *, layout_first: bool
-) -> None:
+def test_layout_path_convergence(workspace_directory: Path, *, layout_first: bool) -> None:
     member = workspace_directory / "packages/member"
     manifest = member / "pyproject.toml"
     manifest.write_text(
@@ -141,9 +140,9 @@ def test_layout_repairs_feed_derived_paths(
     (member / "actual/__init__.py").touch()
     (member / "tests").mkdir()
     rules = (
-        (enforce_build_layout, enforce_pytest_paths, enforce_turbo_task)
+        (enforce_build_layout, enforce_pytest_paths, enforce_tach_paths, enforce_turbo_task)
         if layout_first
-        else (enforce_turbo_task, enforce_pytest_paths, enforce_build_layout)
+        else (enforce_turbo_task, enforce_tach_paths, enforce_pytest_paths, enforce_build_layout)
     )
     engine = Engine(directory=workspace_directory)
     result = engine.fix(rules)
@@ -155,6 +154,9 @@ def test_layout_repairs_feed_derived_paths(
     config = package(workspace_directory).pytest
     assert list(config.python_paths) == [Path("packages/member")]
     assert list(config.test_paths) == [Path("packages/member/tests")]
+    assert list(package(member).tach.source_roots) == [Path()]
+    assert list(package(member).tach.excluded_paths) == [Path("tests")]
+    assert "[tool.tach]" not in (workspace_directory / "pyproject.toml").read_text()
     inputs = WorkspaceInputs.load(workspace_directory)
     command = inputs.turbo(member).task("lint:deptry").command
     assert command is not None
@@ -195,7 +197,7 @@ external = ["external_a", "external_b"] # native mapping
 
 @pytest.mark.parametrize("root", ["src", ""])
 @pytest.mark.parametrize("existing_task", [False, True])
-def test_deptry_task_repairs_source_roots(
+def test_deptry_task_source_roots(
     deptry_workspace: Path, root: str, *, existing_task: bool
 ) -> None:
     member = deptry_workspace / "packages/member"
@@ -267,3 +269,135 @@ def test_deptry_native_config_firing_control(deptry_workspace: Path, production_
     assert "DEP001" in failing.stderr
     assert "included_missing_dependency" in failing.stderr
     assert "excluded_missing_dependency" not in failing.stderr
+
+
+@pytest.mark.parametrize(
+    ("root", "module", "excluded"),
+    [
+        ("src", "service", []),
+        ("", "service", ["scripts", "tests"]),
+        ("", "scripts", ["tests"]),
+        ("", "tests", ["scripts"]),
+    ],
+)
+def test_member_tach_production_exclusions(
+    workspace_directory: Path, root: str, module: str, *, excluded: list[str]
+) -> None:
+    member = workspace_directory / "packages/member"
+    manifest = member / "pyproject.toml"
+    manifest.write_text(
+        manifest.read_text()
+        + '[build-system]\nbuild-backend = "uv_build"\nrequires = ["uv_build>=0.12"]\n'
+        + f'[tool.uv.build-backend]\nmodule-root = "{root}"\nmodule-name = "{module}"\n'
+        + '[tool.tach]\nsource_roots = ["stale"]\nexclude = ["stale/"]\nexact = true # strict\n'
+    )
+    source = member / root / module
+    source.mkdir(parents=True)
+    (source / "__init__.py").touch()
+    for name in ("tests", "scripts"):
+        (member / name).mkdir(exist_ok=True)
+    original = manifest.read_bytes()
+    engine = Engine(directory=workspace_directory)
+    rules = (enforce_tach_paths,)
+    assert engine.check(rules).status is CheckStatus.CHANGES
+    assert manifest.read_bytes() == original
+    assert engine.fix(rules).status is FixStatus.APPLIED
+    view = package(member).tach
+    assert list(view.source_roots) == [Path(root or ".")]
+    assert list(view.excluded_paths) == [Path(path) for path in excluded]
+    assert "exact = true # strict" in manifest.read_text()
+    assert engine.check(rules).status is CheckStatus.CLEAN
+    assert engine.fix(rules).status is FixStatus.UNCHANGED
+
+
+def test_tach_paths_new_member(workspace_directory: Path) -> None:
+    new = workspace_directory / "packages/new"
+    new.mkdir()
+    (new / "pyproject.toml").write_text('[project]\nname = "new-member"\nversion = "0.1.0"\n')
+    (new / "src").mkdir()
+
+    def add_member(workspace: Workspace) -> None:
+        workspace.members = [Path("packages/member"), Path("packages/new")]
+
+    engine = Engine(directory=workspace_directory)
+    rules = (enforce_tach_paths, add_member)
+    result = engine.fix(rules)
+    assert result.status is FixStatus.APPLIED, str(result)
+    assert result.report.passes == 3
+    assert list(package(new).tach.source_roots) == [Path("src")]
+    assert list(package(workspace_directory / "packages/member").tach.source_roots) == [Path()]
+    assert "[tool.tach]" not in (workspace_directory / "pyproject.toml").read_text()
+    assert engine.check(rules).status is CheckStatus.CLEAN
+    assert engine.fix(rules).status is FixStatus.UNCHANGED
+
+
+def test_unit_task_scope_and_prerequisites(workspace_directory: Path) -> None:
+    root = workspace_directory / "pyproject.toml"
+    root.write_text(
+        root.read_text()
+        + '[tool.pytest.ini_options]\ntestpaths = ["packages/member/tests", "outside"]\n'
+    )
+    member = workspace_directory / "packages/member"
+    (member / "tests").mkdir()
+    (member / "tests/test_local.py").write_text(
+        f"from pathlib import Path\n\ndef test_local():\n    assert Path.cwd() == Path({str(member)!r})\n"
+    )
+    outside = workspace_directory / "outside"
+    outside.mkdir()
+    (outside / "test_outside.py").write_text('raise RuntimeError("outside collection")\n')
+    turbo = member / "turbo.json"
+    original = """{"extends":["//"],"tasks":{
+  "test:unit": {"command": ["old"], "dependsOn": [
+    "codegen", // preparation
+    "test", // obsolete forwarding
+    // source inputs
+    "^manifest", // transitive
+    // closing block
+  ], "env": ["KEEP"], "outputs": ["keep/**"]},
+  "test": {"dependsOn":["codegen","^manifest"]},
+  "other": {"command":"untouched"}
+}}
+"""
+    turbo.write_text(original)
+    engine = Engine(directory=workspace_directory)
+    rules = (enforce_turbo_task,)
+    assert engine.check(rules).status is CheckStatus.CHANGES
+    assert turbo.read_text() == original
+    assert engine.fix(rules).status is FixStatus.APPLIED
+    inputs = WorkspaceInputs.load(workspace_directory)
+    task = inputs.turbo(member).task("test:unit")
+    assert task.depends_on == ["codegen", "^manifest"]
+    retained = turbo.read_text()
+    assert (
+        '"codegen", // preparation\n    // source inputs\n    "^manifest", // transitive'
+        in retained
+    )
+    assert '// closing block\n  ], "env": ["KEEP"], "outputs": ["keep/**"]' in retained
+    assert '"test": {"dependsOn":["codegen","^manifest"]}' in retained
+    assert '"other": {"command":"untouched"}' in retained
+    assert engine.check(rules).status is CheckStatus.CLEAN
+    assert engine.fix(rules).status is FixStatus.UNCHANGED
+
+    command = task.command
+    assert command is not None
+    # Use the test environment's interpreter. Execute the policy's actual pytest argv.
+    scoped = subprocess.run(
+        [sys.executable, "-m", *command[5:], "-vv"],
+        cwd=member,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert scoped.returncode == 0, scoped.stdout + scoped.stderr
+    assert "test_local.py::test_local PASSED" in scoped.stdout
+    assert "outside collection" not in scoped.stdout + scoped.stderr
+    assert str(workspace_directory) in scoped.stdout
+    unscoped = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only"],
+        cwd=workspace_directory,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert unscoped.returncode == 2
+    assert "outside collection" in unscoped.stdout

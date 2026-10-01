@@ -1,6 +1,18 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:tach": {
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check"
+      ]
+    },
     "check:ty": { "dependsOn": ["petrinaut-python#codegen"] },
     "lint:deptry": {
       "command": [
@@ -73,7 +85,17 @@
       "dependsOn": ["check:openapi", "^manifest"]
     },
     "test:unit": {
-      "dependsOn": ["test"]
+      "dependsOn": ["check:openapi", "^manifest"],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "pytest",
+        "."
+      ]
     }
   }
 }

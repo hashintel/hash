@@ -28,12 +28,13 @@ from repo_chores.constraints._engine.metadata import LicenseExpression, PythonVe
 from repo_chores.constraints._engine.pytest import ManifestPytest, PytestConfiguration
 from repo_chores.constraints._engine.ruff import ManifestRuff, RuffConfiguration
 from repo_chores.constraints._engine.sources import DependencySources, ManifestSources
+from repo_chores.constraints._engine.tach import ManifestTach, TachConfiguration
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRichComparison
 
 
-class Package(LocatedDiagnostics):
+class Package(LocatedDiagnostics):  # ruff: ignore[too-many-public-methods] - Manifest views share one owner.
     """Typed views of one live manifest."""
 
     def __init__(self, *, manifest: Manifest, diagnostics: Diagnostics) -> None:
@@ -47,6 +48,7 @@ class Package(LocatedDiagnostics):
         self._sources = ManifestSources(manifest)
         self._pytest = ManifestPytest(manifest=manifest, diagnostics=diagnostics)
         self._ruff = ManifestRuff(manifest=manifest, diagnostics=diagnostics)
+        self._tach = ManifestTach(manifest=manifest, diagnostics=diagnostics)
 
     @property
     def directory(self) -> Path:
@@ -211,3 +213,7 @@ class Package(LocatedDiagnostics):
     @property
     def ruff(self) -> RuffConfiguration:
         return self._ruff
+
+    @property
+    def tach(self) -> TachConfiguration:
+        return self._tach
