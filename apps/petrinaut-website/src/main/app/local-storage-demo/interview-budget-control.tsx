@@ -427,10 +427,15 @@ export const InterviewBudgetPill = ({
 }) => {
   const asked = countInterviewReplies(context.messages);
   const mode = context.inputMode ?? "text";
-  const label = interviewBudgetLabel(level, mode, asked);
   const budget = getInterviewBudget(level, mode, asked);
-  if (!budget || label === null || asked === 0) return null;
+  if (!budget) return null;
   const config = interviewBudgetLevelsConfig[level];
+  // The row is always present while a budget is active, so the first reply
+  // and later label changes do not move the composer or Voice dock.
+  const label =
+    asked === 0
+      ? `${config.name} · ${config.guide}`
+      : (interviewBudgetLabel(level, mode, asked) ?? "");
   const nearCap = budget.remaining !== null && budget.remaining <= 1;
   const mechanism =
     budget.questionCap === null
@@ -498,10 +503,13 @@ export const InterviewBudgetPill = ({
           data-near-cap={nearCap || undefined}
           className={css({
             display: "inline-flex",
+            justifyContent: "flex-end",
+            minWidth: "[132px]",
             fontSize: "[11px]",
             fontWeight: "semibold",
             lineHeight: "[1.5]",
             fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
             color: "neutral.s80",
             borderRadius: "[4px]",
             cursor: "default",

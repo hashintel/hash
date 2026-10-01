@@ -95,7 +95,7 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
   expect(screen.queryByRole("status")).toBeNull();
 });
 
-test("does not show an estimate before the interview starts", () => {
+test("reserves the row with the level before the interview starts", () => {
   render(
     <InterviewBudgetPill
       level="standard"
@@ -108,5 +108,5 @@ test("does not show an estimate before the interview starts", () => {
       }}
     />,
   );
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("status").textContent).toBe("Standard · ~10 min");
 });
