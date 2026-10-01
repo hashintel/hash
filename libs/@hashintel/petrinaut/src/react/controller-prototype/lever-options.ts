@@ -4,11 +4,7 @@
  * share one rule.
  */
 
-import {
-  competingTransitionIds,
-  leverNodeIds,
-  tokenFieldPlaces,
-} from "./controllers";
+import { leverNodeIds, tokenFieldPlaces } from "./controllers";
 
 import type { Controller, Lever, TokenFieldPlace } from "./controllers";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -35,12 +31,12 @@ export type LeverOption =
 /**
  * The lever kinds that fit the targets:
  * - places: Initial tokens;
- * - transitions that compete for one place's tokens: Choice at that place;
  * - any transition: Rate;
  * - a single transition with typed output tokens: Token field;
- * - several transitions: Rate for each, plus Choice where they share a branch place.
+ * - several transitions: Rate for each.
  *
- * A mix of places and transitions fits no kind.
+ * Rival transitions get a Rate lever each, like any other, so no option adds a
+ * Choice. A mix of places and transitions fits no kind.
  */
 export const leverOptionsFor = (
   net: NetLike,
@@ -69,19 +65,6 @@ export const leverOptionsFor = (
     return [];
   }
 
-  const branchPlaces = net.places.filter((place) => {
-    const competing = competingTransitionIds(net, place.id);
-    return (
-      competing.length >= 2 && transitions.every((id) => competing.includes(id))
-    );
-  });
-
-  const choices: LeverOption[] = branchPlaces.map((place) => ({
-    id: `choice:${place.id}`,
-    label: `Choice at ${place.name}`,
-    levers: [{ kind: "choice", placeId: place.id, transitionIds: transitions }],
-  }));
-
   const rate: LeverOption = {
     id: "rate",
     label: "Rate",
@@ -89,7 +72,7 @@ export const leverOptionsFor = (
   };
 
   if (transitions.length > 1) {
-    return [...choices, rate];
+    return [rate];
   }
 
   const transitionId = transitions[0]!;
@@ -97,7 +80,6 @@ export const leverOptionsFor = (
 
   return outputs.length > 0
     ? [
-        ...choices,
         rate,
         {
           id: "tokenField",
@@ -106,7 +88,7 @@ export const leverOptionsFor = (
           transitionId,
         },
       ]
-    : [...choices, rate];
+    : [rate];
 };
 
 const sameLever = (a: LeverDraft, b: Lever): boolean => {

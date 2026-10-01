@@ -9,7 +9,6 @@ import {
   leverAnchorKind,
   leverKindLabel,
   leverName,
-  rateExpression,
   tokenFieldPlaces,
   toggleInitialTokenField,
   toggleTokenField,
@@ -359,29 +358,8 @@ const LeverBody: React.FC<{
     case "choice":
       return <ChoiceBody net={net} lever={lever} onToggle={onToggleChoice} />;
 
-    case "rate": {
-      const transition = net.transitions.find(
-        (t) => t.id === lever.transitionId
-      );
-      if (!transition) {
-        return null;
-      }
-      const expression = rateExpression(transition.lambdaCode);
-      return (
-        <div className={todayRowStyle}>
-          {transition.lambdaType === "predicate" ? (
-            <span>Replaces the predicate</span>
-          ) : expression ? (
-            <>
-              <span>Replaces</span>
-              <code className={codeChipStyle}>{expression}</code>
-            </>
-          ) : (
-            <span>Replaces the Firing Time code</span>
-          )}
-        </div>
-      );
-    }
+    case "rate":
+      return null;
 
     case "initialTokens": {
       const marking = initialMarking[lever.placeId];
@@ -536,7 +514,9 @@ const LeverRow: React.FC<{
           </span>
         ) : null}
       </button>
-      {!missing && (open || lever.kind !== "choice") ? (
+      {!missing &&
+      lever.kind !== "rate" &&
+      (open || lever.kind !== "choice") ? (
         <div className={leverBodyStyle}>
           <LeverBody
             net={net}

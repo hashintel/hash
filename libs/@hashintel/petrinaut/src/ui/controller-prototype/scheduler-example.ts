@@ -12,10 +12,14 @@ export const demoControllers: Controller[] = [
     goal: { direction: "maximise", metricId: "metric_service_level" },
     levers: [
       {
-        id: "lever__machine_up",
-        kind: "choice",
-        placeId: "place_machine_up",
-        transitionIds: ["trans_start_production", "trans_preventive_maintenance"],
+        id: "lever__start_production_rate",
+        kind: "rate",
+        transitionId: "trans_start_production",
+      },
+      {
+        id: "lever__preventive_maintenance_rate",
+        kind: "rate",
+        transitionId: "trans_preventive_maintenance",
       },
       {
         id: "lever__start_production_fields",

@@ -30,16 +30,15 @@ describe("leverOptionsFor", () => {
     expect(labels(["place_raw_materials"])).toEqual(["Initial tokens"]);
   });
 
-  it("offers Choice and Rate for two transitions that compete at one place", () => {
+  it("offers only Rate for two transitions that compete at one place", () => {
     expect(
       labels(["trans_start_production", "trans_preventive_maintenance"])
-    ).toEqual(["Choice at MachineUp", "Rate"]);
+    ).toEqual(["Rate"]);
   });
 
   it("offers Token field with each typed output place and its fields for a single transition", () => {
     const options = leverOptionsFor(net, ["trans_start_production"]);
     expect(options.map((option) => option.label)).toEqual([
-      "Choice at MachineUp",
       "Rate",
       "Token field",
     ]);
@@ -59,10 +58,7 @@ describe("leverOptionsFor", () => {
 
   it("offers no Token field for a transition without a typed output place", () => {
     expect(tokenFieldPlaces(net, "trans_supplier_a_disrupts")).toEqual([]);
-    expect(labels(["trans_supplier_a_disrupts"])).toEqual([
-      "Choice at SupplierAAvailable",
-      "Rate",
-    ]);
+    expect(labels(["trans_supplier_a_disrupts"])).toEqual(["Rate"]);
   });
 
   it("offers nothing for a mix of places and transitions", () => {
