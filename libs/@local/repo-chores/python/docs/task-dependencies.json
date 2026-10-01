@@ -1,0 +1,14 @@
+{
+  "package": "repo-chores",
+  "dependencies": [],
+  "tasks": {
+    "fix:constraints": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "lint:constraints": {
+      "dependsOn": [],
+      "cache": false
+    }
+  }
+}

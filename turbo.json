@@ -108,6 +108,20 @@
     },
     // Linting and formatting
     "lint": {},
+    "lint:constraints": {
+      "cache": false
+    },
+    "//#lint:constraints:node": {
+      "command": ["yarn", "constraints"],
+      "cache": false
+    },
+    "fix:constraints": {
+      "cache": false
+    },
+    "//#fix:constraints:node": {
+      "command": ["yarn", "constraints", "--fix"],
+      "cache": false
+    },
     // The clippy invocation differs between pull requests (`--all-features`) and other runs
     // such as the merge queue (`cargo hack --feature-powerset`), selected via
     // `GITHUB_EVENT_NAME` in the `.justfile`. Include it in the hash so the two run modes
