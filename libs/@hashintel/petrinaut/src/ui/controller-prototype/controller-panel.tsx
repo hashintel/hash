@@ -36,7 +36,9 @@ import {
 } from "../constants/entity-icons";
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { ConstraintsSection, GoalSection } from "./constraints-goal";
+import { addLevers } from "../../react/controller-prototype/lever-options";
 import { LeverRowIcon } from "./lever-glyph";
+import { LeverPicker } from "./lever-picker";
 import { useLeverDrag, useLeverDropTarget } from "./lever-drop";
 import {
   clearLeverPreviewSoon,
@@ -48,9 +50,11 @@ import { requestShowOnCanvas } from "./show-on-canvas";
 import type {
   Controller,
   Lever,
+  LeverKind,
   TokenFieldPlace,
 } from "../../react/controller-prototype/controllers";
 import type { SubView } from "../components/sub-view/types";
+import type { LeverDraft } from "../../react/controller-prototype/lever-options";
 import type { PickerGroup, PickerRow } from "./lever-picker";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -90,6 +94,8 @@ const kindCardStyle = css({
   borderRadius: "lg",
   marginBottom: "2",
 });
+
+const addLeverStyle = css({ display: "inline-flex" });
 
 const kindHeaderStyle = css({
   display: "flex",
@@ -795,8 +801,8 @@ const LeverCard: React.FC<{
               <span
                 className={targetItemStyle}
                 onMouseEnter={() => setLeverPreview(value)}
-              onMouseLeave={clearLeverPreviewSoon}
-                >
+                onMouseLeave={clearLeverPreviewSoon}
+              >
                 <span className={targetNameStyle}>
                   {groups
                     .flatMap((group) => group.rows)
@@ -823,6 +829,100 @@ const LeverCard: React.FC<{
       )}
       {children}
     </div>
+  );
+};
+
+let addedLeverCounter = 0;
+const newLeverId = () => `lever__${Date.now()}_${addedLeverCounter++}`;
+
+/** "+ Add lever": a searchable list of every node a lever fits, by kind. */
+const AddLever: React.FC<{
+  net: NetLike;
+  controller: Controller;
+  onAdd: (draft: LeverDraft) => void;
+}> = ({ net, controller, onAdd }) => {
+  const { controllers } = useControllers();
+  const [button, setButton] = useState<HTMLSpanElement | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const row = (
+    kind: LeverKind,
+    id: string,
+    name: string,
+    nodeKind: "place" | "transition"
+  ): PickerRow => {
+    const holds = (candidate: Controller) =>
+      candidate.levers.some(
+        (lever) => lever.kind === kind && leverAnchorId(lever) === id
+      );
+    const added = holds(controller);
+    const others = controllers.filter(
+      (candidate) => candidate.id !== controller.id && holds(candidate)
+    );
+    return {
+      id,
+      name,
+      nodeKind,
+      disabled: added,
+      suffix: added
+        ? "Added"
+        : others.length > 0
+        ? `In ${others.map((other) => other.name).join(", ")}`
+        : undefined,
+    };
+  };
+
+  const groups: PickerGroup[] = [
+    {
+      id: "rate",
+      label: leverKindLabel.rate,
+      rows: net.transitions.map((t) => row("rate", t.id, t.name, "transition")),
+    },
+    {
+      id: "initialTokens",
+      label: leverKindLabel.initialTokens,
+      rows: net.places.map((p) => row("initialTokens", p.id, p.name, "place")),
+    },
+    {
+      id: "tokenField",
+      label: leverKindLabel.tokenField,
+      rows: net.transitions
+        .filter((t) => tokenFieldPlaces(net, t.id).length > 0)
+        .map((t) => row("tokenField", t.id, t.name, "transition")),
+    },
+  ];
+
+  return (
+    <>
+      <span ref={setButton} className={addLeverStyle}>
+        <Button
+          size="xs"
+          variant="ghost"
+          iconName="plus"
+          onClick={() => setOpen(true)}
+        >
+          Add lever
+        </Button>
+      </span>
+      {open && button ? (
+        <LeverPicker
+          anchor={button}
+          position="bottom-start"
+          placeholder="Find a place or transition"
+          groups={groups}
+          onPick={(groupId, nodeId) =>
+            onAdd(
+              groupId === "rate"
+                ? { kind: "rate", transitionId: nodeId }
+                : groupId === "initialTokens"
+                ? { kind: "initialTokens", placeId: nodeId }
+                : { kind: "tokenField", transitionId: nodeId, places: [] }
+            )
+          }
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
   );
 };
 
@@ -887,54 +987,59 @@ const ControllerMainFields: React.FC<{ controller: Controller }> = ({
 
       <div>
         <div className={headingStyle}>Levers</div>
-        {controller.levers.length === 0 ? (
-          <div className={bodyTextStyle}>No levers yet.</div>
-        ) : (
-          controller.levers.map((lever) => (
-            <LeverCard
-              key={lever.id}
+        {controller.levers.map((lever) => (
+          <LeverCard
+            key={lever.id}
+            net={petriNetDefinition}
+            controller={controller}
+            lever={lever}
+            onRetarget={(targetId) =>
+              updateThis((current) => ({
+                ...current,
+                levers: current.levers.map((candidate) =>
+                  candidate.id === lever.id
+                    ? retargetLever(petriNetDefinition, candidate, targetId)
+                    : candidate
+                ),
+              }))
+            }
+            onRemove={() =>
+              updateThis((current) => ({
+                ...current,
+                levers: current.levers.filter(
+                  (candidate) => candidate.id !== lever.id
+                ),
+              }))
+            }
+          >
+            <LeverRow
               net={petriNetDefinition}
-              controller={controller}
               lever={lever}
-              onRetarget={(targetId) =>
-                updateThis((current) => ({
-                  ...current,
-                  levers: current.levers.map((candidate) =>
-                    candidate.id === lever.id
-                      ? retargetLever(petriNetDefinition, candidate, targetId)
-                      : candidate
-                  ),
-                }))
-              }
-              onRemove={() =>
-                updateThis((current) => ({
-                  ...current,
-                  levers: current.levers.filter(
-                    (candidate) => candidate.id !== lever.id
-                  ),
-                }))
-              }
-            >
-              <LeverRow
-                net={petriNetDefinition}
-                lever={lever}
-                defaultOpen={lever.kind === "choice"}
-                onToggleChoice={toggleChoice(lever.id)}
-                onToggleField={toggleField(lever)}
-                onToggleInitialField={(elementId, on) =>
-                  updateThis((current) =>
-                    toggleInitialTokenField(
-                      petriNetDefinition,
-                      current,
-                      lever.id,
-                      elementId,
-                      on
-                    )
+              defaultOpen={lever.kind === "choice"}
+              onToggleChoice={toggleChoice(lever.id)}
+              onToggleField={toggleField(lever)}
+              onToggleInitialField={(elementId, on) =>
+                updateThis((current) =>
+                  toggleInitialTokenField(
+                    petriNetDefinition,
+                    current,
+                    lever.id,
+                    elementId,
+                    on
                   )
-                }
-              />
-            </LeverCard>
-          ))
+                )
+              }
+            />
+          </LeverCard>
+        ))}
+        {isReadOnly ? null : (
+          <AddLever
+            net={petriNetDefinition}
+            controller={controller}
+            onAdd={(draft) =>
+              updateThis((current) => addLevers(current, [draft], newLeverId))
+            }
+          />
         )}
       </div>
 

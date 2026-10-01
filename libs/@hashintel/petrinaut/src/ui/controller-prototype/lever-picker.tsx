@@ -7,6 +7,11 @@ import {
   PlaceFilledIcon,
   TransitionFilledIcon,
 } from "../constants/entity-icons";
+import {
+  clearLeverPreviewSoon,
+  endLeverPreviewKeepingView,
+  setLeverPreview,
+} from "./lever-preview";
 
 export type PickerRow = {
   id: string;
@@ -114,15 +119,23 @@ export const LeverPicker: React.FC<{
   groups: PickerGroup[];
   onPick: (groupId: string, rowId: string) => void;
   onClose: () => void;
-}> = ({ anchor, placeholder, groups, onPick, onClose }) => {
+  position?: "left-start" | "bottom-start";
+}> = ({
+  anchor,
+  placeholder,
+  groups,
+  onPick,
+  onClose,
+  position = "left-start",
+}) => {
   const [query, setQuery] = useState("");
   const [highlighted, setHighlighted] = useState(() =>
     Math.max(
       0,
       groups
         .flatMap((group) => group.rows.filter((row) => !row.disabled))
-        .findIndex((row) => row.current),
-    ),
+        .findIndex((row) => row.current)
+    )
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -153,13 +166,21 @@ export const LeverPicker: React.FC<{
   const enabled = shown.flatMap((group) =>
     group.rows
       .filter((row) => !row.disabled)
-      .map((row) => ({ groupId: group.id, rowId: row.id })),
+      .map((row) => ({ groupId: group.id, rowId: row.id }))
   );
   const active = enabled[Math.min(highlighted, enabled.length - 1)];
-  const hasTicks = groups.some((group) => group.rows.some((row) => row.current));
+  const hasTicks = groups.some((group) =>
+    group.rows.some((row) => row.current)
+  );
 
   const pick = (groupId: string, rowId: string) => {
+    endLeverPreviewKeepingView();
     onPick(groupId, rowId);
+    onClose();
+  };
+
+  const close = () => {
+    setLeverPreview(null);
     onClose();
   };
 
@@ -171,7 +192,7 @@ export const LeverPicker: React.FC<{
         (Math.max(0, Math.min(highlighted, enabled.length - 1)) +
           step +
           enabled.length) %
-          Math.max(1, enabled.length),
+          Math.max(1, enabled.length)
       );
     } else if (event.key === "Enter" && active) {
       event.preventDefault();
@@ -180,16 +201,17 @@ export const LeverPicker: React.FC<{
       // Stop the editor's own Escape, which would also clear the selection.
       event.preventDefault();
       event.stopPropagation();
-      onClose();
+      close();
     }
   };
 
   return (
     <Popover
       triggerRef={{ current: anchor }}
-      position="left-start"
+      position={position}
       gapX={12}
-      onClose={onClose}
+      gapY={6}
+      onClose={close}
       initialFocusRef={inputRef}
     >
       <Popover.Container className={panelStyle}>
@@ -241,12 +263,14 @@ export const LeverPicker: React.FC<{
                           const index = enabled.findIndex(
                             (entry) =>
                               entry.groupId === group.id &&
-                              entry.rowId === row.id,
+                              entry.rowId === row.id
                           );
                           if (index >= 0) {
                             setHighlighted(index);
                           }
+                          setLeverPreview(row.id);
                         }}
+                        onMouseLeave={clearLeverPreviewSoon}
                         onClick={() => pick(group.id, row.id)}
                       >
                         {hasTicks ? (
