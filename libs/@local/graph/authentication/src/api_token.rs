@@ -1,10 +1,9 @@
 //! API tokens a user authenticates with on the public Graph API.
 //!
-//! A token reads `hsh_<type>_<deployment>_<token-id>_<secret><checksum>`:
+//! A token reads `hsh_<type>_<environment>_<token-id>_<secret><checksum>`:
 //!
-//! - The type is the three letters of an [`ApiTokenType`], `pat` for a token of a user.
-//! - The deployment is the two letters of a [`Deployment`]: `pd` for production, `sg` for staging
-//!   and `lc` for a local deployment.
+//! - The type is the three letters of an [`ApiTokenType`].
+//! - The environment is the two letters of an [`Environment`].
 //! - The token ID is the token's [`ApiTokenId`] as 22 Base62 digits, with the [`ApiTokenVersion`]
 //!   in its first digit.
 //! - The secret is 43 random Base62 digits, about 256 bits.
@@ -34,14 +33,14 @@ use uuid::{Builder, Uuid};
 const PREFIX: &str = "hsh_";
 const SEPARATOR: char = '_';
 const TYPE_LENGTH: usize = 3;
-const DEPLOYMENT_LENGTH: usize = 2;
+const ENVIRONMENT_LENGTH: usize = 2;
 const TOKEN_ID_LENGTH: usize = 22;
 const SECRET_LENGTH: usize = 43;
 const CHECKSUM_LENGTH: usize = 6;
 const TOKEN_LENGTH: usize = PREFIX.len()
     + TYPE_LENGTH
     + 1
-    + DEPLOYMENT_LENGTH
+    + ENVIRONMENT_LENGTH
     + 1
     + TOKEN_ID_LENGTH
     + 1
@@ -58,7 +57,7 @@ const LEADING_DIGIT_MASK: u8 = 0b111;
 /// What an API token acts as.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ApiTokenType {
-    /// A token that acts as the user it belongs to, written as `pat`.
+    /// A token that acts as the user it belongs to.
     User,
 }
 
@@ -77,19 +76,19 @@ impl ApiTokenType {
     }
 }
 
-/// The deployment an API token belongs to.
+/// The environment an API token belongs to.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Deployment {
-    /// The production deployment, written as `pd`.
+pub enum Environment {
+    /// The production environment.
     Production,
-    /// The staging deployment, written as `sg`.
+    /// The staging environment.
     Staging,
-    /// A deployment on a developer's machine or in CI, written as `lc`.
+    /// A deployment on a developer's machine or in CI.
     Local,
 }
 
-impl Deployment {
-    const fn code(self) -> &'static [u8; DEPLOYMENT_LENGTH] {
+impl Environment {
+    const fn code(self) -> &'static [u8; ENVIRONMENT_LENGTH] {
         match self {
             Self::Production => b"pd",
             Self::Staging => b"sg",
@@ -97,7 +96,7 @@ impl Deployment {
         }
     }
 
-    const fn from_code(code: [u8; DEPLOYMENT_LENGTH]) -> Option<Self> {
+    const fn from_code(code: [u8; ENVIRONMENT_LENGTH]) -> Option<Self> {
         match &code {
             b"pd" => Some(Self::Production),
             b"sg" => Some(Self::Staging),
@@ -142,8 +141,8 @@ pub enum ApiTokenParseError {
     Encoding,
     #[display("the API token has an unknown type")]
     Type,
-    #[display("the API token has an unknown deployment")]
-    Deployment,
+    #[display("the API token has an unknown environment")]
+    Environment,
     #[display("the API token has an unknown version")]
     Version,
 }
@@ -153,14 +152,14 @@ pub enum ApiTokenParseError {
 #[display("the operating system provided no random bytes for the API token")]
 pub struct ApiTokenGenerationError;
 
-/// An API token, made of its type, deployment, version, token ID and secret.
+/// An API token, made of its type, environment, version, token ID and secret.
 ///
 /// Neither the `Debug` nor the `Display` output contains the secret. `Display` shows the token up
 /// to the first four digits of the token ID and `…`, such as `hsh_pat_pd_0296…`.
 #[derive(derive_more::Debug)]
 pub struct ApiToken {
     token_type: ApiTokenType,
-    deployment: Deployment,
+    environment: Environment,
     version: ApiTokenVersion,
     token_id: ApiTokenId,
     // TODO(BE-791): zeroize the secret on drop
@@ -169,7 +168,7 @@ pub struct ApiToken {
 }
 
 impl ApiToken {
-    /// Generates a token of `token_type` for `deployment`, with a random token ID and secret from
+    /// Generates a token of `token_type` for `environment`, with a random token ID and secret from
     /// the operating system's random number generator.
     ///
     /// # Errors
@@ -177,7 +176,7 @@ impl ApiToken {
     /// Returns [`ApiTokenGenerationError`] if the operating system provides no random bytes.
     pub fn generate(
         token_type: ApiTokenType,
-        deployment: Deployment,
+        environment: Environment,
     ) -> Result<Self, Report<ApiTokenGenerationError>> {
         let mut token_id = [0_u8; 16];
         SysRng
@@ -189,7 +188,7 @@ impl ApiToken {
 
         Ok(Self {
             token_type,
-            deployment,
+            environment,
             version: ApiTokenVersion::V0,
             token_id: ApiTokenId::new(Builder::from_random_bytes(token_id).into_uuid()),
             secret,
@@ -204,7 +203,7 @@ impl ApiToken {
         token.push_str(PREFIX);
         token.extend(self.token_type.code().map(char::from));
         token.push(SEPARATOR);
-        token.extend(self.deployment.code().map(char::from));
+        token.extend(self.environment.code().map(char::from));
         token.push(SEPARATOR);
         token.extend(encode_token_id(self.version, self.token_id).map(char::from));
         token.push(SEPARATOR);
@@ -219,7 +218,7 @@ impl fmt::Display for ApiToken {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_display(
             self.token_type,
-            self.deployment,
+            self.environment,
             self.version,
             self.token_id,
             fmt,
@@ -234,7 +233,7 @@ impl fmt::Display for ApiToken {
 #[derive(derive_more::Debug)]
 pub struct HashedApiToken {
     token_type: ApiTokenType,
-    deployment: Deployment,
+    environment: Environment,
     version: ApiTokenVersion,
     token_id: ApiTokenId,
     #[debug(skip)]
@@ -248,8 +247,8 @@ impl HashedApiToken {
     }
 
     #[must_use]
-    pub const fn deployment(&self) -> Deployment {
-        self.deployment
+    pub const fn environment(&self) -> Environment {
+        self.environment
     }
 
     #[must_use]
@@ -272,7 +271,7 @@ impl From<ApiToken> for HashedApiToken {
     fn from(token: ApiToken) -> Self {
         Self {
             token_type: token.token_type,
-            deployment: token.deployment,
+            environment: token.environment,
             version: token.version,
             token_id: token.token_id,
             secret_hash: hash_secret(&token.secret),
@@ -284,7 +283,7 @@ impl fmt::Display for HashedApiToken {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_display(
             self.token_type,
-            self.deployment,
+            self.environment,
             self.version,
             self.token_id,
             fmt,
@@ -310,7 +309,7 @@ impl FromStr for HashedApiToken {
 
         let (_, body) = signed.split_at(PREFIX.len());
         let mut parts = body.split(|&byte| char::from(byte) == SEPARATOR);
-        let (Some(token_type), Some(deployment), Some(token_id), Some(secret), None) = (
+        let (Some(token_type), Some(environment), Some(token_id), Some(secret), None) = (
             parts.next(),
             parts.next(),
             parts.next(),
@@ -324,10 +323,10 @@ impl FromStr for HashedApiToken {
             .ok()
             .and_then(ApiTokenType::from_code)
             .ok_or(ApiTokenParseError::Type)?;
-        let deployment = <[u8; DEPLOYMENT_LENGTH]>::try_from(deployment)
+        let environment = <[u8; ENVIRONMENT_LENGTH]>::try_from(environment)
             .ok()
-            .and_then(Deployment::from_code)
-            .ok_or(ApiTokenParseError::Deployment)?;
+            .and_then(Environment::from_code)
+            .ok_or(ApiTokenParseError::Environment)?;
         let (version, token_id) = decode_token_id(token_id)?;
         let secret = <&[u8; SECRET_LENGTH]>::try_from(secret)
             .ok()
@@ -336,7 +335,7 @@ impl FromStr for HashedApiToken {
 
         Ok(Self {
             token_type,
-            deployment,
+            environment,
             version,
             token_id,
             secret_hash: hash_secret(secret),
@@ -353,7 +352,7 @@ fn hash_secret(secret: &[u8; SECRET_LENGTH]) -> ApiTokenSecretHash {
 /// [`DISPLAYED_TOKEN_ID_LENGTH`] digits of the token ID, and `…`.
 fn fmt_display(
     token_type: ApiTokenType,
-    deployment: Deployment,
+    environment: Environment,
     version: ApiTokenVersion,
     token_id: ApiTokenId,
     fmt: &mut fmt::Formatter<'_>,
@@ -361,7 +360,7 @@ fn fmt_display(
     fmt.write_str(PREFIX)?;
     write_ascii(fmt, token_type.code())?;
     fmt.write_char(SEPARATOR)?;
-    write_ascii(fmt, deployment.code())?;
+    write_ascii(fmt, environment.code())?;
     fmt.write_char(SEPARATOR)?;
     write_ascii(
         fmt,
@@ -488,7 +487,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        ApiToken, ApiTokenParseError, ApiTokenType, ApiTokenVersion, CHECKSUM_LENGTH, Deployment,
+        ApiToken, ApiTokenParseError, ApiTokenType, ApiTokenVersion, CHECKSUM_LENGTH, Environment,
         HashedApiToken, PREFIX, SECRET_LENGTH, SECRET_POOL_LENGTH, TOKEN_ID_LENGTH, TOKEN_LENGTH,
         decode_token_id, draw_secret, encode_base62, encode_token_id,
     };
@@ -499,7 +498,7 @@ mod tests {
     fn fixed_token() -> ApiToken {
         ApiToken {
             token_type: ApiTokenType::User,
-            deployment: Deployment::Production,
+            environment: Environment::Production,
             version: ApiTokenVersion::V0,
             token_id: ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID)),
             secret: *b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg",
@@ -511,14 +510,14 @@ mod tests {
         token: &HashedApiToken,
     ) -> (
         ApiTokenType,
-        Deployment,
+        Environment,
         ApiTokenVersion,
         ApiTokenId,
         ApiTokenSecretHash,
     ) {
         (
             token.token_type(),
-            token.deployment(),
+            token.environment(),
             token.version(),
             token.token_id(),
             token.secret_hash(),
@@ -536,9 +535,9 @@ mod tests {
     }
 
     /// A token of the given parts with a matching checksum.
-    fn token_of_parts(token_type: &str, deployment: &str, token_id: &str, secret: &str) -> String {
+    fn token_of_parts(token_type: &str, environment: &str, token_id: &str, secret: &str) -> String {
         with_checksum(&format!(
-            "{PREFIX}{token_type}_{deployment}_{token_id}_{secret}"
+            "{PREFIX}{token_type}_{environment}_{token_id}_{secret}"
         ))
     }
 
@@ -547,7 +546,7 @@ mod tests {
         assert_eq!(
             fixed_token().expose(),
             "hsh_pat_pd_0296tiiBb3U904RIpygpjj_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg39B9Yp",
-            "the token should carry its type, deployment, token ID, secret and the checksum"
+            "the token should carry its type, environment, token ID, secret and the checksum"
         );
     }
 
@@ -558,17 +557,17 @@ mod tests {
         assert_eq!(
             (
                 hashed.token_type(),
-                hashed.deployment(),
+                hashed.environment(),
                 hashed.version(),
                 hashed.token_id()
             ),
             (
                 ApiTokenType::User,
-                Deployment::Production,
+                Environment::Production,
                 ApiTokenVersion::V0,
                 ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID))
             ),
-            "the hashed token should keep the type, deployment, version and token ID"
+            "the hashed token should keep the type, environment, version and token ID"
         );
         assert_eq!(
             hashed.secret_hash(),
@@ -600,7 +599,7 @@ mod tests {
         assert_eq!(
             format!("{:?}", fixed_token()),
             format!(
-                "ApiToken {{ token_type: User, deployment: Production, version: V0, token_id: \
+                "ApiToken {{ token_type: User, environment: Production, version: V0, token_id: \
                  {:?}, .. }}",
                 ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID))
             ),
@@ -613,7 +612,7 @@ mod tests {
         assert_eq!(
             format!("{:?}", HashedApiToken::from(fixed_token())),
             format!(
-                "HashedApiToken {{ token_type: User, deployment: Production, version: V0, \
+                "HashedApiToken {{ token_type: User, environment: Production, version: V0, \
                  token_id: {:?}, .. }}",
                 ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID))
             ),
@@ -622,11 +621,11 @@ mod tests {
     }
 
     #[rstest]
-    #[case::production(Deployment::Production)]
-    #[case::staging(Deployment::Staging)]
-    #[case::local(Deployment::Local)]
-    fn parse_exposed(#[case] deployment: Deployment) {
-        let token = ApiToken::generate(ApiTokenType::User, deployment)
+    #[case::production(Environment::Production)]
+    #[case::staging(Environment::Staging)]
+    #[case::local(Environment::Local)]
+    fn parse_exposed(#[case] environment: Environment) {
+        let token = ApiToken::generate(ApiTokenType::User, environment)
             .expect("the operating system should provide random bytes");
         let exposed = token.expose();
         let hashed = HashedApiToken::from(token);
@@ -787,7 +786,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_unknown_deployment() {
+    fn parse_unknown_environment() {
         let token = token_of_parts(
             "pat",
             "xx",
@@ -798,9 +797,9 @@ mod tests {
         assert_matches!(
             token
                 .parse::<HashedApiToken>()
-                .expect_err("an unknown deployment should not parse"),
-            ApiTokenParseError::Deployment,
-            "an unknown deployment should be reported as such"
+                .expect_err("an unknown environment should not parse"),
+            ApiTokenParseError::Environment,
+            "an unknown environment should be reported as such"
         );
     }
 
