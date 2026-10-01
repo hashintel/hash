@@ -7,7 +7,7 @@ import {
   PiStack,
 } from "react-icons/pi";
 
-import { Button, Popover } from "@hashintel/ds-components";
+import { BaseTooltip, Button, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -28,32 +28,26 @@ const icons = {
   thorough: PiMagnifyingGlass,
   deep: PiStack,
 };
-// Host colors override the library's separately compiled Button utility layer.
-const levelStyle = {
+const levelTheme = {
   off: css({
-    color: "neutral.fg.body !important",
-    backgroundColor: "neutral.bgSolid.surface !important",
-    borderColor: "neutral.bd.subtle !important",
+    "--budget-color": "token(colors.neutral.s100)",
+    "--budget-tint": "token(colors.neutral.a10)",
   }),
   quick: css({
-    color: "yellow.fg.body !important",
-    backgroundColor: "yellow.bgSolid.subtle !important",
-    borderColor: "yellow.bd.subtle !important",
+    "--budget-color": "token(colors.orange.s90)",
+    "--budget-tint": "token(colors.orange.a20)",
   }),
   standard: css({
-    color: "blue.fg.body !important",
-    backgroundColor: "blue.bgSolid.subtle !important",
-    borderColor: "blue.bd.subtle !important",
+    "--budget-color": "token(colors.blue.s90)",
+    "--budget-tint": "token(colors.blue.a20)",
   }),
   thorough: css({
-    color: "green.fg.body !important",
-    backgroundColor: "green.bgSolid.subtle !important",
-    borderColor: "green.bd.subtle !important",
+    "--budget-color": "token(colors.green.s90)",
+    "--budget-tint": "token(colors.green.a20)",
   }),
   deep: css({
-    color: "purple.fg.body !important",
-    backgroundColor: "purple.bgSolid.subtle !important",
-    borderColor: "purple.bd.subtle !important",
+    "--budget-color": "token(colors.purple.s90)",
+    "--budget-tint": "token(colors.purple.a20)",
   }),
 };
 
@@ -67,216 +61,362 @@ export const InterviewBudgetControl = ({
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<InterviewBudgetLevel | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const sliderRef = useRef<HTMLInputElement>(null);
   const config = interviewBudgetLevelsConfig[level];
   const CurrentIcon = icons[level];
   const selectedIndex = interviewBudgetLevels.indexOf(level);
-  const preview = interviewBudgetLevelsConfig[hovered ?? level];
+  const previewLevel = hovered ?? level;
+  const preview = interviewBudgetLevelsConfig[previewLevel];
 
   return (
-    <>
+    <span
+      className={`${css({ display: "inline-flex", flexShrink: 0 })} ${levelTheme[level]}`}
+      style={
+        { "--budget-marker": `${selectedIndex * 4}px` } as React.CSSProperties
+      }
+    >
       <Button
         ref={triggerRef}
         type="button"
         variant="ghost"
         size="sm"
         shape="round"
-        className={`${css({ flexShrink: 0 })} ${levelStyle[level]}`}
+        className={css({
+          position: "relative",
+          width: "[28px]",
+          height: "[28px]",
+          minWidth: "[28px !important]",
+          padding: "[0 !important]",
+          // The library and host compile separate CSS layers.
+          border: "[0 !important]",
+          color: "var(--budget-color) !important",
+          backgroundColor: "var(--budget-tint) !important",
+          transition: "[background-color 260ms ease-out, color 260ms ease-out]",
+          _before: {
+            content: '""',
+            position: "absolute",
+            left: "[50%]",
+            bottom: "[-5px]",
+            width: "var(--budget-marker)",
+            height: "[2px]",
+            borderRadius: "[1px]",
+            transform: "[translateX(-50%)]",
+            backgroundColor: "var(--budget-color)",
+            opacity: "[0.6]",
+            transition:
+              "[width 260ms cubic-bezier(0.16, 1, 0.3, 1), background-color 260ms ease-out]",
+          },
+          '&[data-budget-level="off"]': {
+            backgroundColor: "[transparent !important]",
+            color: "neutral.s80 !important",
+            boxShadow: "[inset 0 0 0 1px token(colors.neutral.a40)]",
+          },
+          _hover: { filter: "[saturate(1.15) brightness(0.97)]" },
+          _motionReduce: {
+            transition: "[none]",
+            _before: { transition: "[none]" },
+          },
+        })}
+        data-budget-level={level}
         aria-label={`Interview budget: ${config.name} · ${config.guide}`}
         aria-expanded={open}
         aria-haspopup="dialog"
         tooltip={`${config.name} · ${config.guide}`}
-        prefix={<CurrentIcon size={16} />}
-        onClick={() => setOpen(!open)}
+        tooltipOptions={{ disableTooltip: open }}
+        prefix={<CurrentIcon size={15} />}
+        onClick={() => {
+          setHovered(null);
+          setOpen(!open);
+        }}
       />
       {open && (
         <Popover
           triggerRef={triggerRef}
+          initialFocusRef={sliderRef}
           position="top-end"
-          gapY={8}
+          gapY={10}
           onClose={() => setOpen(false)}
         >
-          <Popover.Container
-            className={css({
-              width: "[340px]",
+          <div
+            role="group"
+            aria-label="Interview budget"
+            onMouseLeave={() => setHovered(null)}
+            className={`${levelTheme[level]} ${css({
+              width: "[324px]",
               maxWidth: "[calc(100vw - 24px)]",
+              padding: "[14px 16px 12px]",
+              border: "[1px solid token(colors.neutral.a20)]",
+              borderRadius: "[16px]",
               backgroundColor: "neutral.s00",
-            })}
+              boxShadow:
+                "[0 0 0 1px token(colors.neutral.a05), 0 2px 6px token(colors.neutral.a10), 0 12px 32px token(colors.neutral.a20)]",
+            })}`}
           >
-            <Popover.Body>
-              <div
-                role="group"
-                aria-label="Interview budget"
+            <div
+              className={css({
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: "2",
+                marginBottom: "[14px]",
+              })}
+            >
+              <span
                 className={css({
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "3",
+                  fontSize: "xs",
+                  fontWeight: "semibold",
+                  letterSpacing: "[0.02em]",
+                  textTransform: "uppercase",
+                  color: "neutral.s100",
+                })}
+              >
+                Interview budget
+              </span>
+              <span
+                className={css({
+                  fontSize: "[13px]",
+                  fontWeight: "semibold",
+                  color: "var(--budget-color)",
+                  whiteSpace: "nowrap",
+                })}
+              >
+                {config.name}
+                <small
+                  className={css({
+                    color: "neutral.s80",
+                    fontSize: "xs",
+                    fontWeight: "medium",
+                    marginLeft: "[5px]",
+                  })}
+                >
+                  {config.guide}
+                </small>
+              </span>
+            </div>
+            <div
+              className={css({
+                position: "relative",
+                height: "[32px]",
+                marginX: "[2px]",
+              })}
+            >
+              <div
+                aria-hidden="true"
+                className={css({
+                  position: "absolute",
+                  left: "[14px]",
+                  right: "[14px]",
+                  top: "[13px]",
+                  height: "[6px]",
+                  borderRadius: "[3px]",
+                  backgroundColor: "neutral.a15",
+                  overflow: "hidden",
                 })}
               >
                 <div
                   className={css({
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: "sm",
+                    height: "full",
+                    borderRadius: "[3px]",
+                    background:
+                      "[linear-gradient(90deg, color-mix(in srgb, var(--budget-color) 35%, transparent), var(--budget-color))]",
+                    transition:
+                      "[width 380ms cubic-bezier(0.34, 1.3, 0.64, 1)]",
+                    _motionReduce: { transition: "[none]" },
                   })}
-                >
-                  <strong>Interview budget</strong>
-                  <span className={css({ color: "neutral.fg.body" })}>
-                    {preview.guide}
-                  </span>
-                </div>
-                <div onMouseLeave={() => setHovered(null)}>
-                  <div
-                    className={css({
-                      position: "relative",
-                      height: "[36px]",
-                      marginX: "[10%]",
-                      _focusWithin: {
-                        outline: "[2px solid token(colors.blue.s80)]",
-                        outlineOffset: "[4px]",
-                        borderRadius: "full",
-                      },
-                    })}
-                  >
-                    <div
-                      aria-hidden="true"
-                      className={css({
-                        position: "absolute",
-                        top: "[16px]",
-                        width: "full",
-                        height: "[4px]",
-                        borderRadius: "full",
-                        backgroundColor: "neutral.s20",
-                      })}
-                    />
-                    <div
-                      aria-hidden="true"
-                      className={css({
-                        position: "absolute",
-                        top: "[16px]",
-                        height: "[4px]",
-                        borderRadius: "full",
-                        backgroundColor: "neutral.s90",
-                        transition: "[width 160ms ease]",
-                        _motionReduce: { transition: "[none]" },
-                      })}
-                      style={{ width: `${selectedIndex * 25}%` }}
-                    />
-                    {interviewBudgetLevels.map((stop, index) => (
-                      <span
-                        key={stop}
-                        aria-hidden="true"
-                        className={css({
-                          position: "absolute",
-                          top: "[14px]",
-                          width: "[8px]",
-                          height: "[8px]",
-                          borderRadius: "full",
-                          backgroundColor: "neutral.s50",
-                          transform: "[translateX(-50%)]",
-                        })}
-                        style={{ left: `${index * 25}%` }}
-                      />
-                    ))}
-                    <span
-                      aria-hidden="true"
-                      className={css({
-                        position: "absolute",
-                        top: "[2px]",
-                        width: "[32px]",
-                        height: "[32px]",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "full",
-                        color: "neutral.s00",
-                        backgroundColor: "neutral.fg.heading",
-                        transform: "[translateX(-50%)]",
-                        transition: "[left 160ms ease]",
-                        _motionReduce: { transition: "[none]" },
-                      })}
-                      style={{ left: `${selectedIndex * 25}%` }}
-                    >
-                      <CurrentIcon size={16} />
-                    </span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={4}
-                      step={1}
-                      value={selectedIndex}
-                      aria-label="Interview budget level"
-                      aria-valuetext={`${config.name} · ${config.guide}`}
-                      className={css({
-                        position: "absolute",
-                        inset: "[0 -16px]",
-                        width: "[calc(100% + 32px)]",
-                        margin: "0",
-                        opacity: "0",
-                        cursor: "pointer",
-                      })}
-                      onChange={(event) => {
-                        const next =
-                          interviewBudgetLevels[
-                            Number(event.currentTarget.value)
-                          ];
-                        if (next) {
-                          setHovered(null);
-                          onChange(next);
-                        }
-                      }}
-                    />
-                  </div>
-                  <div
-                    className={css({
-                      display: "grid",
-                      gridTemplateColumns: "[repeat(5, 1fr)]",
-                      marginTop: "1",
-                    })}
-                  >
-                    {interviewBudgetLevels.map((stop) => (
-                      <button
-                        key={stop}
-                        type="button"
-                        aria-pressed={level === stop}
-                        onMouseEnter={() => setHovered(stop)}
-                        onFocus={() => setHovered(stop)}
-                        onBlur={() => setHovered(null)}
-                        onClick={() => onChange(stop)}
-                        className={css({
-                          cursor: "pointer",
-                          paddingY: "1",
-                          fontSize: "xs",
-                          color: "neutral.fg.body",
-                          borderRadius: "sm",
-                          '&[aria-pressed="true"]': {
-                            color: "neutral.fg.heading",
-                            fontWeight: "semibold",
-                          },
-                          _hover: { backgroundColor: "neutral.s10" },
-                        })}
-                      >
-                        {interviewBudgetLevelsConfig[stop].name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <p
-                  className={css({
-                    fontSize: "xs",
-                    color: "neutral.fg.body",
-                    margin: "0",
-                    minHeight: "[18px]",
-                  })}
-                >
-                  {preview.description}
-                </p>
+                  style={{ width: `${selectedIndex * 25}%` }}
+                />
               </div>
-            </Popover.Body>
-          </Popover.Container>
+              <div
+                aria-hidden="true"
+                className={css({
+                  position: "absolute",
+                  left: "[14px]",
+                  right: "[14px]",
+                  top: "[16px]",
+                  pointerEvents: "none",
+                })}
+              >
+                {interviewBudgetLevels.map((stop, index) => (
+                  <span
+                    key={stop}
+                    data-filled={index < selectedIndex || undefined}
+                    className={css({
+                      position: "absolute",
+                      top: "[-1.5px]",
+                      width: "[3px]",
+                      height: "[3px]",
+                      marginLeft: "[-1.5px]",
+                      borderRadius: "full",
+                      backgroundColor: "neutral.a40",
+                      "&[data-filled]": { backgroundColor: "white.a80" },
+                    })}
+                    style={{ left: `${index * 25}%` }}
+                  />
+                ))}
+              </div>
+              <input
+                ref={sliderRef}
+                type="range"
+                min={0}
+                max={4}
+                step={1}
+                value={selectedIndex}
+                aria-label="Interview budget level"
+                aria-valuetext={`${config.name} · ${config.guide}`}
+                className={css({
+                  position: "absolute",
+                  inset: "[0]",
+                  width: "full",
+                  height: "full",
+                  margin: "0",
+                  appearance: "none",
+                  background: "[transparent]",
+                  cursor: "pointer",
+                  _focusVisible: { outline: "[none]" },
+                  "&::-webkit-slider-runnable-track": {
+                    height: "[32px]",
+                    background: "[transparent]",
+                  },
+                  "&::-webkit-slider-thumb": {
+                    appearance: "none",
+                    width: "[28px]",
+                    height: "[28px]",
+                    marginTop: "[2px]",
+                    background: "[transparent]",
+                    border: "[0]",
+                  },
+                  "&::-moz-range-track": {
+                    height: "[32px]",
+                    background: "[transparent]",
+                  },
+                  "&::-moz-range-thumb": {
+                    width: "[28px]",
+                    height: "[28px]",
+                    background: "[transparent]",
+                    border: "[0]",
+                  },
+                  "&:focus-visible + span": {
+                    boxShadow:
+                      "[0 0 0 3px token(colors.neutral.s00), 0 0 0 5px token(colors.blue.s90)]",
+                  },
+                  "&:hover + span, &:active + span": {
+                    transform: "[scale(1.06)]",
+                  },
+                })}
+                onMouseMove={(event) => {
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  const position = Math.max(
+                    0,
+                    Math.min(
+                      1,
+                      (event.clientX - bounds.left - 14) / (bounds.width - 28),
+                    ),
+                  );
+                  setHovered(
+                    interviewBudgetLevels[Math.round(position * 4)] ?? level,
+                  );
+                }}
+                onChange={(event) => {
+                  const next =
+                    interviewBudgetLevels[Number(event.currentTarget.value)];
+                  if (next) {
+                    setHovered(null);
+                    onChange(next);
+                  }
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className={css({
+                  position: "absolute",
+                  top: "[2px]",
+                  width: "[28px]",
+                  height: "[28px]",
+                  marginLeft: "[-14px]",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "full",
+                  pointerEvents: "none",
+                  color: "white",
+                  backgroundColor: "var(--budget-color)",
+                  boxShadow:
+                    "[0 0 0 3px token(colors.neutral.s00), 0 2px 6px token(colors.neutral.a40), 0 6px 16px color-mix(in srgb, var(--budget-color) 28%, transparent)]",
+                  transition:
+                    "[left 380ms cubic-bezier(0.34, 1.3, 0.64, 1), transform 160ms ease-out, background-color 260ms ease-out, box-shadow 260ms ease-out]",
+                  _motionReduce: { transition: "[none]" },
+                })}
+                style={{
+                  left: `calc(14px + (100% - 28px) * ${selectedIndex / 4})`,
+                }}
+              >
+                <CurrentIcon size={14} />
+              </span>
+            </div>
+            <div
+              className={css({
+                position: "relative",
+                height: "[18px]",
+                margin: "[8px 16px 0]",
+              })}
+            >
+              {interviewBudgetLevels.map((stop, index) => (
+                <button
+                  key={stop}
+                  type="button"
+                  aria-pressed={level === stop}
+                  onMouseEnter={() => setHovered(stop)}
+                  onFocus={() => setHovered(stop)}
+                  onBlur={() => setHovered(null)}
+                  onClick={() => {
+                    setHovered(null);
+                    onChange(stop);
+                  }}
+                  style={{ left: `${index * 25}%` }}
+                  className={css({
+                    position: "absolute",
+                    top: "[0]",
+                    transform: "[translateX(-50%)]",
+                    padding: "[0 4px]",
+                    cursor: "pointer",
+                    fontSize: "[11.5px]",
+                    fontWeight: "medium",
+                    color: "neutral.s80",
+                    whiteSpace: "nowrap",
+                    borderRadius: "sm",
+                    '&[aria-pressed="true"]': {
+                      color: "var(--budget-color) !important",
+                      fontWeight: "semibold !important",
+                    },
+                    _hover: { color: "neutral.s115" },
+                  })}
+                >
+                  {interviewBudgetLevelsConfig[stop].name}
+                </button>
+              ))}
+            </div>
+            <p
+              className={css({
+                fontSize: "xs",
+                lineHeight: "[1.45]",
+                color: "neutral.s100",
+                margin: "[10px 0 0]",
+                paddingTop: "[10px]",
+                minHeight: "[18px]",
+                borderTop: "[1px solid token(colors.neutral.a10)]",
+              })}
+            >
+              <strong
+                className={`${levelTheme[previewLevel]} ${css({ color: "var(--budget-color)", fontWeight: "semibold" })}`}
+              >
+                {preview.name} · {preview.guide}
+              </strong>{" "}
+              {preview.description}
+            </p>
+          </div>
         </Popover>
       )}
-    </>
+    </span>
   );
 };
 
@@ -291,18 +431,90 @@ export const InterviewBudgetPill = ({
   const mode = context.inputMode ?? "text";
   const label = interviewBudgetLabel(level, mode, asked);
   const budget = getInterviewBudget(level, mode, asked);
-  if (!budget || label === null) return null;
+  if (!budget || label === null || asked === 0) return null;
   const config = interviewBudgetLevelsConfig[level];
-  const detail = `${config.name} · ${config.guide}. ${asked} replies counted; ${budget.questionCap ?? "no"} question cap in ${mode}; ${budget.remaining ?? "unlimited"} left. ${budget.questionCap === null ? "Pause between topics." : "At the cap, wrap up with facts, assumptions and open items; gaps stay open."} This is an estimate, not a countdown.`;
+  const nearCap = budget.remaining !== null && budget.remaining <= 1;
+  const mechanism =
+    budget.questionCap === null
+      ? `${asked} asked; no cap. Brunch offers a pause between topics instead of closing.`
+      : `${budget.questionCap} questions in ${mode}; ${asked} asked, ${budget.remaining} left.`;
+  const note =
+    budget.remaining === 0
+      ? "Cap reached. Brunch closes after this answer with what it has; anything open is listed, not invented."
+      : budget.remaining === 1
+        ? "After this question Brunch closes with stated facts, recorded assumptions and open items."
+        : "Minutes are an estimate, not a countdown. Change the level any time.";
   return (
-    <div className={css({ paddingX: "3", paddingBottom: "2", flexShrink: 0 })}>
-      <span
-        role="status"
-        title={detail}
-        className={`${css({ display: "inline-flex", borderRadius: "full", borderWidth: "[1px]", borderStyle: "solid", paddingX: "2", paddingY: "1", fontSize: "xs", fontVariantNumeric: "tabular-nums" })} ${levelStyle[level]}`}
+    <div
+      className={css({
+        display: "flex",
+        justifyContent: "flex-end",
+        paddingX: "4",
+        paddingBottom: "[10px]",
+        flexShrink: 0,
+      })}
+    >
+      <BaseTooltip
+        position="top-end"
+        openDelay="fast"
+        closeDelay="fast"
+        content={
+          <div
+            className={css({
+              width: "[232px]",
+              padding: "[10px 12px]",
+              borderRadius: "[10px]",
+              backgroundColor: "neutral.s120",
+              color: "neutral.s30",
+              fontSize: "[11.5px]",
+              fontWeight: "medium",
+              lineHeight: "[1.5]",
+            })}
+          >
+            <p className={css({ margin: "0" })}>
+              <b
+                className={css({
+                  display: "block",
+                  color: "neutral.s00",
+                  fontWeight: "semibold",
+                })}
+              >
+                {config.name} · {config.guide}
+              </b>
+              {mechanism}
+            </p>
+            <p
+              className={css({
+                margin: "[6px 0 0]",
+                paddingTop: "[6px]",
+                borderTop: "[1px solid token(colors.neutral.s100)]",
+              })}
+            >
+              {note}
+            </p>
+          </div>
+        }
       >
-        {label}
-      </span>
+        <span
+          role="status"
+          data-near-cap={nearCap || undefined}
+          className={css({
+            display: "inline-flex",
+            fontSize: "[11px]",
+            fontWeight: "semibold",
+            lineHeight: "[1.5]",
+            fontVariantNumeric: "tabular-nums",
+            color: "neutral.s80",
+            borderRadius: "[4px]",
+            cursor: "default",
+            transition: "[color 300ms ease-out]",
+            "&[data-near-cap]": { color: "orange.s90 !important" },
+            _motionReduce: { transition: "[none]" },
+          })}
+        >
+          {label}
+        </span>
+      </BaseTooltip>
     </div>
   );
 };

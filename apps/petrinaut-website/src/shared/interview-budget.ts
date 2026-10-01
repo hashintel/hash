@@ -14,7 +14,7 @@ export const interviewBudgetLevelsConfig = {
     minutes: 0,
     text: null,
     voice: null,
-    description: "Interview without a budget.",
+    description: "No budget sent. Brunch interviews as today.",
   },
   quick: {
     name: "Quick",
@@ -22,7 +22,7 @@ export const interviewBudgetLevelsConfig = {
     minutes: 5,
     text: 3,
     voice: 2,
-    description: "Focus on the essentials.",
+    description: "Essentials only, batched. Unsupported gaps stay open.",
   },
   standard: {
     name: "Standard",
@@ -30,7 +30,8 @@ export const interviewBudgetLevelsConfig = {
     minutes: 10,
     text: 6,
     voice: 4,
-    description: "Explore one topic at a time.",
+    description:
+      "One topic at a time, with units. Defaults offered, not assumed.",
   },
   thorough: {
     name: "Thorough",
@@ -38,7 +39,8 @@ export const interviewBudgetLevelsConfig = {
     minutes: 20,
     text: 10,
     voice: 7,
-    description: "Explore variation and return flows.",
+    description:
+      "Adds peaks, durations and return flows. Asks before assuming.",
   },
   deep: {
     name: "Deep",
@@ -46,7 +48,7 @@ export const interviewBudgetLevelsConfig = {
     minutes: 0,
     text: null,
     voice: null,
-    description: "Explore edge cases; pause between topics.",
+    description: "Probes units, ranges and edge cases. Nothing assumed.",
   },
 } as const;
 
