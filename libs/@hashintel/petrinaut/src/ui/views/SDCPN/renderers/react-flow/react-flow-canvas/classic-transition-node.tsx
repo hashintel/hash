@@ -7,7 +7,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverIconBox } from "../../../../../controller-prototype/lever-glyph";
 import {
-  LeverTooltip,
   leverLabel,
   useNodeLever,
 } from "../../../../../controller-prototype/lever-node";
@@ -147,14 +146,6 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           </div>
         </div>
         <NodeHandles isConnectable={isConnectable} />
-        {lever ? (
-          <LeverTooltip
-            nodeId={id}
-            lever={lever}
-            visible={data.hovered && !data.dragging}
-            lambdaType={data.lambdaType}
-          />
-        ) : null}
       </div>
     </NodeContextMenu>
   );

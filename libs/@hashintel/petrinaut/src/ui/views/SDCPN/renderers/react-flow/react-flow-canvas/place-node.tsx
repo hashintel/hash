@@ -4,7 +4,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
 import {
-  LeverTooltip,
   leverLabel,
   useNodeLever,
 } from "../../../../../controller-prototype/lever-node";
@@ -119,14 +118,6 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           }
           isConnectable={isConnectable}
         />
-        {lever ? (
-          <LeverTooltip
-            nodeId={id}
-            lever={lever}
-            visible={data.hovered && !data.dragging && !showStateTooltip}
-            lambdaType={null}
-          />
-        ) : null}
       </>
     </NodeContextMenu>
   );

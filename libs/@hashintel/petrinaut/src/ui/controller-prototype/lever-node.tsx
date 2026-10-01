@@ -1,7 +1,3 @@
-import { NodeToolbar, Position } from "@xyflow/react";
-
-import { css } from "@hashintel/ds-helpers/css";
-
 import { controllersOfNode } from "../../react/controller-prototype/controllers";
 import { useControllers } from "../../react/controller-prototype/use-controllers";
 
@@ -58,40 +54,3 @@ export const leverFallback = (
       ? "Fallback: Predicate"
       : "Fallback: Always enabled";
 };
-
-const tooltipStyle = css({
-  borderRadius: "md",
-  paddingX: "2",
-  paddingY: "1",
-  textStyle: "xs",
-  maxWidth: "[300px]",
-  backgroundColor: "neutral.s120/94",
-  color: "[white]",
-  pointerEvents: "none",
-  whiteSpace: "nowrap",
-});
-
-const tooltipTitleStyle = css({ fontWeight: "medium" });
-
-/**
- * The hover card under a lever node: who controls it and what runs until an
- * AI is trained.
- */
-export const LeverTooltip: React.FC<{
-  nodeId: string;
-  lever: NodeLever;
-  visible: boolean;
-  lambdaType: "none" | "predicate" | "stochastic" | null;
-}> = ({ nodeId, lever, visible, lambdaType }) => (
-  <NodeToolbar
-    nodeId={nodeId}
-    isVisible={visible}
-    position={Position.Bottom}
-    offset={8}
-  >
-    <div className={tooltipStyle} role="tooltip">
-      <div className={tooltipTitleStyle}>{leverLabel(lever)}</div>
-      <div>{leverFallback(lever, lambdaType)}</div>
-    </div>
-  </NodeToolbar>
-);

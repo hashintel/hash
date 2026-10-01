@@ -6,7 +6,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
 import { LeverGlyph } from "../../../../../controller-prototype/lever-glyph";
 import {
-  LeverTooltip,
   leverLabel,
   useNodeLever,
 } from "../../../../../controller-prototype/lever-node";
@@ -114,14 +113,6 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
             <div ref={boltRef} className={firingIndicatorStyle}>
               <Icon name="lightning" />
             </div>
-            {lever ? (
-              <LeverTooltip
-                nodeId={id}
-                lever={lever}
-                visible={data.hovered && !data.dragging}
-                lambdaType={data.lambdaType}
-              />
-            ) : null}
           </>
         }
         isConnectable={isConnectable}
