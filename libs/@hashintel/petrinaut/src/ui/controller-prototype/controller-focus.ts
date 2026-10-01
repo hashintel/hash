@@ -15,13 +15,14 @@ export const resolveControllerFocus = (
 
 /**
  * The canvas focus while a Rate lever is selected in the panel: its node is
- * ringed, its rivals' nodes get a faint ring, and the rest of the net fades.
+ * ringed and its rivals' nodes get a faint ring. The rest of the net does not
+ * fade, so no node looks disabled while the panel is open.
  */
 export const resolveLeverSelectionFocus = (
   nodeId: string,
   rivalNodeIds: ReadonlySet<string>,
 ): CanvasFocus => ({
-  active: true,
+  active: false,
   nodeFocus: (id) =>
     id === nodeId ? "focused" : rivalNodeIds.has(id) ? "linked" : "none",
   arcFocus: () => "none",

@@ -99,13 +99,13 @@ const kindCardStyle = css({
 
 // A clicked Rate card is outlined; its rivals are tinted.
 const selectedCardStyle = css({
-  borderColor: "blue.s70",
-  boxShadow: "[0 0 0 1px {colors.blue.s70}]",
+  borderColor: "blue.s90",
+  boxShadow: "[0 0 0 1px {colors.blue.s90}]",
 });
 
 const rivalCardStyle = css({
-  borderColor: "blue.s40",
-  backgroundColor: "blue.s10",
+  borderColor: "blue.s50",
+  backgroundColor: "blue.s20",
 });
 
 const selectableCardStyle = css({ cursor: "pointer" });
