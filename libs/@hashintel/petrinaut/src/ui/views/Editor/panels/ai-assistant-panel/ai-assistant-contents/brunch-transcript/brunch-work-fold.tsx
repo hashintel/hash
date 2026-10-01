@@ -97,7 +97,6 @@ export const BrunchWorkFold = ({
       <Collapsible.Content className={collapsibleContentStyle}>
         <div
           data-work-details
-          data-bounded={preserveOpen && status !== "approval"}
           className={css({
             display: "flex",
             flexDirection: "column",
@@ -105,18 +104,6 @@ export const BrunchWorkFold = ({
             margin: "[4px 0 2px 5px]",
             paddingLeft: "3",
             borderLeft: "[2px solid {colors.neutral.a30}]",
-            "&[data-bounded=true]": {
-              maxHeight: "[240px]",
-              overflowY: "auto",
-              overscrollBehavior: "contain",
-              scrollbarGutter: "stable",
-              "&::-webkit-scrollbar": { width: "[6px]" },
-              "&::-webkit-scrollbar-thumb": {
-                borderRadius: "full",
-                backgroundColor: "neutral.a60",
-              },
-              "&::-webkit-scrollbar-track": { backgroundColor: "neutral.a10" },
-            },
           })}
         >
           {children}

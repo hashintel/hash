@@ -336,6 +336,50 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/"revision": 7/u)).not.toBeNull();
   });
 
+  test("shows every counted tool without scrolling inside Activity", async () => {
+    const toolNames = ["one", "two", "three", "four", "five"];
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="ready"
+        messages={[
+          {
+            id: "five-tools",
+            role: "assistant",
+            parts: [
+              ...toolNames.map((toolName) => ({
+                type: "dynamic-tool" as const,
+                toolName,
+                toolCallId: toolName,
+                state: "output-available" as const,
+                input: {},
+                output: {},
+              })),
+              { type: "text" as const, text: "Done" },
+            ],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+
+    expect(screen.getByRole("button", { name: "Used 5 tools" })).not.toBeNull();
+    for (const toolName of toolNames)
+      expect(
+        screen.getByRole("button", {
+          name: new RegExp(`\\b${toolName}\\b`, "u"),
+        }),
+      ).not.toBeNull();
+    const details = container.querySelector("[data-work-details]");
+    expect(details?.className).not.toContain("max-h_");
+    expect(details?.className).not.toContain("ov-y_auto");
+  });
+
   test("marks unfinished stock tools cancelled after a stop", () => {
     render(
       <AiAssistantContents
