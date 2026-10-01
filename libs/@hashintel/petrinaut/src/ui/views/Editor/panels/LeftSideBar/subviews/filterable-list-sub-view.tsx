@@ -172,6 +172,9 @@ interface FilterableListItem {
   onSelect?: () => void;
   /** Overrides whether the row shows as selected; receives the default. */
   isSelected?: (selectedByDefault: boolean) => boolean;
+  /** When set, a plain row shows a chevron that toggles the rows it owns. */
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -481,6 +484,18 @@ const FilterableListContent = <T extends FilterableListItem>({
               className={chevronStyle({
                 expanded: !collapsedGroups.has(item.id),
               })}
+            >
+              <Icon name="chevronRight" size="xxs" />
+            </span>
+          ) : item.expanded !== undefined ? (
+            <span
+              aria-hidden="true"
+              data-row-chevron={item.expanded ? "expanded" : "collapsed"}
+              className={chevronStyle({ expanded: item.expanded })}
+              onClick={(event) => {
+                event.stopPropagation();
+                item.onToggleExpanded?.();
+              }}
             >
               <Icon name="chevronRight" size="xxs" />
             </span>

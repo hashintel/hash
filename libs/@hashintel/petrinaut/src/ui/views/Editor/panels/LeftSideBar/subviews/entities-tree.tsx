@@ -65,6 +65,8 @@ interface EntityTreeItem {
   indent?: number;
   onSelect?: () => void;
   isSelected?: (selectedByDefault: boolean) => boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {

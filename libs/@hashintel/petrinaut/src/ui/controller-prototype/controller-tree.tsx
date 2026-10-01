@@ -1,4 +1,4 @@
-import { use, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -48,6 +48,8 @@ export type ControllerTreeRow = {
   indent?: number;
   onSelect?: () => void;
   isSelected?: (selectedByDefault: boolean) => boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
 };
 
 const AddControllerAction: React.FC = () => {
@@ -88,6 +90,15 @@ export const useControllersTreeGroup = (
   const { selection } = use(EditorContext);
   const { updateSubViewSection } = use(UserSettingsContext);
   const activeRow = useActiveLeverRow();
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const toggleCollapsed = (controllerId: string) =>
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (!next.delete(controllerId)) {
+        next.add(controllerId);
+      }
+      return next;
+    });
 
   useEffect(() => {
     if (
@@ -104,8 +115,11 @@ export const useControllersTreeGroup = (
       name: controller.name,
       icon: LeverRowIcon,
       selectionItem: { type: "controller", id: controller.id },
+      expanded: !collapsed.has(controller.id),
+      onToggleExpanded: () => toggleCollapsed(controller.id),
     },
-    ...controller.levers.map((lever): ControllerTreeRow => {
+    ...(collapsed.has(controller.id) ? [] : controller.levers).map(
+      (lever): ControllerTreeRow => {
       const name = leverName(petriNetDefinition, lever);
       const rowId = `lever:${controller.id}:${lever.id}`;
       const selectionItem: SelectionItem =
@@ -141,7 +155,8 @@ export const useControllersTreeGroup = (
         isSelected: (selectedByDefault) =>
           selectedByDefault && activeRow?.rowId === rowId,
       };
-    }),
+      },
+    ),
   ]);
 
   return {
