@@ -17,3 +17,11 @@ rm .env
 
 echo "Building Petrinaut website"
 turbo build --filter='@apps/petrinaut-website' --env-mode=loose
+
+# Controller prototype branch only: the prototype page ships beside the site
+# at /controller-prototype/, and vercel.json sends the site root there.
+echo "Building the controller prototype page"
+(
+  cd libs/@hashintel/petrinaut
+  node ../../../node_modules/vite/bin/vite.js build     --config controller-prototype/vite.config.ts     --base /controller-prototype/     --outDir ../../../apps/petrinaut-website/dist/controller-prototype     --emptyOutDir     --minify false
+)
