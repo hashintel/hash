@@ -50,11 +50,11 @@ Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps the
 
 Brunch opens activity and streaming thoughts when work starts. Activity, thoughts,
 and tools keep your open/closed choices as more text arrives, tools finish, or the
-response completes. Long activity scrolls inside a bounded area instead of
-continually pushing the answer down. **Working…** stays until the response ends,
-then becomes **Activity · Ns**; history without timing says **Activity**. Previously
-completed turns start collapsed. A new **Approval required** request reveals its
-controls and removes the height limit so the decision is not hidden. Expand
+response completes. Every thought and tool stays in the transcript, so long
+activity scrolls with the conversation rather than inside its own area. **Working…**
+stays until the response ends, then becomes **Activity · Ns**; history without
+timing says **Activity**. Previously completed turns start collapsed. A new
+**Approval required** request reveals its controls. Expand
 activity to inspect **Thought for Ns** and **Used N tools**. Other hosts retain
 their collapsed reasoning default and automatic work/tool collapsing. Stopped
 work says **Stopped after N tools** and retains a **Response stopped** note.
