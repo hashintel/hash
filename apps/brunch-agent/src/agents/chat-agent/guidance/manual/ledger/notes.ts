@@ -18,32 +18,8 @@ export const ledgerStandings = [
 ] as const;
 export const ledgerPrecisions = ["approximate", "qualitative"] as const;
 
-/**
- * `typed` asks the model for closed epistemic fields; `open` keeps a single
- * free-text disposition, so the two can be compared on the same case.
- */
-export type LedgerNoteShape = "typed" | "open";
-
-const changeCore = {
-  op: v.pipe(
-    v.picklist(["add", "supersede"]),
-    v.description(
-      "add files a new Note under a category. supersede files a new Note beside an existing one and records that it supersedes it; the earlier Note stays visible.",
-    ),
-  ),
-  address: v.pipe(
-    v.string(),
-    v.minLength(1),
-    v.maxLength(200),
-    v.description(
-      "add: a category path from the catalogue. supersede: the superseded Note's id (e.g. n7) or full address.",
-    ),
-  ),
-  content: v.pipe(v.string(), v.minLength(1), v.maxLength(12_000)),
-};
-
-/** Closed epistemic fields shared by typed and identity-addressed changes. */
-export const typedEpistemicFields = {
+/** Closed epistemic fields on every change. */
+export const epistemicFields = {
   source: v.pipe(
     v.picklist(ledgerSources),
     v.description(
@@ -82,58 +58,20 @@ export const typedEpistemicFields = {
   ),
 };
 
-const typedChangeSchema = v.strictObject({
-  ...changeCore,
-  ...typedEpistemicFields,
-});
-
-const openChangeSchema = v.strictObject({
-  ...changeCore,
-  disposition: v.optional(
-    v.pipe(
-      v.string(),
-      v.minLength(1),
-      v.maxLength(300),
-      v.description(
-        "Optional short author annotation, e.g. direct, inferred, provisional default, disputed. Open vocabulary; displayed without adjudication.",
-      ),
-    ),
-  ),
-});
-
-const commitInput = <Change extends v.GenericSchema>(change: Change) =>
-  v.strictObject({
-    changes: v.pipe(v.array(change), v.minLength(1), v.maxLength(20)),
-  });
-
-export const ledgerCommitInputSchemas = {
-  typed: commitInput(typedChangeSchema),
-  open: commitInput(openChangeSchema),
-} as const;
-
 const recordedEpistemic = {
   source: v.optional(v.picklist(ledgerSources)),
   basis: v.optional(v.picklist(ledgerBases)),
   standing: v.optional(v.picklist(ledgerStandings)),
   precision: v.optional(v.picklist(ledgerPrecisions)),
   qualifier: v.optional(v.string()),
-  disposition: v.optional(v.string()),
   covers: v.optional(v.array(v.string())),
 };
 
 /**
- * Reads a recorded change under any shape: category-addressed `add`, shared
- * `supersede`, or the identity-addressed `identify`, `relate` and `note`. The
- * tool validated the input when it ran, so recovery only needs the fields it
- * folds.
+ * Reads a recorded change. The tool validated the input when it ran, so
+ * recovery only needs the fields it folds.
  */
 const recordedChangeSchema = v.variant("op", [
-  v.object({
-    op: v.literal("add"),
-    address: v.string(),
-    content: v.string(),
-    ...recordedEpistemic,
-  }),
   v.object({
     op: v.literal("supersede"),
     address: v.string(),
@@ -173,7 +111,6 @@ export const recordedCommitInputSchema = v.object({
 export type LedgerChange = v.InferOutput<typeof recordedChangeSchema>;
 
 export const ledgerCommitRefusalCodes = [
-  "unknown-category",
   "unknown-note",
   "unknown-identity",
   "duplicate-identity",
@@ -189,7 +126,7 @@ export const ledgerCommitOutputSchema = v.variant("status", [
     notes: v.array(
       v.object({ address: v.string(), supersedes: v.optional(v.string()) }),
     ),
-    /** Identity-addressed Ledgers: the account's coverage after this commit. */
+    /** The account's coverage after this commit. */
     coverage: v.optional(v.string()),
   }),
   v.object({
@@ -204,14 +141,6 @@ export const ledgerCommitOutputSchema = v.variant("status", [
 
 export type LedgerCommitOutput = v.InferOutput<typeof ledgerCommitOutputSchema>;
 
-/** Recognize only a complete refusal; partial lookalikes fail closed. */
-export const isRefusedLedgerCommit = (
-  output: unknown,
-): output is Extract<LedgerCommitOutput, { status: "refused" }> => {
-  const parsed = v.safeParse(ledgerCommitOutputSchema, output);
-  return parsed.success && parsed.output.status === "refused";
-};
-
 export interface LedgerNote {
   readonly id: string;
   readonly address: string;
@@ -222,19 +151,18 @@ export interface LedgerNote {
   readonly standing?: (typeof ledgerStandings)[number];
   readonly precision?: (typeof ledgerPrecisions)[number];
   readonly qualifier?: string;
-  readonly disposition?: string;
   /** Address of the Note this one declares it supersedes. */
   readonly supersedes?: string;
-  /** Identity-addressed Ledgers: the identity this Note names and describes. */
+  /** The identity this Note names and describes. */
   readonly identity?: string;
   readonly kind?: string;
-  /** Identity-addressed Ledgers: the relationship this Note records. */
+  /** The relationship this Note records. */
   readonly relation?: LedgerRelation;
-  /** Identity-addressed Ledgers: identity names or relationship Note ids. */
+  /** Identity names or relationship Note ids. */
   readonly about?: readonly string[];
   /** Set when the Note concerns the net draft rather than the operation. */
   readonly concerns?: "draft";
-  /** Identity-addressed Ledgers: the dimensions this Note helps cover. */
+  /** The dimensions this Note helps cover. */
   readonly covers?: readonly string[];
 }
 
@@ -307,7 +235,6 @@ type Filed = Pick<
 
 const subjectOf = (change: LedgerChange): Filed => {
   switch (change.op) {
-    case "add":
     case "supersede":
       return { category: change.address, content: change.content ?? "" };
     case "identify":
@@ -359,14 +286,12 @@ const epistemicOf = ({
   standing,
   precision,
   qualifier,
-  disposition,
 }: LedgerChange) => ({
   source,
   basis,
   standing,
   precision,
   qualifier,
-  disposition,
 });
 
 const definedOnly = <Value extends object>(value: Value): Value =>

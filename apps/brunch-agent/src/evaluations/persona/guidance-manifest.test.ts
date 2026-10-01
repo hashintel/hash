@@ -60,6 +60,14 @@ test.each(selfContainedGuidanceVariants)(
     const ownPaths = own.files.map(({ path }) => path);
     expect(ownPaths).toContain(`${guidance}/${arm}.ts`);
     expect(ownPaths).toContain(`${guidance}/${arm}/identity-ledger.md`);
+    expect(ownPaths).toContain(`${guidance}/${arm}/ledger/commit.ts`);
+    expect(
+      ownPaths.filter((path) =>
+        path.startsWith(
+          "libs/@hashintel/brunch-agent/packages/core/src/ledger",
+        ),
+      ),
+    ).toEqual([]);
     expect(
       ownPaths.filter(
         (path) => path.startsWith(`${guidance}/`) && !isOwn(path),

@@ -1,15 +1,17 @@
-import { ledgerCalls, reconstructLedger, type LedgerHistory } from "./history";
-import { summariseCoverage } from "./map";
+import {
+  ledgerCalls,
+  reconstructLedger,
+  type LedgerHistory,
+} from "./history.ts";
+import { summariseCoverage } from "./map.ts";
 import {
   deriveNotes,
   findNote,
   type LedgerChange,
   type LedgerCommitOutput,
   type LedgerNote,
-} from "./notes";
-import { isNoteId, type LedgerVocabulary } from "./vocabulary";
-
-import type { LedgerProfile } from "./profile";
+} from "./notes.ts";
+import { isNoteId, type LedgerVocabulary } from "./vocabulary.ts";
 
 type Refusal = Extract<LedgerCommitOutput, { status: "refused" }>;
 type RefusalReason = Pick<Refusal, "code" | "message">;
@@ -75,35 +77,8 @@ const decideCommit = ({
   };
 };
 
-/** A commit to a category-addressed Ledger. */
-export const prepareLedgerCommit = ({
-  profile,
-  ...call
-}: {
-  readonly history: LedgerHistory;
-  readonly toolCallId: string;
-  readonly changes: readonly LedgerChange[];
-  readonly profile: LedgerProfile;
-}): LedgerCommitOutput =>
-  decideCommit({
-    ...call,
-    check: () => {
-      const categories = profile.categories.map(({ path }) => path);
-      const unknown = call.changes.find(
-        (change): change is Extract<LedgerChange, { op: "add" }> =>
-          change.op === "add" && !categories.includes(change.address),
-      );
-      return unknown
-        ? {
-            code: "unknown-category",
-            message: `No category ${unknown.address}; nothing was recorded. add takes a category path; supersede takes an existing Note. Categories: ${categories.join(", ")}.`,
-          }
-        : undefined;
-    },
-  });
-
 /**
- * A commit to an identity-addressed Ledger. Every name a change refers to
+ * A commit to this Ledger. Every name a change refers to
  * must be fixed, identified earlier, or identified earlier in the same commit.
  * A recorded result carries the account's coverage by dimension.
  */
@@ -143,8 +118,6 @@ const identityRefusal = (
   });
   for (const change of changes)
     switch (change.op) {
-      case "add":
-        return invalid("add is not available; use identify, relate or note.");
       case "identify": {
         if (isNoteId(change.identity))
           return invalid(

@@ -15,6 +15,7 @@ import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
 
+import type { OwnLedger } from "../../agents/chat-agent/guidance-ledger.ts";
 import type { ToolExecution } from "@hashintel/brunch-agent";
 
 const ledgerProfile = composeLedgerProfile(sdcpnLedgerProfile);
@@ -247,14 +248,25 @@ export const refreshProofManifest = async (
   return manifest;
 };
 
+const sharedLedger: OwnLedger["evidence"] = (snapshot) => {
+  const commits = reconstructLedger(snapshot);
+  const compiled = compileLedger(commits, ledgerProfile);
+  return compiled.status === "compiled"
+    ? { commits, markdown: compiled.markdown }
+    : { commits };
+};
+
+/** `ownLedger` reads a self-contained arm's Ledger with that arm's own reader. */
 export const writeProofArtifacts = async (
   directory: string,
   snapshot: FlueConversationSnapshot,
+  ownLedger?: OwnLedger,
 ): Promise<void> => {
   await mkdir(directory, { recursive: true });
   const trace = deriveProofTrace(snapshot);
-  const commits = reconstructLedger(snapshot);
-  const compiled = compileLedger(commits, ledgerProfile);
+  const ledger = ownLedger
+    ? ownLedger.evidence(snapshot)
+    : sharedLedger(snapshot);
   await Promise.all([
     atomicWrite(
       join(directory, "snapshot.json"),
@@ -269,13 +281,13 @@ export const writeProofArtifacts = async (
       `${JSON.stringify(trace, null, 2)}\n`,
     ),
     atomicWrite(join(directory, "trace.md"), formatProofTrace(trace)),
-    ...(commits.length === 0 || compiled.status !== "compiled"
+    ...(ledger.commits.length === 0 || ledger.markdown === undefined
       ? []
       : [
-          atomicWrite(join(directory, "ledger.md"), compiled.markdown),
+          atomicWrite(join(directory, "ledger.md"), ledger.markdown),
           atomicWrite(
             join(directory, "ledger.json"),
-            `${JSON.stringify(commits, null, 2)}\n`,
+            `${JSON.stringify(ledger.commits, null, 2)}\n`,
           ),
         ]),
   ]);

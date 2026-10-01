@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import { typedEpistemicFields } from "./notes";
+import { epistemicFields } from "./notes.ts";
 
 /** One term the model may use, with the meaning the tool description shows. */
 export interface LedgerVocabularyTerm {
@@ -110,7 +110,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
         ),
       ),
       covers,
-      ...typedEpistemicFields,
+      ...epistemicFields,
     }),
     v.strictObject({
       op: v.literal("relate"),
@@ -129,7 +129,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
       to: identityName,
       content: v.optional(content),
       covers,
-      ...typedEpistemicFields,
+      ...epistemicFields,
     }),
     v.strictObject({
       op: v.literal("note"),
@@ -151,7 +151,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
         ),
       ),
       covers,
-      ...typedEpistemicFields,
+      ...epistemicFields,
     }),
     v.strictObject({
       op: v.literal("supersede"),
@@ -170,7 +170,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
       covers: v.optional(
         v.pipe(covers, v.description("Omit to keep the superseded Note's.")),
       ),
-      ...typedEpistemicFields,
+      ...epistemicFields,
     }),
   ]);
   return v.strictObject({

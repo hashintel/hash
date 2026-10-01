@@ -1,8 +1,13 @@
-import type {
-  LedgerCoverage,
-  LedgerCoverageRenderer,
-  LedgerExpectation,
-} from "@hashintel/brunch-agent";
+import type { LedgerCoverage } from "./map.ts";
+import type { LedgerExpectation } from "./vocabulary.ts";
+
+/** How coverage reads in a commit receipt and in the map. */
+export interface LedgerCoverageRenderer {
+  /** The `coverage` a recorded commit returns. */
+  readonly receipt: (coverage: LedgerCoverage) => string;
+  /** The map's coverage section, from its leading blank line; empty to omit. */
+  readonly map: (coverage: LedgerCoverage) => readonly string[];
+}
 
 const receiptNeeds = 5;
 

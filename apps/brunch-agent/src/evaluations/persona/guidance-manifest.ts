@@ -49,16 +49,21 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
         ? [`${app}/guidance`]
         : [armSources(selfContained)];
   const identityOnly = ["/identity-ledger.md", "/ledger-vocabulary.ts"];
-  const paths = [
-    `${app}/agent.ts`,
-    `${app}/guidance.ts`,
-    `${app}/guidance-variant.ts`,
-    ...(selfContained === undefined ? [] : [`${armSources(selfContained)}.ts`]),
+  const sharedLedger = [
     `${packages}/core/src/ledger-tools.ts`,
     ...(await filesWithin(join(repoRoot, `${packages}/core/src/ledger`))).map(
       (path) => relative(repoRoot, path),
     ),
     `${packages}/plugin-sdcpn/src/ledger-profile.ts`,
+  ];
+  const paths = [
+    `${app}/agent.ts`,
+    `${app}/guidance.ts`,
+    `${app}/guidance-ledger.ts`,
+    `${app}/guidance-variant.ts`,
+    ...(selfContained === undefined
+      ? sharedLedger
+      : [`${armSources(selfContained)}.ts`]),
     `${packages}/plugin-sdcpn/src/flue.ts`,
     "yarn.lock",
     ...(

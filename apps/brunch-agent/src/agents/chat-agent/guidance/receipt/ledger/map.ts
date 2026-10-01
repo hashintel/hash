@@ -1,12 +1,25 @@
-import { findNote, type LedgerCommit, type LedgerNote } from "./notes";
+import { renderCoverage } from "./coverage-renderer.ts";
+import { findNote, type LedgerCommit, type LedgerNote } from "./notes.ts";
 import {
   isNoteId,
   type LedgerCoverageTerms,
   type LedgerExpectation,
   type LedgerKind,
-} from "./vocabulary";
+} from "./vocabulary.ts";
 
-import type { LedgerCompilation } from "./compile";
+export type LedgerCompilation =
+  | {
+      readonly status: "compiled";
+      readonly revision: number;
+      readonly scope: string | null;
+      readonly markdown: string;
+    }
+  | {
+      readonly status: "refused";
+      readonly code: "unknown-revision" | "unknown-address";
+      readonly message: string;
+      readonly revision: number;
+    };
 
 export interface LedgerMapOptions {
   readonly revision?: number;
@@ -24,7 +37,7 @@ export const isSubjectNote = (note: LedgerNote): boolean =>
   note.relation !== undefined ||
   note.about !== undefined;
 
-type Stage =
+export type LedgerStage =
   | "placeholder"
   | "pencilled"
   | "confirmed"
@@ -33,7 +46,7 @@ type Stage =
   | "inapplicable";
 
 /** The lifecycle stage a Note's own declared fields put it at. */
-const stageOf = (note: LedgerNote, hasMore: boolean): Stage => {
+const stageOf = (note: LedgerNote, hasMore: boolean): LedgerStage => {
   if (
     note.standing === "open" ||
     note.standing === "contested" ||
@@ -92,7 +105,7 @@ const viewOf = (notes: readonly LedgerNote[]) => {
   };
 };
 
-const stageOrder: readonly Stage[] = [
+const stageOrder: readonly LedgerStage[] = [
   "confirmed",
   "pencilled",
   "placeholder",
@@ -103,7 +116,7 @@ const stageOrder: readonly Stage[] = [
 
 type View = ReturnType<typeof viewOf>;
 
-const settledStages = new Set<Stage>(["confirmed", "inapplicable"]);
+const settledStages = new Set<LedgerStage>(["confirmed", "inapplicable"]);
 
 /** An expectation's state for one identity: met, only pencilled, or missing. */
 const expectationState = (
@@ -132,75 +145,132 @@ const expectationState = (
   return stages.includes("pencilled") ? "pencilled" : "missing";
 };
 
-const needsLines = (view: View, kinds: readonly LedgerKind[]): string[] => {
+/** An identity still missing some of what its kind needs. */
+export interface LedgerUnmetNeeds {
+  readonly identity: string;
+  readonly kind: string;
+  readonly unmet: readonly {
+    readonly need: LedgerExpectation;
+    readonly state: "pencilled" | "missing";
+  }[];
+}
+
+/** The account's coverage, computed from the current Notes. */
+export interface LedgerCoverage {
+  /**
+   * Each dimension the vocabulary lists (or, without one, each that a Note
+   * names), with the stages of the current Notes naming it, not counting
+   * those on the draft, in `stageOrder` and without zero counts.
+   */
+  readonly dimensions: readonly {
+    readonly name: string;
+    readonly done: string | undefined;
+    readonly stages: readonly {
+      readonly stage: LedgerStage;
+      readonly count: number;
+    }[];
+    /** Some Note naming it is confirmed or inapplicable. */
+    readonly complete: boolean;
+  }[];
+  /** Identities named with nothing recorded. */
+  readonly placeholders: readonly string[];
+  /** Absent when no kind declares needs. */
+  readonly needs?: readonly LedgerUnmetNeeds[];
+  readonly identities: readonly {
+    readonly identity: string;
+    readonly kind?: string;
+    readonly stage: LedgerStage;
+  }[];
+  readonly relationships: readonly (NonNullable<LedgerNote["relation"]> & {
+    readonly stage: LedgerStage;
+  })[];
+}
+
+const unmetNeeds = (
+  view: View,
+  kinds: readonly LedgerKind[],
+): LedgerUnmetNeeds[] | undefined => {
   const expecting = kinds.filter(({ expects }) => expects !== undefined);
-  if (expecting.length === 0) return [];
-  const unmet = view.current.flatMap((note) => {
+  if (expecting.length === 0) return undefined;
+  return view.current.flatMap((note) => {
     const expects = expecting.find(({ name }) => name === note.kind)?.expects;
-    if (note.identity === undefined || expects === undefined) return [];
-    const missing = expects.flatMap((expectation) => {
-      const state = expectationState(view, note, expectation);
-      if (state === "met") return [];
-      return [
-        state === "pencilled"
-          ? `${expectation.name} (pencilled)`
-          : expectation.name,
-      ];
+    if (
+      note.identity === undefined ||
+      note.kind === undefined ||
+      expects === undefined
+    )
+      return [];
+    const unmet = expects.flatMap((need) => {
+      const state = expectationState(view, note, need);
+      return state === "met" ? [] : [{ need, state }];
     });
-    return missing.length === 0
+    return unmet.length === 0
       ? []
-      : [`- \`${note.identity}\` [${note.kind}]: ${missing.join(", ")}`];
+      : [{ identity: note.identity, kind: note.kind, unmet }];
   });
-  return unmet.length === 0
-    ? ["Every identity with a kind has what its kind needs."]
-    : ["Identities still missing what their kind needs:", ...unmet];
 };
 
-const coverageLines = (
-  view: View,
-  terms: LedgerCoverageTerms | undefined,
-): string[] => {
+/** Compute the coverage of the current Notes among `notes`. */
+export const coverageOf = (
+  notes: readonly LedgerNote[],
+  terms?: LedgerCoverageTerms,
+): LedgerCoverage => {
+  const view = viewOf(notes);
   const operational = view.current.filter(
     ({ concerns }) => concerns !== "draft",
   );
-  const listed =
+  const listed: readonly { name: string; done?: string }[] =
     terms?.dimensions ??
     [...new Set(operational.flatMap(({ covers }) => covers ?? []))].map(
-      (name) => ({ name, done: undefined }),
+      (name) => ({ name }),
     );
-  const lines = listed.map(({ name, done }) => {
+  const dimensions = listed.map(({ name, done }) => {
     const stages = operational
       .filter(({ covers }) => covers?.includes(name))
       .map(view.stage);
-    const counts = stageOrder.flatMap((stage) => {
-      const count = stages.filter((noteStage) => noteStage === stage).length;
-      return count === 0 ? [] : [`${count} ${stage}`];
-    });
-    const complete =
-      stages.includes("confirmed") || stages.includes("inapplicable");
-    return `- ${name}: ${counts.length > 0 ? counts.join(", ") : "nothing recorded"}${complete || done === undefined ? "" : `; nothing confirmed — done when ${done}`}`;
+    return {
+      name,
+      done,
+      stages: stageOrder.flatMap((stage) => {
+        const count = stages.filter((noteStage) => noteStage === stage).length;
+        return count === 0 ? [] : [{ stage, count }];
+      }),
+      complete: stages.includes("confirmed") || stages.includes("inapplicable"),
+    };
   });
-  const placeholders = operational
-    .filter((note) => view.stage(note) === "placeholder")
-    .map(({ identity }) => `\`${identity}\``);
-  if (placeholders.length > 0)
-    lines.push(`- Placeholders: ${placeholders.join(", ")}.`);
-  return [...lines, ...needsLines(view, terms?.kinds ?? [])];
+  const needs = unmetNeeds(view, terms?.kinds ?? []);
+  return {
+    dimensions,
+    placeholders: operational.flatMap((note) =>
+      view.stage(note) === "placeholder" && note.identity !== undefined
+        ? [note.identity]
+        : [],
+    ),
+    ...(needs === undefined ? {} : { needs }),
+    identities: view.current.flatMap((note) =>
+      note.identity === undefined
+        ? []
+        : [
+            {
+              identity: note.identity,
+              ...(note.kind === undefined ? {} : { kind: note.kind }),
+              stage: view.stage(note),
+            },
+          ],
+    ),
+    relationships: view.relationships.flatMap((note) =>
+      note.relation === undefined
+        ? []
+        : [{ ...note.relation, stage: view.stage(note) }],
+    ),
+  };
 };
 
-/**
- * The account's coverage: by dimension, how many current Notes, not counting
- * those on the draft, name it at each stage, with each incomplete dimension's
- * done criterion; then each identity still missing what its kind needs.
- */
+/** The account's coverage as a commit receipt reports it. */
 export const summariseCoverage = (
   notes: readonly LedgerNote[],
   terms?: LedgerCoverageTerms,
-): string =>
-  [
-    "Coverage by dimension (current Notes, not those on the draft):",
-    ...coverageLines(viewOf(notes), terms),
-  ].join("\n");
+): string => renderCoverage.receipt(coverageOf(notes, terms));
 
 const relationLabel = ({
   from,
@@ -249,7 +319,7 @@ const rendered = (note: LedgerNote, notes: readonly LedgerNote[]) =>
     : ["", header(note, notes), "", note.content];
 
 /**
- * Render an identity-addressed Ledger. The map lists every current identity
+ * Render the Ledger. The map lists every current identity
  * with its kind, stage and Note counts, every current relationship, the
  * current Notes about fixed identities, coverage by dimension, and the open
  * and contested index. Its
@@ -362,16 +432,7 @@ export const compileLedgerMap = (
     );
   }
 
-  const coverage = coverageLines(view, options.coverage);
-  if (coverage.length > 0)
-    lines.push(
-      "",
-      "## Coverage",
-      "",
-      "Current Notes naming each dimension, not counting those on the draft.",
-      "",
-      ...coverage,
-    );
+  lines.push(...renderCoverage.map(coverageOf(notes, options.coverage)));
 
   const listed = (standing: LedgerNote["standing"]) => {
     const ids = current

@@ -15,12 +15,30 @@ import ledgerFields from "./guidance/ledger-fields.md?raw";
 import { ledgerVocabulary } from "./guidance/ledger-vocabulary.ts";
 import { useManualGuidance } from "./guidance/manual.ts";
 import { useReceiptGuidance } from "./guidance/receipt.ts";
-import { type ChatGuidance } from "./guidance/shared/chat-guidance.ts";
 import constructing from "./guidance/skills/constructing/SKILL.md";
 import eliciting from "./guidance/skills/eliciting/SKILL.md";
 import system from "./guidance/system.md?raw";
 
 import type { GuidanceVariant } from "./guidance-variant.ts";
+
+/**
+ * What an arm hands back once it has mounted its model, skills, Ledger tools
+ * and instructions. A self-contained arm also returns its own copies of the
+ * runtime instructions, which the agent and the SDCPN plugin mount where the
+ * shared text would go.
+ */
+export interface ChatGuidance {
+  readonly system: string;
+  readonly instructions?: {
+    /** The ping and browser-tool policy in a document-bound conversation. */
+    readonly bound: string;
+    /** The ping policy in a conversation without browser tools. */
+    readonly unbound: string;
+    readonly queryBasis: string;
+    readonly capability: string;
+    readonly experimentDrafting: string;
+  };
+}
 
 const withFields = (description: string) =>
   `${description}\n\n${ledgerFields.trim()}`;
@@ -29,8 +47,8 @@ const withFields = (description: string) =>
  * A single guidance owner per run. The category-addressed arms share one
  * Ledger implementation; `identity` swaps in the identity-addressed Ledger,
  * which is always typed, and otherwise matches `feedback`. `manual` and
- * `receipt` each mount only their own copies of every source, and return
- * their copies of the runtime instructions for the agent to mount.
+ * `receipt` are self-contained: each mounts only its own sources and its own
+ * Ledger tools, and returns its copies of the runtime instructions.
  */
 export const useChatGuidance = (
   variant: GuidanceVariant,
@@ -40,8 +58,10 @@ export const useChatGuidance = (
 ): ChatGuidance => {
   if (variant === "baseline")
     return { system: useBrunchAgent(model, options, ledger) };
-  if (variant === "manual") return useManualGuidance(model, options, ledger);
-  if (variant === "receipt") return useReceiptGuidance(model, options, ledger);
+  if (variant === "manual")
+    return useManualGuidance(model, options, ledger.readHistory);
+  if (variant === "receipt")
+    return useReceiptGuidance(model, options, ledger.readHistory);
   useModel(model, options);
   useSkill(eliciting);
   useSkill(constructing);
