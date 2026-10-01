@@ -42,3 +42,21 @@ test("identity provenance is feedback's plus the identity Ledger guidance", asyn
     feedback.files.some((file) => file.path.endsWith("/ledger/vocabulary.ts")),
   ).toBe(true);
 });
+
+test("manual provenance is its own guidance copy, and no other arm's", async () => {
+  const [identity, manual] = await Promise.all([
+    guidanceManifest("identity"),
+    guidanceManifest("manual"),
+  ]);
+  const guidance = "apps/brunch-agent/src/agents/chat-agent/guidance";
+  const isManual = (path: string) => path.startsWith(`${guidance}/manual`);
+  const manualPaths = manual.files.map(({ path }) => path);
+  expect(manualPaths).toContain(`${guidance}/manual.ts`);
+  expect(manualPaths).toContain(`${guidance}/manual/identity-ledger.md`);
+  expect(
+    manualPaths.filter(
+      (path) => path.startsWith(`${guidance}/`) && !isManual(path),
+    ),
+  ).toEqual([]);
+  expect(identity.files.some(({ path }) => isManual(path))).toBe(false);
+});

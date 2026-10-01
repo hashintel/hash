@@ -54,7 +54,7 @@ The persona stops by its own rule: when the person has what they came for, when 
 
 ## Compare guidance
 
-`--guidance baseline|replacement|feedback|identity` selects one guidance owner for the whole run; the default is `baseline`. It sets `BRUNCH_GUIDANCE_VARIANT` on the owned backend, not a persona instruction.
+`--guidance baseline|replacement|feedback|identity|manual` selects one guidance owner for the whole run; the default is `baseline`. It sets `BRUNCH_GUIDANCE_VARIANT` on the owned backend, not a persona instruction.
 
 | Arm               | Model-facing guidance                                                                                                                                                                                                                               |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -62,6 +62,9 @@ The persona stops by its own rule: when the person has what they came for, when 
 | B — `replacement` | App-owned always-on guidance, `eliciting` and `constructing` skills, and typed epistemic guidance on the Ledger commit tool                                                                                                                         |
 | C — `feedback`    | Exactly B plus the always-on account–draft feedback policy: choose asking, repairing, checking or deferring by consequence for the purpose and wider account                                                                                        |
 | D — `identity`    | Exactly C with the identity-addressed Ledger (Notes filed against the model's identities and relationships, always typed, each naming the coverage dimensions it serves, with coverage returned on every commit) and its low-resolution instruction |
+| E — `manual`      | A hand-edited arm, copied from D as of round 4c: its own system prompt, instructions, skills, Ledger vocabulary and Ledger tool descriptions under `chat-agent/guidance/manual/`, with D's Ledger implementation                                    |
+
+E mounts only its own copies, so editing them changes no other arm, and the other arms' source hashes leave them out. Its tests check wiring, not wording. The Ledger's behaviour (schema shape, coverage and needs) is the shared package's, so a change there moves D and E together.
 
 A, B and C keep the same tool implementations and schemas; D keeps the same tool names but changes the Ledger's schema, so C versus D compares a Ledger design together with its guidance. `BRUNCH_LEDGER_NOTES` does not apply to D. C isolates the feedback addition; A versus B compares a bundle of placement and content changes, not heading words alone. Legacy package guidance remains solely as the control; it is not mounted alongside B or C. Native Flue skill references package and load the candidate resources.
 

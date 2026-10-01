@@ -5,6 +5,7 @@ export const guidanceVariants = [
   "replacement",
   "feedback",
   "identity",
+  "manual",
 ] as const;
 export type GuidanceVariant = (typeof guidanceVariants)[number];
 

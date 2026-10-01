@@ -421,7 +421,9 @@ test("help documents the objective and agent options", async () => {
   );
   expect(stdout).toContain("--agent claude|codex|cursor-agent|pi");
   expect(stdout).toContain("{prompt}");
-  expect(stdout).toContain("--guidance baseline|replacement|feedback|identity");
+  expect(stdout).toContain(
+    "--guidance baseline|replacement|feedback|identity|manual",
+  );
 });
 
 test("resume rejects a fresh-run option before reading the retained run", async () => {
