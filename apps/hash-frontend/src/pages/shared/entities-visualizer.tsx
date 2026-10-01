@@ -1,8 +1,8 @@
-import { Box, Stack, Typography, useTheme } from "@mui/material";
+import { Box, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { atLeastOne } from "@blockprotocol/type-system";
-import { LoadingSpinner } from "@hashintel/design-system";
+import { IconButton, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   type EntityTableSummary,
@@ -11,16 +11,16 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { MagnifyingGlassRegularIcon } from "../../shared/icons/magnifying-glass-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { Button } from "../../shared/ui";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
-import {
-  EntitiesTable,
-  toolbarHeight,
-} from "./entities-visualizer/entities-table";
+import { EntitiesTable } from "./entities-visualizer/entities-table";
+import { SortControl } from "./entities-visualizer/entities-table/sort-control";
 import { GridView } from "./entities-visualizer/grid-view";
 import {
   FilterRibbon,
@@ -45,6 +45,7 @@ import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
 import type { ArchivableEntity } from "../../shared/is-archived";
+import type { GenerateCsvFileFunction } from "../../shared/table-header/export-to-csv-button";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
@@ -731,6 +732,10 @@ export const EntitiesVisualizer: FunctionComponent<{
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
   const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
+  // Written by the table each render (it resolves actor/web display names), read
+  // by the header's export button at click time.
+  const generateCsvFileRef = useRef<GenerateCsvFileFunction | null>(null);
+
   const contentTopRef = useRef<HTMLDivElement>(null);
   const [contentTop, setContentTop] = useState<number | null>(null);
 
@@ -762,6 +767,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const tableHeight = `min(${availableHeight}, 1000px)`;
 
   const [showTableSearch, setShowTableSearch] = useState(false);
+  const [showGraphSearch, setShowGraphSearch] = useState(false);
 
   const [selectedTableRows, setSelectedTableRows] = useState<
     EntitiesTableRow[]
@@ -846,31 +852,14 @@ export const EntitiesVisualizer: FunctionComponent<{
   return (
     <Box>
       <VisualizerHeader
-        left={
-          selectedEntities.length > 0 ? (
-            <BulkActionsDropdown
-              selectedItems={selectedEntities}
-              onBulkActionCompleted={handleBulkActionCompleted}
-            />
-          ) : (
-            <FilterRibbon
-              availableEntityTypes={availableEntityTypes}
-              availableTypesLoading={availableTypesLoading}
-              propertyFilterMetadata={propertyFilterData}
-              filterState={filterState}
-              internalWebs={internalWebs}
-              isTypePinned={isTypePinned}
-              setFilterState={(updater) => setFilterState(updater)}
-              showTypeColors={view === "NetworkGraph"}
-              typeColorOverrides={typeColorOverrides}
-              setTypeColor={setTypeColor}
-              hiddenTypeIds={hiddenTypeIds}
-              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
-            />
-          )
-        }
-        right={
+        topRight={
           <>
+            {view === "Table" ? (
+              <ExportToCsvButton
+                generateCsvFile={() => generateCsvFileRef.current?.() ?? null}
+                sx={{ px: 1.5 }}
+              />
+            ) : null}
             <QueryCount count={totalResultCount} loading={resultsLoading} />
             <TableHeaderToggle
               value={view}
@@ -889,6 +878,58 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           </>
         }
+        bottomLeft={
+          selectedEntities.length > 0 ? (
+            <BulkActionsDropdown
+              selectedItems={selectedEntities}
+              onBulkActionCompleted={handleBulkActionCompleted}
+            />
+          ) : (
+            <>
+              {view !== "Grid" ? (
+                <Tooltip
+                  title={
+                    view === "Table"
+                      ? "Search for text in visible rows"
+                      : "Search for an entity in the graph"
+                  }
+                  placement="top"
+                >
+                  <IconButton
+                    onClick={() => {
+                      if (view === "Table") {
+                        setShowTableSearch(!showTableSearch);
+                      } else {
+                        setShowGraphSearch(!showGraphSearch);
+                      }
+                    }}
+                  >
+                    <MagnifyingGlassRegularIcon />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+              <FilterRibbon
+                availableEntityTypes={availableEntityTypes}
+                availableTypesLoading={availableTypesLoading}
+                propertyFilterMetadata={propertyFilterData}
+                filterState={filterState}
+                internalWebs={internalWebs}
+                isTypePinned={isTypePinned}
+                setFilterState={(updater) => setFilterState(updater)}
+                showTypeColors={view === "NetworkGraph"}
+                typeColorOverrides={typeColorOverrides}
+                setTypeColor={setTypeColor}
+                hiddenTypeIds={hiddenTypeIds}
+                hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
+              />
+            </>
+          )
+        }
+        bottomRight={
+          view === "Table" ? (
+            <SortControl sort={sort} setSort={setSort} />
+          ) : undefined
+        }
       />
       <Box ref={contentTopRef} />
       {view === "NetworkGraph" ? (
@@ -898,6 +939,8 @@ export const EntitiesVisualizer: FunctionComponent<{
             typeColorOverrides={typeColorOverrides}
             filter={graphFilter}
             onOpenEntity={handleEntityClick}
+            searchOpen={showGraphSearch}
+            onSearchClose={() => setShowGraphSearch(false)}
           />
         </Box>
       ) : typeUniverseBlocksResults || queryBlocksResults ? (
@@ -993,11 +1036,12 @@ export const EntitiesVisualizer: FunctionComponent<{
             csvFileTitle="Entities"
             currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            generateCsvFileRef={generateCsvFileRef}
             handleEntityClick={handleEntityClick}
             hasMoreRowsAvailable={tableQuery.canLoadMore}
             loading={resultsLoading}
             isViewingOnlyPages={isViewingOnlyPages}
-            maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
+            maxHeight={tableHeight}
             loadMoreRows={tableQuery.canLoadMore ? nextPage : undefined}
             setActiveConversions={setActiveConversions}
             setSelectedEntityType={handleEntityTypeClick}

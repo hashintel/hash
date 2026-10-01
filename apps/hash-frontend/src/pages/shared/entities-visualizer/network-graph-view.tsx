@@ -492,6 +492,8 @@ export const NetworkGraphView = ({
   typeColorOverrides,
   filter,
   onOpenEntity,
+  searchOpen,
+  onSearchClose,
 }: {
   /** Types shown in the filter dropdown; position drives the default palette. */
   availableEntityTypes: AvailableType[];
@@ -505,6 +507,14 @@ export const NetworkGraphView = ({
   filter?: string;
   /** Opens the entity drawer for an entity — the popover's "Go to entity". */
   onOpenEntity?: (entityId: EntityId) => void;
+  /**
+   * Whether the search panel is shown. The trigger lives in the visualizer
+   * header (the same search button the table view uses), so the view only
+   * renders the panel it controls.
+   */
+  searchOpen: boolean;
+  /** Fired by the search panel's close button and Escape. */
+  onSearchClose: () => void;
 }) => {
   const theme = useTheme();
   const { triggerSnackbar } = useSnackbar();
@@ -1697,6 +1707,8 @@ export const NetworkGraphView = ({
               />
             ) : null}
             <NetworkGraphSearch
+              open={searchOpen}
+              onClose={onSearchClose}
               elevated={searchOnTop}
               filter={filter}
               onActivate={() => setSearchOnTop(true)}
@@ -1714,8 +1726,7 @@ export const NetworkGraphView = ({
                   display: "flex",
                   alignItems: "center",
                   gap: 0.75,
-                  // Match the collapsed search button's height (top-left), growing
-                  // taller when the truncation note is shown beneath the label.
+                  // Grows taller when the truncation note is shown beneath the label.
                   minHeight: 30,
                   maxWidth: 320,
                   px: 1.25,

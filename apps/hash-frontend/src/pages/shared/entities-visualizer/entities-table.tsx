@@ -33,7 +33,6 @@ import {
   createRenderEntitiesTableValueCell,
   type EntitiesTableValueCellProps,
 } from "./entities-table/entities-table-value-cell";
-import { TableToolbar } from "./entities-table/table-toolbar";
 
 import type {
   ConversionTargetsByColumnKey,
@@ -76,8 +75,6 @@ import type {
   SetStateAction,
 } from "react";
 
-export { toolbarHeight } from "./entities-table/table-toolbar";
-
 const firstColumnLeftPadding = 16;
 
 const sortableColumns: SortableEntitiesTableColumnKey[] = [
@@ -107,6 +104,13 @@ export const EntitiesTable: FunctionComponent<{
   currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
   currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
   disableTypeClick?: boolean;
+  /**
+   * Written with the CSV-export function each render, so the visualizer
+   * header's export button (rendered by the parent) exports what the table
+   * currently shows. Built here rather than in the parent because it resolves
+   * actor and web ids to display names using lookups the table already holds.
+   */
+  generateCsvFileRef: MutableRefObject<GenerateCsvFileFunction | null>;
   handleEntityClick: (entityId: EntityId) => void;
   loading: boolean;
   isViewingOnlyPages: boolean;
@@ -133,6 +137,7 @@ export const EntitiesTable: FunctionComponent<{
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   disableTypeClick,
+  generateCsvFileRef,
   handleEntityClick,
   loading: entityDataLoading,
   isViewingOnlyPages,
@@ -757,123 +762,140 @@ export const EntitiesTable: FunctionComponent<{
     webNameByWebId,
   ]);
 
+  // eslint-disable-next-line no-param-reassign
+  generateCsvFileRef.current = generateCsvFile;
+
   const loadMoreRowHeight = 60;
 
   return (
-    <>
-      <TableToolbar
-        generateCsvFile={generateCsvFile}
+    <Stack
+      sx={{
+        // Reposition glide's built-in search overlay from the grid's top-right
+        // corner to its top-left, sliding in from the left — mirroring the
+        // graph view's search panel. Glide's own keyframes slide from the
+        // right, so they're replaced wholesale.
+        "@keyframes entities-table-search-in": {
+          from: { transform: "translateX(-400px)" },
+          to: { transform: "translateX(0)" },
+        },
+        "@keyframes entities-table-search-out": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-400px)" },
+        },
+        "& .gdg-seveqep": {
+          right: "auto",
+          left: 20,
+          animationName: "entities-table-search-in",
+        },
+        "& .gdg-seveqep.out": {
+          animationName: "entities-table-search-out",
+        },
+      }}
+    >
+      <Grid
+        activeConversions={activeConversions}
+        columns={columns}
+        conversionTargetsByColumnKey={conversionTargetsByColumnKey}
+        createGetCellContent={createGetCellContent}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        customRenderers={customRenderers}
+        dataLoading={false}
+        enableCheckboxSelection
+        firstColumnLeftPadding={firstColumnLeftPadding}
+        freezeColumns={1}
+        height={
+          /**
+           * When the 'Show more entities' bar is visible it takes up part of the
+           * available height, so the grid shrinks to leave room for it in the flow.
+           * The bar must not be overlaid on top of the grid, because it would cover
+           * the grid's horizontal scrollbar.
+           */
+          hasMoreRowsAvailable
+            ? `min(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
+            : `min(${maxHeight}, 600px)`
+        }
+        onConversionTargetSelected={onConversionTargetSelected}
+        onSearchClose={() => setShowSearch(false)}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
+        rows={rows}
+        selectedRows={selectedRows}
         showSearch={showSearch}
-        setShowSearch={setShowSearch}
+        sortableColumns={sortableColumns}
         sort={sort}
         setSort={setSort}
       />
-      <Stack>
-        <Grid
-          activeConversions={activeConversions}
-          columns={columns}
-          conversionTargetsByColumnKey={conversionTargetsByColumnKey}
-          createGetCellContent={createGetCellContent}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          customRenderers={customRenderers}
-          dataLoading={false}
-          enableCheckboxSelection
-          firstColumnLeftPadding={firstColumnLeftPadding}
-          freezeColumns={1}
-          height={
-            /**
-             * When the 'Show more entities' bar is visible it takes up part of the
-             * available height, so the grid shrinks to leave room for it in the flow.
-             * The bar must not be overlaid on top of the grid, because it would cover
-             * the grid's horizontal scrollbar.
-             */
-            hasMoreRowsAvailable
-              ? `min(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
-              : `min(${maxHeight}, 600px)`
-          }
-          onConversionTargetSelected={onConversionTargetSelected}
-          onSearchClose={() => setShowSearch(false)}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
-          rows={rows}
-          selectedRows={selectedRows}
-          showSearch={showSearch}
-          sortableColumns={sortableColumns}
-          sort={sort}
-          setSort={setSort}
-        />
 
-        {hasMoreRowsAvailable && (
-          <Stack
+      {hasMoreRowsAvailable && (
+        <Stack
+          sx={({ palette }) => ({
+            alignItems: "center",
+            justifyContent: "center",
+            background: palette.common.white,
+            borderTop: `1px solid ${palette.gray[20]}`,
+            height: loadMoreRowHeight,
+            p: 1,
+            width: "100%",
+          })}
+        >
+          <Button
+            component="button"
+            onClick={loadMoreRows}
+            disabled={entityDataLoading}
+            size="small"
             sx={({ palette }) => ({
-              alignItems: "center",
-              justifyContent: "center",
-              background: palette.common.white,
-              borderTop: `1px solid ${palette.gray[20]}`,
-              height: loadMoreRowHeight,
-              p: 1,
+              background: palette.gray[10],
+              color: palette.gray[70],
+              fontSize: 14,
+              fontWeight: 500,
               width: "100%",
-            })}
-          >
-            <Button
-              component="button"
-              onClick={loadMoreRows}
-              disabled={entityDataLoading}
-              size="small"
-              sx={({ palette }) => ({
-                background: palette.gray[10],
-                color: palette.gray[70],
-                fontSize: 14,
-                fontWeight: 500,
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              "::before": {
+                background: "none",
+              },
+              "&:hover": {
+                background: palette.gray[15],
                 "::before": {
                   background: "none",
                 },
-                "&:hover": {
-                  background: palette.gray[15],
-                  "::before": {
-                    background: "none",
-                  },
-                },
-              })}
-            >
-              {entityDataLoading ? (
-                <>
-                  <Box component="span" mr={1}>
-                    Loading...
-                  </Box>
-                  <LoadingSpinner size={16} color={theme.palette.gray[60]} />
-                </>
-              ) : (
-                <>
-                  Show more entities
-                  <Box
-                    component="span"
-                    sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
-                  >
-                    {totalResultCount != null
-                      ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
-                      : ""}
-                  </Box>
-                  <ArrowDownRegularIcon
-                    sx={{
-                      fontSize: 11,
-                      ml: 0.8,
-                      position: "relative",
-                      top: 1,
-                      color: ({ palette }) => palette.gray[50],
-                    }}
-                  />
-                </>
-              )}
-            </Button>
-          </Stack>
-        )}
-      </Stack>
-    </>
+              },
+            })}
+          >
+            {entityDataLoading ? (
+              <>
+                <Box component="span" mr={1}>
+                  Loading...
+                </Box>
+                <LoadingSpinner size={16} color={theme.palette.gray[60]} />
+              </>
+            ) : (
+              <>
+                Show more entities
+                <Box
+                  component="span"
+                  sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
+                >
+                  {totalResultCount != null
+                    ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
+                    : ""}
+                </Box>
+                <ArrowDownRegularIcon
+                  sx={{
+                    fontSize: 11,
+                    ml: 0.8,
+                    position: "relative",
+                    top: 1,
+                    color: ({ palette }) => palette.gray[50],
+                  }}
+                />
+              </>
+            )}
+          </Button>
+        </Stack>
+      )}
+    </Stack>
   );
 };

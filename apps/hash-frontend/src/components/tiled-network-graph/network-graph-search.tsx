@@ -1,37 +1,36 @@
 /**
- * Search control for the Atlas-tiled network graph view.
+ * Search panel for the Atlas-tiled network graph view.
  *
- * Copies the old (Sigma) graph view's search UX exactly: it starts collapsed to
- * a search icon, which opens a "Search" panel that slides in from the left and
- * holds a compact autocomplete. Matching results appear in a dropdown the user
- * picks from before a selection is made.
+ * Opened from the visualizer header's search button (the same button the table
+ * view's search uses), it slides in from the left over the graph's top-left
+ * corner and holds a compact autocomplete — mirroring the table view's search
+ * box, which slides in from the left over the grid. Matching results appear in
+ * a dropdown the user picks from before a selection is made.
  *
- * The one difference is the data source: the old view filtered an in-memory node
- * list, which the tiled graph never holds in full, so instead we query the graph
- * over GraphQL as the user types (debounced). We use the structural
- * `queryEntities` endpoint rather than the header bar's semantic `searchEntities`
- * — the latter needs an embedding client that isn't configured in local dev.
- * `containsSegment` is case-sensitive, so we match a few case variants of the
- * query against the common label properties and then refine case-insensitively
- * on the generated label. The results carry no coordinates, so the parent view
- * locates each (by entity id) to place and reveal a picked result — it prefetches
- * the whole result set via `onResultsChange` so a pick made while its locate is
- * still pending can share that request (see `network-graph-view.tsx`). A locate
- * that has already settled is deliberately fetched again for request-time detail.
+ * The data source differs from the table's visible-row search: the tiled graph
+ * never holds its node list in full, so instead we query the graph over GraphQL
+ * as the user types (debounced). We use the structural `queryEntities` endpoint
+ * rather than the header bar's semantic `searchEntities` — the latter needs an
+ * embedding client that isn't configured in local dev. `containsSegment` is
+ * case-sensitive, so we match a few case variants of the query against the
+ * common label properties and then refine case-insensitively on the generated
+ * label. The results carry no coordinates, so the parent view locates each (by
+ * entity id) to place and reveal a picked result — it prefetches the whole
+ * result set via `onResultsChange` so a pick made while its locate is still
+ * pending can share that request (see `network-graph-view.tsx`). A locate that
+ * has already settled is deliberately fetched again for request-time detail.
  */
 
 import { useQuery } from "@apollo/client";
 import { useDebouncedState } from "@mantine/hooks";
-import {
-  Box,
-  ButtonBase,
-  outlinedInputClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Autocomplete, IconButton } from "@hashintel/design-system";
+import {
+  Autocomplete,
+  IconButton,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
 import {
   deserializeQueryEntitiesResponse,
   getClosedMultiEntityTypeFromMap,
@@ -40,7 +39,6 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { ArrowRightToLineIcon } from "../../shared/icons/arrow-right-to-line-icon";
 import { SearchIcon } from "../../shared/icons/search-icon";
 import { MenuItem } from "../../shared/ui/menu-item";
 
@@ -56,21 +54,20 @@ const MAXIMUM_RESULTS = 25;
 /** Debounce (ms) on the typed query before hitting the search endpoint. */
 const SEARCH_DEBOUNCE_MS = 300;
 
-/** Diameter of the collapsed search button, which grows into the panel. */
-const COLLAPSED_SIZE = 30;
-/** Size of the expanded (floating) search panel. */
+/** Width of the floating search panel. */
 const PANEL_WIDTH = 340;
-const PANEL_HEIGHT = 82;
+
+/** Inset of the panel from the graph frame's top-left corner. */
+const PANEL_INSET = 8;
 
 /**
- * The open widget layers around the selection popover, which sits at a
+ * The open panel layers around the selection popover, which sits at a
  * deliberately low base z-index (see `SELECTION_POPOVER_Z_INDEX`) so it — and
- * this widget with it — stay below app overlays like the entity drawer. Which of
+ * this panel with it — stay below app overlays like the entity drawer. Which of
  * the two is on top follows the last thing the user actioned (see the `elevated`
- * prop): focusing the widget raises it above the popover; selecting an item
+ * prop): focusing the panel raises it above the popover; selecting an item
  * drops it below so the popover shows on top. The results dropdown always sits
- * one step above the panel so it isn't clipped behind it. Collapsed, the button
- * stays below the popover regardless (its z-index is a plain `1`).
+ * one step above the panel so it isn't clipped behind it.
  *
  * Kept in step with the selection popover's z-index (`LocatedEntityPopover`).
  */
@@ -130,6 +127,8 @@ export interface NetworkGraphSearchResult {
 }
 
 export const NetworkGraphSearch = ({
+  open,
+  onClose,
   onSelect,
   onHover,
   onResultsChange,
@@ -138,6 +137,10 @@ export const NetworkGraphSearch = ({
   onActivate,
   filter,
 }: {
+  /** Whether the panel is shown. Toggled by the visualizer header's search button. */
+  open: boolean;
+  /** Fired by the panel's close button and the Escape key. */
+  onClose: () => void;
   onSelect: (result: NetworkGraphSearchResult) => void;
   /**
    * Called with the result the user is currently highlighting in the dropdown (by
@@ -159,13 +162,13 @@ export const NetworkGraphSearch = ({
    */
   popperContainer?: HTMLElement | null;
   /**
-   * Whether the open widget sits above the selection popover. The parent flips
-   * this by recency: true when the widget was last focused/opened, false once an
-   * item is selected (so its popover shows on top). Ignored while collapsed.
+   * Whether the open panel sits above the selection popover. The parent flips
+   * this by recency: true when the panel was last focused/opened, false once an
+   * item is selected (so its popover shows on top).
    */
   elevated?: boolean;
   /**
-   * Fired when the user focuses or clicks the widget, so the parent can bring it
+   * Fired when the user focuses or clicks the panel, so the parent can bring it
    * back above the selection popover (by setting `elevated`).
    */
   onActivate?: () => void;
@@ -177,40 +180,22 @@ export const NetworkGraphSearch = ({
    */
   filter?: string;
 }) => {
-  const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [selected, setSelected] = useState<NetworkGraphSearchResult | null>(
     null,
   );
   const [query, setQuery] = useDebouncedState("", SEARCH_DEBOUNCE_MS);
-  // The expanded height is measured from the content so the box grows to exactly
-  // fit it (bottom padding included) rather than clipping at a guessed constant.
-  const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const content = contentRef.current;
-    if (!content) {
-      return undefined;
-    }
-    const observer = new ResizeObserver(() => {
-      setPanelHeight(content.offsetHeight);
-    });
-    observer.observe(content);
-    setPanelHeight(content.offsetHeight);
-    return () => observer.disconnect();
-  }, []);
-
-  // Focus the input once the panel has finished growing — focusing earlier
+  // Focus the input once the panel has finished sliding in — focusing earlier
   // mis-positions the dropdown mid-transition.
   useEffect(() => {
     const panel = panelRef.current;
     if (open && panel) {
       panel.ontransitionend = (event) => {
-        if (event.target === panel && event.propertyName === "width") {
+        if (event.target === panel && event.propertyName === "transform") {
           inputRef.current?.focus();
         }
       };
@@ -320,99 +305,158 @@ export const NetworkGraphSearch = ({
     return options;
   }, [options, selected]);
 
-  const openPanelZIndex = elevated
-    ? PANEL_Z_ABOVE_POPOVER
-    : PANEL_Z_BELOW_POPOVER;
+  const panelZIndex = elevated ? PANEL_Z_ABOVE_POPOVER : PANEL_Z_BELOW_POPOVER;
   const resultsZIndex = elevated
     ? RESULTS_Z_ABOVE_POPOVER
     : RESULTS_Z_BELOW_POPOVER;
 
   return (
-    // A single floating element pinned at the graph's top-left gap: it reads as
-    // the collapsed search button and grows in place into the search panel.
+    // A clipping container pinned at the graph's top-left corner: the panel
+    // slides in from (and out past) its left edge, so mid-transition it never
+    // spills outside the graph frame. The padding leaves room for the panel's
+    // shadow at rest; `pointerEvents: none` keeps the clipped area from
+    // swallowing graph interactions.
     <Box
-      ref={panelRef}
-      // Any pointer/keyboard focus on the widget brings it back to the front
-      // (the results popup portals elsewhere, so picking a result doesn't fire
-      // this — the parent lowers the widget on select instead).
-      onMouseDown={() => onActivate?.()}
-      onFocus={() => onActivate?.()}
-      sx={({ palette, boxShadows, transitions }) => ({
+      sx={{
         position: "absolute",
-        top: 8,
-        left: 8,
-        // Collapsed, the button stays below the selection popover; open, it
-        // layers above or below it by recency (see `elevated`).
-        zIndex: open ? openPanelZIndex : 1,
+        top: 0,
+        left: 0,
         overflow: "hidden",
-        background: palette.white,
-        border: `1px solid ${palette.gray[30]}`,
-        // Match the other graph controls: a rounded square, not a circle.
-        borderRadius: "4px",
-        boxShadow: open ? boxShadows.sm : "none",
-        color: palette.gray[70],
-        width: open ? PANEL_WIDTH : COLLAPSED_SIZE,
-        height: open ? panelHeight : COLLAPSED_SIZE,
-        transition: transitions.create([
-          "width",
-          "height",
-          "box-shadow",
-          "background-color",
-          "border-color",
-        ]),
-        "&:hover": open
-          ? undefined
-          : {
-              background: palette.blue[10],
-              borderColor: palette.blue[25],
-              color: palette.blue[70],
-            },
-      })}
+        pointerEvents: "none",
+        pt: `${PANEL_INSET}px`,
+        pl: `${PANEL_INSET}px`,
+        pr: 2,
+        pb: 2,
+        zIndex: panelZIndex,
+      }}
     >
-      {/* Expanded panel content — a fixed width so it doesn't reflow as the
-          box grows, and fades in once there's room for it. */}
       <Box
-        ref={contentRef}
-        sx={({ transitions }) => ({
+        ref={panelRef}
+        // Any pointer/keyboard focus on the panel brings it back to the front
+        // (the results popup portals elsewhere, so picking a result doesn't fire
+        // this — the parent lowers the panel on select instead).
+        onMouseDown={() => onActivate?.()}
+        onFocus={() => onActivate?.()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            onClose();
+          }
+        }}
+        sx={({ palette, boxShadows, transitions }) => ({
           width: PANEL_WIDTH,
-          opacity: open ? 1 : 0,
           pointerEvents: open ? "auto" : "none",
-          transition: transitions.create(["opacity"]),
+          background: palette.white,
+          border: `1px solid ${palette.gray[30]}`,
+          // Match the other graph controls: a rounded square, not a circle.
+          borderRadius: "4px",
+          boxShadow: boxShadows.sm,
+          // The slide-from-the-left: fully past the container's clip edge when
+          // closed, in place when open. `visibility` rides the transition so the
+          // panel stays visible while sliding out but can't be tabbed into once
+          // hidden.
+          transform: open
+            ? "translateX(0)"
+            : `translateX(calc(-100% - ${PANEL_INSET}px))`,
+          visibility: open ? "visible" : "hidden",
+          transition: transitions.create(["transform", "visibility"]),
         })}
       >
         <Stack
           direction="row"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          sx={{ minHeight: 34, pt: 0.75, pl: 2, pr: 1 }}
+          alignItems="center"
+          gap={0.5}
+          sx={{ px: 1, py: 0.75 }}
         >
-          <Box>
-            <Typography
-              sx={{
-                color: ({ palette }) => palette.gray[90],
-                fontSize: 14,
-                fontWeight: 500,
-                lineHeight: 1.3,
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Autocomplete<NetworkGraphSearchResult, false, false, false>
+              autoFocus={false}
+              componentsProps={{
+                paper: {
+                  // Match the dropdown to the input width rather than letting it
+                  // grow to fit the option text.
+                  sx: {
+                    p: 0,
+                    width: "100%",
+                  },
+                },
+                popper: {
+                  container: popperContainer ?? undefined,
+                  sx: {
+                    // One step above the panel (which layers around the selection
+                    // popover by recency), so results aren't hidden behind it.
+                    zIndex: resultsZIndex,
+                    "& > div:first-of-type": {
+                      boxShadow: "none",
+                    },
+                  },
+                },
               }}
-            >
-              Search
-            </Typography>
-            {viewFilter ? (
-              <Typography
-                sx={{
-                  color: ({ palette }) => palette.gray[50],
-                  fontSize: 10,
-                  lineHeight: 1.3,
-                  mb: 1,
-                }}
-              >
-                Limited to current filters
-              </Typography>
-            ) : null}
+              filterOptions={(unfiltered) => unfiltered}
+              getOptionLabel={(option) => option.label}
+              inputHeight="auto"
+              inputProps={{
+                endAdornment: (
+                  <SearchIcon
+                    sx={{
+                      fontSize: 16,
+                      color: ({ palette }) => palette.gray[30],
+                    }}
+                  />
+                ),
+                placeholder: "Search for node...",
+                sx: () => ({
+                  height: "auto",
+                  [`&.${outlinedInputClasses.root}`]: {
+                    py: 0.3,
+                    px: "8px !important",
+                    input: {
+                      fontSize: 14,
+                    },
+                  },
+                }),
+              }}
+              inputRef={inputRef}
+              inputValue={inputValue}
+              isOptionEqualToValue={(option, value) =>
+                option.entityId === value.entityId
+              }
+              ListboxProps={{
+                sx: { maxHeight: 240 },
+                // `onHighlightChange` only clears (fires `null`) when the popup
+                // closes or another option is highlighted, not when the pointer
+                // leaves the list while it stays open — so clear the preview here.
+                onMouseLeave: () => onHover?.(null),
+              }}
+              loading={loading}
+              onChange={(_event, option) => {
+                setSelected(option);
+                if (option) {
+                  onSelect(option);
+                }
+              }}
+              onHighlightChange={(_event, option) => onHover?.(option)}
+              onInputChange={(_event, value, reason) => {
+                setInputValue(value);
+                if (reason === "input") {
+                  setQuery(value);
+                }
+              }}
+              options={displayedOptions}
+              renderOption={({ key: _key, ...props }, option) => (
+                <MenuItem
+                  {...props}
+                  key={option.entityId}
+                  value={option.entityId}
+                >
+                  {option.label}
+                </MenuItem>
+              )}
+              value={selected}
+            />
           </Box>
           <IconButton
             aria-label="Close search"
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             sx={{
               padding: 0.5,
               svg: {
@@ -421,120 +465,23 @@ export const NetworkGraphSearch = ({
               },
             }}
           >
-            <ArrowRightToLineIcon />
+            <XMarkRegularIcon />
           </IconButton>
         </Stack>
-        <Box sx={{ px: 1.5, pb: 1.5, pt: 0.5 }}>
-          <Autocomplete<NetworkGraphSearchResult, false, false, false>
-            autoFocus={false}
-            componentsProps={{
-              paper: {
-                // Match the dropdown to the input width rather than letting it
-                // grow to fit the option text.
-                sx: {
-                  p: 0,
-                  width: "100%",
-                },
-              },
-              popper: {
-                container: popperContainer ?? undefined,
-                sx: {
-                  // One step above the panel (which layers around the selection
-                  // popover by recency), so results aren't hidden behind it.
-                  zIndex: resultsZIndex,
-                  "& > div:first-of-type": {
-                    boxShadow: "none",
-                  },
-                },
-              },
+        {viewFilter ? (
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.gray[50],
+              fontSize: 10,
+              lineHeight: 1.3,
+              px: 1.25,
+              pb: 0.75,
             }}
-            filterOptions={(unfiltered) => unfiltered}
-            getOptionLabel={(option) => option.label}
-            inputHeight="auto"
-            inputProps={{
-              endAdornment: (
-                <SearchIcon
-                  sx={{
-                    fontSize: 16,
-                    color: ({ palette }) => palette.gray[30],
-                  }}
-                />
-              ),
-              placeholder: "Search for node...",
-              sx: () => ({
-                height: "auto",
-                [`&.${outlinedInputClasses.root}`]: {
-                  py: 0.3,
-                  px: "8px !important",
-                  input: {
-                    fontSize: 14,
-                  },
-                },
-              }),
-            }}
-            inputRef={inputRef}
-            inputValue={inputValue}
-            isOptionEqualToValue={(option, value) =>
-              option.entityId === value.entityId
-            }
-            ListboxProps={{
-              sx: { maxHeight: 240 },
-              // `onHighlightChange` only clears (fires `null`) when the popup
-              // closes or another option is highlighted, not when the pointer
-              // leaves the list while it stays open — so clear the preview here.
-              onMouseLeave: () => onHover?.(null),
-            }}
-            loading={loading}
-            onChange={(_event, option) => {
-              setSelected(option);
-              if (option) {
-                onSelect(option);
-              }
-            }}
-            onHighlightChange={(_event, option) => onHover?.(option)}
-            onInputChange={(_event, value, reason) => {
-              setInputValue(value);
-              if (reason === "input") {
-                setQuery(value);
-              }
-            }}
-            options={displayedOptions}
-            renderOption={({ key: _key, ...props }, option) => (
-              <MenuItem
-                {...props}
-                key={option.entityId}
-                value={option.entityId}
-              >
-                {option.label}
-              </MenuItem>
-            )}
-            value={selected}
-          />
-        </Box>
+          >
+            Limited to current filters
+          </Typography>
+        ) : null}
       </Box>
-
-      {/* Collapsed trigger — the icon the panel grows out of. */}
-      <ButtonBase
-        aria-label="Search"
-        disableRipple
-        onClick={() => setOpen(true)}
-        sx={({ transitions }) => ({
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: COLLAPSED_SIZE,
-          height: COLLAPSED_SIZE,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "inherit",
-          opacity: open ? 0 : 1,
-          pointerEvents: open ? "none" : "auto",
-          transition: transitions.create(["opacity"]),
-        })}
-      >
-        <SearchIcon sx={{ fontSize: 14, color: "inherit" }} />
-      </ButtonBase>
     </Box>
   );
 };
