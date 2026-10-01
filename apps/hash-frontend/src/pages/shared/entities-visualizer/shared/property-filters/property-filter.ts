@@ -1,10 +1,29 @@
 import type { BaseUrl } from "@blockprotocol/type-system";
 
 /**
- * The primitive kinds a property value can resolve to for filtering purposes.
- * Other primitive kinds (null, object, array) are not filterable in v1.
+ * The kinds a property value can resolve to for filtering purposes, which
+ * determine the operators on offer:
+ *
+ * - `number` / `string` / `boolean` — scalar values with the full operator
+ *   catalog for their kind.
+ * - `textList` — a list whose elements are plain text. `contains` matches a
+ *   substring anywhere within any element (verified against the entities-table
+ *   endpoint), alongside the existence operators.
+ * - `opaque` — any other shape (nested objects, lists of non-text values,
+ *   properties permitting multiple data types). Value comparisons on these
+ *   are misleading server-side (equality compares the whole JSONB value, and
+ *   text search on objects also matches JSON keys), so only the existence
+ *   operators are offered.
+ *
+ * Properties resolving to an explicit `null` kind remain unfilterable and are
+ * omitted from the picker.
  */
-export type FilterValueKind = "number" | "string" | "boolean";
+export type FilterValueKind =
+  | "number"
+  | "string"
+  | "boolean"
+  | "textList"
+  | "opaque";
 
 /**
  * The set of operators a property filter can use. Which operators are valid for
@@ -20,6 +39,8 @@ export type PropertyFilterOperator =
   | "greaterThanOrEqual"
   | "lessThan"
   | "lessThanOrEqual"
+  /** Number only; takes two values, and both bounds are inclusive (≥ and ≤). */
+  | "between"
   // string only
   | "contains"
   | "startsWith"
@@ -29,7 +50,13 @@ export type PropertyFilterOperator =
   | "isFalse"
   // existence checks, available for every kind (value-less)
   | "isEmpty"
-  | "hasAnyValue";
+  | "hasAnyValue"
+  /**
+   * The archived filter only (value-less): contributes no clause of its own —
+   * the filter's presence flips the query scope's `includeArchived` flag, so
+   * archived entities show alongside everything else.
+   */
+  | "included";
 
 export type PropertyFilter = {
   /** Stable client-side id, used for React keys and editing. */
@@ -48,9 +75,16 @@ export type PropertyFilter = {
   /**
    * The raw value from the editor's input. Absent (or empty / invalid for the
    * kind) means the filter is incomplete and contributes no clause. Unused by
-   * value-less operators (boolean / existence).
+   * value-less operators (boolean / existence). For `between` it is the
+   * inclusive lower bound.
    */
   value?: string;
+  /**
+   * The raw value of the second input — the inclusive upper bound for
+   * `between`, which is incomplete unless both bounds are present and valid.
+   * Unused by every other operator.
+   */
+  secondValue?: string;
 };
 
 /**

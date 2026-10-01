@@ -121,6 +121,14 @@ const propertyOperatorsByKind: Record<
     { id: "isFalse", label: "is false", requiresValue: false },
     ...existenceOperators,
   ],
+  // This builder classifies via `resolveDataTypeValueKind`, which only yields
+  // scalar kinds — the list/structured kinds exist here for type completeness
+  // with the entities table's richer classifier.
+  textList: [
+    { id: "containsSegment", label: "contains", requiresValue: true },
+    ...existenceOperators,
+  ],
+  opaque: [...existenceOperators],
 };
 
 type ConditionSubject = "entityType" | "property" | "advanced";

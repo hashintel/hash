@@ -1,17 +1,20 @@
-import { Box, Stack, Tooltip, Typography, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { atLeastOne } from "@blockprotocol/type-system";
-import { IconButton, LoadingSpinner } from "@hashintel/design-system";
+import { LoadingSpinner } from "@hashintel/design-system";
+import { SortMenu } from "@hashintel/ds-components";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   type EntityTableSummary,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { MagnifyingGlassRegularIcon } from "../../shared/icons/magnifying-glass-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
@@ -20,17 +23,18 @@ import { Button } from "../../shared/ui";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
-import { SortControl } from "./entities-visualizer/entities-table/sort-control";
 import { GridView } from "./entities-visualizer/grid-view";
 import {
   FilterRibbon,
   QueryCount,
+  SearchPill,
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
+import { DsComponentsScope } from "./entities-visualizer/shared/ds-components-scope";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import {
   type SummarySource,
@@ -63,6 +67,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { Sorter } from "@hashintel/ds-components";
 import type {
   EntityQueryCursor,
   EntityQuerySortingPath,
@@ -78,6 +83,19 @@ import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 // references every render.
 const EMPTY_TYPE_ID_SET: ReadonlySet<VersionedUrl> = new Set();
 const EMPTY_BASE_URL_SET: ReadonlySet<BaseUrl> = new Set();
+
+/**
+ * Property columns are deliberately omitted: sorting by a property compiles
+ * to an unindexed ORDER BY on the JSONB properties column in the graph.
+ * Property sorting can be re-enabled once properties are indexed.
+ */
+const entitySorters: ReadonlyArray<Sorter<SortableEntitiesTableColumnKey>> = [
+  { name: "Entity", sortKey: "entityLabel" },
+  { name: "Last Edited", sortKey: "lastEdited", sortIcon: "generic" },
+  { name: "Created", sortKey: "created", sortIcon: "generic" },
+  { name: "Entity Type", sortKey: "entityTypes" },
+  { name: "Archived", sortKey: "archived", sortIcon: "generic" },
+];
 
 const tableSortKeyByColumnKey = {
   entityLabel: "label",
@@ -635,6 +653,10 @@ export const EntitiesVisualizer: FunctionComponent<{
 
       nextPropertyFilters = filterState.propertyFilters.filter(
         ({ baseUrl, kind }) =>
+          // The archived filter is offered regardless of the visible types'
+          // property metadata (it drives the query's includeArchived scope),
+          // so it must survive views whose types don't carry the property.
+          baseUrl === systemPropertyTypes.archived.propertyTypeBaseUrl ||
           filterablePropertyKindsByBaseUrl.get(baseUrl) === kind,
       );
     }
@@ -852,15 +874,19 @@ export const EntitiesVisualizer: FunctionComponent<{
   return (
     <Box>
       <VisualizerHeader
+        topLeft={
+          <QueryCount count={totalResultCount} loading={resultsLoading} />
+        }
         topRight={
           <>
             {view === "Table" ? (
               <ExportToCsvButton
                 generateCsvFile={() => generateCsvFileRef.current?.() ?? null}
-                sx={{ px: 1.5 }}
+                // Square off the TableHeaderButton pill to the 4px radius the
+                // app's other buttons use (design-system IconButton, pills).
+                sx={{ px: 1.5, borderRadius: "4px" }}
               />
             ) : null}
-            <QueryCount count={totalResultCount} loading={resultsLoading} />
             <TableHeaderToggle
               value={view}
               setValue={setView}
@@ -885,17 +911,21 @@ export const EntitiesVisualizer: FunctionComponent<{
               onBulkActionCompleted={handleBulkActionCompleted}
             />
           ) : (
-            <>
-              {view !== "Grid" ? (
-                <Tooltip
-                  title={
-                    view === "Table"
-                      ? "Search for text in visible rows"
-                      : "Search for an entity in the graph"
-                  }
-                  placement="top"
-                >
-                  <IconButton
+            <FilterRibbon
+              availableEntityTypes={availableEntityTypes}
+              availableTypesLoading={availableTypesLoading}
+              propertyFilterMetadata={propertyFilterData}
+              filterState={filterState}
+              internalWebs={internalWebs}
+              isTypePinned={isTypePinned}
+              searchControl={
+                view !== "Grid" ? (
+                  <SearchPill
+                    title={
+                      view === "Table"
+                        ? "Search for text in visible rows"
+                        : "Search for an entity in the graph"
+                    }
                     onClick={() => {
                       if (view === "Table") {
                         setShowTableSearch(!showTableSearch);
@@ -903,31 +933,38 @@ export const EntitiesVisualizer: FunctionComponent<{
                         setShowGraphSearch(!showGraphSearch);
                       }
                     }}
-                  >
-                    <MagnifyingGlassRegularIcon />
-                  </IconButton>
-                </Tooltip>
-              ) : null}
-              <FilterRibbon
-                availableEntityTypes={availableEntityTypes}
-                availableTypesLoading={availableTypesLoading}
-                propertyFilterMetadata={propertyFilterData}
-                filterState={filterState}
-                internalWebs={internalWebs}
-                isTypePinned={isTypePinned}
-                setFilterState={(updater) => setFilterState(updater)}
-                showTypeColors={view === "NetworkGraph"}
-                typeColorOverrides={typeColorOverrides}
-                setTypeColor={setTypeColor}
-                hiddenTypeIds={hiddenTypeIds}
-                hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
-              />
-            </>
+                  />
+                ) : undefined
+              }
+              setFilterState={(updater) => setFilterState(updater)}
+              showTypeColors={view === "NetworkGraph"}
+              typeColorOverrides={typeColorOverrides}
+              setTypeColor={setTypeColor}
+              hiddenTypeIds={hiddenTypeIds}
+              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
+            />
           )
         }
         bottomRight={
           view === "Table" ? (
-            <SortControl sort={sort} setSort={setSort} />
+            <DsComponentsScope>
+              <SortMenu<SortableEntitiesTableColumnKey>
+                variant="ghost"
+                size="xs"
+                items={entitySorters}
+                value={{
+                  sortKey: sort.columnKey,
+                  direction:
+                    sort.direction === "asc" ? "ASCENDING" : "DESCENDING",
+                }}
+                onChange={(sortKey, direction) =>
+                  setSort({
+                    columnKey: sortKey,
+                    direction: direction === "ASCENDING" ? "asc" : "desc",
+                  })
+                }
+              />
+            </DsComponentsScope>
           ) : undefined
         }
       />
