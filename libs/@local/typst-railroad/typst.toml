@@ -1,7 +1,7 @@
 [package]
-authors     = ["Bilal Mahmoud"]
+authors     = ["HASH"]
 description = "railroad diagrams for typst"
 entrypoint  = "lib.typ"
-license     = "MIT"
+license     = "AGPL-3.0"
 name        = "railroad"
-version     = "0.3.0"
+version     = "0.1.0"
