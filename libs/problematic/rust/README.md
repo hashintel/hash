@@ -8,7 +8,7 @@ A client can act on some errors of an endpoint, such as a missing user. Other er
 - A `Problem` lists the variants one endpoint answers with, including one for the errors that stay internal.
 - `Expose` maps every error of your error type to one of these variants.
 
-Answering with a variant whose problem type the `Problem` does not list fails to compile. A handler returns `Result<_, Rejection<K>>`, and `?` turns its error into the problem details response that `K` allows. With the `aide` feature, the OpenAPI document lists the variants of `K` for the handler. Building the document panics if one of them cannot be documented, or if its status already has a response that documents no variants.
+Answering with a variant whose problem type the `Problem` does not list fails to compile. A handler returns `Result<_, Rejection<K>>`, and `?` turns its error into the problem details response that `K` allows. The response keeps the error in its extensions, so a middleware can log it together with its request. With the `aide` feature, the OpenAPI document lists the variants of `K` for the handler. Building the document panics if one of them cannot be documented, or if its status already has a response that documents no variants.
 
 `ProblemDetails` serializes and deserializes problem details objects, borrowing strings from the input where it can, and describes them as JSON Schema.
 

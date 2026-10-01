@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, boxed::Box, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData};
 
 use http::{HeaderMap, HeaderValue, Response, StatusCode, header::CONTENT_TYPE};
@@ -17,10 +17,11 @@ const UNSERIALIZABLE: ProblemType = ProblemType {
 /// A handler returns `Result<_, Rejection<K>>`, and `?` creates the rejection from any error that
 /// implements [`Expose<K>`](Expose): an [`Error`] or an `error_stack::Report` that is `Send`,
 /// `Sync` and `'static`. The response carries the [`ProblemDetails`] of the answer as
-/// `application/problem+json`, with the headers of the variant. If the details of the variant fail
-/// to serialize, the failure is logged and the client receives a bare `500 Internal Server Error`
-/// instead, which the documentation does not list. [`error`](Self::error) returns the error, for
-/// example to log it.
+/// `application/problem+json`, with the headers of the variant, and keeps the error in its
+/// extensions as [`Rejected`], so a middleware can log it together with its request. If the
+/// details of the variant fail to serialize, the client receives a bare
+/// `500 Internal Server Error` instead, which the documentation does not list, and [`Rejected`]
+/// holds the failure as well. [`error`](Self::error) returns the error.
 ///
 /// An `http::Response<Vec<u8>>` converts from a rejection. With the `axum` feature, a rejection is
 /// an axum response, and with the `aide` feature, the documentation of a handler returning it
@@ -34,9 +35,7 @@ pub struct Rejection<K> {
 /// The rendered answer, boxed so a `Result` carrying a rejection stays small.
 struct Rendered {
     response: Response<Vec<u8>>,
-    // TODO(BE-892): hand the error to a logging layer through the response extensions, so it is
-    // logged together with its request.
-    error: Box<dyn Error + Send + Sync>,
+    rejected: Rejected,
 }
 
 impl<K> Rejection<K> {
@@ -51,7 +50,7 @@ impl<K> Rejection<K> {
     /// A `Report` is kept as an error that cannot be downcast back to the `Report`.
     #[must_use]
     pub fn error(&self) -> &(dyn Error + Send + Sync + 'static) {
-        &*self.rendered.error
+        self.rendered.rejected.error()
     }
 }
 
@@ -59,7 +58,7 @@ impl<K> fmt::Debug for Rejection<K> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Rejection")
             .field("status", &self.rendered.response.status())
-            .field("error", &self.rendered.error)
+            .field("error", &self.rendered.rejected.error)
             .finish_non_exhaustive()
     }
 }
@@ -72,12 +71,31 @@ where
     S: Expose<K> + Into<Box<dyn Error + Send + Sync>>,
 {
     fn from(source: S) -> Self {
-        let response = render(&source.expose());
+        // The answer borrows from `source`, so it goes out of scope before `source` is moved.
+        let (response, problem_type, unserializable) = {
+            let answer = source.expose();
+            match render(&answer) {
+                Ok(response) => (response, answer.problem_type(), None),
+                Err(error) => (
+                    internal(),
+                    UNSERIALIZABLE,
+                    Some(Arc::new(Unserializable {
+                        problem_type: answer.problem_type(),
+                        error,
+                    })),
+                ),
+            }
+        };
+        let error: Box<dyn Error + Send + Sync> = source.into();
 
         Self {
             rendered: Box::new(Rendered {
                 response,
-                error: source.into(),
+                rejected: Rejected {
+                    problem_type,
+                    error: Arc::from(error),
+                    unserializable,
+                },
             }),
             problem: PhantomData,
         }
@@ -86,32 +104,141 @@ where
 
 impl<K> From<Rejection<K>> for Response<Vec<u8>> {
     fn from(rejection: Rejection<K>) -> Self {
-        let Rendered { response, error: _ } = *rejection.rendered;
+        let Rendered {
+            mut response,
+            rejected,
+        } = *rejection.rendered;
+        response.extensions_mut().insert(rejected);
         response
     }
 }
 
+/// A [`Rejection`] that became a response, kept in the extensions of that response.
+///
+/// It holds the problem type the client received and the error the rejection was created from, so
+/// a middleware can log the error together with the request it answered. If the details of the
+/// variant failed to serialize, it holds that failure as well.
+///
+/// # Examples
+///
+/// ```
+/// # use std::{borrow::Cow, fmt};
+/// use http::{Response, StatusCode};
+/// use problematic::{
+///     Answer, Expose, Problem, ProblemType, ProblemVariant, Rejected, Rejection, Variant,
+/// };
+///
+/// /// The user store is busy.
+/// #[derive(serde::Serialize, schemars::JsonSchema)]
+/// struct StoreBusy;
+/// # impl fmt::Display for StoreBusy {
+/// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+/// #         formatter.write_str("The user store is busy.")
+/// #     }
+/// # }
+///
+/// impl ProblemVariant for StoreBusy {
+///     const TYPE: ProblemType = ProblemType {
+///         type_uri: Cow::Borrowed("https://example.com/problems/store-busy"),
+///         title: Cow::Borrowed("Store busy"),
+///         status: StatusCode::SERVICE_UNAVAILABLE,
+///     };
+/// }
+///
+/// struct GetUserProblem;
+///
+/// impl Problem for GetUserProblem {
+///     const VARIANTS: &'static [Variant] = &[Variant::of::<StoreBusy>()];
+/// }
+///
+/// #[derive(Debug)]
+/// struct ConnectionLost;
+/// # impl fmt::Display for ConnectionLost {
+/// #     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+/// #         formatter.write_str("the connection to the user store was lost")
+/// #     }
+/// # }
+/// # impl core::error::Error for ConnectionLost {}
+///
+/// impl Expose<GetUserProblem> for ConnectionLost {
+///     fn expose(&self) -> Answer<'_, GetUserProblem> {
+///         Answer::new(StoreBusy)
+///     }
+/// }
+///
+/// let response = Response::from(Rejection::<GetUserProblem>::from(ConnectionLost));
+///
+/// // A middleware finds the error the client did not receive.
+/// let rejected = response
+///     .extensions()
+///     .get::<Rejected>()
+///     .expect("the response should keep its rejection");
+/// assert_eq!(rejected.problem_type().title, "Store busy");
+/// assert!(rejected.error().is::<ConnectionLost>());
+/// ```
+#[derive(Debug, Clone)]
+pub struct Rejected {
+    problem_type: ProblemType,
+    error: Arc<dyn Error + Send + Sync>,
+    unserializable: Option<Arc<Unserializable>>,
+}
+
+impl Rejected {
+    /// The problem type the client received.
+    #[must_use]
+    pub const fn problem_type(&self) -> &ProblemType {
+        &self.problem_type
+    }
+
+    /// The error the rejection was created from.
+    ///
+    /// A `Report` is kept as an error that cannot be downcast back to the `Report`.
+    #[must_use]
+    pub fn error(&self) -> &(dyn Error + Send + Sync + 'static) {
+        &*self.error
+    }
+
+    /// Why the details of the variant failed to serialize, if they did.
+    ///
+    /// The client then received a bare `500 Internal Server Error` instead of the variant. The
+    /// error names the problem type and the status of the variant.
+    #[must_use]
+    pub fn serialization_error(&self) -> Option<&(dyn Error + Send + Sync + 'static)> {
+        self.unserializable
+            .as_deref()
+            .map(|error| error as &(dyn Error + Send + Sync + 'static))
+    }
+}
+
+/// The details of a variant failed to serialize.
+#[derive(Debug)]
+struct Unserializable {
+    problem_type: ProblemType,
+    error: serde_json::Error,
+}
+
+impl fmt::Display for Unserializable {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "the details of problem type `{}` with status {} failed to serialize: {}",
+            self.problem_type.type_uri,
+            self.problem_type.status.as_u16(),
+            self.error
+        )
+    }
+}
+
+impl Error for Unserializable {}
+
 /// The response answering with `answer`.
-fn render<K>(answer: &Answer<'_, K>) -> Response<Vec<u8>> {
+fn render<K>(answer: &Answer<'_, K>) -> Result<Response<Vec<u8>>, serde_json::Error> {
     let details = answer.details();
-    let body = match serde_json::to_vec(&details) {
-        Ok(body) => body,
-        Err(error) => {
-            // TODO(BE-892): record this with the rejection's error and its request, so the log
-            // says which request lost its public answer.
-            tracing::error!(
-                status = details.status.as_u16(),
-                type = %details.type_uri,
-                %error,
-                "failed to serialize problem details, answering with an internal error"
-            );
-            return internal();
-        }
-    };
+    let body = serde_json::to_vec(&details)?;
 
     let mut headers = HeaderMap::new();
     answer.headers(&mut headers);
-    problem_response(details.status, headers, body)
+    Ok(problem_response(details.status, headers, body))
 }
 
 /// The bare `500 Internal Server Error` a client receives when the details of its variant fail to
@@ -148,7 +275,7 @@ mod tests {
     use serde::Serialize;
     use serde_json::{Value, json};
 
-    use super::{Rejection, UNSERIALIZABLE};
+    use super::{Rejected, Rejection, UNSERIALIZABLE};
     use crate::{
         Answer, Expose, Header, Problem, ProblemDetails, ProblemType, ProblemVariant, Variant,
     };
@@ -308,6 +435,34 @@ mod tests {
         );
     }
 
+    fn rejected(response: &Response<Vec<u8>>) -> &Rejected {
+        response
+            .extensions()
+            .get::<Rejected>()
+            .expect("the response should keep its rejection")
+    }
+
+    #[test]
+    fn response_rejected() {
+        let response = Response::from(Rejection::<UpdateUserProblem>::from(UpdateUserError::Busy));
+        let rejected = rejected(&response);
+
+        assert_eq!(
+            *rejected.problem_type(),
+            StoreBusy::TYPE,
+            "the rejection should keep the problem type the client received"
+        );
+        assert_matches!(
+            rejected.error().downcast_ref(),
+            Some(UpdateUserError::Busy),
+            "the rejection should keep the error it was created from"
+        );
+        assert!(
+            rejected.serialization_error().is_none(),
+            "details that serialize should record no failure"
+        );
+    }
+
     #[test]
     fn response_unserializable() {
         let response = Response::from(Rejection::<UpdateUserProblem>::from(
@@ -328,6 +483,21 @@ mod tests {
             response.headers()[CONTENT_TYPE],
             "application/problem+json",
             "the internal problem should be a problem details document"
+        );
+
+        let rejected = rejected(&response);
+        assert_eq!(
+            *rejected.problem_type(),
+            UNSERIALIZABLE,
+            "the rejection should keep the problem type the client received instead"
+        );
+        let failure = rejected
+            .serialization_error()
+            .expect("the failure to serialize should be recorded")
+            .to_string();
+        assert!(
+            failure.contains("/problems/user/locked") && failure.contains("423"),
+            "the failure should name the variant whose details did not serialize: {failure}"
         );
     }
 }

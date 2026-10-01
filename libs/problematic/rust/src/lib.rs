@@ -17,7 +17,8 @@
 //!
 //! Answering with a variant whose problem type the [`Problem`] does not list fails to compile. A
 //! handler returns <code>Result&lt;_, [Rejection]&lt;K&gt;&gt;</code>, and `?` turns its error
-//! into the problem details response that `K` allows.
+//! into the problem details response that `K` allows. The response keeps the error in its
+//! extensions as [`Rejected`], so a middleware can log it together with its request.
 //!
 //! With the `aide` feature, the handler documents the variants of `K` in the OpenAPI document.
 //! Each status gets one `application/problem+json` response with the schema, the description, the
@@ -296,5 +297,5 @@ pub use self::{
     problem::{Header, Problem, ProblemVariant, Variant},
     problem_details::ProblemDetails,
     problem_type::ProblemType,
-    rejection::Rejection,
+    rejection::{Rejected, Rejection},
 };

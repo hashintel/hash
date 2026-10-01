@@ -50,18 +50,16 @@ impl Problem for QueryProblem {
 impl Expose<QueryProblem> for QueryRejection {
     fn expose(&self) -> Answer<'_, QueryProblem> {
         let detail = self.body_text();
-        match self {
-            Self::FailedToDeserializeQueryString(_) => Answer::new(MalformedQuery { detail }),
-            // `QueryRejection` is `#[non_exhaustive]`: these arms handle a rejection a later
-            // axum-extra version adds until an arm above names it.
-            _ if self.status().is_server_error() => {
-                tracing::error!(status = %self.status(), %detail, "axum-extra rejected the query in a way this extractor does not name");
-                Answer::new(InternalServerError)
-            }
-            _ => {
-                tracing::warn!(status = %self.status(), %detail, "axum-extra rejected the query in a way this extractor does not name");
-                Answer::new(MalformedQuery { detail })
-            }
+        if let Self::FailedToDeserializeQueryString(_) = self {
+            return Answer::new(MalformedQuery { detail });
+        }
+        // `QueryRejection` is `#[non_exhaustive]`: this handles a rejection a later axum-extra
+        // version adds until it is named above.
+        tracing::warn!(status = %self.status(), %detail, "axum-extra rejected the query in a way this extractor does not name");
+        if self.status().is_server_error() {
+            Answer::new(InternalServerError)
+        } else {
+            Answer::new(MalformedQuery { detail })
         }
     }
 }

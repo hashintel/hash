@@ -3,12 +3,14 @@
 use core::{future::Future, net::SocketAddr};
 
 use axum::extract::{ConnectInfo, MatchedPath, Request};
-use http::Response;
+use http::{Response, StatusCode};
 use opentelemetry::{
-    Context, global,
+    Context, KeyValue, global,
     propagation::{Extractor, Injector},
+    trace::TraceContextExt as _,
 };
 use opentelemetry_semantic_conventions::trace;
+use problematic::{ProblemType, Rejected};
 use tower::{Layer, Service};
 use tracing::{Instrument as _, Span, field::Empty};
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
@@ -69,6 +71,8 @@ fn create_http_span<B>(request: &Request<B>, skip: fn(&str) -> bool) -> Span {
         { trace::NETWORK_PEER_PORT } = Empty,
         { trace::HTTP_RESPONSE_STATUS_CODE } = Empty,
         { trace::HTTP_RESPONSE_BODY_SIZE } = Empty,
+        { "problem.type" } = Empty,
+        { trace::ERROR_TYPE } = Empty,
         // The authentication middleware records this field.
         { "actor_entity_uuid" } = Empty,
     );
@@ -132,6 +136,52 @@ fn record_response_attributes<B>(span: &Span, response: &http::Response<B>) {
     }
 }
 
+/// Records the rejection a problem details response was created from on the request span.
+///
+/// Every rejection sets `problem.type`. A client error adds its error to the span as an event,
+/// which reaches the trace but neither the logs nor the error attributes of the span. A server
+/// error, and a rejection whose details failed to serialize, set `error.type` and log the error at
+/// `ERROR`, which also reaches the trace as an event.
+fn record_rejection(span: &Span, status: StatusCode, rejected: &Rejected) {
+    let problem_type = rejected.problem_type();
+    span.record("problem.type", problem_type.type_uri.as_ref());
+
+    if let Some(serialization_error) = rejected.serialization_error() {
+        span.record(trace::ERROR_TYPE, error_type(problem_type).as_str());
+        tracing::error!(
+            error = ?rejected.error(),
+            %serialization_error,
+            "problem details failed to serialize, answered with an internal server error"
+        );
+    } else if status.is_server_error() {
+        span.record(trace::ERROR_TYPE, error_type(problem_type).as_str());
+        tracing::error!(
+            problem.type = %problem_type.type_uri,
+            error = ?rejected.error(),
+            "request failed with a server error"
+        );
+    } else {
+        // A span that is not recorded drops the event, so its error is not formatted.
+        let context = span.context();
+        if context.span().is_recording() {
+            span.add_event(
+                "request rejected with a client error",
+                vec![KeyValue::new("error", format!("{:?}", rejected.error()))],
+            );
+        }
+    }
+}
+
+/// The `error.type` of a server error: its type URI, or its status code for `about:blank`, whose
+/// status describes the problem.
+fn error_type(problem_type: &ProblemType) -> String {
+    if problem_type.type_uri == "about:blank" {
+        problem_type.status.as_str().to_owned()
+    } else {
+        problem_type.type_uri.to_string()
+    }
+}
+
 // Inject OpenTelemetry context into HTTP headers
 fn inject_context_to_headers(context: &Context, headers: &mut http::HeaderMap) {
     let mut injector = HeaderInjector(headers);
@@ -143,7 +193,11 @@ fn inject_context_to_headers(context: &Context, headers: &mut http::HeaderMap) {
 /// Spans every request the wrapped service serves, except the paths `skip` names.
 ///
 /// A skipped path — typically a health probe answered every few seconds — produces no span at
-/// all rather than a noisy one.
+/// all rather than a noisy one. A response a [`Rejection`] became carries the error behind it,
+/// which the span records: a server error is logged as well, a client error reaches the trace
+/// only.
+///
+/// [`Rejection`]: problematic::Rejection
 ///
 /// # Example
 ///
@@ -214,6 +268,9 @@ where
             if let Ok(response) = &mut result {
                 let current_span = Span::current();
                 record_response_attributes(&current_span, response);
+                if let Some(rejected) = response.extensions().get::<Rejected>() {
+                    record_rejection(&current_span, response.status(), rejected);
+                }
 
                 let otel_context = current_span.context();
                 inject_context_to_headers(&otel_context, response.headers_mut());
@@ -227,16 +284,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use alloc::sync::Arc;
+    use alloc::{borrow::Cow, sync::Arc};
     use std::sync::Mutex;
 
     use axum::{Router, body::Body, routing::get};
-    use http::Request;
+    use http::{Request, StatusCode};
+    use opentelemetry_sdk::trace::SpanData;
+    use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
     use tower::ServiceExt as _;
     use tracing::instrument::WithSubscriber as _;
     use tracing_subscriber::layer::SubscriberExt as _;
 
     use super::HttpTracingLayer;
+    use crate::{problem::InternalServerError, test_tracing::RecordedTrace};
 
     /// Records the name of every span opened under the subscriber it is layered onto.
     #[derive(Clone, Default)]
@@ -289,6 +349,130 @@ mod tests {
             names.as_slice(),
             ["HTTP request"],
             "the skipped path should open no span, the other path exactly one"
+        );
+    }
+
+    /// The limit is not a number.
+    #[derive(serde::Serialize, schemars::JsonSchema, derive_more::Display)]
+    #[display("The limit is not a number.")]
+    struct InvalidLimit;
+
+    impl ProblemVariant for InvalidLimit {
+        const TYPE: ProblemType = ProblemType {
+            type_uri: Cow::Borrowed("https://example.com/problems/invalid-limit"),
+            title: Cow::Borrowed("Invalid limit"),
+            status: StatusCode::BAD_REQUEST,
+        };
+    }
+
+    struct ListEntitiesProblem;
+
+    impl Problem for ListEntitiesProblem {
+        const VARIANTS: &'static [Variant] = &[
+            Variant::of::<InvalidLimit>(),
+            Variant::of::<InternalServerError>(),
+        ];
+    }
+
+    #[derive(Debug, Clone, Copy, derive_more::Display)]
+    enum ListEntitiesError {
+        #[display("the limit `many` is not a number")]
+        Limit,
+        #[display("the entity store is unreachable")]
+        Store,
+    }
+
+    impl core::error::Error for ListEntitiesError {}
+
+    impl Expose<ListEntitiesProblem> for ListEntitiesError {
+        fn expose(&self) -> Answer<'_, ListEntitiesProblem> {
+            match self {
+                Self::Limit => Answer::new(InvalidLimit),
+                Self::Store => Answer::new(InternalServerError),
+            }
+        }
+    }
+
+    /// Serves one request whose handler fails with `error`, and returns what it traced and logged
+    /// together with the span of the request.
+    async fn serve_failing(error: ListEntitiesError) -> (RecordedTrace, SpanData) {
+        let trace = RecordedTrace::new();
+        let handler =
+            move || async move { Err::<(), _>(Rejection::<ListEntitiesProblem>::from(error)) };
+        let router: Router = Router::new()
+            .route("/entities", get(handler))
+            .layer(HttpTracingLayer::new(|_| false));
+
+        router
+            .oneshot(
+                Request::builder()
+                    .uri("/entities")
+                    .body(Body::empty())
+                    .expect("the request should build"),
+            )
+            .with_subscriber(trace.dispatch())
+            .await
+            .expect("the router should respond");
+
+        let span = trace
+            .spans()
+            .pop()
+            .expect("the request should export its span");
+        (trace, span)
+    }
+
+    fn attribute(span: &SpanData, key: &str) -> Option<String> {
+        span.attributes
+            .iter()
+            .find(|attribute| attribute.key.as_str() == key)
+            .map(|attribute| attribute.value.as_str().into_owned())
+    }
+
+    #[tokio::test]
+    async fn rejection_server_error() {
+        let (trace, span) = serve_failing(ListEntitiesError::Store).await;
+
+        assert_eq!(
+            trace
+                .levels()
+                .iter()
+                .filter(|level| **level == tracing::Level::ERROR)
+                .count(),
+            1,
+            "a server error should be logged once, at `ERROR`"
+        );
+        assert!(
+            trace.traces_error("Store"),
+            "the trace should carry the error behind the rejection"
+        );
+        assert_eq!(
+            attribute(&span, "error.type").as_deref(),
+            Some("500"),
+            "the error type of an `about:blank` problem should be its status"
+        );
+    }
+
+    #[tokio::test]
+    async fn rejection_client_error() {
+        let (trace, span) = serve_failing(ListEntitiesError::Limit).await;
+
+        assert!(
+            trace.levels().is_empty(),
+            "a client error should not be logged"
+        );
+        assert_eq!(
+            attribute(&span, "error.type"),
+            None,
+            "a client error should set no error type"
+        );
+        assert_eq!(
+            attribute(&span, "problem.type").as_deref(),
+            Some("https://example.com/problems/invalid-limit"),
+            "the span should name the problem type the client received"
+        );
+        assert!(
+            trace.traces_error("Limit"),
+            "the trace should carry the error behind the rejection"
         );
     }
 }

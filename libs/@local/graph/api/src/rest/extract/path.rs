@@ -46,14 +46,13 @@ impl Problem for PathProblem {
 
 impl Expose<PathProblem> for PathRejection {
     fn expose(&self) -> Answer<'_, PathProblem> {
-        let detail = self.body_text();
         // Axum answers `500` for `MissingPathParams` and for a `FailedToDeserializePathParams`
         // with the wrong number of parameters or a type it cannot read: the route and its handler
         // disagree, which the client cannot fix.
         if self.status().is_server_error() {
-            tracing::error!(%detail, "the route cannot extract the path parameters its handler reads");
             return Answer::new(InternalServerError);
         }
+        let detail = self.body_text();
         if !matches!(self, Self::FailedToDeserializePathParams(_)) {
             // `PathRejection` is `#[non_exhaustive]`: this handles a rejection a later axum version
             // adds until it is named above.
