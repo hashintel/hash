@@ -1,7 +1,12 @@
 import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 
 import { PetrinautStoryProvider } from "../petrinaut-story-provider";
-import { demoControllers, withControllers } from "./scheduler-example";
+import {
+  demoConstraints,
+  demoControllers,
+  withConstraints,
+  withControllers,
+} from "./scheduler-example";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -20,9 +25,12 @@ export const Scheduler: Story = {
     <div style={{ height: "100vh", width: "100vw" }}>
       <PetrinautStoryProvider
         initialTitle={supplyChainWithDisruption.title}
-        initialDefinition={withControllers(
-          supplyChainWithDisruption.petriNetDefinition,
-          demoControllers
+        initialDefinition={withConstraints(
+          withControllers(
+            supplyChainWithDisruption.petriNetDefinition,
+            demoControllers
+          ),
+          demoConstraints
         )}
       />
     </div>
@@ -48,9 +56,12 @@ export const ReadOnly: Story = {
       <PetrinautStoryProvider
         readonly
         initialTitle={supplyChainWithDisruption.title}
-        initialDefinition={withControllers(
-          supplyChainWithDisruption.petriNetDefinition,
-          demoControllers
+        initialDefinition={withConstraints(
+          withControllers(
+            supplyChainWithDisruption.petriNetDefinition,
+            demoControllers
+          ),
+          demoConstraints
         )}
       />
     </div>

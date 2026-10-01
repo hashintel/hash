@@ -25,6 +25,7 @@ export const selectionItemTypes = [
   "differentialEquation",
   "parameter",
   "controller",
+  "constraint",
 ] as const;
 
 export type SelectionItemType = (typeof selectionItemTypes)[number];
@@ -37,7 +38,8 @@ export type SelectionItem =
   | { type: "type"; id: string }
   | { type: "differentialEquation"; id: string }
   | { type: "parameter"; id: string }
-  | { type: "controller"; id: string };
+  | { type: "controller"; id: string }
+  | { type: "constraint"; id: string };
 
 /** Map from item ID -> typed SelectionItem. O(1) lookup for ReactFlow bridge. */
 export type SelectionMap = Map<string, SelectionItem>;

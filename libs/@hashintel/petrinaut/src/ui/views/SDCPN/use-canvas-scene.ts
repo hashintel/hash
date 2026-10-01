@@ -80,7 +80,7 @@ export const useCanvasScene = (
   );
   const selectedNodeIds = new Set(
     Array.from(selection.values())
-      .filter((item) => item.type !== "controller")
+      .filter((item) => item.type !== "controller" && item.type !== "constraint")
       .map((item) => item.id),
   );
 

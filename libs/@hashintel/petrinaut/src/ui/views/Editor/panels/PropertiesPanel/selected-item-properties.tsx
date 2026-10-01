@@ -6,6 +6,7 @@ import { usePetrinautMutations } from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
+import { ConstraintProperties } from "../../../../controller-prototype/constraint-panel";
 import { ControllerProperties } from "../../../../controller-prototype/controller-panel";
 import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
@@ -150,6 +151,9 @@ const SelectedItemPropertiesContent: React.FC = () => {
 
       case "controller":
         return <ControllerProperties controllerId={item.id} />;
+
+      case "constraint":
+        return <ConstraintProperties constraintId={item.id} />;
 
       case "componentInstance": {
         const instance = petriNetDefinition.componentInstances.find(

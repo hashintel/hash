@@ -53,18 +53,10 @@ export type Controller = {
   id: string;
   name: string;
   levers: Lever[];
-  /** Ids from {@link standInConstraints} the controller must respect. */
+  /** Ids of the net's constraints the controller must respect. */
   constraintIds?: string[];
   goal?: { direction: GoalDirection; metricId: string };
 };
-
-/** The net has no constraints to read yet, so the prototype offers this fixed list. */
-export const standInConstraints: { id: string; name: string }[] = [
-  { id: "backorders_under_20", name: "Backorders stay under 20" },
-  { id: "machine_health_above_0_2", name: "Machine health above 0.2" },
-  { id: "scrap_under_5", name: "Scrap under 5% of batches" },
-  { id: "order_wait_under_14_days", name: "No order waits over 14 days" },
-];
 
 export const leverKindLabel: Record<LeverKind, string> = {
   choice: "Choice",
@@ -560,11 +552,11 @@ export const rateExpression = (lambdaCode: string): string | null => {
   return expression.length <= 48 ? expression : null;
 };
 
-/** Drops controllers from a selection, for actions that only know net entities. */
+/** Drops controllers and constraints from a selection, for actions that only know net entities. */
 export const withoutControllers = <Item extends { type: string }>(
   items: Item[],
-): Exclude<Item, { type: "controller" }>[] =>
+): Exclude<Item, { type: "controller" | "constraint" }>[] =>
   items.filter(
-    (item): item is Exclude<Item, { type: "controller" }> =>
-      item.type !== "controller",
+    (item): item is Exclude<Item, { type: "controller" | "constraint" }> =>
+      item.type !== "controller" && item.type !== "constraint",
   );

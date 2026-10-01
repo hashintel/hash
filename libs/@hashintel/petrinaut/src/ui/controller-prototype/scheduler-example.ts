@@ -1,5 +1,7 @@
+import { CONSTRAINTS_METADATA_KEY } from "../../react/controller-prototype/constraints";
 import { CONTROLLERS_METADATA_KEY } from "../../react/controller-prototype/controllers";
 
+import type { ModelConstraint } from "../../react/controller-prototype/constraints";
 import type { Controller } from "../../react/controller-prototype/controllers";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -51,6 +53,87 @@ export const demoControllers: Controller[] = [
     ],
   },
 ];
+
+/** Four constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
+export const demoConstraints: ModelConstraint[] = [
+  {
+    id: "backorders_under_20",
+    name: "Backorders stay under 20",
+    time: "always",
+    window: { kind: "between", from: 30, to: 360 },
+    checks: [
+      {
+        subject: { kind: "placeTokens", id: "place_backorders" },
+        op: "below",
+        bound: 20,
+      },
+    ],
+    tolerance: 95,
+    mode: "monitored",
+  },
+  {
+    id: "machine_health_above_0_2",
+    name: "Machine health above 0.2",
+    time: "always",
+    checks: [
+      {
+        subject: {
+          kind: "tokenField",
+          id: "place_machine_up",
+          field: "machine_health",
+        },
+        op: "above",
+        bound: 0.2,
+      },
+    ],
+    tolerance: 99,
+    mode: "monitored",
+  },
+  {
+    id: "scrap_under_5",
+    name: "Scrap under 5% of batches",
+    time: "always",
+    checks: [
+      {
+        subject: { kind: "metric", id: "metric_scrap_rate" },
+        op: "below",
+        bound: 0.05,
+      },
+    ],
+    tolerance: 90,
+    mode: "monitored",
+  },
+  {
+    id: "order_wait_under_14_days",
+    name: "No order waits over 14 days",
+    forEvery: {
+      typeId: "type_order",
+      where: "in",
+      placeIds: ["place_orders", "place_backorders"],
+    },
+    time: "always",
+    checks: [
+      {
+        subject: { kind: "tokenField", id: "type_order", field: "order_age" },
+        op: "below",
+        bound: 14,
+      },
+    ],
+    tolerance: 90,
+    mode: "monitored",
+  },
+];
+
+export const withConstraints = (
+  sdcpn: SDCPN,
+  constraints: ModelConstraint[]
+): SDCPN => ({
+  ...sdcpn,
+  metadata: {
+    ...sdcpn.metadata,
+    [CONSTRAINTS_METADATA_KEY]: constraints,
+  },
+});
 
 export const withControllers = (
   sdcpn: SDCPN,

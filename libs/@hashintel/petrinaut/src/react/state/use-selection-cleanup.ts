@@ -4,12 +4,16 @@ import {
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
+  type SelectionItem,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "./active-net-context";
 import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
+
+const isMetadataEntity = (item: SelectionItem) =>
+  item.type === "controller" || item.type === "constraint";
 
 /**
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.
@@ -73,10 +77,10 @@ export function useSelectionCleanup() {
 
     // Check if any selected ID is stale
     let hasStale = false;
-    // Controllers live in the net's metadata, not the active net, so a
-    // controller selection is left for the panel to resolve.
+    // Controllers and constraints live in the net's metadata, not the active
+    // net, so their selection is left for the panel to resolve.
     for (const [id, item] of selection) {
-      if (!validIds.has(id) && item.type !== "controller") {
+      if (!validIds.has(id) && !isMetadataEntity(item)) {
         hasStale = true;
         break;
       }
@@ -87,7 +91,7 @@ export function useSelectionCleanup() {
         (prev) => {
           const cleaned: SelectionMap = new Map();
           for (const [id, item] of prev) {
-            if (validIds.has(id) || item.type === "controller") {
+            if (validIds.has(id) || isMetadataEntity(item)) {
               cleaned.set(id, item);
             }
           }

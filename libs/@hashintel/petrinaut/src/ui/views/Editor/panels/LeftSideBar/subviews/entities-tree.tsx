@@ -3,6 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
+import { useConstraints } from "../../../../../../react/controller-prototype/use-constraints";
 import { useControllers } from "../../../../../../react/controller-prototype/use-controllers";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
@@ -16,6 +17,7 @@ import {
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
 import { NodeContextMenu } from "../../../../../controller-prototype/add-to-controller-menu";
+import { useConstraintsTreeGroup } from "../../../../../controller-prototype/constraint-tree";
 import {
   leverTagStyle,
   useControllersTreeGroup,
@@ -75,6 +77,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { removeType, removeDifferentialEquation, removeParameter } =
     usePetrinautMutations();
   const { updateControllers } = useControllers();
+  const { removeConstraint } = useConstraints();
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
@@ -108,6 +111,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
       updateControllers((current) =>
         current.filter((controller) => controller.id !== item.id),
       ),
+    constraint: () => removeConstraint(item.id),
   };
   // A lever row selects its node, but it is not the node's own row.
   const deleteAction = item.tag ? undefined : deleteActions[type];
@@ -153,6 +157,10 @@ function useEntityTreeItems(): EntityTreeItem[] {
     presentation.showMutationActions ? action : undefined,
   );
 
+  const constraintsGroup = useConstraintsTreeGroup((action) =>
+    presentation.showMutationActions ? action : undefined,
+  );
+
   // Adding an entity is a mutation, so a presentation that hides authoring
   // chrome hides a group's Add button with it.
   const addAction = (action: ComponentType): ComponentType | undefined =>
@@ -160,6 +168,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
 
   return [
     controllersGroup,
+    constraintsGroup,
     {
       id: "group-nodes",
       name: "Nodes",

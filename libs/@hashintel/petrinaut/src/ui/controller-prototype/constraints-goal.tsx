@@ -9,7 +9,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { standInConstraints } from "../../react/controller-prototype/controllers";
+import { useConstraints } from "../../react/controller-prototype/use-constraints";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../react/state/use-is-read-only";
 import {
@@ -51,8 +51,6 @@ const constraintNameStyle = css({ minWidth: "0" });
 
 const removeButtonStyle = css({ marginLeft: "auto" });
 
-const alwaysTagStyle = css({ fontSize: "xs", color: "neutral.s90" });
-
 const addButtonStyle = css({ marginLeft: "0" });
 
 const goalRowStyle = css({ display: "flex", gap: "2", alignItems: "center" });
@@ -78,13 +76,14 @@ export const ConstraintsSection: React.FC<{
   update: Update;
 }> = ({ controller, update }) => {
   const isReadOnly = useIsReadOnly();
+  const { constraints } = useConstraints();
   const chosenIds = controller.constraintIds ?? [];
-  const chosen = standInConstraints.filter(({ id }) => chosenIds.includes(id));
+  const chosen = constraints.filter(({ id }) => chosenIds.includes(id));
 
   const setChosen = (id: string, on: boolean) =>
     update((current) => ({
       ...current,
-      constraintIds: standInConstraints
+      constraintIds: constraints
         .map((constraint) => constraint.id)
         .filter((candidate) =>
           candidate === id
@@ -97,19 +96,27 @@ export const ConstraintsSection: React.FC<{
     {
       id: "net-constraints",
       label: "The net's constraints",
-      items: standInConstraints.map(
+      items: constraints.map(
         ({ id, name }): MenuItem => ({
           id,
           text: name,
           selectedStyle: "checkbox",
           keepOpenOnSelect: true,
-          suffix: <span className={alwaysTagStyle}>always</span>,
           selected: chosenIds.includes(id),
           onClick: () => setChosen(id, !chosenIds.includes(id)),
         }),
       ),
     },
   ];
+
+  if (constraints.length === 0) {
+    return (
+      <div>
+        <div className={headingStyle}>Constraints</div>
+        <div className={mutedTextStyle}>The net has no constraints</div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -120,7 +127,6 @@ export const ConstraintsSection: React.FC<{
         chosen.map(({ id, name }) => (
           <div key={id} className={constraintRowStyle}>
             <span className={constraintNameStyle}>{name}</span>
-            <span className={alwaysTagStyle}>always</span>
             {isReadOnly ? null : (
               <Button
                 size="xs"

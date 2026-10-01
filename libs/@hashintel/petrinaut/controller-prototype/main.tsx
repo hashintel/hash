@@ -4,7 +4,9 @@ import { createRoot } from "react-dom/client";
 import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 
 import {
+  demoConstraints,
   demoControllers,
+  withConstraints,
   withControllers,
   withNeutralBatchColor,
 } from "../src/ui/controller-prototype/scheduler-example";
@@ -14,7 +16,7 @@ const params = new URLSearchParams(location.search);
 
 /**
  * The controller prototype on its own page, without Storybook. `?readonly`
- * opens it read-only; `?empty` starts with no controllers.
+ * opens it read-only; `?empty` starts with no controllers and no constraints.
  */
 const App = () => (
   <div style={{ height: "100vh", width: "100vw" }}>
@@ -24,9 +26,12 @@ const App = () => (
       initialDefinition={withNeutralBatchColor(
         params.has("empty")
           ? supplyChainWithDisruption.petriNetDefinition
-          : withControllers(
-              supplyChainWithDisruption.petriNetDefinition,
-              demoControllers
+          : withConstraints(
+              withControllers(
+                supplyChainWithDisruption.petriNetDefinition,
+                demoControllers
+              ),
+              demoConstraints
             )
       )}
     />

@@ -32,6 +32,7 @@ export type SDCPNContextValue = SDCPNProviderProps & {
     | "differentialEquation"
     | "parameter"
     | "controller"
+    | "constraint"
     | null;
 };
 
