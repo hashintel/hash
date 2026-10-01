@@ -377,7 +377,8 @@ submit. Brunch entering an error state does the same: inputs still awaiting
 judgment, and inputs already cleared but waiting for the composer, are
 discarded without retry. Speaking again discards them like unsubmitted
 ungated turns: their words stay visible to send from the composer, and their
-delegations are told the person started speaking again. Each discarded input
+delegations are told the person started speaking again; superseded ones,
+already replaced by newer speech, are dropped quietly. Each discarded input
 gets an `input.dropped` trace with `reason` (`stopped`, `error`,
 `speech-started`, or `ended` when voice ends) and the gate `decision` it had
 reached (`pending` or `submit`), metadata only.

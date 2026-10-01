@@ -1194,6 +1194,49 @@ test.each([
   },
 );
 
+test("speech start drops a superseded gated input quietly", async () => {
+  vi.stubEnv("DEV", true);
+  const history = new VoiceMediationHistory("test");
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi.fn().mockReturnValue(pending.promise);
+  const fixture = setup(
+    {
+      history,
+      prepare: async () => ({}),
+      summarize: async (text) => text,
+      offered: vi.fn(),
+    },
+    judge,
+    { enforce: true },
+  );
+  await fixture.bridge.accept({
+    ...speech("old", "PRIVATE replaced words"),
+    superseded: true,
+  });
+
+  fixture.bridge.speechStarted();
+  pending.resolve(null);
+  await pending.promise;
+  await Promise.resolve();
+
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+  expect(fixture.notice).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(
+    history.project([]).find((message) => message.id === "old"),
+  ).toBeUndefined();
+  expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+    expect.objectContaining({
+      inputId: "old",
+      reason: "speech-started",
+      decision: "pending",
+    }),
+  ]);
+  expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+  fixture.bridge.stop();
+});
+
 test("enforcement fails open at one second and ignores a late withholding result", async () => {
   vi.useFakeTimers();
   try {

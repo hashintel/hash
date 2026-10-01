@@ -276,6 +276,8 @@ export class LiveBrunchBridge {
         const delegationId =
           this.#gatedInputs.get(input.id)?.delegationId ?? null;
         this.#gatedInputs.delete(input.id);
+        // Newer speech already replaced these words; resending them is not asked for.
+        if (input.superseded) continue;
         this.#dependencies.mediation.history.unsent(
           input.id,
           input.text,
