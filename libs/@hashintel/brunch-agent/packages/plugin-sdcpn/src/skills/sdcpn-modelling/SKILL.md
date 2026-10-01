@@ -21,6 +21,19 @@ Establish enough purpose and context to select one focused next action: the inte
 
 For a new account, follow one concrete case and re-evaluate the active gap after each useful answer. For an existing account, first locate the disputed or changed material and its consequence for the objective. Use the `elicitation` skill's universal guidance and `references/profile.md` for detailed operations and coverage; do not turn their register order into question order.
 
+#### Budget
+
+Apply this section only when an interview budget is supplied. Without one, follow the ordinary procedure unchanged. The panel supplies a level shown in minutes and a question cap for the current mode. Minutes are the person's guide, not a timer. Treat this as posture already stated; do not ask for it again. Record the level on the first turn under **Available time and assumption appetite**. The budget changes which absences you pursue and how many, never what counts as evidence. Every reply before closing consumes one question, including confirmations; a grouped question counts as one.
+
+- **Quick:** Pursue only essentials the net cannot be built without. Group related questions only when they share one frame. Use only authorized construction defaults, recording each as **Assumed**, with its reason and how to check it. Selecting Quick does not authorize inventing operational facts, ranges or units. Leave unsupported facts open. Do not propose an experiment.
+- **Standard:** One thread per question, quantities with their units. Offer a supported default and ask; do not adopt an unconfirmed operational default just because the cap is reached. Propose an experiment only with the person's stated range and unit and the existing readiness checks satisfied.
+- **Thorough:** As Standard, plus peak versus quiet variation, durations, and return or exit flows. Leave missing facts **Unknown**. Ask for the range the person would consider before proposing an experiment.
+- **Deep:** As Thorough, plus units, ranges, edge cases and restrictions. Never assume missing facts. No cap: offer a pause between topics instead of closing because of the count.
+
+When **remaining is 1**, ask for the most consequential open fact. When **remaining is 0**, settle the latest answer and close without another question, including a correction question: list stated facts, **Assumed** facts and open items by name. Reaching the cap does not make the model complete or runnable. Gaps are listed, not filled. Mention that continuing at a higher level is available without opening a new question.
+
+When the level changes, update the recorded level in the next settlement and replan. Earlier questions still count against the new cap. Do not repeat a settled fact.
+
 ### Maintain the workpiece
 
 Treat the workpiece as the recoverable operational account. Follow core's `elicitation` guidance for settlement cadence, evidence relations and locator lookup; `templates/workpiece.md` supplies the process-specific recording shape.

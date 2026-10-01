@@ -9,6 +9,7 @@
 
 import {
   useContextProjection,
+  useDelivery,
   useInitialData,
   useInstruction,
   useTool,
@@ -16,14 +17,17 @@ import {
 } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
+import * as v from "valibot";
 
 import { createWorkpieceReadTool } from "@hashintel/brunch-agent";
 import {
   canonicalContent,
+  interviewBudgetSchema,
   sdcpnInitialDataSchema,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
@@ -56,6 +60,14 @@ const chatModelOptions = {
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
+  // Flue initialData is immutable birth data. The durable current delivery
+  // carries the changing allowance and an ordinary body explicitly means Off.
+  const delivery = useDelivery();
+  const body = parsePetrinautUserMessageBody(delivery.body);
+  const interviewBudget = v.parse(
+    v.optional(interviewBudgetSchema),
+    body.kind === "contextual" ? body.interviewBudget : undefined,
+  );
   useContextProjection(projectBrunchContext);
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
@@ -77,6 +89,7 @@ export function ChatAgent({ id }: AgentProps) {
       useSdcpnPlugin(
         initialData
           ? {
+              interviewBudget,
               authorizeDraft: async (draftCallId: string) => {
                 if (!latestNetReadBefore(await history(), draftCallId))
                   throw new Error(
@@ -100,7 +113,7 @@ export function ChatAgent({ id }: AgentProps) {
                 return { output: result.output, metadata: result.metadata };
               },
             }
-          : {},
+          : { interviewBudget },
       );
       if (initialData) {
         useTool(createWorkpieceReadTool({ currentRevision, readSources }));

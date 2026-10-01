@@ -2,12 +2,15 @@ import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
 
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
+const budgetContextPrefix = "petrinaut-contextual-user-message:v2\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
 const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
 
 export interface PetrinautContextualUserMessagePayload {
   readonly userText: string;
   readonly diagnosticsContext: string;
+  /** Host-owned per-submission data, validated by the domain plugin. */
+  readonly interviewBudget?: unknown;
 }
 
 export type PetrinautUserMessageBody =
@@ -42,7 +45,8 @@ export const petrinautContextualUserMessageBody = (
     payload.userText.length === 0 ||
     Array.from(payload.userText).length >
       PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH ||
-    payload.diagnosticsContext.length === 0 ||
+    (payload.diagnosticsContext.length === 0 &&
+      payload.interviewBudget === undefined) ||
     Array.from(payload.diagnosticsContext).length >
       CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH
   ) {
@@ -50,7 +54,11 @@ export const petrinautContextualUserMessageBody = (
       "The contextual user message payload is invalid or too long.",
     );
   }
-  const body = `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
+  const prefix =
+    payload.interviewBudget === undefined
+      ? PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX
+      : budgetContextPrefix;
+  const body = `${prefix}${JSON.stringify(payload)}`;
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
     throw new Error("The contextual user message body is too long.");
   }
@@ -61,7 +69,10 @@ export const petrinautContextualUserMessageBody = (
 export const parsePetrinautUserMessageBody = (
   body: string,
 ): PetrinautUserMessageBody => {
-  if (!body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)) {
+  const prefix = body.startsWith(budgetContextPrefix)
+    ? budgetContextPrefix
+    : PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX;
+  if (!body.startsWith(prefix)) {
     return { kind: "ordinary", userText: body };
   }
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
@@ -69,16 +80,19 @@ export const parsePetrinautUserMessageBody = (
   }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(
-      body.slice(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length),
-    );
+    parsed = JSON.parse(body.slice(prefix.length));
   } catch {
     return { kind: "invalid-contextual" };
   }
   const payload = asRecord(parsed);
   if (
     payload === null ||
-    !hasExactKeys(payload, ["diagnosticsContext", "userText"]) ||
+    !hasExactKeys(
+      payload,
+      prefix === budgetContextPrefix
+        ? ["diagnosticsContext", "interviewBudget", "userText"]
+        : ["diagnosticsContext", "userText"],
+    ) ||
     typeof payload.userText !== "string" ||
     typeof payload.diagnosticsContext !== "string"
   ) {
@@ -88,6 +102,9 @@ export const parsePetrinautUserMessageBody = (
     petrinautContextualUserMessageBody({
       userText: payload.userText,
       diagnosticsContext: payload.diagnosticsContext,
+      ...(prefix === budgetContextPrefix
+        ? { interviewBudget: payload.interviewBudget }
+        : {}),
     });
   } catch {
     return { kind: "invalid-contextual" };
@@ -96,5 +113,8 @@ export const parsePetrinautUserMessageBody = (
     kind: "contextual",
     userText: payload.userText,
     diagnosticsContext: payload.diagnosticsContext,
+    ...(prefix === budgetContextPrefix
+      ? { interviewBudget: payload.interviewBudget }
+      : {}),
   };
 };

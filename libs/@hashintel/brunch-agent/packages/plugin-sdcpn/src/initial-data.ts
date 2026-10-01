@@ -1,5 +1,7 @@
 import * as v from "valibot";
 
+import { interviewBudgetSchema } from "./interview-budget";
+
 const browserBindingSchema = v.strictObject({
   conversationId: v.string(),
   documentId: v.string(),
@@ -7,7 +9,10 @@ const browserBindingSchema = v.strictObject({
 });
 
 export const sdcpnInitialDataSchema = v.optional(
-  v.object({ binding: browserBindingSchema }),
+  v.object({
+    binding: browserBindingSchema,
+    interviewBudget: v.optional(interviewBudgetSchema),
+  }),
 );
 
 export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;

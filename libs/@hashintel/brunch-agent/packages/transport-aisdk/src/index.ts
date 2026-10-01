@@ -61,6 +61,8 @@ export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
   /** Opaque host-owned initialization, sent on user submissions only. */
   readonly initialData?: AgentPromptOptions["initialData"];
+  /** Current host budget, carried durably because initialData is creation-only. */
+  readonly interviewBudget?: unknown;
   /** Best-effort pre-admission presentation; canonical Flue history remains authoritative. */
   readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
@@ -384,11 +386,15 @@ export const createFlueChatTransport = <
     const message: DeliveredMessage = {
       kind: "user",
       body:
-        diagnosticsContext === undefined
+        diagnosticsContext === undefined &&
+        options.interviewBudget === undefined
           ? userMessage.text
           : petrinautContextualUserMessageBody({
               userText: userMessage.text,
-              diagnosticsContext,
+              diagnosticsContext: diagnosticsContext ?? "",
+              ...(options.interviewBudget === undefined
+                ? {}
+                : { interviewBudget: options.interviewBudget }),
             }),
     };
     const idempotencyKey = `ai-sdk:user:${userMessage.id}`;
