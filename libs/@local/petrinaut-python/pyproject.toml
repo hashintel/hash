@@ -36,7 +36,6 @@ dev = [
 [tool.uv.build-backend]
 module-name = "petrinaut"
 
-
 [tool.tach]
 source_roots                 = ["src"]
 exclude                      = []

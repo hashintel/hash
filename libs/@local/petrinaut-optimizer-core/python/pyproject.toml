@@ -19,7 +19,6 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = ["deptry<0.26,>=0.25.1", "pytest>=9.1.1,<10", "pytest-asyncio>=1.4,<2", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]
 
-
 [tool.tach]
 source_roots                 = ["src"]
 exclude                      = []
