@@ -295,6 +295,9 @@ impl FromStr for HashedApiToken {
         if token.len() != TOKEN_LENGTH {
             return Err(ApiTokenParseError::Length);
         }
+        if !token.is_ascii() {
+            return Err(ApiTokenParseError::Encoding);
+        }
 
         let (signed, checksum) = token.as_bytes().split_at(TOKEN_LENGTH - CHECKSUM_LENGTH);
         if checksum != encode_base62::<CHECKSUM_LENGTH>(u128::from(crc32fast::hash(signed))) {
@@ -741,6 +744,20 @@ mod tests {
                 .expect_err("a truncated token should not parse"),
             ApiTokenParseError::Length,
             "a truncated token should be reported as the wrong length"
+        );
+    }
+
+    #[test]
+    fn parse_non_ascii() {
+        // `é` takes two bytes, so the token keeps its length in bytes.
+        let token = fixed_token().expose().replacen("abcdefg", "abcde\u{e9}", 1);
+
+        assert_matches!(
+            token
+                .parse::<HashedApiToken>()
+                .expect_err("a non-ASCII token should not parse"),
+            ApiTokenParseError::Encoding,
+            "a non-ASCII token should be reported as malformed"
         );
     }
 
