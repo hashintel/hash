@@ -83,6 +83,14 @@ export const constraintModeLabel: Record<ConstraintMode, string> = {
   stopEarly: "Stop the run early",
 };
 
+export const constraintModeHint: Record<ConstraintMode, string> = {
+  monitored: "Every run completes. You see which runs failed.",
+  enforcedSoft: "The optimiser prefers inputs that keep it, but may break it.",
+  enforcedHard:
+    "The optimiser rejects inputs that hold in under this share of runs.",
+  stopEarly: "A failing run stops and counts as failed.",
+};
+
 export const emptyCheck = (): Check => ({
   subject: null,
   op: "below",

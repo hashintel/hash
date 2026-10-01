@@ -14,6 +14,7 @@ import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import {
   constraintCode,
+  constraintModeHint,
   emptyCheck,
   forEveryHint,
   constraintModeLabel,
@@ -137,12 +138,6 @@ const dotStyle = css({
   flexShrink: "0",
 });
 
-const toleranceRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-});
-
 // The tooltip trigger zeroes its line height for icons, so text needs its own.
 const tooltipFillStyle = css({
   display: "block",
@@ -167,23 +162,32 @@ const windowItems: { value: WindowKind; text: string }[] = [
   { value: "within", text: "within" },
 ];
 
-const modeItems: { value: ConstraintMode; text: string }[] = [
-  { value: "monitored", text: constraintModeLabel.monitored },
-  { value: "enforcedSoft", text: constraintModeLabel.enforcedSoft },
-  { value: "enforcedHard", text: constraintModeLabel.enforcedHard },
-];
-
 const hintTextStyle = css({ display: "block", maxWidth: "[250px]",
   fontWeight: "normal" });
 
-const withHint = (word: TimeWord, position: Position): React.ReactNode => (
+// Narrow enough to open to the right of the mode menu inside a 1440px window.
+const narrowHintStyle = css({ maxWidth: "[215px]" });
+
+const withTextHint = (
+  label: string,
+  hint: string,
+  position: Position,
+  narrow = false,
+): React.ReactNode => (
   <Tooltip
-    content={<span className={hintTextStyle}>{timeWordHint[word]}</span>}
+    content={
+      <span className={cx(hintTextStyle, narrow && narrowHintStyle)}>
+        {hint}
+      </span>
+    }
     position={position}
   >
-    <span className={tooltipFillStyle}>{timeWordLabel[word]}</span>
+    <span className={tooltipFillStyle}>{label}</span>
   </Tooltip>
 );
+
+const withHint = (word: TimeWord, position: Position): React.ReactNode =>
+  withTextHint(timeWordLabel[word], timeWordHint[word], position);
 
 // Wider and roomier than the DS default, with the tooltip trigger and the
 // "More" chevron spanning the row.
@@ -439,6 +443,55 @@ const ForEveryRows: React.FC<{
         />
       </div>
     </>
+  );
+};
+
+const ModeMenu: React.FC<{
+  constraint: ModelConstraint;
+  disabled: boolean;
+  update: UpdateConstraint;
+}> = ({ constraint, disabled, update }) => {
+  const modeItem = (mode: ConstraintMode): MenuItem => ({
+    id: mode,
+    text: withTextHint(
+      constraintModeLabel[mode],
+      constraintModeHint[mode],
+      "right-start",
+      true,
+    ),
+    selectedStyle: "tick",
+    selected: constraint.mode === mode,
+    onClick: () => update((current) => ({ ...current, mode })),
+  });
+
+  return (
+    <Menu
+      className={timeMenuStyle}
+      items={[
+        {
+          id: "modes",
+          label: "",
+          items: [
+            modeItem("monitored"),
+            modeItem("enforcedSoft"),
+            modeItem("enforcedHard"),
+          ],
+        },
+        { id: "stop", label: "", items: [modeItem("stopEarly")] },
+      ]}
+      trigger={
+        <Button
+          size="sm"
+          variant="subtle"
+          className={timeButtonStyle}
+          suffix={<span className={chevronStyle} />}
+          aria-label="When it fails"
+          disabled={disabled}
+        >
+          {constraintModeLabel[constraint.mode]}
+        </Button>
+      }
+    />
   );
 };
 
@@ -1111,42 +1164,32 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
       </div>
 
       <div>
-        <div className={headingStyle}>Tolerance</div>
-        <div className={toleranceRowStyle}>
-          <NumberInput
-            size="sm"
-            aria-label="Tolerance"
-            hideStepper
-            max={100}
-            className={numberStyle}
+        <div className={headingStyle}>Across runs</div>
+        <div className={ruleRowStyle}>
+          <ModeMenu
+            constraint={constraint}
             disabled={isReadOnly}
-            value={constraint.tolerance}
-            onChange={(value) => {
-              if (value !== null) {
-                update((current) => ({ ...current, tolerance: value }));
-              }
-            }}
+            update={update}
           />
-          <span className={mutedText(isReadOnly)}>% of runs</span>
+          <div className={cx(ruleRowStyle, noWrapStyle)}>
+            <span className={mutedText(isReadOnly)}>· must hold in</span>
+            <NumberInput
+              size="sm"
+              aria-label="Tolerance"
+              hideStepper
+              max={100}
+              className={numberStyle}
+              disabled={isReadOnly}
+              value={constraint.tolerance}
+              onChange={(value) => {
+                if (value !== null) {
+                  update((current) => ({ ...current, tolerance: value }));
+                }
+              }}
+            />
+            <span className={mutedText(isReadOnly)}>% of runs</span>
+          </div>
         </div>
-      </div>
-
-      <div>
-        <div className={headingStyle}>When it fails</div>
-        <Select
-          size="sm"
-          width="fitContent"
-          aria-label="When it fails"
-          disabled={isReadOnly}
-          value={constraint.mode}
-          items={modeItems}
-          onChange={(value) => {
-            const mode = modeItems.find((item) => item.value === value);
-            if (mode) {
-              update((current) => ({ ...current, mode: mode.value }));
-            }
-          }}
-        />
       </div>
     </div>
   );
