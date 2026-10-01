@@ -107,10 +107,9 @@ jobs:
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
-          # The codegen step is also the drift check for committed generated
-          # files; those are excluded from the codegen task's own inputs, so a
-          # hand-edit never marks the task affected.
-          HAS_CODEGEN=$(jq -e '.scripts.codegen' "${{ matrix.path }}/package.json" > /dev/null 2>&1 && echo 'true' || echo 'false')
+          # Generated files can change without affecting codegen. The drift check needs command discovery rather than affected-task selection.
+          set -o pipefail
+          HAS_CODEGEN=$(turbo run codegen --filter "${{ matrix.name }}" --dry=json | jq --arg package "${{ matrix.name }}" 'any(.tasks[]; .package == $package and .task == "codegen" and .command != "<NONEXISTENT>")')
           echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository

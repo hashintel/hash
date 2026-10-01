@@ -12,6 +12,7 @@
     "codegen": {
       "command": ["./scripts/generate-models.sh"],
       "dependsOn": [
+        "manifest",
         "@hashintel/petrinaut-cli#codegen",
         "@hashintel/petrinaut-cli#manifest"
       ],
