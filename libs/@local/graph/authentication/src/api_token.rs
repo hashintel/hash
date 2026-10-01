@@ -10,8 +10,6 @@
 //! - The checksum is a CRC32 over everything before it as 6 Base62 digits. A mistyped token fails
 //!   the checksum, so it is rejected without a lookup.
 //!
-//! Base62 digits are `0-9A-Za-z`, and numbers are written most significant digit first.
-//!
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
 //! a [`HashedApiToken`].
 
