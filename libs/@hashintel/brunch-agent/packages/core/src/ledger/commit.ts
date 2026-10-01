@@ -1,5 +1,5 @@
 import { ledgerCalls, reconstructLedger, type LedgerHistory } from "./history";
-import { summariseCoverage } from "./map";
+import { summariseCoverage, type LedgerCoverageRenderer } from "./map";
 import {
   deriveNotes,
   findNote,
@@ -109,17 +109,19 @@ export const prepareLedgerCommit = ({
  */
 export const prepareIdentityLedgerCommit = ({
   vocabulary,
+  renderCoverage,
   ...call
 }: {
   readonly history: LedgerHistory;
   readonly toolCallId: string;
   readonly changes: readonly LedgerChange[];
   readonly vocabulary: LedgerVocabulary;
+  readonly renderCoverage?: LedgerCoverageRenderer;
 }): LedgerCommitOutput =>
   decideCommit({
     ...call,
     check: (prior) => identityRefusal(vocabulary, prior, call.changes),
-    summarise: (notes) => summariseCoverage(notes, vocabulary),
+    summarise: (notes) => summariseCoverage(notes, vocabulary, renderCoverage),
   });
 
 const identityRefusal = (

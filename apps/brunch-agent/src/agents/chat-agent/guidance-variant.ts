@@ -6,8 +6,14 @@ export const guidanceVariants = [
   "feedback",
   "identity",
   "manual",
+  "receipt",
 ] as const;
 export type GuidanceVariant = (typeof guidanceVariants)[number];
+/** Arms whose every model-facing source lives in `guidance/<arm>/`. */
+export const selfContainedGuidanceVariants = [
+  "manual",
+  "receipt",
+] as const satisfies readonly GuidanceVariant[];
 
 export const selectGuidanceVariant = (
   value = process.env[guidanceVariantEnvironment] ?? "baseline",

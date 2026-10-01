@@ -1,6 +1,9 @@
 import { expect, test } from "vitest";
 
-import { selectGuidanceVariant } from "../../agents/chat-agent/guidance-variant.ts";
+import {
+  selectGuidanceVariant,
+  selfContainedGuidanceVariants,
+} from "../../agents/chat-agent/guidance-variant.ts";
 import { guidanceManifest, verifyGuidanceResume } from "./guidance-manifest.ts";
 
 test("replacement and feedback provenance differ only by the feedback policy", async () => {
@@ -43,20 +46,25 @@ test("identity provenance is feedback's plus the identity Ledger guidance", asyn
   ).toBe(true);
 });
 
-test("manual provenance is its own guidance copy, and no other arm's", async () => {
-  const [identity, manual] = await Promise.all([
-    guidanceManifest("identity"),
-    guidanceManifest("manual"),
-  ]);
-  const guidance = "apps/brunch-agent/src/agents/chat-agent/guidance";
-  const isManual = (path: string) => path.startsWith(`${guidance}/manual`);
-  const manualPaths = manual.files.map(({ path }) => path);
-  expect(manualPaths).toContain(`${guidance}/manual.ts`);
-  expect(manualPaths).toContain(`${guidance}/manual/identity-ledger.md`);
-  expect(
-    manualPaths.filter(
-      (path) => path.startsWith(`${guidance}/`) && !isManual(path),
-    ),
-  ).toEqual([]);
-  expect(identity.files.some(({ path }) => isManual(path))).toBe(false);
-});
+test.each(selfContainedGuidanceVariants)(
+  "%s provenance is its own guidance copy, and no other arm's",
+  async (arm) => {
+    const [identity, own] = await Promise.all([
+      guidanceManifest("identity"),
+      guidanceManifest(arm),
+    ]);
+    const guidance = "apps/brunch-agent/src/agents/chat-agent/guidance";
+    const isOwn = (path: string) =>
+      path === `${guidance}/${arm}.ts` ||
+      path.startsWith(`${guidance}/${arm}/`);
+    const ownPaths = own.files.map(({ path }) => path);
+    expect(ownPaths).toContain(`${guidance}/${arm}.ts`);
+    expect(ownPaths).toContain(`${guidance}/${arm}/identity-ledger.md`);
+    expect(
+      ownPaths.filter(
+        (path) => path.startsWith(`${guidance}/`) && !isOwn(path),
+      ),
+    ).toEqual([]);
+    expect(identity.files.some(({ path }) => isOwn(path))).toBe(false);
+  },
+);

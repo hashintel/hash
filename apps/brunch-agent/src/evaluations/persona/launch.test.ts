@@ -422,7 +422,7 @@ test("help documents the objective and agent options", async () => {
   expect(stdout).toContain("--agent claude|codex|cursor-agent|pi");
   expect(stdout).toContain("{prompt}");
   expect(stdout).toContain(
-    "--guidance baseline|replacement|feedback|identity|manual",
+    "--guidance baseline|replacement|feedback|identity|manual|receipt",
   );
 });
 

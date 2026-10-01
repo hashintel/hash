@@ -1,6 +1,10 @@
 import * as v from "valibot";
 
-import { typedEpistemicFields } from "./notes";
+import {
+  defaultEpistemicText,
+  epistemicFields,
+  type LedgerEpistemicText,
+} from "./notes";
 
 /** One term the model may use, with the meaning the tool description shows. */
 export interface LedgerVocabularyTerm {
@@ -69,32 +73,96 @@ export const isNoteId = (reference: string): boolean =>
 const names = (terms: readonly { readonly name: string }[]) =>
   terms.map(({ name }) => name);
 
-const identityName = v.pipe(
-  v.string(),
-  v.regex(/^[a-z][a-z0-9-]*$/u),
-  v.maxLength(60),
-  v.description(
-    "A lowercase kebab-case identity name in the person's vocabulary, e.g. cleaning-crew.",
-  ),
-);
+/**
+ * Everything the identity Ledger's tools say about their own arguments and
+ * vocabulary, apart from the terms themselves.
+ */
+export interface IdentityLedgerText {
+  readonly fields: {
+    readonly identity: string;
+    readonly kind: string;
+    readonly covers: string;
+    readonly identifyContent: string;
+    readonly relateLabel: string;
+    readonly noteAbout: string;
+    readonly noteConcerns: string;
+    readonly supersedeAddress: string;
+    readonly supersedeContent: string;
+    readonly supersedeCovers: string;
+  };
+  readonly epistemic: LedgerEpistemicText;
+  /** Headings `renderVocabulary` puts before each list of terms. */
+  readonly vocabulary: {
+    readonly dimensions: string;
+    readonly kinds: string;
+    readonly relations: string;
+    readonly fixed: string;
+  };
+  /** `ledger_compile`'s arguments. */
+  readonly compile: {
+    readonly about: string;
+    readonly revision: string;
+  };
+}
+
+export const defaultIdentityLedgerText: IdentityLedgerText = {
+  fields: {
+    identity:
+      "A lowercase kebab-case identity name in the person's vocabulary, e.g. cleaning-crew.",
+    kind: "Optional; leave it out until it is clear, and revise it by superseding.",
+    covers:
+      "The dimensions of the model this entry helps cover; each kind and relation suggests some.",
+    identifyContent:
+      "What is known about it. Omit for a bare placeholder: named, nothing known yet.",
+    relateLabel: "Required when relation is other, e.g. 'available during'.",
+    noteAbout:
+      "The identities (by name) and relationships (by Note id, e.g. n12) this Note is about.",
+    noteConcerns:
+      "Set when the Note is about the net draft (a representation choice, stand-in, discrepancy or check) rather than the operation.",
+    supersedeAddress: "The superseded Note's id, e.g. n7.",
+    supersedeContent: "Omit to keep the superseded Note's content.",
+    supersedeCovers: "Omit to keep the superseded Note's.",
+  },
+  epistemic: defaultEpistemicText,
+  vocabulary: {
+    dimensions:
+      "Dimensions (what the account must cover, and when each is done):",
+    kinds:
+      "Kinds (optional; revise by superseding the identity Note). Needs are what a finished identity of the kind has, met by a confirmed Note or relationship; a Note about the identity at inapplicable standing covering the need's dimension closes one that does not apply:",
+    relations: "Relations (from -relation-> to; other takes a label):",
+    fixed: "Fixed identities (exist from the start; use them in about):",
+  },
+  compile: {
+    about:
+      "Identity names or relationship Note ids (e.g. n12) to render in full.",
+    revision:
+      "A commit revision; 0 is the empty Ledger. Defaults to the latest.",
+  },
+};
 
 const content = v.pipe(v.string(), v.minLength(1), v.maxLength(12_000));
 
 /** The `ledger_commit` input for an identity-addressed Ledger. */
-export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
+export const identityCommitInputSchema = (
+  vocabulary: LedgerVocabulary,
+  { fields, epistemic }: IdentityLedgerText = defaultIdentityLedgerText,
+) => {
+  const identityName = v.pipe(
+    v.string(),
+    v.regex(/^[a-z][a-z0-9-]*$/u),
+    v.maxLength(60),
+    v.description(fields.identity),
+  );
+  const typedEpistemicFields = epistemicFields(epistemic);
   const kind = v.pipe(
     v.picklist(names(vocabulary.kinds)),
-    v.description(
-      "Optional; leave it out until it is clear, and revise it by superseding.",
-    ),
+    v.description(fields.kind),
   );
   const covers = v.pipe(
     v.array(v.picklist(names(vocabulary.dimensions))),
     v.minLength(1),
     v.maxLength(3),
-    v.description(
-      "The dimensions of the model this entry helps cover; each kind and relation suggests some.",
-    ),
+    v.description(fields.covers),
   );
   const change = v.variant("op", [
     v.strictObject({
@@ -102,12 +170,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
       identity: identityName,
       kind: v.optional(kind),
       content: v.optional(
-        v.pipe(
-          content,
-          v.description(
-            "What is known about it. Omit for a bare placeholder: named, nothing known yet.",
-          ),
-        ),
+        v.pipe(content, v.description(fields.identifyContent)),
       ),
       covers,
       ...typedEpistemicFields,
@@ -121,9 +184,7 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
           v.string(),
           v.minLength(1),
           v.maxLength(60),
-          v.description(
-            "Required when relation is other, e.g. 'available during'.",
-          ),
+          v.description(fields.relateLabel),
         ),
       ),
       to: identityName,
@@ -137,18 +198,11 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
         v.array(v.pipe(v.string(), v.minLength(1))),
         v.minLength(1),
         v.maxLength(8),
-        v.description(
-          "The identities (by name) and relationships (by Note id, e.g. n12) this Note is about.",
-        ),
+        v.description(fields.noteAbout),
       ),
       content,
       concerns: v.optional(
-        v.pipe(
-          v.literal("draft"),
-          v.description(
-            "Set when the Note is about the net draft (a representation choice, stand-in, discrepancy or check) rather than the operation.",
-          ),
-        ),
+        v.pipe(v.literal("draft"), v.description(fields.noteConcerns)),
       ),
       covers,
       ...typedEpistemicFields,
@@ -158,18 +212,13 @@ export const identityCommitInputSchema = (vocabulary: LedgerVocabulary) => {
       address: v.pipe(
         v.string(),
         v.regex(/^n\d+$/u),
-        v.description("The superseded Note's id, e.g. n7."),
+        v.description(fields.supersedeAddress),
       ),
       content: v.optional(
-        v.pipe(
-          content,
-          v.description("Omit to keep the superseded Note's content."),
-        ),
+        v.pipe(content, v.description(fields.supersedeContent)),
       ),
       kind: v.optional(kind),
-      covers: v.optional(
-        v.pipe(covers, v.description("Omit to keep the superseded Note's.")),
-      ),
+      covers: v.optional(v.pipe(covers, v.description(fields.supersedeCovers))),
       ...typedEpistemicFields,
     }),
   ]);
@@ -195,21 +244,24 @@ const kindTerm = (kind: LedgerKind) =>
     : term(kind);
 
 /** The vocabulary as the tool description shows it. */
-export const renderVocabulary = (vocabulary: LedgerVocabulary): string =>
+export const renderVocabulary = (
+  vocabulary: LedgerVocabulary,
+  { vocabulary: headings }: IdentityLedgerText = defaultIdentityLedgerText,
+): string =>
   [
-    "Dimensions (what the account must cover, and when each is done):",
+    headings.dimensions,
     ...vocabulary.dimensions.map(
       ({ name, description, done }) =>
         `- ${name}: ${description} Done when ${done}.`,
     ),
     "",
-    "Kinds (optional; revise by superseding the identity Note). Needs are what a finished identity of the kind has, met by a confirmed Note or relationship; a Note about the identity at inapplicable standing covering the need's dimension closes one that does not apply:",
+    headings.kinds,
     ...vocabulary.kinds.map(kindTerm),
     "",
-    "Relations (from -relation-> to; other takes a label):",
+    headings.relations,
     ...vocabulary.relations.map(term),
     "",
-    "Fixed identities (exist from the start; use them in about):",
+    headings.fixed,
     ...vocabulary.fixed.map(
       ({ name, description }) => `- ${name}: ${description}`,
     ),

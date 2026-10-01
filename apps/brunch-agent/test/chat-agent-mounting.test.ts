@@ -1,3 +1,5 @@
+import { readdir, readFile } from "node:fs/promises";
+
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -8,6 +10,7 @@ import {
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
+import { selfContainedGuidanceVariants } from "../src/agents/chat-agent/guidance-variant.ts";
 import {
   assertPetrinautToolCatalogueConformance,
   canonicalPetrinautToolCatalogue,
@@ -62,6 +65,14 @@ vi.mock(
 vi.mock(
   "../src/agents/chat-agent/guidance/manual/skills/constructing/SKILL.md",
   () => ({ default: { name: "manual constructing" } }),
+);
+vi.mock(
+  "../src/agents/chat-agent/guidance/receipt/skills/eliciting/SKILL.md",
+  () => ({ default: { name: "receipt eliciting" } }),
+);
+vi.mock(
+  "../src/agents/chat-agent/guidance/receipt/skills/constructing/SKILL.md",
+  () => ({ default: { name: "receipt constructing" } }),
 );
 const bound = {
   binding: {
@@ -157,34 +168,63 @@ test.each(["replacement", "feedback", "identity"])(
   },
 );
 
-test("manual mounts only its own guidance copies and the same tools", async () => {
-  mounted.initialData = bound;
-  const { ChatAgent: baseline } =
-    await import("../src/agents/chat-agent/agent.ts");
-  baseline({ id: "baseline" });
-  const tools = [...mounted.tools];
-  mounted.tools.length = 0;
-  mounted.skills.length = 0;
-  mounted.instructions.length = 0;
-  vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", "manual");
-  vi.resetModules();
-  const [{ ChatAgent: manual }, system, feedback, identityLedger] =
-    await Promise.all([
-      import("../src/agents/chat-agent/agent.ts"),
-      import("../src/agents/chat-agent/guidance/manual/system.md?raw"),
-      import("../src/agents/chat-agent/guidance/manual/feedback.md?raw"),
-      import("../src/agents/chat-agent/guidance/manual/identity-ledger.md?raw"),
-    ]);
-  expect(manual({ id: "manual" })).toBe(system.default.trim());
-  expect(mounted.skills).toEqual(["manual eliciting", "manual constructing"]);
-  expect(mounted.tools.sort()).toEqual(tools.sort());
-  expect(mounted.instructions).toEqual(
-    expect.arrayContaining([
-      feedback.default.trim(),
-      identityLedger.default.trim(),
-    ]),
-  );
-});
+test.each(selfContainedGuidanceVariants)(
+  "%s mounts only its own guidance copies and the same tools",
+  async (arm) => {
+    mounted.initialData = bound;
+    const { ChatAgent: baseline } =
+      await import("../src/agents/chat-agent/agent.ts");
+    baseline({ id: "baseline" });
+    const tools = [...mounted.tools];
+    mounted.tools.length = 0;
+    mounted.skills.length = 0;
+    mounted.instructions.length = 0;
+    vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", arm);
+    vi.resetModules();
+    const sources = new URL(
+      `../src/agents/chat-agent/guidance/${arm}/`,
+      import.meta.url,
+    );
+    const texts = new Map(
+      await Promise.all(
+        (await readdir(sources))
+          .filter((name) => name.endsWith(".md"))
+          .map(
+            async (name) =>
+              [
+                name,
+                String(await readFile(new URL(name, sources))).trim(),
+              ] as const,
+          ),
+      ),
+    );
+    const { ChatAgent: candidate } =
+      await import("../src/agents/chat-agent/agent.ts");
+    expect(candidate({ id: arm })).toBe(texts.get("system.md"));
+    expect(mounted.skills).toEqual([`${arm} eliciting`, `${arm} constructing`]);
+    expect(mounted.tools.sort()).toEqual(tools.sort());
+    const own = new Set(texts.values());
+    expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
+    expect(mounted.instructions).toEqual(
+      expect.arrayContaining(
+        [
+          "feedback.md",
+          "identity-ledger.md",
+          "petrinaut-capability.md",
+          "experiment-drafting.md",
+          "runtime-bound.md",
+          "query-basis.md",
+        ].map((name) => texts.get(name)),
+      ),
+    );
+
+    mounted.initialData = undefined;
+    mounted.instructions.length = 0;
+    candidate({ id: `${arm}-unbound` });
+    expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
+    expect(mounted.instructions).toContain(texts.get("runtime-unbound.md"));
+  },
+);
 
 test("the Brunch catalogue classifies every canonical tool", () => {
   const canonicalNames = Object.keys(petrinautAiTools);

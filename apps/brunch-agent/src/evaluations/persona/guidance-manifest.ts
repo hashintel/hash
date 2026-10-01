@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   selectGuidanceVariant,
+  selfContainedGuidanceVariants,
   type GuidanceVariant,
 } from "../../agents/chat-agent/guidance-variant.ts";
 
@@ -23,10 +24,19 @@ const filesWithin = async (directory: string): Promise<string[]> => {
     )
   ).flat();
 };
+const armSources = (arm: GuidanceVariant) => `${app}/guidance/${arm}`;
+const isArmSource = (path: string) =>
+  selfContainedGuidanceVariants.some(
+    (arm) =>
+      path.startsWith(`${armSources(arm)}/`) ||
+      path === `${armSources(arm)}.ts`,
+  );
 
 /** Source fingerprint for reproduction and drift detection, not an inference result. */
 export const guidanceManifest = async (variant: GuidanceVariant) => {
-  const manual = `${app}/guidance/manual`;
+  const selfContained = selfContainedGuidanceVariants.find(
+    (arm) => arm === variant,
+  );
   const directories =
     variant === "baseline"
       ? [
@@ -35,15 +45,15 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
           `${packages}/plugin-sdcpn/src/prompts`,
           `${packages}/plugin-sdcpn/src/skills/sdcpn-modelling`,
         ]
-      : variant === "manual"
-        ? [manual]
-        : [`${app}/guidance`];
+      : selfContained === undefined
+        ? [`${app}/guidance`]
+        : [armSources(selfContained)];
   const identityOnly = ["/identity-ledger.md", "/ledger-vocabulary.ts"];
   const paths = [
     `${app}/agent.ts`,
     `${app}/guidance.ts`,
     `${app}/guidance-variant.ts`,
-    ...(variant === "manual" ? [`${manual}.ts`] : []),
+    ...(selfContained === undefined ? [] : [`${armSources(selfContained)}.ts`]),
     `${packages}/core/src/ledger-tools.ts`,
     ...(await filesWithin(join(repoRoot, `${packages}/core/src/ledger`))).map(
       (path) => relative(repoRoot, path),
@@ -63,8 +73,8 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
       .flat()
       .filter(
         (path) =>
-          variant === "manual" ||
-          (!path.startsWith(manual) &&
+          selfContained !== undefined ||
+          (!isArmSource(path) &&
             (variant === "feedback" ||
               variant === "identity" ||
               !path.endsWith("/feedback.md")) &&

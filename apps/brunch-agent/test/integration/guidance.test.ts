@@ -2,9 +2,10 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
+import { guidanceVariants } from "../../src/agents/chat-agent/guidance-variant.ts";
 import { runNodeScript } from "./run-node-script";
 
-test.each(["baseline", "replacement", "feedback", "identity", "manual"])(
+test.each(guidanceVariants)(
   "%s activates native skills and reads packaged resources in the built app",
   async (variant) => {
     const { exitCode, stdout, stderr } = await runNodeScript(
