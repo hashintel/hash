@@ -74,6 +74,8 @@ export const LiveConversationControl = ({
     audioSettingsStore.getSnapshot,
   );
   const [consented, setConsented] = useState(false);
+  const [checkingMicrophone, setCheckingMicrophone] = useState(false);
+  const [microphoneCheck, setMicrophoneCheck] = useState("");
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [microphoneMuted, setMicrophoneMutedState] = useState(false);
   const [speakerMuted, setSpeakerMutedState] = useState(false);
@@ -263,7 +265,6 @@ export const LiveConversationControl = ({
       handledVoiceSelection.current = true;
       return;
     }
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes persisted disclosure state with the Live session
     handledVoiceSelection.current = tryStartLiveConversation();
   }, [
     disclosureAcknowledged,
@@ -425,10 +426,36 @@ export const LiveConversationControl = ({
       experimental
       consented={consented}
       onConsentChange={setConsented}
-      startDisabled={phase === "stopping"}
-      microphoneCheck={phase === "error" ? (state.message ?? "") : ""}
+      checkingMicrophone={checkingMicrophone}
+      startDisabled={phase === "stopping" || checkingMicrophone}
+      microphoneCheck={
+        phase === "error" ? (state.message ?? "") : microphoneCheck
+      }
+      onCheckMicrophone={() => {
+        if (checkingMicrophone) return;
+        setCheckingMicrophone(true);
+        setMicrophoneCheck("");
+        void (async () => {
+          try {
+            const microphoneId = audioSettings.devices.microphoneId;
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: microphoneId
+                ? { deviceId: { exact: microphoneId } }
+                : true,
+            });
+            for (const track of stream.getTracks()) track.stop();
+            setMicrophoneCheck("Microphone ready. No audio was sent.");
+          } catch {
+            setMicrophoneCheck(
+              "Microphone access was not available. Check your browser permissions and try again.",
+            );
+          } finally {
+            setCheckingMicrophone(false);
+          }
+        })();
+      }}
       onStart={() => {
-        if (!consented) return;
+        if (!consented || checkingMicrophone) return;
         acknowledgeDisclosure();
         setDisclosureAcknowledged(true);
         tryStartLiveConversation();

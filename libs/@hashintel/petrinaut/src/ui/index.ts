@@ -198,6 +198,7 @@ export {
 export { executePetrinautAiMutation } from "./views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation";
 export type {
   PetrinautAiAssistant,
+  PetrinautAiAssistantPresentation,
   PetrinautAiChatTransport,
   PetrinautAiStopResult,
   PetrinautAiToolPresentation,

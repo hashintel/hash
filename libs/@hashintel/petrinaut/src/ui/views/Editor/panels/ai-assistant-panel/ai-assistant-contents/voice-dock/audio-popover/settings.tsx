@@ -95,11 +95,19 @@ export const AudioSettings = ({
   previewDisabledReason: string | null;
 }) => {
   const [devicesExpanded, setDevicesExpanded] = useState(false);
-  const [realTimeExpanded, setRealTimeExpanded] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const infoRef = useRef<HTMLButtonElement>(null);
   const id = useId();
   const devices = settings.devices;
+  const microphoneName = devices.microphoneId
+    ? (devices.microphones.find(
+        (device) => device.value === devices.microphoneId,
+      )?.text ?? "Unavailable microphone")
+    : defaultDevice.text;
+  const speakerName = devices.speakerId
+    ? (devices.speakers.find((device) => device.value === devices.speakerId)
+        ?.text ?? "Unavailable speaker")
+    : defaultDevice.text;
   const deviceDisabled = disabled || devices.busy;
   const stopPreviewOnUnmount = useEffectEvent(() => {
     actions.stopVoicePreview?.();
@@ -145,9 +153,8 @@ export const AudioSettings = ({
                     })}
                   >
                     <span className={helpStyle}>
-                      The voice applies next time the agent is connected.
-                      <br />
-                      Preview when your mic is muted and the agent is idle.
+                      Applies next session. Mute your mic while the agent is
+                      idle to preview.
                     </span>
                   </Popover.Body>
                 </Popover.Container>
@@ -156,13 +163,13 @@ export const AudioSettings = ({
           </div>
           <Select
             aria-labelledby={`${id}-voice-label`}
-            aria-description="The voice applies next time the agent is connected."
-            aria-describedby={[
-              settings.voiceSaveError ? `${id}-voice-help` : "",
-              previewDisabledReason ? `${id}-voice-blocked` : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            aria-description={
+              previewDisabledReason ??
+              "The voice applies next time the agent is connected."
+            }
+            aria-describedby={
+              settings.voiceSaveError ? `${id}-voice-help` : undefined
+            }
             items={settings.voices}
             value={settings.voice}
             onChange={actions.setVoice}
@@ -212,11 +219,6 @@ export const AudioSettings = ({
             size="sm"
             width="fullWidth"
           />
-          {previewDisabledReason && (
-            <span id={`${id}-voice-blocked`} className={helpStyle}>
-              {previewDisabledReason}
-            </span>
-          )}
           <span role="status" className={css({ srOnly: true })}>
             {settings.voicePreview === "playing"
               ? "Voice preview playing"
@@ -238,8 +240,9 @@ export const AudioSettings = ({
       </div>
       <div className={sectionStyle}>
         <Button
-          className={headingStyle}
+          className={`${headingStyle} ${css({ height: "auto", paddingY: "1" })}`}
           aria-label="Devices"
+          aria-describedby={`${id}-devices-summary`}
           aria-expanded={devicesExpanded}
           aria-controls={`${id}-devices`}
           suffix={
@@ -252,7 +255,22 @@ export const AudioSettings = ({
           size="sm"
           variant="ghost"
         >
-          Devices
+          <span
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              minWidth: "[0]",
+              alignItems: "flex-start",
+            })}
+          >
+            <span>Devices</span>
+            <span
+              id={`${id}-devices-summary`}
+              className={`${helpStyle} ${css({ maxWidth: "full", whiteSpace: "normal", overflowWrap: "anywhere" })}`}
+            >
+              {microphoneName} · {speakerName}
+            </span>
+          </span>
         </Button>
         {devicesExpanded && (
           <div
@@ -330,44 +348,25 @@ export const AudioSettings = ({
       </div>
       {settings.speed !== undefined && actions.setSpeed && (
         <div className={sectionStyle}>
-          <Button
-            className={headingStyle}
-            aria-label="Real-time"
-            aria-expanded={realTimeExpanded}
-            aria-controls={`${id}-real-time`}
-            suffix={
-              <Icon
-                name={realTimeExpanded ? "chevronDown" : "chevronRight"}
-                size="sm"
+          <div className={fieldsStyle}>
+            <span className={labelStyle}>Speed</span>
+            <div className={sliderRowStyle}>
+              <Slider
+                className={speedStyle}
+                label="Speed"
+                disabled={disabled}
+                min={0.25}
+                max={1.5}
+                step={0.05}
+                value={settings.speed}
+                onChange={actions.setSpeed}
+                variant="plain"
               />
-            }
-            onClick={() => setRealTimeExpanded((expanded) => !expanded)}
-            size="sm"
-            variant="ghost"
-          >
-            Real-time
-          </Button>
-          {realTimeExpanded && (
-            <div id={`${id}-real-time`} className={fieldsStyle}>
-              <span className={labelStyle}>Speed</span>
-              <div className={sliderRowStyle}>
-                <Slider
-                  className={speedStyle}
-                  label="Speed"
-                  disabled={disabled}
-                  min={0.25}
-                  max={1.5}
-                  step={0.25}
-                  value={settings.speed}
-                  onChange={actions.setSpeed}
-                  variant="plain"
-                />
-                <span aria-hidden="true" className={speedTextStyle}>
-                  {settings.speed}×
-                </span>
-              </div>
+              <span aria-hidden="true" className={speedTextStyle}>
+                {settings.speed.toFixed(2)}×
+              </span>
             </div>
-          )}
+          </div>
         </div>
       )}
     </>

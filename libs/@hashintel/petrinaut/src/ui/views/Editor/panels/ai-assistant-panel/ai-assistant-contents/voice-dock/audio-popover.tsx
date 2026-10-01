@@ -176,7 +176,7 @@ export const AudioPopover = ({
           className={css({ animationName: "[none !important]" })}
           gapY={4}
           onClose={() => setOpen(false)}
-          position="top-start"
+          position="top-end"
           triggerRef={triggerRef}
         >
           <Popover.Container className={popoverStyle}>

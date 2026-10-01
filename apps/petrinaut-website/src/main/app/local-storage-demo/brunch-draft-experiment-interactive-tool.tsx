@@ -775,6 +775,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     DraftPetrinautExperimentOutput
   >({
     toolName: brunchTools.draftPetrinautExperiment,
+    placement: "card",
     inputSchema: draftPetrinautExperimentInputSchema,
     outputSchema: draftPetrinautExperimentOutputSchema,
     component: (props) => (

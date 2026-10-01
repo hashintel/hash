@@ -49,7 +49,10 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
-import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
+import {
+  AiAssistantContents,
+  getTranscriptLabel,
+} from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
@@ -1579,11 +1582,18 @@ const ConversationAiAssistantPanel = ({
     ) {
       setPrimaryAttention(true);
       setAttentionAnnouncement(
-        `${aiAssistant.primaryLabel ?? "AI"} needs your attention`,
+        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode, aiAssistant.presentation)} needs your attention`,
       );
     }
     conversationWasBusyRef.current = isBusy;
-  }, [aiAssistant.primaryLabel, hostTabSelected, isAiAssistantOpen, status]);
+  }, [
+    aiAssistant.presentation,
+    aiAssistant.primaryLabel,
+    hostTabSelected,
+    interactionMode,
+    isAiAssistantOpen,
+    status,
+  ]);
 
   useEffect(() => {
     if (attentionAnnouncement.length === 0) {
@@ -1806,11 +1816,13 @@ const ConversationAiAssistantPanel = ({
       id,
       source,
       target = "auto",
+      preserveDraft = false,
       text,
     }: {
       id?: string;
       source?: "voice";
       target?: "auto" | "message";
+      preserveDraft?: boolean;
       text: string;
     }): Promise<PetrinautAiComposerSubmitTextResult> => {
       const submissionText = source === "voice" ? text : text.trim();
@@ -1912,7 +1924,7 @@ const ConversationAiAssistantPanel = ({
           throw submissionError;
         }
 
-        if (source !== "voice") {
+        if (source !== "voice" && !preserveDraft) {
           setInput("");
         }
         setStreamError(null);
@@ -1951,7 +1963,7 @@ const ConversationAiAssistantPanel = ({
       }
 
       const messageId = id ?? generateId();
-      if (source !== "voice") {
+      if (source !== "voice" && !preserveDraft) {
         setInput("");
       }
       setStreamError(null);
@@ -2108,7 +2120,11 @@ const ConversationAiAssistantPanel = ({
   }, [reportOperationalFailure, stopStateRef]);
 
   const submitUserText = useCallback(
-    (text: string, target: "auto" | "message" = "auto") => {
+    (
+      text: string,
+      target: "auto" | "message" = "auto",
+      preserveDraft = false,
+    ) => {
       if (!text.trim() || voiceHandoffPendingRef.current) {
         return;
       }
@@ -2119,7 +2135,7 @@ const ConversationAiAssistantPanel = ({
       const submitAndRecover = async () => {
         pendingSubmissionRecoveryRef.current = restoreInputAfterFailure;
         try {
-          await submitText({ target, text });
+          await submitText({ target, text, preserveDraft });
         } catch (caught) {
           if (
             pendingSubmissionRecoveryRef.current === restoreInputAfterFailure
@@ -2452,6 +2468,9 @@ const ConversationAiAssistantPanel = ({
       onSendPrompt={(prompt) => {
         submitUserText(prompt, "message");
       }}
+      onRetryPrompt={(prompt) => {
+        submitUserText(prompt, "message", true);
+      }}
       onStop={() => {
         // Flag the deliberate stop, then abort. The actual settling of the
         // partial transcript and the "Response stopped" note happen in
@@ -2464,6 +2483,7 @@ const ConversationAiAssistantPanel = ({
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
+      presentation={aiAssistant.presentation}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}

@@ -16,6 +16,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
@@ -70,7 +71,10 @@ afterAll(() => {
 });
 afterEach(cleanup);
 
-const renderAssistant = (messages: readonly PetrinautAiMessage[]) =>
+const renderAssistant = (
+  messages: readonly PetrinautAiMessage[],
+  status: "ready" | "streaming" = "ready",
+) =>
   render(
     <AiAssistantContents
       input=""
@@ -79,10 +83,22 @@ const renderAssistant = (messages: readonly PetrinautAiMessage[]) =>
       onInputChange={noop}
       onStop={noop}
       onSubmit={noop}
+      presentation="brunch"
       resolveToolPresentation={resolveBrunchToolPresentation}
-      status="ready"
+      status={status}
     />,
   );
+
+const expandSettledTools = async () => {
+  const activity = screen.getByRole("button", { name: /^Activity/u });
+  fireEvent.click(activity);
+  await waitFor(() =>
+    expect(activity.getAttribute("aria-expanded")).toBe("true"),
+  );
+  const tools = screen.getByRole("button", { name: /^Used \d+ tools?$/u });
+  fireEvent.click(tools);
+  await waitFor(() => expect(tools.getAttribute("aria-expanded")).toBe("true"));
+};
 
 test("renders pending gold, applied green, typed refusal compact, and thrown red across reopen", async () => {
   delete process.env.BRUNCH_CHAT_MODEL;
@@ -218,18 +234,19 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       const pending = pendingById.get(toolCallId);
       expect(pending, `pending row missing for ${toolCallId}`).toBeDefined();
       cleanup();
-      renderAssistant([pending!]);
+      renderAssistant([pending!], "streaming");
       const pendingRow = screen
         .getAllByRole("button")
         .find((row) => row.getAttribute("aria-busy") === "true");
       expect(pendingRow?.getAttribute("data-tone")).toBe("pending");
       expect(
-        pendingRow?.querySelector("[data-tool-progress-spinner]"),
+        pendingRow?.querySelector('[data-tool-status="pending"]'),
       ).not.toBeNull();
     }
 
     cleanup();
     renderAssistant([terminalMessage]);
+    await expandSettledTools();
     const appliedRows = screen.getAllByRole("button", {
       name: /Updated ledger/u,
     });
@@ -239,8 +256,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     ).toBe(true);
     expect(
       appliedRows.every(
-        (row) =>
-          row.querySelector('[data-tool-result-icon="complete"]') !== null,
+        (row) => row.querySelector('[data-tool-status="ok"]') !== null,
       ),
     ).toBe(true);
 
@@ -248,12 +264,12 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       name: /Ledger update needs correction/u,
     });
     expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
-    expect(
-      refusedRow.querySelector('[data-tool-result-icon="not-applied"]'),
-    ).not.toBeNull();
+    expect(refusedRow.querySelector('[data-tool-status="ok"]')).not.toBeNull();
     expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
     fireEvent.click(refusedRow);
-    expect(screen.getByText(/Nothing was written/u)).not.toBeNull();
+    expect(screen.getAllByText(/Nothing was written/u).length).toBeGreaterThan(
+      0,
+    );
 
     const thrownRow = screen.getByRole("button", {
       name: /Could not update ledger/u,
@@ -297,6 +313,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     }) as PetrinautAiMessage[];
     cleanup();
     renderAssistant(reopened);
+    await expandSettledTools();
     expect(
       screen.getAllByRole("button", { name: /Updated ledger/u }),
     ).toHaveLength(2);

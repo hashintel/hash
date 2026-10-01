@@ -539,7 +539,7 @@ describe("AiAssistantPanel composer submissions", () => {
       ]),
     );
     const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
-    expect(ledgerTab.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    expect(ledgerTab.querySelector("[data-attention]")).not.toBeNull();
 
     fireEvent.click(ledgerTab);
     await waitFor(() => expect(screen.queryByText("9+")).toBeNull());
@@ -624,14 +624,14 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
     );
     fireEvent.click(chatTab);
     await waitFor(() =>
       expect(
         screen
           .getByRole("tab", { name: "Chat" })
-          .querySelector('[aria-hidden="true"]'),
+          .querySelector("[data-attention]"),
       ).toBeNull(),
     );
   });
@@ -662,7 +662,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
     );
   });
 
@@ -3410,6 +3410,7 @@ describe("AiAssistantPanel composer submissions", () => {
     renderTestPanel({
       aiAssistant: {
         primaryLabel: "Chat",
+        presentation: "brunch",
         additionalTab: {
           label: "Ledger",
           content: <p>Ledger body</p>,
@@ -3437,12 +3438,12 @@ describe("AiAssistantPanel composer submissions", () => {
     );
 
     await waitFor(() => expect(aborted).toHaveBeenCalledOnce());
-    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    expect(await screen.findByText("Stopped")).not.toBeNull();
     await waitFor(() =>
       expect(
         screen
           .getByRole("tab", { name: "Chat" })
-          .querySelector('[aria-hidden="true"]'),
+          .querySelector("[data-attention]"),
       ).not.toBeNull(),
     );
   });
@@ -5077,6 +5078,51 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toBe(true);
   });
 
+  test("retries an answer as a new turn while preserving history and the unsent draft", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            textChunks(
+              `answer-${requestMessages.length}`,
+              `Answer ${requestMessages.length}`,
+            ),
+          ),
+        );
+      }),
+    };
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Explain the queue",
+    });
+    await screen.findByText("Answer 1");
+    const retry = await screen.findByRole("button", { name: "Retry answer" });
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(retry);
+    await screen.findByText("Answer 2");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+    expect(screen.getByText("Answer 1")).toBeTruthy();
+    expect(requestMessages).toHaveLength(2);
+    expect(requestMessages[1]?.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "Explain the queue" }],
+    });
+    expect(requestMessages[1]?.at(-1)?.id).not.toBe(
+      requestMessages[0]?.[0]?.id,
+    );
+  });
+
   test("can force a separate message while an interactive tool is pending", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {
@@ -5124,6 +5170,7 @@ describe("AiAssistantPanel composer submissions", () => {
               void submitText({
                 id: "correction-1",
                 target: "message",
+                preserveDraft: true,
                 text: "Correction: staging, not production.",
               }).then((result) => results.push(result));
             }}
@@ -5137,8 +5184,13 @@ describe("AiAssistantPanel composer submissions", () => {
     });
     await screen.findByText("Which environment?");
 
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit correction" }));
     await screen.findByText("Correction accepted");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
 
     expect(requestMessages[1]?.at(-1)).toMatchObject({
       id: "correction-1",
@@ -5156,6 +5208,77 @@ describe("AiAssistantPanel composer submissions", () => {
       ),
     ).toBe(false);
     expect(results).toEqual([{ kind: "message", messageId: "correction-1" }]);
+  });
+
+  test("keeps the composer draft when preserved text answers a pending interactive tool", async () => {
+    let requests = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requests += 1;
+        return Promise.resolve(
+          streamChunks(
+            requests === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("answer-response", "Answer received"),
+          ),
+        );
+      }),
+    };
+    const results: unknown[] = [];
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ preserveDraft: true, text: "Staging" }).then(
+                (result) => results.push(result),
+              );
+            }}
+          >
+            Answer from host
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("Which environment?");
+
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Answer from host" }));
+    await waitFor(() =>
+      expect(results).toEqual([
+        { kind: "interactive-tool", toolCallId: "question-1" },
+      ]),
+    );
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
   });
 
   test("falls back to a normal message when a pending tool has no text mapper", async () => {

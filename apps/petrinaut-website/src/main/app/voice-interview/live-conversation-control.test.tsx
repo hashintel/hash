@@ -87,6 +87,34 @@ const config = {
   provider: "live" as const,
   connectionTimeoutMs: 15_000,
 };
+test("checks the Live microphone locally, releases tracks and never starts a session", async () => {
+  const stopTrack = vi.fn();
+  const getUserMedia = vi.fn(async () => ({
+    getTracks: () => [{ stop: stopTrack }],
+  }));
+  const previous = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia },
+  });
+  try {
+    render(<VoiceInterviewControl {...context()} config={config} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Test microphone" }),
+    );
+    await screen.findByText("Microphone ready. No audio was sent.");
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+    expect(stopTrack).toHaveBeenCalledOnce();
+    expect(createLiveConversation).not.toHaveBeenCalled();
+    expect(screen.getByRole("checkbox").getAttribute("aria-checked")).not.toBe(
+      "true",
+    );
+  } finally {
+    if (previous) Object.defineProperty(navigator, "mediaDevices", previous);
+    else Reflect.deleteProperty(navigator, "mediaDevices");
+  }
+});
+
 const start = async () => {
   fireEvent.click(screen.getByRole("checkbox"));
   await waitFor(() =>
@@ -146,6 +174,13 @@ test("starts acknowledged Live after the previous session finishes stopping", ()
 
   rerender(<VoiceInterviewControl {...props} config={config} />);
 
+  expect(screen.getByText("Stopping voice…")).toBeTruthy();
+  expect(screen.queryByText("Voice disconnected")).toBeNull();
+  expect(
+    screen
+      .getByRole("button", { name: "Retry voice" })
+      .hasAttribute("disabled"),
+  ).toBe(true);
   expect(createLiveConversation).toHaveBeenCalledOnce();
   act(() =>
     onState({
@@ -188,6 +223,15 @@ test("retries an acknowledged Live failure without requesting consent again", as
   ).toBeNull();
   expect(screen.getByRole("region", { name: "Voice mode retry" })).toBeTruthy();
   expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(screen.getByText("Voice disconnected")).toBeTruthy();
+  expect(screen.getByText("Try again, or continue in chat.")).toBeTruthy();
+  const details = screen
+    .getByText("Live media connection ended.")
+    .closest("details");
+  expect(details).not.toBeNull();
+  expect(details?.open).toBe(false);
+  expect(screen.getByText("Technical details")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Back to chat" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Retry voice" }));
 
