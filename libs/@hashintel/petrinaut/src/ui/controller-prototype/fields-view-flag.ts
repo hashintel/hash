@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from "react";
 
-let enabled = false;
+let enabled = true;
 const listeners = new Set<() => void>();
 
-/** Whether Transition Results offers the Fields | Code switch. Set by the prototype page; off by default. */
+/** Whether Transition Results offers the Fields | Code switch. On by default. */
 export const setFieldsView = (next: boolean): void => {
   enabled = next;
   for (const listener of listeners) {
@@ -22,5 +22,5 @@ export const useFieldsView = (): boolean =>
   useSyncExternalStore(
     subscribe,
     () => enabled,
-    () => false,
+    () => true,
   );
