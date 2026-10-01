@@ -48,19 +48,25 @@ fn extract_context_from_headers(headers: &http::HeaderMap) -> Context {
 fn create_http_span<B>(request: &Request<B>, skip: fn(&str) -> bool) -> Span {
     // Use MatchedPath if available (route template like /entities/{id}),
     // fallback to actual URI path for unmatched requests
-    let path = request
+    let route = request
         .extensions()
         .get::<MatchedPath>()
-        .map_or_else(|| request.uri().path(), MatchedPath::as_str);
+        .map(MatchedPath::as_str);
+    let path = route.unwrap_or_else(|| request.uri().path());
 
     if skip(path) {
         return Span::none();
     }
 
+    let name = route.map_or_else(
+        || request.method().to_string(),
+        |route| format!("{} {route}", request.method()),
+    );
+
     let http_span = tracing::info_span!(
         "HTTP request",
         otel.kind = "server",
-        otel.name = format!("{} {}", request.method(), path),
+        otel.name = name,
         { trace::HTTP_REQUEST_METHOD } = %request.method(),
         { trace::URL_PATH } = path,
         { trace::URL_SCHEME } = Empty,
@@ -126,13 +132,18 @@ fn record_response_attributes<B>(span: &Span, response: &http::Response<B>) {
     {
         span.record(trace::HTTP_RESPONSE_BODY_SIZE, body_size);
     }
+}
 
-    if status_code >= 400 {
-        span.set_status(opentelemetry::trace::Status::error(format!(
-            "HTTP {status_code}",
-        )));
-    } else {
-        span.set_status(opentelemetry::trace::Status::Ok);
+/// Marks the span as failed for a server error, and sets no status for any other response.
+///
+/// The description is the `detail` the client of a rejection received, and empty without one.
+fn record_status(span: &Span, status: StatusCode, rejected: Option<&Rejected>) {
+    if status.is_server_error() {
+        let description = rejected
+            .and_then(Rejected::detail)
+            .unwrap_or_default()
+            .to_owned();
+        span.set_status(opentelemetry::trace::Status::error(description));
     }
 }
 
@@ -193,9 +204,9 @@ fn inject_context_to_headers(context: &Context, headers: &mut http::HeaderMap) {
 /// Spans every request the wrapped service serves, except the paths `skip` names.
 ///
 /// A skipped path — typically a health probe answered every few seconds — produces no span at
-/// all rather than a noisy one. A response a [`Rejection`] became carries the error behind it,
-/// which the span records: a server error is logged as well, a client error reaches the trace
-/// only.
+/// all rather than a noisy one. A server error marks the span as failed. A response a
+/// [`Rejection`] became carries the error behind it, which the span records: a server error is
+/// logged as well, a client error reaches the trace only.
 ///
 /// [`Rejection`]: problematic::Rejection
 ///
@@ -268,7 +279,9 @@ where
             if let Ok(response) = &mut result {
                 let current_span = Span::current();
                 record_response_attributes(&current_span, response);
-                if let Some(rejected) = response.extensions().get::<Rejected>() {
+                let rejected = response.extensions().get::<Rejected>();
+                record_status(&current_span, response.status(), rejected);
+                if let Some(rejected) = rejected {
                     record_rejection(&current_span, response.status(), rejected);
                 }
 
@@ -289,6 +302,7 @@ mod tests {
 
     use axum::{Router, body::Body, routing::get};
     use http::{Request, StatusCode};
+    use opentelemetry::trace::Status;
     use opentelemetry_sdk::trace::SpanData;
     use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
     use tower::ServiceExt as _;
@@ -393,20 +407,15 @@ mod tests {
         }
     }
 
-    /// Serves one request whose handler fails with `error`, and returns what it traced and logged
-    /// together with the span of the request.
-    async fn serve_failing(error: ListEntitiesError) -> (RecordedTrace, SpanData) {
+    /// Serves one request to `uri` through the tracing layer, and returns what it traced and
+    /// logged together with the span of the request.
+    async fn serve(router: Router, uri: &str) -> (RecordedTrace, SpanData) {
         let trace = RecordedTrace::new();
-        let handler =
-            move || async move { Err::<(), _>(Rejection::<ListEntitiesProblem>::from(error)) };
-        let router: Router = Router::new()
-            .route("/entities", get(handler))
-            .layer(HttpTracingLayer::new(|_| false));
-
         router
+            .layer(HttpTracingLayer::new(|_| false))
             .oneshot(
                 Request::builder()
-                    .uri("/entities")
+                    .uri(uri)
                     .body(Body::empty())
                     .expect("the request should build"),
             )
@@ -419,6 +428,15 @@ mod tests {
             .pop()
             .expect("the request should export its span");
         (trace, span)
+    }
+
+    /// Serves one request whose handler fails with `error`, and returns what it traced and logged
+    /// together with the span of the request.
+    async fn serve_failing(error: ListEntitiesError) -> (RecordedTrace, SpanData) {
+        let handler = move || {
+            core::future::ready(Err::<(), _>(Rejection::<ListEntitiesProblem>::from(error)))
+        };
+        serve(Router::new().route("/entities", get(handler)), "/entities").await
     }
 
     fn attribute(span: &SpanData, key: &str) -> Option<String> {
@@ -450,6 +468,11 @@ mod tests {
             Some("500"),
             "the error type of an `about:blank` problem should be its status"
         );
+        assert_eq!(
+            span.status,
+            Status::error(InternalServerError.to_string()),
+            "a server error should mark the span as failed with the detail the client received"
+        );
     }
 
     #[tokio::test]
@@ -466,6 +489,11 @@ mod tests {
             "a client error should set no error type"
         );
         assert_eq!(
+            span.status,
+            Status::Unset,
+            "a client error should leave the status of the server span unset"
+        );
+        assert_eq!(
             attribute(&span, "problem.type").as_deref(),
             Some("https://example.com/problems/invalid-limit"),
             "the span should name the problem type the client received"
@@ -473,6 +501,52 @@ mod tests {
         assert!(
             trace.traces_error("Limit"),
             "the trace should carry the error behind the rejection"
+        );
+    }
+
+    #[tokio::test]
+    async fn span_status_bare_server_error() {
+        let (_, span) = serve(
+            Router::new().route("/entities", get(async || StatusCode::SERVICE_UNAVAILABLE)),
+            "/entities",
+        )
+        .await;
+
+        assert_eq!(
+            span.status,
+            Status::error(""),
+            "a server error without a rejection should mark the span as failed without a \
+             description"
+        );
+    }
+
+    #[tokio::test]
+    async fn span_name_matched_route() {
+        let (_, span) = serve(
+            Router::new().route("/entities/{id}", get(async || "ok")),
+            "/entities/42",
+        )
+        .await;
+
+        assert_eq!(
+            span.name, "GET /entities/{id}",
+            "a matched request should be named by its method and route"
+        );
+    }
+
+    #[tokio::test]
+    async fn span_name_unmatched_route() {
+        let (_, span) = serve(
+            Router::new()
+                .route("/entities", get(async || "ok"))
+                .fallback(async || StatusCode::NOT_FOUND),
+            "/wp-admin/setup-config.php",
+        )
+        .await;
+
+        assert_eq!(
+            span.name, "GET",
+            "a request no route matched should be named by its method alone"
         );
     }
 }
