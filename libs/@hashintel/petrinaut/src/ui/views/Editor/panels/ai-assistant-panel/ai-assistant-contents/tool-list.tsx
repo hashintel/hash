@@ -1,8 +1,3 @@
-import { Collapsible } from "@ark-ui/react/collapsible";
-import { useRef, useState } from "react";
-
-import { Icon, LoadingSpinner } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -18,8 +13,8 @@ import {
   type AiToolSummary,
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
-import { collapsibleContentStyle } from "./shared/collapsible-content-style";
-import { useElapsedTime } from "./shared/use-elapsed-time";
+import { BrunchToolList } from "./tool-list/brunch-tool-list";
+import { StockToolList } from "./tool-list/stock-tool-list";
 
 import type {
   PetrinautAiAssistantPresentation,
@@ -86,141 +81,6 @@ export type OnInteractiveToolSubmit = (params: {
   toolName: string;
   output: unknown;
 }) => void | PromiseLike<void>;
-
-const toolListStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-});
-
-const toolItemCollapsibleStyle = css({
-  "& > button": {
-    borderRadius: "[0]",
-  },
-});
-
-const statusDotStyle = css({
-  width: "[6px]",
-  height: "[6px]",
-  borderRadius: "full",
-  flexShrink: 0,
-  backgroundColor: "yellow.s90",
-  '&[data-tool-status="ok"]': { backgroundColor: "green.s90" },
-  '&[data-tool-status="error"]': { backgroundColor: "red.s90" },
-  '&[data-tool-status="cancelled"]': {
-    backgroundColor: "neutral.s80",
-    height: "[2px]",
-  },
-});
-
-const interactiveToolStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-});
-
-const toolItemStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    gap: "2",
-    width: "full",
-    minHeight: "8",
-    paddingX: "2",
-    paddingY: "[5px]",
-    border: "none",
-    borderRadius: "md",
-    backgroundColor: "[transparent]",
-    color: "neutral.s90",
-    fontSize: "xs",
-    fontWeight: "medium",
-    textAlign: "left",
-    cursor: "default",
-    _enabled: {
-      cursor: "pointer",
-    },
-    _hover: { backgroundColor: "neutral.a20" },
-    "& svg[data-chevron]": {
-      marginLeft: "auto",
-      transition: "[transform 150ms ease-out]",
-    },
-    "&[data-state=closed] svg[data-chevron]": {
-      transform: "[rotate(90deg)]",
-    },
-    "&[data-state=open] svg[data-chevron]": {
-      transform: "[rotate(180deg)]",
-    },
-  },
-  variants: {
-    tone: {
-      danger: {
-        color: "red.s100",
-      },
-      info: {
-        color: "neutral.s100",
-      },
-      neutral: {
-        color: "neutral.s90",
-      },
-      pending: {
-        color: "neutral.s90",
-      },
-      success: {
-        color: "neutral.s90",
-      },
-    },
-    group: {
-      true: {
-        display: "inline-flex",
-        width: "[fit-content]",
-        minHeight: "[0]",
-        padding: "[2px 6px 2px 2px]",
-        gap: "1",
-        color: "neutral.s80",
-        _hover: { color: "neutral.s90" },
-        _focusVisible: { outline: "[2px solid {colors.blue.s90}]" },
-        "& svg[data-chevron]": { marginLeft: "0" },
-      },
-    },
-    link: {
-      true: {
-        cursor: "pointer",
-        textDecoration: "none",
-      },
-    },
-  },
-});
-
-const toolTextStyle = css({
-  display: "flex",
-  flex: "[1]",
-  flexDirection: "column",
-  gap: "[2px]",
-});
-
-const toolDetailStyle = css({
-  display: "block",
-  color: "neutral.s80",
-  fontSize: "xs",
-  lineHeight: "[16px]",
-});
-
-const toolSubItemListStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  padding: "[4px 8px 8px 30px]",
-  color: "neutral.s80",
-  fontSize: "xs",
-  fontWeight: "medium",
-  lineHeight: "[16px]",
-});
-
-const toolSubItemStyle = css({
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
 
 export const isToolPart = (
   part: PetrinautAiMessage["parts"][number],
@@ -494,264 +354,6 @@ export const toToolRenderItem = (
   };
 };
 
-const InteractiveToolItem = ({
-  onInteractiveToolSubmit,
-  presentation,
-  tool,
-}: {
-  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  presentation: PetrinautAiAssistantPresentation;
-  tool: ToolRenderItem;
-}) => {
-  const interactive = tool.interactive;
-  if (!interactive) {
-    throw new Error(`Missing interactive definition for ${tool.toolName}`);
-  }
-
-  const { definition, input, submittedOutput } = interactive;
-  const submitted = tool.state === "output-available";
-  const submittedOnceRef = useRef(submitted);
-  const Widget = definition.Widget;
-  const typedInput = definition.parseInput(input);
-  const submitAndWait = (output: unknown): Promise<void> => {
-    if (submittedOnceRef.current) {
-      return Promise.resolve();
-    }
-    if (!onInteractiveToolSubmit) {
-      const submissionPromise = Promise.reject(
-        new Error("Interactive tool submission is unavailable."),
-      );
-      void submissionPromise.catch(() => undefined);
-      return submissionPromise;
-    }
-
-    try {
-      const parsedOutput = definition.parseOutput(output);
-      submittedOnceRef.current = true;
-      const submission = onInteractiveToolSubmit({
-        toolCallId: tool.id,
-        toolName: tool.toolName,
-        output: parsedOutput,
-      });
-      const submissionPromise = Promise.resolve(submission);
-      void submissionPromise.catch(() => {
-        submittedOnceRef.current = false;
-      });
-      return submissionPromise;
-    } catch (error) {
-      submittedOnceRef.current = false;
-      const submissionPromise = Promise.reject(error);
-      void submissionPromise.catch(() => undefined);
-      return submissionPromise;
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
-        <Widget
-          input={typedInput}
-          presentation={presentation}
-          state="submitted"
-          submit={() => {}}
-          submitAndWait={() => Promise.resolve()}
-          submittedOutput={definition.parseOutput(submittedOutput)}
-          toolCallId={tool.id}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
-      <Widget
-        input={typedInput}
-        presentation={presentation}
-        state="awaiting"
-        submit={(output) => {
-          void submitAndWait(output);
-        }}
-        submitAndWait={submitAndWait}
-        toolCallId={tool.id}
-      />
-    </div>
-  );
-};
-
-const ToolItem = ({
-  onInteractiveToolSubmit,
-  onSelectToolTarget,
-  tool,
-  presentation,
-  active = false,
-  stopped = false,
-}: {
-  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
-  tool: ToolRenderItem;
-  presentation: PetrinautAiAssistantPresentation;
-  active?: boolean;
-  stopped?: boolean;
-}) => {
-  const inProgress =
-    tool.state === "input-streaming" || tool.state === "input-available";
-  const cancelled = stopped && inProgress;
-  const duration = useElapsedTime(active && inProgress && !tool.interactive);
-  if (tool.interactive && !cancelled) {
-    return (
-      <InteractiveToolItem
-        onInteractiveToolSubmit={onInteractiveToolSubmit}
-        presentation={presentation}
-        tool={tool}
-      />
-    );
-  }
-
-  const complete = tool.state === "output-available";
-  const errored = tool.state === "output-error";
-  const stateLabel = cancelled ? "Cancelled" : tool.stateLabel || undefined;
-  const target = tool.summary.target;
-  const href = tool.summary.href;
-  const children = tool.summary.items ?? [];
-  const title =
-    errored && !tool.hasConfiguredTitle
-      ? (tool.errorText ?? "Tool failed")
-      : tool.summary.title;
-
-  const button = (
-    <button
-      type="button"
-      className={toolItemStyle({ tone: tool.tone })}
-      data-tone={tool.tone}
-      aria-busy={inProgress && !cancelled ? true : undefined}
-      onClick={() => {
-        if (target) {
-          onSelectToolTarget?.(target);
-        }
-      }}
-    >
-      <span
-        className={statusDotStyle}
-        data-tool-status={
-          cancelled
-            ? "cancelled"
-            : errored
-              ? "error"
-              : complete
-                ? "ok"
-                : "pending"
-        }
-        aria-label={
-          cancelled
-            ? "Cancelled"
-            : errored
-              ? "Error"
-              : complete
-                ? "Complete"
-                : "Pending"
-        }
-      />
-      <span className={toolTextStyle}>
-        <span>{title}</span>
-        {errored && !tool.hasConfiguredTitle ? (
-          <span className={toolDetailStyle} data-testid="tool-detail">
-            {tool.toolName}
-          </span>
-        ) : tool.summary.detail ? (
-          <span className={toolDetailStyle} data-testid="tool-detail">
-            {tool.summary.detail}
-          </span>
-        ) : null}
-        {stateLabel && <span className={toolDetailStyle}>{stateLabel}</span>}
-      </span>
-      <span
-        className={toolDetailStyle}
-        title={duration === undefined ? "Duration unavailable" : undefined}
-      >
-        {duration === undefined ? "—" : `${(duration / 1_000).toFixed(1)}s`}
-      </span>
-      <Icon name="chevronUp" data-chevron size="sm" />
-    </button>
-  );
-
-  return (
-    <Collapsible.Root className={toolItemCollapsibleStyle} defaultOpen={false}>
-      <Collapsible.Trigger asChild>{button}</Collapsible.Trigger>
-      <Collapsible.Content className={collapsibleContentStyle}>
-        <div className={toolSubItemListStyle}>
-          <strong>{tool.toolName}</strong>
-          {href && !errored && (
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              Open user guide
-            </a>
-          )}
-          <strong>Arguments</strong>
-          <pre
-            className={css({
-              whiteSpace: "pre-wrap",
-              overflowWrap: "anywhere",
-            })}
-          >
-            {tool.input === undefined
-              ? "Not available"
-              : JSON.stringify(tool.input, null, 2)}
-          </pre>
-          <strong>Result</strong>
-          <pre
-            className={css({
-              whiteSpace: "pre-wrap",
-              overflowWrap: "anywhere",
-            })}
-          >
-            {tool.errorText ??
-              (tool.output === undefined
-                ? cancelled
-                  ? "Cancelled before a result was received"
-                  : "Pending"
-                : JSON.stringify(tool.output, null, 2))}
-          </pre>
-          {children.map((item, index) => (
-            // oxlint-disable-next-line react/no-array-index-key
-            <div className={toolSubItemStyle} key={`${tool.id}-${index}`}>
-              {item}
-            </div>
-          ))}
-        </div>
-      </Collapsible.Content>
-    </Collapsible.Root>
-  );
-};
-
-const ToolListContent = ({
-  onInteractiveToolSubmit,
-  onSelectToolTarget,
-  tools,
-  presentation,
-  active,
-  stopped,
-}: {
-  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
-  tools: ToolRenderItem[];
-  presentation: PetrinautAiAssistantPresentation;
-  active: boolean;
-  stopped: boolean;
-}) => (
-  <>
-    {tools.map((tool) => (
-      <ToolItem
-        key={tool.id}
-        tool={tool}
-        presentation={presentation}
-        active={active && !stopped}
-        stopped={stopped}
-        onInteractiveToolSubmit={onInteractiveToolSubmit}
-        onSelectToolTarget={onSelectToolTarget}
-      />
-    ))}
-  </>
-);
-
 export const AiAssistantToolList = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
@@ -765,104 +367,28 @@ export const AiAssistantToolList = ({
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
-  active?: boolean;
   stopped?: boolean;
+  /** Brunch only; the options below shape the fold around the tools. */
+  active?: boolean;
   producedCard?: boolean;
   preserveOpen?: boolean;
   presentation?: PetrinautAiAssistantPresentation;
-}) => {
-  const running =
-    active &&
-    !stopped &&
-    tools.some(
-      (tool) =>
-        !tool.interactive &&
-        (tool.state === "input-streaming" || tool.state === "input-available"),
-    );
-  const [disclosure, setDisclosure] = useState({
-    running,
-    open: preserveOpen ? active : running,
-  });
-  if (disclosure.running !== running)
-    setDisclosure({ running, open: preserveOpen ? disclosure.open : running });
-  if (tools.length === 0) {
-    return null;
-  }
-
-  const content = (
-    <div className={toolListStyle}>
-      <ToolListContent
-        tools={tools}
-        presentation={presentation}
-        active={active}
-        stopped={stopped}
-        onInteractiveToolSubmit={onInteractiveToolSubmit}
-        onSelectToolTarget={onSelectToolTarget}
-      />
-    </div>
+}) =>
+  presentation === "stock" ? (
+    <StockToolList
+      tools={tools}
+      stopped={stopped}
+      onInteractiveToolSubmit={onInteractiveToolSubmit}
+      onSelectToolTarget={onSelectToolTarget}
+    />
+  ) : (
+    <BrunchToolList
+      tools={tools}
+      active={active}
+      stopped={stopped}
+      producedCard={producedCard}
+      preserveOpen={preserveOpen}
+      onInteractiveToolSubmit={onInteractiveToolSubmit}
+      onSelectToolTarget={onSelectToolTarget}
+    />
   );
-
-  if (producedCard || presentation === "stock") return content;
-  return (
-    <>
-      <Collapsible.Root
-        open={disclosure.open}
-        onOpenChange={({ open }) => setDisclosure({ running, open })}
-      >
-        <Collapsible.Trigger
-          className={toolItemStyle({ tone: "neutral", group: true })}
-        >
-          {running ? (
-            <LoadingSpinner size="xs" aria-hidden="true" />
-          ) : (
-            <Icon name="lightning" size="xs" />
-          )}
-          {running
-            ? "Running tools"
-            : `${stopped ? "Stopped after" : "Used"} ${tools.length} ${tools.length === 1 ? "tool" : "tools"}`}
-          <Icon name="chevronUp" size="xs" data-chevron />
-        </Collapsible.Trigger>
-        <Collapsible.Content className={collapsibleContentStyle}>
-          <div
-            className={css({
-              display: "flex",
-              flexDirection: "column",
-              gap: "1",
-              margin: "[2px 0 4px 7px]",
-              paddingLeft: "2.5",
-              borderLeft: "[2px solid {colors.neutral.a30}]",
-            })}
-          >
-            {tools
-              .filter(
-                (tool) => !tool.interactive || tool.state !== "input-available",
-              )
-              .map((tool) => (
-                <ToolItem
-                  key={tool.id}
-                  tool={tool}
-                  presentation={presentation}
-                  active={active && !stopped}
-                  stopped={stopped}
-                  onInteractiveToolSubmit={onInteractiveToolSubmit}
-                  onSelectToolTarget={onSelectToolTarget}
-                />
-              ))}
-          </div>
-        </Collapsible.Content>
-      </Collapsible.Root>
-      {tools
-        .filter((tool) => tool.interactive && tool.state === "input-available")
-        .map((tool) => (
-          <ToolItem
-            key={tool.id}
-            tool={tool}
-            presentation={presentation}
-            stopped={stopped}
-            onInteractiveToolSubmit={onInteractiveToolSubmit}
-            onSelectToolTarget={onSelectToolTarget}
-          />
-        ))}
-    </>
-  );
-};

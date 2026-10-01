@@ -1,7 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { VoiceBrief } from "./get-message-render-items";
+import type { VoiceBrief } from "../get-message-render-items";
 
 /** A quiet, right-aligned disclosure beneath the original spoken words. */
 export const VoiceInputProvenance = ({ brief }: { brief: VoiceBrief }) => (
