@@ -42,7 +42,6 @@ import {
 import { createQueryBasisTool } from "../../conversation/why.ts";
 import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { createBrunchContextProjection } from "./context-projection.ts";
-import { ownLedger } from "./guidance-ledger.ts";
 import { selectGuidanceVariant } from "./guidance-variant.ts";
 import { useChatGuidance } from "./guidance.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
@@ -53,7 +52,6 @@ const chatThinkingLevel = selectChatThinking();
 const ledgerProfile = composeLedgerProfile(sdcpnLedgerProfile);
 const ledgerNoteShape = selectLedgerNoteShape();
 const guidanceVariant = selectGuidanceVariant();
-const guidanceLedger = ownLedger(guidanceVariant);
 const useConstruction =
   guidanceVariant === "baseline" ? useSdcpnPlugin : useSdcpnTools;
 
@@ -86,16 +84,15 @@ export function ChatAgent({ id }: AgentProps) {
         ),
     }).history();
   };
-  const { system: coreSystemPrompt, instructions } = useChatGuidance(
-    guidanceVariant,
-    CHAT_MODEL_SPECIFIER,
-    chatModelOptions,
-    {
-      profile: ledgerProfile,
-      noteShape: ledgerNoteShape,
-      readHistory: history,
-    },
-  );
+  const {
+    system: coreSystemPrompt,
+    instructions,
+    createQueryBasisTool: createOwnQueryBasisTool,
+  } = useChatGuidance(guidanceVariant, CHAT_MODEL_SPECIFIER, chatModelOptions, {
+    profile: ledgerProfile,
+    noteShape: ledgerNoteShape,
+    readHistory: history,
+  });
   useConstruction(
     initialData
       ? {
@@ -139,10 +136,9 @@ export function ChatAgent({ id }: AgentProps) {
   );
   if (initialData)
     useTool(
-      createQueryBasisTool({
+      (createOwnQueryBasisTool ?? createQueryBasisTool)({
         browser: initialData,
         history,
-        ...(guidanceLedger ? { reconstruct: guidanceLedger.reconstruct } : {}),
       }),
     );
 

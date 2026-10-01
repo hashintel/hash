@@ -20,12 +20,15 @@ import eliciting from "./guidance/skills/eliciting/SKILL.md";
 import system from "./guidance/system.md?raw";
 
 import type { GuidanceVariant } from "./guidance-variant.ts";
+import type { ToolDefinition } from "@flue/runtime";
+import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 /**
  * What an arm hands back once it has mounted its model, skills, Ledger tools
  * and instructions. A self-contained arm also returns its own copies of the
- * runtime instructions, which the agent and the SDCPN plugin mount where the
- * shared text would go.
+ * runtime instructions and of `query_basis`, which the agent and the SDCPN
+ * plugin mount where the shared ones would go.
  */
 export interface ChatGuidance {
   readonly system: string;
@@ -38,6 +41,11 @@ export interface ChatGuidance {
     readonly capability: string;
     readonly experimentDrafting: string;
   };
+  /** Mounted only in a document-bound conversation. */
+  readonly createQueryBasisTool?: (options: {
+    browser: BrowserContext;
+    history: () => Promise<FlueConversationSnapshot>;
+  }) => ToolDefinition;
 }
 
 const withFields = (description: string) =>
@@ -48,7 +56,8 @@ const withFields = (description: string) =>
  * Ledger implementation; `identity` swaps in the identity-addressed Ledger,
  * which is always typed, and otherwise matches `feedback`. `manual` and
  * `receipt` are self-contained: each mounts only its own sources and its own
- * Ledger tools, and returns its copies of the runtime instructions.
+ * Ledger tools, and returns its copies of the runtime instructions and of
+ * `query_basis`.
  */
 export const useChatGuidance = (
   variant: GuidanceVariant,

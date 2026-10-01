@@ -180,20 +180,10 @@ const toolCallPosition = (
     )
     .at(0);
 
-/** Reads accepted Ledger commits back from history, as some Ledger records them. */
-export type LedgerReader = (history: {
-  readonly messages: FlueConversationSnapshot["messages"];
-}) => readonly {
-  readonly revision: number;
-  readonly afterMessageId?: string;
-  readonly notes: readonly { readonly id: string }[];
-}[];
-
 /** The Ledger as it stood when a call was made, and the Notes its turn had recorded so far. */
 export const ledgerAtCall = (
   snapshot: FlueConversationSnapshot,
   call: NetCall,
-  reconstruct: LedgerReader = reconstructLedger,
 ) => {
   const message = snapshot.messages[call.messageIndex];
   if (!message) return undefined;
@@ -203,7 +193,7 @@ export const ledgerAtCall = (
       { ...message, parts: message.parts.slice(0, call.partIndex) },
     ],
   };
-  const commits = reconstruct(prefix);
+  const commits = reconstructLedger(prefix);
   const latest = commits.at(-1);
   const userMessageId = prefix.messages.findLast(
     (entry) => entry.role === "user" && entry.purpose === "user",
