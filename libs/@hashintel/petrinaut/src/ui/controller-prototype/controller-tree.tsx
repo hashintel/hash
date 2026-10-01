@@ -28,6 +28,7 @@ import {
 } from "../constants/entity-icons";
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { LeverRowIcon } from "./lever-glyph";
+import { clearLeverPreviewSoon, setLeverPreview } from "./lever-preview";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 import type { ComponentType } from "react";
@@ -54,6 +55,7 @@ export type ControllerTreeRow = {
   isSelected?: (selectedByDefault: boolean) => boolean;
   expanded?: boolean;
   onToggleExpanded?: () => void;
+  onHoverChange?: (hovered: boolean) => void;
 };
 
 const AddControllerAction: React.FC = () => {
@@ -148,6 +150,13 @@ export const useControllersTreeGroup = (
             });
           }
         },
+        onHoverChange:
+          name === null
+            ? undefined
+            : (hovered) =>
+                hovered
+                  ? setLeverPreview(selectionItem.id)
+                  : clearLeverPreviewSoon(),
         isSelected: (selectedByDefault) =>
           selectedByDefault && activeRow?.rowId === rowId,
       };

@@ -175,6 +175,8 @@ interface FilterableListItem {
   /** When set, a plain row shows a chevron that toggles the rows it owns. */
   expanded?: boolean;
   onToggleExpanded?: () => void;
+  /** Called as the pointer enters and leaves the row. */
+  onHoverChange?: (hovered: boolean) => void;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -469,6 +471,12 @@ const FilterableListContent = <T extends FilterableListItem>({
             : undefined
         }
         onClick={(event) => onRowClick(event, row)}
+        onMouseEnter={
+          item.onHoverChange ? () => item.onHoverChange?.(true) : undefined
+        }
+        onMouseLeave={
+          item.onHoverChange ? () => item.onHoverChange?.(false) : undefined
+        }
         onKeyDown={onRowKeyDown(row)}
         onFocus={(event) => {
           // Focus bubbles: the row reports its own position, its action

@@ -5,10 +5,6 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
-import {
-  leverNodeIds,
-  readControllers,
-} from "../../../react/controller-prototype/controllers";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
@@ -66,17 +62,12 @@ export const useCanvasScene = (
   // hover causes and only rebuilds it when the net itself changes.
   const adjacency = buildNetAdjacency(activeNet);
 
-  // A selected controller focuses its levers and holds that focus under a
-  // hover, so pointing at a lever to read its tooltip keeps the others ringed.
-  const selectedControllerIds = new Set(
+  // A selected controller leaves the net as it is, so any node can be dragged
+  // onto its levers; hovering a lever row or dropdown row rings that node.
+  const selectedNodeIds = new Set(
     Array.from(selection.values())
-      .filter((item) => item.type === "controller")
+      .filter((item) => item.type !== "controller")
       .map((item) => item.id),
-  );
-  const controllerLeverIds = new Set(
-    readControllers(petriNetDefinition)
-      .filter((controller) => selectedControllerIds.has(controller.id))
-      .flatMap((controller) => controller.levers.flatMap(leverNodeIds)),
   );
 
   return buildCanvasScene({
@@ -92,12 +83,10 @@ export const useCanvasScene = (
     focus:
       leverPreviewId !== null
         ? resolveControllerFocus(new Set([leverPreviewId]))
-        : selectedControllerIds.size > 0
-        ? resolveControllerFocus(controllerLeverIds)
         : resolveCanvasFocus({
             adjacency,
             hoveredId: highlightOnHover ? settledHoverId : null,
-            selectedIds: new Set(selection.keys()),
+            selectedIds: selectedNodeIds,
           }),
     pinnedVisualizerIds: pinnedVisualizerPlaceIds,
   });
