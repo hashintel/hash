@@ -22,7 +22,10 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
+import {
+  hasMultiItemSuffix,
+  MultiItemSuffix,
+} from "../../util/SelectableList/selectable-list-multi-suffix";
 import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
 import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
@@ -251,15 +254,16 @@ function mapToMenuItems<TValue extends string>(
     selectOnly: (value: TValue) => void;
   },
 ): Array<ItemOrGroup<Item>> {
-  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode => (
-    <MultiItemSuffix
-      suffix={it.suffix}
-      showOnlyButton={it.showOnlyButton}
-      disabled={it.disabled}
-      tone={it.selectedTone}
-      onSelectOnly={() => options.selectOnly(it.value)}
-    />
-  );
+  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode =>
+    hasMultiItemSuffix(it) ? (
+      <MultiItemSuffix
+        suffix={it.suffix}
+        showOnlyButton={it.showOnlyButton}
+        disabled={it.disabled}
+        tone={it.selectedTone}
+        onSelectOnly={() => options.selectOnly(it.value)}
+      />
+    ) : undefined;
   const toItem = (it: MultiSelectItem<TValue>): Item => ({
     id: it.value,
     text: renderItem(it.value),

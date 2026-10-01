@@ -22,7 +22,10 @@ import {
   SelectableList,
   isCustomItem,
 } from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
+import {
+  hasMultiItemSuffix,
+  MultiItemSuffix,
+} from "../../util/SelectableList/selectable-list-multi-suffix";
 import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Chip, type ChipSize } from "../Chip/chip";
 import { useFieldId } from "../Form/field-id-context";
@@ -617,15 +620,16 @@ export const Combobox = <TValue extends string>({
       selectedStyle:
         option.selectedStyle ?? (multiple ? "checkbox" : "highlight"),
       selectedTone: option.selectedTone,
-      suffix: multiple ? (
-        <MultiItemSuffix
-          suffix={option.suffix}
-          showOnlyButton={option.showOnlyButton}
-          disabled={option.disabled}
-          tone={option.selectedTone}
-          onSelectOnly={() => selectOnly(option.value)}
-        />
-      ) : undefined,
+      suffix:
+        multiple && hasMultiItemSuffix(option) ? (
+          <MultiItemSuffix
+            suffix={option.suffix}
+            showOnlyButton={option.showOnlyButton}
+            disabled={option.disabled}
+            tone={option.selectedTone}
+            onSelectOnly={() => selectOnly(option.value)}
+          />
+        ) : undefined,
       subItems: undefined,
       onClick: () => {},
     });
