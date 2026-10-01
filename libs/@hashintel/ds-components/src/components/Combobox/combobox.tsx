@@ -129,7 +129,7 @@ type ComboboxMultipleProps<TValue extends string> = {
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
-  /** Whether toggling an option in the dropdown (adding or removing a value) clears the typed text. */
+  /** Whether a selection change made from the dropdown — toggling an option, or an item's "Only" button — clears the typed text. */
   clearInputOnSelect?: boolean;
   /** How the selected values render in the input when no `renderSelectedAll` is given: a chip row that scrolls horizontally (the default), a chip row that truncates with a "+X" badge, or a plain-text summary of the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
@@ -458,14 +458,17 @@ export const Combobox = <TValue extends string>({
 
   const [highlightNavigated, setHighlightNavigated] = useState(false);
 
-  const setText = (next: string) => {
-    if (next === inputTextRef.current) {
-      return;
-    }
-    inputTextRef.current = next;
-    setInputText(next);
-    onChangeInput?.(next);
-  };
+  const setText = useCallback(
+    (next: string) => {
+      if (next === inputTextRef.current) {
+        return;
+      }
+      inputTextRef.current = next;
+      setInputText(next);
+      onChangeInput?.(next);
+    },
+    [onChangeInput],
+  );
 
   const emitSingleChange = (next: string, isNew: boolean) => {
     if (newValueOptions !== undefined) {
@@ -590,11 +593,17 @@ export const Combobox = <TValue extends string>({
     !isBlockedTypedText(effectiveItems, inputText) &&
     (newValueOptions.alwaysShowOption ?? !typedTextNamesOption);
 
+  // An "Only" press is a selection change made from the dropdown, so it
+  // honors clearInputOnSelect like a toggle — its click never reaches the
+  // option (stopPropagation), bypassing onValueChange's own clearing.
   const selectOnly = useCallback(
     (val: string) => {
       emitMultiChange([val], false);
+      if (clearInputOnSelect) {
+        setText("");
+      }
     },
-    [emitMultiChange],
+    [emitMultiChange, clearInputOnSelect, setText],
   );
 
   const listItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
