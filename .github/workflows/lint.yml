@@ -104,7 +104,6 @@ jobs:
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
-        if: matrix.name != 'hash-python'
         uses: $/.github/actions/prune-repository
         with:
           scope: ${{ matrix.name }}
@@ -112,7 +111,7 @@ jobs:
       - name: Find lint steps to run
         id: lints
         run: |
-          HAS_RUST=$([[ "${{ matrix.name }}" != "hash-python" && ( -f "${{ matrix.path }}/Cargo.toml" || "${{ matrix.path }}" = "apps/hash-graph" ) ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
           # Generated files can change without affecting codegen. The drift check needs command discovery rather than affected-task selection.
@@ -121,7 +120,6 @@ jobs:
           echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository
-        if: matrix.name != 'hash-python'
         uses: $/.github/actions/warm-up-repo
 
       - name: Install Python workspace for Python lint

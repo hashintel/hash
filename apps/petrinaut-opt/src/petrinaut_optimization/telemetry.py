@@ -195,14 +195,13 @@ class Telemetry:
         if self.providers is not None:
             return True
 
-        settings = TelemetrySettings()
-
-        if not settings.endpoint:
-            log.info("OTEL_EXPORTER_OTLP_ENDPOINT unset; starting without OpenTelemetry")
-            return False
-
         providers: _Providers | None = None
         try:
+            settings = TelemetrySettings()
+            if not settings.endpoint:
+                log.info("OTEL_EXPORTER_OTLP_ENDPOINT unset; starting without OpenTelemetry")
+                return False
+
             providers = _Providers.create(
                 protocol=settings.protocol, service_name=settings.service_name
             )

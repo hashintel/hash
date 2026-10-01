@@ -80,6 +80,30 @@ def test_setup_without_endpoint(harness: TelemetryHarness, monkeypatch: pytest.M
     assert harness.meters == []
 
 
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        ("OTEL_EXPORTER_OTLP_ENDPOINT", "not-a-url"),
+        ("OTEL_EXPORTER_OTLP_PROTOCOL", "unsupported"),
+    ],
+)
+def test_setup_invalid_settings(
+    *,
+    harness: TelemetryHarness,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    variable: str,
+    value: str,
+) -> None:
+    monkeypatch.setenv(variable, value)
+
+    assert not harness.owner.setup(harness.app)
+    assert harness.owner.providers is None
+    assert harness.tracers == []
+    assert harness.meters == []
+    assert "OpenTelemetry bootstrap failed; continuing without telemetry" in caplog.text
+
+
 def test_setup_publication_and_flush(harness: TelemetryHarness) -> None:
     assert harness.owner.setup(harness.app)
     providers = harness.owner.providers
