@@ -805,6 +805,23 @@ export const Combobox = <TValue extends string>({
     },
   });
 
+  // The dropdown exits over an animation (see the selectable-list recipe),
+  // and closing is also what abandons typed text — re-filtering on the
+  // revert would resize the list mid-exit. While open the dropdown renders
+  // live values, mirrored here render-adjusted (as with lastCommittedText
+  // above); a closed (exiting) dropdown keeps rendering the last open ones.
+  const [displayedDropdown, setDisplayedDropdown] = useState({
+    listItems,
+    filterQuery,
+  });
+  if (
+    combobox.open &&
+    (displayedDropdown.listItems !== listItems ||
+      displayedDropdown.filterQuery !== filterQuery)
+  ) {
+    setDisplayedDropdown({ listItems, filterQuery });
+  }
+
   const selectedIds = useMemo(() => {
     if (multiple) {
       return selectedValues;
@@ -1149,14 +1166,15 @@ export const Combobox = <TValue extends string>({
           <SelectableList
             as="Combobox"
             className={comboboxDropdownRecipe({ variant })}
-            items={listItems}
+            items={displayedDropdown.listItems}
             selected={selectedIds}
             size={size}
             highlightNavigated={highlightNavigated}
             emptyState={
-              filterQuery === "" || !hasAnyOption
+              displayedDropdown.filterQuery === "" || !hasAnyOption
                 ? (emptyState ?? "No options available")
-                : (noMatchMessage?.(filterQuery) ?? "No matching options")
+                : (noMatchMessage?.(displayedDropdown.filterQuery) ??
+                  "No matching options")
             }
           />
         </ArkCombobox.Positioner>
