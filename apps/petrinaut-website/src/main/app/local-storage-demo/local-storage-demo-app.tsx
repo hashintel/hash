@@ -16,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -73,12 +74,19 @@ import {
 import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
+  getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
 } from "./brunch-conversation-id";
 import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
 } from "./brunch-draft-experiment-interactive-tool";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+} from "./brunch-mutation-approval";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -610,10 +618,22 @@ export const LocalStorageDemoApp = ({
             documentId: currentDocument.documentId,
             title,
           });
-  const baseConstructionConversationId =
-    currentDocument === null || !brunchSelected
-      ? undefined
-      : ordinaryConstructionConversationIdFrom(currentDocument.incarnationId);
+  const [freshConversationIds, setFreshConversationIds] = useState<
+    Record<string, string>
+  >({});
+  const incarnationId = currentDocument?.incarnationId;
+  const baseConstructionConversationId = useMemo(() => {
+    if (!brunchSelected || incarnationId === undefined) return undefined;
+    const initialId = ordinaryConstructionConversationIdFrom(incarnationId);
+    return (
+      freshConversationIds[incarnationId] ??
+      getOrCreateBrunchConversationId(
+        initialId,
+        window.localStorage,
+        () => initialId,
+      )
+    );
+  }, [brunchSelected, freshConversationIds, incarnationId]);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -640,6 +660,43 @@ export const LocalStorageDemoApp = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
+  // Each binding gets its own non-persisted approval authority.
+  const mutationApproval = useMemo(
+    () => ({
+      binding: processAgentBinding,
+      coordinator: createBrunchMutationApprovalCoordinator(),
+    }),
+    [processAgentBinding],
+  );
+  // The panel stays mounted when the binding changes, so a replaced authority
+  // must settle the approvals still waiting on it.
+  useEffect(() => {
+    const { coordinator } = mutationApproval;
+    coordinator.open();
+    return () => coordinator.close();
+  }, [mutationApproval]);
+  const allMutationApprovalTools = useMemo(
+    () =>
+      createBrunchMutationApprovalInteractiveTools(
+        mutationApproval.coordinator,
+      ),
+    [mutationApproval],
+  );
+  // A registered widget replaces the tool's row, so only calls still waiting
+  // for a decision render as approvals. Refresh the registry when call identities
+  // change; shouldHandle is the single gate, including for same-name calls.
+  const approvalVersion = useSyncExternalStore(
+    mutationApproval.coordinator.subscribe,
+    mutationApproval.coordinator.getVersion,
+    mutationApproval.coordinator.getVersion,
+  );
+  const mutationApprovalTools = useMemo(
+    () => ({
+      version: approvalVersion,
+      tools: [...allMutationApprovalTools],
+    }),
+    [allMutationApprovalTools, approvalVersion],
+  ).tools;
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected,
@@ -830,9 +887,15 @@ export const LocalStorageDemoApp = ({
             prepareInput: (call) => {
               canonicalHostTools?.mapClientToolInput(call);
             },
+            admit: createBrunchMutationAdmission(mutationApproval.coordinator),
           })
         : undefined,
-    [constructionBrowser, flueClientPromise, canonicalHostTools],
+    [
+      constructionBrowser,
+      flueClientPromise,
+      canonicalHostTools,
+      mutationApproval,
+    ],
   );
 
   const draftInteractiveTool = useMemo(
@@ -889,13 +952,16 @@ export const LocalStorageDemoApp = ({
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
-      canClearMessages: flueClientPromise === null,
+      canClearMessages: true,
       // These exact-name tools override the static registry only while a
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
       inBandBrowserTools,
       automaticTools: [...(canonicalHostTools?.tools ?? [])],
-      interactiveTools: draftInteractiveTool ? [draftInteractiveTool] : [],
+      interactiveTools: [
+        ...(inBandBrowserTools ? mutationApprovalTools : []),
+        ...(draftInteractiveTool ? [draftInteractiveTool] : []),
+      ],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
         ? {}
@@ -926,6 +992,17 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
+        if (flueClientPromise !== null && incarnationId !== undefined) {
+          const initialId =
+            ordinaryConstructionConversationIdFrom(incarnationId);
+          const nextId = `${initialId}:${crypto.randomUUID()}`;
+          replaceBrunchConversationId(initialId, nextId);
+          setFreshConversationIds((current) => ({
+            ...current,
+            [incarnationId]: nextId,
+          }));
+          return;
+        }
         if (!currentNetId || flueClientPromise !== null) {
           return;
         }
@@ -949,6 +1026,8 @@ export const LocalStorageDemoApp = ({
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
+    incarnationId,
+    mutationApprovalTools,
     constructionBrowser,
     conversationTracker,
     conversationId,

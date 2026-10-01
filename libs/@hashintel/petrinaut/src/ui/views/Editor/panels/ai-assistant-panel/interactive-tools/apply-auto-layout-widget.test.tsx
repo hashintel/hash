@@ -96,12 +96,16 @@ describe("ApplyAutoLayoutWidget", () => {
 
 describe("applyAutoLayoutInteractiveTool.shouldHandle", () => {
   test("returns true only when askUserFirst is explicitly true", () => {
+    const call = { toolCallId: "layout-1" };
     expect(
-      applyAutoLayoutInteractiveTool.shouldHandle({ askUserFirst: true }),
+      applyAutoLayoutInteractiveTool.shouldHandle({ askUserFirst: true }, call),
     ).toBe(true);
     expect(
-      applyAutoLayoutInteractiveTool.shouldHandle({ askUserFirst: false }),
+      applyAutoLayoutInteractiveTool.shouldHandle(
+        { askUserFirst: false },
+        call,
+      ),
     ).toBe(false);
-    expect(applyAutoLayoutInteractiveTool.shouldHandle({})).toBe(false);
+    expect(applyAutoLayoutInteractiveTool.shouldHandle({}, call)).toBe(false);
   });
 });

@@ -449,8 +449,15 @@ export const toToolRenderItem = (
       }
     : defaultSummary;
 
+  const id =
+    typeof part.toolCallId === "string"
+      ? part.toolCallId
+      : `${message.id}-${part.type}`;
   const interactiveDefinition = hasInteractiveToolInput(state)
-    ? getInteractiveTool(toolName, part.input, interactiveTools)
+    ? getInteractiveTool(
+        { toolName, toolCallId: id, input: part.input },
+        interactiveTools,
+      )
     : undefined;
   const interactive = interactiveDefinition
     ? {
@@ -461,10 +468,7 @@ export const toToolRenderItem = (
     : undefined;
 
   return {
-    id:
-      typeof part.toolCallId === "string"
-        ? part.toolCallId
-        : `${message.id}-${part.type}`,
+    id,
     state,
     input: part.input,
     output: part.output,

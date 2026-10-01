@@ -17,6 +17,30 @@ interface ConversationStorage {
   setItem(key: string, value: string): void;
 }
 
+/** Change only the pointer; old conversation history and the model are retained. */
+export const replaceBrunchConversationId = (
+  netId: string,
+  conversationId: string,
+  storage: ConversationStorage = window.localStorage,
+): void => {
+  let stored: Record<string, string> = {};
+  try {
+    stored = JSON.parse(
+      storage.getItem(conversationStorageKey) ?? "{}",
+    ) as Record<string, string>;
+  } catch {
+    // A broken pointer cache must not prevent starting a new conversation.
+  }
+  try {
+    storage.setItem(
+      conversationStorageKey,
+      JSON.stringify({ ...stored, [netId]: conversationId }),
+    );
+  } catch {
+    // The host retains the new id for this page load.
+  }
+};
+
 export const getOrCreateBrunchConversationId = (
   netId: string,
   storage: ConversationStorage = window.localStorage,

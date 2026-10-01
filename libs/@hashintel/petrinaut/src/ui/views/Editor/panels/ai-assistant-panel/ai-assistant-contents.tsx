@@ -1050,11 +1050,7 @@ export const AiAssistantContents = ({
       message.parts.some((part) => {
         if (part.type !== "dynamic-tool" || part.state !== "input-available")
           return false;
-        const tool = getInteractiveTool(
-          part.toolName,
-          part.input,
-          interactiveTools,
-        );
+        const tool = getInteractiveTool(part, interactiveTools);
         return tool !== undefined && tool.placement !== "card";
       }),
     );
