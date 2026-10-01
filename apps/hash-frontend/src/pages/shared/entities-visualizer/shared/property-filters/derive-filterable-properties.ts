@@ -105,6 +105,13 @@ export const resolveDataTypeValueKind = ({
  * Classifies a single property (as it appears on one entity type) into a
  * {@link FilterMetadataForProperty}, or `null` if it should be omitted from the picker
  * (a supported-but-unfilterable kind like `null`, or a missing definition).
+ *
+ * Scalar text/number/boolean values get their full operator catalogs. Lists
+ * whose elements are plain text classify as `textList` (`contains` reaches
+ * inside elements, plus existence checks); every other shape — nested
+ * objects, lists of non-text values, multi-data-type properties — classifies
+ * as `opaque`, offering only the existence operators (value comparisons on
+ * those shapes are misleading server-side).
  */
 const classifyProperty = ({
   baseUrl,
@@ -117,7 +124,6 @@ const classifyProperty = ({
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
   propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
 }): FilterMetadataForProperty | null => {
-  // A property used as a list on the entity type can't be filtered yet.
   const isListAtEntityLevel = "items" in propertySchema;
 
   const propertyTypeId =
@@ -131,52 +137,68 @@ const classifyProperty = ({
 
   const { title } = propertyType;
 
-  const disabled = (
-    disabledReason: Extract<
-      FilterMetadataForProperty,
-      { filterable: false }
-    >["disabledReason"],
-  ): FilterMetadataForProperty => ({
+  const filterable = (kind: FilterValueKind): FilterMetadataForProperty => ({
     baseUrl,
     title,
-    filterable: false,
-    disabledReason,
+    kind,
+    filterable: true,
   });
 
-  if (isListAtEntityLevel) {
-    return disabled("list");
-  }
+  /**
+   * The property type's own value shape, before any entity-level list
+   * wrapping: a scalar kind for a lone data-type reference, `textList` for a
+   * list of text values, `opaque` for any other shape, or `null` for a data
+   * type resolving to no filterable primitive (e.g. an explicit null), which
+   * stays out of the picker as before.
+   */
+  const resolveOwnShape = (): FilterValueKind | null => {
+    // More than one permitted value definition: only existence is checkable.
+    if (propertyType.oneOf.length > 1) {
+      return "opaque";
+    }
 
-  // More than one possible value definition means multiple data types.
-  if (propertyType.oneOf.length > 1) {
-    return disabled("multiple-data-types");
-  }
+    const valueDefinition = propertyType.oneOf[0];
 
-  const valueDefinition = propertyType.oneOf[0];
+    if ("$ref" in valueDefinition) {
+      const kind = resolveDataTypeValueKind({
+        dataTypeId: valueDefinition.$ref,
+        dataTypes,
+      });
+      return kind === "multiple-data-types" ? "opaque" : kind;
+    }
 
-  // Not a direct data-type reference: it's either a nested property object or a
-  // list of values – neither is filterable in v1.
-  if (!("$ref" in valueDefinition)) {
-    return disabled(valueDefinition.type === "object" ? "nested" : "list");
-  }
+    if (valueDefinition.type === "object") {
+      // A nested property object.
+      return "opaque";
+    }
 
-  const kind = resolveDataTypeValueKind({
-    dataTypeId: valueDefinition.$ref,
-    dataTypes,
-  });
+    // A list of values: `contains` reaches elements only when they are text.
+    const [itemDefinition, ...rest] = valueDefinition.items.oneOf;
+    if (rest.length === 0 && "$ref" in itemDefinition) {
+      const itemKind = resolveDataTypeValueKind({
+        dataTypeId: itemDefinition.$ref,
+        dataTypes,
+      });
+      if (itemKind === "string") {
+        return "textList";
+      }
+    }
+    return "opaque";
+  };
 
-  if (kind === "multiple-data-types") {
-    return disabled("multiple-data-types");
-  }
+  const ownShape = resolveOwnShape();
 
-  if (!kind) {
-    // A supported single data type, but not a number / string / boolean (e.g.
-    // null). Not filterable in v1, and without a dedicated reason – omit it
-    // from the picker rather than inventing a tooltip.
+  if (!ownShape) {
     return null;
   }
 
-  return { baseUrl, title, kind, filterable: true };
+  if (isListAtEntityLevel) {
+    // A list declared on the entity type: elements of plain text keep
+    // `contains`; any other element shape can only be existence-checked.
+    return filterable(ownShape === "string" ? "textList" : "opaque");
+  }
+
+  return filterable(ownShape);
 };
 
 /**
@@ -184,22 +206,21 @@ const classifyProperty = ({
  * entity types in the result set, not just the entity types present on the
  * currently returned page.
  *
- * A property is **filterable** only if all of the following hold:
- * - it is not used as a list/array on the entity type;
- * - its property type has exactly one value definition (`oneOf.length === 1`);
- * - that single definition is a direct data-type reference (not a nested
- *   property object, not a list);
- * - the resolved data type permits exactly one data type; and
- * - that data type resolves to a `number`, `string`, or `boolean` kind.
+ * Every property with a resolvable definition is filterable; its
+ * {@link FilterValueKind} decides the operator catalog (see
+ * {@link classifyProperty}): full catalogs for scalar text/number/boolean
+ * values, `contains` + existence for lists of plain text, and existence only
+ * for every other shape. Only properties resolving to no filterable primitive
+ * (e.g. an explicit null) are omitted.
  *
- * Properties that fail the gate are still returned, but annotated with a
- * {@link FilterMetadataForProperty.disabledReason} so the picker can list them disabled
- * with a reason-specific tooltip.
+ * Unfilterable classifications (with a
+ * {@link FilterMetadataForProperty.disabledReason} the picker shows as a
+ * disabled entry) are currently never produced, but the machinery remains for
+ * shapes a future classifier pass may need to gate.
  *
  * When the same property base URL appears across several entity types in
  * different shapes (e.g. a list on one type, a single value on another), the
- * **filterable** interpretation wins, so the user can still filter on the column
- * they see. Among unfilterable interpretations the first encountered wins.
+ * first filterable interpretation encountered wins.
  */
 export const deriveFilterableProperties = ({
   dataTypes,

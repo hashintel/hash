@@ -32,7 +32,7 @@ describe("buildEndpointPropertyFilter", () => {
       buildEndpointPropertyFilter(
         propertyFilter({ operator: "hasAnyValue", value: undefined }),
       ),
-    ).toEqual({ type: "hasAnyValue", property: baseUrl });
+    ).toEqual([{ type: "hasAnyValue", property: baseUrl }]);
   });
 
   it("coerces number-kind values into numbers", () => {
@@ -40,7 +40,7 @@ describe("buildEndpointPropertyFilter", () => {
       buildEndpointPropertyFilter(
         propertyFilter({ operator: "greaterThan", value: "30" }),
       ),
-    ).toEqual({ type: "greaterThan", property: baseUrl, value: 30 });
+    ).toEqual([{ type: "greaterThan", property: baseUrl, value: 30 }]);
   });
 
   it("keeps string-kind values untrimmed", () => {
@@ -52,7 +52,18 @@ describe("buildEndpointPropertyFilter", () => {
           value: " Alice",
         }),
       ),
-    ).toEqual({ type: "startsWith", property: baseUrl, value: " Alice" });
+    ).toEqual([{ type: "startsWith", property: baseUrl, value: " Alice" }]);
+  });
+
+  it("spans `between` over two inclusive endpoint conditions", () => {
+    expect(
+      buildEndpointPropertyFilter(
+        propertyFilter({ operator: "between", value: "10", secondValue: "20" }),
+      ),
+    ).toEqual([
+      { type: "greaterThanOrEqual", property: baseUrl, value: 10 },
+      { type: "lessThanOrEqual", property: baseUrl, value: 20 },
+    ]);
   });
 
   it("renders an incomplete filter inert", () => {
@@ -60,12 +71,27 @@ describe("buildEndpointPropertyFilter", () => {
       buildEndpointPropertyFilter(
         propertyFilter({ operator: "equals", value: undefined }),
       ),
-    ).toBeNull();
+    ).toEqual([]);
     expect(
       buildEndpointPropertyFilter(
         propertyFilter({ operator: "greaterThan", value: "not a number" }),
       ),
-    ).toBeNull();
+    ).toEqual([]);
+    // `between` needs both bounds, each valid for the kind.
+    expect(
+      buildEndpointPropertyFilter(
+        propertyFilter({ operator: "between", value: "10" }),
+      ),
+    ).toEqual([]);
+    expect(
+      buildEndpointPropertyFilter(
+        propertyFilter({
+          operator: "between",
+          value: "10",
+          secondValue: "not a number",
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it("renders a kind and operator mismatch inert instead of sending it", () => {
@@ -75,12 +101,22 @@ describe("buildEndpointPropertyFilter", () => {
       buildEndpointPropertyFilter(
         propertyFilter({ kind: "string", operator: "greaterThan", value: "a" }),
       ),
-    ).toBeNull();
+    ).toEqual([]);
     expect(
       buildEndpointPropertyFilter(
         propertyFilter({ kind: "number", operator: "startsWith", value: "3" }),
       ),
-    ).toBeNull();
+    ).toEqual([]);
+    expect(
+      buildEndpointPropertyFilter(
+        propertyFilter({
+          kind: "string",
+          operator: "between",
+          value: "1",
+          secondValue: "2",
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it("agrees with the subgraph builder on which filters are inert", () => {
@@ -96,6 +132,7 @@ describe("buildEndpointPropertyFilter", () => {
       "greaterThanOrEqual",
       "lessThan",
       "lessThanOrEqual",
+      "between",
       "contains",
       "startsWith",
       "endsWith",
@@ -103,19 +140,35 @@ describe("buildEndpointPropertyFilter", () => {
       "isFalse",
       "isEmpty",
       "hasAnyValue",
+      "included",
     ];
-    const kinds: FilterValueKind[] = ["number", "string", "boolean"];
+    const kinds: FilterValueKind[] = [
+      "number",
+      "string",
+      "boolean",
+      "textList",
+      "opaque",
+    ];
     const values = [undefined, "", "  ", "30", "not a number", "true"];
 
     for (const operator of operators) {
       for (const kind of kinds) {
         for (const value of values) {
-          const filter = propertyFilter({ operator, kind, value });
+          // `secondValue` mirrors `value` so complete `between` combinations
+          // are exercised too.
+          for (const secondValue of [undefined, value]) {
+            const filter = propertyFilter({
+              operator,
+              kind,
+              value,
+              secondValue,
+            });
 
-          expect(
-            buildEndpointPropertyFilter(filter) === null,
-            `${kind} / ${operator} / ${JSON.stringify(value)}`,
-          ).toBe(buildPropertyFilterClause(filter) === null);
+            expect(
+              buildEndpointPropertyFilter(filter).length === 0,
+              `${kind} / ${operator} / ${JSON.stringify(value)} / ${JSON.stringify(secondValue)}`,
+            ).toBe(buildPropertyFilterClause(filter) === null);
+          }
         }
       }
     }

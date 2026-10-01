@@ -17,22 +17,24 @@ export const defaultPillSx: SxProps<Theme> = {
   border: ({ palette }: Theme) => `1px solid ${palette.gray[30]}`,
 };
 
-export const dashedPillSx: SxProps<Theme> = {
+/** The default pill chrome, squared up for an icon-only pill button. */
+export const iconPillSx: SxProps<Theme> = {
   ...basePillSx,
-  border: ({ palette }: Theme) => `1px dashed ${palette.gray[30]}`,
-};
-
-/**
- * Used for property-filter pills that don't yet contribute a clause (no value
- * or an invalid value) – a muted, placeholder-looking variant.
- */
-export const incompletePillSx: SxProps<Theme> = {
-  ...basePillSx,
-  background: "transparent",
-  border: ({ palette }: Theme) => `1px dashed ${palette.gray[40]}`,
-  [`.${chipClasses.label}`]: {
-    fontSize: 13,
-    color: ({ palette }: Theme) => palette.gray[60],
+  border: ({ palette }: Theme) => `1px solid ${palette.gray[30]}`,
+  width: 30,
+  padding: 0,
+  // The theme's IconButton renders block-level (`flex`); inline-flex keeps the
+  // pill in the ribbon's inline flow rather than breaking the line around it.
+  display: "inline-flex",
+  // The theme's IconButton override sizes and colours descendant svgs, so the
+  // glyph is set here, where the button-level sx outranks it. Sized to the
+  // pills' 12px caret icons so the lone glyph sits balanced.
+  svg: {
+    fontSize: 12,
+    color: ({ palette }: Theme) => palette.common.black,
+  },
+  "&:hover": {
+    background: ({ palette }: Theme) => palette.gray[15],
   },
 };
 

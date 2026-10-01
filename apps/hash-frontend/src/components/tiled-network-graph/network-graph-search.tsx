@@ -3,9 +3,9 @@
  *
  * Opened from the visualizer header's search button (the same button the table
  * view's search uses), it slides in from the left over the graph's top-left
- * corner and holds a compact autocomplete — mirroring the table view's search
- * box, which slides in from the left over the grid. Matching results appear in
- * a dropdown the user picks from before a selection is made.
+ * corner — the same direction the table view's search box arrives from — as a
+ * titled "Search" panel holding a compact autocomplete. Matching results
+ * appear in a dropdown the user picks from before a selection is made.
  *
  * The data source differs from the table's visible-row search: the tiled graph
  * never holds its node list in full, so instead we query the graph over GraphQL
@@ -26,11 +26,7 @@ import { useDebouncedState } from "@mantine/hooks";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  Autocomplete,
-  IconButton,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
+import { Autocomplete, IconButton } from "@hashintel/design-system";
 import {
   deserializeQueryEntitiesResponse,
   getClosedMultiEntityTypeFromMap,
@@ -39,6 +35,7 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { ArrowRightToLineIcon } from "../../shared/icons/arrow-right-to-line-icon";
 import { SearchIcon } from "../../shared/icons/search-icon";
 import { MenuItem } from "../../shared/ui/menu-item";
 
@@ -363,96 +360,33 @@ export const NetworkGraphSearch = ({
       >
         <Stack
           direction="row"
-          alignItems="center"
-          gap={0.5}
-          sx={{ px: 1, py: 0.75 }}
+          alignItems="flex-start"
+          justifyContent="space-between"
+          sx={{ minHeight: 34, pt: 0.75, pl: 2, pr: 1 }}
         >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Autocomplete<NetworkGraphSearchResult, false, false, false>
-              autoFocus={false}
-              componentsProps={{
-                paper: {
-                  // Match the dropdown to the input width rather than letting it
-                  // grow to fit the option text.
-                  sx: {
-                    p: 0,
-                    width: "100%",
-                  },
-                },
-                popper: {
-                  container: popperContainer ?? undefined,
-                  sx: {
-                    // One step above the panel (which layers around the selection
-                    // popover by recency), so results aren't hidden behind it.
-                    zIndex: resultsZIndex,
-                    "& > div:first-of-type": {
-                      boxShadow: "none",
-                    },
-                  },
-                },
+          <Box>
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[90],
+                fontSize: 14,
+                fontWeight: 500,
+                lineHeight: 1.3,
               }}
-              filterOptions={(unfiltered) => unfiltered}
-              getOptionLabel={(option) => option.label}
-              inputHeight="auto"
-              inputProps={{
-                endAdornment: (
-                  <SearchIcon
-                    sx={{
-                      fontSize: 16,
-                      color: ({ palette }) => palette.gray[30],
-                    }}
-                  />
-                ),
-                placeholder: "Search for node...",
-                sx: () => ({
-                  height: "auto",
-                  [`&.${outlinedInputClasses.root}`]: {
-                    py: 0.3,
-                    px: "8px !important",
-                    input: {
-                      fontSize: 14,
-                    },
-                  },
-                }),
-              }}
-              inputRef={inputRef}
-              inputValue={inputValue}
-              isOptionEqualToValue={(option, value) =>
-                option.entityId === value.entityId
-              }
-              ListboxProps={{
-                sx: { maxHeight: 240 },
-                // `onHighlightChange` only clears (fires `null`) when the popup
-                // closes or another option is highlighted, not when the pointer
-                // leaves the list while it stays open — so clear the preview here.
-                onMouseLeave: () => onHover?.(null),
-              }}
-              loading={loading}
-              onChange={(_event, option) => {
-                setSelected(option);
-                if (option) {
-                  onSelect(option);
-                }
-              }}
-              onHighlightChange={(_event, option) => onHover?.(option)}
-              onInputChange={(_event, value, reason) => {
-                setInputValue(value);
-                if (reason === "input") {
-                  setQuery(value);
-                }
-              }}
-              options={displayedOptions}
-              renderOption={({ key: _key, ...props }, option) => (
-                <MenuItem
-                  {...props}
-                  key={option.entityId}
-                  value={option.entityId}
-                >
-                  {option.label}
-                </MenuItem>
-              )}
-              value={selected}
-            />
+            >
+              Search
+            </Typography>
+            {viewFilter ? (
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 10,
+                  lineHeight: 1.3,
+                  mb: 1,
+                }}
+              >
+                Limited to current filters
+              </Typography>
+            ) : null}
           </Box>
           <IconButton
             aria-label="Close search"
@@ -465,22 +399,96 @@ export const NetworkGraphSearch = ({
               },
             }}
           >
-            <XMarkRegularIcon />
+            <ArrowRightToLineIcon />
           </IconButton>
         </Stack>
-        {viewFilter ? (
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.gray[50],
-              fontSize: 10,
-              lineHeight: 1.3,
-              px: 1.25,
-              pb: 0.75,
+        <Box sx={{ px: 1.5, pb: 1.5, pt: 0.5 }}>
+          <Autocomplete<NetworkGraphSearchResult, false, false, false>
+            autoFocus={false}
+            componentsProps={{
+              paper: {
+                // Match the dropdown to the input width rather than letting it
+                // grow to fit the option text.
+                sx: {
+                  p: 0,
+                  width: "100%",
+                },
+              },
+              popper: {
+                container: popperContainer ?? undefined,
+                sx: {
+                  // One step above the panel (which layers around the selection
+                  // popover by recency), so results aren't hidden behind it.
+                  zIndex: resultsZIndex,
+                  "& > div:first-of-type": {
+                    boxShadow: "none",
+                  },
+                },
+              },
             }}
-          >
-            Limited to current filters
-          </Typography>
-        ) : null}
+            filterOptions={(unfiltered) => unfiltered}
+            getOptionLabel={(option) => option.label}
+            inputHeight="auto"
+            inputProps={{
+              endAdornment: (
+                <SearchIcon
+                  sx={{
+                    fontSize: 16,
+                    color: ({ palette }) => palette.gray[30],
+                  }}
+                />
+              ),
+              placeholder: "Search for node...",
+              sx: () => ({
+                height: "auto",
+                [`&.${outlinedInputClasses.root}`]: {
+                  py: 0.3,
+                  px: "8px !important",
+                  input: {
+                    fontSize: 14,
+                  },
+                },
+              }),
+            }}
+            inputRef={inputRef}
+            inputValue={inputValue}
+            isOptionEqualToValue={(option, value) =>
+              option.entityId === value.entityId
+            }
+            ListboxProps={{
+              sx: { maxHeight: 240 },
+              // `onHighlightChange` only clears (fires `null`) when the popup
+              // closes or another option is highlighted, not when the pointer
+              // leaves the list while it stays open — so clear the preview here.
+              onMouseLeave: () => onHover?.(null),
+            }}
+            loading={loading}
+            onChange={(_event, option) => {
+              setSelected(option);
+              if (option) {
+                onSelect(option);
+              }
+            }}
+            onHighlightChange={(_event, option) => onHover?.(option)}
+            onInputChange={(_event, value, reason) => {
+              setInputValue(value);
+              if (reason === "input") {
+                setQuery(value);
+              }
+            }}
+            options={displayedOptions}
+            renderOption={({ key: _key, ...props }, option) => (
+              <MenuItem
+                {...props}
+                key={option.entityId}
+                value={option.entityId}
+              >
+                {option.label}
+              </MenuItem>
+            )}
+            value={selected}
+          />
+        </Box>
       </Box>
     </Box>
   );

@@ -10,8 +10,13 @@ export const visualizerHeaderHeight = 94;
 
 type VisualizerHeaderProps = {
   /**
+   * Left-aligned result summary floating above the table box on the page
+   * background (result count).
+   */
+  topLeft?: ReactNode;
+  /**
    * Right-aligned view-level controls floating above the table box on the page
-   * background (export, result count, view toggle).
+   * background (export, view toggle).
    */
   topRight: ReactNode;
   /** Left-aligned controls in the grey bar (search, filters / bulk actions). */
@@ -21,6 +26,7 @@ type VisualizerHeaderProps = {
 };
 
 export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
+  topLeft,
   topRight,
   bottomLeft,
   bottomRight,
@@ -31,23 +37,34 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           columnGap: 1.5,
         }}
       >
-        {topRight}
+        {/*
+         * Bottom-aligned so the count hugs the grey bar below, rather than
+         * floating at the centre of the row height set by the taller
+         * controls on the right.
+         */}
+        <Box sx={{ alignSelf: "flex-end" }}>{topLeft}</Box>
+        <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
+          {topRight}
+        </Box>
       </Box>
       {/*
        * The grey bar forms the top edge of the content box below it: it carries
        * the full border (`tableContentSx` leaves its own top border off) and the
        * rounded top corners.
+       *
+       * It lays out in block flow (`flow-root` contains the float), not flex,
+       * so `bottomRight` can genuinely float right: the first line of controls
+       * wraps around it, and controls that overflow onto further lines run
+       * full-width beneath it. The float sits first in the DOM so the first
+       * line box avoids it.
        */}
       <Box
         sx={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 1.5,
+          display: "flow-root",
           background: ({ palette }) => palette.gray[20],
           borderWidth: 1,
           borderStyle: "solid",
@@ -59,22 +76,10 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
           minHeight: 52,
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            gap: 1.5,
-            alignItems: "center",
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          {bottomLeft}
-        </Box>
         {bottomRight ? (
-          <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
-            {bottomRight}
-          </Box>
+          <Box sx={{ float: "right", ml: 1, my: 0.5 }}>{bottomRight}</Box>
         ) : null}
+        {bottomLeft}
       </Box>
     </Box>
   );
