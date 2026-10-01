@@ -59,6 +59,8 @@ const stoppedNoteStyle = css({
 
 type StockMessageProps = Omit<TranscriptProps, "messages"> & {
   message: PetrinautAiMessage;
+  /** Whether this is the reply currently streaming. */
+  active: boolean;
 };
 
 /**
@@ -81,6 +83,7 @@ const StockMessage = memo(
     onCancelExperiment,
     resolveToolPresentation,
     stopped,
+    active,
   }: StockMessageProps) => {
     const role = message.role === "user" ? "user" : "assistant";
     const wasStopped = stopped || message.metadata?.stopped === true;
@@ -120,7 +123,7 @@ const StockMessage = memo(
               return (
                 <AiAssistantReasoning
                   key={item.key}
-                  isStreaming={item.part.state === "streaming"}
+                  isStreaming={active && item.part.state === "streaming"}
                   part={item.part}
                 />
               );
@@ -167,8 +170,9 @@ StockMessage.displayName = "StockMessage";
 export const StockTranscript = ({
   messages,
   stopped,
+  busy,
   ...messageProps
-}: TranscriptProps) => (
+}: TranscriptProps & { busy: boolean }) => (
   <>
     {messages.map((message, index) => (
       <StockMessage
@@ -176,6 +180,9 @@ export const StockTranscript = ({
         message={message}
         {...messageProps}
         stopped={stopped && index === messages.length - 1}
+        active={
+          busy && index === messages.length - 1 && message.role === "assistant"
+        }
       />
     ))}
     {stopped && !messages.at(-1)?.metadata?.stopped && (

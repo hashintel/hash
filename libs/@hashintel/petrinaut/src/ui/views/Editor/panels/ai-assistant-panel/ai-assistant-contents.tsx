@@ -922,6 +922,7 @@ export const AiAssistantContents = ({
               <StockTranscript
                 {...transcriptProps}
                 stopped={stopped && !error}
+                busy={isBusy}
               />
             )}
           </div>

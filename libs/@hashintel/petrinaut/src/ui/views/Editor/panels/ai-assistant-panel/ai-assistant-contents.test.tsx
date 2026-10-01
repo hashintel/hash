@@ -4591,6 +4591,45 @@ describe.each(toolRowPresentations)(
 );
 
 describe("AiAssistantContents in the stock presentation", () => {
+  test.each([
+    { status: "streaming" as const, live: true },
+    { status: "error" as const, live: false },
+  ])(
+    "keeps reasoning live only while its reply streams ($status)",
+    ({ status, live }) => {
+      render(
+        <AiAssistantContents
+          input=""
+          messages={[
+            {
+              id: "assistant-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "reasoning",
+                  state: "streaming",
+                  text: "**Planning the net**\n\nUnderstanding the request.",
+                },
+              ],
+            },
+          ]}
+          error={status === "error" ? new Error("Network failed") : undefined}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status={status}
+        />,
+      );
+
+      expect(
+        screen
+          .getByRole("button", { name: /Thinking/u })
+          .getAttribute("aria-expanded"),
+      ).toBe(String(live));
+    },
+  );
+
   test("renders streamed markdown and collapsed reasoning", () => {
     const startedAt = Date.parse("2026-05-14T12:00:00Z");
     const finishedAt = startedAt + 4_500;
