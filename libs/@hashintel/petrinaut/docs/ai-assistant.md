@@ -38,13 +38,13 @@ In the stock assistant, an empty conversation asks you to **Describe the process
 The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. The stock assistant keeps plain answers and a horizontally scrolling row of suggestion chips; Brunch's chips wrap to fit the panel.
 
 Before Brunch starts a response, **Waiting for Brunch** and a small blue spinner
-appear above the composer or Voice dock. This status uses reserved space, so
-appearing or clearing it does not move the transcript or input controls.
-Suggestion chips keep their space while hidden and cannot be activated during
-work. Once the response arrives, its **Working…** header takes over; there is no
-duplicate status or information button below it. The spinner stays still with
-reduced motion enabled. While viewing Ledger, the reserved row reports
-**Brunch is working** instead. The stock assistant shows its working label without this reserved Brunch status row.
+appear in the transcript, where that turn's activity will appear. Once the
+response arrives, its **Working…** activity header takes over in the same place
+and keeps the spinner until the work ends; there is no duplicate status below
+it. Suggestion chips keep their space while hidden and cannot be activated
+during work. The spinner stays still with reduced motion enabled. While viewing
+Ledger, a status row above the composer reports **Brunch is working** instead.
+The stock assistant shows its working label without these Brunch statuses.
 
 Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 

@@ -6,7 +6,10 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { NotificationsContext } from "../../../../../../react/notifications/context";
 import { ExperimentalIcon } from "../../../../../experimental-icons";
-import { BrunchWorkFold } from "./brunch-transcript/brunch-work-fold";
+import {
+  BrunchWorkFold,
+  BrunchWorkPending,
+} from "./brunch-transcript/brunch-work-fold";
 import { VoiceInputProvenance } from "./brunch-transcript/voice-input-provenance";
 import { ExperimentCard } from "./experiment-card";
 import { getMessageRenderItems } from "./get-message-render-items";
@@ -427,6 +430,15 @@ export const BrunchTranscript = ({
           stopped={stopped && index === lastIndex}
         />
       ))}
+      {busy && messages.at(-1)?.role !== "assistant" && (
+        <div
+          className={messageStyle({ role: "assistant" })}
+          data-role="assistant"
+          data-input-mode={voice ? "voice" : "text"}
+        >
+          <BrunchWorkPending label="Waiting for Brunch" />
+        </div>
+      )}
       {stopped && messages.at(-1)?.role === "user" && (
         <div className={stoppedNoteStyle}>Response stopped</div>
       )}

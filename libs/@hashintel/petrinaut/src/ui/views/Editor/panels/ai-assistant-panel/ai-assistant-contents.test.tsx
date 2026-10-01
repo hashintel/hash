@@ -2829,7 +2829,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/Ask AI to create a Petri net/u)).not.toBeNull();
   });
 
-  test("reserves a Brunch-only response status without adding transcript work", () => {
+  test("holds the Activity row's place while waiting for Brunch", () => {
     const props = {
       input: "",
       messages: [
@@ -2849,21 +2849,17 @@ describe("AiAssistantContents", () => {
     const { rerender } = render(
       <AiAssistantContents {...props} status="ready" />,
     );
-    const slot = screen.getByTestId("brunch-response-status");
-    expect(slot.textContent).toBe("");
+    const transcript = screen.getByTestId("ai-transcript");
+    expect(screen.queryByTestId("brunch-response-status")).toBeNull();
+    expect(within(transcript).queryByRole("status")).toBeNull();
 
     rerender(<AiAssistantContents {...props} status="submitted" />);
-    expect(screen.getByTestId("brunch-response-status")).toBe(slot);
-    expect(within(slot).getByRole("status").textContent).toBe(
-      "Waiting for Brunch",
-    );
-    expect(within(slot).queryByRole("button")).toBeNull();
+    const waiting = within(transcript).getByRole("status");
+    expect(waiting.textContent).toBe("Waiting for Brunch");
+    expect(waiting.closest('[data-work-status="pending"]')).not.toBeNull();
+    expect(within(waiting).queryByRole("button")).toBeNull();
     expect(screen.queryByRole("button", { name: "Working…" })).toBeNull();
-    expect(
-      within(screen.getByTestId("ai-transcript")).queryByText(
-        /Waiting for Brunch/,
-      ),
-    ).toBeNull();
+    expect(screen.queryByTestId("brunch-response-status")).toBeNull();
 
     rerender(
       <AiAssistantContents
@@ -2879,12 +2875,12 @@ describe("AiAssistantContents", () => {
         ]}
       />,
     );
-    expect(screen.getByRole("button", { name: "Working…" })).toBeTruthy();
-    expect(within(slot).getByRole("status").textContent).toBe("");
+    const working = screen.getByRole("button", { name: "Working…" });
+    expect(working.querySelector('[data-work-status="pending"]')).toBeNull();
+    expect(screen.queryByText("Waiting for Brunch")).toBeNull();
 
     rerender(<AiAssistantContents {...props} status="ready" />);
-    expect(screen.getByTestId("brunch-response-status")).toBe(slot);
-    expect(slot.textContent).toBe("");
+    expect(within(transcript).queryByRole("status")).toBeNull();
 
     rerender(
       <AiAssistantContents
@@ -2957,6 +2953,37 @@ describe("AiAssistantContents", () => {
 
     rerender(<AiAssistantContents {...props} status="ready" />);
     expect(screen.queryByText("Brunch is working")).toBeNull();
+  });
+
+  test("keeps the Brunch working status visible while the host tab is selected", () => {
+    render(
+      <AiAssistantContents
+        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        hostTabSelected
+        input=""
+        messages={[
+          {
+            id: "request",
+            role: "user",
+            parts: [{ type: "text", text: "Review this model" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="submitted"
+        workingLabel="Brunch is working"
+      />,
+    );
+
+    const status = screen.getByTestId("brunch-response-status");
+    expect(status.textContent).toBe("Brunch is working");
+    expect(status.closest("[hidden]")).toBeNull();
+    expect(
+      screen.getByText("Waiting for Brunch").closest("[hidden]"),
+    ).not.toBeNull();
   });
 
   test("keeps the working label visible while the host tab is selected", () => {

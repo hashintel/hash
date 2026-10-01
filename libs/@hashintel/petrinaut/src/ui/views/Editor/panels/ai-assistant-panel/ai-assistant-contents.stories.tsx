@@ -1566,25 +1566,24 @@ export const BrunchWaitingForResponse: Story = {
         );
       }
       const transcript = canvas.getByTestId("ai-transcript");
-      const slot = canvas.getByTestId("brunch-response-status");
       const footer = voice
         ? canvas.getByRole("region", { name: "Voice session" })
         : canvas
             .getByRole("textbox", { name: "Message AI assistant" })
             .closest("form")!;
       const positions = () =>
-        [transcript, slot, footer].map((element) =>
+        [transcript, footer].map((element) =>
           element.getBoundingClientRect().toJSON(),
         );
       const before = positions();
-      const scrollHeight = transcript.scrollHeight;
       await userEvent.click(
         canvas.getByRole("button", { name: "Toggle waiting" }),
       );
-      await expect(canvas.getByText("Waiting for Brunch")).toBeVisible();
+      const waiting = within(transcript).getByRole("status");
+      await expect(waiting).toHaveTextContent("Waiting for Brunch");
+      await expect(waiting).toBeVisible();
       await expect(positions()).toEqual(before);
-      await expect(transcript.scrollHeight).toBe(scrollHeight);
-      await expect(within(slot).queryByRole("button")).toBeNull();
+      await expect(within(waiting).queryByRole("button")).toBeNull();
       await userEvent.click(
         canvas.getByRole("button", { name: "Toggle waiting" }),
       );
