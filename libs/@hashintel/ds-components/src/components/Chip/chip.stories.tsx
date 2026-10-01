@@ -205,6 +205,20 @@ export const Size: Story<ChipProps> = (args) => (
   <div className={column}>
     <div className={row}>
       {chipSizes.map((size) => (
+        <Chip
+          key={size}
+          size={size}
+          color={args.color}
+          variant={args.variant}
+          shape={args.shape}
+        >
+          {size}
+        </Chip>
+      ))}
+    </div>
+
+    <div className={row}>
+      {chipSizes.map((size) => (
         <KitchenSinkChip
           key={size}
           size={size}

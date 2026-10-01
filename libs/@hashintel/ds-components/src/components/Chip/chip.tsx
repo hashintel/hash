@@ -47,7 +47,9 @@ export type ChipProps = {
   prefix?: PrefixOrSuffix;
 } & ExclusifyUnion<
   | {
-      removeable?: false | { onRemove: () => void };
+      removeable?:
+        | false
+        | { onRemove: () => void; "aria-label"?: string; tabIndex?: number };
     }
   | { suffix?: PrefixOrSuffix }
 > &
@@ -184,7 +186,8 @@ export const Chip = ({
   const removeNode = showRemove && (
     <button
       type="button"
-      aria-label="Remove"
+      aria-label={removeable["aria-label"] ?? "Remove"}
+      tabIndex={removeable.tabIndex}
       data-chip-segment="remove"
       className={affixStyles({
         treatment: "straight",

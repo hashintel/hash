@@ -22,6 +22,10 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../../util/SelectableList/selectable-list";
+import {
+  hasMultiItemSuffix,
+  MultiItemSuffix,
+} from "../../util/SelectableList/selectable-list-multi-suffix";
 import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
 import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
@@ -33,17 +37,12 @@ import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { InputConnector } from "../TextInput/input-connector";
-import {
-  onlyButtonRecipe,
-  selectRecipe,
-  suffixDefaultContentClass,
-} from "./select.recipe";
+import { selectRecipe } from "./select.recipe";
 
 import type {
   FormInputSize,
   FormInputWidth,
   SharedInputProps,
-  Tone,
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
@@ -55,15 +54,15 @@ export type SelectItem<TValue extends string = string> = {
 
 export type MultiSelectItem<TValue extends string = string> =
   SelectItem<TValue> & {
-    /** How selection is indicated for this item in the dropdown. Defaults to `checkbox`. */
-    variant?: "checkbox" | "tick" | "highlight";
-    /** The tone of this item's selected indicator (checkbox fill, tick or highlight color). Defaults to `neutral`. */
-    tone?: Exclude<Tone, "warning" | "success">;
     /** Optional content aligned to the right of the item in the dropdown */
     suffix?: React.ReactNode;
     /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
     showOnlyButton?: boolean;
-  };
+    // selectedStyle: how selection is indicated in the dropdown, defaulting
+    // to `checkbox`; selectedTone: the indicator's tone (checkbox fill, tick
+    // or highlight color), defaulting to `neutral`. Named after the list
+    // `Item` fields they map onto, matching MultiComboboxItem.
+  } & Pick<Item, "selectedStyle" | "selectedTone">;
 
 type SelectBaseProps<TValue extends string> = {
   /** An optional placeholder shown when no value is selected */
@@ -141,12 +140,13 @@ type SelectSingleProps<TValue extends string> = {
   | {
       required?: false;
       value: NoInfer<TValue> | null | undefined;
-      onChange: (value: NoInfer<TValue> | null | undefined) => void;
+      /** Called with the selected value — `null` when the selection is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
+      onChange: (value: NoInfer<TValue> | null) => void;
     }
 );
 
 type SelectMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks, Space or Enter. Items indicate selection with a checkbox unless they set their own `variant`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
+  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks, Space or Enter. Items indicate selection with a checkbox unless they set their own `selectedStyle`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
@@ -254,38 +254,16 @@ function mapToMenuItems<TValue extends string>(
     selectOnly: (value: TValue) => void;
   },
 ): Array<ItemOrGroup<Item>> {
-  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode => {
-    if (!it.showOnlyButton || it.disabled) {
-      return it.suffix;
-    }
-    return (
-      <>
-        {it.suffix !== undefined && (
-          <span className={suffixDefaultContentClass}>{it.suffix}</span>
-        )}
-        <button
-          type="button"
-          className={onlyButtonRecipe({
-            tone: it.tone === "brand" ? "brand" : "neutral",
-          })}
-          onPointerDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onPointerUp={(event) => {
-            event.stopPropagation();
-          }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            options.selectOnly(it.value);
-          }}
-        >
-          Only
-        </button>
-      </>
-    );
-  };
+  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode =>
+    hasMultiItemSuffix(it) ? (
+      <MultiItemSuffix
+        suffix={it.suffix}
+        showOnlyButton={it.showOnlyButton}
+        disabled={it.disabled}
+        tone={it.selectedTone}
+        onSelectOnly={() => options.selectOnly(it.value)}
+      />
+    ) : undefined;
   const toItem = (it: MultiSelectItem<TValue>): Item => ({
     id: it.value,
     text: renderItem(it.value),
@@ -293,8 +271,8 @@ function mapToMenuItems<TValue extends string>(
       it.disabled ||
       (options.selectableValues !== undefined &&
         !options.selectableValues.has(it.value)),
-    selectedStyle: options.multiple ? (it.variant ?? "checkbox") : "tick",
-    selectedTone: it.tone,
+    selectedStyle: options.multiple ? (it.selectedStyle ?? "checkbox") : "tick",
+    selectedTone: it.selectedTone,
     suffix: toSuffix(it),
     subItems: undefined,
     onClick: () => {},
@@ -516,6 +494,8 @@ export const Select = <TValue extends string>({
     return true;
   };
 
+  const [highlightNavigated, setHighlightNavigated] = useState(false);
+
   // Tab while open moves through the dropdown's own tabbables (search field,
   // custom rows, footer buttons) and past the edge closes the dropdown,
   // handing focus to the document's neighbouring tabbable — zag would
@@ -598,6 +578,15 @@ export const Select = <TValue extends string>({
     });
   };
   const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
+    if (
+      selectApiRef.current?.open &&
+      (event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key === "Home" ||
+        event.key === "End")
+    ) {
+      setHighlightNavigated(true);
+    }
     let spaceToggled = false;
     if (event.key === "Tab") {
       handleTabKeyDown(event);
@@ -960,6 +949,7 @@ export const Select = <TValue extends string>({
           escapedRef.current = false;
           valueAtOpenRef.current = selectedValues;
           lastKeyWasListNavRef.current = false;
+          setHighlightNavigated(false);
         } else {
           if (multiple && escapedRef.current) {
             escapedRef.current = false;
@@ -1102,6 +1092,7 @@ export const Select = <TValue extends string>({
             items={menuItems}
             selected={selectedValues}
             size={size}
+            highlightNavigated={highlightNavigated}
             emptyState={resolvedEmptyState}
             header={
               showSearch ? (

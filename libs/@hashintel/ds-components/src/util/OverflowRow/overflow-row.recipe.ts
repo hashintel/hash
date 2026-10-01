@@ -17,7 +17,7 @@ export const styles = sva({
     root: {
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      gap: "[var(--overflow-row-gap, var(--spacing-1))]",
       position: "relative",
       minWidth: "0",
       maxWidth: "full",
@@ -40,7 +40,7 @@ export const styles = sva({
     scroller: {
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      gap: "[var(--overflow-row-gap, var(--spacing-1))]",
       overflowX: "auto",
       overflowY: "hidden",
       scrollbarWidth: "[none]",
@@ -109,7 +109,7 @@ export const styles = sva({
     measure: {
       display: "flex",
       alignItems: "center",
-      gap: "1",
+      gap: "[var(--overflow-row-gap, var(--spacing-1))]",
       position: "absolute",
       top: "0",
       left: "0",
@@ -176,9 +176,7 @@ export const styles = sva({
     },
     gapless: {
       true: {
-        root: { gap: "0" },
-        scroller: { gap: "0" },
-        measure: { gap: "0" },
+        root: { "--overflow-row-gap": "[0px]" },
         input: { marginLeft: "[6px]" },
       },
     },

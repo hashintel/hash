@@ -357,6 +357,7 @@ export const SelectableList = ({
   header,
   footer,
   swapHeaderFooterOnFlip = false,
+  highlightNavigated = false,
 }: {
   /** Which ark-ui primitive set to render inside. Defaults to Menu. */
   as?: SelectableListAs;
@@ -380,6 +381,7 @@ export const SelectableList = ({
    * (placement `top*`), keeping the header on the edge nearest the trigger.
    */
   swapHeaderFooterOnFlip?: boolean;
+  highlightNavigated?: boolean;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const normalizedItems = useItemsWithCustomIds(items);
@@ -469,9 +471,14 @@ export const SelectableList = ({
       listBody
     );
 
+  const navigatedAttr = highlightNavigated ? "" : undefined;
+
   if (as === "Select") {
     return (
-      <Select.Content className={cx(classes.content, className)}>
+      <Select.Content
+        className={cx(classes.content, className)}
+        data-highlight-navigated={navigatedAttr}
+      >
         {body}
       </Select.Content>
     );
@@ -479,7 +486,10 @@ export const SelectableList = ({
 
   if (as === "Combobox") {
     return (
-      <Combobox.Content className={cx(classes.content, className)}>
+      <Combobox.Content
+        className={cx(classes.content, className)}
+        data-highlight-navigated={navigatedAttr}
+      >
         {body}
       </Combobox.Content>
     );
@@ -490,6 +500,7 @@ export const SelectableList = ({
       {(menu) => (
         <Menu.Content
           className={cx(classes.content, className)}
+          data-highlight-navigated={navigatedAttr}
           onKeyDownCapture={(event) => handleCustomRowKeyDown(event, menu)}
         >
           {body}
