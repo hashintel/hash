@@ -29,11 +29,12 @@ import type { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
 /**
  * `identity` as of round 4c, but each turn's question is chosen from the
- * commit receipt's needs, and the needs that read as noise are revised.
- * Everything the model reads comes from `receipt/`: instructions, tool and
- * argument descriptions, and how the commit receipt and the map render
- * coverage. The Ledger's semantics (what is stored, refused, and counted as
- * met) stay the shared package's.
+ * commit receipt's needs, which it ranks nearest a goal first and caps at
+ * five, and the needs that read as noise are revised. Everything the model
+ * reads comes from `receipt/`: instructions, tool and argument descriptions,
+ * and how the commit receipt and the map render coverage. The Ledger's
+ * semantics (what is stored, refused, and counted as met) stay the shared
+ * package's.
  */
 export const useReceiptGuidance = (
   model: string,
