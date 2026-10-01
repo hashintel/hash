@@ -107,6 +107,21 @@ const stoppedNoteStyle = css({
   color: "neutral.s80",
 });
 
+const spokenLinePartTypes = new Set([
+  "data-voiceAgentReply",
+  "data-voiceAgentWrapUp",
+]);
+
+/**
+ * A host may project Live's spoken reply or wrap-up as its own assistant
+ * message. It is never Brunch's response, so it must not take over the
+ * Activity fold or the waiting row.
+ */
+const isSpokenLine = (message: PetrinautAiMessage) =>
+  message.role === "assistant" &&
+  message.parts.length > 0 &&
+  message.parts.every((part) => spokenLinePartTypes.has(part.type));
+
 const StreamingWords = ({
   text,
   streaming,
@@ -414,7 +429,10 @@ export const BrunchTranscript = ({
         (part) => part.type === "text" && part.text.trim().length > 0,
       ),
   )?.id;
-  const lastIndex = messages.length - 1;
+  const responseIndex = messages.findLastIndex(
+    (message) => !isSpokenLine(message),
+  );
+  const responseRole = messages[responseIndex]?.role;
 
   return (
     <>
@@ -426,11 +444,13 @@ export const BrunchTranscript = ({
           voice={voice}
           latestAnswer={message.id === latestAnswerId}
           canRetry={canRetry && firstUserIndex >= 0 && index > firstUserIndex}
-          active={busy && index === lastIndex && message.role === "assistant"}
-          stopped={stopped && index === lastIndex}
+          active={
+            busy && index === responseIndex && message.role === "assistant"
+          }
+          stopped={stopped && index === responseIndex}
         />
       ))}
-      {busy && messages.at(-1)?.role !== "assistant" && (
+      {busy && responseRole !== "assistant" && (
         <div
           className={messageStyle({ role: "assistant" })}
           data-role="assistant"
@@ -439,7 +459,7 @@ export const BrunchTranscript = ({
           <BrunchWorkPending label="Waiting for Brunch" />
         </div>
       )}
-      {stopped && messages.at(-1)?.role === "user" && (
+      {stopped && responseRole === "user" && (
         <div className={stoppedNoteStyle}>Response stopped</div>
       )}
     </>

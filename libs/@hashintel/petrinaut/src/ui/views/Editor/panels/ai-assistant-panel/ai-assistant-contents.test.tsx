@@ -2895,6 +2895,93 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByText(/Brunch/u)).toBeNull();
   });
 
+  test.each(["voice", "text"] as const)(
+    "keeps Activity off Live's spoken reply message (%s)",
+    (inputMode) => {
+      const request: PetrinautAiMessage = {
+        id: "request",
+        role: "user",
+        metadata: { source: "voice" },
+        parts: [{ type: "text", text: "Review this model" }],
+      };
+      const spokenReply: PetrinautAiMessage = {
+        id: "voice-reply:request",
+        role: "assistant",
+        metadata: { source: "voice" },
+        parts: [
+          {
+            type: "data-voiceAgentReply",
+            data: { text: "I hear you.", state: "done" },
+          },
+        ],
+      };
+      const props = {
+        input: "",
+        inputMode,
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        primaryLabel: "Chat",
+        presentation: "brunch" as const,
+      };
+      const replyTurn = () =>
+        screen
+          .getByText("I hear you.")
+          .closest<HTMLElement>('[data-role="assistant"]')!;
+      const { rerender } = render(
+        <AiAssistantContents
+          {...props}
+          messages={[request, spokenReply]}
+          status="submitted"
+        />,
+      );
+
+      expect(replyTurn().querySelector("[data-work-status]")).toBeNull();
+      const waiting = within(screen.getByTestId("ai-transcript")).getByRole(
+        "status",
+      );
+      expect(waiting.textContent).toBe("Waiting for Brunch");
+      expect(replyTurn().nextElementSibling?.contains(waiting)).toBe(true);
+
+      rerender(
+        <AiAssistantContents
+          {...props}
+          messages={[
+            request,
+            spokenReply,
+            {
+              id: "response",
+              role: "assistant",
+              parts: [
+                { type: "reasoning", text: "Inspect", state: "streaming" },
+              ],
+            },
+          ]}
+          status="streaming"
+        />,
+      );
+
+      expect(replyTurn().querySelector("[data-work-status]")).toBeNull();
+      expect(screen.getAllByRole("button", { name: "Working…" })).toHaveLength(
+        1,
+      );
+      expect(screen.queryByText("Waiting for Brunch")).toBeNull();
+
+      rerender(
+        <AiAssistantContents
+          {...props}
+          messages={[request, spokenReply]}
+          status="ready"
+          stopped
+        />,
+      );
+
+      expect(replyTurn().textContent).not.toContain("Response stopped");
+      expect(screen.getByText("Response stopped")).not.toBeNull();
+    },
+  );
+
   test("keeps Brunch prompt chips mounted but inaccessible while waiting", () => {
     const props = {
       input: "",

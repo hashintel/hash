@@ -1648,6 +1648,23 @@ const BrunchStreamingPreview = () => {
   );
 };
 
+/** Where the Activity label sits in the transcript's content, unaffected by auto-follow scrolling. */
+const activityLabelOffset = (canvasElement: HTMLElement) => {
+  const transcript = within(canvasElement).getByTestId("ai-transcript");
+  const labels = transcript.querySelectorAll<HTMLElement>(
+    "[data-work-status] [data-label]",
+  );
+  if (labels.length !== 1) {
+    throw new Error(`Expected one Activity label, found ${labels.length}`);
+  }
+  const frame = transcript.getBoundingClientRect();
+  const label = labels[0]!.getBoundingClientRect();
+  return {
+    x: label.x - frame.x,
+    y: label.y - frame.y + transcript.scrollTop,
+  };
+};
+
 export const BrunchStreamingActivity: Story = {
   render: () => <BrunchStreamingPreview />,
   play: async ({ canvasElement }) => {
@@ -1656,12 +1673,6 @@ export const BrunchStreamingActivity: Story = {
     const details = canvasElement.querySelector<HTMLElement>(
       "[data-work-details]",
     )!;
-    const answer = canvas.getByText("I’ll compare the three queues.");
-    const composer = canvas.getByRole("textbox", {
-      name: "Message AI assistant",
-    });
-    await waitFor(() => expect(details.clientHeight).toBe(240));
-    await expect(details.scrollHeight).toBeGreaterThan(details.clientHeight);
     await Promise.all(
       canvasElement
         .getAnimations({ subtree: true })
@@ -1670,36 +1681,166 @@ export const BrunchStreamingActivity: Story = {
         )
         .map((animation) => animation.finished),
     );
-    const positions = () =>
-      [answer, composer].map((element) => element.getBoundingClientRect().y);
-    const expandedPositions = positions();
-    details.scrollTop = 80;
+    await expect(details.scrollHeight).toBe(details.clientHeight);
+    const labelOffset = activityLabelOffset(canvasElement);
     await userEvent.click(
       canvas.getByRole("button", { name: "Stream update 0" }),
     );
     await expect(activity).toHaveAttribute("aria-expanded", "true");
-    await expect(positions()).toEqual(expandedPositions);
-    await expect(details.scrollTop).toBe(80);
+    await expect(details.scrollHeight).toBe(details.clientHeight);
+    await expect(activityLabelOffset(canvasElement)).toEqual(labelOffset);
     await userEvent.click(activity);
     await waitFor(() =>
       expect(
         details.closest("[data-scope=collapsible][data-part=content]"),
       ).not.toBeVisible(),
     );
-    const collapsedPositions = positions();
     await userEvent.click(
       canvas.getByRole("button", { name: "Stream update 1" }),
     );
     await expect(activity).toHaveAttribute("aria-expanded", "false");
-    await expect(positions()).toEqual(collapsedPositions);
     await userEvent.click(
       canvas.getByRole("button", { name: "Finish response" }),
     );
     await expect(activity).toHaveAttribute("aria-expanded", "false");
-    await expect(positions()).toEqual(collapsedPositions);
+    await expect(activity).toHaveTextContent(/^Activity/u);
+    await expect(activityLabelOffset(canvasElement)).toEqual(labelOffset);
     await userEvent.click(activity);
-    await waitFor(() => expect(positions()).toEqual(expandedPositions));
-    details.scrollTop = 0;
+    await expect(activity).toHaveAttribute("aria-expanded", "true");
+  },
+};
+
+const voiceTurnRequest: PetrinautAiMessage = {
+  ...userMessage,
+  metadata: { source: "voice" },
+};
+
+const voiceTurnReply: PetrinautAiMessage = {
+  id: "voice-reply:user-1",
+  role: "assistant",
+  metadata: { source: "voice" },
+  parts: [
+    {
+      type: "data-voiceAgentReply",
+      data: {
+        text: "Sure, I’ll ask Brunch to build that supply chain.",
+        state: "done",
+      },
+    },
+  ],
+};
+
+const voiceTurnSteps: {
+  status: "submitted" | "streaming" | "ready";
+  response?: PetrinautAiMessage["parts"];
+}[] = [
+  { status: "submitted" },
+  {
+    status: "streaming",
+    response: [{ type: "reasoning", text: "Plan stages", state: "streaming" }],
+  },
+  {
+    status: "streaming",
+    response: [
+      { type: "reasoning", text: "Plan stages", state: "done" },
+      {
+        type: "dynamic-tool",
+        toolName: "inspectModel",
+        toolCallId: "voice-turn-inspection",
+        input: {},
+        state: "input-available",
+      },
+    ],
+  },
+  {
+    status: "ready",
+    response: [
+      { type: "reasoning", text: "Plan stages", state: "done" },
+      {
+        type: "dynamic-tool",
+        toolName: "inspectModel",
+        toolCallId: "voice-turn-inspection",
+        input: {},
+        state: "output-available",
+        output: { places: 4 },
+      },
+      {
+        type: "text",
+        text: "The supply chain has four stages.",
+        state: "done",
+      },
+    ],
+  },
+];
+
+const BrunchVoiceTurnPreview = () => {
+  const [step, setStep] = useState(0);
+  const [voice, setVoice] = useState(true);
+  const { status, response } = voiceTurnSteps[step]!;
+  return (
+    <>
+      <Button
+        onClick={() =>
+          setStep((value) => Math.min(value + 1, voiceTurnSteps.length - 1))
+        }
+      >
+        Next turn step
+      </Button>
+      <Button
+        onClick={() => {
+          setVoice((value) => !value);
+          setStep(0);
+        }}
+      >
+        Toggle Voice preview
+      </Button>
+      <Frame
+        key={String(voice)}
+        primaryLabel="Chat"
+        presentation="brunch"
+        messages={[
+          voiceTurnRequest,
+          voiceTurnReply,
+          ...(response
+            ? [
+                {
+                  id: "voice-turn-response",
+                  role: "assistant" as const,
+                  parts: response,
+                },
+              ]
+            : []),
+        ]}
+        status={status}
+        inputMode={voice ? "voice" : "text"}
+        voiceModeAvailable
+        voiceSession={voice ? liveSession({ phase: "thinking" }) : undefined}
+      />
+    </>
+  );
+};
+
+export const BrunchVoiceTurnActivity: Story = {
+  render: () => <BrunchVoiceTurnPreview />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const voice of [true, false]) {
+      if (!voice) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Toggle Voice preview" }),
+        );
+      }
+      await expect(
+        within(canvas.getByTestId("ai-transcript")).getByRole("status"),
+      ).toHaveTextContent("Waiting for Brunch");
+      const labelOffset = activityLabelOffset(canvasElement);
+      for (let i = 1; i < voiceTurnSteps.length; i++) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Next turn step" }),
+        );
+        await expect(activityLabelOffset(canvasElement)).toEqual(labelOffset);
+      }
+    }
   },
 };
 

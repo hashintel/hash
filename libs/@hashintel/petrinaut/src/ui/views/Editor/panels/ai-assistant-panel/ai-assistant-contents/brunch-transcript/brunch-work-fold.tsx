@@ -49,20 +49,30 @@ const triggerStyle = css({
     _hover: { backgroundColor: "[transparent]" },
   },
 });
+const workIconSlotStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[16px]",
+  height: "[16px]",
+  flexShrink: 0,
+});
 const spinnerStyle = css({
   color: "blue.s90",
-  flexShrink: 0,
   "@media (prefers-reduced-motion: reduce)": {
     animation: "[none !important]",
   },
 });
 
-const WorkIcon = ({ working }: { working: boolean }) =>
-  working ? (
-    <LoadingSpinner aria-hidden="true" size="xs" className={spinnerStyle} />
-  ) : (
-    <Icon name="sparkles" size="sm" />
-  );
+const WorkIcon = ({ working }: { working: boolean }) => (
+  <span className={workIconSlotStyle}>
+    {working ? (
+      <LoadingSpinner aria-hidden="true" size="xs" className={spinnerStyle} />
+    ) : (
+      <Icon name="sparkles" size="sm" />
+    )}
+  </span>
+);
 
 /** Stands where the Activity fold will appear until Brunch's first part arrives. */
 export const BrunchWorkPending = ({ label }: { label: string }) => (
