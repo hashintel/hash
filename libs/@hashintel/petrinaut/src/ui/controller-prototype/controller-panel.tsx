@@ -910,6 +910,7 @@ const AddLever: React.FC<{
           position="bottom-start"
           placeholder="Find a place or transition"
           groups={groups}
+          tabbed
           onPick={(groupId, nodeId) =>
             onAdd(
               groupId === "rate"

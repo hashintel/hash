@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Icon, Popover, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import {
+  Icon,
+  Popover,
+  SegmentedControl,
+  TextInput,
+} from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   PlaceFilledIcon,
@@ -34,7 +39,17 @@ const panelStyle = css({
   maxHeight: "[440px]",
 });
 
+// Tabs keep one height, so switching kind never moves the popover.
+const tabbedPanelStyle = css({ height: "[440px]" });
+
 const searchStyle = css({ padding: "1.5", flexShrink: "0" });
+
+const tabsStyle = css({
+  paddingX: "1.5",
+  paddingTop: "1.5",
+  flexShrink: "0",
+  "& > *": { width: "[100%]" },
+});
 
 const listStyle = css({
   overflowY: "auto",
@@ -120,6 +135,8 @@ export const LeverPicker: React.FC<{
   onPick: (groupId: string, rowId: string) => void;
   onClose: () => void;
   position?: "left-start" | "bottom-start";
+  /** Shows one group at a time, chosen by tabs above the search. */
+  tabbed?: boolean;
 }> = ({
   anchor,
   placeholder,
@@ -127,8 +144,12 @@ export const LeverPicker: React.FC<{
   onPick,
   onClose,
   position = "left-start",
+  tabbed = false,
 }) => {
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState(
+    () => (groups.find((group) => group.rows.length > 0) ?? groups[0])?.id ?? ""
+  );
   const [highlighted, setHighlighted] = useState(() =>
     Math.max(
       0,
@@ -157,7 +178,7 @@ export const LeverPicker: React.FC<{
   }, [highlighted, query]);
 
   const needle = query.trim().toLowerCase();
-  const shown = groups
+  const shown = (tabbed ? groups.filter((group) => group.id === tab) : groups)
     .map((group) => ({
       ...group,
       rows: group.rows.filter((row) => row.name.toLowerCase().includes(needle)),
@@ -169,6 +190,9 @@ export const LeverPicker: React.FC<{
       .map((row) => ({ groupId: group.id, rowId: row.id }))
   );
   const active = enabled[Math.min(highlighted, enabled.length - 1)];
+  const tabKind = groups.find((group) => group.id === tab)?.rows[0]?.nodeKind;
+  const searchLabel =
+    tabbed && tabKind ? `Find a ${tabKind}` : placeholder;
   const hasTicks = groups.some((group) =>
     group.rows.some((row) => row.current)
   );
@@ -214,8 +238,29 @@ export const LeverPicker: React.FC<{
       onClose={close}
       initialFocusRef={inputRef}
     >
-      <Popover.Container className={panelStyle}>
+      <Popover.Container
+        className={cx(panelStyle, tabbed && tabbedPanelStyle)}
+      >
         <div role="presentation" onKeyDown={onKeyDown}>
+          {tabbed ? (
+            <div className={tabsStyle}>
+              <SegmentedControl
+                size="xs"
+                aria-label="Lever kind"
+                value={tab}
+                items={groups.map((group) => ({
+                  value: group.id,
+                  label: group.label,
+                  disabled: group.rows.length === 0,
+                }))}
+                onChange={(next) => {
+                  setTab(next);
+                  setHighlighted(0);
+                  inputRef.current?.focus();
+                }}
+              />
+            </div>
+          ) : null}
           <div className={searchStyle}>
             <TextInput
               size="sm"
@@ -224,10 +269,10 @@ export const LeverPicker: React.FC<{
                 setQuery(value);
                 setHighlighted(0);
               }}
-              placeholder={placeholder}
+              placeholder={searchLabel}
               prefix={{ iconName: "search", variant: "subtle" }}
               inputRef={inputRef}
-              aria-label={placeholder}
+              aria-label={searchLabel}
             />
           </div>
           <div
@@ -241,7 +286,9 @@ export const LeverPicker: React.FC<{
             ) : (
               shown.map((group) => (
                 <div key={group.id} role="group" aria-label={group.label}>
-                  <div className={groupLabelStyle}>{group.label}</div>
+                  {tabbed ? null : (
+                    <div className={groupLabelStyle}>{group.label}</div>
+                  )}
                   {group.rows.map((row) => {
                     const isActive =
                       active?.groupId === group.id && active.rowId === row.id;

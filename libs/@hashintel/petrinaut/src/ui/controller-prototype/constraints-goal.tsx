@@ -1,11 +1,22 @@
 import { use, useState } from "react";
 
-import { Button, Menu, Select } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Menu,
+  SegmentedControl,
+  Select,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { standInConstraints } from "../../react/controller-prototype/controllers";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../react/state/use-is-read-only";
+import {
+  createMetricKindGroups,
+  getMetricKindIcon,
+  MODEL_METRIC_VALUE_PREFIX,
+} from "../views/Editor/panels/SimulateView/metrics/metric-picker-options";
 
 import type {
   Controller,
@@ -46,9 +57,18 @@ const addButtonStyle = css({ marginLeft: "0" });
 
 const goalRowStyle = css({ display: "flex", gap: "2", alignItems: "center" });
 
-const directionItems = [
-  { value: "maximise", text: "Maximise" },
-  { value: "minimise", text: "Minimise" },
+const goalMetricStyle = css({ flex: "1", minWidth: "0" });
+
+const metricItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+});
+
+// The labels and order experiments use for an objective's direction.
+const directionItems: { value: GoalDirection; label: string }[] = [
+  { value: "maximise", label: "Maximize" },
+  { value: "minimise", label: "Minimize" },
 ];
 
 type Update = (update: (current: Controller) => Controller) => void;
@@ -144,6 +164,11 @@ export const GoalSection: React.FC<{
   const [pendingDirection, setPendingDirection] =
     useState<GoalDirection>("maximise");
   const direction = controller.goal?.direction ?? pendingDirection;
+  // The model-metric group of the experiment metric picker, so a goal and an
+  // experiment objective offer the same list.
+  const metricGroups = createMetricKindGroups(petriNetDefinition, {
+    includeBuiltIn: false,
+  }).filter((group) => group.id === "model");
 
   return (
     <div>
@@ -153,39 +178,52 @@ export const GoalSection: React.FC<{
       ) : (
         <div className={goalRowStyle}>
           <Select
-            required
             size="sm"
-            disabled={isReadOnly}
-            value={direction}
-            items={directionItems}
-            onChange={(value: string) => {
-              const next = value as GoalDirection;
-              setPendingDirection(next);
-              if (controller.goal) {
-                update((current) =>
-                  current.goal
-                    ? { ...current, goal: { ...current.goal, direction: next } }
-                    : current,
-                );
-              }
-            }}
-          />
-          <Select
-            size="sm"
+            className={goalMetricStyle}
+            aria-label="Goal metric"
             disabled={isReadOnly}
             placeholder="Choose a metric"
-            value={controller.goal?.metricId ?? null}
-            items={metrics.map((metric) => ({
-              value: metric.id,
-              text: metric.name,
-            }))}
-            onChange={(metricId) => {
-              if (metricId) {
+            value={
+              controller.goal
+                ? `${MODEL_METRIC_VALUE_PREFIX}${controller.goal.metricId}`
+                : null
+            }
+            items={metricGroups}
+            renderItem={(value) => {
+              const icon = getMetricKindIcon(value);
+              const text = metricGroups
+                .flatMap((group) => group.items)
+                .find((item) => item.value === value)?.text;
+              return (
+                <span className={metricItemStyle}>
+                  {icon ? <Icon name={icon} size="xs" /> : null}
+                  {text ?? value}
+                </span>
+              );
+            }}
+            onChange={(value) => {
+              if (value) {
+                const metricId = value.slice(MODEL_METRIC_VALUE_PREFIX.length);
                 update((current) => ({
                   ...current,
                   goal: { direction, metricId },
                 }));
               }
+            }}
+          />
+          <SegmentedControl
+            size="xs"
+            aria-label="Direction"
+            items={directionItems}
+            value={direction}
+            disabled={isReadOnly}
+            onChange={(next) => {
+              setPendingDirection(next);
+              update((current) =>
+                current.goal
+                  ? { ...current, goal: { ...current.goal, direction: next } }
+                  : current,
+              );
             }}
           />
         </div>
