@@ -13,7 +13,7 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import { selectGuidanceVariant } from "../../src/agents/chat-agent/guidance-variant.ts";
-import { ledgerVocabulary as manualVocabulary } from "../../src/agents/chat-agent/guidance/manual/ledger/terms.ts";
+import { ledgerVocabulary as manualVocabulary } from "../../src/agents/chat-agent/guidance/manual/tools/ledger/terms.ts";
 import { ledgerVocabulary as receiptVocabulary } from "../../src/agents/chat-agent/guidance/receipt/ledger/terms.ts";
 import {
   agentOwnershipHeaders,

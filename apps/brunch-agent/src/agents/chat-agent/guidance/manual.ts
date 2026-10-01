@@ -1,19 +1,19 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import experimentDrafting from "./manual/experiment-drafting.md?raw";
-import feedback from "./manual/feedback.md?raw";
-import identityLedger from "./manual/identity-ledger.md?raw";
-import { createLedgerTools } from "./manual/ledger-tools.ts";
-import petrinautCapability from "./manual/petrinaut-capability.md?raw";
-import { createQueryBasisTool } from "./manual/query-basis-tool.ts";
-import queryBasis from "./manual/query-basis.md?raw";
-import runtimeBound from "./manual/runtime-bound.md?raw";
-import runtimeUnbound from "./manual/runtime-unbound.md?raw";
+import feedback from "./manual/prompts/feedback.md?raw";
+import identityLedger from "./manual/prompts/identity-ledger.md?raw";
+import system from "./manual/prompts/system.md?raw";
 import constructing from "./manual/skills/constructing/SKILL.md";
 import eliciting from "./manual/skills/eliciting/SKILL.md";
-import system from "./manual/system.md?raw";
+import petrinautCapability from "./manual/skills/petrinaut-capability.md?raw";
+import experimentDrafting from "./manual/tools/experiment-drafting.md?raw";
+import { createLedgerTools } from "./manual/tools/ledger-tools.ts";
+import { createQueryBasisTool } from "./manual/tools/query-basis-tool.ts";
+import queryBasis from "./manual/tools/query-basis.md?raw";
+import runtimeBound from "./manual/tools/runtime-bound.md?raw";
+import runtimeUnbound from "./manual/tools/runtime-unbound.md?raw";
 
-import type { LedgerHistory } from "./manual/ledger.ts";
+import type { LedgerHistory } from "./manual/tools/ledger.ts";
 
 /**
  * A hand-edited arm, copied from `identity` as of round 4c. Everything the

@@ -11,7 +11,7 @@ import {
   netCalls,
   type ArcElement,
   type NetCall,
-} from "../../../../conversation/net-changes.ts";
+} from "../../../../../conversation/net-changes.ts";
 import { reconstructLedger } from "./ledger.ts";
 import description from "./query-basis-tool.md?raw";
 
