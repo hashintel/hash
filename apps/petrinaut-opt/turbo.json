@@ -23,15 +23,12 @@
       "command": ["uv", "run", "python", "-m", "scripts.generate_openapi"],
       // The schema is generated from the app, which imports the models that
       // `petrinaut-python` generates.
-      "dependsOn": ["petrinaut-python#codegen"],
-      "inputs": [
-        "pyproject.toml",
-        "$TURBO_ROOT$/uv.lock",
-        "scripts/generate_openapi.py",
-        "src/**/*.py",
-        "../../libs/@local/petrinaut-optimizer-core/python/src/**/*.py",
-        "../../libs/@local/petrinaut-python/src/**/*.py"
+      "dependsOn": [
+        "petrinaut-python#codegen",
+        "petrinaut-optimizer-core#manifest",
+        "petrinaut-python#manifest"
       ],
+      "inputs": ["scripts/generate_openapi.py", "src/**/*.py"],
       "outputs": ["openapi/openapi.json"],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
