@@ -32,6 +32,7 @@ import { DraftFieldInput } from "../components/draft-field-input";
 import { VerticalSubViewsContainer } from "../components/sub-view/vertical/vertical-sub-views-container";
 import { useDraftField } from "../hooks/use-draft-field";
 import { UI_MESSAGES } from "../constants/ui-messages";
+import { LastExperiment } from "./constraint-results";
 import { ConstraintIcon } from "./constraint-tree";
 
 import type {
@@ -165,6 +166,12 @@ const windowItems: { value: WindowKind; text: string }[] = [
 const hintTextStyle = css({ display: "block", maxWidth: "[250px]",
   fontWeight: "normal" });
 
+// Moves the tooltip anchor 12px past the menu edge, so it clears the menu.
+const tooltipReachStyle = css({
+  width: "[calc(100% + 12px)]",
+  marginRight: "[-12px]",
+});
+
 // Narrow enough to open to the right of the mode menu inside a 1440px window.
 const narrowHintStyle = css({ maxWidth: "[215px]" });
 
@@ -182,7 +189,9 @@ const withTextHint = (
     }
     position={position}
   >
-    <span className={tooltipFillStyle}>{label}</span>
+    <span className={cx(tooltipFillStyle, narrow && tooltipReachStyle)}>
+      {label}
+    </span>
   </Tooltip>
 );
 
@@ -197,6 +206,19 @@ const timeMenuStyle = css({
   "& [data-part=item] > span:last-child, & [data-part=trigger-item] > span:first-child":
     { flex: "1" },
   "& [data-scope=tooltip][data-part=trigger]": { width: "[100%]" },
+  // One 1px divider between the groups, with equal space either side: the
+  // first group draws it, so the second adds no border or margin of its own.
+  "& [data-part=item-group]:first-child": { marginBottom: "0" },
+  "& [data-part=item-group]:last-child": {
+    borderTopWidth: "0",
+    marginTop: "0",
+  },
+  // The tick: 14px, in the text colour.
+  "& [role=menuitem] > span[aria-hidden=true] svg": {
+    width: "[14px]",
+    height: "[14px]",
+    color: "[inherit]",
+  },
   // Aligns "More" with the words, which sit after a tick.
   "& [data-part=trigger-item]": {
     paddingLeft: "[calc(var(--selectable-list-item-padding-x) + 20px)]",
@@ -1191,6 +1213,8 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
           </div>
         </div>
       </div>
+
+      <LastExperiment constraint={constraint} />
     </div>
   );
 };

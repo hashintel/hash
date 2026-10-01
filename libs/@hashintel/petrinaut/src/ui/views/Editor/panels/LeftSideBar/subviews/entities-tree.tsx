@@ -1,6 +1,7 @@
 import { use } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { Icon } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { useConstraints } from "../../../../../../react/controller-prototype/use-constraints";
@@ -22,6 +23,7 @@ import {
   leverTagStyle,
   useControllersTreeGroup,
 } from "../../../../../controller-prototype/controller-tree";
+import { EXAMPLE_DATA_NOTE } from "../../../../../controller-prototype/constraint-results-example";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { AddDifferentialEquationAction } from "./entities-tree/add-differential-equation-action";
@@ -46,6 +48,36 @@ const taggedRowStyle = css({
   },
 });
 
+const truncatedNameStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const resultRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+});
+
+const resultTagStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  flexShrink: "0",
+});
+
+const tagIconStyle = css({ color: "[currentColor]" });
+
+const groupNoteStyle = css({
+  flexShrink: "0",
+  fontSize: "xs",
+  fontWeight: "normal",
+  color: "neutral.s90",
+});
+
 const parameterVarNameStyle = css({
   margin: "0",
   fontSize: "xs",
@@ -64,6 +96,10 @@ interface EntityTreeItem {
   selectionItem?: SelectionItem;
   variableName?: string;
   tag?: string;
+  /** A group header's muted right-aligned note. */
+  note?: string;
+  /** Example results shown as a pill after a constraint's name. */
+  resultTag?: { text: string; warn: boolean };
   indent?: number;
   onSelect?: () => void;
   isSelected?: (selectedByDefault: boolean) => boolean;
@@ -257,6 +293,30 @@ export const entitiesTreeSubView: SubView = {
           <div className={taggedRowStyle}>
             <span>{item.name}</span>
             <span className={leverTagStyle}>{item.tag}</span>
+          </div>
+        );
+      }
+      if (item.resultTag) {
+        return (
+          <div className={resultRowStyle} title={item.name}>
+            <span className={truncatedNameStyle}>{item.name}</span>
+            <span
+              className={cx(leverTagStyle, resultTagStyle)}
+              title={EXAMPLE_DATA_NOTE}
+            >
+              {item.resultTag.warn ? <Icon name="warning" size="xs" className={tagIconStyle} /> : null}
+              {item.resultTag.text}
+            </span>
+          </div>
+        );
+      }
+      if (item.note) {
+        return (
+          <div className={resultRowStyle}>
+            <span className={truncatedNameStyle}>{item.name}</span>
+            <span className={groupNoteStyle} title={EXAMPLE_DATA_NOTE}>
+              {item.note}
+            </span>
           </div>
         );
       }

@@ -10,13 +10,17 @@ import {
   withControllers,
   withNeutralBatchColor,
 } from "../src/ui/controller-prototype/scheduler-example";
+import { setExampleResultsEnabled } from "../src/ui/controller-prototype/constraint-results-example";
 import { PetrinautStoryProvider } from "../src/ui/petrinaut-story-provider";
 
 const params = new URLSearchParams(location.search);
 
+setExampleResultsEnabled(!params.has("noresults"));
+
 /**
  * The controller prototype on its own page, without Storybook. `?readonly`
- * opens it read-only; `?empty` starts with no controllers and no constraints.
+ * opens it read-only; `?empty` starts with no controllers and no constraints, and `?noresults`
+ * shows no example experiment results.
  */
 const App = () => (
   <div style={{ height: "100vh", width: "100vw" }}>
