@@ -1,6 +1,11 @@
 {
   "extends": ["//"],
   "tasks": {
+    // TODO(SRE-1089): run type checking on all Python files, instead of just source files
+    "check:ty": {
+      "command": ["uv", "run", "--active", "--frozen", "ty", "check", "src"],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
     "test:unit": {
       "dependsOn": ["test"]
     }

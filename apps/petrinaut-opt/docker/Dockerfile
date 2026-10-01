@@ -39,7 +39,7 @@ WORKDIR /repo
 COPY . .
 
 RUN mise trust && \
-    turbo prune '@local/petrinaut-python' --docker
+    turbo prune '@hashintel/petrinaut-cli' --docker
 
 
 FROM bindings-tools AS python-pruner
@@ -70,12 +70,11 @@ RUN --mount=type=cache,target=/root/.yarn/berry/cache \
 
 COPY --from=bindings-pruner /repo/out/full/ ./
 
-# The bindings declare their executable as a dependency, so building their
-# dependency closure pulls in whatever provides it; this service names no
-# package. `^...` selects the dependencies only: the bindings themselves have
-# nothing to build here, and their codegen needs uv, which this stage lacks.
-RUN turbo run build --filter '@local/petrinaut-python^...' && \
-    yarn workspaces focus @local/petrinaut-python --production && \
+# The Python bindings' Turbo tasks name the CLI as their executable provider.
+# Build the CLI and its dependencies without running Python bindings codegen
+# (this Node-only stage has no uv), then focus its production Yarn graph.
+RUN turbo run build --filter '@hashintel/petrinaut-cli...' && \
+    yarn workspaces focus @hashintel/petrinaut-cli --production && \
     find libs -mindepth 3 -maxdepth 3 -type d \
       \( -name src -o -name tests -o -name test-fixtures \) \
       -exec rm -rf {} + && \
@@ -134,7 +133,7 @@ COPY --from=python-deps /opt/venv /opt/venv
 
 COPY apps/petrinaut-opt/src ./src
 
-# The bindings' runtime: their focused production dependency graph and the
+# The CLI executable runtime: its focused production dependency graph and the
 # built workspace packages it resolves.
 COPY --from=bindings-runtime / /opt/petrinaut-runtime
 

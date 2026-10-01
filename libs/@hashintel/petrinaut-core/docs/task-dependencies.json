@@ -42,7 +42,9 @@
       ]
     },
     "test:unit": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@local/petrinaut-optimizer-core#build"
+      ],
       "env": [
         "TEST_COVERAGE"
       ],
