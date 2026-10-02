@@ -1,11 +1,23 @@
 import { petrinautToolEffects } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 
-type Capability = "read" | "mutation" | "command" | "experiment" | "substrate";
+type Capability =
+  | "read"
+  | "mutation"
+  | "command"
+  | "experiment"
+  | "substrate"
+  | "other";
 type ToolState = "preparing" | "running" | "awaiting-approval";
 
 const capabilityOf = (name: string): Capability => {
   if (name === brunchTools.draftPetrinautExperiment) return "experiment";
+  if (
+    name === "task" ||
+    name === brunchTools.activateSkill ||
+    name === brunchTools.readSkillResource
+  )
+    return "substrate";
   if (Object.hasOwn(petrinautToolEffects, name)) {
     const { capability } =
       petrinautToolEffects[name as keyof typeof petrinautToolEffects];
@@ -16,10 +28,15 @@ const capabilityOf = (name: string): Capability => {
       "petrinaut-experiment": "experiment",
     }[capability] as Capability;
   }
-  // Non-Petrinaut catalogue classes (substrate, ledger, explanation and
-  // diagnostic), and unknown tools, get the non-specific substrate phrase.
-  return "substrate";
+  // Ledger, explanation, diagnostic and unknown tools share a generic phrase,
+  // but must not inherit substrate's immediate running gate.
+  return "other";
 };
+
+const genericToolPhrases = [
+  "Working through the details.",
+  "Still working through the details.",
+] as const;
 
 const phrases = {
   read: [
@@ -32,10 +49,8 @@ const phrases = {
     "Setting up the comparison.",
     "Still setting up the comparison.",
   ],
-  substrate: [
-    "Working through the details.",
-    "Still working through the details.",
-  ],
+  substrate: genericToolPhrases,
+  other: genericToolPhrases,
   thinking: ["Give me a moment on this one.", "Still thinking this through."],
   "thinking-after-edits": [
     "The edits are in. Give me a moment.",

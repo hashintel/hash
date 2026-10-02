@@ -164,12 +164,50 @@ test.each([
   ["createExperiment", "Setting up the comparison."],
   ["draft_petrinaut_experiment", "Setting up the comparison."],
   ["task", "Working through the details."],
-  ["mutate_workpiece", "Working through the details."],
+  ["activate_skill", "Working through the details."],
+  ["read_skill_resource", "Working through the details."],
 ])("%s qualifies immediately once acknowledged", (name, line) => {
   const { policy, commentary } = setup();
   policy.toolStarted("one", name, 7_000);
   expect(policy.evaluate(7_000)?.speak).toBe(true);
   expect(commentary).toHaveBeenCalledWith(line);
+});
+
+test.each([
+  "mutate_workpiece",
+  "read_workpiece",
+  "query_workpiece",
+  "ping",
+  "unknown_tool",
+])("%s keeps the normal running delay", (name) => {
+  const { policy, commentary } = setup();
+  policy.toolStarted("one", name, 7_000);
+  expect(policy.evaluate(7_000)?.reason).toBe("activity");
+  expect(policy.evaluate(9_499)?.reason).toBe("activity");
+  expect(policy.evaluate(9_500)?.speak).toBe(true);
+  expect(commentary).toHaveBeenCalledExactlyOnceWith(
+    "Working through the details.",
+  );
+});
+
+test("a fast non-substrate burst after acknowledgement stays silent", () => {
+  const { policy, commentary } = setup();
+  for (const [index, name] of [
+    "read_workpiece",
+    "mutate_workpiece",
+    "query_workpiece",
+    "ping",
+    "unknown_tool",
+  ].entries()) {
+    const now = 6_600 + index * 200;
+    policy.toolStarted(name, name, now);
+    policy.evaluate(now);
+    policy.toolFinished(name, now + 100, true);
+    policy.evaluate(now + 100);
+  }
+  policy.settled();
+  policy.evaluate(20_000);
+  expect(commentary).not.toHaveBeenCalled();
 });
 
 test("a changed phase still waits twenty seconds and Live speech holds it", () => {

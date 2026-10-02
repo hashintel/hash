@@ -143,6 +143,7 @@ export class LiveBrunchBridge {
   #progressTimer: ReturnType<typeof setInterval> | undefined;
   #liveSpeaking = false;
   #progressPendingUntil = 0;
+  #liveSpeechHoldUntil = 0;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -157,13 +158,15 @@ export class LiveBrunchBridge {
   /** Acoustic activity is a hold, not proof of provider playback completion. */
   public liveSpeaking(on: boolean): void {
     if (this.#liveSpeaking && !on) {
+      // Live has no playback-complete event. Require sustained quiet rather
+      // than releasing a pending summary at the first pause in a sentence.
+      this.#liveSpeechHoldUntil = Date.now() + 1_500;
       for (const turn of this.#turns) {
         if (turn.delegationId !== null && !turn.progressOffered)
           turn.progress.acknowledged(Date.now());
       }
     }
     this.#liveSpeaking = on;
-    if (on) this.#progressPendingUntil = 0;
   }
 
   #stopProgress(): void {
@@ -242,7 +245,9 @@ export class LiveBrunchBridge {
       }
       turn.progress.userSpeaking(this.#dependencies.speechPending());
       turn.progress.liveSpeaking(
-        this.#liveSpeaking || now < this.#progressPendingUntil,
+        this.#liveSpeaking ||
+          now < this.#progressPendingUntil ||
+          now < this.#liveSpeechHoldUntil,
       );
       turn.progress.evaluate(now);
     }
@@ -1084,7 +1089,9 @@ export class LiveBrunchBridge {
       );
       while (
         turn.progressOffered &&
-        (this.#liveSpeaking || Date.now() < this.#progressPendingUntil) &&
+        (this.#liveSpeaking ||
+          Date.now() < this.#progressPendingUntil ||
+          Date.now() < this.#liveSpeechHoldUntil) &&
         !turn.preparation.signal.aborted &&
         !this.#abort.signal.aborted
       ) {

@@ -2508,7 +2508,16 @@ test("progress leaves the delegation open and settlement waits for Live speech",
   await vi.advanceTimersByTimeAsync(3_000);
   expect(fixture.appendCommentary).toHaveBeenCalledOnce();
   fixture.bridge.liveSpeaking(false);
-  await vi.advanceTimersByTimeAsync(250);
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  // A short acoustic pause is not completion. Resumed output extends the hold,
+  // even when it outlasts the initial five-second allowance for speech to start.
+  fixture.bridge.liveSpeaking(true);
+  await vi.advanceTimersByTimeAsync(2_000);
+  fixture.bridge.liveSpeaking(false);
+  await vi.advanceTimersByTimeAsync(1_499);
+  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(1);
   expect(fixture.appendCommentary).toHaveBeenLastCalledWith(
     segment().text,
     "delegation",
@@ -2518,6 +2527,73 @@ test("progress leaves the delegation open and settlement waits for Live speech",
   fixture.bridge.stop();
   expect(vi.getTimerCount()).toBe(0);
 });
+
+test.each(["silent", "delayed"] as const)(
+  "settlement waits for %s progress output with a bounded silent fallback",
+  async (output) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    fixture.bridge.acceptDelegation("delegation");
+    await fixture.bridge.accept(speech("one", "Compare staffing"));
+    fixture.speechPending.mockReturnValue(false);
+    fixture.bridge.responseStarted(started);
+    fixture.update({ status: "streaming", messages: [runningTool()] });
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Setting up the comparison.",
+      null,
+    );
+    wrapUp(fixture);
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+    if (output === "delayed") {
+      fixture.bridge.liveSpeaking(true);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+      fixture.bridge.liveSpeaking(false);
+      await vi.advanceTimersByTimeAsync(1_499);
+    } else {
+      await vi.advanceTimersByTimeAsync(999);
+    }
+    expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fixture.appendCommentary).toHaveBeenLastCalledWith(
+      segment().text,
+      "delegation",
+    );
+    fixture.bridge.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
+
+test.each(["speech", "stop", "teardown"] as const)(
+  "%s cancels the summary while progress speech is held",
+  async (cause) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    fixture.bridge.acceptDelegation("delegation");
+    await fixture.bridge.accept(speech("one", "Compare staffing"));
+    fixture.speechPending.mockReturnValue(false);
+    fixture.bridge.responseStarted(started);
+    fixture.update({ status: "streaming", messages: [runningTool()] });
+    await vi.advanceTimersByTimeAsync(6_000);
+    fixture.bridge.liveSpeaking(true);
+    wrapUp(fixture);
+    await vi.advanceTimersByTimeAsync(1_000);
+    if (cause === "speech") fixture.bridge.speechStarted();
+    else if (cause === "stop") fixture.bridge.stopResponse();
+    else fixture.bridge.stop();
+    fixture.bridge.liveSpeaking(false);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Setting up the comparison.",
+      null,
+    );
+    expect(fixture.mediation.offered).not.toHaveBeenCalled();
+    fixture.bridge.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
 
 test("approval changes are polled even without a new message snapshot", async () => {
   vi.useFakeTimers();
