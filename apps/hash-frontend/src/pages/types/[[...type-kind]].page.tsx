@@ -3,6 +3,7 @@ import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
@@ -39,6 +40,21 @@ type ParsedQueryParams = {
 };
 
 export type TabId = "all" | ParsedQueryKindParam;
+
+const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
+  {
+    all: { label: "Create type", href: "/new/types/entity-type" },
+    "entity-type": {
+      label: "Create entity type",
+      href: "/new/types/entity-type",
+    },
+    "link-type": {
+      label: "Create link type",
+      href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
+    },
+    "property-type": null,
+    "data-type": { label: "Create data type", href: "/new/types/data-type" },
+  };
 
 type TypesPageProps = {
   currentTab: TabId;
@@ -202,6 +218,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     ],
   );
 
+  const createButton = createButtonByTab[currentTab];
+
   return (
     <>
       <NextSeo title="Types" />
@@ -246,7 +264,12 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             </Box>
             Types
           </Typography>
-          <Stack direction="row" justifyContent="space-between">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            // the create button's height, kept on tabs that hide the button
+            sx={{ minHeight: 48 }}
+          >
             <TypesPageTabs
               currentTab={currentTab}
               numberOfTypesByTab={{
@@ -257,13 +280,15 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
                 "data-type": latestDataTypes?.length,
               }}
             />
-            <CreateButton
-              href="/new/types/entity-type"
-              variant="tertiary_quiet"
-              endIcon={<PlusRegularIcon />}
-            >
-              Create type
-            </CreateButton>
+            {createButton ? (
+              <CreateButton
+                href={createButton.href}
+                variant="tertiary_quiet"
+                endIcon={<PlusRegularIcon />}
+              >
+                {createButton.label}
+              </CreateButton>
+            ) : null}
           </Stack>
         </Container>
       </Box>
