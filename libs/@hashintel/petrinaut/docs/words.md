@@ -20,6 +20,8 @@ Restart Voice after adding, editing, removing, or disabling Words. Active sessio
 
 The editable list belongs to this Brunch conversation in this browser. Reloading restores it when browser storage is available. Other conversations and browsers have separate lists. Words are not included in net exports, imports, or duplicates. **Clear conversation** removes its local list and starts a new, empty one. Disabling Words or switching to the stock assistant hides the controls without deleting saved words.
 
+If another tab removes the word you are editing, saving keeps your draft open and explains that the word was removed. Copy any text you want to keep, then choose **Cancel** and **Add word** to add it again.
+
 If browser storage fails, the dialog says **Available in this tab; browser storage is unavailable**. Such edits can be used until this tab or conversation is closed but may not survive a reload. Invalid saved data is not used as hints.
 
 Used spellings are sent with requests to Brunch and its model provider and may remain in conversation history. Voice hints are sent to OpenAI. Pronunciation notes go only to the speaking model. Removing a word does not erase past requests or provider data. Do not add secrets.

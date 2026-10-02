@@ -59,7 +59,6 @@ const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
 export type AiAssistantContentsProps = {
   additionalTab?: PetrinautAiAssistant["additionalTab"];
   headerActions?: PetrinautAiAssistant["headerActions"];
-  renderUserMessageActions?: PetrinautAiAssistant["renderUserMessageActions"];
   actionsInputMode?: PetrinautAiAssistant["actionsInputMode"];
   attentionAnnouncement?: string;
   hostAttentionCount?: number;
@@ -425,7 +424,6 @@ export const getTranscriptLabel = (
 export const AiAssistantContents = ({
   additionalTab,
   headerActions,
-  renderUserMessageActions,
   actionsInputMode,
   attentionAnnouncement,
   experimentStates,
@@ -695,9 +693,6 @@ export const AiAssistantContents = ({
     actionsInputMode === undefined || actionsInputMode === inputMode;
   const transcriptProps = {
     experimentStates,
-    renderUserMessageActions: showHostActions
-      ? renderUserMessageActions
-      : undefined,
     handlersRef,
     hiddenToolNames,
     interactiveTools,
