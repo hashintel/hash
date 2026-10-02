@@ -14,13 +14,22 @@ import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import {
   constraintCode,
+  constraintCodeText,
   constraintModeHint,
   constraintModeNote,
   emptyCheck,
+  firstCheck,
   forEveryHint,
   constraintModeLabel,
   hasSecondSlot,
+  isNestedRule,
+  mapConstraintChecks,
+  MAX_ROW_DEPTH,
+  newNestedRule,
   parseSubjectValue,
+  ruleDepth,
+  rulePresets,
+  applyPreset,
   secondChecks,
   subjectGroups,
   subjectUnit,
@@ -46,6 +55,8 @@ import type {
   ConstraintMode,
   ConstraintWindow,
   ModelConstraint,
+  NestedRule,
+  RuleItem,
   TimeWord,
 } from "../../react/controller-prototype/constraints";
 import type { MenuItem, Position } from "@hashintel/ds-components";
@@ -124,10 +135,10 @@ const modeNoteStyle = css({
   marginTop: "0",
 });
 
-// Lines may break only after ", " and "=> "; other spaces become non-breaking.
+// Lines may break only after ", ", "=> " and "--> "; other spaces become non-breaking.
 const breakableCode = (code: string) =>
   code
-    .split(/(, |=> )/)
+    .split(/(, |=> |--> )/)
     .map((part, index) => (index % 2 ? part : part.replace(/ /g, String.fromCodePoint(0xa0))))
     .join("");
 
@@ -144,7 +155,12 @@ const codeLineStyle = css({
   textIndent: "[-2ch]",
 });
 
-const addButtonsStyle = css({ display: "flex", gap: "1", marginLeft: "-1" });
+const addButtonsStyle = css({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "1",
+  marginLeft: "-1",
+});
 
 const codeActionsStyle = css({ display: "flex", justifyContent: "flex-end" });
 
@@ -164,10 +180,9 @@ const opItems: { value: CheckOp; text: string }[] = [
   { value: "above", text: "stays above" },
 ];
 
-type WindowKind = "whole" | "between" | "within";
+type WindowKind = ConstraintWindow["kind"];
 
 const windowItems: { value: WindowKind; text: string }[] = [
-  { value: "whole", text: "whole run" },
   { value: "between", text: "between" },
   { value: "within", text: "within" },
 ];
@@ -243,23 +258,18 @@ const timeButtonStyle = css({
 });
 
 const TimeWordMenu: React.FC<{
-  constraint: ModelConstraint;
+  time: TimeWord;
   disabled: boolean;
-  update: UpdateConstraint;
-}> = ({ constraint, disabled, update }) => {
+  /** A nested rule offers Always and Eventually only. */
+  basic?: boolean;
+  onChange: (word: TimeWord) => void;
+}> = ({ time, disabled, basic, onChange }) => {
   const wordItem = (word: TimeWord, position: Position): MenuItem => ({
     id: word,
     text: withHint(word, position),
     selectedStyle: "tick",
-    selected: constraint.time === word,
-    onClick: () =>
-      update((current) => ({
-        ...current,
-        time: word,
-        ...(hasSecondSlot(word) && !current.second?.length
-          ? { second: [emptyCheck()] }
-          : {}),
-      })),
+    selected: time === word,
+    onClick: () => onChange(word),
   });
 
   return (
@@ -272,20 +282,24 @@ const TimeWordMenu: React.FC<{
           items: [
             wordItem("always", "right-start"),
             wordItem("eventually", "right-start"),
-            wordItem("until", "right-start"),
+            ...(basic ? [] : [wordItem("until", "right-start")]),
           ],
         },
-        {
-          id: "more-words",
-          label: "",
-          items: [
-            {
-              id: "more",
-              text: "More",
-              subItems: [wordItem("release", "bottom-end")],
-            },
-          ],
-        },
+        ...(basic
+          ? []
+          : [
+              {
+                id: "more-words",
+                label: "",
+                items: [
+                  {
+                    id: "more",
+                    text: "More",
+                    subItems: [wordItem("release", "bottom-end")],
+                  },
+                ],
+              },
+            ]),
       ]}
       trigger={
         <Button
@@ -296,7 +310,7 @@ const TimeWordMenu: React.FC<{
           aria-label="Time word"
           disabled={disabled}
         >
-          {timeWordLabel[constraint.time]}
+          {timeWordLabel[time]}
         </Button>
       }
     />
@@ -380,17 +394,11 @@ const ForEveryRows: React.FC<{
           }}
           onChange={(typeId) =>
             update((current) => ({
-              ...current,
+              ...mapConstraintChecks(current, (check) => ({
+                ...check,
+                subject: null,
+              })),
               forEvery: current.forEvery && { ...current.forEvery, typeId },
-              checks: current.checks.map((check) => ({
-                ...check,
-                subject: null,
-              })),
-              second: current.second?.map((check) => ({
-                ...check,
-                subject: null,
-              })),
-              trigger: current.trigger && { ...current.trigger, subject: null },
             }))
           }
         />
@@ -415,26 +423,13 @@ const ForEveryRows: React.FC<{
             iconName="close"
             aria-label="Remove For every"
             onClick={() =>
-              update(({ forEvery: _forEvery, ...current }) => ({
-                ...current,
-                checks: current.checks.map((check) => ({
+              update(({ forEvery: _forEvery, ...current }) =>
+                mapConstraintChecks(current, (check) => ({
                   ...check,
                   subject:
                     check.subject?.id === forEvery.typeId ? null : check.subject,
                 })),
-                second: current.second?.map((check) => ({
-                  ...check,
-                  subject:
-                    check.subject?.id === forEvery.typeId ? null : check.subject,
-                })),
-                trigger: current.trigger && {
-                  ...current.trigger,
-                  subject:
-                    current.trigger.subject?.id === forEvery.typeId
-                      ? null
-                      : current.trigger.subject,
-                },
-              }))
+              )
             }
           />
         )}
@@ -542,9 +537,6 @@ const ModeMenu: React.FC<{
   );
 };
 
-const windowKindOf = (window: ConstraintWindow | undefined): WindowKind =>
-  window ? window.kind : "whole";
-
 const joinItems: { value: "all" | "any"; label: string }[] = [
   { value: "all", label: "All" },
   { value: "any", label: "Any" },
@@ -555,29 +547,7 @@ const triggerOpItems: { value: CheckOp; text: string }[] = [
   { value: "below", text: "is below" },
 ];
 
-const removeSlotStyle = css({ display: "flex", justifyContent: "center" });
-
-// The If row and the check rows share four column tracks (subject, comparison,
-// bound, remove), so their fields line up. The subject gives way first.
-const checkGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[minmax(0, max-content) max-content max-content 16px]",
-  columnGap: "1.5",
-  rowGap: "2",
-  alignItems: "center",
-});
-
 const slotStyle = css({ display: "flex", flexDirection: "column", gap: "2" });
-
-const gridRowStyle = css({ gridColumn: "[1 / -1]" });
-
-const ifCellStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  minWidth: "0",
-  "& > :last-child": { flex: "1", minWidth: "0" },
-});
 
 const checkBoundStyle = css({ width: "[100%]" });
 
@@ -606,9 +576,8 @@ const SubjectSelect: React.FC<{
   check: Check;
   disabled: boolean;
   placeholder: string;
-  fill?: boolean;
   onChange: (subject: CheckSubject) => void;
-}> = ({ constraint, check, disabled, placeholder, fill, onChange }) => {
+}> = ({ constraint, check, disabled, placeholder, onChange }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const groups = subjectGroups(petriNetDefinition, constraint.forEvery);
   const items = groups.flatMap((group) => group.items);
@@ -621,7 +590,6 @@ const SubjectSelect: React.FC<{
       placeholder={placeholder}
       dotted={!constraint.forEvery && !value.startsWith("metric:")}
       disabled={disabled}
-      fill={fill}
       onChange={(next) => {
         const subject = parseSubjectValue(next);
         if (subject) {
@@ -636,13 +604,12 @@ const OpSelect: React.FC<{
   check: Check;
   disabled: boolean;
   items: { value: CheckOp; text: string }[];
-  fill?: boolean;
   onChange: (op: CheckOp) => void;
-}> = ({ check, disabled, items, fill, onChange }) => (
+}> = ({ check, disabled, items, onChange }) => (
   <Select
     required
     size="sm"
-    width={fill ? "fullWidth" : "fitContent"}
+    width="fitContent"
     aria-label="Comparison"
     disabled={disabled}
     value={check.op}
@@ -658,11 +625,10 @@ const OpSelect: React.FC<{
 const BoundInput: React.FC<{
   check: Check;
   disabled: boolean;
-  compact?: boolean;
   unit?: string | null;
   onChange: (bound: number | null) => void;
-}> = ({ check, disabled, compact, unit, onChange }) => {
-  const base = (compact ? 48 : 56) - (unit ? 8 : 0);
+}> = ({ check, disabled, unit, onChange }) => {
+  const base = 56 - (unit ? 8 : 0);
   return (
     <span
       className={cx(boundFieldStyle, unit && boundUnitFieldStyle)}
@@ -694,88 +660,33 @@ const BoundInput: React.FC<{
   );
 };
 
-/** One check as a row of its own: subject, comparison, bound and an optional remove. */
-const CheckRow: React.FC<{
-  constraint: ModelConstraint;
-  check: Check;
-  disabled: boolean;
-  trigger?: boolean;
-  onChange: (patch: Partial<Check>) => void;
-  onRemove?: () => void;
-}> = ({ constraint, check, disabled, trigger, onChange, onRemove }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
-  const subject = (
-    <SubjectSelect
-      fill
-      constraint={constraint}
-      check={check}
-      disabled={disabled}
-      placeholder="Choose…"
-      onChange={(next) => onChange({ subject: next })}
-    />
-  );
-  return (
-    <>
-      {trigger ? (
-        <div className={ifCellStyle}>
-          <span className={mutedText(disabled)}>If</span>
-          {subject}
-        </div>
-      ) : (
-        subject
-      )}
-      <OpSelect
-        fill
-        check={check}
-        disabled={disabled}
-        items={trigger ? triggerOpItems : opItems}
-        onChange={(op) => onChange({ op })}
-      />
-      <BoundInput
-        compact
-        check={check}
-        unit={subjectUnit(petriNetDefinition, check.subject)}
-        disabled={disabled}
-        onChange={(bound) => onChange({ bound })}
-      />
-      <span className={removeSlotStyle}>
-        {onRemove && !disabled ? (
-          <Button
-            size="xs"
-            variant="ghost"
-            iconName="close"
-            aria-label={trigger ? "Remove If" : "Remove check"}
-            onClick={onRemove}
-          />
-        ) : null}
-      </span>
-    </>
-  );
-};
-
-/** A check of an until or release slot: one row whose controls keep their width and wrap. */
+/** A check as one row whose controls keep their width and wrap. */
 const SlotCheckRow: React.FC<{
   constraint: ModelConstraint;
   check: Check;
   disabled: boolean;
+  /** Reads "is above" rather than "stays above": a condition, not a standing rule. */
   second?: boolean;
+  /** The If row of a rule: a label first, and "is above" wording. */
+  trigger?: boolean;
   onChange: (patch: Partial<Check>) => void;
   onRemove?: () => void;
-}> = ({ constraint, check, disabled, second, onChange, onRemove }) => {
+}> = ({ constraint, check, disabled, second, trigger, onChange, onRemove }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   return (
     <div className={cx(ruleRowStyle, tightRowStyle)}>
+      {trigger ? <span className={mutedText(disabled)}>If</span> : null}
       <SubjectSelect
         constraint={constraint}
         check={check}
         disabled={disabled}
-        placeholder="Choose what to check"
+        placeholder={trigger || onRemove ? "Choose…" : "Choose what to check"}
         onChange={(subject) => onChange({ subject })}
       />
       <OpSelect
         check={check}
         disabled={disabled}
-        items={second ? triggerOpItems : opItems}
+        items={second || trigger ? triggerOpItems : opItems}
         onChange={(op) => onChange({ op })}
       />
       <BoundInput
@@ -789,7 +700,7 @@ const SlotCheckRow: React.FC<{
           size="xs"
           variant="ghost"
           iconName="close"
-          aria-label="Remove check"
+          aria-label={trigger ? "Remove If" : "Remove check"}
           onClick={onRemove}
         />
       ) : null}
@@ -798,27 +709,247 @@ const SlotCheckRow: React.FC<{
 };
 
 const MatchSwitch: React.FC<{
-  constraint: ModelConstraint;
+  join: "all" | "any" | undefined;
+  ariaLabel: string;
   disabled: boolean;
-  update: UpdateConstraint;
-  slot?: "second";
-}> = ({ constraint, disabled, update, slot }) => (
+  onChange: (join: "all" | "any") => void;
+}> = ({ join, ariaLabel, disabled, onChange }) => (
   <>
     <span className={mutedText(disabled)}>match</span>
     <SegmentedControl
       size="xs"
-      aria-label={slot ? "Match second checks" : "Match"}
+      aria-label={ariaLabel}
       items={joinItems}
-      value={(slot ? constraint.secondJoin : constraint.join) ?? "all"}
+      value={join ?? "all"}
       disabled={disabled}
-      onChange={(join) =>
-        update((current) =>
-          slot ? { ...current, secondJoin: join } : { ...current, join },
-        )
-      }
+      onChange={onChange}
     />
   </>
 );
+
+const WindowFields: React.FC<{
+  window: ConstraintWindow;
+  disabled: boolean;
+  onChange: (window: ConstraintWindow | undefined) => void;
+}> = ({ window, disabled, onChange }) => {
+  const setKind = (kind: WindowKind) =>
+    onChange(
+      kind === "between"
+        ? { kind, from: 0, to: window.to }
+        : { kind, to: window.to },
+    );
+
+  const setBound = (bound: "from" | "to", value: number | null) => {
+    if (value === null) {
+      return;
+    }
+    onChange(
+      window.kind === "between"
+        ? { ...window, [bound]: value }
+        : { kind: "within", to: value },
+    );
+  };
+
+  return (
+    <>
+      <Select
+        required
+        size="sm"
+        width="fitContent"
+        aria-label="Time window"
+        disabled={disabled}
+        value={window.kind}
+        items={windowItems}
+        onChange={(value) => {
+          if (value === "between" || value === "within") {
+            setKind(value);
+          }
+        }}
+      />
+      {window.kind === "between" ? (
+        <>
+          <NumberInput
+            size="sm"
+            aria-label="Window start, in days"
+            hideStepper
+            step="any"
+            className={numberStyle}
+            disabled={disabled}
+            value={window.from}
+            onChange={(value) => setBound("from", value)}
+          />
+          <span className={mutedText(disabled)}>and</span>
+        </>
+      ) : null}
+      <NumberInput
+        size="sm"
+        aria-label="Window end, in days"
+        hideStepper
+        step="any"
+        className={numberStyle}
+        disabled={disabled}
+        value={window.to}
+        onChange={(value) => setBound("to", value)}
+      />
+      <span className={mutedText(disabled)}>days</span>
+      {disabled ? null : (
+        <Button
+          size="xs"
+          variant="ghost"
+          iconName="close"
+          aria-label="Remove window"
+          onClick={() => onChange(undefined)}
+        />
+      )}
+    </>
+  );
+};
+
+const nestedCardStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  paddingX: "3",
+  paddingY: "2",
+  backgroundColor: "neutral.s20",
+  borderLeft: "[2px solid]",
+  borderLeftColor: "neutral.s80",
+  borderRadius: "md",
+});
+
+const nestedHeaderStyle = css({ "& > :last-child": { marginLeft: "auto" } });
+
+const NEST_CAP_HINT =
+  "Two levels at most here. For deeper rules, edit as code or describe the rule.";
+
+/** A rule held in a check list: its own time word, window and checks, one level down. */
+const NestedRuleCard: React.FC<{
+  constraint: ModelConstraint;
+  rule: NestedRule;
+  disabled: boolean;
+  onChange: (change: (rule: NestedRule) => NestedRule) => void;
+  onRemove: () => void;
+}> = ({ constraint, rule, disabled, onChange, onRemove }) => {
+  const manyChecks = rule.checks.length >= 2;
+  const updateCheck = (index: number, patch: Partial<Check>) =>
+    onChange((current) => ({
+      ...current,
+      checks: current.checks.map((item, at) =>
+        at === index && !isNestedRule(item) ? { ...item, ...patch } : item,
+      ),
+    }));
+
+  return (
+    <div className={nestedCardStyle}>
+      <div className={cx(ruleRowStyle, nestedHeaderStyle)}>
+        <TimeWordMenu
+          basic
+          time={rule.time}
+          disabled={disabled}
+          onChange={(time) => onChange((current) => ({ ...current, time }))}
+        />
+        {rule.window ? (
+          <WindowFields
+            window={rule.window}
+            disabled={disabled}
+            onChange={(window) =>
+              onChange(({ window: _window, ...current }) =>
+                window ? { ...current, window } : current,
+              )
+            }
+          />
+        ) : null}
+        {disabled ? null : (
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="close"
+            aria-label="Remove nested rule"
+            onClick={onRemove}
+          />
+        )}
+      </div>
+      {manyChecks ? (
+        <div className={ruleRowStyle}>
+          <MatchSwitch
+            join={rule.join}
+            ariaLabel="Match nested checks"
+            disabled={disabled}
+            onChange={(join) => onChange((current) => ({ ...current, join }))}
+          />
+        </div>
+      ) : null}
+      <div className={slotStyle}>
+        {rule.checks.map((item, index) =>
+          isNestedRule(item) ? null : (
+            <SlotCheckRow
+              second
+              // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
+              key={index}
+              constraint={constraint}
+              check={item}
+              disabled={disabled}
+              onChange={(patch) => updateCheck(index, patch)}
+              onRemove={
+                manyChecks
+                  ? () =>
+                      onChange((current) => ({
+                        ...current,
+                        checks: current.checks.filter((_, at) => at !== index),
+                      }))
+                  : undefined
+              }
+            />
+          ),
+        )}
+      </div>
+      {disabled ? null : (
+        <div className={addButtonsStyle}>
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="plus"
+            onClick={() =>
+              onChange((current) => ({
+                ...current,
+                checks: [...current.checks, emptyCheck()],
+              }))
+            }
+          >
+            Add check
+          </Button>
+          <Tooltip
+            content={<span className={hintTextStyle}>{NEST_CAP_HINT}</span>}
+            position="top"
+          >
+            <span>
+              <Button size="xs" variant="ghost" iconName="listTree" disabled>
+                Nest a rule
+              </Button>
+            </span>
+          </Tooltip>
+          {rule.window ? null : (
+            <Button
+              size="xs"
+              variant="ghost"
+              iconName="plus"
+              onClick={() =>
+                onChange((current) => ({
+                  ...current,
+                  window: { kind: "within", to: 2 },
+                }))
+              }
+            >
+              Window
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+type Slot = "checks" | "second";
 
 const RuleRows: React.FC<{
   constraint: ModelConstraint;
@@ -828,40 +959,70 @@ const RuleRows: React.FC<{
   const window = constraint.window;
   const trigger = constraint.trigger;
   const manyChecks = constraint.checks.length >= 2;
-  const asList = manyChecks || trigger !== undefined;
+  const asList =
+    manyChecks || trigger !== undefined || constraint.checks.some(isNestedRule);
 
-  const updateCheck = (index: number, patch: Partial<Check>) =>
+  const setItems = (slot: Slot, change: (items: RuleItem[]) => RuleItem[]) =>
+    update((current) => {
+      const next = change(
+        slot === "second" ? secondChecks(current) : current.checks,
+      );
+      return slot === "second"
+        ? { ...current, second: next }
+        : { ...current, checks: next.length > 0 ? next : [emptyCheck()] };
+    });
+
+  const updateCheck = (slot: Slot, index: number, patch: Partial<Check>) =>
+    setItems(slot, (items) =>
+      items.map((item, at) =>
+        at === index && !isNestedRule(item) ? { ...item, ...patch } : item,
+      ),
+    );
+
+  const updateNested = (
+    slot: Slot,
+    index: number,
+    change: (rule: NestedRule) => NestedRule,
+  ) =>
+    setItems(slot, (items) =>
+      items.map((item, at) =>
+        at === index && isNestedRule(item) ? change(item) : item,
+      ),
+    );
+
+  const removeItem = (slot: Slot, index: number) =>
+    setItems(slot, (items) => items.filter((_, at) => at !== index));
+
+  const addItem = (slot: Slot, item: RuleItem) =>
+    setItems(slot, (items) => [...items, item]);
+
+  const nestedCard = (slot: Slot, rule: NestedRule, index: number) => (
+    <NestedRuleCard
+      // eslint-disable-next-line react/no-array-index-key -- Rules have no ids; rows are only added or removed by position.
+      key={index}
+      constraint={constraint}
+      rule={rule}
+      disabled={disabled}
+      onChange={(change) => updateNested(slot, index, change)}
+      onRemove={() => removeItem(slot, index)}
+    />
+  );
+
+  const setTime = (time: TimeWord) =>
     update((current) => ({
       ...current,
-      checks: current.checks.map((candidate, at) =>
-        at === index ? { ...candidate, ...patch } : candidate,
-      ),
+      time,
+      ...(hasSecondSlot(time) && !current.second?.length
+        ? { second: [emptyCheck()] }
+        : {}),
     }));
 
-  const setWindowKind = (kind: WindowKind) =>
-    update((current) => {
-      const { window: previous, ...rest } = current;
-      const to = previous?.to ?? 30;
-      return kind === "whole"
-        ? rest
-        : {
-            ...rest,
-            window:
-              kind === "between"
-                ? { kind, from: 0, to }
-                : { kind: "within", to },
-          };
-    });
-
-  const setWindowBound = (bound: "from" | "to", value: number | null) =>
-    update((current) => {
-      if (!current.window || value === null) {
-        return current;
-      }
-      return current.window.kind === "between"
-        ? { ...current, window: { ...current.window, [bound]: value } }
-        : { ...current, window: { kind: "within", to: value } };
-    });
+  const setJoin = (slot: Slot, join: "all" | "any") =>
+    update((current) =>
+      slot === "second"
+        ? { ...current, secondJoin: join }
+        : { ...current, join },
+    );
 
   const { petriNetDefinition: net } = use(SDCPNContext);
   const forEveryRows = constraint.forEvery ? (
@@ -872,53 +1033,45 @@ const RuleRows: React.FC<{
     />
   ) : null;
 
-  const windowRow = (
+  const windowRow = window ? (
     <div className={ruleRowStyle}>
-      <Select
-        required
-        size="sm"
-        width="fitContent"
-        aria-label="Time window"
+      <WindowFields
+        window={window}
         disabled={disabled}
-        value={windowKindOf(window)}
-        items={windowItems}
-        onChange={(value) => {
-          if (value === "whole" || value === "between" || value === "within") {
-            setWindowKind(value);
-          }
-        }}
+        onChange={(next) =>
+          update(({ window: _window, ...current }) =>
+            next ? { ...current, window: next } : current,
+          )
+        }
       />
-      {window?.kind === "between" ? (
-        <>
-          <NumberInput
-            size="sm"
-            aria-label="Window start, in days"
-            hideStepper
-            step="any"
-            className={numberStyle}
-            disabled={disabled}
-            value={window.from}
-            onChange={(value) => setWindowBound("from", value)}
-          />
-          <span className={mutedText(disabled)}>and</span>
-        </>
-      ) : null}
-      {window ? (
-        <>
-          <NumberInput
-            size="sm"
-            aria-label="Window end, in days"
-            hideStepper
-            step="any"
-            className={numberStyle}
-            disabled={disabled}
-            value={window.to}
-            onChange={(value) => setWindowBound("to", value)}
-          />
-          <span className={mutedText(disabled)}>days</span>
-        </>
-      ) : null}
     </div>
+  ) : null;
+
+  const windowButton = window ? null : (
+    <Button
+      size="xs"
+      variant="ghost"
+      iconName="plus"
+      onClick={() =>
+        update((current) => ({
+          ...current,
+          window: { kind: "between", from: 0, to: 360 },
+        }))
+      }
+    >
+      Window
+    </Button>
+  );
+
+  const nestButton = (slot: Slot) => (
+    <Button
+      size="xs"
+      variant="ghost"
+      iconName="listTree"
+      onClick={() => addItem(slot, newNestedRule())}
+    >
+      Nest a rule
+    </Button>
   );
 
   const addButtons = disabled ? null : (
@@ -927,15 +1080,11 @@ const RuleRows: React.FC<{
         size="xs"
         variant="ghost"
         iconName="plus"
-        onClick={() =>
-          update((current) => ({
-            ...current,
-            checks: [...current.checks, emptyCheck()],
-          }))
-        }
+        onClick={() => addItem("checks", emptyCheck())}
       >
         Add check
       </Button>
+      {nestButton("checks")}
       {trigger ? null : (
         <Button
           size="xs"
@@ -959,27 +1108,21 @@ const RuleRows: React.FC<{
           onClick={() =>
             update((current) => {
               // Start from the type of the place the first check reads, if any.
-              const subject = current.checks[0]?.subject;
+              const subject = firstCheck(current.checks)?.subject;
               const place = net.places.find(
                 ({ id }) => subject?.kind !== "metric" && id === subject?.id,
               );
               const typed = net.types.find(({ id }) => id === place?.colorId);
               return {
-              ...current,
-              forEvery: {
-                typeId: (typed ?? net.types[0]!).id,
-                where: "in",
-                placeIds: typed && place ? [place.id] : [],
-              },
-              checks: current.checks.map((check) => ({
-                ...check,
-                subject: null,
-              })),
-              second: current.second?.map((check) => ({
-                ...check,
-                subject: null,
-              })),
-              trigger: current.trigger && { ...current.trigger, subject: null },
+                ...mapConstraintChecks(current, (check) => ({
+                  ...check,
+                  subject: null,
+                })),
+                forEvery: {
+                  typeId: (typed ?? net.types[0]!).id,
+                  where: "in",
+                  placeIds: typed && place ? [place.id] : [],
+                },
               };
             })
           }
@@ -987,106 +1130,94 @@ const RuleRows: React.FC<{
           For every…
         </Button>
       )}
+      {windowButton}
     </div>
   );
 
   if (hasSecondSlot(constraint.time)) {
     const second = secondChecks(constraint);
-    const updateSecond = (index: number, patch: Partial<Check>) =>
-      update((current) => ({
-        ...current,
-        second: secondChecks(current).map((candidate, at) =>
-          at === index ? { ...candidate, ...patch } : candidate,
-        ),
-      }));
     return (
       <>
         {forEveryRows}
         {manyChecks ? (
           <div className={ruleRowStyle}>
             <MatchSwitch
-              constraint={constraint}
+              join={constraint.join}
+              ariaLabel="Match"
               disabled={disabled}
-              update={update}
+              onChange={(join) => setJoin("checks", join)}
             />
           </div>
         ) : null}
         <div className={slotStyle}>
-          {constraint.checks.map((check, index) => (
-            <SlotCheckRow
-              // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
-              key={index}
-              constraint={constraint}
-              check={check}
-              disabled={disabled}
-              onChange={(patch) => updateCheck(index, patch)}
-              onRemove={
-                manyChecks
-                  ? () =>
-                      update((current) => ({
-                        ...current,
-                        checks: current.checks.filter((_, at) => at !== index),
-                      }))
-                  : undefined
-              }
-            />
-          ))}
+          {constraint.checks.map((check, index) =>
+            isNestedRule(check) ? (
+              nestedCard("checks", check, index)
+            ) : (
+              <SlotCheckRow
+                // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
+                key={index}
+                constraint={constraint}
+                check={check}
+                disabled={disabled}
+                onChange={(patch) => updateCheck("checks", index, patch)}
+                onRemove={
+                  manyChecks ? () => removeItem("checks", index) : undefined
+                }
+              />
+            ),
+          )}
         </div>
         <div className={ruleRowStyle}>
           <TimeWordMenu
-            constraint={constraint}
+            time={constraint.time}
             disabled={disabled}
-            update={update}
+            onChange={setTime}
           />
           {second.length >= 2 ? (
             <MatchSwitch
-              slot="second"
-              constraint={constraint}
+              join={constraint.secondJoin}
+              ariaLabel="Match second checks"
               disabled={disabled}
-              update={update}
+              onChange={(join) => setJoin("second", join)}
             />
           ) : null}
         </div>
         <div className={slotStyle}>
-          {second.map((check, index) => (
-            <SlotCheckRow
-              second
-              // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
-              key={index}
-              constraint={constraint}
-              check={check}
-              disabled={disabled}
-              onChange={(patch) => updateSecond(index, patch)}
-              onRemove={
-                second.length >= 2
-                  ? () =>
-                      update((current) => ({
-                        ...current,
-                        second: secondChecks(current).filter(
-                          (_, at) => at !== index,
-                        ),
-                      }))
-                  : undefined
-              }
-            />
-          ))}
+          {second.map((check, index) =>
+            isNestedRule(check) ? (
+              nestedCard("second", check, index)
+            ) : (
+              <SlotCheckRow
+                second
+                // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
+                key={index}
+                constraint={constraint}
+                check={check}
+                disabled={disabled}
+                onChange={(patch) => updateCheck("second", index, patch)}
+                onRemove={
+                  second.length >= 2
+                    ? () => removeItem("second", index)
+                    : undefined
+                }
+              />
+            ),
+          )}
         </div>
-        {window ? windowRow : null}
+        {windowRow}
         {disabled ? null : (
           <div className={addButtonsStyle}>
             <Button
               size="xs"
               variant="ghost"
               iconName="plus"
-              onClick={() =>
-                update((current) => ({
-                  ...current,
-                  second: [...secondChecks(current), emptyCheck()],
-                }))
-              }
+              onClick={() => addItem("second", emptyCheck())}
             >
               Add check
             </Button>
+            {nestButton("second")}
+            {windowButton}
           </div>
         )}
       </>
@@ -1094,7 +1225,8 @@ const RuleRows: React.FC<{
   }
 
   if (!asList) {
-    const check = constraint.checks[0] ?? emptyCheck();
+    const only = constraint.checks[0];
+    const check = only && !isNestedRule(only) ? only : emptyCheck();
     const unit = subjectUnit(net, check.subject);
     if (constraint.forEvery) {
       return (
@@ -1102,29 +1234,29 @@ const RuleRows: React.FC<{
           {forEveryRows}
           <div className={cx(ruleRowStyle, tightRowStyle)}>
             <TimeWordMenu
-              constraint={constraint}
+              time={constraint.time}
               disabled={disabled}
-              update={update}
+              onChange={setTime}
             />
             <SubjectSelect
               constraint={constraint}
               check={check}
               disabled={disabled}
               placeholder="Choose field"
-              onChange={(subject) => updateCheck(0, { subject })}
+              onChange={(subject) => updateCheck("checks", 0, { subject })}
             />
             <div className={cx(ruleRowStyle, tightRowStyle, noWrapStyle)}>
               <OpSelect
                 check={check}
                 disabled={disabled}
                 items={opItems}
-                onChange={(op) => updateCheck(0, { op })}
+                onChange={(op) => updateCheck("checks", 0, { op })}
               />
               <BoundInput
                 check={check}
                 unit={unit}
                 disabled={disabled}
-                onChange={(bound) => updateCheck(0, { bound })}
+                onChange={(bound) => updateCheck("checks", 0, { bound })}
               />
             </div>
           </div>
@@ -1138,16 +1270,16 @@ const RuleRows: React.FC<{
         {forEveryRows}
         <div className={ruleRowStyle}>
           <TimeWordMenu
-            constraint={constraint}
+            time={constraint.time}
             disabled={disabled}
-            update={update}
+            onChange={setTime}
           />
           <SubjectSelect
             constraint={constraint}
             check={check}
             disabled={disabled}
             placeholder="Choose what to check"
-            onChange={(subject) => updateCheck(0, { subject })}
+            onChange={(subject) => updateCheck("checks", 0, { subject })}
           />
         </div>
         <div className={ruleRowStyle}>
@@ -1155,13 +1287,13 @@ const RuleRows: React.FC<{
             check={check}
             disabled={disabled}
             items={opItems}
-            onChange={(op) => updateCheck(0, { op })}
+            onChange={(op) => updateCheck("checks", 0, { op })}
           />
           <BoundInput
             check={check}
             unit={unit}
             disabled={disabled}
-            onChange={(bound) => updateCheck(0, { bound })}
+            onChange={(bound) => updateCheck("checks", 0, { bound })}
           />
         </div>
         {windowRow}
@@ -1175,22 +1307,23 @@ const RuleRows: React.FC<{
       {forEveryRows}
       <div className={ruleRowStyle}>
         <TimeWordMenu
-          constraint={constraint}
+          time={constraint.time}
           disabled={disabled}
-          update={update}
+          onChange={setTime}
         />
         {trigger || !manyChecks ? null : (
           <MatchSwitch
-            constraint={constraint}
+            join={constraint.join}
+            ariaLabel="Match"
             disabled={disabled}
-            update={update}
+            onChange={(join) => setJoin("checks", join)}
           />
         )}
       </div>
-      <div className={checkGridStyle}>
+      <div className={slotStyle}>
         {trigger ? (
           <>
-            <CheckRow
+            <SlotCheckRow
               trigger
               constraint={constraint}
               check={trigger}
@@ -1205,37 +1338,36 @@ const RuleRows: React.FC<{
                 update(({ trigger: _trigger, ...current }) => current)
               }
             />
-            <div className={cx(ruleRowStyle, gridRowStyle)}>
+            <div className={ruleRowStyle}>
               <span className={mutedText(disabled)}>then</span>
               {manyChecks ? (
                 <MatchSwitch
-                  constraint={constraint}
+                  join={constraint.join}
+                  ariaLabel="Match"
                   disabled={disabled}
-                  update={update}
+                  onChange={(join) => setJoin("checks", join)}
                 />
               ) : null}
             </div>
           </>
         ) : null}
-        {constraint.checks.map((check, index) => (
-          <CheckRow
-            // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
-            key={index}
-            constraint={constraint}
-            check={check}
-            disabled={disabled}
-            onChange={(patch) => updateCheck(index, patch)}
-            onRemove={
-              manyChecks
-                ? () =>
-                    update((current) => ({
-                      ...current,
-                      checks: current.checks.filter((_, at) => at !== index),
-                    }))
-                : undefined
-            }
-          />
-        ))}
+        {constraint.checks.map((check, index) =>
+          isNestedRule(check) ? (
+            nestedCard("checks", check, index)
+          ) : (
+            <SlotCheckRow
+              // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
+              key={index}
+              constraint={constraint}
+              check={check}
+              disabled={disabled}
+              onChange={(patch) => updateCheck("checks", index, patch)}
+              onRemove={
+                manyChecks ? () => removeItem("checks", index) : undefined
+              }
+            />
+          ),
+        )}
       </div>
       {windowRow}
       {addButtons}
@@ -1274,7 +1406,8 @@ const codeBoxStyle = css({
     lineHeight: "[inherit]",
     color: "[inherit]",
     whiteSpace: "pre-wrap",
-    overflowWrap: "anywhere",
+    overflowWrap: "break-word",
+    wordBreak: "normal",
     overflowX: "hidden",
     fieldSizing: "content",
   },
@@ -1286,6 +1419,44 @@ const nestedNoteStyle = css({
   marginTop: "-1",
 });
 
+const presetHintStyle = css({
+  display: "block",
+  fontSize: "xs",
+  color: "neutral.s100",
+});
+
+const PresetSelect: React.FC<{
+  constraint: ModelConstraint;
+  disabled: boolean;
+  update: UpdateConstraint;
+}> = ({ constraint, disabled, update }) => (
+  <div className={ruleRowStyle}>
+    <span className={mutedText(disabled)}>Start from</span>
+    <Select
+      required
+      size="sm"
+      width="fitContent"
+      aria-label="Start from"
+      disabled={disabled}
+      value={constraint.preset ?? "blank"}
+      items={rulePresets.map(({ id, label }) => ({ value: id, text: label }))}
+      renderItem={(value) => {
+        const preset = rulePresets.find(({ id }) => id === value);
+        return (
+          <span>
+            {preset?.label ?? value}
+            <span className={presetHintStyle}>{preset?.hint}</span>
+          </span>
+        );
+      }}
+      renderSelectedItem={(value) =>
+        rulePresets.find(({ id }) => id === value)?.label ?? value
+      }
+      onChange={(id) => update((current) => applyPreset(current, id))}
+    />
+  </div>
+);
+
 const CodeEditor: React.FC<{
   constraint: ModelConstraint;
   code: string;
@@ -1294,7 +1465,7 @@ const CodeEditor: React.FC<{
 }> = ({ constraint, code, disabled, update }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const draft = useDraftField({ sourceId: constraint.id, sourceValue: code });
-  const generated = constraintCode(petriNetDefinition, constraint);
+  const generated = constraintCodeText(petriNetDefinition, constraint);
   const lines = draft.value.split("\n");
 
   return (
@@ -1317,7 +1488,7 @@ const CodeEditor: React.FC<{
           }}
         />
       </div>
-      {code === generated ? (
+      {code === generated && ruleDepth(constraint) <= MAX_ROW_DEPTH ? (
         <div className={codeActionsStyle}>
           <Button
             size="xs"
@@ -1351,6 +1522,7 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
     );
 
   const generated = constraintCode(petriNetDefinition, constraint);
+  const generatedText = constraintCodeText(petriNetDefinition, constraint);
 
   return (
     <div className={sectionStyle}>
@@ -1369,7 +1541,13 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
       <div>
         <div className={headingStyle}>Rule</div>
         <div className={ruleCardStyle}>
-          {constraint.code === undefined ? (
+          <PresetSelect
+            constraint={constraint}
+            disabled={isReadOnly}
+            update={update}
+          />
+          {constraint.code === undefined &&
+          ruleDepth(constraint) <= MAX_ROW_DEPTH ? (
             <>
               <RuleRows
                 constraint={constraint}
@@ -1384,7 +1562,7 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
                     variant="ghost"
                     iconName="code"
                     onClick={() =>
-                      update((current) => ({ ...current, code: generated }))
+                      update((current) => ({ ...current, code: generatedText }))
                     }
                   >
                     Edit as code
@@ -1395,7 +1573,7 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
           ) : (
             <CodeEditor
               constraint={constraint}
-              code={constraint.code}
+              code={constraint.code ?? generatedText}
               disabled={isReadOnly}
               update={update}
             />

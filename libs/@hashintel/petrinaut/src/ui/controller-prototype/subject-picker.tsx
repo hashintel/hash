@@ -15,6 +15,7 @@ import type { SubjectGroup } from "../../react/controller-prototype/constraints"
 const triggerStyle = css({
   "&&": {
     fontWeight: "normal",
+    whiteSpace: "nowrap",
     borderColor: "neutral.s40",
     _hover: { borderColor: "neutral.s80" },
   },

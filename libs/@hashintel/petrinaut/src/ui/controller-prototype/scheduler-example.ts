@@ -54,8 +54,35 @@ export const demoControllers: Controller[] = [
   },
 ];
 
-/** Five constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
+/** Seven constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
 export const demoConstraints: ModelConstraint[] = [
+  {
+    id: "machines_back_within_2_days",
+    name: "Machines come back within 2 days",
+    time: "always",
+    trigger: {
+      subject: { kind: "placeTokens", id: "place_machine_down" },
+      op: "above",
+      bound: 0,
+    },
+    checks: [
+      {
+        kind: "rule",
+        time: "eventually",
+        window: { kind: "within", to: 2 },
+        checks: [
+          {
+            subject: { kind: "placeTokens", id: "place_machine_up" },
+            op: "above",
+            bound: 0,
+          },
+        ],
+      },
+    ],
+    preset: "response",
+    tolerance: 95,
+    mode: "monitored",
+  },
   {
     id: "backorders_until_supplier_b",
     name: "Backorders hold until supplier B is back",
@@ -141,6 +168,43 @@ export const demoConstraints: ModelConstraint[] = [
       },
     ],
     tolerance: 90,
+    mode: "monitored",
+  },
+  {
+    id: "recovery_keeps_orders_moving",
+    name: "Recovery keeps orders moving",
+    time: "always",
+    trigger: {
+      subject: { kind: "placeTokens", id: "place_machine_down" },
+      op: "above",
+      bound: 0,
+    },
+    checks: [
+      {
+        kind: "rule",
+        time: "always",
+        trigger: {
+          subject: { kind: "placeTokens", id: "place_backorders" },
+          op: "above",
+          bound: 20,
+        },
+        checks: [
+          {
+            kind: "rule",
+            time: "eventually",
+            window: { kind: "within", to: 5 },
+            checks: [
+              {
+                subject: { kind: "placeTokens", id: "place_orders" },
+                op: "below",
+                bound: 10,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    tolerance: 95,
     mode: "monitored",
   },
 ];

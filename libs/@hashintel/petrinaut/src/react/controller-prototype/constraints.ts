@@ -38,6 +38,23 @@ export type ConstraintWindow =
   | { kind: "between"; from: number; to: number }
   | { kind: "within"; to: number };
 
+/** A rule held inside another rule's check list, with its own time word and window. */
+export type NestedRule = {
+  kind: "rule";
+  time: TimeWord;
+  window?: ConstraintWindow;
+  join?: "all" | "any";
+  trigger?: Check;
+  checks: RuleItem[];
+  second?: RuleItem[];
+  secondJoin?: "all" | "any";
+};
+
+export type RuleItem = Check | NestedRule;
+
+export const isNestedRule = (item: RuleItem): item is NestedRule =>
+  "kind" in item;
+
 export type ConstraintMode =
   | "monitored"
   | "enforcedSoft"
@@ -53,10 +70,12 @@ export type ModelConstraint = {
   window?: ConstraintWindow;
   join?: "all" | "any";
   trigger?: Check;
-  checks: Check[];
+  checks: RuleItem[];
   /** The second operand of until and release. Kept, hidden, under other words. */
-  second?: Check[];
+  second?: RuleItem[];
   secondJoin?: "all" | "any";
+  /** The "Start from" choice last made. Editing the rows afterwards keeps it. */
+  preset?: string;
   /** Set after "Edit as code"; it replaces the generated line. */
   code?: string;
   /** Percent of runs in which the rule must hold. */
@@ -168,10 +187,32 @@ const modes: ConstraintMode[] = [
   "stopEarly",
 ];
 
-const parseChecks = (raw: unknown): Check[] =>
+const parseItem = (raw: unknown): RuleItem | null => {
+  if (!isRecord(raw) || raw.kind !== "rule") {
+    return parseCheck(raw);
+  }
+  const window = parseWindow(raw.window);
+  const trigger = parseCheck(raw.trigger);
+  const checks = parseChecks(raw.checks);
+  const second = parseChecks(raw.second);
+  return {
+    kind: "rule",
+    time: timeWords.find((word) => word === raw.time) ?? "always",
+    ...(window ? { window } : {}),
+    ...(raw.join === "all" || raw.join === "any" ? { join: raw.join } : {}),
+    ...(trigger ? { trigger } : {}),
+    checks: checks.length > 0 ? checks : [emptyCheck()],
+    ...(second.length > 0 ? { second } : {}),
+    ...(raw.secondJoin === "all" || raw.secondJoin === "any"
+      ? { secondJoin: raw.secondJoin }
+      : {}),
+  };
+};
+
+const parseChecks = (raw: unknown): RuleItem[] =>
   Array.isArray(raw)
-    ? raw.flatMap((check) => {
-        const parsed = parseCheck(check);
+    ? raw.flatMap((item) => {
+        const parsed = parseItem(item);
         return parsed ? [parsed] : [];
       })
     : [];
@@ -215,6 +256,7 @@ const parseConstraint = (raw: unknown): ModelConstraint | null => {
       ? { secondJoin: raw.secondJoin }
       : {}),
     ...(typeof raw.code === "string" ? { code: raw.code } : {}),
+    ...(typeof raw.preset === "string" ? { preset: raw.preset } : {}),
     tolerance: typeof raw.tolerance === "number" ? raw.tolerance : 95,
     mode: modes.find((mode) => mode === raw.mode) ?? "monitored",
   };
@@ -350,10 +392,142 @@ export const hasSecondSlot = (time: TimeWord): boolean =>
   time === "until" || time === "release";
 
 /** The second operand's checks; one empty check stands in for a slot not yet filled. */
-export const secondChecks = (constraint: ModelConstraint): Check[] =>
+export const secondChecks = (constraint: ModelConstraint): RuleItem[] =>
   constraint.second && constraint.second.length > 0
     ? constraint.second
     : [emptyCheck()];
+
+const mapNested = (
+  rule: NestedRule,
+  change: (check: Check) => Check,
+): NestedRule => ({
+  ...rule,
+  checks: mapChecks(rule.checks, change),
+  ...(rule.second ? { second: mapChecks(rule.second, change) } : {}),
+  ...(rule.trigger ? { trigger: change(rule.trigger) } : {}),
+});
+
+/** Changes every plain check in the items, at any depth. */
+export const mapChecks = (
+  items: RuleItem[],
+  change: (check: Check) => Check,
+): RuleItem[] =>
+  items.map((item) =>
+    isNestedRule(item) ? mapNested(item, change) : change(item),
+  );
+
+/** Changes every check of a constraint, including its trigger and any nested rule. */
+export const mapConstraintChecks = (
+  constraint: ModelConstraint,
+  change: (check: Check) => Check,
+): ModelConstraint => ({
+  ...constraint,
+  checks: mapChecks(constraint.checks, change),
+  second: constraint.second && mapChecks(constraint.second, change),
+  trigger: constraint.trigger && change(constraint.trigger),
+});
+
+/** The first plain check, taking the list in order and going into a nested rule where it comes. */
+export const firstCheck = (items: RuleItem[]): Check | undefined => {
+  for (const item of items) {
+    const found = isNestedRule(item) ? firstCheck(item.checks) : item;
+    if (found) {
+      return found;
+    }
+  }
+  return undefined;
+};
+
+const itemsDepth = (items: RuleItem[]): number =>
+  1 +
+  Math.max(
+    0,
+    ...items.map((item) =>
+      isNestedRule(item)
+        ? itemsDepth([...item.checks, ...(item.second ?? [])])
+        : 0,
+    ),
+  );
+
+/** How many rules sit inside each other: a flat rule is 1, one nested rule makes 2. */
+export const ruleDepth = (constraint: ModelConstraint): number =>
+  itemsDepth([...constraint.checks, ...(constraint.second ?? [])]);
+
+/** The most levels the rows draw. Deeper rules, which data can hold, show as code. */
+export const MAX_ROW_DEPTH = 2;
+
+export const hasNestedRule = (constraint: ModelConstraint): boolean =>
+  [...constraint.checks, ...(constraint.second ?? [])].some(isNestedRule);
+
+export const newNestedRule = (): NestedRule => ({
+  kind: "rule",
+  time: "eventually",
+  checks: [emptyCheck()],
+});
+
+export type RulePreset = { id: string; label: string; hint: string };
+
+export const rulePresets: RulePreset[] = [
+  { id: "blank", label: "Blank", hint: "build the rule yourself" },
+  { id: "always", label: "Always X", hint: "X holds at every step" },
+  { id: "never", label: "Never X", hint: "X never happens" },
+  {
+    id: "once",
+    label: "X at least once",
+    hint: "eventually, optionally within T",
+  },
+  {
+    id: "response",
+    label: "Whenever X, then Y within T",
+    hint: "machines come back within 2 days",
+  },
+  { id: "precedence", label: "Y only after X", hint: "precedence" },
+];
+
+const presetShape = (id: string): Partial<ModelConstraint> => {
+  switch (id) {
+    case "once":
+      return { time: "eventually", checks: [emptyCheck()] };
+    case "response":
+      return {
+        time: "always",
+        trigger: { ...emptyCheck(), op: "above", bound: 0 },
+        checks: [
+          {
+            kind: "rule",
+            time: "eventually",
+            window: { kind: "within", to: 2 },
+            checks: [{ ...emptyCheck(), op: "above", bound: 0 }],
+          },
+        ],
+      };
+    case "precedence":
+      return {
+        time: "until",
+        checks: [{ ...emptyCheck(), op: "below", bound: 1 }],
+        second: [{ ...emptyCheck(), op: "above", bound: 0 }],
+      };
+    default:
+      return { time: "always", checks: [emptyCheck()] };
+  }
+};
+
+/** The rule a preset starts from, with every subject empty. The name, scope, tolerance and mode stay. */
+export const applyPreset = (
+  constraint: ModelConstraint,
+  id: string,
+): ModelConstraint => {
+  const {
+    window: _window,
+    join: _join,
+    trigger: _trigger,
+    second: _second,
+    secondJoin: _secondJoin,
+    code: _code,
+    ...kept
+  } = constraint;
+  return { ...kept, ...presetShape(id), preset: id };
+};
 
 const subjectExpression = (
   net: SDCPN,
@@ -420,6 +594,75 @@ const forEveryScope = (
   return forEvery.where === "reaches" ? `reaches([${places}])` : `[${places}]`;
 };
 
+const plainChecks = (items: RuleItem[]): Check[] =>
+  items.filter((item): item is Check => !isNestedRule(item));
+
+type RuleBody = Pick<
+  ModelConstraint,
+  "time" | "window" | "join" | "trigger" | "checks" | "second" | "secondJoin"
+>;
+
+const windowSuffix = (window: ConstraintWindow | undefined): string =>
+  window
+    ? `_[${window.kind === "between" ? window.from : 0} days,${window.to} days]`
+    : "";
+
+const joinText = (parts: string[], join: "all" | "any" | undefined): string =>
+  parts.join(join === "any" ? " || " : " && ");
+
+/** A place that must hold a token reads as its bare name; any other check as `Name < 20`. */
+const modernCheck = (
+  net: SDCPN,
+  constraint: ModelConstraint,
+  check: Check,
+): string =>
+  check.subject?.kind === "placeTokens" &&
+  check.op === "above" &&
+  check.bound === 0
+    ? subjectExpression(net, constraint, check.subject, true)
+    : checkExpression(net, constraint, check, true);
+
+/**
+ * A rule that holds another rule reads as `always (A --> eventually_[0 days,2 days] B)`:
+ * the time word with its window, then the body, with `-->` after a trigger.
+ */
+const modernCode = (
+  net: SDCPN,
+  constraint: ModelConstraint,
+  rule: RuleBody,
+  top: boolean,
+): string => {
+  const item = (entry: RuleItem, wrap: boolean): string => {
+    if (!isNestedRule(entry)) {
+      return modernCheck(net, constraint, entry);
+    }
+    const text = modernCode(net, constraint, entry, false);
+    return wrap ? `(${text})` : text;
+  };
+  const operand = (items: RuleItem[], join: "all" | "any" | undefined) => {
+    const text = joinText(
+      items.map((entry) => item(entry, items.length > 1)),
+      join,
+    );
+    return items.length > 1 ? `(${text})` : text;
+  };
+  const word = `${rule.time}${windowSuffix(rule.window)}`;
+  if (hasSecondSlot(rule.time)) {
+    const second = rule.second && rule.second.length > 0 ? rule.second : [emptyCheck()];
+    return `${operand(rule.checks, rule.join)} ${word} ${operand(second, rule.secondJoin)}`;
+  }
+  const joined = joinText(
+    rule.checks.map((entry) => item(entry, rule.checks.length > 1)),
+    rule.join,
+  );
+  const body = rule.trigger
+    ? `${modernCheck(net, constraint, rule.trigger)} --> ${rule.checks.length > 1 ? `(${joined})` : joined}`
+    : joined;
+  return top || rule.trigger || rule.checks.length > 1
+    ? `${word} (${body})`
+    : `${word} ${body}`;
+};
+
 /** The one line a constraint's rows read as. `?` marks a slot not yet set. */
 export const constraintCode = (
   net: SDCPN,
@@ -429,23 +672,28 @@ export const constraintCode = (
     !constraint.forEvery
       ? inner
       : `forEvery(${forEveryScope(net, constraint.forEvery)}, (${forEveryVariable(net, constraint.forEvery.typeId)}) => ${inner})`;
+  if (hasNestedRule(constraint)) {
+    return scope(modernCode(net, constraint, constraint, true));
+  }
   if (hasSecondSlot(constraint.time)) {
     const operand = (checks: Check[], join: "all" | "any" | undefined) => {
-      const text = checks
-        .map((check) => checkExpression(net, constraint, check, true))
-        .join(join === "any" ? " || " : " && ");
+      const text = joinText(
+        checks.map((check) => checkExpression(net, constraint, check, true)),
+        join,
+      );
       return checks.length > 1 ? `(${text})` : text;
     };
-    const window = constraint.window
-      ? `_[${constraint.window.kind === "between" ? constraint.window.from : 0} days,${constraint.window.to} days]`
-      : "";
+    const window = windowSuffix(constraint.window);
     return scope(
-      `${operand(constraint.checks, constraint.join)} ${constraint.time}${window} ${operand(secondChecks(constraint), constraint.secondJoin)}`,
+      `${operand(plainChecks(constraint.checks), constraint.join)} ${constraint.time}${window} ${operand(plainChecks(secondChecks(constraint)), constraint.secondJoin)}`,
     );
   }
-  const joined = constraint.checks
-    .map((check) => checkExpression(net, constraint, check))
-    .join(constraint.join === "any" ? " || " : " && ");
+  const joined = joinText(
+    plainChecks(constraint.checks).map((check) =>
+      checkExpression(net, constraint, check),
+    ),
+    constraint.join,
+  );
   const body = constraint.trigger
     ? `implies(${checkExpression(net, constraint, constraint.trigger)}, ${joined})`
     : joined;
@@ -455,6 +703,18 @@ export const constraintCode = (
       : `0, ${constraint.window.to}, `
     : "";
   return scope(`${constraint.time}(${window}${body})`);
+};
+
+/**
+ * The text "Edit as code" starts from. A rule with a nested rule breaks after
+ * each `-->` and indents the rest, so the editor never splits the arrow.
+ */
+export const constraintCodeText = (
+  net: SDCPN,
+  constraint: ModelConstraint,
+): string => {
+  const line = constraintCode(net, constraint);
+  return hasNestedRule(constraint) ? line.replace(/ --> /g, " -->\n  ") : line;
 };
 
 /** The hover text on "For every", with the token type's name in place of "order". */

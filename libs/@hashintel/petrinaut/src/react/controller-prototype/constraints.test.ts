@@ -5,11 +5,17 @@ import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 import { demoConstraints } from "../../ui/controller-prototype/scheduler-example";
 import {
   CONSTRAINTS_METADATA_KEY,
+  applyPreset,
   constraintCode,
+  constraintCodeText,
+  firstCheck,
   forEveryHint,
+  mapConstraintChecks,
   newConstraint,
   parseSubjectValue,
   readConstraints,
+  ruleDepth,
+  rulePresets,
   subjectGroups,
   subjectRowText,
   subjectUnit,
@@ -19,7 +25,7 @@ import {
   writeConstraints,
 } from "./constraints";
 
-import type { ModelConstraint } from "./constraints";
+import type { CheckSubject, ModelConstraint } from "./constraints";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const net = supplyChainWithDisruption.petriNetDefinition;
@@ -171,10 +177,12 @@ describe("demo constraints", () => {
       for (const placeId of constraint.forEvery?.placeIds ?? []) {
         expect(placeIds.has(placeId)).toBe(true);
       }
-      for (const { subject } of [
-        ...constraint.checks,
-        ...(constraint.second ?? []),
-      ]) {
+      const subjects: (CheckSubject | null)[] = [];
+      mapConstraintChecks(constraint, (check) => {
+        subjects.push(check.subject);
+        return check;
+      });
+      for (const subject of subjects) {
         expect(subject).not.toBeNull();
         if (subject?.kind === "metric") {
           expect(metricIds.has(subject.id)).toBe(true);
@@ -253,9 +261,9 @@ describe("for every", () => {
   });
 
   it("reads an age field as days, place tokens as tokens, and nothing else", () => {
-    expect(subjectUnit(net, demo("order_wait_under_14_days").checks[0]!.subject)).toBe("days");
-    expect(subjectUnit(net, demo("machine_health_above_0_2").checks[0]!.subject)).toBeNull();
-    expect(subjectUnit(net, demo("backorders_under_20").checks[0]!.subject)).toBe("tokens");
+    expect(subjectUnit(net, firstCheck(demo("order_wait_under_14_days").checks)!.subject)).toBe("days");
+    expect(subjectUnit(net, firstCheck(demo("machine_health_above_0_2").checks)!.subject)).toBeNull();
+    expect(subjectUnit(net, firstCheck(demo("backorders_under_20").checks)!.subject)).toBe("tokens");
     expect(subjectUnit(net, { kind: "metric", id: "scrap" })).toBeNull();
     expect(subjectUnit(net, null)).toBeNull();
   });
@@ -314,5 +322,199 @@ describe("subjects", () => {
       "priority",
       "promised_lead_time",
     ]);
+  });
+});
+
+describe("nested rules", () => {
+  it("writes a nested rule after the trigger, as in the frame", () => {
+    expect(codeOf("machines_back_within_2_days")).toBe(
+      "always (MachineDown --> eventually_[0 days,2 days] MachineUp)",
+    );
+  });
+
+  it("writes a rule two levels down inside its parent", () => {
+    expect(codeOf("recovery_keeps_orders_moving")).toBe(
+      "always (MachineDown --> always (Backorders > 20 --> eventually_[0 days,5 days] OpenOrders < 10))",
+    );
+  });
+
+  it("writes a check that is not 'above 0' as a comparison on the bare name", () => {
+    const base = demo("machines_back_within_2_days");
+    expect(
+      constraintCode(net, {
+        ...base,
+        trigger: { subject: null, op: "below", bound: null },
+        window: { kind: "between", from: 1, to: 9 },
+      }),
+    ).toBe(
+      "always_[1 days,9 days] (? < ? --> eventually_[0 days,2 days] MachineUp)",
+    );
+  });
+
+  it("keeps the flat syntax for a rule with no nested rule", () => {
+    expect(codeOf("backorders_under_20")).toBe(
+      "always(30, 360, Backorders.count < 20)",
+    );
+  });
+
+  it("wraps a nested rule that sits beside another check", () => {
+    const base = demo("machines_back_within_2_days");
+    expect(
+      constraintCode(net, {
+        ...base,
+        trigger: undefined,
+        checks: [
+          { subject: null, op: "below", bound: 3 },
+          ...base.checks,
+        ],
+        join: "any",
+      }),
+    ).toBe("always (? < 3 || (eventually_[0 days,2 days] MachineUp))");
+  });
+
+  it("breaks the editable text after each arrow, and leaves flat rules alone", () => {
+    expect(
+      constraintCodeText(net, demo("recovery_keeps_orders_moving")),
+    ).toBe(
+      "always (MachineDown -->\n  always (Backorders > 20 -->\n  eventually_[0 days,5 days] OpenOrders < 10))",
+    );
+    expect(constraintCodeText(net, demo("backorders_under_20"))).toBe(
+      constraintCode(net, demo("backorders_under_20")),
+    );
+  });
+
+  it("counts the levels of a rule", () => {
+    expect(ruleDepth(demo("backorders_under_20"))).toBe(1);
+    expect(ruleDepth(demo("backorders_until_supplier_b"))).toBe(1);
+    expect(ruleDepth(demo("machines_back_within_2_days"))).toBe(2);
+    expect(ruleDepth(demo("recovery_keeps_orders_moving"))).toBe(3);
+  });
+
+  it("counts a nested rule in the second slot", () => {
+    const base = demo("backorders_until_supplier_b");
+    expect(
+      ruleDepth({
+        ...base,
+        second: [{ kind: "rule", time: "eventually", checks: base.second! }],
+      }),
+    ).toBe(2);
+  });
+
+  it("finds the first plain check, going into a nested rule", () => {
+    const nested = demo("machines_back_within_2_days");
+    expect(firstCheck(nested.checks)).toEqual({
+      subject: { kind: "placeTokens", id: "place_machine_up" },
+      op: "above",
+      bound: 0,
+    });
+    expect(firstCheck(demo("backorders_under_20").checks)?.bound).toBe(20);
+  });
+
+  it("clears the subjects at every depth", () => {
+    const cleared = mapConstraintChecks(
+      demo("recovery_keeps_orders_moving"),
+      (check) => ({ ...check, subject: null }),
+    );
+    expect(codeOf("recovery_keeps_orders_moving")).not.toContain("?");
+    expect(constraintCode(net, cleared)).toBe(
+      "always (? > 0 --> always (? > 20 --> eventually_[0 days,5 days] ? < 10))",
+    );
+  });
+
+  it("reads a nested rule at any depth, and old data unchanged", () => {
+    const draft = structuredClone(net);
+    writeConstraints(draft, demoConstraints);
+    expect(readConstraints(draft)).toEqual(demoConstraints);
+    expect(
+      ruleDepth(
+        readConstraints(draft).find(
+          ({ id }) => id === "recovery_keeps_orders_moving",
+        )!,
+      ),
+    ).toBe(3);
+  });
+
+  it("gives a nested rule with no checks one empty check", () => {
+    const draft = structuredClone(net);
+    draft.metadata = {
+      [CONSTRAINTS_METADATA_KEY]: [
+        {
+          id: "x",
+          name: "X",
+          checks: [{ kind: "rule", time: "eventually", checks: [] }],
+        },
+      ],
+    };
+    expect(readConstraints(draft)[0]?.checks).toEqual([
+      {
+        kind: "rule",
+        time: "eventually",
+        checks: [{ subject: null, op: "below", bound: null }],
+      },
+    ]);
+  });
+});
+
+describe("presets", () => {
+  const start = newConstraint("c", "Constraint 1");
+  const shape = (id: string) => applyPreset(start, id);
+
+  it("lists the six presets, Blank first", () => {
+    expect(rulePresets.map(({ id }) => id)).toEqual([
+      "blank",
+      "always",
+      "never",
+      "once",
+      "response",
+      "precedence",
+    ]);
+  });
+
+  it("starts Blank, Always and Never as one empty check under always", () => {
+    for (const id of ["blank", "always", "never"]) {
+      expect(shape(id)).toMatchObject({
+        time: "always",
+        preset: id,
+        checks: [{ subject: null, op: "below", bound: null }],
+      });
+    }
+  });
+
+  it("starts 'at least once' as one empty check under eventually", () => {
+    expect(shape("once")).toMatchObject({ time: "eventually" });
+    expect(constraintCode(net, shape("once"))).toBe("eventually(? < ?)");
+  });
+
+  it("starts the response preset as a trigger with a nested rule", () => {
+    expect(ruleDepth(shape("response"))).toBe(2);
+    expect(constraintCode(net, shape("response"))).toBe(
+      "always (? > 0 --> eventually_[0 days,2 days] ? > 0)",
+    );
+  });
+
+  it("starts precedence as no Y until X", () => {
+    expect(constraintCode(net, shape("precedence"))).toBe(
+      "? < 1 until ? > 0",
+    );
+  });
+
+  it("replaces the rule and keeps the name, scope, tolerance and mode", () => {
+    const filled: ModelConstraint = {
+      ...demo("order_wait_under_14_days"),
+      window: { kind: "within", to: 3 },
+      code: "custom",
+      mode: "stopEarly",
+    };
+    const next = applyPreset(filled, "once");
+    expect(next).toMatchObject({
+      id: filled.id,
+      name: filled.name,
+      forEvery: filled.forEvery,
+      tolerance: filled.tolerance,
+      mode: "stopEarly",
+    });
+    expect(next.window).toBeUndefined();
+    expect(next.code).toBeUndefined();
+    expect(next.checks).toEqual([{ subject: null, op: "below", bound: null }]);
   });
 });

@@ -3,7 +3,10 @@ import { use, useId, useRef, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { subjectUnit } from "../../react/controller-prototype/constraints";
+import {
+  firstCheck,
+  subjectUnit,
+} from "../../react/controller-prototype/constraints";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
 import {
@@ -196,7 +199,7 @@ const FailureStrip: React.FC<{
   const readoutRef = useRef<HTMLDivElement>(null);
   const limitLabelRef = useRef<HTMLSpanElement>(null);
   const [scrub, setScrub] = useState<Scrub | null>(null);
-  const check = constraint.checks[0];
+  const check = firstCheck(constraint.checks);
   const limit = check?.bound ?? 0;
   const unit = subjectUnit(petriNetDefinition, check?.subject ?? null);
   const withUnit = (text: string) => (unit ? `${text} ${unit}` : text);
