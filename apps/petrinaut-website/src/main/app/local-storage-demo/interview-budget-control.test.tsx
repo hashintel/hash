@@ -51,12 +51,17 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   render(<Harness />);
   fireEvent.click(
     screen.getByRole("button", {
-      name: "Interview budget: Standard · ~10 min",
+      name: "Conversation depth: Standard · ~10 min",
     }),
   );
   const slider = await screen.findByRole("slider", {
-    name: "Interview budget level",
+    name: "Conversation depth level",
   });
+  expect(
+    screen.getByRole("group", { name: "Conversation depth" }),
+  ).toBeTruthy();
+  expect(screen.getByText("Conversation depth")).toBeTruthy();
+  expect(screen.getByText("Choose how much detail to explore.")).toBeTruthy();
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
     left: 100,
@@ -79,7 +84,7 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   expect(slider.getAttribute("aria-valuetext")).toBe("Quick · ~5 min");
   fireEvent.click(screen.getByRole("button", { name: "Off" }));
   expect(
-    screen.getByRole("button", { name: "Interview budget: Off · No budget" }),
+    screen.getByRole("button", { name: "Conversation depth: Off · No budget" }),
   ).toBeTruthy();
 });
 
@@ -87,11 +92,11 @@ test("Escape closes the control and returns focus to its trigger", async () => {
   render(<Harness />);
   fireEvent.click(
     screen.getByRole("button", {
-      name: "Interview budget: Standard · ~10 min",
+      name: "Conversation depth: Standard · ~10 min",
     }),
   );
   const slider = await screen.findByRole("slider", {
-    name: "Interview budget level",
+    name: "Conversation depth level",
   });
   await waitFor(() => expect(document.activeElement).toBe(slider));
   fireEvent.keyDown(slider, { key: "Escape" });
@@ -99,7 +104,7 @@ test("Escape closes the control and returns focus to its trigger", async () => {
   await waitFor(() =>
     expect(document.activeElement).toBe(
       screen.getByRole("button", {
-        name: "Interview budget: Standard · ~10 min",
+        name: "Conversation depth: Standard · ~10 min",
       }),
     ),
   );

@@ -108,7 +108,7 @@ export const InterviewBudgetControl = ({
           },
         })}
         data-budget-level={level}
-        aria-label={`Interview budget: ${config.name} · ${config.guide}`}
+        aria-label={`Conversation depth: ${config.name} · ${config.guide}`}
         aria-expanded={open}
         aria-haspopup="dialog"
         tooltip={`${config.name} · ${config.guide}`}
@@ -129,7 +129,7 @@ export const InterviewBudgetControl = ({
         >
           <div
             role="group"
-            aria-label="Interview budget"
+            aria-label="Conversation depth"
             onKeyDown={(event) => {
               if (event.key === "Escape") refocusTrigger.current = true;
             }}
@@ -151,7 +151,7 @@ export const InterviewBudgetControl = ({
                 alignItems: "baseline",
                 justifyContent: "space-between",
                 gap: "2",
-                marginBottom: "[14px]",
+                marginBottom: "[4px]",
               })}
             >
               <span
@@ -163,7 +163,7 @@ export const InterviewBudgetControl = ({
                   color: "neutral.s100",
                 })}
               >
-                Interview budget
+                Conversation depth
               </span>
               <span
                 className={css({
@@ -186,6 +186,15 @@ export const InterviewBudgetControl = ({
                 </small>
               </span>
             </div>
+            <p
+              className={css({
+                fontSize: "xs",
+                color: "neutral.s80",
+                margin: "[0 0 14px]",
+              })}
+            >
+              Choose how much detail to explore.
+            </p>
             <div
               className={css({
                 position: "relative",
@@ -254,7 +263,7 @@ export const InterviewBudgetControl = ({
                 max={4}
                 step={1}
                 value={selectedIndex}
-                aria-label="Interview budget level"
+                aria-label="Conversation depth level"
                 aria-valuetext={`${config.name} · ${config.guide}`}
                 className={css({
                   position: "absolute",
