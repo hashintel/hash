@@ -21,6 +21,13 @@ test("Unicode words round-trip without row ids and empty lists omit the header",
   expect(pronunciationInstructions(words)).not.toContain("SDCPN");
 });
 
+test("50 words survive voice header encoding and decoding", () => {
+  const words = Array.from({ length: 50 }, (_, index) => ({
+    spelling: `Bay ${index}`,
+  }));
+  expect(decodeVoiceWords(encodeVoiceWords(words) ?? null)).toEqual(words);
+});
+
 test.each([
   "",
   "!!!!",

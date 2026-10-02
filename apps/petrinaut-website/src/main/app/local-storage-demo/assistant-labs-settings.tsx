@@ -172,7 +172,7 @@ export const AssistantLabsSettings = ({
         <AssistantSetting
           description="Teach Brunch names and terms. Saved in this browser for this conversation. Voice changes apply when you restart Voice."
           disabled={!wordsPreferenceReady}
-          label="Words for Brunch"
+          label="Words for Voice assistant"
           onChange={setWordsEnabled}
           value={wordsEnabled}
         />

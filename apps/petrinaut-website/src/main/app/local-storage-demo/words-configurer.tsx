@@ -1,20 +1,10 @@
 import { useId, useRef, useState } from "react";
 
+import { maxWords } from "@hashintel/brunch-agent/words";
 import { Button, Dialog, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type { ConversationWord } from "./conversation-words";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
-
-export const isTeachableVoiceMessage = (message: PetrinautAiMessage): boolean =>
-  message.role === "user" &&
-  message.metadata?.source === "voice" &&
-  !message.parts.some(
-    (part) => part.type === "text" && part.state === "streaming",
-  ) &&
-  message.parts.some(
-    (part) => part.type === "text" && part.text.trim().length > 0,
-  );
 
 const stackStyle = css({
   display: "flex",
@@ -36,21 +26,19 @@ const rowStyle = css({
   borderBottom: "[1px solid {colors.neutral.s30}]",
 });
 
-/** The form only saves hints. It never submits or changes the contextual caption. */
+/** The form only saves hints. It never submits a message. */
 export const WordsConfigurer = ({
   entries,
   ready,
   notice,
   save,
   onClose,
-  context,
 }: {
   entries: readonly ConversationWord[];
   ready: boolean;
   notice: string | null;
   save: (entries: readonly ConversationWord[]) => void;
   onClose: () => void;
-  context?: string;
 }) => {
   const id = useId();
   const addButton = useRef<HTMLButtonElement>(null);
@@ -58,7 +46,7 @@ export const WordsConfigurer = ({
     id?: string;
     spelling: string;
     pronunciation: string;
-  } | null>(context === undefined ? null : { spelling: "", pronunciation: "" });
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const finish = () => {
@@ -67,18 +55,16 @@ export const WordsConfigurer = ({
     requestAnimationFrame(() => addButton.current?.focus());
   };
   return (
-    <Dialog size="sm" onClose={onClose} aria-label="Words for Brunch">
+    <Dialog size="sm" onClose={onClose} aria-label="Words for Voice assistant">
       <Dialog.Header
         title={
           editing
             ? editing.id
               ? "Edit word"
-              : context
-                ? "Teach this word"
-                : "Add a word"
-            : "Words for Brunch"
+              : "Add a word"
+            : "Words for Voice assistant"
         }
-        description="Names and terms for this conversation."
+        description="Help Brunch recognize names and terms."
       />
       <Dialog.Body>
         <div className={stackStyle}>
@@ -114,22 +100,10 @@ export const WordsConfigurer = ({
                 }
               }}
             >
-              {context && (
-                <div
-                  className={css({
-                    background: "neutral.s10",
-                    borderRadius: "lg",
-                    padding: "3",
-                  })}
-                >
-                  <p className={mutedStyle}>Original transcript · unchanged</p>
-                  <blockquote>{context}</blockquote>
-                </div>
-              )}
               <span id={`${id}-spelling`}>Correct spelling</span>
               <TextInput
                 aria-labelledby={`${id}-spelling`}
-                // Explicit Add/Teach opens this dialog form and should focus its first field.
+                // Explicit Add/Edit opens this dialog form and should focus its first field.
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
                 value={editing.spelling}
@@ -182,11 +156,13 @@ export const WordsConfigurer = ({
                   gap: "2",
                 })}
               >
-                <span className={mutedStyle}>{entries.length} of 20 words</span>
+                <span className={mutedStyle}>
+                  {entries.length} of {maxWords} words
+                </span>
                 <Button
                   ref={addButton}
                   size="sm"
-                  disabled={!ready || entries.length >= 20}
+                  disabled={!ready || entries.length >= maxWords}
                   onClick={() => {
                     setEditing({ spelling: "", pronunciation: "" });
                     setSaved(false);
@@ -196,10 +172,7 @@ export const WordsConfigurer = ({
                 </Button>
               </div>
               {entries.length === 0 ? (
-                <p>
-                  No words yet. Add a name Brunch tends to mishear, or choose
-                  “Teach this word” beneath a finished voice transcript.
-                </p>
+                <p>Add a name Brunch mishears.</p>
               ) : (
                 <ul
                   className={css({
@@ -256,26 +229,16 @@ export const WordsConfigurer = ({
               {saved && (
                 <p role="status">
                   {notice ? "Updated in this tab." : "Saved."} Restart Voice to
-                  apply hearing and pronunciation changes.
+                  use these changes.
                 </p>
               )}
             </>
           )}
           <div className={mutedStyle}>
             <p>
-              Spellings help Brunch’s next request and the next Voice session’s
-              transcription prompt. Pronunciation notes go only to the speaking
-              model. Hints are best effort.
-            </p>
-            <p>
-              Restart Voice after adding, editing, removing, or disabling words.
-              An active session keeps its starting list.
-            </p>
-            <p>
-              Saved in this browser for this conversation; Clear conversation
-              starts an empty list. Used spellings go to Brunch’s model provider
-              and voice hints go to OpenAI. Removing a word does not erase past
-              requests.
+              Changes apply to Brunch’s next reply. Restart Voice to use them
+              when hearing or speaking. Saved in this browser for this
+              conversation. Clearing the conversation clears this list.
             </p>
           </div>
         </div>

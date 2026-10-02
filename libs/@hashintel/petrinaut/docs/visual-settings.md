@@ -168,9 +168,9 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Labs
 
-### Words for Brunch
+### Words for Voice assistant
 
-On the website, selecting **Use Brunch** reveals **Words for Brunch**, off by default. Enable it to show **Words** in the assistant header and **Teach this word** on finalized user voice lines. It works independently of **Enable Voice**. The preference is saved in this browser; each conversation has its own word list. Changes apply to Brunch's next request, while an active Voice session keeps its original hints until you restart it. See [Words for Brunch](words.md).
+On the website, selecting **Use Brunch** reveals **Words for Voice assistant**, off by default. Enable it to show **Words** in the assistant header while in Voice mode. The preference is saved in this browser; each conversation has its own word list. Changes apply to Brunch's next request, while an active Voice session keeps its original hints until you restart it. See [Words for Voice assistant](words.md).
 
 Hosts can place application-specific controls after Petrinaut's built-in Labs
 groups. For example, a host may put assistant provider and Voice availability

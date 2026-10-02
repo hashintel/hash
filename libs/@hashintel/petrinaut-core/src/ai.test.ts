@@ -64,7 +64,7 @@ describe("Petrinaut AI core exports", () => {
 
   test("preserves the exact Stock-control prompt contract", () => {
     expect(createHash("sha256").update(petrinautAiPrompt).digest("hex")).toBe(
-      "fe628becfd542d81b7702e2e2af9bbb9236a27972d3f578cfc4ed73c3286607a",
+      "8ff855282e791ae4c4130ab04d6c7d0083630d3c9fa16d54afdcc0d79b47fe74",
     );
   });
 

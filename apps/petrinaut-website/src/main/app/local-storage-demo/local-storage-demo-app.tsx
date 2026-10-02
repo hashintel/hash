@@ -116,7 +116,7 @@ import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
-import { isTeachableVoiceMessage, WordsConfigurer } from "./words-configurer";
+import { WordsConfigurer } from "./words-configurer";
 import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -455,7 +455,6 @@ export const LocalStorageDemoApp = ({
   const wordsPreference = useWordsPreference();
   const [wordsDialog, setWordsDialog] = useState<{
     key: string;
-    context?: string;
   } | null>(null);
   const {
     enabled: realtimeEnabled,
@@ -991,6 +990,7 @@ export const LocalStorageDemoApp = ({
               ).activityIdentities
         : undefined;
     return {
+      actionsInputMode: "voice" as const,
       headerActions:
         wordsActive && words.key ? (
           <>
@@ -1009,34 +1009,11 @@ export const LocalStorageDemoApp = ({
                 ready={words.ready}
                 notice={words.notice}
                 save={words.save}
-                context={wordsDialog.context}
                 onClose={() => setWordsDialog(null)}
               />
             )}
           </>
         ) : undefined,
-      renderUserMessageActions:
-        wordsActive && words.ready && words.key
-          ? (message: PetrinautAiMessage) =>
-              isTeachableVoiceMessage(message) ? (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  onClick={() =>
-                    setWordsDialog({
-                      key: words.key!,
-                      context: message.parts
-                        .flatMap((part) =>
-                          part.type === "text" ? [part.text] : [],
-                        )
-                        .join(""),
-                    })
-                  }
-                >
-                  Teach this word
-                </Button>
-              ) : null
-          : undefined,
       additionalTab: constructionBrowser
         ? {
             label: "Ledger",
