@@ -52,6 +52,8 @@ const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
       label: "Create link type",
       href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
     },
+    // @todo once H-773 adds the property type form, add its button here and
+    // drop the minHeight on the tabs row
     "property-type": null,
     "data-type": { label: "Create data type", href: "/new/types/data-type" },
   };
