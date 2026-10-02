@@ -1,0 +1,269 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#8}(%0: (), %1: Integer, %2: Integer, %3: (Number, Number) -> Boolean) -> Boolean {
+    let %4: Boolean
+
+    bb0(): {
+        %4 = apply %3.0 %3.1 %1 %2
+
+        return %4
+    }
+}
+
+thunk apply:0() -> (Integer, Integer, (Number, Number) -> Boolean) -> Boolean {
+    let %0: (Integer, Integer, (Number, Number) -> Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#8} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD x
+
+        return %0
+    }
+}
+
+thunk {thunk#6}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD y
+
+        return %0
+    }
+}
+
+fn {synthetic#::core::cmp::lte}(%0: (), %1: Number, %2: Number) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 <= %2
+
+        return %3
+    }
+}
+
+*thunk {thunk#7}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: (Number, Number) -> Boolean
+    let %3: (Integer, Integer, (Number, Number) -> Boolean) -> Boolean
+    let %4: Boolean
+
+    bb0(): {
+        %0 = apply ({thunk#5} as FnPtr)
+        %1 = apply ({thunk#6} as FnPtr)
+        %2 = closure(({synthetic#::core::cmp::lte} as FnPtr), ())
+        %3 = apply (apply:0 as FnPtr)
+        %4 = apply %3.0 %3.1 %0 %1 %2
+
+        return %4
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#8}(%0: (), %1: Integer, %2: Integer, %3: (Number, Number) -> Boolean) -> Boolean {
+    let %4: Boolean
+
+    bb0(): {
+        %4 = apply %3.0 %3.1 %1 %2
+
+        return %4
+    }
+}
+
+thunk apply:0() -> (Integer, Integer, (Number, Number) -> Boolean) -> Boolean {
+    let %0: (Integer, Integer, (Number, Number) -> Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#8} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD x
+
+        return %0
+    }
+}
+
+thunk {thunk#6}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD y
+
+        return %0
+    }
+}
+
+fn {synthetic#::core::cmp::lte}(%0: (), %1: Number, %2: Number) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 <= %2
+
+        return %3
+    }
+}
+
+*thunk {thunk#7}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = input LOAD x
+        %1 = input LOAD y
+        %2 = %0 <= %1
+
+        return %2
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#8}(%0: (), %1: Integer, %2: Integer, %3: (Number, Number) -> Boolean) -> Boolean {
+    let %4: Boolean
+
+    bb0(): {
+        %4 = apply %3.0 %3.1 %1 %2
+
+        return %4
+    }
+}
+
+thunk apply:0() -> (Integer, Integer, (Number, Number) -> Boolean) -> Boolean {
+    let %0: (Integer, Integer, (Number, Number) -> Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#8} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD x
+
+        return %0
+    }
+}
+
+thunk {thunk#6}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD y
+
+        return %0
+    }
+}
+
+fn {synthetic#::core::cmp::lte}(%0: (), %1: Number, %2: Number) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 <= %2
+
+        return %3
+    }
+}
+
+*thunk {thunk#7}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = input LOAD x
+        %1 = input LOAD y
+        %2 = %0 <= %1
+
+        return %2
+    }
+}
+
+════ Post Inline MIR ═══════════════════════════════════════════════════════════
+
+fn {closure#8}(%0: (), %1: Integer, %2: Integer, %3: (Number, Number) -> Boolean) -> Boolean {
+    let %4: Boolean
+
+    bb0(): {
+        %4 = apply %3.0 %3.1 %1 %2
+
+        return %4
+    }
+}
+
+thunk apply:0() -> (Integer, Integer, (Number, Number) -> Boolean) -> Boolean {
+    let %0: (Integer, Integer, (Number, Number) -> Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#8} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD x
+
+        return %0
+    }
+}
+
+thunk {thunk#6}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD y
+
+        return %0
+    }
+}
+
+fn {synthetic#::core::cmp::lte}(%0: (), %1: Number, %2: Number) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 <= %2
+
+        return %3
+    }
+}
+
+*thunk {thunk#7}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = input LOAD x
+        %1 = input LOAD y
+        %2 = %0 <= %1
+
+        return %2
+    }
+}
