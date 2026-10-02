@@ -304,14 +304,10 @@ export const LiveConversationControl = ({
         if (result.status === "unknown" || result.status === "accepted") return;
         // Quiet interruption context is best effort, not an audible answer.
         if (result.kind === "thinking") return;
-        const label =
-          result.kind === "commentary" ? "answer" : "continuation instruction";
-        const outcome =
-          result.status === "local-failure"
-            ? "could not be sent to Live locally"
-            : "was rejected by Live";
         setWarningMessage(
-          `The ${label} ${outcome}. Check the conversation; no automatic retry or replay was made. Acceptance does not confirm playback.`,
+          result.kind === "commentary"
+            ? "Couldn’t speak the answer. The written answer is in the conversation."
+            : "Voice may be out of sync. Check the conversation before relying on what it says.",
         );
       },
       audioSettingsStore,
@@ -570,7 +566,7 @@ export const LiveConversationControl = ({
             setMicrophoneCheck("Microphone ready. No audio was sent.");
           } catch {
             setMicrophoneCheck(
-              "Microphone access was not available. Check your browser permissions and try again.",
+              "Couldn’t access the microphone. Check your browser permissions.",
             );
           } finally {
             setCheckingMicrophone(false);

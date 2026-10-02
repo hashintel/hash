@@ -70,14 +70,12 @@ export const BrunchWorkpiecePane = ({
     >
       {stateChangedSinceReport && (
         <p role="status" className={noticeStyle}>
-          A newer Ledger revision exists. Ask Brunch to refresh this view before
-          relying on it.
+          This view is out of date. Ask Brunch to refresh it.
         </p>
       )}
       {whyPredatesSettlement && (
         <p role="status" className={noticeStyle}>
-          The recorded explanation predates a newer Ledger revision. Ask why
-          again to assess the latest account.
+          This explanation is out of date. Ask why again for the latest.
         </p>
       )}
       {workpiece && typeof workpiece.markdown === "string" && (

@@ -358,7 +358,7 @@ test("keeps a dropped utterance's words visible so they can be sent from the com
   await fixture.bridge.accept(speech("second", "Also check the queue"));
 
   expect(fixture.notice).toHaveBeenCalledWith(
-    expect.stringContaining("not retained"),
+    expect.stringContaining("Those words weren’t sent"),
   );
   expect(
     history.project([]).find((message) => message.id === "second")?.parts,
@@ -504,7 +504,7 @@ test("does not admit a turn prepared in a conversation that was switched away fr
     },
   ]);
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("the conversation changed"),
+    expect.stringContaining("The conversation changed"),
   );
   expect(fixture.appendInstructions).toHaveBeenCalledWith(
     expect.stringContaining("not submitted because the conversation changed"),
@@ -612,7 +612,7 @@ test("speech that cancels unsent words says they were not sent", async () => {
 
   expect(fixture.submit).not.toHaveBeenCalled();
   expect(fixture.notice).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining("was not sent"),
+    expect.stringContaining("You started speaking again"),
   );
 });
 
@@ -781,7 +781,7 @@ test("speech keeps a submitted turn's composer slot until Brunch admits it", asy
   expect(prepare).toHaveBeenCalledOnce();
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("Wait for the pending input"),
+    expect.stringContaining("when the assistant is ready"),
   );
 });
 
@@ -963,7 +963,7 @@ test("a finalized snapshot confirms an observed response is textless", async () 
   });
 
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    "Brunch settled without a spoken answer. Check the conversation.",
+    "The assistant finished without a reply to speak. Check the conversation.",
   );
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });
@@ -1106,7 +1106,7 @@ test("duplicates, empty input and one waiting composer submission never create a
   await fixture.bridge.accept(speech("two", "Follow-up"));
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("not retained"),
+    expect.stringContaining("Those words weren’t sent"),
   );
   release();
   await pending;
@@ -1543,7 +1543,7 @@ test("uncertain admission is visible and never automatically replayed", async ()
   await fixture.bridge.accept(speech("one", "First"));
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("Check canonical history"),
+    expect.stringContaining("Check the conversation before sending it again"),
   );
 });
 
@@ -1558,7 +1558,7 @@ test("a response failure after confirmed admission does not report uncertain adm
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made.",
+    "Couldn’t confirm the answer. Your message was sent; check the conversation before sending it again.",
   );
 });
 
@@ -1592,7 +1592,7 @@ test("admission frees the existing waiting-input slot, but finishing an earlier 
   await fixture.bridge.accept(speech("three", "Another pending input"));
   expect(fixture.submit).toHaveBeenCalledTimes(2);
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("not retained"),
+    expect.stringContaining("Those words weren’t sent"),
   );
 
   admitCorrection();
@@ -1861,7 +1861,7 @@ test("a finalized textless unobserved answer cannot fall through to an observed 
   });
 
   expect(fixture.notice).toHaveBeenLastCalledWith(
-    "Brunch settled without a spoken answer. Check the conversation.",
+    "The assistant finished without a reply to speak. Check the conversation.",
   );
   expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
     expect.stringContaining("finished without a spoken answer"),
