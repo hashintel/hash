@@ -28,36 +28,56 @@ test("/types page renders and loads types", async ({ page }) => {
 });
 
 test("/types create button matches the selected tab", async ({ page }) => {
-  const createButtonByPath = {
-    "/types": { label: "Create type", href: "/new/types/entity-type" },
-    "/types/entity-type": {
+  await page.goto("/types");
+
+  for (const tabTitle of [
+    "Entity Types",
+    "Link Types",
+    "Property Types",
+    "Data Types",
+  ]) {
+    await expect(
+      page.getByRole("tab", { name: new RegExp(`^${tabTitle}\\s*[1-9]\\d*$`) }),
+    ).toBeVisible();
+  }
+
+  const createButtonByTabTitle = {
+    All: { label: "Create type", href: "/new/types/entity-type" },
+    "Entity Types": {
       label: "Create entity type",
       href: "/new/types/entity-type",
     },
-    "/types/link-type": {
+    "Link Types": {
       label: "Create link type",
       href: "/new/types/entity-type?extends=https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
     },
-    "/types/data-type": {
+    "Property Types": null,
+    "Data Types": {
       label: "Create data type",
       href: "/new/types/data-type",
     },
   };
 
-  for (const [path, { label, href }] of Object.entries(createButtonByPath)) {
-    await page.goto(path);
+  for (const [tabTitle, createButton] of Object.entries(
+    createButtonByTabTitle,
+  )) {
+    await page.getByRole("tab", { name: new RegExp(`^${tabTitle}`) }).click();
 
     await expect(
-      page.getByRole("link", { name: label, exact: true }),
-    ).toHaveAttribute("href", `${frontendUrl}${href}`);
+      page.getByRole("tab", {
+        name: new RegExp(`^${tabTitle}`),
+        selected: true,
+      }),
+    ).toBeVisible();
+
+    if (createButton) {
+      await expect(
+        page.getByRole("link", { name: createButton.label, exact: true }),
+      ).toHaveAttribute("href", `${frontendUrl}${createButton.href}`);
+    } else {
+      await expect(
+        page.getByRole("link", { name: /^Create( \w+)? type$/ }),
+      ).toHaveCount(0);
+    }
   }
-
-  await page.goto("/types/property-type");
-
-  await expect(
-    page.getByRole("tab", { name: /^Property Types/, selected: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /^Create( \w+)? type$/ }),
-  ).toHaveCount(0);
 });
