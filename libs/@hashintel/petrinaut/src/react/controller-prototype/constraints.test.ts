@@ -24,6 +24,9 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const net = supplyChainWithDisruption.petriNetDefinition;
 
+const demo = (id: string) =>
+  demoConstraints.find((candidate) => candidate.id === id)!;
+
 const codeOf = (id: string, change?: Partial<ModelConstraint>) => {
   const constraint = demoConstraints.find((candidate) => candidate.id === id)!;
   return constraintCode(net, { ...constraint, ...change });
@@ -66,12 +69,63 @@ describe("constraintCode", () => {
     );
   });
 
-  it("marks the second condition of until and release as unset", () => {
-    expect(codeOf("machine_health_above_0_2", { time: "until" })).toBe(
-      "until(MachineUp.health > 0.2, ?)",
+  it("writes until as two operands around the word", () => {
+    expect(codeOf("backorders_until_supplier_b")).toBe(
+      "Backorders < 20 until SupplierBAvailable > 0",
     );
-    expect(codeOf("machine_health_above_0_2", { time: "release" })).toBe(
-      "release(?, MachineUp.health > 0.2)",
+    expect(
+      codeOf("backorders_until_supplier_b", { time: "release" }),
+    ).toBe("Backorders < 20 release SupplierBAvailable > 0");
+  });
+
+  it("marks an empty second slot of until with question marks", () => {
+    expect(codeOf("machine_health_above_0_2", { time: "until" })).toBe(
+      "MachineUp.health > 0.2 until ? < ?",
+    );
+  });
+
+  it("writes the window after the word and joins each operand", () => {
+    const extra = {
+      subject: { kind: "placeTokens" as const, id: "place_orders" },
+      op: "below" as const,
+      bound: 50,
+    };
+    const base = demo("backorders_until_supplier_b");
+    expect(
+      constraintCode(net, {
+        ...base,
+        window: { kind: "between", from: 30, to: 360 },
+        second: [...base.second!, extra],
+        secondJoin: "any",
+      }),
+    ).toBe(
+      "Backorders < 20 until_[30 days,360 days] (SupplierBAvailable > 0 || OpenOrders < 50)",
+    );
+    expect(
+      constraintCode(net, {
+        ...base,
+        window: { kind: "within", to: 14 },
+        checks: [...base.checks, extra],
+      }),
+    ).toBe(
+      "(Backorders < 20 && OpenOrders < 50) until_[0 days,14 days] SupplierBAvailable > 0",
+    );
+  });
+
+  it("keeps a hidden second slot out of the line under always", () => {
+    expect(
+      codeOf("backorders_until_supplier_b", { time: "always" }),
+    ).toBe("always(Backorders.count < 20)");
+  });
+
+  it("keeps the for-every around until", () => {
+    expect(
+      codeOf("order_wait_under_14_days", {
+        time: "until",
+        second: [{ subject: null, op: "above", bound: 0 }],
+      }),
+    ).toBe(
+      'forEvery(["OpenOrders", "Backorders"], (order) => order.age < 14 until ? > 0)',
     );
   });
 
@@ -82,7 +136,7 @@ describe("constraintCode", () => {
   });
 
   it("joins checks and wraps a trigger", () => {
-    const base = demoConstraints[0]!;
+    const base = demo("backorders_under_20");
     const second = {
       subject: { kind: "placeTokens" as const, id: "place_orders" },
       op: "below" as const,
@@ -117,7 +171,10 @@ describe("demo constraints", () => {
       for (const placeId of constraint.forEvery?.placeIds ?? []) {
         expect(placeIds.has(placeId)).toBe(true);
       }
-      for (const { subject } of constraint.checks) {
+      for (const { subject } of [
+        ...constraint.checks,
+        ...(constraint.second ?? []),
+      ]) {
         expect(subject).not.toBeNull();
         if (subject?.kind === "metric") {
           expect(metricIds.has(subject.id)).toBe(true);
@@ -160,6 +217,29 @@ describe("read and write", () => {
     ]);
   });
 
+  it("reads the second slot and drops one that does not parse", () => {
+    const sdcpn: SDCPN = {
+      ...net,
+      metadata: {
+        [CONSTRAINTS_METADATA_KEY]: [
+          {
+            id: "u",
+            name: "Until",
+            time: "until",
+            second: [{ subject: null, op: "above", bound: 0 }, "junk"],
+            secondJoin: "any",
+          },
+          { id: "v", name: "Bad", second: "junk", secondJoin: "some" },
+        ],
+      },
+    };
+    const [until, bad] = readConstraints(sdcpn);
+    expect(until?.second).toEqual([{ subject: null, op: "above", bound: 0 }]);
+    expect(until?.secondJoin).toBe("any");
+    expect(bad).not.toHaveProperty("second");
+    expect(bad).not.toHaveProperty("secondJoin");
+  });
+
   it("reads nothing from a net without constraints", () => {
     expect(readConstraints(net)).toEqual([]);
   });
@@ -173,9 +253,9 @@ describe("for every", () => {
   });
 
   it("reads an age field as days, place tokens as tokens, and nothing else", () => {
-    expect(subjectUnit(net, demoConstraints[3]!.checks[0]!.subject)).toBe("days");
-    expect(subjectUnit(net, demoConstraints[1]!.checks[0]!.subject)).toBeNull();
-    expect(subjectUnit(net, demoConstraints[0]!.checks[0]!.subject)).toBe("tokens");
+    expect(subjectUnit(net, demo("order_wait_under_14_days").checks[0]!.subject)).toBe("days");
+    expect(subjectUnit(net, demo("machine_health_above_0_2").checks[0]!.subject)).toBeNull();
+    expect(subjectUnit(net, demo("backorders_under_20").checks[0]!.subject)).toBe("tokens");
     expect(subjectUnit(net, { kind: "metric", id: "scrap" })).toBeNull();
     expect(subjectUnit(net, null)).toBeNull();
   });
@@ -227,7 +307,7 @@ describe("subjects", () => {
   });
 
   it("offers only the token type's fields under a for-every", () => {
-    const groups = subjectGroups(net, demoConstraints[3]!.forEvery);
+    const groups = subjectGroups(net, demo("order_wait_under_14_days").forEvery);
     expect(groups).toHaveLength(1);
     expect(groups[0]?.items.map((item) => item.text)).toEqual([
       "age",

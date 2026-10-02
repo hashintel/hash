@@ -54,8 +54,29 @@ export const demoControllers: Controller[] = [
   },
 ];
 
-/** Four constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
+/** Five constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
 export const demoConstraints: ModelConstraint[] = [
+  {
+    id: "backorders_until_supplier_b",
+    name: "Backorders hold until supplier B is back",
+    time: "until",
+    checks: [
+      {
+        subject: { kind: "placeTokens", id: "place_backorders" },
+        op: "below",
+        bound: 20,
+      },
+    ],
+    second: [
+      {
+        subject: { kind: "placeTokens", id: "place_supplier_b_available" },
+        op: "above",
+        bound: 0,
+      },
+    ],
+    tolerance: 95,
+    mode: "monitored",
+  },
   {
     id: "backorders_under_20",
     name: "Backorders stay under 20",

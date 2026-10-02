@@ -54,6 +54,9 @@ export type ModelConstraint = {
   join?: "all" | "any";
   trigger?: Check;
   checks: Check[];
+  /** The second operand of until and release. Kept, hidden, under other words. */
+  second?: Check[];
+  secondJoin?: "all" | "any";
   /** Set after "Edit as code"; it replaces the generated line. */
   code?: string;
   /** Percent of runs in which the rule must hold. */
@@ -165,6 +168,14 @@ const modes: ConstraintMode[] = [
   "stopEarly",
 ];
 
+const parseChecks = (raw: unknown): Check[] =>
+  Array.isArray(raw)
+    ? raw.flatMap((check) => {
+        const parsed = parseCheck(check);
+        return parsed ? [parsed] : [];
+      })
+    : [];
+
 const parseConstraint = (raw: unknown): ModelConstraint | null => {
   if (
     !isRecord(raw) ||
@@ -176,12 +187,8 @@ const parseConstraint = (raw: unknown): ModelConstraint | null => {
   const forEvery = raw.forEvery;
   const window = parseWindow(raw.window);
   const trigger = parseCheck(raw.trigger);
-  const checks = Array.isArray(raw.checks)
-    ? raw.checks.flatMap((check) => {
-        const parsed = parseCheck(check);
-        return parsed ? [parsed] : [];
-      })
-    : [];
+  const checks = parseChecks(raw.checks);
+  const second = parseChecks(raw.second);
   return {
     id: raw.id,
     name: raw.name,
@@ -203,6 +210,10 @@ const parseConstraint = (raw: unknown): ModelConstraint | null => {
     ...(raw.join === "all" || raw.join === "any" ? { join: raw.join } : {}),
     ...(trigger ? { trigger } : {}),
     checks: checks.length > 0 ? checks : [emptyCheck()],
+    ...(second.length > 0 ? { second } : {}),
+    ...(raw.secondJoin === "all" || raw.secondJoin === "any"
+      ? { secondJoin: raw.secondJoin }
+      : {}),
     ...(typeof raw.code === "string" ? { code: raw.code } : {}),
     tolerance: typeof raw.tolerance === "number" ? raw.tolerance : 95,
     mode: modes.find((mode) => mode === raw.mode) ?? "monitored",
@@ -334,10 +345,21 @@ const forEveryVariable = (net: SDCPN, typeId: string): string => {
   return identifier(last).toLowerCase() || "token";
 };
 
+/** Until and release read as two operands around the word. */
+export const hasSecondSlot = (time: TimeWord): boolean =>
+  time === "until" || time === "release";
+
+/** The second operand's checks; one empty check stands in for a slot not yet filled. */
+export const secondChecks = (constraint: ModelConstraint): Check[] =>
+  constraint.second && constraint.second.length > 0
+    ? constraint.second
+    : [emptyCheck()];
+
 const subjectExpression = (
   net: SDCPN,
   constraint: ModelConstraint,
   subject: CheckSubject | null,
+  bare = false,
 ): string => {
   if (!subject) {
     return "?";
@@ -345,7 +367,11 @@ const subjectExpression = (
   switch (subject.kind) {
     case "placeTokens": {
       const place = net.places.find(({ id }) => id === subject.id);
-      return place ? `${identifier(place.name)}.count` : "?";
+      return place
+        ? bare
+          ? identifier(place.name)
+          : `${identifier(place.name)}.count`
+        : "?";
     }
     case "tokenField": {
       if (constraint.forEvery) {
@@ -375,16 +401,48 @@ const checkExpression = (
   net: SDCPN,
   constraint: ModelConstraint,
   check: Check,
+  bare = false,
 ): string =>
-  `${subjectExpression(net, constraint, check.subject)} ${
+  `${subjectExpression(net, constraint, check.subject, bare)} ${
     check.op === "below" ? "<" : ">"
   } ${check.bound ?? "?"}`;
+
+const forEveryScope = (
+  net: SDCPN,
+  forEvery: NonNullable<ModelConstraint["forEvery"]>,
+): string => {
+  const places = forEvery.placeIds
+    .map((placeId) => {
+      const place = net.places.find(({ id }) => id === placeId);
+      return place ? `"${place.name}"` : "?";
+    })
+    .join(", ");
+  return forEvery.where === "reaches" ? `reaches([${places}])` : `[${places}]`;
+};
 
 /** The one line a constraint's rows read as. `?` marks a slot not yet set. */
 export const constraintCode = (
   net: SDCPN,
   constraint: ModelConstraint,
 ): string => {
+  const scope = (inner: string) =>
+    !constraint.forEvery
+      ? inner
+      : `forEvery(${forEveryScope(net, constraint.forEvery)}, (${forEveryVariable(net, constraint.forEvery.typeId)}) => ${inner})`;
+  if (hasSecondSlot(constraint.time)) {
+    const operand = (checks: Check[], join: "all" | "any" | undefined) => {
+      const text = checks
+        .map((check) => checkExpression(net, constraint, check, true))
+        .join(join === "any" ? " || " : " && ");
+      return checks.length > 1 ? `(${text})` : text;
+    };
+    const window = constraint.window
+      ? `_[${constraint.window.kind === "between" ? constraint.window.from : 0} days,${constraint.window.to} days]`
+      : "";
+    return scope(
+      `${operand(constraint.checks, constraint.join)} ${constraint.time}${window} ${operand(secondChecks(constraint), constraint.secondJoin)}`,
+    );
+  }
   const joined = constraint.checks
     .map((check) => checkExpression(net, constraint, check))
     .join(constraint.join === "any" ? " || " : " && ");
@@ -396,27 +454,7 @@ export const constraintCode = (
       ? `${constraint.window.from}, ${constraint.window.to}, `
       : `0, ${constraint.window.to}, `
     : "";
-  const args =
-    constraint.time === "until"
-      ? `${window}${body}, ?`
-      : constraint.time === "release"
-        ? `${window}?, ${body}`
-        : `${window}${body}`;
-  const line = `${constraint.time}(${args})`;
-  if (!constraint.forEvery) {
-    return line;
-  }
-  const places = constraint.forEvery.placeIds
-    .map((placeId) => {
-      const place = net.places.find(({ id }) => id === placeId);
-      return place ? `"${place.name}"` : "?";
-    })
-    .join(", ");
-  const scope =
-    constraint.forEvery.where === "reaches"
-      ? `reaches([${places}])`
-      : `[${places}]`;
-  return `forEvery(${scope}, (${forEveryVariable(net, constraint.forEvery.typeId)}) => ${line})`;
+  return scope(`${constraint.time}(${window}${body})`);
 };
 
 /** The hover text on "For every", with the token type's name in place of "order". */

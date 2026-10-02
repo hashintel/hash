@@ -19,7 +19,9 @@ import {
   emptyCheck,
   forEveryHint,
   constraintModeLabel,
+  hasSecondSlot,
   parseSubjectValue,
+  secondChecks,
   subjectGroups,
   subjectUnit,
   subjectValue,
@@ -250,7 +252,14 @@ const TimeWordMenu: React.FC<{
     text: withHint(word, position),
     selectedStyle: "tick",
     selected: constraint.time === word,
-    onClick: () => update((current) => ({ ...current, time: word })),
+    onClick: () =>
+      update((current) => ({
+        ...current,
+        time: word,
+        ...(hasSecondSlot(word) && !current.second?.length
+          ? { second: [emptyCheck()] }
+          : {}),
+      })),
   });
 
   return (
@@ -377,6 +386,10 @@ const ForEveryRows: React.FC<{
                 ...check,
                 subject: null,
               })),
+              second: current.second?.map((check) => ({
+                ...check,
+                subject: null,
+              })),
               trigger: current.trigger && { ...current.trigger, subject: null },
             }))
           }
@@ -405,6 +418,11 @@ const ForEveryRows: React.FC<{
               update(({ forEvery: _forEvery, ...current }) => ({
                 ...current,
                 checks: current.checks.map((check) => ({
+                  ...check,
+                  subject:
+                    check.subject?.id === forEvery.typeId ? null : check.subject,
+                })),
+                second: current.second?.map((check) => ({
                   ...check,
                   subject:
                     check.subject?.id === forEvery.typeId ? null : check.subject,
@@ -548,6 +566,8 @@ const checkGridStyle = css({
   rowGap: "2",
   alignItems: "center",
 });
+
+const slotStyle = css({ display: "flex", flexDirection: "column", gap: "2" });
 
 const gridRowStyle = css({ gridColumn: "[1 / -1]" });
 
@@ -733,20 +753,69 @@ const CheckRow: React.FC<{
   );
 };
 
+/** A check of an until or release slot: one row whose controls keep their width and wrap. */
+const SlotCheckRow: React.FC<{
+  constraint: ModelConstraint;
+  check: Check;
+  disabled: boolean;
+  second?: boolean;
+  onChange: (patch: Partial<Check>) => void;
+  onRemove?: () => void;
+}> = ({ constraint, check, disabled, second, onChange, onRemove }) => {
+  const { petriNetDefinition } = use(SDCPNContext);
+  return (
+    <div className={cx(ruleRowStyle, tightRowStyle)}>
+      <SubjectSelect
+        constraint={constraint}
+        check={check}
+        disabled={disabled}
+        placeholder="Choose what to check"
+        onChange={(subject) => onChange({ subject })}
+      />
+      <OpSelect
+        check={check}
+        disabled={disabled}
+        items={second ? triggerOpItems : opItems}
+        onChange={(op) => onChange({ op })}
+      />
+      <BoundInput
+        check={check}
+        unit={subjectUnit(petriNetDefinition, check.subject)}
+        disabled={disabled}
+        onChange={(bound) => onChange({ bound })}
+      />
+      {onRemove && !disabled ? (
+        <Button
+          size="xs"
+          variant="ghost"
+          iconName="close"
+          aria-label="Remove check"
+          onClick={onRemove}
+        />
+      ) : null}
+    </div>
+  );
+};
+
 const MatchSwitch: React.FC<{
   constraint: ModelConstraint;
   disabled: boolean;
   update: UpdateConstraint;
-}> = ({ constraint, disabled, update }) => (
+  slot?: "second";
+}> = ({ constraint, disabled, update, slot }) => (
   <>
     <span className={mutedText(disabled)}>match</span>
     <SegmentedControl
       size="xs"
-      aria-label="Match"
+      aria-label={slot ? "Match second checks" : "Match"}
       items={joinItems}
-      value={constraint.join ?? "all"}
+      value={(slot ? constraint.secondJoin : constraint.join) ?? "all"}
       disabled={disabled}
-      onChange={(join) => update((current) => ({ ...current, join }))}
+      onChange={(join) =>
+        update((current) =>
+          slot ? { ...current, secondJoin: join } : { ...current, join },
+        )
+      }
     />
   </>
 );
@@ -906,6 +975,10 @@ const RuleRows: React.FC<{
                 ...check,
                 subject: null,
               })),
+              second: current.second?.map((check) => ({
+                ...check,
+                subject: null,
+              })),
               trigger: current.trigger && { ...current.trigger, subject: null },
               };
             })
@@ -916,6 +989,109 @@ const RuleRows: React.FC<{
       )}
     </div>
   );
+
+  if (hasSecondSlot(constraint.time)) {
+    const second = secondChecks(constraint);
+    const updateSecond = (index: number, patch: Partial<Check>) =>
+      update((current) => ({
+        ...current,
+        second: secondChecks(current).map((candidate, at) =>
+          at === index ? { ...candidate, ...patch } : candidate,
+        ),
+      }));
+    return (
+      <>
+        {forEveryRows}
+        {manyChecks ? (
+          <div className={ruleRowStyle}>
+            <MatchSwitch
+              constraint={constraint}
+              disabled={disabled}
+              update={update}
+            />
+          </div>
+        ) : null}
+        <div className={slotStyle}>
+          {constraint.checks.map((check, index) => (
+            <SlotCheckRow
+              // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
+              key={index}
+              constraint={constraint}
+              check={check}
+              disabled={disabled}
+              onChange={(patch) => updateCheck(index, patch)}
+              onRemove={
+                manyChecks
+                  ? () =>
+                      update((current) => ({
+                        ...current,
+                        checks: current.checks.filter((_, at) => at !== index),
+                      }))
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+        <div className={ruleRowStyle}>
+          <TimeWordMenu
+            constraint={constraint}
+            disabled={disabled}
+            update={update}
+          />
+          {second.length >= 2 ? (
+            <MatchSwitch
+              slot="second"
+              constraint={constraint}
+              disabled={disabled}
+              update={update}
+            />
+          ) : null}
+        </div>
+        <div className={slotStyle}>
+          {second.map((check, index) => (
+            <SlotCheckRow
+              second
+              // eslint-disable-next-line react/no-array-index-key -- Checks have no ids; rows are only added or removed by position.
+              key={index}
+              constraint={constraint}
+              check={check}
+              disabled={disabled}
+              onChange={(patch) => updateSecond(index, patch)}
+              onRemove={
+                second.length >= 2
+                  ? () =>
+                      update((current) => ({
+                        ...current,
+                        second: secondChecks(current).filter(
+                          (_, at) => at !== index,
+                        ),
+                      }))
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+        {window ? windowRow : null}
+        {disabled ? null : (
+          <div className={addButtonsStyle}>
+            <Button
+              size="xs"
+              variant="ghost"
+              iconName="plus"
+              onClick={() =>
+                update((current) => ({
+                  ...current,
+                  second: [...secondChecks(current), emptyCheck()],
+                }))
+              }
+            >
+              Add check
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  }
 
   if (!asList) {
     const check = constraint.checks[0] ?? emptyCheck();
