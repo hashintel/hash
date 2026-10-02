@@ -64,9 +64,6 @@ export const useConstraintsTreeGroup = (
     name: "Constraints",
     emptyGroupMessage: "No constraints",
     renderGroupAction: addAction(AddConstraintAction),
-    note: constraints.some(({ id }) => exampleResultFor(id))
-      ? "runs held"
-      : undefined,
     children: constraints.map((constraint) => {
       const result = exampleResultFor(constraint.id);
       return {

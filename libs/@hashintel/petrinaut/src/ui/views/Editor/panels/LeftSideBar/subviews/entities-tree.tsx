@@ -71,6 +71,11 @@ const resultTagStyle = css({
 
 const tagIconStyle = css({ color: "[currentColor]" });
 
+const failedTagStyle = css({
+  color: "red.s100",
+  backgroundColor: "red.s20",
+});
+
 const groupNoteStyle = css({
   flexShrink: "0",
   fontSize: "xs",
@@ -301,7 +306,11 @@ export const entitiesTreeSubView: SubView = {
           <div className={resultRowStyle} title={item.name}>
             <span className={truncatedNameStyle}>{item.name}</span>
             <span
-              className={cx(leverTagStyle, resultTagStyle)}
+              className={cx(
+                leverTagStyle,
+                resultTagStyle,
+                item.resultTag.warn && failedTagStyle,
+              )}
               title={EXAMPLE_DATA_NOTE}
             >
               {item.resultTag.warn ? <Icon name="warning" size="xs" className={tagIconStyle} /> : null}
