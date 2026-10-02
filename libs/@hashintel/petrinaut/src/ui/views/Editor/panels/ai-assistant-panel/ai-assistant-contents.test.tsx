@@ -191,7 +191,7 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
       canRepeatQuestion={false}
       canTakeTurn={false}
       collapsed={false}
-      composerControl={<button type="button">Interview length</button>}
+      composerControl={<button type="button">Host setting</button>}
       indicator={<span />}
       microphoneMuted={false}
       onStop={noop}
@@ -204,7 +204,7 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
   expect(screen.getByText("Connected")).toBeTruthy();
   expect(
     screen
-      .getByRole("button", { name: "Interview length" })
+      .getByRole("button", { name: "Host setting" })
       .closest('[data-part="left-actions"]'),
   ).not.toBeNull();
   const microphone = screen.getByRole("button", { name: "Mute microphone" });
@@ -2814,9 +2814,7 @@ describe("AiAssistantContents", () => {
             input=""
             inputMode="voice"
             messages={[]}
-            composerStatus={
-              <div data-testid="interview-estimate">~5 min left</div>
-            }
+            composerStatus={<div data-testid="host-status">Host status</div>}
             onClose={noop}
             onInputChange={noop}
             onStop={noop}
@@ -2828,11 +2826,9 @@ describe("AiAssistantContents", () => {
       );
       const { rerender } = render(contents(true));
       expect(screen.getByTestId("ai-voice-dock")).toBeTruthy();
-      expect(screen.queryByTestId("interview-estimate")).toBeNull();
+      expect(screen.queryByTestId("host-status")).toBeNull();
       rerender(contents(false));
-      expect(screen.getByTestId("interview-estimate").textContent).toBe(
-        "~5 min left",
-      );
+      expect(screen.getByTestId("host-status").textContent).toBe("Host status");
     },
   );
 
@@ -2973,9 +2969,9 @@ describe("AiAssistantContents", () => {
           inputMode={inputMode}
           messages={[
             {
-              id: "budget-change",
+              id: "host-note",
               role: "system",
-              parts: [{ type: "text", text: "Quick · ~5 min" }],
+              parts: [{ type: "text", text: "Host note" }],
             },
           ]}
           onClose={noop}
@@ -2988,7 +2984,7 @@ describe("AiAssistantContents", () => {
       );
 
       const note = screen.getByRole("note");
-      expect(note.textContent).toBe("Quick · ~5 min");
+      expect(note.textContent).toBe("Host note");
       expect(note.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
       expect(screen.queryByText("Activity")).toBeNull();
     },
@@ -2997,7 +2993,7 @@ describe("AiAssistantContents", () => {
   test.each(["text", "voice"] as const)(
     "uses host presentation only for system notes in %s",
     (inputMode) => {
-      const renderSystemMessage = vi.fn(() => <span>Custom level note</span>);
+      const renderSystemMessage = vi.fn(() => <span>Custom host note</span>);
       render(
         <AiAssistantContents
           input=""
@@ -3023,7 +3019,7 @@ describe("AiAssistantContents", () => {
           status="ready"
         />,
       );
-      expect(screen.getByRole("note").textContent).toBe("Custom level note");
+      expect(screen.getByRole("note").textContent).toBe("Custom host note");
       expect(screen.queryByText("Plain fallback")).toBeNull();
       expect(renderSystemMessage).toHaveBeenCalledOnce();
       expect(renderSystemMessage).toHaveBeenCalledWith(
@@ -3345,11 +3341,11 @@ describe("AiAssistantContents", () => {
     ["Draft", "ready", "Send message"],
     ["Draft", "streaming", "Stop AI response"],
   ] as const)(
-    "keeps Brunch settings before the input with %s draft and %s status",
+    "keeps host controls before the input in the brunch presentation with %s draft and %s status",
     (input, status, actionLabel) => {
       render(
         <AiAssistantContents
-          composerControl={<button type="button">Interview length</button>}
+          composerControl={<button type="button">Host setting</button>}
           input={input}
           messages={[]}
           onClose={noop}
@@ -3362,7 +3358,7 @@ describe("AiAssistantContents", () => {
           voiceModeAvailable
         />,
       );
-      const control = screen.getByRole("button", { name: "Interview length" });
+      const control = screen.getByRole("button", { name: "Host setting" });
       const textarea = screen.getByRole("textbox", {
         name: "Message AI assistant",
       });

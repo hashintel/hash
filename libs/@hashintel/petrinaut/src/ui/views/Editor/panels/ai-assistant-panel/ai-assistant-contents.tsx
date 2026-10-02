@@ -725,7 +725,7 @@ const AiAssistantMessage = memo(
           })}
         >
           <Icon
-            name="sliders"
+            name="info"
             size="xs"
             className={css({
               flexShrink: 0,
