@@ -478,3 +478,48 @@ impl PolicyExpressionTree {
         .attach_with(|| Arc::clone(rhs))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn version_expression(major: i64) -> ast::Expr {
+        ast::Expr::is_eq(
+            ast::Expr::get_attr(
+                ast::Expr::var(ast::Var::Resource),
+                SmolStr::new_static("ontology_type_version"),
+            ),
+            ast::Expr::val(major),
+        )
+    }
+
+    #[test]
+    fn from_expr_zero_version() {
+        let expression = ast::Expr::and(ast::Expr::val(true), version_expression(0));
+        let error = PolicyExpressionTree::from_expr(&expression)
+            .expect_err("a policy containing version zero should be rejected");
+
+        assert!(
+            matches!(error.current_context(), ParseExpressionError::AndExpression),
+            "the containing policy expression should fail parsing"
+        );
+        assert!(
+            error.contains::<ParseBinaryExpressionError>(),
+            "the error should retain the invalid version operand context"
+        );
+    }
+
+    #[test]
+    fn from_expr_version_bounds() {
+        for major in [1, u32::MAX] {
+            let expression =
+                ast::Expr::and(ast::Expr::val(true), version_expression(i64::from(major)));
+            let parsed = PolicyExpressionTree::from_expr(&expression)
+                .expect("a policy containing a valid version should parse");
+            let PolicyExpressionTree::OntologyTypeVersion(version) = parsed else {
+                panic!("the policy should preserve its version condition");
+            };
+            assert_eq!(version.major.get(), major);
+        }
+    }
+}

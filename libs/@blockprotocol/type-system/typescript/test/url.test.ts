@@ -161,6 +161,7 @@ describe("Draft version support", () => {
       ["http://example.com/v/1-draft.abc12345.1"],
       ["http://example.com/v/2-draft.xyz98765.999"],
       ["http://example.com/person/v/5-draft.lane1234.42"],
+      [`http://example.com/v/1-draft.lane.${u32Max}`],
     ])("validateVersionedUrl(%s) with draft succeeds", (input) => {
       expect(validateVersionedUrl(input)).toEqual({ type: "Ok", inner: input });
     });
@@ -174,6 +175,21 @@ describe("Draft version support", () => {
     ])("validateVersionedUrl(%s) with invalid draft fails", (input) => {
       const result = validateVersionedUrl(input);
       expect(result.type).toBe("Err");
+    });
+  });
+
+  test("rejects a draft revision above u32::MAX", () => {
+    const version = `1-draft.lane.${u32Max + 1}`;
+
+    expect(validateVersionedUrl(`http://example.com/v/${version}`)).toEqual({
+      type: "Err",
+      inner: {
+        reason: "InvalidVersion",
+        inner: [
+          version,
+          { reason: "ParseVersion", inner: "revision number too large" },
+        ],
+      },
     });
   });
 
