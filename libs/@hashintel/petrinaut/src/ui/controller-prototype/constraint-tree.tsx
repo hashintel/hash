@@ -1,7 +1,6 @@
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 
 import { newConstraint } from "../../react/controller-prototype/constraints";
 import { useConstraints } from "../../react/controller-prototype/use-constraints";
@@ -15,27 +14,26 @@ import {
 
 import type { ComponentType } from "react";
 
-// Rows grey their icons; this one takes the row's text colour, at the size of
-// the Controllers row glyph.
-const constraintIconStyle = css({
-  color: "neutral.s115",
-  "--icon-size": "[14px]",
-});
-
 /**
- * The constraint icon, at the sidebar's icon size: Font Awesome Free
- * `road-barrier` (solid, CC BY 4.0), which the DS icon set does not include.
+ * The constraint glyph: Font Awesome's `road-barrier` (regular) redrawn on a
+ * 24 grid with round caps, like the lever glyph. The DS icon set has no
+ * barrier. It takes the row's colour and size.
  */
-export const ConstraintIcon: React.FC<{ size: number }> = () => (
+export const ConstraintIcon: React.FC<{ size: number }> = ({ size }) => (
   <svg
-    viewBox="0 0 640 512"
-    width={14}
-    height={14}
-    fill="currentColor"
+    width={size + 1}
+    height={size + 1}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={size + 1 <= 13 ? 2.5 : 1.75}
+    strokeLinecap="round"
+    strokeLinejoin="round"
     aria-hidden="true"
-    className={constraintIconStyle}
   >
-    <path d="M32 32C14.3 32 0 46.3 0 64L0 448c0 17.7 14.3 32 32 32s32-14.3 32-32l0-181.7L149.2 96 64 96l0-32c0-17.7-14.3-32-32-32zM405.2 96l-74.3 0-5.4 10.7L234.8 288l74.3 0 5.4-10.7L405.2 96zM362.8 288l74.3 0 5.4-10.7L533.2 96l-74.3 0-5.4 10.7L362.8 288zM202.8 96l-5.4 10.7L106.8 288l74.3 0 5.4-10.7L277.2 96l-74.3 0zm288 192l85.2 0 0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-384c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 53.7L490.8 288z" />
+    <path d="M4 4v16M20 4v16" />
+    <path d="M4 7h16v7H4" />
+    <path d="M9 14l3-7M15 14l3-7" />
   </svg>
 );
 
