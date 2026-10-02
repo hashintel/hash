@@ -189,6 +189,8 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 
 The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
 
+Hold **Cmd** (Ctrl on Windows/Linux) and click a node to add it to the selection, or click a selected node to remove it. Holding Shift as well works the same way.
+
 With a selection, you can:
 
 - **Move** -- drag selected nodes to reposition them.
