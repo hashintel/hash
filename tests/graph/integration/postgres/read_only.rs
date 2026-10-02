@@ -1,4 +1,4 @@
-use core::iter::once;
+use core::{iter::once, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
@@ -143,7 +143,7 @@ async fn read_only_modification_matrix() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };

@@ -2063,3 +2063,393 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     });
     client.global.set("person_c_entity_id", response.body.metadata.recordId.entityId);
 %}
+
+### Reject data type version overflow
+PUT http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "typeToUpdate": "http://localhost:3000/@alice/types/data-type/meter/v/4294967295",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    "kind": "dataType",
+    "title": "Meter",
+    "description": "A non-negative distance in meters.",
+    "type": "number",
+    "minimum": 0
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
+  "conversions": {}
+}
+
+> {%
+    client.test("version overflow", function() {
+        client.assert(response.status === 400, "Version overflow should return HTTP 400");
+        client.assert(response.body.code === "INVALID_ARGUMENT", "Version overflow should return INVALID_ARGUMENT");
+        client.assert(response.body.message === "Type version cannot be incremented beyond 4294967295", "The error should identify version overflow");
+    });
+%}
+
+### Reject bulk data type version overflow
+PUT http://127.0.0.1:4000/data-types/bulk
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+[
+  {
+    "typeToUpdate": "http://localhost:3000/@alice/types/data-type/meter/v/2",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "title": "Meter",
+      "description": "A non-negative distance in meters.",
+      "type": "number",
+      "minimum": 0
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    },
+    "conversions": {}
+  },
+  {
+    "typeToUpdate": "http://localhost:3000/@alice/types/data-type/meter/v/4294967295",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "title": "Meter",
+      "description": "A non-negative distance in meters.",
+      "type": "number",
+      "minimum": 0
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    },
+    "conversions": {}
+  }
+]
+
+> {%
+    client.test("version overflow", function() {
+        client.assert(response.status === 400, "Version overflow should return HTTP 400");
+        client.assert(response.body.code === "INVALID_ARGUMENT", "Version overflow should return INVALID_ARGUMENT");
+        client.assert(response.body.message === "Type version cannot be incremented beyond 4294967295", "The error should identify version overflow");
+    });
+%}
+
+### Verify rejected bulk update did not create a data type version
+POST http://127.0.0.1:4000/data-types/query
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUrl"
+        ]
+      },
+      {
+        "parameter": "http://localhost:3000/@alice/types/data-type/meter/v/3"
+      }
+    ]
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+    client.test("bulk update is atomic", function() {
+        client.assert(response.status === 200, "The type query should succeed");
+        client.assert(response.body.dataTypes.length === 0, "The valid item preceding the overflow should not create version 3");
+    });
+%}
+
+### Reject property type version overflow
+PUT http://127.0.0.1:4000/property-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/4294967295",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "title": "Name",
+    "description": "A person’s name.",
+    "oneOf": [
+      {
+        "$ref": "{{text_data_type_id}}"
+      }
+    ]
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
+}
+
+> {%
+    client.test("version overflow", function() {
+        client.assert(response.status === 400, "Version overflow should return HTTP 400");
+        client.assert(response.body.code === "INVALID_ARGUMENT", "Version overflow should return INVALID_ARGUMENT");
+        client.assert(response.body.message === "Type version cannot be incremented beyond 4294967295", "The error should identify version overflow");
+    });
+%}
+
+### Reject bulk property type version overflow
+PUT http://127.0.0.1:4000/property-types/bulk
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+[
+  {
+    "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/2",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "title": "Name",
+      "description": "A person’s name.",
+      "oneOf": [
+        {
+          "$ref": "{{text_data_type_id}}"
+        }
+      ]
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    }
+  },
+  {
+    "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/4294967295",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "title": "Name",
+      "description": "A person’s name.",
+      "oneOf": [
+        {
+          "$ref": "{{text_data_type_id}}"
+        }
+      ]
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    }
+  }
+]
+
+> {%
+    client.test("version overflow", function() {
+        client.assert(response.status === 400, "Version overflow should return HTTP 400");
+        client.assert(response.body.code === "INVALID_ARGUMENT", "Version overflow should return INVALID_ARGUMENT");
+        client.assert(response.body.message === "Type version cannot be incremented beyond 4294967295", "The error should identify version overflow");
+    });
+%}
+
+### Verify rejected bulk update did not create a property type version
+POST http://127.0.0.1:4000/property-types/query
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUrl"
+        ]
+      },
+      {
+        "parameter": "http://localhost:3000/@alice/types/property-type/name/v/3"
+      }
+    ]
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+    client.test("bulk update is atomic", function() {
+        client.assert(response.status === 200, "The type query should succeed");
+        client.assert(response.body.propertyTypes.length === 0, "The valid item preceding the overflow should not create version 3");
+    });
+%}
+
+### Reject entity type version overflow
+PUT http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/4294967295",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "title": "Person",
+    "description": "A person.",
+    "type": "object",
+    "properties": {}
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
+}
+
+> {%
+    client.test("version overflow", function() {
+        client.assert(response.status === 400, "Version overflow should return HTTP 400");
+        client.assert(response.body.code === "INVALID_ARGUMENT", "Version overflow should return INVALID_ARGUMENT");
+        client.assert(response.body.message === "Type version cannot be incremented beyond 4294967295", "The error should identify version overflow");
+    });
+%}
+
+### Reject bulk entity type version overflow
+PUT http://127.0.0.1:4000/entity-types/bulk
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+[
+  {
+    "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "title": "Person",
+      "description": "A person.",
+      "type": "object",
+      "properties": {}
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    }
+  },
+  {
+    "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/4294967295",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "title": "Person",
+      "description": "A person.",
+      "type": "object",
+      "properties": {}
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    }
+  }
+]
+
+> {%
+    client.test("version overflow", function() {
+        client.assert(response.status === 400, "Version overflow should return HTTP 400");
+        client.assert(response.body.code === "INVALID_ARGUMENT", "Version overflow should return INVALID_ARGUMENT");
+        client.assert(response.body.message === "Type version cannot be incremented beyond 4294967295", "The error should identify version overflow");
+    });
+%}
+
+### Verify rejected bulk update did not create an entity type version
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUrl"
+        ]
+      },
+      {
+        "parameter": "http://localhost:3000/@alice/types/entity-type/person/v/3"
+      }
+    ]
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+    client.test("bulk update is atomic", function() {
+        client.assert(response.status === 200, "The type query should succeed");
+        client.assert(response.body.entityTypes.length === 0, "The valid item preceding the overflow should not create version 3");
+    });
+%}

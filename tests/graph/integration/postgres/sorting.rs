@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_store::{
@@ -160,7 +161,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };
@@ -170,7 +171,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };

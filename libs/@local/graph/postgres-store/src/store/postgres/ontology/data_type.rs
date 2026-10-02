@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::mem;
+use core::{mem, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -52,7 +52,7 @@ use type_system::{
 };
 
 use crate::store::{
-    error::DeletionError,
+    error::{DeletionError, OntologyVersionDoesNotExist},
     postgres::{
         AsClient, GenericClientIter as _, PostgresStore, TransactionState, TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
@@ -954,8 +954,11 @@ where
                         .id
                         .version
                         .major
+                        .get()
                         .checked_sub(1)
-                        .ok_or(UpdateError)
+                        .and_then(NonZero::new)
+                        .ok_or(OntologyVersionDoesNotExist)
+                        .change_context(UpdateError)
                         .attach(
                             "The version of the data type is already at the lowest possible value",
                         )?,

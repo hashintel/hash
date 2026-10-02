@@ -1,4 +1,4 @@
-use core::error::Error;
+use core::{error::Error, num::NonZero};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{property_type::CreatePropertyTypeParams, query::ConflictBehavior};
@@ -209,7 +209,7 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: 1,
+                    major: NonZero::<u32>::MIN,
                     pre_release: None,
                 },
             },

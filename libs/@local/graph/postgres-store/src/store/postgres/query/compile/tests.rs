@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::str::FromStr as _;
+use core::{num::NonZero, str::FromStr as _};
 
 use hash_codec::numeric::Real;
 use hash_graph_store::{
@@ -2066,7 +2066,7 @@ mod predefined {
             )
             .expect("invalid base url"),
             version: OntologyTypeVersion {
-                major: 1,
+                major: NonZero::<u32>::MIN,
                 pre_release: None,
             },
         };

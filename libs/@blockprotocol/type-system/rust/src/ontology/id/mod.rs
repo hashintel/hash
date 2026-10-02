@@ -33,7 +33,11 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{cmp, fmt, num::IntErrorKind, str::FromStr};
+use core::{
+    cmp, fmt,
+    num::{IntErrorKind, NonZero},
+    str::FromStr,
+};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -335,12 +339,12 @@ impl FromStr for PreRelease {
 ///
 /// // Published version
 /// let v1 = OntologyTypeVersion::from_str("1").unwrap();
-/// assert_eq!(v1.major, 1);
+/// assert_eq!(v1.major.get(), 1);
 /// assert!(v1.pre_release.is_none());
 ///
 /// // Draft version
 /// let draft = OntologyTypeVersion::from_str("2-draft.lane123.5").unwrap();
-/// assert_eq!(draft.major, 2);
+/// assert_eq!(draft.major.get(), 2);
 /// assert!(matches!(draft.pre_release, Some(PreRelease::Draft { .. })));
 ///
 /// // Ordering: published > draft (same major)
@@ -354,7 +358,7 @@ pub struct OntologyTypeVersion {
     // We don't really have a way to inform specta that this type is a string so we fake the type
     // to be a transparent type with only a single string type
     #[cfg_attr(feature = "codegen", specta(type = String))]
-    pub major: u32,
+    pub major: NonZero<u32>,
     #[cfg_attr(feature = "codegen", specta(skip))]
     pub pre_release: Option<PreRelease>,
 }
@@ -395,7 +399,7 @@ impl FromStr for OntologyTypeVersion {
             };
 
         Ok(Self {
-            major: u32::from_str(version).map_err(|error| {
+            major: NonZero::<u32>::from_str_radix(version, 10).map_err(|error| {
                 if *error.kind() == IntErrorKind::Empty {
                     ParseOntologyTypeVersionError::MissingVersion
                 } else {
@@ -472,7 +476,7 @@ impl ToSql for OntologyTypeVersion {
         if self.pre_release.is_some() {
             todo!("https://linear.app/hash/issue/BE-161/allow-ids-for-pre-release-type-to-be-stored-in-postgres");
         }
-        i64::from(self.major).to_sql(ty, out)
+        NonZero::<i64>::from(self.major).get().to_sql(ty, out)
     }
 }
 
@@ -482,7 +486,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
-            major: i64::from_sql(ty, raw)?.try_into()?,
+            major: u32::try_from(i64::from_sql(ty, raw)?)?.try_into()?,
             pre_release: None,
         })
     }
@@ -864,7 +868,7 @@ mod tests {
         assert_eq!(
             record_id.version,
             OntologyTypeVersion {
-                major: 3,
+                major: NonZero::new(3).expect("version should be nonzero"),
                 pre_release: None
             }
         );
@@ -933,17 +937,17 @@ mod tests {
     fn ontology_version_parsing() -> Result<(), Box<dyn Error>> {
         // Test published versions
         let v1 = OntologyTypeVersion::from_str("1")?;
-        assert_eq!(v1.major, 1);
+        assert_eq!(v1.major.get(), 1);
         assert_eq!(v1.pre_release, None);
         assert_eq!(v1.to_string(), "1");
 
         let v42 = OntologyTypeVersion::from_str("42")?;
-        assert_eq!(v42.major, 42);
+        assert_eq!(v42.major.get(), 42);
         assert_eq!(v42.pre_release, None);
 
         // Test draft versions
         let draft = OntologyTypeVersion::from_str("2-draft.abcd1234.5")?;
-        assert_eq!(draft.major, 2);
+        assert_eq!(draft.major.get(), 2);
         let Some(PreRelease::Draft { lane, revision }) = draft.pre_release.as_ref() else {
             panic!("draft should have pre-release information");
         };
@@ -952,6 +956,18 @@ mod tests {
         assert_eq!(draft.to_string(), "2-draft.abcd1234.5");
 
         Ok(())
+    }
+
+    #[test]
+    fn ontology_version_zero() {
+        for version in ["0", "0-draft.lane.1"] {
+            let error = OntologyTypeVersion::from_str(version)
+                .expect_err("zero should be rejected as an ontology version");
+            assert!(
+                matches!(error, ParseOntologyTypeVersionError::ParseVersion(_)),
+                "zero should fail major version parsing"
+            );
+        }
     }
 
     #[test]
@@ -966,10 +982,22 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn ontology_version_from_sql_zero() {
+        let mut buffer = BytesMut::new();
+        0_i64
+            .to_sql(&Type::INT8, &mut buffer)
+            .expect("zero should serialize as a PostgreSQL integer");
+
+        OntologyTypeVersion::from_sql(&Type::INT8, &buffer)
+            .expect_err("zero should be rejected as an ontology version");
+    }
+
     #[test]
     fn ontology_version_ordering_same_major() -> Result<(), Box<dyn Error>> {
         let published = OntologyTypeVersion {
-            major: 2,
+            major: NonZero::new(2).expect("version should be nonzero"),
             pre_release: None,
         };
 
@@ -1085,7 +1113,7 @@ mod tests {
         let parsed = VersionedUrl::from_str(url_str).expect("should parse draft URL");
 
         assert_eq!(parsed.base_url.as_str(), "https://example.com/person/");
-        assert_eq!(parsed.version.major, 2);
+        assert_eq!(parsed.version.major.get(), 2);
 
         let Some(PreRelease::Draft { lane, revision }) = parsed.version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
@@ -1259,7 +1287,7 @@ mod tests {
         let version = OntologyTypeVersion::from_str("1-draft.lane.with.dots.5")
             .expect("Should accept multiple dots in lane identifier");
 
-        assert_eq!(version.major, 1);
+        assert_eq!(version.major.get(), 1);
         let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
         };
@@ -1270,7 +1298,7 @@ mod tests {
         let version2 = OntologyTypeVersion::from_str("2-draft.v1.alpha.3.10")
             .expect("Should accept lane with numbers and dots");
 
-        assert_eq!(version2.major, 2);
+        assert_eq!(version2.major.get(), 2);
         let Some(PreRelease::Draft {
             lane: lane2,
             revision: rev2,
@@ -1288,7 +1316,7 @@ mod tests {
         let version = OntologyTypeVersion::from_str("3-draft.my-draft.2")
             .expect("Should accept 'draft' in lane identifier");
 
-        assert_eq!(version.major, 3);
+        assert_eq!(version.major.get(), 3);
         let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
         };

@@ -562,7 +562,17 @@ where
         conversions,
     }) = body;
 
-    type_to_update.version.major += 1;
+    type_to_update.version.major =
+        type_to_update.version.major.checked_add(1).ok_or_else(|| {
+            status_to_response(Status::<()>::new(
+                hash_status::StatusCode::InvalidArgument,
+                Some(format!(
+                    "Type version cannot be incremented beyond {}",
+                    u32::MAX
+                )),
+                vec![],
+            ))
+        })?;
 
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
@@ -625,7 +635,17 @@ where
                  provenance,
                  conversions,
              }| {
-                type_to_update.version.major += 1;
+                type_to_update.version.major =
+                    type_to_update.version.major.checked_add(1).ok_or_else(|| {
+                        status_to_response(Status::<()>::new(
+                            hash_status::StatusCode::InvalidArgument,
+                            Some(format!(
+                                "Type version cannot be incremented beyond {}",
+                                u32::MAX
+                            )),
+                            vec![],
+                        ))
+                    })?;
 
                 Ok(UpdateDataTypesParams {
                     schema: patch_id_and_parse(&type_to_update, schema)

@@ -6,6 +6,7 @@
 //! candidate reads, cross-branch deduplication, the exact rerank, and the rank-preserving
 //! hydration — against ground truth.
 
+use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_authorization::policies::{Effect, action::ActionName};
@@ -69,7 +70,7 @@ fn person_entity_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }

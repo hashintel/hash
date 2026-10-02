@@ -1,3 +1,4 @@
+use core::num::NonZero;
 use std::collections::{HashMap, HashSet};
 
 use hash_graph_authorization::policies::{
@@ -38,7 +39,7 @@ fn person_entity_type() -> VersionedUrl {
         )
         .expect("the URL should be a valid base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }
@@ -51,7 +52,7 @@ fn page_entity_type() -> VersionedUrl {
         )
         .expect("the URL should be a valid base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }
@@ -144,7 +145,7 @@ async fn link_rows_carry_their_endpoints() {
         )
         .expect("the URL should be a valid base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };
@@ -325,7 +326,7 @@ async fn label_sort_pages_alphabetically() {
         )
         .expect("the URL should be a valid base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };
@@ -614,7 +615,7 @@ async fn conversions_convert_row_property_values() {
         base_url: BaseUrl::new("http://localhost:3000/@alice/types/entity-type/line/".to_owned())
             .expect("the URL should be a valid base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };
@@ -973,7 +974,7 @@ async fn link_endpoints_hide_entities_the_actor_cannot_view() {
         )
         .expect("the URL should be a valid base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     };

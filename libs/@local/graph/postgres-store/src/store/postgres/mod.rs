@@ -3505,13 +3505,18 @@ where
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
     ) -> Result<(OntologyTypeUuid, WebId, OntologyTemporalMetadata), Report<UpdateError>> {
-        let previous_version =
-            OntologyTypeVersion {
-                major: url.version.major.checked_sub(1).ok_or(UpdateError).attach(
-                    "The version of the data type is already at the lowest possible value",
-                )?,
-                pre_release: None,
-            };
+        let previous_version = OntologyTypeVersion {
+            major: url
+                .version
+                .major
+                .get()
+                .checked_sub(1)
+                .and_then(NonZero::new)
+                .ok_or(OntologyVersionDoesNotExist)
+                .change_context(UpdateError)
+                .attach("The version of the data type is already at the lowest possible value")?,
+            pre_release: None,
+        };
         let Some(web_id) = self
             .as_client()
             .query_opt(

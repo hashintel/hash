@@ -1,4 +1,4 @@
-use core::error::Error;
+use core::{error::Error, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
@@ -290,7 +290,7 @@ impl<
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: 1,
+                    major: NonZero::<u32>::MIN,
                     pre_release: None,
                 },
             },
