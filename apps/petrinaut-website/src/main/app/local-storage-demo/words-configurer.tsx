@@ -74,6 +74,15 @@ export const WordsConfigurer = ({
               className={stackStyle}
               onSubmit={(event) => {
                 event.preventDefault();
+                if (
+                  editing.id &&
+                  !entries.some((entry) => entry.id === editing.id)
+                ) {
+                  setError(
+                    "This word was removed. Cancel and add it again to save your changes.",
+                  );
+                  return;
+                }
                 const word: ConversationWord = {
                   id: editing.id ?? crypto.randomUUID(),
                   spelling: editing.spelling,

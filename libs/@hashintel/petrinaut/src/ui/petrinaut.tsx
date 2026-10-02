@@ -88,9 +88,7 @@ export type PetrinautAiAssistant = {
   presentation?: PetrinautAiAssistantPresentation;
   /** Optional host controls alongside the assistant header. */
   headerActions?: React.ReactNode;
-  /** Host actions for displayed Brunch user messages, including local voice captions. */
-  renderUserMessageActions?: (message: PetrinautAiMessage) => React.ReactNode;
-  /** Restrict header and user-message actions to this input mode. Omitted: both modes. */
+  /** Restrict header actions to this input mode. Omitted: both modes. */
   actionsInputMode?: PetrinautAiInputMode;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.

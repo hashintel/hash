@@ -166,7 +166,6 @@ type BrunchMessageProps = Omit<TranscriptProps, "messages"> & {
 const BrunchMessage = memo(
   ({
     handlersRef,
-    renderUserMessageActions,
     hiddenToolNames,
     interactiveTools,
     message,
@@ -257,7 +256,6 @@ const BrunchMessage = memo(
             </div>
           </div>
         )}
-        {role === "user" && renderUserMessageActions?.(message)}
         {brief && <VoiceInputProvenance brief={brief} />}
         {voiceAgentReply && (
           <div
