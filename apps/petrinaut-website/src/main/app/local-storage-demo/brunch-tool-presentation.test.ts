@@ -55,15 +55,15 @@ describe("Brunch tool presentation", () => {
   test.each([
     [
       { includeContent: false, sourceIds: ["m1"], locateTexts: ["claim"] },
-      "Read settled passages and conversation sources",
+      "Read confirmed passages and conversation sources",
     ],
     [
       { includeContent: false, locateTexts: ["claim"] },
-      "Read settled passages",
+      "Read confirmed passages",
     ],
     [{ includeContent: false, sourceIds: ["m1"] }, "Read conversation sources"],
-    [{ includeContent: false, sourceIds: [] }, "Checked Ledger revision"],
-    [{ includeContent: false }, "Checked Ledger revision"],
+    [{ includeContent: false, sourceIds: [] }, "Checked for Ledger updates"],
+    [{ includeContent: false }, "Checked for Ledger updates"],
     [{ includeContent: true, sourceIds: ["m1"] }, "Read conversation sources"],
     [{}, "Read ledger"],
     [undefined, "Read ledger"],

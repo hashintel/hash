@@ -122,7 +122,7 @@ test("does not display the input of a typed refused settlement or mark it newer"
   );
   expect(html).toContain("<h1>Settled account</h1>");
   expect(html).not.toContain("Refused silent-shrink account");
-  expect(html).not.toContain("A newer Ledger revision exists");
+  expect(html).not.toContain("This view is out of date");
 });
 
 test("does not display the input of a failed settlement", () => {
@@ -150,7 +150,7 @@ test("does not display the input of a failed settlement", () => {
   );
   expect(html).toContain("<h1>Settled account</h1>");
   expect(html).not.toContain("Refused stale-base account");
-  expect(html).not.toContain("A newer Ledger revision exists");
+  expect(html).not.toContain("This view is out of date");
 });
 
 test("a later settlement replaces the displayed query while retaining the recorded why", () => {
@@ -164,9 +164,7 @@ test("a later settlement replaces the displayed query while retaining the record
     />,
   );
   expect(html).toContain("<h1>Later account</h1>");
-  expect(html).toContain(
-    "recorded explanation predates a newer Ledger revision",
-  );
+  expect(html).toContain("This explanation is out of date");
 });
 
 test("an explicit later query replaces a recorded settlement", () => {
@@ -195,7 +193,7 @@ test("a later settlement whose output is not bound to its call marks the display
     />,
   );
   expect(html).toContain("<h1>Earlier account</h1>");
-  expect(html).toContain("A newer Ledger revision exists");
+  expect(html).toContain("This view is out of date");
   expect(html).not.toContain("Unbound account");
 });
 

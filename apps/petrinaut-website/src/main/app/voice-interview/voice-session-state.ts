@@ -109,11 +109,11 @@ export const toVoiceSessionState = ({
       snapshot.inputNotice === "answer-pending"
         ? "Answer captured. Working on it."
         : snapshot.inputNotice === "answer-already-pending"
-          ? "Previous answer waiting. Please try again after it is sent."
+          ? "Still sending your last answer. Try again in a moment."
           : snapshot.inputNotice === "not-heard"
-            ? "We didn't catch that. Please try again."
+            ? "We didn't catch that. Try again."
             : snapshot.inputNotice === "too-long"
-              ? "That answer is too long. Please try a shorter response."
+              ? "That answer is too long. Try a shorter one."
               : null,
     phase: phaseOf(snapshot),
     speakerMuted: snapshot.speakerMuted,

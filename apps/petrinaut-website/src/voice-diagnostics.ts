@@ -111,18 +111,16 @@ export const voiceErrorMessage = (
   code: VoiceErrorCode,
 ): string => {
   if (code === "microphone-permission") {
-    return "Allow microphone access in your browser settings, then reconnect voice input.";
+    return "Microphone blocked. Allow access in your browser settings, then reconnect.";
   }
   if (code === "microphone-device") {
-    return "No usable microphone was found. Connect or select one, then reconnect voice input.";
+    return "No microphone found. Connect or select one, then reconnect.";
   }
 
   const visibleTextFallback =
-    operation === "speech" ? " Read the visible response instead." : "";
+    operation === "speech" ? " Read the written answer instead." : "";
   const reconnect =
-    operation === "speech"
-      ? ""
-      : " Check your connection, then reconnect voice input.";
+    operation === "speech" ? "" : " Check your connection, then reconnect.";
   const subject =
     operation === "connection" ? "voice connection" : `${operation} service`;
 
@@ -134,9 +132,9 @@ export const voiceErrorMessage = (
     case "timeout":
       return `The ${subject} timed out.${visibleTextFallback}${reconnect}`;
     case "invalid-response":
-      return `The ${subject} returned an invalid response.${visibleTextFallback} Try again; if it continues, give the diagnostic reference to an operator.`;
+      return `The ${subject} returned an invalid response.${visibleTextFallback} Try again. If it keeps happening, share the diagnostic reference with support.`;
     case "unavailable":
-      return `The ${subject} preview is unavailable or disabled.${visibleTextFallback} Continue with the text composer.`;
+      return `The ${subject} is unavailable.${visibleTextFallback} You can keep going in chat.`;
   }
 };
 

@@ -117,16 +117,16 @@ const readWorkpiecePurpose = (input: unknown): LifecycleTitles => {
 
   if (hasPassages && hasSources) {
     return {
-      pending: "Reading settled passages and conversation sources",
-      success: "Read settled passages and conversation sources",
-      error: "Could not read settled passages and conversation sources",
+      pending: "Reading confirmed passages and conversation sources",
+      success: "Read confirmed passages and conversation sources",
+      error: "Could not read confirmed passages and conversation sources",
     };
   }
   if (hasPassages) {
     return {
-      pending: "Reading settled passages",
-      success: "Read settled passages",
-      error: "Could not read settled passages",
+      pending: "Reading confirmed passages",
+      success: "Read confirmed passages",
+      error: "Could not read confirmed passages",
     };
   }
   if (hasSources) {
@@ -138,9 +138,9 @@ const readWorkpiecePurpose = (input: unknown): LifecycleTitles => {
   }
   if (record.includeContent === false) {
     return {
-      pending: "Checking Ledger revision",
-      success: "Checked Ledger revision",
-      error: "Could not check Ledger revision",
+      pending: "Checking for Ledger updates",
+      success: "Checked for Ledger updates",
+      error: "Could not check for Ledger updates",
     };
   }
   return {

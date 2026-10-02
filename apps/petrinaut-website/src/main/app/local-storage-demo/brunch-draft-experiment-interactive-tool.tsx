@@ -182,9 +182,7 @@ export const resolveDraftAuthorityFromHistory = async (
     latest?.toolName !== "getLatestNetDefinition" ||
     latest.state !== "output-available"
   )
-    throw new Error(
-      "Draft requires the latest settled canonical net read after changes.",
-    );
+    throw new Error("Brunch needs to read the latest model before drafting.");
   const envelope = latest.output;
   const metadata =
     typeof envelope === "object" && envelope !== null && "metadata" in envelope
@@ -192,7 +190,7 @@ export const resolveDraftAuthorityFromHistory = async (
       : undefined;
   const revision = metadata?.documentRevision.before;
   if (revision === undefined)
-    throw new Error("The latest canonical read has no document revision.");
+    throw new Error("Brunch’s latest model read has no document revision.");
   return revision;
 };
 
@@ -320,7 +318,7 @@ export const BrunchDraftExperimentWidget = ({
             : {
                 prepared: null,
                 error:
-                  "The model changed since the canonical read. Ask Brunch to read the current model and draft again.",
+                  "The model changed since Brunch read it. Ask Brunch to draft it again.",
               };
       } catch (caught) {
         outcome = {
@@ -606,7 +604,7 @@ export const BrunchDraftExperimentWidget = ({
                 ? preparationFailure.kind === "prepare"
                   ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
                   : `The prepared proposal could not be submitted: ${preparationFailure.message}`
-                : "This draft was prepared before this editor was loaded. Ask Brunch to draft it again to run it.")}
+                : "This draft is from an earlier session. Ask Brunch to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
@@ -620,8 +618,7 @@ export const BrunchDraftExperimentWidget = ({
       <p className={sectionLabelStyle}>Not carried into execution</p>
       {input.unsupported.length === 0 ? (
         <p className={bodyStyle}>
-          No restrictions were stated. The request carries no constraints, so
-          none are enforced.
+          No restrictions were stated, so none are enforced.
         </p>
       ) : (
         <ul className={listStyle}>
@@ -639,8 +636,8 @@ export const BrunchDraftExperimentWidget = ({
       )}
       {blocksRun ? (
         <p className={noticeStyle} role="alert">
-          Run is blocked by an unsupported restriction. Ask Brunch to revise the
-          proposal; a reporting-only exploration needs your explicit acceptance.
+          Can’t run: a restriction isn’t supported. Ask Brunch to revise the
+          proposal, or tell it you accept a run that only reports on it.
         </p>
       ) : null}
       {optimizationUnavailable !== null ? (
