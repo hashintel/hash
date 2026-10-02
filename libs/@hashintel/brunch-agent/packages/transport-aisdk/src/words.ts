@@ -10,13 +10,13 @@ export const normalizePetrinautWordLiteral = (
   value: unknown,
   maximum: number,
 ): string => {
-  if (
-    typeof value !== "string" ||
-    /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}<>]/u.test(value)
-  ) {
-    throw new Error(
-      "Words must be plain single-line text without control characters or angle brackets.",
-    );
+  const literalError =
+    "Words must be plain single-line text without control characters or angle brackets.";
+  if (typeof value !== "string") throw new Error(literalError);
+  // One quantifier-free character class, so matching is linear in the input.
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
+  if (/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}<>]/u.test(value)) {
+    throw new Error(literalError);
   }
   const normalized = value.normalize("NFC").trim().replace(/\s+/gu, " ");
   if (!normalized || Array.from(normalized).length > maximum) {
