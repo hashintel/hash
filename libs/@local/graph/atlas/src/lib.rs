@@ -137,7 +137,6 @@
     sync_nonpoison,
     time_saturating_systemtime,
     unboxed_closures,
-    unwrap_infallible,
     variant_count,
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]

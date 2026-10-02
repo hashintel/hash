@@ -300,45 +300,6 @@ impl KeyColumns {
     }
 }
 
-#[cfg(test)]
-mod collector_tests {
-    use std::collections::HashSet;
-
-    use super::{KeyColumns, collect_referenced_tables};
-    use crate::store::postgres::query::{
-        Expression, SelectExpression, SelectStatement, SimpleSelect,
-    };
-
-    fn subquery() -> SelectStatement {
-        SimpleSelect::builder()
-            .selects(vec![SelectExpression::new(Expression::Parameter(1))])
-            .build()
-            .into()
-    }
-
-    fn subqueries() -> [Expression; 2] {
-        [
-            Expression::Select(Box::new(subquery())),
-            Expression::exists(subquery()),
-        ]
-    }
-
-    #[test]
-    fn table_collector_rejects_subqueries() {
-        for expression in subqueries() {
-            assert!(collect_referenced_tables(&expression, &mut HashSet::new()).is_break());
-        }
-    }
-
-    #[test]
-    fn key_column_collector_rejects_subqueries() {
-        for expression in subqueries() {
-            let mut columns = KeyColumns::default();
-            assert!(columns.collect(&expression, &HashSet::new()).is_break());
-        }
-    }
-}
-
 /// The join split for the keys-first [`StatementShape`]s.
 struct KeyQueryPartition<'j> {
     /// The joins the key query filters and sorts through, in creation order.
@@ -2042,5 +2003,44 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
             None => Expression::is_null(property_column),
         };
         self.conditions.push(property_condition);
+    }
+}
+
+#[cfg(test)]
+mod collector_tests {
+    use std::collections::HashSet;
+
+    use super::{KeyColumns, collect_referenced_tables};
+    use crate::store::postgres::query::{
+        Expression, SelectExpression, SelectStatement, SimpleSelect,
+    };
+
+    fn subquery() -> SelectStatement {
+        SimpleSelect::builder()
+            .selects(vec![SelectExpression::new(Expression::Parameter(1))])
+            .build()
+            .into()
+    }
+
+    fn subqueries() -> [Expression; 2] {
+        [
+            Expression::Select(Box::new(subquery())),
+            Expression::exists(subquery()),
+        ]
+    }
+
+    #[test]
+    fn table_collector_rejects_subqueries() {
+        for expression in subqueries() {
+            assert!(collect_referenced_tables(&expression, &mut HashSet::new()).is_break());
+        }
+    }
+
+    #[test]
+    fn key_column_collector_rejects_subqueries() {
+        for expression in subqueries() {
+            let mut columns = KeyColumns::default();
+            assert!(columns.collect(&expression, &HashSet::new()).is_break());
+        }
     }
 }

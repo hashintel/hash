@@ -1,4 +1,4 @@
-//! HTTP middleware for HASH's services
+//! HTTP middleware for HASH's services.
 //!
 //! The request-handling layers a service composes into its axum router, and the contracts behind
 //! them:
