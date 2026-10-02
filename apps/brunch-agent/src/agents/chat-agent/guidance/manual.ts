@@ -1,7 +1,5 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import feedback from "./manual/prompts/feedback.md?raw";
-import identityLedger from "./manual/prompts/identity-ledger.md?raw";
 import system from "./manual/prompts/system.md?raw";
 import constructing from "./manual/skills/constructing/SKILL.md";
 import eliciting from "./manual/skills/eliciting/SKILL.md";
@@ -31,8 +29,6 @@ export const useManualGuidance = (
   useSkill(eliciting);
   useSkill(constructing);
   for (const tool of createLedgerTools(readHistory)) useTool(tool);
-  useInstruction(feedback.trim());
-  useInstruction(identityLedger.trim());
   return {
     system: system.trim(),
     instructions: {

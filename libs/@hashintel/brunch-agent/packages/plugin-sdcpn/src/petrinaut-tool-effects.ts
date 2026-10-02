@@ -1,4 +1,5 @@
 import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { selectionItemTypes } from "@hashintel/petrinaut-core/selection";
 
 import { netReaderLevelOf } from "./net-readers";
 
@@ -6,17 +7,12 @@ import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
 
 /** The net elements a Brunch explanation can name, and a canonical change can target. */
 export const netElementKinds = [
-  "place",
-  "transition",
-  "arc",
-  "type",
+  ...selectionItemTypes,
+  // Kinds Petrinaut has no selection for.
   "typeElement",
-  "parameter",
-  "differentialEquation",
   "scenario",
   "metric",
   "subnet",
-  "componentInstance",
 ] as const;
 
 export type NetElementKind = (typeof netElementKinds)[number];
@@ -85,7 +81,7 @@ export const petrinautToolEffects = {
   updateComponentInstance: mutation("componentInstance"),
   updateComponentInstancePosition: layout,
   removeComponentInstance: mutation("componentInstance"),
-  deleteItemsByIds: mutation(...netElementKinds),
+  deleteItemsByIds: mutation(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),
   applyAutoLayout: { capability: "petrinaut-command", targets: [] },
