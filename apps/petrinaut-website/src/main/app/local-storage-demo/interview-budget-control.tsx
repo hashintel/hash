@@ -463,10 +463,12 @@ export const InterviewBudgetNote = ({
         className={css({ flexShrink: 0 })}
       />
       <span className={css({ fontWeight: "medium" })}>{config.name}</span>
-      <span className={css({ color: "neutral.fg.body" })}>
-        {" "}
-        · {config.guide}
-      </span>
+      {level !== "off" && (
+        <span className={css({ color: "neutral.fg.body" })}>
+          {" "}
+          · {config.guide}
+        </span>
+      )}
     </div>
   );
 };

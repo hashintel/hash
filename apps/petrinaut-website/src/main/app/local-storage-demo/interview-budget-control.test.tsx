@@ -13,6 +13,7 @@ import { type InterviewBudgetLevel } from "../../../shared/interview-budget";
 import { NoopResizeObserver } from "../shared/petrinaut-jsdom";
 import {
   InterviewBudgetControl,
+  InterviewBudgetNote,
   InterviewBudgetPill,
 } from "./interview-budget-control";
 
@@ -29,6 +30,22 @@ const Harness = () => {
   const [level, setLevel] = useState<InterviewBudgetLevel>("standard");
   return <InterviewBudgetControl level={level} onChange={setLevel} />;
 };
+
+test.each([
+  ["quick", "Quick · ~5 min"],
+  ["standard", "Standard · ~10 min"],
+  ["thorough", "Thorough · ~20 min"],
+  ["deep", "Deep · No limit"],
+  ["off", "Off"],
+] as const)("keeps the %s note free of budget wording", (level, text) => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({ matches: true })),
+  );
+  const { container } = render(<InterviewBudgetNote level={level} />);
+  expect(container.textContent).toBe(text);
+  expect(container.querySelector("svg")?.getAttribute("width")).toBe("12");
+});
 
 test("opens a five-stop control with hover descriptions and keyboard-accessible level selection", async () => {
   render(<Harness />);
