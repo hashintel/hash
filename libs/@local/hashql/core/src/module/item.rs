@@ -76,6 +76,7 @@ pub struct Item<'heap> {
 }
 
 impl<'heap> Item<'heap> {
+    #[must_use]
     pub fn ancestors(
         &self,
         registry: &ModuleRegistry<'heap>,
@@ -87,27 +88,14 @@ impl<'heap> Item<'heap> {
                 return None;
             }
 
-            let module = registry.modules.index(next);
+            let module = registry.modules[next];
             next = module.parent;
 
             Some(module)
         })
     }
 
-    // TODO: deprecate
-    pub fn absolute_path(
-        &self,
-        registry: &ModuleRegistry<'heap>,
-    ) -> impl IntoIterator<Item = Symbol<'heap>> {
-        let mut modules: Vec<_> = self.ancestors(registry).into_iter().collect();
-        modules.reverse();
-
-        modules
-            .into_iter()
-            .map(|module| module.name)
-            .chain(iter::once(self.name))
-    }
-
+    #[must_use]
     pub fn absolute_path_rev(
         &self,
         registry: &ModuleRegistry<'heap>,

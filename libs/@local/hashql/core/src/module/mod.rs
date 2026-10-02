@@ -12,8 +12,7 @@ mod resolver;
 pub mod std_lib;
 pub mod universe;
 
-use core::{num::NonZero, slice};
-use std::sync::RwLock;
+use core::{alloc::Allocator, num::NonZero, slice};
 
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
@@ -23,10 +22,9 @@ use self::{
 };
 pub use self::{resolver::Reference, universe::Universe};
 use crate::{
-    collections::{FastHashMap, FastHashSet},
-    heap::Heap,
-    id::{HasId, Id as _, newtype},
-    intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
+    collections::{FastHashMap, fast_hash_map_in},
+    heap::{BumpAllocator as _, Heap},
+    id::{HasId, Id as _, IdSlice, IdVec, bit_vec::DenseBitSet, newtype},
     symbol::Symbol,
     r#type::environment::Environment,
 };
@@ -40,6 +38,131 @@ impl ModuleId {
     pub const ROOT: Self = Self::MAX;
 }
 
+/// A builder for constructing a [`ModuleRegistry`].
+///
+/// Collects module definitions during construction (e.g. stdlib registration) and produces
+/// an immutable [`ModuleRegistry`] via [`finish`].
+///
+/// The typical construction sequence is:
+/// 1. Create with [`new_in`]
+/// 2. Provision module IDs with [`provision_module`]
+/// 3. Insert fully built modules with [`insert_module`]
+/// 4. Register root-level modules with [`register`]
+/// 5. Finalize into a [`ModuleRegistry`] with [`finish`]
+///
+/// [`new_in`]: Self::new_in
+/// [`provision_module`]: Self::provision_module
+/// [`insert_module`]: Self::insert_module
+/// [`register`]: Self::register
+/// [`finish`]: Self::finish
+pub struct PartialModuleRegistry<'heap, S: Allocator> {
+    heap: &'heap Heap,
+    modules: IdVec<ModuleId, Option<Module<'heap>>, S>,
+
+    root: FastHashMap<Symbol<'heap>, ModuleId, &'heap Heap>,
+}
+
+impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
+    pub fn new_in(heap: &'heap Heap, scratch: S) -> Self {
+        Self {
+            heap,
+            modules: IdVec::new_in(scratch),
+            root: fast_hash_map_in(heap),
+        }
+    }
+
+    /// Reserves a fresh [`ModuleId`] that can be referenced by child items before the
+    /// module itself is inserted.
+    pub fn provision_module(&mut self) -> ModuleId {
+        self.modules.push(None)
+    }
+
+    /// Inserts a fully constructed module into the registry.
+    ///
+    /// The module's `id` must have been previously obtained from [`provision_module`].
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, panics if any item in the module references a different module ID
+    /// than the one being inserted, or if child module metadata is inconsistent.
+    ///
+    /// [`provision_module`]: Self::provision_module
+    pub fn insert_module(&mut self, module: Module<'heap>) {
+        #[cfg(debug_assertions)]
+        {
+            for item in module.items {
+                assert_eq!(item.module, module.id);
+
+                // check for modules if the parent is also set *correctly* to our module
+                if let ItemKind::Module(child) = item.kind {
+                    let child = self
+                        .modules
+                        .lookup(child)
+                        .expect("child modules should be registered before their parents");
+
+                    assert_eq!(child.parent, module.id);
+                    assert_eq!(child.depth.get(), module.depth.get() + 1);
+                    assert_eq!(child.name, item.name);
+                }
+            }
+        }
+
+        let value = self.modules.insert(module.id, module);
+        debug_assert!(value.is_none());
+    }
+
+    /// Registers a module in the root namespace, making it accessible by name.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the module has not been inserted via [`insert_module`].
+    ///
+    /// [`insert_module`]: Self::insert_module
+    pub fn register(&mut self, module: ModuleId) {
+        let module = self
+            .modules
+            .lookup(module)
+            .expect("module must be inserted to be able to register it");
+
+        debug_assert_eq!(module.parent, ModuleId::ROOT);
+
+        self.root.insert(module.name, module.id);
+    }
+
+    /// Finalizes the builder into an immutable [`ModuleRegistry`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if any provisioned module ID was never populated via [`insert_module`].
+    ///
+    /// [`insert_module`]: Self::insert_module
+    #[expect(unsafe_code)]
+    pub fn finish(self) -> ModuleRegistry<'heap> {
+        assert!(
+            self.modules.iter().all(Option::is_some),
+            "all modules must be inserted to be able to finish the registry"
+        );
+
+        let modules = self.heap.allocate_slice_uninit(self.modules.len());
+        for (dst, src) in modules.iter_mut().zip(self.modules.iter()) {
+            // SAFETY: We have just verified above that all modules are Some
+            unsafe {
+                dst.write(src.unwrap_unchecked());
+            }
+        }
+
+        // SAFETY: We have just written all items into the slice, and have verified above that all
+        // modules are Some
+        let modules = unsafe { modules.assume_init_ref() };
+
+        ModuleRegistry {
+            heap: self.heap,
+            modules: IdSlice::from_raw(modules),
+            root: self.root,
+        }
+    }
+}
+
 /// The central registry for all modules and items in a HashQL program.
 ///
 /// The `ModuleRegistry` serves as the global namespace for module resolution.
@@ -49,122 +172,44 @@ pub struct ModuleRegistry<'heap> {
     /// A reference to the global heap used for memory allocation.
     pub heap: &'heap Heap,
 
-    pub modules: InternMap<'heap, Module<'heap>>,
-    items: InternSet<'heap, [Item<'heap>]>,
+    modules: &'heap IdSlice<ModuleId, Module<'heap>>,
 
-    root: RwLock<FastHashMap<Symbol<'heap>, ModuleId>>,
+    root: FastHashMap<Symbol<'heap>, ModuleId, &'heap Heap>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
-    /// Creates an empty module registry using the given heap.
-    pub fn empty(heap: &'heap Heap) -> Self {
-        Self {
-            heap,
-            modules: InternMap::new(heap),
-            items: InternSet::new(heap),
-            root: RwLock::default(),
-        }
-    }
-
     /// Creates a new module registry with the standard library pre-loaded.
     ///
     /// This initializes the registry with all the standard modules and items
-    /// defined in the standard library.
+    /// defined in the standard library, using the global allocator for scratch space.
     pub fn new(env: &Environment<'heap>) -> Self {
-        let this = Self::empty(env.heap);
+        Self::new_in(env, alloc::alloc::Global)
+    }
 
-        let mut std = StandardLibrary::new(env, &this);
+    /// Creates a new module registry with the standard library pre-loaded, using `scratch`
+    /// for temporary allocations during construction.
+    pub fn new_in<S: Allocator + Clone>(env: &Environment<'heap>, scratch: S) -> Self {
+        let mut partial = PartialModuleRegistry::new_in(env.heap, scratch.clone());
+
+        let mut std = StandardLibrary::new(env, &mut partial, scratch);
         std.register();
 
-        this
+        partial.finish()
     }
 
-    /// Interns a new module into the registry.
-    ///
-    /// # Panics
-    ///
-    /// In debug builds, this function will panic if any item in the module has a parent
-    /// that doesn't match the module ID.
-    pub fn intern_module(
-        &self,
-        closure: impl FnOnce(Provisioned<ModuleId>) -> PartialModule<'heap>,
-    ) -> ModuleId {
-        self.modules
-            .intern(|id| {
-                let module = closure(id);
-
-                if cfg!(debug_assertions) {
-                    for item in module.items {
-                        assert_eq!(item.module, id.value());
-
-                        // check for modules if the parent is also set *correctly* to our module
-                        if let ItemKind::Module(child) = item.kind {
-                            let child = self.modules.index(child);
-
-                            assert_eq!(child.parent, id.value());
-                            assert_eq!(child.depth.get(), module.depth.get() + 1);
-                            assert_eq!(child.name, item.name);
-                        }
-                    }
-                }
-
-                module
-            })
-            .id
-    }
-
-    /// Interns a slice of items into the registry.
-    pub fn intern_items(&self, items: &[Item<'heap>]) -> Interned<'heap, [Item<'heap>]> {
-        self.items.intern_slice(items)
-    }
-
-    /// Register a new module in the root namespace.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal `RwLock` is poisoned.
-    pub fn register(&self, module: ModuleId) {
-        let module = self.modules.index(module);
-
-        if cfg!(debug_assertions) {
-            assert_eq!(module.parent, ModuleId::ROOT);
-        }
-
-        let mut root = self.root.write().expect("lock should not be poisoned");
-        root.insert(module.name, module.id);
-        drop(root);
-    }
-
-    /// Find an item by name in the root namespace.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal `RwLock` is poisoned.
+    /// Looks up a root-level module by name.
+    #[must_use]
     pub fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
-        let root = self.root.read().expect("lock should not be poisoned");
+        let id = self.root.get(&name).copied()?;
 
-        let id = root.get(&name).copied()?;
-        drop(root);
-
-        let module = self.modules.index(id);
-
-        Some(module)
+        Some(self.modules[id])
     }
 
     /// Finds suggestions for the given name in the root namespace.
-    fn suggestions(&self) -> Vec<ResolutionSuggestion<'heap, ModuleId>> {
-        let root = self.root.read().expect("lock should not be poisoned");
-
-        let mut results = Vec::with_capacity(root.len());
-        for (&key, &module) in &*root {
-            results.push(ResolutionSuggestion {
-                item: module,
-                name: key,
-            });
-        }
-        drop(root);
-
-        results
+    fn suggestions(&self) -> impl ExactSizeIterator<Item = ResolutionSuggestion<'heap, ModuleId>> {
+        self.root
+            .iter()
+            .map(|(&name, &id)| ResolutionSuggestion { item: id, name })
     }
 
     /// Resolves a path to an item in the registry.
@@ -277,27 +322,15 @@ impl<'heap> ModuleRegistry<'heap> {
     /// This method requires allocation for the traversal state:
     /// - A vector for the module exploration stack
     /// - A hash set for tracking visited modules
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal `RwLock` is poisoned.
+    #[must_use]
     pub fn search_by_name(
         &self,
         name: Symbol<'heap>,
         universe: Universe,
     ) -> impl IntoIterator<Item = Item<'heap>> {
-        let mut stack: Vec<_> = self
-            .root
-            .read()
-            .expect("lock should not be poisoned")
-            .values()
-            .copied()
-            .collect();
+        let mut stack: Vec<_> = self.root.values().copied().collect();
 
-        let mut seen = FastHashSet::with_capacity_and_hasher(
-            stack.len(),
-            foldhash::fast::RandomState::default(),
-        );
+        let mut seen = DenseBitSet::new_empty(self.modules.len());
         let mut current: slice::Iter<'heap, Item<'heap>> = [].iter();
 
         core::iter::from_fn(move || {
@@ -309,7 +342,7 @@ impl<'heap> ModuleRegistry<'heap> {
                     }
 
                     if let ItemKind::Module(child) = item.kind
-                        && !seen.contains(&child)
+                        && !seen.contains(child)
                     {
                         stack.push(child);
                     }
@@ -317,14 +350,11 @@ impl<'heap> ModuleRegistry<'heap> {
 
                 // Current module is exhausted, try to get the next module from the stack
                 while let Some(id) = stack.pop() {
-                    if seen.contains(&id) {
+                    if !seen.insert(id) {
                         continue;
                     }
 
-                    seen.insert(id);
-
-                    let module = self.modules.index(id);
-                    current = module.items.into_iter();
+                    current = self.modules[id].items.iter();
 
                     // Jump back to processing items in this new module
                     continue 'outer;
@@ -338,14 +368,13 @@ impl<'heap> ModuleRegistry<'heap> {
         })
     }
 
+    #[must_use]
     pub fn module_depth(&self, id: ModuleId) -> u32 {
         if id == ModuleId::ROOT {
             return 0;
         }
 
-        let module = self.modules.index(id);
-
-        module.depth.get()
+        self.modules[id].depth.get()
     }
 }
 
@@ -362,7 +391,7 @@ pub struct Module<'heap> {
     pub parent: ModuleId,
     pub depth: NonZero<u32>,
 
-    pub items: Interned<'heap, [Item<'heap>]>,
+    pub items: &'heap [Item<'heap>],
 }
 
 impl<'heap> Module<'heap> {
@@ -387,32 +416,56 @@ impl<'heap> Module<'heap> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct PartialModule<'heap> {
-    name: Symbol<'heap>,
-    parent: ModuleId,
-    depth: NonZero<u32>,
-    items: Interned<'heap, [Item<'heap>]>,
-}
-
-impl<'heap> Decompose<'heap> for Module<'heap> {
-    type Partial = PartialModule<'heap>;
-
-    fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
-        Self {
-            id,
-            name: partial.name,
-            parent: partial.parent,
-            depth: partial.depth,
-            items: partial.items,
-        }
-    }
-}
-
 impl HasId for Module<'_> {
     type Id = ModuleId;
 
     fn id(&self) -> Self::Id {
         self.id
+    }
+}
+
+#[cfg(test)]
+impl<'heap> ModuleRegistry<'heap> {
+    /// Creates a partially built registry with the stdlib loaded.
+    ///
+    /// Returns a `PartialModuleRegistry` that can be further customized (e.g. by inserting
+    /// test modules) before calling [`PartialModuleRegistry::finish`].
+    pub(crate) fn builder(
+        env: &Environment<'heap>,
+    ) -> PartialModuleRegistry<'heap, alloc::alloc::Global> {
+        use alloc::alloc::Global;
+
+        let mut partial = PartialModuleRegistry::new_in(env.heap, Global);
+
+        let mut std = StandardLibrary::new(env, &mut partial, Global);
+        std.register();
+
+        partial
+    }
+}
+
+#[cfg(test)]
+impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
+    /// Inserts a root-level module with the given name and items.
+    ///
+    /// This is a test helper that provisions a module ID, passes it to the `items` closure
+    /// so items can reference their owning module, then inserts and registers the module.
+    pub(crate) fn insert_root_module(
+        &mut self,
+        name: Symbol<'heap>,
+        items: impl FnOnce(ModuleId) -> &'heap [Item<'heap>],
+    ) -> ModuleId {
+        let id = self.provision_module();
+
+        self.insert_module(Module {
+            id,
+            name,
+            parent: ModuleId::ROOT,
+            depth: const { NonZero::new(1).unwrap() },
+            items: items(id),
+        });
+        self.register(id);
+
+        id
     }
 }
