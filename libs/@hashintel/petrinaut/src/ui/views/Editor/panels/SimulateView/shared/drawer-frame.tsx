@@ -112,7 +112,6 @@ const bodyStyle = css({
   overflowY: "auto",
   overflowX: "hidden",
   outline: "none",
-  scrollbarWidth: "[thin]",
   scrollbarGutter: "stable",
   paddingX: "5",
   paddingTop: "5",
