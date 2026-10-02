@@ -122,7 +122,7 @@ export const createOpenAILiveSessionHandler =
 
     const budgetLevel = request.headers.get(interviewBudgetHeader) ?? "off";
     if (!isInterviewBudgetLevel(budgetLevel))
-      return respond("Unsupported interview budget.", 400);
+      return respond("Unsupported interview length.", 400);
     const budgetInstruction = liveInterviewBudgetInstruction(budgetLevel);
 
     const signal = AbortSignal.any([

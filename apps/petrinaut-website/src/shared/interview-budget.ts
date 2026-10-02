@@ -117,5 +117,5 @@ export const liveInterviewBudgetInstruction = (
 ): string => {
   if (level === "off") return "";
   const config = interviewBudgetLevelsConfig[level];
-  return `Interview budget: ${config.name} (${config.guide}). Minutes are a guide, not a timer. Brunch decides what questions to ask and how many; you decide how to say them. ${level === "quick" ? "Keep phrasing brief and give the person room to answer." : level === "deep" || level === "thorough" ? "Give the person room to elaborate and preserve Brunch's pauses between topics." : "Use concise, natural phrasing and give the person room to finish."} Relay Brunch's closing turn faithfully; never add a question or invent missing facts, ranges or units.`;
+  return `Interview length: ${config.name} (${config.guide}). Minutes are a guide, not a timer. Brunch decides what questions to ask and how many; you decide how to say them. ${level === "quick" ? "Keep phrasing brief and give the person room to answer." : level === "deep" || level === "thorough" ? "Give the person room to elaborate and preserve Brunch's pauses between topics." : "Use concise, natural phrasing and give the person room to finish."} Relay Brunch's closing turn faithfully; never add a question or invent missing facts, ranges or units.`;
 };

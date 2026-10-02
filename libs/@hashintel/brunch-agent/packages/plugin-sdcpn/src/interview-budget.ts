@@ -40,5 +40,5 @@ export const interviewBudgetInstruction = (
         : budget.remaining === 1
           ? "Make the last question the most consequential open fact."
           : "Choose the next question according to this level.";
-  return `Interview budget: the person chose ${budget.level} (${timeGuide}; minutes are a guide, not a timer). Follow the Budget section of sdcpn-modelling. Record the level on the first turn under "Available time and assumption appetite", and update it when changed without repeating settled facts. Questions asked: ${budget.asked}; cap: ${budget.questionCap ?? "none"}; remaining: ${budget.remaining ?? "unlimited"}. ${next} Never invent operational facts, ranges or units. Reaching the cap is not completion; leave unsupported facts open.`;
+  return `Interview length: the person chose ${budget.level} (${timeGuide}; minutes are a guide, not a timer). Follow the Interview length section of sdcpn-modelling. Record the level on the first turn under "Available time and assumption appetite", and update it when changed without repeating settled facts. Questions asked: ${budget.asked}; cap: ${budget.questionCap ?? "none"}; remaining: ${budget.remaining ?? "unlimited"}. ${next} Never invent operational facts, ranges or units. Reaching the cap is not completion; leave unsupported facts open.`;
 };

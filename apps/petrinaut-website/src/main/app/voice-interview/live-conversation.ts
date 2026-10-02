@@ -1021,7 +1021,7 @@ export const createLiveConversation = (
           append(
             "thinking",
             budgetLevel === "off"
-              ? "Interview budget is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
+              ? "Interview length is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
               : liveInterviewBudgetInstruction(budgetLevel),
             null,
           )
