@@ -11,6 +11,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
@@ -34,6 +36,7 @@ const setup = (
   );
   const notice = vi.fn();
   const speechPending = vi.fn(() => true);
+  const isToolAwaitingApproval = vi.fn(() => false);
   const submit = vi.fn(
     async (
       input: Parameters<
@@ -54,6 +57,7 @@ const setup = (
     appendThinking,
     notice,
     speechPending,
+    isToolAwaitingApproval,
     submit,
     mediation,
   });
@@ -76,6 +80,7 @@ const setup = (
     appendThinking,
     notice,
     speechPending,
+    isToolAwaitingApproval,
     submit,
     update,
   };
@@ -1927,6 +1932,12 @@ test.each(["button", "snapshot", "aborted"] as const)(
       },
     ];
     fixture.update({ status: "streaming", messages });
+    // Quiet phase publication is independent of the interruption context.
+    expect(fixture.appendThinking).toHaveBeenCalledWith(
+      expect.stringContaining('"progress"'),
+      null,
+    );
+    fixture.appendThinking.mockClear();
     if (stopKind === "button") fixture.bridge.stopResponse();
     else if (stopKind === "snapshot")
       fixture.update({ stopped: true, messages });
@@ -2433,7 +2444,11 @@ test.each([
         ? []
         : [[expect.stringContaining(expectedStatus), "request"]],
     );
-    expect(fixture.appendThinking).not.toHaveBeenCalled();
+    expect(
+      fixture.appendThinking.mock.calls.every(([text]) =>
+        text.startsWith('{"progress":'),
+      ),
+    ).toBe(true);
     expect(
       fixture.appendInstructions.mock.calls.flat().join(" "),
     ).not.toContain("Ask the person to continue");
@@ -2451,3 +2466,199 @@ test("textless and dropped inputs without delegations do not inject session-wide
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });
+
+const runningTool = (toolName = "createExperiment") => ({
+  id: "answer",
+  role: "assistant" as const,
+  parts: [
+    {
+      type: "dynamic-tool" as const,
+      toolName,
+      toolCallId: "call",
+      state: "input-available" as const,
+      input: {},
+    },
+  ],
+});
+
+test("progress leaves the delegation open and settlement waits for Live speech", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Compare staffing"));
+  fixture.speechPending.mockReturnValue(false);
+  fixture.bridge.responseStarted(started);
+  fixture.update({ status: "streaming", messages: [runningTool()] });
+  fixture.bridge.liveSpeaking(true);
+  await vi.advanceTimersByTimeAsync(2_000);
+  fixture.bridge.liveSpeaking(false);
+  await vi.advanceTimersByTimeAsync(5_999);
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(251);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Setting up the comparison.",
+    null,
+  );
+  fixture.bridge.liveSpeaking(true);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  await vi.advanceTimersByTimeAsync(3_000);
+  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  fixture.bridge.liveSpeaking(false);
+  await vi.advanceTimersByTimeAsync(250);
+  expect(fixture.appendCommentary).toHaveBeenLastCalledWith(
+    segment().text,
+    "delegation",
+  );
+  await vi.advanceTimersByTimeAsync(40_000);
+  expect(fixture.appendCommentary).toHaveBeenCalledTimes(2);
+  fixture.bridge.stop();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test("approval changes are polled even without a new message snapshot", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Remove that place"));
+  fixture.speechPending.mockReturnValue(false);
+  fixture.isToolAwaitingApproval.mockReturnValue(true);
+  fixture.bridge.responseStarted(started);
+  fixture.update({
+    status: "streaming",
+    messages: [runningTool("removePlace")],
+  });
+  await vi.advanceTimersByTimeAsync(40_000);
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(
+    fixture.appendThinking.mock.calls.some(([text]) =>
+      text.includes('"phase":"awaiting-approval"'),
+    ),
+  ).toBe(true);
+  fixture.isToolAwaitingApproval.mockReturnValue(false);
+  await vi.advanceTimersByTimeAsync(2_500);
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(250);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Making those changes now.",
+    null,
+  );
+  fixture.bridge.stop();
+});
+
+test.each(["speech", "stop", "error", "settlement"] as const)(
+  "%s cancels future progress",
+  async (cause) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    fixture.bridge.acceptDelegation("delegation");
+    await fixture.bridge.accept(speech("one", "Compare staffing"));
+    fixture.speechPending.mockReturnValue(false);
+    fixture.bridge.responseStarted(started);
+    fixture.update({ status: "streaming", messages: [runningTool()] });
+    await vi.advanceTimersByTimeAsync(5_750);
+    if (cause === "speech") fixture.bridge.speechStarted();
+    else if (cause === "stop") fixture.bridge.stopResponse();
+    else if (cause === "error") fixture.update({ status: "error" });
+    else wrapUp(fixture);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(
+      fixture.appendCommentary.mock.calls.filter(
+        ([text]) => text === "Setting up the comparison.",
+      ),
+    ).toEqual([]);
+    fixture.bridge.stop();
+  },
+);
+
+test("historical and unrelated tools cannot supply progress for this turn", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  fixture.update({ messages: [runningTool()] });
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Explain this"));
+  fixture.speechPending.mockReturnValue(false);
+  fixture.bridge.responseStarted({ ...started, messageId: "new-answer" });
+  fixture.update({
+    status: "streaming",
+    messages: [runningTool(), { ...runningTool(), id: "unrelated" }],
+  });
+  await vi.advanceTimersByTimeAsync(6_250);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Give me a moment on this one.",
+    null,
+  );
+  fixture.bridge.stop();
+});
+
+test("a tool continuation can report progress after its initial submission settled", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Compare staffing"));
+  fixture.speechPending.mockReturnValue(false);
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ status: "streaming", settlements: completed });
+  await vi.advanceTimersByTimeAsync(7_000);
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  fixture.bridge.responseStarted({
+    ...started,
+    submissionId: "continuation",
+    position: { batch: 3, index: 0 },
+  });
+  fixture.update({
+    status: "streaming",
+    settlements: completed,
+    messages: [runningTool()],
+  });
+  await vi.advanceTimersByTimeAsync(250);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Setting up the comparison.",
+    null,
+  );
+  fixture.bridge.stop();
+});
+
+test.each([true, false])(
+  "output-available applied=%s uses reported edit outcomes, not the transport state",
+  async (applied) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    fixture.bridge.acceptDelegation("delegation");
+    await fixture.bridge.accept(speech("one", "Edit three places"));
+    fixture.speechPending.mockReturnValue(false);
+    fixture.bridge.responseStarted(started);
+    fixture.update({
+      status: "streaming",
+      messages: [
+        {
+          id: "answer",
+          role: "assistant",
+          parts: ["one", "two", "three"].map((toolCallId) => ({
+            type: "dynamic-tool",
+            toolName: "addPlace",
+            toolCallId,
+            state: "output-available",
+            input: {},
+            output: { applied: toolCallId === "two" ? applied : true },
+          })),
+        },
+      ],
+    });
+    await vi.advanceTimersByTimeAsync(6_250);
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      applied
+        ? "The edits are in. Give me a moment."
+        : "Give me a moment on this one.",
+      null,
+    );
+    fixture.bridge.stop();
+  },
+);

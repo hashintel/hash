@@ -38,6 +38,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageStarted"
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
+    | "isToolAwaitingApproval"
   > & {
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
@@ -85,6 +86,7 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageStarted,
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
+  isToolAwaitingApproval,
 }: LiveControlsContext) => {
   const [localHistory] = useState(() => new VoiceMediationHistory("session"));
   const history = mediationHistory ?? localHistory;
@@ -127,6 +129,7 @@ export const LiveConversationControl = ({
   const latest = useRef({
     submit,
     messages,
+    isToolAwaitingApproval,
     chat: {
       status,
       stopped,
@@ -163,6 +166,7 @@ export const LiveConversationControl = ({
     latest.current = {
       submit,
       messages,
+      isToolAwaitingApproval,
       chat: {
         status,
         stopped,
@@ -183,6 +187,7 @@ export const LiveConversationControl = ({
     resolveResponseSubmission,
     settlements,
     snapshot,
+    isToolAwaitingApproval,
   ]);
 
   useEffect(
@@ -240,6 +245,7 @@ export const LiveConversationControl = ({
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
+        bridge.current?.liveSpeaking(nextState.activity?.outputActive === true);
         if (
           nextState.phase !== "connected" ||
           nextState.activity?.outputActive
@@ -290,13 +296,19 @@ export const LiveConversationControl = ({
             offeredInput = undefined;
           }
           const inputId = appendInputs.get(result.eventId);
-          if (
-            inputId &&
-            result.status === "accepted" &&
-            result.startMs !== undefined
-          )
-            captions.wrapUp(inputId, result.startMs);
+          if (result.status === "accepted" && result.startMs !== undefined) {
+            if (inputId) captions.wrapUp(inputId, result.startMs);
+            else if (result.delegationId === null)
+              captions.progress(result.startMs);
+          }
           if (result.status !== "unknown") appendInputs.delete(result.eventId);
+        } else if (
+          result.kind === "instructions" &&
+          result.delegationId === null &&
+          result.status === "accepted" &&
+          result.startMs !== undefined
+        ) {
+          captions.progress(result.startMs);
         }
         // Every successful local send starts as unknown. Neither waiting
         // for acceptance nor acceptance itself is an error or resolves a
@@ -358,6 +370,8 @@ export const LiveConversationControl = ({
       appendThinking: next.appendThinking,
       notice: setWarningMessage,
       speechPending: next.speechPending,
+      isToolAwaitingApproval: (toolCallId) =>
+        latest.current.isToolAwaitingApproval?.(toolCallId) ?? false,
     });
     bridge.current.update(latest.current.chat);
     session.current = next;

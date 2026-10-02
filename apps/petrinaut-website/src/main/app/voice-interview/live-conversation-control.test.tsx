@@ -1442,6 +1442,11 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
       config={config}
     />,
   );
+  expect(session.appendThinking).toHaveBeenCalledWith(
+    expect.stringContaining('"progress"'),
+    null,
+  );
+  vi.mocked(session.appendThinking).mockClear();
   act(() => tracker.recordStopRequested());
   expect(session.appendThinking).toHaveBeenCalledExactlyOnceWith(
     expect.stringContaining(
@@ -1781,3 +1786,135 @@ test.each(["commentary", "instructions"] as const)(
     expect(props.reportVoiceSessionState).not.toHaveBeenCalled();
   },
 );
+
+test("Live progress observes the host approval gate and stays out of written voice history", async () => {
+  mockMediation();
+  const tracker = new BrunchPanelConversationTracker();
+  const history = new VoiceMediationHistory("progress-test");
+  const props = context();
+  props.submitVoiceInput = vi.fn(async () => ({
+    kind: "message" as const,
+    messageId: "voice-input",
+  }));
+  const awaitingApproval = vi.fn(() => true);
+  const wiring = {
+    mediationHistory: history,
+    isToolAwaitingApproval: awaitingApproval,
+    resolveInputSubmission: () => "root",
+    subscribeToResponseMessageStarted:
+      tracker.subscribeToResponseMessageStarted.bind(tracker),
+  };
+  const { rerender, unmount } = render(
+    <VoiceInterviewControl {...props} {...wiring} config={config} />,
+  );
+  await start();
+  vi.useFakeTimers();
+  try {
+    const call = vi.mocked(createLiveConversation).mock.lastCall!;
+    const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+      .value as ReturnType<typeof createLiveConversation>;
+    act(() => {
+      call[0]({ phase: "connected", message: null });
+      call[6]?.input({
+        id: "input",
+        text: "Remove that place",
+        startMs: 100,
+        endMs: 200,
+      });
+      call[3]("delegation");
+      call[2]({
+        id: "voice-input",
+        text: "Remove that place",
+        startedDuringOutput: false,
+      });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    vi.mocked(session.speechPending).mockReturnValue(false);
+    act(() =>
+      tracker.recordResponse({
+        messageId: "answer",
+        submissionId: "root",
+        position: { batch: 1, index: 0 },
+      }),
+    );
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        {...wiring}
+        config={config}
+        status="streaming"
+        messages={[
+          {
+            id: "answer",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "removePlace",
+                toolCallId: "delete",
+                state: "input-available",
+                input: {},
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(awaitingApproval).toHaveBeenCalledWith("delete");
+    expect(session.appendCommentary).not.toHaveBeenCalled();
+    awaitingApproval.mockReturnValue(false);
+    act(() =>
+      call[0]({
+        phase: "connected",
+        message: null,
+        activity: { microphoneLevel: 0, outputActive: true },
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(session.appendCommentary).not.toHaveBeenCalled();
+    act(() =>
+      call[0]({
+        phase: "connected",
+        message: null,
+        activity: { microphoneLevel: 0, outputActive: false },
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6_000);
+    });
+    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      "Making those changes now.",
+      null,
+    );
+    act(() => {
+      call[4]({
+        eventId: "progress",
+        kind: "commentary",
+        delegationId: null,
+        status: "accepted",
+        startMs: 46_000,
+      });
+      call[6]?.output({
+        id: "progress-output",
+        text: "Making those changes now.",
+        startMs: 46_100,
+        endMs: 47_000,
+      });
+    });
+    expect(JSON.stringify(history.project([]))).not.toContain(
+      "Making those changes now.",
+    );
+    expect(screen.queryByText("Making those changes now.")).toBeNull();
+    unmount();
+  } finally {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  }
+});

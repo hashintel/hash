@@ -632,6 +632,7 @@ const AvailableVoiceInterviewControl = ({
 const PinnedVoiceInterviewControl = ({
   config,
   mediationHistory,
+  isToolAwaitingApproval,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -645,6 +646,7 @@ const PinnedVoiceInterviewControl = ({
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
   readonly mediationHistory?: VoiceMediationHistory;
+  readonly isToolAwaitingApproval?: (toolCallId: string) => boolean;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
@@ -671,6 +673,7 @@ const PinnedVoiceInterviewControl = ({
       <LiveConversationControl
         {...context}
         mediationHistory={mediationHistory}
+        isToolAwaitingApproval={isToolAwaitingApproval}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}
