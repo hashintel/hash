@@ -25,7 +25,7 @@ requires      = ["uv_build>=0.12.16,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["deptry<0.26,>=0.25.1", "pytest<10,>=9.1.1", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]
+dev = ["deptry<0.26,>=0.25.1", "pytest<10,>=9.1.1", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.85,>=0.0.84"]
 
 [tool.ruff]
 extend = "../../../../pyproject.toml"
