@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "dependency-cruiser": "18.0.0",
-    "js-yaml": "4.3.2",
+    "js-yaml": "5.4.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
