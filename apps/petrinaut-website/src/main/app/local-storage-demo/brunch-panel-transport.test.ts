@@ -1,6 +1,10 @@
 import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
+import {
+  interviewBudgetContextKey,
+  parseInterviewBudget,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { interviewBudgetLevels } from "../../../shared/interview-budget";
@@ -82,18 +86,16 @@ test.each(interviewBudgetLevels)(
             remaining:
               questionCap === null ? null : Math.max(0, questionCap - asked),
           };
-          expect(request?.initialData).toEqual({
-            ...initialData,
-            interviewBudget: budget,
-          });
+          expect(request?.initialData).toEqual(initialData);
           expect(
             parsePetrinautUserMessageBody(request?.message.body ?? ""),
           ).toEqual({
             kind: "contextual",
             userText: "Four agents",
             diagnosticsContext: "",
-            interviewBudget: budget,
+            submissionContext: { [interviewBudgetContextKey]: budget },
           });
+          expect(parseInterviewBudget(budget)).toEqual(budget);
         }
       }
     }

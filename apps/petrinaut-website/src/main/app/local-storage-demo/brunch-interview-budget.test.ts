@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 
+import { interviewBudgetContextKey } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   petrinautContextualUserMessageBody,
   snapshotToUiMessages,
@@ -60,7 +61,13 @@ test("wrap-up does not spend a question when the length is raised after closing"
           text: petrinautContextualUserMessageBody({
             userText: "Weekends too.",
             diagnosticsContext: "",
-            interviewBudget: getInterviewBudget("standard", "text", 6),
+            submissionContext: {
+              [interviewBudgetContextKey]: getInterviewBudget(
+                "standard",
+                "text",
+                6,
+              ),
+            },
           }),
         },
       ],

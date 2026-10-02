@@ -8,12 +8,34 @@ import {
 } from "../src/interview-budget";
 
 describe("interview budget", () => {
-  it("preserves the Off initialization exactly", () => {
+  it("keeps the allowance out of creation-only initial data", () => {
     const input = {
       binding: { conversationId: "c", documentId: "d", incarnationId: "i" },
     };
-    expect(v.parse(sdcpnInitialDataSchema, input)).toEqual(input);
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        ...input,
+        interviewBudget: {
+          level: "quick",
+          questionCap: 3,
+          asked: 0,
+          remaining: 3,
+        },
+      }),
+    ).toEqual(input);
     expect(interviewBudgetInstruction(undefined)).toBeUndefined();
+  });
+
+  it("tells the model the level and allowance, never a clock", () => {
+    const instruction = interviewBudgetInstruction({
+      level: "standard",
+      questionCap: 6,
+      asked: 2,
+      remaining: 4,
+    });
+    expect(instruction).toContain("the person chose standard.");
+    expect(instruction).toContain("cap: 6; remaining: 4");
+    expect(instruction).not.toMatch(/minute/i);
   });
 
   it("retains a current budget and distinguishes the last question from closing", () => {

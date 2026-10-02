@@ -2,15 +2,19 @@ import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
 
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
-const budgetContextPrefix = "petrinaut-contextual-user-message:v2\n";
+const submissionContextPrefix = "petrinaut-contextual-user-message:v2\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
 const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
+const submissionContextMaxLength = 16_000;
+const submissionContextMaxDepth = 16;
+
+/** Opaque host-owned data for one submission; the transport bounds it but never reads its keys. */
+export type SubmissionContext = Readonly<Record<string, unknown>>;
 
 export interface PetrinautContextualUserMessagePayload {
   readonly userText: string;
   readonly diagnosticsContext: string;
-  /** Host-owned per-submission data, validated by the domain plugin. */
-  readonly interviewBudget?: unknown;
+  readonly submissionContext?: SubmissionContext;
 }
 
 export type PetrinautUserMessageBody =
@@ -37,6 +41,31 @@ const hasExactKeys = (
   );
 };
 
+const isJsonValue = (value: unknown, depth: number): boolean => {
+  if (depth > submissionContextMaxDepth) return false;
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return true;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (Array.isArray(value))
+    return value.every((item) => isJsonValue(item, depth + 1));
+  if (typeof value !== "object") return false;
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return (
+    (prototype === Object.prototype || prototype === null) &&
+    Object.values(value).every((item) => isJsonValue(item, depth + 1))
+  );
+};
+
+const isSubmissionContext = (value: unknown): value is SubmissionContext => {
+  const record = asRecord(value);
+  return (
+    record !== null &&
+    Object.keys(record).length > 0 &&
+    isJsonValue(record, 0) &&
+    Array.from(JSON.stringify(record)).length <= submissionContextMaxLength
+  );
+};
+
 /** Build the bounded, provenance-preserving body used for a contextual user admission. */
 export const petrinautContextualUserMessageBody = (
   payload: PetrinautContextualUserMessagePayload,
@@ -45,8 +74,9 @@ export const petrinautContextualUserMessageBody = (
     payload.userText.length === 0 ||
     Array.from(payload.userText).length >
       PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH ||
-    (payload.diagnosticsContext.length === 0 &&
-      payload.interviewBudget === undefined) ||
+    (payload.submissionContext === undefined
+      ? payload.diagnosticsContext.length === 0
+      : !isSubmissionContext(payload.submissionContext)) ||
     Array.from(payload.diagnosticsContext).length >
       CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH
   ) {
@@ -54,11 +84,17 @@ export const petrinautContextualUserMessageBody = (
       "The contextual user message payload is invalid or too long.",
     );
   }
-  const prefix =
-    payload.interviewBudget === undefined
-      ? PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX
-      : budgetContextPrefix;
-  const body = `${prefix}${JSON.stringify(payload)}`;
+  const body =
+    payload.submissionContext === undefined
+      ? `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify({
+          userText: payload.userText,
+          diagnosticsContext: payload.diagnosticsContext,
+        })}`
+      : `${submissionContextPrefix}${JSON.stringify({
+          userText: payload.userText,
+          diagnosticsContext: payload.diagnosticsContext,
+          submissionContext: payload.submissionContext,
+        })}`;
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
     throw new Error("The contextual user message body is too long.");
   }
@@ -69,10 +105,11 @@ export const petrinautContextualUserMessageBody = (
 export const parsePetrinautUserMessageBody = (
   body: string,
 ): PetrinautUserMessageBody => {
-  const prefix = body.startsWith(budgetContextPrefix)
-    ? budgetContextPrefix
-    : PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX;
-  if (!body.startsWith(prefix)) {
+  const hasSubmissionContext = body.startsWith(submissionContextPrefix);
+  if (
+    !hasSubmissionContext &&
+    !body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)
+  ) {
     return { kind: "ordinary", userText: body };
   }
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
@@ -80,7 +117,13 @@ export const parsePetrinautUserMessageBody = (
   }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(body.slice(prefix.length));
+    parsed = JSON.parse(
+      body.slice(
+        hasSubmissionContext
+          ? submissionContextPrefix.length
+          : PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length,
+      ),
+    );
   } catch {
     return { kind: "invalid-contextual" };
   }
@@ -89,32 +132,27 @@ export const parsePetrinautUserMessageBody = (
     payload === null ||
     !hasExactKeys(
       payload,
-      prefix === budgetContextPrefix
-        ? ["diagnosticsContext", "interviewBudget", "userText"]
+      hasSubmissionContext
+        ? ["diagnosticsContext", "submissionContext", "userText"]
         : ["diagnosticsContext", "userText"],
     ) ||
     typeof payload.userText !== "string" ||
-    typeof payload.diagnosticsContext !== "string"
+    typeof payload.diagnosticsContext !== "string" ||
+    (hasSubmissionContext && !isSubmissionContext(payload.submissionContext))
   ) {
     return { kind: "invalid-contextual" };
   }
+  const result: PetrinautContextualUserMessagePayload = {
+    userText: payload.userText,
+    diagnosticsContext: payload.diagnosticsContext,
+    ...(hasSubmissionContext && isSubmissionContext(payload.submissionContext)
+      ? { submissionContext: payload.submissionContext }
+      : {}),
+  };
   try {
-    petrinautContextualUserMessageBody({
-      userText: payload.userText,
-      diagnosticsContext: payload.diagnosticsContext,
-      ...(prefix === budgetContextPrefix
-        ? { interviewBudget: payload.interviewBudget }
-        : {}),
-    });
+    petrinautContextualUserMessageBody(result);
   } catch {
     return { kind: "invalid-contextual" };
   }
-  return {
-    kind: "contextual",
-    userText: payload.userText,
-    diagnosticsContext: payload.diagnosticsContext,
-    ...(prefix === budgetContextPrefix
-      ? { interviewBudget: payload.interviewBudget }
-      : {}),
-  };
+  return { kind: "contextual", ...result };
 };

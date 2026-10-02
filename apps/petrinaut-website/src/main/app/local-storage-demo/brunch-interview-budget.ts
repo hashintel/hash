@@ -1,3 +1,7 @@
+import {
+  interviewBudgetContextKey,
+  parseInterviewBudget,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 
 import type { FlueConversationMessage } from "@flue/sdk";
@@ -17,15 +21,12 @@ export const countInterviewReplies = (
     for (const part of message.parts) {
       if (part.type !== "text") continue;
       const body = parsePetrinautUserMessageBody(part.text);
-      const budget =
-        body.kind === "contextual" ? body.interviewBudget : undefined;
-      if (
-        typeof budget === "object" &&
-        budget !== null &&
-        "remaining" in budget &&
-        budget.remaining === 0
-      )
-        closingSubmissions.add(message.submissionId);
+      const budget = parseInterviewBudget(
+        body.kind === "contextual"
+          ? body.submissionContext?.[interviewBudgetContextKey]
+          : undefined,
+      );
+      if (budget?.remaining === 0) closingSubmissions.add(message.submissionId);
     }
   }
   return messages.filter(

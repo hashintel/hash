@@ -2,7 +2,10 @@ import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
-import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  interviewBudgetContextKey,
+  sdcpnInitialDataSchema,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   petrinautAiCapabilityGuidance,
@@ -111,7 +114,7 @@ test("the agent admits a document binding or no initial data", () => {
   expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
 });
 
-test("current budget replaces birth data and switching Off restores exactly the baseline prompt", async () => {
+test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {
   mounted.initialData = bound;
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
@@ -131,11 +134,13 @@ test("current budget replaces birth data and switching Off restores exactly the 
     mounted.body = petrinautContextualUserMessageBody({
       userText: "Four agents",
       diagnosticsContext: "",
-      interviewBudget: {
-        level: "quick",
-        questionCap: 3,
-        asked: 3 - remaining,
-        remaining,
+      submissionContext: {
+        [interviewBudgetContextKey]: {
+          level: "quick",
+          questionCap: 3,
+          asked: 3 - remaining,
+          remaining,
+        },
       },
     });
     expect(renderChatAgent({ id: "budget" })).toBe(baseline);
@@ -152,6 +157,16 @@ test("current budget replaces birth data and switching Off restores exactly the 
   }
   mounted.instructions.length = 0;
   mounted.body = "Four agents";
+  expect(renderChatAgent({ id: "budget" })).toBe(baseline);
+  expect(mounted.instructions).toEqual(baselineInstructions);
+  mounted.instructions.length = 0;
+  mounted.body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: {
+      [interviewBudgetContextKey]: { level: "quick", asked: -1 },
+    },
+  });
   expect(renderChatAgent({ id: "budget" })).toBe(baseline);
   expect(mounted.instructions).toEqual(baselineInstructions);
 });

@@ -17,12 +17,12 @@ import {
 } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
-import * as v from "valibot";
 
 import { createWorkpieceReadTool } from "@hashintel/brunch-agent";
 import {
   canonicalContent,
-  interviewBudgetSchema,
+  interviewBudgetContextKey,
+  parseInterviewBudget,
   sdcpnInitialDataSchema,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -61,12 +61,13 @@ const chatModelOptions = {
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   // Flue initialData is immutable birth data. The durable current delivery
-  // carries the changing allowance and an ordinary body explicitly means Off.
+  // carries the changing allowance; an absent or malformed one means Off.
   const delivery = useDelivery();
   const body = parsePetrinautUserMessageBody(delivery.body);
-  const interviewBudget = v.parse(
-    v.optional(interviewBudgetSchema),
-    body.kind === "contextual" ? body.interviewBudget : undefined,
+  const interviewBudget = parseInterviewBudget(
+    body.kind === "contextual"
+      ? body.submissionContext?.[interviewBudgetContextKey]
+      : undefined,
   );
   useContextProjection(projectBrunchContext);
   // Agent-local acquisition of this already-authorized instance's public history.

@@ -1,3 +1,4 @@
+import { interviewBudgetContextKey } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   createFlueChatTransport,
   FlueChatAdmissionError,
@@ -237,13 +238,10 @@ export const createBrunchPanelTransport = (
           client,
           ...(options?.initialData === undefined
             ? {}
-            : {
-                initialData:
-                  budget === undefined
-                    ? options.initialData
-                    : { ...options.initialData, interviewBudget: budget },
-              }),
-          ...(budget === undefined ? {} : { interviewBudget: budget }),
+            : { initialData: options.initialData }),
+          ...(budget === undefined
+            ? {}
+            : { submissionContext: { [interviewBudgetContextKey]: budget } }),
           clientToolNames:
             options?.clientToolNames ?? canonicalPetrinautClientToolNames,
           dynamicClientToolNames: options?.dynamicClientToolNames,

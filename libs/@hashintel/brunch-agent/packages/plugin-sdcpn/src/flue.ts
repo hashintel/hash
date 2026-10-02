@@ -27,7 +27,7 @@ import {
 } from "./tools/petrinaut-construction";
 
 export const useSdcpnPlugin = (options?: {
-  /** Current delivery overrides creation-only initialData, including Off. */
+  /** The current submission's allowance; omitted means Off. */
   readonly interviewBudget?: InterviewBudget;
   readonly executeBrowserTool?: BrowserToolExecutor;
   readonly authorizeDraft?: Parameters<
@@ -35,11 +35,7 @@ export const useSdcpnPlugin = (options?: {
   >[0]["authorizeDraft"];
 }): void => {
   const initialData = useInitialData<SdcpnInitialData>();
-  const instruction = interviewBudgetInstruction(
-    options && "interviewBudget" in options
-      ? options.interviewBudget
-      : initialData?.interviewBudget,
-  );
+  const instruction = interviewBudgetInstruction(options?.interviewBudget);
   if (instruction) useInstruction(instruction);
   if (initialData) {
     useInstruction(sdcpnAppend.trim());

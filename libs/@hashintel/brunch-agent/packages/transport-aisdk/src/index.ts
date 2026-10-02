@@ -1,7 +1,10 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 
 import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
-import { petrinautContextualUserMessageBody } from "./contextual-user-message";
+import {
+  petrinautContextualUserMessageBody,
+  type SubmissionContext,
+} from "./contextual-user-message";
 import { serializeErrorText } from "./error-text";
 import {
   readLiveToolStream,
@@ -29,6 +32,7 @@ export {
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
 } from "./contextual-user-message";
+export type { SubmissionContext } from "./contextual-user-message";
 export {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -61,8 +65,8 @@ export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
   /** Opaque host-owned initialization, sent on user submissions only. */
   readonly initialData?: AgentPromptOptions["initialData"];
-  /** Current host budget, carried durably because initialData is creation-only. */
-  readonly interviewBudget?: unknown;
+  /** Opaque host-owned data for this submission, carried durably because initialData is creation-only. */
+  readonly submissionContext?: SubmissionContext;
   /** Best-effort pre-admission presentation; canonical Flue history remains authoritative. */
   readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
@@ -387,14 +391,14 @@ export const createFlueChatTransport = <
       kind: "user",
       body:
         diagnosticsContext === undefined &&
-        options.interviewBudget === undefined
+        options.submissionContext === undefined
           ? userMessage.text
           : petrinautContextualUserMessageBody({
               userText: userMessage.text,
               diagnosticsContext: diagnosticsContext ?? "",
-              ...(options.interviewBudget === undefined
+              ...(options.submissionContext === undefined
                 ? {}
-                : { interviewBudget: options.interviewBudget }),
+                : { submissionContext: options.submissionContext }),
             }),
     };
     const idempotencyKey = `ai-sdk:user:${userMessage.id}`;

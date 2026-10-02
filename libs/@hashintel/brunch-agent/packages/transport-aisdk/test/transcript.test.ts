@@ -36,11 +36,11 @@ const projectionOptions = {
   clientToolNames: new Set(["readPetrinautDoc"]),
 };
 
-test("rehydrates budget messages as human text, never as transport metadata", () => {
+test("rehydrates contextual messages as human text, never as transport metadata", () => {
   const body = petrinautContextualUserMessageBody({
     userText: "Four agents",
     diagnosticsContext: "",
-    interviewBudget: { level: "quick", questionCap: 3, asked: 1, remaining: 2 },
+    submissionContext: { hostKey: { asked: 1 } },
   });
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,
