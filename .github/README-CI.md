@@ -22,7 +22,6 @@ Script files used in GitHub Actions workflows
 
 ### GitHub.com automations
 
-- `pull_request_template.md` contains the template shown when opening a pull request
 - `labeler.yml` contains definitions for automatic labelling of pull requests
 
 ### Third-party config files
