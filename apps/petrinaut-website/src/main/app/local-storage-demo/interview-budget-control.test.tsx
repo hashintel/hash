@@ -51,14 +51,14 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   render(<Harness />);
   fireEvent.click(
     screen.getByRole("button", {
-      name: "Detail level: Standard · ~10 min",
+      name: "Interview length: Standard · ~10 min",
     }),
   );
   const slider = await screen.findByRole("slider", {
-    name: "Detail level",
+    name: "Interview length",
   });
-  expect(screen.getByRole("group", { name: "Detail level" })).toBeTruthy();
-  expect(screen.getByText("Detail level")).toBeTruthy();
+  expect(screen.getByRole("group", { name: "Interview length" })).toBeTruthy();
+  expect(screen.getByText("Interview length")).toBeTruthy();
   expect(screen.queryByText("Choose how much detail to explore.")).toBeNull();
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
@@ -82,7 +82,7 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   expect(slider.getAttribute("aria-valuetext")).toBe("Quick · ~5 min");
   fireEvent.click(screen.getByRole("button", { name: "Off" }));
   expect(
-    screen.getByRole("button", { name: "Detail level: Off · No budget" }),
+    screen.getByRole("button", { name: "Interview length: Off · No budget" }),
   ).toBeTruthy();
 });
 
@@ -90,11 +90,11 @@ test("Escape closes the control and returns focus to its trigger", async () => {
   render(<Harness />);
   fireEvent.click(
     screen.getByRole("button", {
-      name: "Detail level: Standard · ~10 min",
+      name: "Interview length: Standard · ~10 min",
     }),
   );
   const slider = await screen.findByRole("slider", {
-    name: "Detail level",
+    name: "Interview length",
   });
   await waitFor(() => expect(document.activeElement).toBe(slider));
   fireEvent.keyDown(slider, { key: "Escape" });
@@ -102,7 +102,7 @@ test("Escape closes the control and returns focus to its trigger", async () => {
   await waitFor(() =>
     expect(document.activeElement).toBe(
       screen.getByRole("button", {
-        name: "Detail level: Standard · ~10 min",
+        name: "Interview length: Standard · ~10 min",
       }),
     ),
   );

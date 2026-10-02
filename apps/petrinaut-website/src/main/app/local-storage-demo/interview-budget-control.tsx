@@ -108,7 +108,7 @@ export const InterviewBudgetControl = ({
           },
         })}
         data-budget-level={level}
-        aria-label={`Detail level: ${config.name} · ${config.guide}`}
+        aria-label={`Interview length: ${config.name} · ${config.guide}`}
         aria-expanded={open}
         aria-haspopup="dialog"
         tooltip={`${config.name} · ${config.guide}`}
@@ -129,7 +129,7 @@ export const InterviewBudgetControl = ({
         >
           <div
             role="group"
-            aria-label="Detail level"
+            aria-label="Interview length"
             onKeyDown={(event) => {
               if (event.key === "Escape") refocusTrigger.current = true;
             }}
@@ -163,7 +163,7 @@ export const InterviewBudgetControl = ({
                   color: "neutral.s100",
                 })}
               >
-                Detail level
+                Interview length
               </span>
               <span
                 className={css({
@@ -254,7 +254,7 @@ export const InterviewBudgetControl = ({
                 max={4}
                 step={1}
                 value={selectedIndex}
-                aria-label="Detail level"
+                aria-label="Interview length"
                 aria-valuetext={`${config.name} · ${config.guide}`}
                 className={css({
                   position: "absolute",

@@ -33,9 +33,9 @@ The header text is not selectable. Header icons animate on hover and click unles
 
 ## The conversation
 
-### Detail level
+### Interview length
 
-In the website's Brunch assistant, the round icon beside Send opens **Detail level**. The same control appears in the Voice dock. Choose **Off**, **Quick · ~5 min**, **Standard · ~10 min** (the default), **Thorough · ~20 min**, or **Deep · no limit**. Click a stop name, drag the rail, or focus it and use the arrow keys. The browser remembers the level.
+In the website's Brunch assistant, the round icon beside Send opens **Interview length**. The same control appears in the Voice dock. Choose **Off**, **Quick · ~5 min**, **Standard · ~10 min** (the default), **Thorough · ~20 min**, or **Deep · no limit**. Click a stop name, drag the rail, or focus it and use the arrow keys. The browser remembers the level.
 
 After the first reply, a quiet status sits at the right above the composer or Voice controls in the expanded conversation. It estimates time from questions left; it is not a countdown. The row stays blank before the first reply and when Off is selected, but keeps its space so the input controls do not move. The collapsed Voice dock omits this row entirely to stay compact; expand the conversation to see the estimate. Hover or focus the estimate for a card with the question count and closing behaviour. Quick, Standard and Thorough allow respectively 3, 6 and 10 replies in text, or 2, 4 and 7 in Voice. A grouped question or a confirmation-only reply counts once. The estimate progresses to **Last question**, then **Wrapping up**. Deep shows the running count and offers pauses; Off uses the ordinary interview without a budget.
 
