@@ -52,8 +52,7 @@ const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
       label: "Create link type",
       href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
     },
-    // @todo once H-773 adds the property type form, add its button here and
-    // drop the minHeight on the tabs row
+    // TODO(H-773): add the property type creation button
     "property-type": null,
     "data-type": { label: "Create data type", href: "/new/types/data-type" },
   };
@@ -266,12 +265,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             </Box>
             Types
           </Typography>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            // the create button's height, kept on tabs that hide the button
-            sx={{ minHeight: 48 }}
-          >
+          <Stack direction="row" justifyContent="space-between">
             <TypesPageTabs
               currentTab={currentTab}
               numberOfTypesByTab={{
@@ -290,7 +284,17 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
               >
                 {createButton.label}
               </CreateButton>
-            ) : null}
+            ) : (
+              // keeps the tab row as tall as on tabs with a create button
+              <CreateButton
+                disabled
+                variant="tertiary_quiet"
+                endIcon={<PlusRegularIcon />}
+                sx={{ visibility: "hidden" }}
+              >
+                Create type
+              </CreateButton>
+            )}
           </Stack>
         </Container>
       </Box>
