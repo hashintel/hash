@@ -66,10 +66,6 @@ area/libs:
   - changed-files:
       - any-glob-to-any-file: libs/**
 
-area/libs > antsi:
-  - changed-files:
-      - any-glob-to-any-file: libs/antsi/**
-
 area/libs > error-stack:
   - changed-files:
       - any-glob-to-any-file: libs/error-stack/**

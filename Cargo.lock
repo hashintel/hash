@@ -306,13 +306,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "antsi"
-version = "0.0.0-reserved"
-dependencies = [
- "rustc_version",
-]
-
-[[package]]
 name = "anyhow"
 version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
