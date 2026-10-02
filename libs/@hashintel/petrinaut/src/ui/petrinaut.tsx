@@ -38,6 +38,7 @@ const editorRootStyle = css({
 
 import type {
   PetrinautAiComposerControl,
+  PetrinautAiInputMode,
   PetrinautAiVoiceMode,
 } from "./types/ai-assistant-composer-control";
 import type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
@@ -89,6 +90,8 @@ export type PetrinautAiAssistant = {
   headerActions?: React.ReactNode;
   /** Host actions for displayed Brunch user messages, including local voice captions. */
   renderUserMessageActions?: (message: PetrinautAiMessage) => React.ReactNode;
+  /** Restrict header and user-message actions to this input mode. Omitted: both modes. */
+  actionsInputMode?: PetrinautAiInputMode;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls

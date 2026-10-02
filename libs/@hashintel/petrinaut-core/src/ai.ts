@@ -141,7 +141,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   words:
-    "Words for Brunch: Labs enablement, preferred spellings, Teach from finalized voice transcripts, pronunciation notes, next-request and restart-Voice timing, conversation-local browser storage, limits and privacy.",
+    "Words for Voice assistant: Labs enablement, Voice-only word list, preferred spellings, pronunciation notes, next-request and restart-Voice timing, conversation-local browser storage, limits and privacy.",
   "code-editor":
     "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":

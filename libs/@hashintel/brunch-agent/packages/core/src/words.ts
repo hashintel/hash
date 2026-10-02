@@ -1,6 +1,8 @@
 /** Bounded, untrusted vocabulary data shared by the browser and Brunch. */
 export type BrunchWord = Readonly<{ spelling: string; pronunciation?: string }>;
 
+export const maxWords = 50;
+
 const literal = (value: unknown, maximum: number): string => {
   if (
     typeof value !== "string" ||
@@ -18,8 +20,8 @@ const literal = (value: unknown, maximum: number): string => {
 };
 
 export const validateWords = (input: unknown): readonly BrunchWord[] => {
-  if (!Array.isArray(input) || input.length > 20) {
-    throw new Error("Use at most 20 words.");
+  if (!Array.isArray(input) || input.length > maxWords) {
+    throw new Error(`Use at most ${maxWords} words.`);
   }
   const seen = new Set<string>();
   let total = 0;

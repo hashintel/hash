@@ -60,6 +60,7 @@ export type AiAssistantContentsProps = {
   additionalTab?: PetrinautAiAssistant["additionalTab"];
   headerActions?: PetrinautAiAssistant["headerActions"];
   renderUserMessageActions?: PetrinautAiAssistant["renderUserMessageActions"];
+  actionsInputMode?: PetrinautAiAssistant["actionsInputMode"];
   attentionAnnouncement?: string;
   hostAttentionCount?: number;
   hostTabSelected?: boolean;
@@ -425,6 +426,7 @@ export const AiAssistantContents = ({
   additionalTab,
   headerActions,
   renderUserMessageActions,
+  actionsInputMode,
   attentionAnnouncement,
   experimentStates,
   hostExperimentRunning = false,
@@ -689,9 +691,13 @@ export const AiAssistantContents = ({
       onRetryMessage,
     };
   });
+  const showHostActions =
+    actionsInputMode === undefined || actionsInputMode === inputMode;
   const transcriptProps = {
     experimentStates,
-    renderUserMessageActions,
+    renderUserMessageActions: showHostActions
+      ? renderUserMessageActions
+      : undefined,
     handlersRef,
     hiddenToolNames,
     interactiveTools,
@@ -846,7 +852,7 @@ export const AiAssistantContents = ({
                 />
               )}
             </div>
-            {headerActions && (
+            {showHostActions && headerActions && (
               <div
                 className={css({
                   position: "relative",

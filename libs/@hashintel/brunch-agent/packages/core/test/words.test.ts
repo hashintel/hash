@@ -24,12 +24,25 @@ describe("bounded literal vocabulary", () => {
     [{ spelling: "RelayDesk" }, { spelling: "relaydesk" }],
     [{ spelling: "é".repeat(81) }],
     [{ spelling: "Bay", pronunciation: "a".repeat(121) }],
-    Array.from({ length: 21 }, (_, index) => ({ spelling: `Bay ${index}` })),
+    Array.from({ length: 51 }, (_, index) => ({ spelling: `Bay ${index}` })),
     Array.from({ length: 13 }, (_, index) => ({
       spelling: `${index}`.padEnd(80, "x"),
     })),
   ])("rejects malformed, duplicate or excessive hints", (...entries) => {
     expect(() => validateWords(entries)).toThrow(Error);
+  });
+
+  test("accepts 50 words and spellings but rejects the 51st", () => {
+    const spellings = Array.from({ length: 50 }, (_, index) => `Bay ${index}`);
+    const words = spellings.map((spelling) => ({ spelling }));
+    expect(validateWords(words)).toEqual(words);
+    expect(validateSpellings(spellings)).toEqual(spellings);
+    expect(() => validateWords([...words, { spelling: "Another" }])).toThrow(
+      "Use at most 50 words.",
+    );
+    expect(() => validateSpellings([...spellings, "Another"])).toThrow(
+      "Use at most 50 words.",
+    );
   });
 
   test("counts code points rather than UTF-16 units and enforces the total boundary", () => {

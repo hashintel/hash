@@ -2340,6 +2340,7 @@ const ConversationAiAssistantPanel = ({
       additionalTab={aiAssistant.additionalTab}
       headerActions={aiAssistant.headerActions}
       renderUserMessageActions={aiAssistant.renderUserMessageActions}
+      actionsInputMode={aiAssistant.actionsInputMode}
       attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false

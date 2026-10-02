@@ -208,6 +208,49 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
   });
 
+  test("voice-only host actions follow the selected mode, not session state", () => {
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      presentation: "brunch" as const,
+      status: "ready" as const,
+      actionsInputMode: "voice" as const,
+      headerActions: <button type="button">Words</button>,
+      renderUserMessageActions: () => (
+        <button type="button">Teach this word</button>
+      ),
+      messages: [
+        {
+          id: "voice-caption",
+          role: "user" as const,
+          metadata: { source: "voice" as const },
+          parts: [{ type: "text" as const, text: "relay desk" }],
+        },
+      ],
+    };
+    const view = render(<AiAssistantContents {...props} inputMode="text" />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Teach this word" }),
+    ).toBeNull();
+
+    view.rerender(<AiAssistantContents {...props} inputMode="voice" />);
+    expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Teach this word" }),
+    ).toBeDefined();
+
+    view.rerender(<AiAssistantContents {...props} inputMode="text" />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Teach this word" }),
+    ).toBeNull();
+    expect(screen.getByText("relay desk")).toBeDefined();
+  });
+
   test("orders optional voice slots around work and produced cards", async () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",
