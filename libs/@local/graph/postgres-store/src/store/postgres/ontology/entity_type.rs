@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc};
-use core::iter;
+use core::{iter, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -69,7 +69,7 @@ use type_system::{
 };
 
 use crate::store::{
-    error::DeletionError,
+    error::{DeletionError, OntologyVersionDoesNotExist},
     postgres::{
         AsClient, GenericClientIter as _, PostgresStore, ResponseCountMap, TransactionState,
         TraversalContext,
@@ -1646,8 +1646,11 @@ where
                         .id
                         .version
                         .major
+                        .get()
                         .checked_sub(1)
-                        .ok_or(UpdateError)
+                        .and_then(NonZero::new)
+                        .ok_or(OntologyVersionDoesNotExist)
+                        .change_context(UpdateError)
                         .attach(
                             "The version of the entity type is already at the lowest possible \
                              value",

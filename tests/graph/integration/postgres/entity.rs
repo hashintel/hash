@@ -1,3 +1,4 @@
+use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_authorization::policies::{Effect, action::ActionName};
@@ -72,7 +73,7 @@ async fn insert() {
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion {
-                        major: 1,
+                        major: NonZero::<u32>::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -146,7 +147,7 @@ async fn query() {
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion {
-                        major: 1,
+                        major: NonZero::<u32>::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -218,7 +219,7 @@ async fn public_actor_reads_only_publicly_permitted_entities() {
             )
             .expect("couldn't construct Base URL"),
             version: OntologyTypeVersion {
-                major: 1,
+                major: NonZero::<u32>::MIN,
                 pre_release: None,
             },
         }]),
@@ -352,7 +353,7 @@ async fn update() {
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion {
-                        major: 1,
+                        major: NonZero::<u32>::MIN,
                         pre_release: None,
                     },
                 }]),

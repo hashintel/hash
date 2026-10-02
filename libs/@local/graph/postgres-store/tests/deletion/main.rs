@@ -11,6 +11,7 @@ mod links;
 mod purge;
 mod validation;
 
+use core::num::NonZero;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -262,7 +263,7 @@ pub(crate) fn person_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }
@@ -275,7 +276,7 @@ pub(crate) fn friend_of_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }

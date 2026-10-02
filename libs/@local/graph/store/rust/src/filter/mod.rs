@@ -1523,6 +1523,8 @@ mod tests {
         reason = "It's fine to error on unused arms in tests"
     )]
 
+    use core::num::NonZero;
+
     use hash_graph_types::ontology::DataTypeLookup;
     use serde_json::json;
     use type_system::{
@@ -1596,7 +1598,7 @@ mod tests {
             )
             .expect("invalid base url"),
             version: OntologyTypeVersion {
-                major: 1,
+                major: NonZero::<u32>::MIN,
                 pre_release: None,
             },
         };

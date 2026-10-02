@@ -1,3 +1,4 @@
+use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
@@ -56,7 +57,7 @@ fn person_entity_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }

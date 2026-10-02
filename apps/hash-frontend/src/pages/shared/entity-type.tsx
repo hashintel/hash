@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   atLeastOne,
   extractVersion,
-  makeOntologyTypeVersion,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
@@ -374,9 +373,7 @@ export const EntityType = ({
     }
   }
 
-  const currentVersion = draftEntityType
-    ? makeOntologyTypeVersion({ major: 0 })
-    : extractVersion(entityType.schema.$id);
+  const currentVersion = extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
     if (upgradableDependencies.length && !showDependencyUpgradeModal) {
@@ -543,6 +540,7 @@ export const EntityType = ({
             {!isReadonly && (
               <EditBarTypeEditor
                 currentVersion={currentVersion}
+                isDraft={isDraft}
                 discardButtonProps={
                   // @todo confirmation of discard when draft
                   isDraft

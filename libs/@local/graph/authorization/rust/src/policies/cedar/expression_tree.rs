@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, str::FromStr as _};
+use core::{error::Error, num::NonZero, str::FromStr as _};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
@@ -374,6 +374,7 @@ impl PolicyExpressionTree {
             }
             (AttributeType::OntologyTypeVersion, ast::ExprKind::Lit(ast::Literal::Long(long))) => {
                 u32::try_from(*long)
+                    .and_then(NonZero::try_from)
                     .change_context(ParseBinaryExpressionError::Right)
                     .map(|major| {
                         Self::OntologyTypeVersion(OntologyTypeVersion {

@@ -63,7 +63,7 @@ fn person_entity_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: NonZero::<u32>::MIN,
             pre_release: None,
         },
     }

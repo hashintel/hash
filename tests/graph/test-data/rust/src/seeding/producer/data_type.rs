@@ -1,5 +1,5 @@
 use alloc::collections::BTreeSet;
-use core::error::Error;
+use core::{error::Error, num::NonZero};
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
@@ -216,7 +216,7 @@ impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypePr
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: 1,
+                    major: NonZero::<u32>::MIN,
                     pre_release: None,
                 },
             },

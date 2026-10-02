@@ -4,6 +4,7 @@ import {
   compareOntologyTypeVersions,
   extractBaseUrl,
   extractVersion,
+  makeOntologyTypeVersion,
   validateBaseUrl,
   validateVersionedUrl,
 } from "../src/main.js";
@@ -13,6 +14,8 @@ import type {
   OntologyTypeVersion,
   VersionedUrl,
 } from "../src/main.js";
+
+const u32Max = 4_294_967_295;
 
 const invalidBaseUrlCases: string[] = [
   "http://example.com",
@@ -55,9 +58,9 @@ const invalidVersionedUrlCases: string[] = [
 
 describe("validateVersionedUrl", () => {
   test.each([
-    ["http://example.com/v/0"],
     ["http://example.com/v/1"],
     ["http://example.com/v/20"],
+    [`http://example.com/v/${u32Max}`],
     [`http://exampl${"e".repeat(2027)}.com/v/1`],
   ])("`validateVersionedUrl(%s)` succeeds", (input) => {
     expect(validateVersionedUrl(input)).toEqual({ type: "Ok", inner: input });
@@ -69,10 +72,50 @@ describe("validateVersionedUrl", () => {
       expect(validateVersionedUrl(input)).toMatchSnapshot();
     },
   );
+
+  test.each(["0", "0-draft.lane.1"])(
+    "rejects zero major version %s",
+    (version) => {
+      expect(validateVersionedUrl(`http://example.com/v/${version}`)).toEqual({
+        type: "Err",
+        inner: {
+          reason: "InvalidVersion",
+          inner: [
+            version,
+            {
+              reason: "ParseVersion",
+              inner: "number would be zero for non-zero type",
+            },
+          ],
+        },
+      });
+    },
+  );
+
+  test("rejects a major version above u32::MAX", () => {
+    expect(
+      validateVersionedUrl(`http://example.com/v/${u32Max + 1}`).type,
+    ).toBe("Err");
+  });
+});
+
+describe("makeOntologyTypeVersion", () => {
+  test.each([1, 20, u32Max])("accepts major version %s", (major) => {
+    expect(makeOntologyTypeVersion({ major })).toBe(`${major}`);
+  });
+
+  test.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, u32Max + 1])(
+    "rejects invalid major version %s",
+    (major) => {
+      expect(() => makeOntologyTypeVersion({ major })).toThrow(
+        `Ontology type version must be an integer between 1 and ${u32Max}`,
+      );
+    },
+  );
 });
 
 const extractBaseUrlCases: [VersionedUrl, BaseUrl][] = [
-  ["http://example.com/v/0" as VersionedUrl, "http://example.com/" as BaseUrl],
+  ["http://example.com/v/1" as VersionedUrl, "http://example.com/" as BaseUrl],
   [
     "http://example.com/sandwich/v/1" as VersionedUrl,
     "http://example.com/sandwich/" as BaseUrl,
@@ -97,7 +140,7 @@ describe("extractBaseUrl", () => {
 });
 
 const extractVersionCases: [VersionedUrl, string][] = [
-  ["http://example.com/v/0" as VersionedUrl, "0"],
+  ["http://example.com/v/1" as VersionedUrl, "1"],
   ["http://example.com/sandwich/v/1" as VersionedUrl, "1"],
   ["file://localhost/documents/myfolder/v/10" as VersionedUrl, "10"],
   ["ftp://rms@example.com/foo/v/5" as VersionedUrl, "5"],
