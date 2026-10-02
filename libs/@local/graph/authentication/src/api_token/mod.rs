@@ -11,8 +11,11 @@
 //!   the checksum, so it is rejected without a lookup.
 //!
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
-//! a [`HashedApiToken`].
+//! a [`HashedApiToken`]. An [`ApiTokenEncryptionKey`] encrypts that hash for a store, bound to the
+//! [`AssociatedData`] of the token and its row.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
+
+mod encryption;
 
 use core::{
     fmt::{self, Write as _},
@@ -23,8 +26,11 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
 use rand::{TryRng as _, rngs::SysRng};
 use sha2::{Digest as _, Sha256};
+use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
+
+pub use self::encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData};
 
 const PREFIX: &str = "hsh_";
 const PREFIX_BYTES: [u8; PREFIX.len()] = match PREFIX.as_bytes().first_chunk() {
@@ -282,6 +288,24 @@ impl HashedApiToken {
     #[must_use]
     pub const fn secret_hash(&self) -> ApiTokenSecretHash {
         self.secret_hash
+    }
+
+    /// The associated data that binds the secret hash of this token to the row of `actor_id` and
+    /// `web_id`.
+    #[must_use]
+    pub const fn associated_data(
+        &self,
+        actor_id: ActorEntityUuid,
+        web_id: WebId,
+    ) -> AssociatedData {
+        AssociatedData {
+            token_type: self.token_type,
+            environment: self.environment,
+            version: self.version,
+            token_id: self.token_id,
+            actor_id,
+            web_id,
+        }
     }
 }
 
