@@ -212,6 +212,8 @@ hashql_macros::define_symbols! {
     json,
     JsonPath,
     JsonPathSegment,
+    lhs,
+    rhs,
     // [tidy] sort alphabetically end
 
     internal: {

@@ -1,0 +1,24 @@
+//@ run: pass
+//@ description: Different intrinsics in value position generate separate synthetic bodies
+[
+  "let",
+  "apply",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer", "f": "_" } },
+    "_",
+    ["f", "a", "b"]
+  ],
+  [
+    "let",
+    "r1",
+    ["apply", { "#literal": 1 }, { "#literal": 2 }, "<="],
+    [
+      "let",
+      "r2",
+      ["apply", { "#literal": 3 }, { "#literal": 4 }, ">="],
+      "r2"
+    ]
+  ]
+]

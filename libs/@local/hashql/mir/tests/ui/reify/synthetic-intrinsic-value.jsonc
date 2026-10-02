@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Intrinsic in value position generates a synthetic wrapper body
+[
+  "let",
+  "apply",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer", "f": "_" } },
+    "_",
+    ["f", "a", "b"]
+  ],
+  ["apply", { "#literal": 2 }, { "#literal": 3 }, "<="]
+]

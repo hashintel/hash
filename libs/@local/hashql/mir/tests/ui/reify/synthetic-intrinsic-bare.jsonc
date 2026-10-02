@@ -1,0 +1,6 @@
+//@ run: skip reason="bare intrinsic at module root is not yet supported"
+//@ description: Bare intrinsic reference as the entire module body
+// The thunking phase does not wrap the root body when it is already a variable,
+// so a bare qualified path at module root never reaches the synthetic machinery.
+// Tracked as part of the module system work (BE-67).
+"<="
