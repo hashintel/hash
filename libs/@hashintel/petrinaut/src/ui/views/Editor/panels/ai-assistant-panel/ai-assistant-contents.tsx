@@ -1802,6 +1802,7 @@ export const AiAssistantContents = ({
                     className={composerStyle}
                     data-brunch={isBrunchChat || undefined}
                   >
+                    {isBrunchChat && composerControl}
                     <textarea
                       ref={inputRef}
                       className={composerTextareaStyle}
@@ -1851,7 +1852,7 @@ export const AiAssistantContents = ({
                           {composerHint}
                         </span>
                       )}
-                      {composerControl}
+                      {!isBrunchChat && composerControl}
                       <Button
                         aria-label={composerAction.label}
                         className={composerActionButtonStyle}

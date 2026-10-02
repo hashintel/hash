@@ -202,7 +202,11 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
     />,
   );
   expect(screen.getByText("Connected")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Interview budget" })).toBeTruthy();
+  expect(
+    screen
+      .getByRole("button", { name: "Interview budget" })
+      .closest('[data-part="left-actions"]'),
+  ).not.toBeNull();
   const microphone = screen.getByRole("button", { name: "Mute microphone" });
   expect(microphone).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
@@ -3335,6 +3339,41 @@ describe("AiAssistantContents", () => {
     expect(textarea.nextElementSibling?.contains(control)).toBe(true);
     expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
   });
+
+  test.each([
+    ["", "ready", "Start voice mode"],
+    ["Draft", "ready", "Send message"],
+    ["Draft", "streaming", "Stop AI response"],
+  ] as const)(
+    "keeps Brunch settings before the input with %s draft and %s status",
+    (input, status, actionLabel) => {
+      render(
+        <AiAssistantContents
+          composerControl={<button type="button">Interview length</button>}
+          input={input}
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onInputModeChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status={status}
+          voiceModeAvailable
+        />,
+      );
+      const control = screen.getByRole("button", { name: "Interview length" });
+      const textarea = screen.getByRole("textbox", {
+        name: "Message AI assistant",
+      });
+      expect(control.nextElementSibling).toBe(textarea);
+      expect(
+        textarea.nextElementSibling?.contains(
+          screen.getByRole("button", { name: actionLabel }),
+        ),
+      ).toBe(true);
+    },
+  );
 
   test("keeps one trailing Brunch composer action", () => {
     const onInputModeChange = vi.fn();

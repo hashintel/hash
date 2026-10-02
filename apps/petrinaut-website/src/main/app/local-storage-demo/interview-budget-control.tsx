@@ -111,7 +111,7 @@ export const InterviewBudgetControl = ({
         aria-label={`Interview length: ${config.name} · ${config.guide}`}
         aria-expanded={open}
         aria-haspopup="dialog"
-        tooltip={`${config.name} · ${config.guide}`}
+        tooltip={`Interview length · ${config.name}`}
         tooltipOptions={{ disableTooltip: open }}
         prefix={<CurrentIcon size={15} />}
         onClick={() => {
@@ -123,7 +123,7 @@ export const InterviewBudgetControl = ({
         <Popover
           triggerRef={triggerRef}
           initialFocusRef={sliderRef}
-          position="top-end"
+          position="top-start"
           gapY={10}
           onClose={() => setOpen(false)}
         >

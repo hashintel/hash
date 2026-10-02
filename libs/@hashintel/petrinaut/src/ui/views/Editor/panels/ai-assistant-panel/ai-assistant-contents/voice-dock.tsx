@@ -232,6 +232,7 @@ export const VoiceDock = ({
       data-testid="ai-voice-dock"
     >
       <span className={sideStyle} data-part="left-actions">
+        {composerControl}
         <Button
           aria-label={collapseLabel}
           iconName={collapsed ? "chevronUp" : "chevronDown"}
@@ -273,7 +274,6 @@ export const VoiceDock = ({
         className={`${sideStyle} ${actionsStyle}`}
         data-part="right-actions"
       >
-        {composerControl}
         {actions !== null && (
           <>
             {canRetryPlayback && actions.retryPlayback && (
