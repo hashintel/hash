@@ -91,6 +91,13 @@ export const constraintModeHint: Record<ConstraintMode, string> = {
   stopEarly: "A failing run stops and counts as failed.",
 };
 
+/** The sentence under the "must hold in" line. The enforced modes reuse their hover text. */
+export const constraintModeNote: Record<ConstraintMode, string> = {
+  ...constraintModeHint,
+  monitored: "A run that breaks this rule still finishes and counts as failed.",
+  stopEarly: "A run that breaks this rule stops early and counts as failed.",
+};
+
 export const emptyCheck = (): Check => ({
   subject: null,
   op: "below",
@@ -415,13 +422,17 @@ export const forEveryHint = (typeName: string): string => {
 };
 
 /**
- * The unit shown after a check's bound. The net does not give fields a unit,
- * so a field named `age` reads as days.
+ * The unit shown inside a check's bound: place tokens count tokens, and a
+ * metric has none. The net does not give fields a unit, so a field named `age`
+ * reads as days.
  */
 export const subjectUnit = (
   net: SDCPN,
   subject: CheckSubject | null,
 ): string | null => {
+  if (subject?.kind === "placeTokens") {
+    return "tokens";
+  }
   if (subject?.kind !== "tokenField") {
     return null;
   }

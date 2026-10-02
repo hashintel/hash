@@ -15,6 +15,7 @@ import { validateDisplayName } from "@hashintel/petrinaut-core";
 import {
   constraintCode,
   constraintModeHint,
+  constraintModeNote,
   emptyCheck,
   forEveryHint,
   constraintModeLabel,
@@ -114,6 +115,19 @@ const noWrapStyle = css({ flexWrap: "nowrap" });
 
 const numberStyle = css({ width: "[56px]" });
 
+const modeNoteStyle = css({
+  fontSize: "xs",
+  color: "neutral.s100",
+  marginTop: "0",
+});
+
+// Lines may break only after ", " and "=> "; other spaces become non-breaking.
+const breakableCode = (code: string) =>
+  code
+    .split(/(, |=> )/)
+    .map((part, index) => (index % 2 ? part : part.replace(/ /g, String.fromCodePoint(0xa0))))
+    .join("");
+
 const codeLineStyle = css({
   fontFamily: "mono",
   fontSize: "xs",
@@ -123,6 +137,8 @@ const codeLineStyle = css({
   paddingX: "2",
   paddingY: "1.5",
   overflowWrap: "anywhere",
+  paddingLeft: "[calc(8px + 2ch)]",
+  textIndent: "[-2ch]",
 });
 
 const addButtonsStyle = css({ display: "flex", gap: "1", marginLeft: "-1" });
@@ -536,7 +552,7 @@ const removeSlotStyle = css({ display: "flex", justifyContent: "center" });
 // bound, remove), so their fields line up. The subject gives way first.
 const checkGridStyle = css({
   display: "grid",
-  gridTemplateColumns: "[minmax(0, max-content) max-content 48px 16px]",
+  gridTemplateColumns: "[minmax(0, max-content) max-content max-content 16px]",
   columnGap: "1.5",
   rowGap: "2",
   alignItems: "center",
@@ -553,6 +569,26 @@ const ifCellStyle = css({
 });
 
 const checkBoundStyle = css({ width: "[100%]" });
+
+// The unit sits inside the field: the wrapper widens by the unit's length and
+// the input pads right so the number never runs under it.
+const boundFieldStyle = css({ position: "relative", display: "block" });
+
+const boundUnitFieldStyle = css({
+  "& input": { paddingRight: "[calc(var(--unit-chars) * 1ch + 10px)]" },
+});
+
+const boundUnitStyle = css({
+  position: "absolute",
+  top: "[50%]",
+  left: "[min(calc(10px + var(--bound-chars) * 1ch + 4px), calc(100% - var(--unit-chars) * 1ch - 8px))]",
+  transform: "[translateY(-50%)]",
+  fontSize: "sm",
+  color: "neutral.s100",
+  pointerEvents: "none",
+});
+
+const boundUnitDisabledStyle = css({ color: "neutral.s80" });
 
 const SubjectSelect: React.FC<{
   constraint: ModelConstraint;
@@ -622,20 +658,40 @@ const BoundInput: React.FC<{
   check: Check;
   disabled: boolean;
   compact?: boolean;
+  unit?: string | null;
   onChange: (bound: number | null) => void;
-}> = ({ check, disabled, compact, onChange }) => (
-  <NumberInput
-    size="sm"
-    aria-label="Bound"
-    hideStepper
-    step="any"
-    min={Number.MIN_SAFE_INTEGER}
-    className={compact ? checkBoundStyle : numberStyle}
-    disabled={disabled}
-    value={check.bound}
-    onChange={onChange}
-  />
-);
+}> = ({ check, disabled, compact, unit, onChange }) => {
+  const base = (compact ? 48 : 56) - (unit ? 8 : 0);
+  return (
+    <span
+      className={cx(boundFieldStyle, unit && boundUnitFieldStyle)}
+      style={
+        {
+          width: unit ? `calc(${base}px + ${unit.length}ch)` : `${base}px`,
+          "--unit-chars": unit?.length ?? 0,
+          "--bound-chars": Math.max(String(check.bound ?? "").length, 1),
+        } as React.CSSProperties
+      }
+    >
+      <NumberInput
+        size="sm"
+        aria-label="Bound"
+        hideStepper
+        step="any"
+        min={Number.MIN_SAFE_INTEGER}
+        className={checkBoundStyle}
+        disabled={disabled}
+        value={check.bound}
+        onChange={onChange}
+      />
+      {unit ? (
+        <span className={cx(boundUnitStyle, disabled && boundUnitDisabledStyle)}>
+          {unit}
+        </span>
+      ) : null}
+    </span>
+  );
+};
 
 /** One check as a row of its own: subject, comparison, bound and an optional remove. */
 const CheckRow: React.FC<{
@@ -646,6 +702,7 @@ const CheckRow: React.FC<{
   onChange: (patch: Partial<Check>) => void;
   onRemove?: () => void;
 }> = ({ constraint, check, disabled, trigger, onChange, onRemove }) => {
+  const { petriNetDefinition } = use(SDCPNContext);
   const subject = (
     <SubjectSelect
       fill
@@ -676,6 +733,7 @@ const CheckRow: React.FC<{
       <BoundInput
         compact
         check={check}
+        unit={subjectUnit(petriNetDefinition, check.subject)}
         disabled={disabled}
         onChange={(bound) => onChange({ bound })}
       />
@@ -907,12 +965,10 @@ const RuleRows: React.FC<{
               />
               <BoundInput
                 check={check}
+                unit={unit}
                 disabled={disabled}
                 onChange={(bound) => updateCheck(0, { bound })}
               />
-              {unit ? (
-                <span className={mutedText(disabled)}>{unit}</span>
-              ) : null}
             </div>
           </div>
           {windowRow}
@@ -946,10 +1002,10 @@ const RuleRows: React.FC<{
           />
           <BoundInput
             check={check}
+            unit={unit}
             disabled={disabled}
             onChange={(bound) => updateCheck(0, { bound })}
           />
-          {unit ? <span className={mutedText(disabled)}>{unit}</span> : null}
         </div>
         {windowRow}
         {addButtons}
@@ -1060,8 +1116,10 @@ const codeBoxStyle = css({
     font: "[inherit]",
     lineHeight: "[inherit]",
     color: "[inherit]",
-    whiteSpace: "[pre]",
-    overflowX: "auto",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    overflowX: "hidden",
+    fieldSizing: "content",
   },
 });
 
@@ -1161,7 +1219,7 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
                 disabled={isReadOnly}
                 update={update}
               />
-              <div className={codeLineStyle}>{generated}</div>
+              <div className={codeLineStyle}>{breakableCode(generated)}</div>
               {isReadOnly ? null : (
                 <div className={codeActionsStyle}>
                   <Button
@@ -1214,6 +1272,9 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
             />
             <span className={mutedText(isReadOnly)}>% of runs</span>
           </div>
+        </div>
+        <div className={cx(modeNoteStyle, isReadOnly && disabledTextStyle)}>
+          {constraintModeNote[constraint.mode]}
         </div>
       </div>
 

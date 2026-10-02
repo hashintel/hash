@@ -12,6 +12,8 @@ import {
   readConstraints,
   subjectGroups,
   subjectUnit,
+  constraintModeHint,
+  constraintModeNote,
   subjectValue,
   writeConstraints,
 } from "./constraints";
@@ -169,10 +171,24 @@ describe("for every", () => {
     );
   });
 
-  it("reads an age field as days, and no other field", () => {
+  it("reads an age field as days, place tokens as tokens, and nothing else", () => {
     expect(subjectUnit(net, demoConstraints[3]!.checks[0]!.subject)).toBe("days");
     expect(subjectUnit(net, demoConstraints[1]!.checks[0]!.subject)).toBeNull();
-    expect(subjectUnit(net, demoConstraints[0]!.checks[0]!.subject)).toBeNull();
+    expect(subjectUnit(net, demoConstraints[0]!.checks[0]!.subject)).toBe("tokens");
+    expect(subjectUnit(net, { kind: "metric", id: "scrap" })).toBeNull();
+    expect(subjectUnit(net, null)).toBeNull();
+  });
+});
+
+describe("mode notes", () => {
+  it("says what a failing run does for monitored and stop-early", () => {
+    expect(constraintModeNote.monitored).toContain("still finishes");
+    expect(constraintModeNote.stopEarly).toContain("stops early");
+  });
+
+  it("reuses the hover text for the enforced modes", () => {
+    expect(constraintModeNote.enforcedSoft).toBe(constraintModeHint.enforcedSoft);
+    expect(constraintModeNote.enforcedHard).toBe(constraintModeHint.enforcedHard);
   });
 });
 

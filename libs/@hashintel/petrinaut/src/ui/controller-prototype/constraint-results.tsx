@@ -57,6 +57,8 @@ const statusStyle = css({
   paddingY: "1.5",
 });
 
+const violatedStyle = css({ fontWeight: "medium", color: "red.s100" });
+
 const runLineStyle = css({
   display: "flex",
   alignItems: "baseline",
@@ -242,8 +244,15 @@ export const LastExperiment: React.FC<{ constraint: ModelConstraint }> = ({
       <div className={statusStyle}>
         {held ? null : <Icon name="warning" size="xs" />}
         <span className={noteStyle}>
-          Held in {result.held} of {result.runs} runs · needs{" "}
-          {constraint.tolerance}%
+          {held ? (
+            <>Held in {result.held}</>
+          ) : (
+            <>
+              <span className={violatedStyle}>Violated</span> · held in{" "}
+              {result.held}
+            </>
+          )}{" "}
+          of {result.runs} runs · needs {constraint.tolerance}%
         </span>
       </div>
       {failing > 0 ? (
