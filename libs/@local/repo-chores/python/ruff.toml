@@ -1,0 +1,23 @@
+line-length = 100
+preview     = true
+
+[lint]
+ignore = [
+    # Located errors retain the field and value that failed.
+    "raise-vanilla-args",
+    # Invalid manifest data is reported as a value error, including wrong TOML types.
+    "type-check-without-type-error",
+    # The formatter owns line wrapping.
+    "line-too-long",
+]
+preview = true
+select = ["E", "F", "I", "UP", "B", "complex-structure", "SIM", "RUF", "TRY", "DTZ", "PTH", "suspicious-subprocess-import", "subprocess-without-shell-equals-true", "start-process-with-partial-path", "private-member-access", "import-private-name", "too-many-statements-in-try-clause"]
+
+[lint.per-file-ignores]
+# Array comments live in tomlkit's private entry groups, separate from their values.
+"src/repo_chores/constraints/_engine/document.py"        = ["import-private-name", "private-member-access"]
+"src/repo_chores/constraints/_engine/document_native.py" = ["import-private-name", "private-member-access"]
+"tests/**"                                               = ["import-private-name", "private-member-access", "subprocess-without-shell-equals-true"]
+
+[lint.mccabe]
+max-complexity = 15

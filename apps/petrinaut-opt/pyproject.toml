@@ -3,30 +3,45 @@ name = "petrinaut-optimization"
 version = "0.1.0"
 description = "Scenario-parameter optimization for Petrinaut using Optuna"
 readme = "README.md"
-requires-python = ">=3.10.20"
+requires-python = "<3.15,>=3.14"
+license = "MIT or Apache-2.0"
 dependencies = [
-    "fastapi>=0.128.8",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
-    "opentelemetry-instrumentation-fastapi>=0.65b0",
-    "opentelemetry-sdk>=1.44.0",
+    "fastapi<0.129.0,>=0.128.8",
+    "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.44.0",
+    "opentelemetry-instrumentation-fastapi<0.66.0,>=0.65b0",
+    "opentelemetry-sdk<2.0.0,>=1.44.0",
     "optuna>=4.9,<5",
     "petrinaut-optimizer-core",
     "petrinaut-python",
-    "pydantic>=2.13.4",
-    "python-dotenv>=1.0.0",
-    "uvicorn[standard]>=0.39.0",
+    "pydantic<3.0.0,>=2.13.4",
+    "python-dotenv<2.0.0,>=1.0.0",
+    "uvicorn[standard]<0.40.0,>=0.39.0",
 ]
+authors = [
+    { name = "HASH" },
+]
+
+
+[build-system]
+requires      = ["uv_build<0.13.0,>=0.12.16"]
+build-backend = "uv_build"
+[dependency-groups]
+dev = [
+    "httpx<0.29.0,>=0.28",
+    "pytest>=9.1.1,<10",
+    "ruff<0.17,>=0.16.8",
+    "tach<0.36,>=0.35",
+    "ty<0.0.83,>=0.0.82",
+]
+
+[tool.uv.build-backend]
+module-name = "src"
+module-root = ""
 
 [tool.uv.sources]
 petrinaut-optimizer-core = { workspace = true }
 petrinaut-python         = { workspace = true }
-
-[dependency-groups]
-dev = [
-    "httpx>=0.28",
-    "pytest>=9.1.1,<10",
-]
 
 [tool.ruff]
 target-version = "py310"

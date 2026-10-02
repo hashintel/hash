@@ -1,29 +1,61 @@
 [project]
-name            = "hash"
-version         = "0.1.0"
-description     = "Add your description here"
-readme          = "README.md"
+name = "hash"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
 requires-python = ">=3.14,<3.15"
-dependencies    = []
+dependencies = []
+authors = [
+    { name = "HASH" },
+]
+
+[build-system]
+requires      = ["uv_build>=0.12.16,<0.13.0"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1,<10",
     "ruff>=0.16.8,<0.17",
     "tach>=0.35,<0.36",
-    "ty>=0.0.82,<0.1",
+    "ty<0.0.83,>=0.0.82",
 ]
 
 [tool.uv]
-preview       = true
-add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+preview = true
+add-bounds = "major" # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
 exclude-newer = "7 days" # mirrors npm release age
-package       = false
+package = false
+constraint-dependencies = [
+    "datamodel-code-generator<0.75.0,>=0.74.0",
+    "fastapi<0.129.0,>=0.128.8",
+    "httpx<0.29.0,>=0.28",
+    "license-expression<31.0.0,>=30.4.4",
+    "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.44.0",
+    "opentelemetry-instrumentation-fastapi<0.66.0,>=0.65b0",
+    "opentelemetry-sdk<2.0.0,>=1.44.0",
+    "optuna<5,>=4.9",
+    "packaging<27.0,>=26.3",
+    "pydantic<3.0.0,>=2.13.4",
+    "pytest<10,>=9.1.1",
+    "python-dotenv<2.0.0,>=1.0.0",
+    "rich<16.0.0,>=15.0.0",
+    "ruff<0.17,>=0.16.8",
+    "sympy<2.0.0,>=1.13",
+    "tach<0.36,>=0.35",
+    "tomlkit<0.16.0,>=0.15.1",
+    "ty<0.0.83,>=0.0.82",
+    "uv-build<0.13.0,>=0.12.16",
+    "uvicorn<0.40.0,>=0.39.0",
+]
 
 [tool.uv.workspace]
 members = [
     "apps/petrinaut-opt",
     "libs/@local/petrinaut-optimizer-core/python",
     "libs/@local/petrinaut-python",
+    "libs/@local/repo-chores/python",
 ]
 
 [tool.pytest.ini_options]
@@ -32,9 +64,14 @@ testpaths = [
     "apps/petrinaut-opt/tests",
     "libs/@local/petrinaut-optimizer-core/python/tests",
     "libs/@local/petrinaut-python/tests",
+    "libs/@local/repo-chores/python/tests",
 ]
-# The service imports its application as `src`; the libraries are installed packages.
-pythonpath = ["apps/petrinaut-opt"]
+pythonpath = [
+    "apps/petrinaut-opt",
+    "libs/@local/petrinaut-optimizer-core/python/src",
+    "libs/@local/petrinaut-python/src",
+    "libs/@local/repo-chores/python/src",
+]
 
 [tool.turbo]
 name = "hash-python"

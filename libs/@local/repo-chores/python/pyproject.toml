@@ -1,0 +1,27 @@
+[project]
+name = "repo-chores"
+version = "0.1.0"
+description = "Check and repair Python workspace policies"
+readme = "README.md"
+license = "AGPL-3.0-only"
+authors = [
+    { name = "HASH" },
+]
+requires-python = "<3.15,>=3.14"
+dependencies = [
+    "license-expression>=30.4.4,<31.0.0",
+    "packaging>=26.3,<27.0",
+    "rich>=15.0.0,<16.0.0",
+    "ruff>=0.16.8,<0.17",
+    "tomlkit>=0.15.1,<0.16.0",
+]
+
+[project.scripts]
+repo-chores = "repo_chores.__main__:main"
+
+[build-system]
+requires      = ["uv_build>=0.12.16,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = ["pytest<10,>=9.1.1", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]

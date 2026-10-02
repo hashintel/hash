@@ -1,0 +1,51 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "lint:constraints": {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--isolated",
+        "--no-dev",
+        "--package",
+        "repo-chores",
+        "python",
+        "-m",
+        "repo_chores",
+        "constraints"
+      ],
+      "cache": false,
+      // Workspace policies also inspect other members' manifests and the presence of
+      // their source, test and license files.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/**/pyproject.toml",
+        "$TURBO_ROOT$/uv.lock",
+        "$TURBO_ROOT$/**/LICENSE*.md",
+        "$TURBO_ROOT$/.github/licenses/**",
+        "$TURBO_ROOT$/**/src/**",
+        "$TURBO_ROOT$/**/tests/**"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "fix:constraints": {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--isolated",
+        "--no-dev",
+        "--package",
+        "repo-chores",
+        "python",
+        "-m",
+        "repo_chores",
+        "constraints",
+        "--fix"
+      ],
+      "cache": false,
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    }
+  }
+}
