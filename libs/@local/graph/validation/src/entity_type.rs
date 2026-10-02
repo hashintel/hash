@@ -9,8 +9,8 @@ use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::entity::{
     EntityRetrieval, EntityTypeRetrieval, LinkDataStateError, LinkDataValidationReport, LinkError,
     LinkTargetError, LinkValidationReport, LinkedEntityError, MissingLinkData,
-    PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
-    ValidateEntityComponents,
+    PropertyMetadataValidationReport, SelfReferentialLinkData, UnexpectedEntityType,
+    UnexpectedLinkData, ValidateEntityComponents,
 };
 use hash_graph_types::{
     knowledge::property::visitor::{
@@ -92,6 +92,14 @@ where
             }
 
             if components.link_validation {
+                if is_link && link_data.left_entity_id == link_data.right_entity_id {
+                    validation_report.link_data = Some(LinkDataStateError::SelfReferential(
+                        Report::new(SelfReferentialLinkData {
+                            entity_id: link_data.left_entity_id,
+                        }),
+                    ));
+                }
+
                 validation_report.link_data_validation =
                     link_data.validate(schema, components, context).await;
             }
