@@ -119,20 +119,16 @@ test("Escape closes the control and returns focus to its trigger", async () => {
   );
 });
 
-test("pill counts canonical replies, changes with mode and disappears for Off", async () => {
+test("pill uses the host count regardless of displayed messages, changes with mode and disappears for Off", async () => {
   const context: PetrinautAiComposerControlContext = {
     conversationId: "conversation",
     status: "ready" as const,
-    messages: Array.from({ length: 5 }, (_, index) => ({
-      id: `reply-${index}`,
-      role: "assistant" as const,
-      parts: [{ type: "text" as const, text: "Recorded." }],
-    })),
+    messages: [],
     stop: vi.fn(),
     submitText: vi.fn(),
   };
   const { rerender } = render(
-    <InterviewBudgetPill level="standard" context={context} />,
+    <InterviewBudgetPill level="standard" context={context} asked={5} />,
   );
   expect(screen.getByRole("status").textContent).toBe(
     "1 question left · ~2 min",
@@ -143,7 +139,7 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
   const card = await screen.findByRole("tooltip");
   expect(card.textContent).toContain("6 questions · 5 asked · 1 left");
   expect(card.textContent).toContain(
-    "Each Brunch reply counts as one question.",
+    "Each Brunch reply before wrap-up counts as one question.",
   );
   expect(card.textContent).toContain("your answer to the final question");
   expect(card.textContent).toContain("open items stay listed");
@@ -151,16 +147,17 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
     <InterviewBudgetPill
       level="standard"
       context={{ ...context, inputMode: "voice" }}
+      asked={5}
     />,
   );
   expect(screen.getByRole("status").textContent).toBe("Ready to wrap up");
   expect(card.textContent).toContain("Question limit reached.");
-  rerender(<InterviewBudgetPill level="deep" context={context} />);
+  rerender(<InterviewBudgetPill level="deep" context={context} asked={5} />);
   expect(screen.getByRole("status").textContent).toBe("Question 5 · no limit");
   expect(card.textContent).toContain(
     "Brunch offers pauses between topics, with no question limit.",
   );
-  rerender(<InterviewBudgetPill level="off" context={context} />);
+  rerender(<InterviewBudgetPill level="off" context={context} asked={5} />);
   expect(screen.queryByRole("status")).toBeNull();
 });
 
@@ -170,6 +167,7 @@ test.each(["text", "voice"] as const)(
     render(
       <InterviewBudgetPill
         level="standard"
+        asked={0}
         context={{
           conversationId: "new",
           inputMode,

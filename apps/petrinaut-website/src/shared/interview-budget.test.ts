@@ -1,7 +1,6 @@
 import { expect, it } from "vitest";
 
 import {
-  countInterviewReplies,
   getInterviewBudget,
   interviewBudgetLabel,
   liveInterviewBudgetInstruction,
@@ -43,27 +42,6 @@ it("renders a question-derived estimate, never a clock", () => {
   );
   expect(interviewBudgetLabel("deep", "text", 4)).toBe("Question 4 · no limit");
   expect(interviewBudgetLabel("off", "voice", 2)).toBeNull();
-});
-
-it("counts batched and confirmation replies once, excluding tool-only and streaming messages", () => {
-  expect(
-    countInterviewReplies([
-      { role: "user", parts: [{ type: "text", text: "hello" }] },
-      {
-        role: "assistant",
-        parts: [
-          { type: "text", text: "Who? How many?" },
-          { type: "text", text: "What unit?" },
-        ],
-      },
-      { role: "assistant", parts: [{ type: "text", text: "Recorded." }] },
-      {
-        role: "assistant",
-        parts: [{ type: "text", text: "Not done", state: "streaming" }],
-      },
-      { role: "assistant", parts: [{ type: "tool-x" }] },
-    ]),
-  ).toBe(2);
 });
 
 it("adds no startup instruction for Off", () => {

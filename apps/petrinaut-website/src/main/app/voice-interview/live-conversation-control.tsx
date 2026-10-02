@@ -119,7 +119,8 @@ export const LiveConversationControl = ({
     phase: "idle",
     message: null,
   });
-  const { phase, activity, message, playbackBlocked } = state;
+  const { phase, activity, message, playbackBlocked, interviewBudgetUpdate } =
+    state;
   const session = useRef<ReturnType<typeof createLiveConversation> | null>(
     null,
   );
@@ -478,10 +479,18 @@ export const LiveConversationControl = ({
                 : (activity?.microphoneLevel ?? 0),
             microphoneMuted: phase === "error" || microphoneMuted,
             errorMessage: phase === "error" ? message : null,
-            notice: playbackBlocked ? message : null,
+            notice: playbackBlocked
+              ? message
+              : interviewBudgetUpdate === "pending"
+                ? "Updating Live pacing…"
+                : null,
             speakerMuted,
             speakerVolume,
-            warningMessage,
+            warningMessage:
+              warningMessage ??
+              (interviewBudgetUpdate === "failed"
+                ? "Live pacing wasn’t updated. Choose another interview length to retry; Brunch’s question limit still applies."
+                : null),
             ...(playbackBlocked ? { canRetryPlayback: true } : {}),
           }
         : null,
@@ -493,6 +502,7 @@ export const LiveConversationControl = ({
     phase,
     message,
     playbackBlocked,
+    interviewBudgetUpdate,
     activity,
     status,
     stopped,

@@ -71,28 +71,6 @@ export const getInterviewBudget = (
   };
 };
 
-/** Completed canonical replies only, never Live captions or tool-only messages. */
-export const countInterviewReplies = (
-  messages: readonly {
-    readonly role: string;
-    readonly parts: readonly {
-      readonly type: string;
-      readonly text?: string;
-      readonly state?: string;
-    }[];
-  }[],
-): number =>
-  messages.filter(
-    (message) =>
-      message.role === "assistant" &&
-      message.parts.some(
-        (part) =>
-          part.type === "text" &&
-          part.text?.trim() &&
-          part.state !== "streaming",
-      ),
-  ).length;
-
 export const interviewBudgetLabel = (
   level: InterviewBudgetLevel,
   mode: "text" | "voice",

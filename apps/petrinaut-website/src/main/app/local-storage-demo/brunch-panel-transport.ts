@@ -4,7 +4,6 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
-  countInterviewReplies,
   getInterviewBudget,
   type InterviewBudgetLevel,
 } from "../../../shared/interview-budget";
@@ -211,6 +210,8 @@ export const createBrunchPanelTransport = (
   options?: {
     readonly initialData?: BrowserContext;
     readonly interviewBudgetLevel?: InterviewBudgetLevel;
+    /** The host's canonical count, shared with the estimate above the composer. */
+    readonly interviewRepliesAsked?: number;
     /** Browser tools executed by Petrinaut's static panel registry. */
     readonly clientToolNames?: ReadonlySet<string>;
     readonly dynamicClientToolNames?: FlueChatTransportOptions["dynamicClientToolNames"];
@@ -230,7 +231,7 @@ export const createBrunchPanelTransport = (
           sendOptions.messages.at(-1)?.metadata?.source === "voice"
             ? "voice"
             : "text",
-          countInterviewReplies(sendOptions.messages),
+          options?.interviewRepliesAsked ?? 0,
         );
         const transport = createFlueChatTransport({
           client,

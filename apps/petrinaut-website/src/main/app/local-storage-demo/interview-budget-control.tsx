@@ -11,7 +11,6 @@ import { BaseTooltip, Button, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  countInterviewReplies,
   getInterviewBudget,
   interviewBudgetLabel,
   interviewBudgetLevels,
@@ -461,11 +460,12 @@ export const InterviewBudgetNote = ({
 export const InterviewBudgetPill = ({
   level,
   context,
+  asked,
 }: {
   level: InterviewBudgetLevel;
   context: PetrinautAiComposerControlContext;
+  asked: number;
 }) => {
-  const asked = countInterviewReplies(context.messages);
   const mode = context.inputMode ?? "text";
   const budget = getInterviewBudget(level, mode, asked);
   // Keep the same footprint as the estimate, including its bottom padding.
@@ -532,7 +532,7 @@ export const InterviewBudgetPill = ({
               {mechanism}
             </p>
             <p className={css({ margin: "[6px 0 0]" })}>
-              Each Brunch reply counts as one question.
+              Each Brunch reply before wrap-up counts as one question.
             </p>
             <p
               className={css({

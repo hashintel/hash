@@ -1725,6 +1725,68 @@ test.each(["answer", "folded-answer"])(
   },
 );
 
+test("pacing failures are quiet, recover on acknowledgement and preserve other append warnings", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() =>
+    call[0]({
+      phase: "connected",
+      message: null,
+      interviewBudgetUpdate: "pending",
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "listening",
+      notice: "Updating Live pacing…",
+      warningMessage: null,
+    }),
+  );
+  act(() =>
+    call[0]({
+      phase: "connected",
+      message: null,
+      interviewBudgetUpdate: "failed",
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "listening",
+      warningMessage: expect.stringContaining(
+        "Live pacing wasn’t updated.",
+      ) as unknown,
+      errorMessage: null,
+    }),
+  );
+  act(() => call[0]({ phase: "connected", message: null }));
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ warningMessage: null, notice: null }),
+  );
+  act(() =>
+    call[4]({
+      eventId: "answer",
+      kind: "commentary",
+      delegationId: null,
+      status: "rejected",
+    }),
+  );
+  act(() =>
+    call[0]({
+      phase: "connected",
+      message: null,
+      interviewBudgetUpdate: "failed",
+    }),
+  );
+  act(() => call[0]({ phase: "connected", message: null }));
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      warningMessage: expect.stringContaining("answer was rejected") as unknown,
+    }),
+  );
+});
+
 test.each(["commentary", "instructions"] as const)(
   "%s pending and accepted appends do not raise errors or replace actual failures",
   async (kind) => {

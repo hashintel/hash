@@ -26,13 +26,17 @@ test.each(interviewBudgetLevels)(
         incarnationId: "incarnation",
       },
     };
-    const transport = createBrunchPanelTransport(
-      Promise.resolve({ send } as unknown as FlueClient),
-      new BrunchPanelConversationTracker(),
-      { initialData, interviewBudgetLevel: level },
-    );
     for (const source of ["text", "voice"] as const) {
       for (const asked of [0, 2, 9]) {
+        const transport = createBrunchPanelTransport(
+          Promise.resolve({ send } as unknown as FlueClient),
+          new BrunchPanelConversationTracker(),
+          {
+            initialData,
+            interviewBudgetLevel: level,
+            interviewRepliesAsked: asked,
+          },
+        );
         await expect(
           transport.sendMessages({
             trigger: "submit-message",
@@ -40,11 +44,13 @@ test.each(interviewBudgetLevels)(
             messageId: undefined,
             abortSignal: undefined,
             messages: [
-              ...Array.from({ length: asked }, (_, index) => ({
-                id: `reply-${index}`,
-                role: "assistant" as const,
-                parts: [{ type: "text" as const, text: "Recorded." }],
-              })),
+              // Rendered messages can merge steps or include a wrap-up. They
+              // are deliberately different from the host's canonical count.
+              {
+                id: "reply",
+                role: "assistant",
+                parts: [{ type: "text", text: "Recorded." }],
+              },
               {
                 id: "answer",
                 role: "user",
