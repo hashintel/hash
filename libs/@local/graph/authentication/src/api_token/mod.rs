@@ -176,8 +176,8 @@ pub struct ApiTokenGenerationError;
 
 /// An API token, made of its type, environment, version, token ID and secret.
 ///
-/// Neither the `Debug` nor the `Display` output contains the secret. `Display` shows the token up
-/// to the first four digits of the token ID and `…`, such as `hsh_pat_pd_0296…`.
+/// `Display` shows the token up to the first four digits of the token ID and `…`, such as
+/// `hsh_pat_pd_0296…`.
 #[derive(derive_more::Debug)]
 pub struct ApiToken {
     token_type: ApiTokenType,
@@ -252,8 +252,7 @@ impl fmt::Display for ApiToken {
 
 /// An API token with the SHA-256 hash of its secret in place of the secret.
 ///
-/// Neither the `Debug` nor the `Display` output contains the hash. `Display` shows the token as
-/// [`ApiToken`] does.
+/// `Display` shows the token as [`ApiToken`] does.
 #[derive(derive_more::Debug)]
 pub struct HashedApiToken {
     token_type: ApiTokenType,
