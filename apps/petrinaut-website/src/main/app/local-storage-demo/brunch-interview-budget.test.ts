@@ -32,15 +32,15 @@ test("canonical counting ignores display projection, partial text, tools and hid
     { ...reply("hidden", "Internal note"), display: "hidden" },
     { ...reply("tools", ""), parts: [] },
   ];
-  expect(countInterviewReplies(messages)).toBe(2);
+  expect(countInterviewReplies({ messages })).toBe(2);
   // Projection marks text as done; it must never be the count's input.
   expect(
     snapshotToUiMessages({ messages }, { clientToolNames: new Set() }).length,
   ).toBeGreaterThan(2);
   messages[2] = reply("pending", "What about weekends?");
-  expect(countInterviewReplies(messages)).toBe(3);
+  expect(countInterviewReplies({ messages })).toBe(3);
   const reloaded = JSON.parse(JSON.stringify(messages)) as typeof messages;
-  expect(countInterviewReplies(reloaded)).toBe(3);
+  expect(countInterviewReplies({ messages: reloaded })).toBe(3);
 });
 
 test("wrap-up does not spend a question when the length is raised after closing", () => {
@@ -74,12 +74,58 @@ test("wrap-up does not spend a question when the length is raised after closing"
     },
     reply("wrap-up", "Stated: six agents. Open: arrival rate."),
   );
-  expect(countInterviewReplies(messages)).toBe(6);
+  expect(countInterviewReplies({ messages })).toBe(6);
   expect(
-    getInterviewBudget("thorough", "text", countInterviewReplies(messages)),
+    getInterviewBudget("thorough", "text", countInterviewReplies({ messages })),
   ).toMatchObject({ asked: 6, remaining: 4 });
   // Off, Deep and old conversations without envelopes still count replies;
   // prose alone must not decide whether something is a closing turn.
   messages.push(reply("continued", "Here is a summary."));
-  expect(countInterviewReplies(messages)).toBe(7);
+  expect(countInterviewReplies({ messages })).toBe(7);
+});
+
+test("wrap-up does not spend a question when the closing answer joins a busy reply", () => {
+  const messages: FlueConversationMessage[] = [
+    ...Array.from({ length: 5 }, (_, index) =>
+      reply(`question-${index}`, "Recorded."),
+    ),
+    {
+      id: "last-answer",
+      submissionId: "closing",
+      role: "user",
+      purpose: "user",
+      display: "visible",
+      parts: [
+        {
+          type: "text",
+          state: "done",
+          text: petrinautContextualUserMessageBody({
+            userText: "Weekends too.",
+            diagnosticsContext: "",
+            submissionContext: {
+              [interviewBudgetContextKey]: getInterviewBudget(
+                "standard",
+                "text",
+                6,
+              ),
+            },
+          }),
+        },
+      ],
+    },
+    reply("host", "Stated: six agents. Open: arrival rate."),
+  ];
+  expect(countInterviewReplies({ messages })).toBe(6);
+  expect(
+    countInterviewReplies({
+      messages,
+      settlements: [
+        {
+          submissionId: "closing",
+          outcome: "completed",
+          answeredBySubmissionId: "host",
+        },
+      ],
+    }),
+  ).toBe(5);
 });

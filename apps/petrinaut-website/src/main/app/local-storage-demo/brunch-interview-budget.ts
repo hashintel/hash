@@ -4,16 +4,18 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 
-import type { FlueConversationMessage } from "@flue/sdk";
+import type { FlueConversationState } from "@flue/sdk";
 
 /**
  * Count canonical replies, not AI SDK rendering entries (which can merge steps
  * or lose text finality). The submitted allowance identifies wrap-up turns;
  * their summaries do not spend another question. No inference from prose.
  */
-export const countInterviewReplies = (
-  messages: readonly FlueConversationMessage[],
-): number => {
+export const countInterviewReplies = ({
+  messages,
+  settlements = [],
+}: Pick<FlueConversationState, "messages"> &
+  Partial<Pick<FlueConversationState, "settlements">>): number => {
   const closingSubmissions = new Set<string>();
   for (const message of messages) {
     if (message.purpose !== "user" || message.submissionId === undefined)
@@ -28,6 +30,15 @@ export const countInterviewReplies = (
       );
       if (budget?.remaining === 0) closingSubmissions.add(message.submissionId);
     }
+  }
+  // A closing answer that joined a busy response is answered by the host
+  // submission's reply.
+  for (const { submissionId, answeredBySubmissionId } of settlements) {
+    if (
+      answeredBySubmissionId !== undefined &&
+      closingSubmissions.has(submissionId)
+    )
+      closingSubmissions.add(answeredBySubmissionId);
   }
   return messages.filter(
     (message) =>

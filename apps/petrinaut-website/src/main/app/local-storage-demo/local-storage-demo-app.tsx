@@ -783,7 +783,7 @@ export const LocalStorageDemoApp = ({
     dynamicClientToolNames,
   );
   const interviewRepliesAsked = countInterviewReplies(
-    flueHistory.snapshot?.messages ?? [],
+    flueHistory.snapshot ?? { messages: [] },
   );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
