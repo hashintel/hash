@@ -567,6 +567,7 @@ const SubjectSelect: React.FC<{
   const items = groups.flatMap((group) => group.items);
   return (
     <Select
+      required
       size="sm"
       width={fill ? "fullWidth" : "fitContent"}
       aria-label="Subject"
@@ -602,6 +603,7 @@ const OpSelect: React.FC<{
   onChange: (op: CheckOp) => void;
 }> = ({ check, disabled, items, fill, onChange }) => (
   <Select
+    required
     size="sm"
     width={fill ? "fullWidth" : "fitContent"}
     aria-label="Comparison"
@@ -765,6 +767,7 @@ const RuleRows: React.FC<{
   const windowRow = (
     <div className={ruleRowStyle}>
       <Select
+        required
         size="sm"
         width="fitContent"
         aria-label="Time window"
