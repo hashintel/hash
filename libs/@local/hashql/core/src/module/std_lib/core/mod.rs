@@ -11,7 +11,7 @@ use crate::{
 pub(in crate::module::std_lib) mod bits;
 pub(in crate::module::std_lib) mod bool;
 pub(in crate::module::std_lib) mod cmp;
-pub(in crate::module::std_lib) mod json;
+pub mod json;
 pub(in crate::module::std_lib) mod math;
 pub mod option;
 pub(in crate::module::std_lib) mod result;

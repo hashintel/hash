@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/mir/src/pass/tests.rs
+assertion_line: 57
+expression: output
+---
+fn {closure@4294967040}() -> ? {
+    bb0(): {
+        unreachable
+    }
+}

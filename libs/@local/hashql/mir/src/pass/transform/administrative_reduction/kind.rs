@@ -64,6 +64,16 @@ pub(crate) enum ReductionKind {
     /// Shape: single basic block, trivial prelude statements, final statement is an `Apply`,
     /// terminator returns the result of that `Apply`.
     ForwardingClosure,
+
+    /// A single-operation function whose result is returned directly.
+    ///
+    /// Shape: single basic block, trivial prelude (only `Nop`/`Load`/`Aggregate`), final
+    /// statement is any non-call assignment (`Binary`, `Unary`, `Aggregate`, `Input`, `Load`),
+    /// terminator returns the final statement's result.
+    ///
+    /// This covers compiler-synthesized wrappers (e.g. intrinsic-as-value bodies) as well as
+    /// user-written closures that happen to be a single operation.
+    TrivialClosure,
 }
 
 impl ReductionKind {
@@ -127,13 +137,30 @@ impl ReductionKind {
             return None;
         }
 
-        // Final statement must be a call assignment.
-        let StatementKind::Assign(Assign {
-            lhs,
-            rhs: RValue::Apply(_),
-        }) = final_stmt.kind
-        else {
+        // In this case it may either be a forwarding closure **or** a synthetic closure, this
+        // depends on the final statement, in either case the last statement must be an assignment.
+        let StatementKind::Assign(Assign { lhs, ref rhs }) = final_stmt.kind else {
             return None;
+        };
+
+        // The kind depends on the final statement. Both cases are beta-reduction
+        // (substituting arguments into a function body at a call site):
+        //
+        // Apply: the body forwards to another call. The wrapper (lambda x. f(x)) is an
+        // eta-expansion of the inner function; inlining at the call site is beta-reduction
+        // that exposes the inner call directly.
+        //
+        // Binary, Unary, and other primitive operations: the body computes a single result
+        // from its arguments. Inlining substitutes the arguments and exposes the primitive
+        // operation. A subsequent constant folding pass may then perform delta-reduction
+        // (evaluating the primitive when operands are known).
+        let kind = match rhs {
+            RValue::Apply(_) => Self::ForwardingClosure,
+            RValue::Aggregate(_)
+            | RValue::Binary(_)
+            | RValue::Unary(_)
+            | RValue::Input(_)
+            | RValue::Load(_) => Self::TrivialClosure,
         };
 
         // Terminator must return the call's result.
@@ -142,7 +169,7 @@ impl ReductionKind {
                 value: Operand::Place(lhs),
             })
         {
-            return Some(Self::ForwardingClosure);
+            return Some(kind);
         }
 
         None
