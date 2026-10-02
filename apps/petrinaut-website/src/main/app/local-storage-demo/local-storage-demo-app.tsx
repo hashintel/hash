@@ -18,12 +18,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { LuBookOpen } from "react-icons/lu";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -997,6 +999,17 @@ export const LocalStorageDemoApp = ({
             <Button
               size="xs"
               variant="ghost"
+              aria-label="Words"
+              prefix={
+                <LuBookOpen
+                  aria-hidden="true"
+                  size={14}
+                  className={css({
+                    display: "inline-block",
+                    verticalAlign: "middle",
+                  })}
+                />
+              }
               disabled={!words.ready}
               onClick={() => setWordsDialog({ key: words.key! })}
             >

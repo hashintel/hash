@@ -1,6 +1,6 @@
-# Words for Voice assistant
+# Custom words
 
-On the Petrinaut website, open **User settings → Labs**, select **Use Brunch**, and enable **Words for Voice assistant**. Words is off by default and does not start Voice or the microphone.
+On the Petrinaut website, open **User settings → Labs**, select **Use Brunch**, and enable **Custom words**. Custom words is off by default and does not start Voice or the microphone.
 
 ## Add a name or term
 

@@ -32,9 +32,19 @@ test("Voice assistant words are added from the list without a transcript teachin
     />,
   );
   expect(
-    await screen.findByRole("dialog", { name: "Words for Voice assistant" }),
+    await screen.findByRole("dialog", { name: "Custom words" }),
+  ).toBeDefined();
+  expect(
+    screen.getByText("Help recognize and pronounce names and terms."),
   ).toBeDefined();
   expect(screen.queryByText(/Teach this word/u)).toBeNull();
+  expect(screen.queryByText(/Brunch/u)).toBeNull();
+  expect(screen.queryByRole("list")).toBeNull();
+  expect(
+    screen.getByText(
+      "Restart Voice to apply changes. Words are saved in this browser and cleared with this conversation.",
+    ),
+  ).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Add word" }));
   const spelling = await screen.findByRole("textbox", {
     name: "Correct spelling",
@@ -47,7 +57,7 @@ test("Voice assistant words are added from the list without a transcript teachin
     "RelayDesk",
   ]);
   expect(save.mock.calls[0]?.[0][0]?.id).toEqual(expect.any(String));
-  expect(screen.getByRole("status").textContent).toContain("Restart Voice");
+  expect(screen.getByRole("status").textContent).toBe("Saved.");
 });
 
 test.each(["edited", "other"])(
