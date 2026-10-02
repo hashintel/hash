@@ -534,7 +534,7 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "invalid" });
     expect(submit.mock.calls[0]?.[0].diagnostics[0]).toMatch(
-      /changed since Brunch read it/u,
+      /changed since the AI assistant read it/u,
     );
     expect(heading()).toEqual(["Could not be prepared"]);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
