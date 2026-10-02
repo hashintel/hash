@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useId, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -82,14 +82,16 @@ const noResultsLinkStyle = css({
 
 const stripWidth = 400;
 const stripHeight = 116;
-const plotLeft = 4;
-const plotRight = 396;
 const plotTop = 20;
 const plotBottom = 96;
+const bandTop = 18;
+const readoutGap = 8;
 const maxDay = 360;
+const labelHeight = 14;
+const readoutHeight = 20;
 
-const x = (day: number) =>
-  plotLeft + ((plotRight - plotLeft) * day) / maxDay;
+const x = (day: number) => (stripWidth * day) / maxDay;
+const percent = (day: number) => `${(day / maxDay) * 100}%`;
 
 const stepPath = (points: SeriesPoint[], y: (value: number) => number) => {
   let path = "";
@@ -104,7 +106,74 @@ const stepPath = (points: SeriesPoint[], y: (value: number) => number) => {
   return last ? `${path} H${x(maxDay)}` : path;
 };
 
+const valueAt = (points: SeriesPoint[], day: number): number => {
+  let value = points[0]?.value ?? 0;
+  for (const point of points) {
+    if (point.day > day) {
+      break;
+    }
+    value = point.value;
+  }
+  return value;
+};
+
+const formatValue = (value: number): string =>
+  String(Number(value.toPrecision(2)));
+
 const strokeVar = (token: string) => `var(--colors-neutral-${token})`;
+
+const plotStyle = css({
+  position: "relative",
+  width: "full",
+  cursor: "crosshair",
+});
+
+const plotSvgStyle = css({
+  display: "block",
+  width: "full",
+  overflow: "visible",
+});
+
+const labelStyle = css({
+  position: "absolute",
+  fontSize: "[11px]",
+  lineHeight: "[14px]",
+  color: "neutral.s100",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+});
+
+const scrubLineStyle = css({
+  position: "absolute",
+  width: "[1px]",
+  backgroundColor: "blue.s90",
+  pointerEvents: "none",
+});
+
+const scrubDotStyle = css({
+  position: "absolute",
+  width: "[7px]",
+  height: "[7px]",
+  borderRadius: "full",
+  backgroundColor: "blue.s90",
+  transform: "translate(-50%, -50%)",
+  pointerEvents: "none",
+});
+
+const readoutStyle = css({
+  position: "absolute",
+  fontSize: "[11px]",
+  lineHeight: "[14px]",
+  color: "neutral.s00",
+  backgroundColor: "neutral.s120",
+  borderRadius: "md",
+  paddingX: "2",
+  paddingY: "[3px]",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+});
+
+type Scrub = { day: number; pillLeft: number };
 
 /** The checked value over the first failing run, against its limit and window. */
 const FailureStrip: React.FC<{
@@ -112,85 +181,187 @@ const FailureStrip: React.FC<{
   result: ConstraintResult;
 }> = ({ constraint, result }) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const clipId = useId();
+  const readoutRef = useRef<HTMLDivElement>(null);
+  const [scrub, setScrub] = useState<Scrub | null>(null);
   const check = constraint.checks[0];
   const limit = check?.bound ?? 0;
-  const unit =
-    subjectUnit(petriNetDefinition, check?.subject ?? null) ?? "tokens";
+  const unit = subjectUnit(petriNetDefinition, check?.subject ?? null);
+  const withUnit = (text: string) => (unit ? `${text} ${unit}` : text);
   const top = limit * 1.5;
   const y = (value: number) =>
     plotBottom - ((plotBottom - plotTop) * Math.min(value, top)) / top;
   const points = exampleSeries(constraint, result, limit);
   const window = constraint.window;
   const windowFrom = window?.kind === "between" ? window.from : 0;
-  const breakX = x(result.firstBreak.day);
+  const limitY = y(limit);
+  const path = stepPath(points, y);
+  const overIsRed = check?.op !== "above";
+  const aboveLimit = { y: 0, height: limitY };
+  const belowLimit = { y: limitY, height: stripHeight - limitY };
+  const redClip = overIsRed ? aboveLimit : belowLimit;
+  const darkClip = overIsRed ? belowLimit : aboveLimit;
+
+  const scrubTo = (event: React.PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const fraction = Math.min(
+      1,
+      Math.max(0, (event.clientX - box.left) / box.width),
+    );
+    const pillWidth = readoutRef.current?.offsetWidth ?? 0;
+    const pointerX = fraction * box.width;
+    const rightOfLine = pointerX + readoutGap;
+    const pillLeft = Math.min(
+      box.width - pillWidth,
+      Math.max(
+        0,
+        rightOfLine + pillWidth > box.width
+          ? pointerX - readoutGap - pillWidth
+          : rightOfLine,
+      ),
+    );
+    setScrub({ day: Math.round(fraction * maxDay), pillLeft });
+  };
+
+  const scrubValue = scrub ? valueAt(points, scrub.day) : 0;
+  const scrubY = y(scrubValue);
+  const pillAbove = scrubY - 8 - readoutHeight >= 0;
 
   return (
-    <svg
-      viewBox={`0 0 ${stripWidth} ${stripHeight}`}
-      width="100%"
+    <div
+      className={plotStyle}
+      style={{ height: stripHeight }}
       role="img"
       aria-label={`Example: ${constraint.name}, first failing run`}
+      onPointerMove={scrubTo}
+      onPointerLeave={() => setScrub(null)}
     >
-      {window ? (
-        <rect
-          x={x(windowFrom)}
-          y={plotTop - 8}
-          width={x(window.to) - x(windowFrom)}
-          height={plotBottom - plotTop + 8}
-          fill={strokeVar("s20")}
-        />
-      ) : null}
-      <line
-        x1={plotLeft}
-        x2={plotRight}
-        y1={plotBottom}
-        y2={plotBottom}
-        stroke={strokeVar("s60")}
-      />
-      <line
-        x1={plotLeft}
-        x2={plotRight}
-        y1={y(limit)}
-        y2={y(limit)}
-        stroke={strokeVar("s90")}
-        strokeDasharray="3 3"
-      />
-      <path
-        d={stepPath(points, y)}
-        fill="none"
-        stroke={strokeVar("s120")}
-        strokeWidth="1.2"
-      />
-      <line
-        x1={breakX}
-        x2={breakX}
-        y1={plotTop - 8}
-        y2={plotBottom}
-        stroke={strokeVar("s120")}
-      />
-      <g fontSize="11" fill={strokeVar("s100")}>
-        <text x={breakX + 4} y={plotTop - 7}>
-          {`step ${result.firstBreak.step} · day ${result.firstBreak.day}`}
-        </text>
-        <text x={plotRight} y={y(limit) - 3} textAnchor="end">
-          {`${limit} ${unit}`}
-        </text>
-        <text x={plotLeft} y={111}>
-          0
-        </text>
+      <svg
+        className={plotSvgStyle}
+        viewBox={`0 0 ${stripWidth} ${stripHeight}`}
+        preserveAspectRatio="none"
+        height={stripHeight}
+      >
+        <defs>
+          <clipPath id={`${clipId}-red`}>
+            <rect x={0} width={stripWidth} {...redClip} />
+          </clipPath>
+          <clipPath id={`${clipId}-dark`}>
+            <rect x={0} width={stripWidth} {...darkClip} />
+          </clipPath>
+        </defs>
         {window ? (
-          <text x={x(windowFrom)} y={111}>
-            {windowFrom}
-          </text>
+          <rect
+            x={x(windowFrom)}
+            y={bandTop}
+            width={x(window.to) - x(windowFrom)}
+            height={plotBottom - bandTop}
+            fill={strokeVar("s20")}
+          />
         ) : null}
-        <text x={x(maxDay) - 38} y={111} textAnchor="end">
-          {maxDay}
-        </text>
-        <text x={plotRight} y={111} textAnchor="end">
-          days
-        </text>
-      </g>
-    </svg>
+        <line
+          x1={0}
+          x2={stripWidth}
+          y1={plotBottom}
+          y2={plotBottom}
+          stroke={strokeVar("s60")}
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={0}
+          x2={stripWidth}
+          y1={limitY}
+          y2={limitY}
+          stroke={strokeVar("s90")}
+          strokeDasharray="3 3"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke={strokeVar("s120")}
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+          clipPath={`url(#${clipId}-dark)`}
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke="var(--colors-red-s100)"
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+          clipPath={`url(#${clipId}-red)`}
+        />
+        <line
+          x1={x(result.firstBreak.day)}
+          x2={x(result.firstBreak.day)}
+          y1={bandTop}
+          y2={plotBottom}
+          stroke={strokeVar("s70")}
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <span
+        className={labelStyle}
+        style={{
+          left: `calc(${percent(result.firstBreak.day)} + 4px)`,
+          top: 0,
+        }}
+      >
+        {`day ${result.firstBreak.day}`}
+      </span>
+      <span
+        className={labelStyle}
+        style={{ right: 0, top: limitY - 3 - labelHeight }}
+      >
+        {withUnit(String(limit))}
+      </span>
+      <span className={labelStyle} style={{ left: 0, top: plotBottom + 3 }}>
+        0
+      </span>
+      {window ? (
+        <span
+          className={labelStyle}
+          style={{
+            left: percent(windowFrom),
+            top: plotBottom + 3,
+            transform: "translateX(-50%)",
+          }}
+        >
+          {windowFrom}
+        </span>
+      ) : null}
+      <span className={labelStyle} style={{ right: 0, top: plotBottom + 3 }}>
+        {maxDay} days
+      </span>
+      {scrub ? (
+        <>
+          <span
+            className={scrubLineStyle}
+            style={{
+              left: percent(scrub.day),
+              top: bandTop,
+              height: plotBottom - bandTop,
+            }}
+          />
+          <span
+            className={scrubDotStyle}
+            style={{ left: percent(scrub.day), top: scrubY }}
+          />
+        </>
+      ) : null}
+      <div
+        ref={readoutRef}
+        className={readoutStyle}
+        style={{
+          left: scrub?.pillLeft ?? 0,
+          top: pillAbove ? scrubY - 8 - readoutHeight : scrubY + 8,
+          visibility: scrub ? "visible" : "hidden",
+        }}
+      >
+        {`day ${scrub?.day ?? 0} · ${withUnit(formatValue(scrubValue))}`}
+      </div>
+    </div>
   );
 };
 
