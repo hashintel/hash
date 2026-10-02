@@ -41,6 +41,7 @@ import {
   willShowWalkthroughDialog,
 } from "../../components/walkthrough/walkthrough-context";
 import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
+import { FailingRunsOverlay } from "../../controller-prototype/failing-runs-view";
 import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
@@ -637,6 +638,8 @@ const EditorViewContent = ({
                       onControllerChange={registerController}
                       viewportActions={viewportActions}
                     />
+
+                    <FailingRunsOverlay />
 
                     {showEmptyAiHero && (
                       <AiCtaModal

@@ -12,6 +12,7 @@ import {
   exampleResultHeld,
   exampleSeries,
 } from "./constraint-results-example";
+import { openFailingRuns } from "./failing-runs-view";
 
 import type { ModelConstraint } from "../../react/controller-prototype/constraints";
 import type {
@@ -173,7 +174,17 @@ const readoutStyle = css({
   pointerEvents: "none",
 });
 
-type Scrub = { day: number; pillLeft: number };
+type Scrub = {
+  day: number;
+  pillLeft: number;
+  pillTop: number;
+  lineTop: number;
+};
+
+type Box = { left: number; right: number; top: number; bottom: number };
+
+const overlaps = (a: Box, b: Box) =>
+  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 /** The checked value over the first failing run, against its limit and window. */
 const FailureStrip: React.FC<{
@@ -183,6 +194,7 @@ const FailureStrip: React.FC<{
   const { petriNetDefinition } = use(SDCPNContext);
   const clipId = useId();
   const readoutRef = useRef<HTMLDivElement>(null);
+  const limitLabelRef = useRef<HTMLSpanElement>(null);
   const [scrub, setScrub] = useState<Scrub | null>(null);
   const check = constraint.checks[0];
   const limit = check?.bound ?? 0;
@@ -208,24 +220,79 @@ const FailureStrip: React.FC<{
       1,
       Math.max(0, (event.clientX - box.left) / box.width),
     );
+    const width = box.width;
     const pillWidth = readoutRef.current?.offsetWidth ?? 0;
-    const pointerX = fraction * box.width;
-    const rightOfLine = pointerX + readoutGap;
-    const pillLeft = Math.min(
-      box.width - pillWidth,
-      Math.max(
-        0,
-        rightOfLine + pillWidth > box.width
-          ? pointerX - readoutGap - pillWidth
-          : rightOfLine,
-      ),
+    const pointerX = fraction * width;
+    const day = Math.round(fraction * maxDay);
+    const dotY = y(valueAt(points, day));
+    const px = (days: number) => (days / maxDay) * width;
+
+    const over = points.flatMap((point, index) =>
+      (overIsRed ? point.value > limit : point.value < limit)
+        ? [{ point, end: points[index + 1]?.day ?? maxDay }]
+        : [],
     );
-    setScrub({ day: Math.round(fraction * maxDay), pillLeft });
+    const obstacles: Box[] = [
+      {
+        left: width - (limitLabelRef.current?.offsetWidth ?? 0),
+        right: width,
+        top: limitY - 3 - labelHeight,
+        bottom: limitY - 3,
+      },
+      {
+        left: px(result.firstBreak.day) - 1,
+        right: px(result.firstBreak.day) + 1,
+        top: bandTop,
+        bottom: plotBottom,
+      },
+    ];
+    if (over.length > 0) {
+      const ys = [limitY, ...over.map(({ point }) => y(point.value))];
+      obstacles.push({
+        left: px(over[0]!.point.day),
+        right: px(over[over.length - 1]!.end),
+        top: Math.min(...ys),
+        bottom: Math.max(...ys),
+      });
+    }
+
+    const lefts = [
+      pointerX + readoutGap,
+      pointerX - readoutGap - pillWidth,
+    ].filter((left) => left >= 0 && left + pillWidth <= width);
+    const tops = [dotY - readoutGap - readoutHeight, dotY + readoutGap];
+    const spots = tops.flatMap((pillTop) =>
+      lefts.map((left) => ({ left, top: pillTop })),
+    );
+    const clear = (spot: { left: number; top: number }) =>
+      spot.top >= 0 &&
+      spot.top + readoutHeight <= stripHeight &&
+      !obstacles.some((obstacle) =>
+        overlaps(
+          {
+            left: spot.left,
+            right: spot.left + pillWidth,
+            top: spot.top,
+            bottom: spot.top + readoutHeight,
+          },
+          obstacle,
+        ),
+      );
+    const spot = spots.find(clear) ?? {
+      left: Math.min(width - pillWidth, Math.max(0, pointerX + readoutGap)),
+      top: tops[1]!,
+    };
+    const limitLabelLeft = obstacles[0]!.left;
+    setScrub({
+      day,
+      pillLeft: spot.left,
+      pillTop: spot.top,
+      lineTop: pointerX >= limitLabelLeft ? limitY - 2 : bandTop,
+    });
   };
 
   const scrubValue = scrub ? valueAt(points, scrub.day) : 0;
   const scrubY = y(scrubValue);
-  const pillAbove = scrubY - 8 - readoutHeight >= 0;
 
   return (
     <div
@@ -311,6 +378,7 @@ const FailureStrip: React.FC<{
         {`day ${result.firstBreak.day}`}
       </span>
       <span
+        ref={limitLabelRef}
         className={labelStyle}
         style={{ right: 0, top: limitY - 3 - labelHeight }}
       >
@@ -340,8 +408,8 @@ const FailureStrip: React.FC<{
             className={scrubLineStyle}
             style={{
               left: percent(scrub.day),
-              top: bandTop,
-              height: plotBottom - bandTop,
+              top: scrub.lineTop,
+              height: plotBottom - scrub.lineTop,
             }}
           />
           <span
@@ -355,7 +423,7 @@ const FailureStrip: React.FC<{
         className={readoutStyle}
         style={{
           left: scrub?.pillLeft ?? 0,
-          top: pillAbove ? scrubY - 8 - readoutHeight : scrubY + 8,
+          top: scrub?.pillTop ?? 0,
           visibility: scrub ? "visible" : "hidden",
         }}
       >
@@ -440,9 +508,11 @@ export const LastExperiment: React.FC<{ constraint: ModelConstraint }> = ({
         variant="link"
         tone="brand"
         className={linkStyle}
-        onClick={() => setGlobalMode("simulate")}
+        onClick={() =>
+          failing > 0 ? openFailingRuns() : setGlobalMode("simulate")
+        }
       >
-        Open in timeline
+        {failing > 0 ? `Open ${failing} failing runs` : "Open in timeline"}
       </Button>
     </div>
   );

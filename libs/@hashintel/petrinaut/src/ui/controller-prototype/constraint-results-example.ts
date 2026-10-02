@@ -120,3 +120,51 @@ export const exampleSeries = (
   }
   return points;
 };
+
+/** One run that broke the constraint, with where it first broke. */
+export type FailingRun = { run: number; day: number; serviceLevel: number };
+
+/**
+ * The failing runs behind a result, one per run that did not hold, ascending
+ * by run. The first is the result's first failing run and break; the rest
+ * break inside the constraint's window (or anywhere in the run without one).
+ */
+export const exampleFailingRuns = (
+  constraint: ModelConstraint,
+  result: ConstraintResult,
+): FailingRun[] => {
+  const random = seeded(hash(`${constraint.id}:runs`));
+  const count = result.runs - result.held;
+  if (count <= 0) {
+    return [];
+  }
+  const window = constraint.window;
+  const from = window?.kind === "between" ? window.from : 0;
+  const to = Math.min(window?.to ?? 360, 360);
+  const serviceLevel = () => Math.round((0.85 + random() * 0.1) * 100) / 100;
+
+  const later = new Set<number>();
+  const available = result.runs - 1 - result.firstFailingRun;
+  while (later.size < Math.min(count - 1, available)) {
+    later.add(
+      result.firstFailingRun +
+        1 +
+        Math.floor(random() * (result.runs - 1 - result.firstFailingRun)),
+    );
+  }
+
+  return [
+    {
+      run: result.firstFailingRun,
+      day: result.firstBreak.day,
+      serviceLevel: serviceLevel(),
+    },
+    ...Array.from(later)
+      .sort((a, b) => a - b)
+      .map((run) => ({
+        run,
+        day: Math.round((from + random() * (to - from)) * 10) / 10,
+        serviceLevel: serviceLevel(),
+      })),
+  ];
+};
