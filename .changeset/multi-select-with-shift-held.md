@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Cmd+click (Ctrl+click on Windows and Linux) adds a node to the canvas selection, or removes it, while Shift is also held, whichever key is pressed first.
+Cmd+click (Ctrl+click on Windows and Linux) adds a node to the canvas selection, or removes it, with or without Shift held. A selection box drawn with Cmd (Ctrl) held adds its nodes to the selection instead of replacing it.
