@@ -54,6 +54,7 @@ hashql_macros::define_symbols! {
     encodings,
     end,
     entity,
+    pointer,
     Entity,
     EntityType,
     EntityTypeMetadata,
