@@ -11,8 +11,6 @@ use super::{ApiTokenType, ApiTokenVersion, Environment};
 const SYNTHETIC_IV_LENGTH: usize = 16;
 
 /// An AES-256-SIV key for the secret hashes of API tokens, and its ID.
-///
-/// The `Debug` output leaves out the key.
 #[derive(derive_more::Debug)]
 pub struct ApiTokenEncryptionKey {
     id: ApiTokenEncryptionKeyId,
@@ -92,8 +90,6 @@ impl ApiTokenEncryptionKey {
 }
 
 /// The parts of a token and its row that an encrypted secret hash is bound to.
-///
-/// A secret hash only decrypts with the associated data it was encrypted with.
 #[derive(Debug, Copy, Clone)]
 pub struct AssociatedData {
     pub token_type: ApiTokenType,
@@ -107,9 +103,11 @@ pub struct AssociatedData {
 }
 
 impl AssociatedData {
-    /// Calls `operation` with the parts as separate AES-SIV headers in the order of the fields: the
-    /// type and environment as their codes, the version as its number and the IDs as their UUID
-    /// bytes.
+    /// Calls `operation` with the parts as separate AES-SIV headers, in the order of the fields.
+    ///
+    /// - The type and the environment are their codes.
+    /// - The version is its number.
+    /// - The token ID, the actor ID and the web ID are the bytes of their UUIDs.
     ///
     /// Every stored secret hash depends on this encoding, so changing it makes all of them fail to
     /// decrypt.
@@ -209,7 +207,6 @@ mod tests {
         );
     }
 
-    /// A stored value only decrypts with the associated data it was encrypted with.
     #[rstest]
     #[case::environment(|data| AssociatedData { environment: Environment::Staging, ..data })]
     #[case::token_id(|data| AssociatedData { token_id: ApiTokenId::new(Uuid::from_u128(1)), ..data })]
