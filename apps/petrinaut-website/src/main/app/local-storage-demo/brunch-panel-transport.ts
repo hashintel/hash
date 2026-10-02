@@ -1,9 +1,9 @@
 import {
   createFlueChatTransport,
   FlueChatAdmissionError,
+  validatePetrinautWordSpellings,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-import { validateSpellings } from "@hashintel/brunch-agent/words";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
@@ -45,7 +45,7 @@ export class BrunchPanelConversationTracker {
       const words = read?.();
       this.#wordsByMessage.set(
         messageId,
-        words === undefined ? undefined : validateSpellings(words),
+        words === undefined ? undefined : validatePetrinautWordSpellings(words),
       );
     }
     return this.#wordsByMessage.get(messageId);

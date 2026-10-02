@@ -1,6 +1,5 @@
-import { validateSpellings } from "@hashintel/brunch-agent/words";
-
 import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
+import { validatePetrinautWordSpellings } from "./words";
 
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
@@ -84,7 +83,7 @@ export const petrinautWordsUserMessageBody = (payload: {
       diagnosticsContext: payload.diagnosticsContext,
     });
   }
-  const body = `${wordsPrefix}${JSON.stringify({ ...payload, words: validateSpellings(payload.words) })}`;
+  const body = `${wordsPrefix}${JSON.stringify({ ...payload, words: validatePetrinautWordSpellings(payload.words) })}`;
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH)
     throw new Error("The contextual user message body is too long.");
   return body;
@@ -130,7 +129,7 @@ export const parsePetrinautUserMessageBody = (
     try {
       const result = {
         userText: payload.userText,
-        words: validateSpellings(payload.words),
+        words: validatePetrinautWordSpellings(payload.words),
         ...(typeof payload.diagnosticsContext === "string"
           ? { diagnosticsContext: payload.diagnosticsContext }
           : {}),

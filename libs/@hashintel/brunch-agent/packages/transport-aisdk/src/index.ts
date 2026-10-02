@@ -35,6 +35,11 @@ export {
   petrinautUserMessageText,
 } from "./contextual-user-message";
 export {
+  normalizePetrinautWordLiteral,
+  petrinautWordSpellingLimits,
+  validatePetrinautWordSpellings,
+} from "./words";
+export {
   agentOwnershipHeaders,
   flueConversationIdWeb,
   identityPayload,

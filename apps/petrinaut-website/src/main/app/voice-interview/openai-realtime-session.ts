@@ -3,6 +3,7 @@ import { buildVoiceTranscriptionPrompt } from "../../../shared/voice-transcripti
 import {
   encodeVoiceWords,
   voiceWordsHeader,
+  type VoiceWord,
 } from "../../../shared/voice-words";
 import {
   createVoiceRequestId,
@@ -19,8 +20,6 @@ import {
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
-import type { BrunchWord } from "@hashintel/brunch-agent";
-
 export interface OpenAIRealtimeTranscriptKey {
   readonly connectionEpoch: number;
   readonly contentIndex: number;
@@ -102,7 +101,7 @@ interface RemoteAudio {
 }
 
 interface OpenAIRealtimeSessionDependencies {
-  readonly readWords?: () => readonly BrunchWord[];
+  readonly readWords?: () => readonly VoiceWord[];
   readonly audioSettings?: VoiceAudioSettings;
   readonly cancelAnimationFrame: (handle: number) => void;
   readonly connectionTimeoutMs: number;

@@ -168,10 +168,6 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Labs
 
-### Custom words
-
-On the website, selecting **Use Brunch** reveals **Custom words**, off by default. Enable it to show **Words** in the assistant header while in Voice mode. The preference is saved in this browser; each conversation has its own word list. Changes apply to Brunch's next request, while an active Voice session keeps its original hints until you restart it. See [Custom words](words.md).
-
 Hosts can place application-specific controls after Petrinaut's built-in Labs
 groups. For example, a host may put assistant provider and Voice availability
 choices there. The host owns those controls, their availability, and how their

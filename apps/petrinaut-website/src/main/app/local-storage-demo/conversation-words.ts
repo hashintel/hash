@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 
-import { validateWords, type BrunchWord } from "@hashintel/brunch-agent/words";
+import {
+  encodeVoiceWords,
+  validateWords,
+  type VoiceWord,
+} from "../../../shared/voice-words";
 
-import { encodeVoiceWords } from "../../../shared/voice-words";
-
-export type ConversationWord = BrunchWord & { readonly id: string };
+export type ConversationWord = VoiceWord & { readonly id: string };
 export const conversationWordsKey = (
   principal: string,
   conversation: string,

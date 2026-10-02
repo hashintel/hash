@@ -122,12 +122,12 @@ import { WordsConfigurer } from "./words-configurer";
 import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { VoiceWord } from "../../../shared/voice-words";
 import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
   DocumentRepository,
 } from "./documents/document-repository";
-import type { BrunchWord } from "@hashintel/brunch-agent";
 
 const useCurrentSettlementAction = (
   settleRevision: DocumentRepository["settleRevision"],
@@ -242,7 +242,7 @@ export const getBrunchVoiceMode = (
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
   isToolAwaitingApproval?: (toolCallId: string) => boolean,
-  readWords?: () => readonly BrunchWord[],
+  readWords?: () => readonly VoiceWord[],
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -690,7 +690,7 @@ export const LocalStorageDemoApp = ({
     wordsPreference.ready &&
     wordsPreference.enabled &&
     conversationId !== null;
-  const readWords = useCallback((): readonly BrunchWord[] => {
+  const readWords = useCallback((): readonly VoiceWord[] => {
     if (!wordsActive) return [];
     if (!words.ready)
       throw new Error("Words are still loading for this conversation.");
