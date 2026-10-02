@@ -1,0 +1,9 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/check-duplicates.yaml
+---
+17:21: pipelines.entities[0].steps[2].branches[0][0].id: step ID `shape` is already used
+18:29: pipelines.entities[0].steps[2].branches[0][0].checkpoint: checkpoint `demo/orders` is already produced by another step
+23:15: pipelines.links[0].steps[0].id: step ID `cp-orders` is already used
+28:11: pipelines.links[1].id: link ID `order-to-order` is already used

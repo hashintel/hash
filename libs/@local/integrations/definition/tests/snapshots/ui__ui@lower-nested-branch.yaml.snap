@@ -1,0 +1,6 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-nested-branch.yaml
+---
+13:21: pipelines.entities[0].steps[0].branches[0][0].branches: a branch cannot contain another branch

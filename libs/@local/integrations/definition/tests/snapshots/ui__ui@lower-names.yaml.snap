@@ -1,0 +1,10 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-names.yaml
+---
+2:12: connector: `Demo Data` is not a valid name: name must be ASCII letters, digits, `-` and `_`, starting with a letter or digit
+4:3: sources["order-lines/2024"]: `order-lines/2024` is not a valid name: name must be ASCII letters, digits, `-` and `_`, starting with a letter or digit
+9:15: pipelines.entities[0].source: `order-lines/2024` is not a valid name: name must be ASCII letters, digits, `-` and `_`, starting with a letter or digit
+11:9: pipelines.entities[0].inputs.input: `input` is not a valid name: `input` is reserved
+13:15: pipelines.entities[0].steps[0].id: `-shape` is not a valid name: name must be ASCII letters, digits, `-` and `_`, starting with a letter or digit

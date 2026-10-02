@@ -4,8 +4,9 @@
 //! pipelines that turn their rows into entities and links, and the unit maps that give measured
 //! values their data types.
 //!
-//! [`Definition::new`] checks a [`DefinitionParts`] and reports every problem as a
-//! [`DefinitionIssue`] with the path of the part it concerns.
+//! [`Definition::from_yaml`] parses a definition. [`Definition::new`] checks a
+//! [`DefinitionParts`] built another way. Both report every problem as a [`DefinitionIssue`]
+//! with the path of the part it concerns, and parsing adds its source location.
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
@@ -21,10 +22,11 @@ mod pipeline;
 mod source;
 mod step;
 mod unit_map;
+mod yaml;
 
 pub use self::{
     definition::{Definition, DefinitionParts},
-    issue::{DefinitionIssue, DefinitionPath, IssueKind, PathSegment},
+    issue::{DefinitionIssue, DefinitionPath, IssueKind, PathSegment, SourceLocation},
     link::{EmptyLinkInputs, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline, LinkStep},
     name::{
         CheckpointName, ColumnName, ConnectorId, InputAlias, InvalidName, LinkId, SourceName,
@@ -39,4 +41,5 @@ pub use self::{
         InvalidBranches, Properties, Step, StepKind,
     },
     unit_map::{EmptyUnitMap, UnitMap},
+    yaml::ParseError,
 };

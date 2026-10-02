@@ -1,0 +1,22 @@
+# Sources, steps and links need exactly one key naming what they are.
+connector: demo
+sources:
+  neither:
+    primaryKey: [id]
+  both:
+    sql: SELECT 1 AS id
+    checkpoint: demo/orders
+pipelines:
+  entities:
+    - source: neither
+      steps:
+        - id: nothing
+        - id: two
+          sql: SELECT * FROM input
+          checkpoint: demo/two
+    - source: both
+  links:
+    - id: no-input
+      from: { entityType: "https://example.test/@demo/types/entity-type/a/v/1", column: a }
+      to: { entityType: "https://example.test/@demo/types/entity-type/b/v/1", column: b }
+      linkType: https://example.test/@demo/types/entity-type/a-to-b/v/1

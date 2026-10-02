@@ -33,7 +33,11 @@ pub(super) struct Check<'parts> {
 
 impl<'parts> Check<'parts> {
     fn report(&mut self, path: DefinitionPath, kind: IssueKind) {
-        self.issues.push(DefinitionIssue { path, kind });
+        self.issues.push(DefinitionIssue {
+            path,
+            kind,
+            location: None,
+        });
     }
 
     fn pipeline_sources(&mut self) {
@@ -113,7 +117,9 @@ impl<'parts> Check<'parts> {
                     },
                 ),
             },
-            Action::Sink(sink) => self.properties(&sink.properties, &path.field("properties")),
+            Action::Sink(sink) => {
+                self.properties(&sink.properties, &path.field("sink").field("properties"));
+            }
         }
     }
 

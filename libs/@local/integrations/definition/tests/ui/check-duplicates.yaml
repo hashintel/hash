@@ -1,0 +1,32 @@
+# Step IDs, checkpoints and link IDs are unique across the definition.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: shape
+          sql: SELECT * FROM input
+        - id: cp-orders
+          checkpoint: demo/orders
+        - id: fan-out
+          branches:
+            - - id: shape
+                checkpoint: demo/orders
+  links:
+    - id: order-to-order
+      checkpoint: demo/orders
+      steps:
+        - id: cp-orders
+          sql: SELECT * FROM input
+      from: { entityType: "https://example.test/@demo/types/entity-type/order/v/1", column: id }
+      to: { entityType: "https://example.test/@demo/types/entity-type/order/v/1", column: id }
+      linkType: https://example.test/@demo/types/entity-type/follows/v/1
+    - id: order-to-order
+      checkpoint: demo/orders
+      from: { entityType: "https://example.test/@demo/types/entity-type/order/v/1", column: id }
+      to: { entityType: "https://example.test/@demo/types/entity-type/order/v/1", column: id }
+      linkType: https://example.test/@demo/types/entity-type/follows/v/1

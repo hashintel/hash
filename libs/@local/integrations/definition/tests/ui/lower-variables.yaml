@@ -1,0 +1,19 @@
+# Placeholders resolve against `vars` only. Unknown and unterminated placeholders are reported.
+connector: demo
+vars:
+  TYPES: https://example.test/@demo/types
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: ${TYPE}/entity-type/order/v/1
+            entityId: id
+            properties:
+              ${TYPES/property-type/id/v/1: id
+              ${HOME}/property-type/note/v/1: id
