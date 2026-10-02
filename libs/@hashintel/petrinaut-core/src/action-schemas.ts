@@ -7,6 +7,7 @@ import {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  identitySchema,
   idSchema,
   inputArcSchema,
   nodePositionCommitSchema,
@@ -19,6 +20,10 @@ import {
 } from "./schemas/entity-schemas";
 import { metricSchema as simulationMetricSchema } from "./schemas/metric-schema";
 import { scenarioSchema as simulationScenarioSchema } from "./schemas/scenario-schema";
+import {
+  statusViewObjectSchema,
+  statusViewSchema,
+} from "./schemas/status-view-schema";
 
 import type { SelectionItem } from "./types/selection";
 
@@ -29,6 +34,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  identitySchema,
   idSchema,
   nodePositionCommitSchema,
   parameterSchema,
@@ -46,6 +52,10 @@ export {
   scenarioSchema as simulationScenarioSchema,
   type ScenarioSchema,
 } from "./schemas/scenario-schema";
+export {
+  statusLabelSchema,
+  statusViewSchema,
+} from "./schemas/status-view-schema";
 export {
   simulationMetricSchema as metricSchema,
   simulationScenarioSchema as scenarioSchema,
@@ -113,6 +123,22 @@ export const metricUpdateSchema = simulationMetricSchema
   .meta({
     description:
       "Fields to assign to an existing metric. Omitted fields are left unchanged.",
+  });
+
+export const identityUpdateSchema = identitySchema
+  .omit({ id: true })
+  .partial()
+  .meta({
+    description:
+      "Fields to assign to an existing identity. Omitted fields are left unchanged.",
+  });
+
+export const statusViewUpdateSchema = statusViewObjectSchema
+  .omit({ id: true })
+  .partial()
+  .meta({
+    description:
+      "Fields to assign to an existing status view. Omitted fields are left unchanged.",
   });
 
 export const componentInstanceUpdateSchema = componentInstanceSchema
@@ -480,6 +506,46 @@ export const mutationActionInputSchemas = {
   removeMetric: z
     .strictObject({ metricId: idSchema })
     .meta({ description: "Remove a simulation metric." }),
+  addIdentity: identitySchema.meta({
+    description:
+      "Add an instance identity (e.g. `Ticket`). Mark a colour element as the identity's key by setting the element's `identityRef` to the identity's ID.",
+  }),
+  updateIdentity: z
+    .strictObject({
+      identityId: idSchema,
+      update: identityUpdateSchema,
+    })
+    .meta({ description: "Update fields on an existing identity." }),
+  removeIdentity: z.strictObject({ identityId: idSchema }).meta({
+    description:
+      "Remove an identity, clearing `identityRef` from colour elements that reference it and removing status views that track it.",
+  }),
+  addStatusView: statusViewSchema.meta({
+    description:
+      "Add a status view: a named mapping from places (plus optional token conditions) to ordered status labels for the instances of one identity. Label order is the `labels` array position.",
+  }),
+  updateStatusView: z
+    .strictObject({
+      statusViewId: idSchema,
+      update: statusViewUpdateSchema,
+    })
+    .meta({ description: "Update fields on an existing status view." }),
+  removeStatusView: z
+    .strictObject({ statusViewId: idSchema })
+    .meta({ description: "Remove a status view." }),
+  moveStatusViewLabel: z
+    .strictObject({
+      statusViewId: idSchema,
+      labelId: idSchema,
+      toIndex: z.number().int().nonnegative().meta({
+        description:
+          "Destination index for the label within the view's `labels` array.",
+      }),
+    })
+    .meta({
+      description:
+        "Move a label within a status view. Label order is the array position, so this reorders Kanban columns and legends.",
+    }),
   addSubnet: subnetSchema.meta({
     description:
       "Add a reusable subnet definition. Mark subnet places with `isPort: true` to expose them as component ports.",

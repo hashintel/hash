@@ -276,6 +276,7 @@ export const SimulationPanelTitle = ({ title }: { title: string }) => {
             scenarios: "Scenarios",
             experiments: "Experiments",
             metrics: "Metrics",
+            "status-views": "Status views",
           }[state.simulateView];
   return (
     <span

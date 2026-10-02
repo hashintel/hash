@@ -499,6 +499,16 @@ describe("Labs settings", () => {
   });
 });
 
+describe("Status views setting", () => {
+  it("offers a Status views row under Labs", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
+
+    expect(
+      await screen.findByRole("checkbox", { name: "Status views" }),
+    ).toBeTruthy();
+  });
+});
+
 describe("WebGPU availability", () => {
   it("detects WebGPU support from the host, not a build flag", () => {
     // The runtime gate the control's `disabled` state is derived from.

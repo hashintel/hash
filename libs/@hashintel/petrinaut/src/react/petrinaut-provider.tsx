@@ -12,6 +12,7 @@ import {
   PetrinautDocumentProvider,
 } from "./petrinaut-provider-layers";
 import { SimulationProvider } from "./simulation/provider";
+import { StatusConditionArtifactsProvider } from "./status-condition-artifacts";
 
 import type { NetManagement } from "./net-management-context";
 import type {
@@ -88,7 +89,9 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
                 <OptimizationsProvider>
                   <ExperimentHostProvider>
                     <PetrinautCanvasProvider>
-                      {children}
+                      <StatusConditionArtifactsProvider>
+                        {children}
+                      </StatusConditionArtifactsProvider>
                     </PetrinautCanvasProvider>
                   </ExperimentHostProvider>
                 </OptimizationsProvider>

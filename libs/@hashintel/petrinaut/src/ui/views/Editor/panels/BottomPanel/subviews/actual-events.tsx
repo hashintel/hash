@@ -1,16 +1,27 @@
-import { use } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { StatusConditionArtifactsContext } from "../../../../../../react/status-condition-artifacts";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
+import { formatDwellMs } from "../../../../shared/format-dwell";
+import {
+  createActualEventStatusDeriver,
+  type ActualEventStatusChange,
+  type ActualEventStatusDeriver,
+} from "./actual-events/derive-status-changes";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   ActualModeMarking,
   ActualModeTransitionFiring,
+  HirStatusConditionArtifact,
+  SDCPN,
+  StatusView,
 } from "@hashintel/petrinaut-core";
 
 const MAX_VISIBLE_EVENTS = 500;
@@ -141,6 +152,108 @@ const footerNoteStyle = css({
   flexShrink: 0,
 });
 
+const statusChangeCellStyle = css({
+  color: "neutral.s115",
+  fontSize: "[11px]",
+});
+
+const statusChangeLineStyle = css({
+  display: "block",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const statusColumnStyle = css({
+  width: "[260px]",
+});
+
+const formatStatusChange = (change: ActualEventStatusChange): string => {
+  const from = change.fromLabelName ?? "—";
+  const to = change.toLabelName ?? "—";
+  const dwell =
+    change.dwellMs === null || change.fromLabelName === null
+      ? ""
+      : ` (${formatDwellMs(change.dwellMs)} in ${change.fromLabelName})`;
+  return `${change.keyDisplay}: ${from} → ${to}${dwell}`;
+};
+
+type StatusDeriverInputs = {
+  statusView: StatusView;
+  definition: SDCPN;
+  initialState: ActualModeMarking;
+  statusConditions: Record<string, HirStatusConditionArtifact>;
+};
+
+/**
+ * The per-firing status changes, derived incrementally: the deriver lives in
+ * a ref and folds in only the firings appended since the previous render —
+ * re-deriving the whole history per arriving event is the O(n^2) this
+ * avoids.
+ */
+const useActualEventStatusChanges = (
+  args: {
+    statusView: StatusView | undefined;
+    definition: SDCPN | null;
+    initialState: ActualModeMarking | null;
+    statusConditions: Record<string, HirStatusConditionArtifact>;
+  },
+  transitionFirings: readonly ActualModeTransitionFiring[],
+): ActualEventStatusChange[][] | null => {
+  const { statusView, definition, initialState, statusConditions } = args;
+  const [changesByFiring, setChangesByFiring] = useState<
+    ActualEventStatusChange[][] | null
+  >(null);
+  const deriverRef = useRef<{
+    deriver: ActualEventStatusDeriver;
+    inputs: StatusDeriverInputs;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!statusView || !definition || initialState === null) {
+      deriverRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) {
+        return;
+      }
+      const inputs: StatusDeriverInputs = {
+        statusView,
+        definition,
+        initialState,
+        statusConditions,
+      };
+      const cached = deriverRef.current;
+      const entry =
+        cached &&
+        cached.inputs.statusView === inputs.statusView &&
+        cached.inputs.definition === inputs.definition &&
+        cached.inputs.initialState === inputs.initialState &&
+        cached.inputs.statusConditions === inputs.statusConditions
+          ? cached
+          : { deriver: createActualEventStatusDeriver(inputs), inputs };
+      deriverRef.current = entry;
+      setChangesByFiring(entry.deriver.deriveUpTo(transitionFirings));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    statusView,
+    definition,
+    initialState,
+    statusConditions,
+    transitionFirings,
+  ]);
+
+  if (!statusView || !definition || initialState === null) {
+    return null;
+  }
+  return changesByFiring;
+};
+
 const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
 
@@ -174,7 +287,8 @@ const formatMarking = (marking: ActualModeMarking): string =>
 const EventRow: React.FC<{
   firing: ActualModeTransitionFiring;
   index: number;
-}> = ({ firing, index }) => (
+  statusChanges: ActualEventStatusChange[] | undefined;
+}> = ({ firing, index, statusChanges }) => (
   <tr>
     <td
       className={cx(
@@ -214,11 +328,23 @@ const EventRow: React.FC<{
         markingCellStyle,
       )}
     >
-      {formatMarking(firing.input)}
+      {formatMarking(firing.inputTokens)}
     </td>
     <td className={cx(cellStyle, singleLineCellStyle, markingCellStyle)}>
-      {formatMarking(firing.output)}
+      {formatMarking(firing.outputTokens)}
     </td>
+    {statusChanges && (
+      <td className={cx(cellStyle, statusColumnStyle, statusChangeCellStyle)}>
+        {statusChanges.map((change) => (
+          <span
+            key={`${change.keyDisplay}:${change.toLabelName ?? ""}`}
+            className={statusChangeLineStyle}
+          >
+            {formatStatusChange(change)}
+          </span>
+        ))}
+      </td>
+    )}
   </tr>
 );
 
@@ -233,6 +359,23 @@ const ActualEventsContent: React.FC = () => {
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
+
+  const { statusConditions } = use(StatusConditionArtifactsContext);
+  const { enableStatusViews } = use(UserSettingsContext);
+  const statusViews =
+    enableStatusViews && actualMode.available
+      ? (actualMode.definition?.statusViews ?? [])
+      : [];
+  const statusView = statusViews[0];
+  const statusChangesByFiring = useActualEventStatusChanges(
+    {
+      statusView,
+      definition: actualMode.available ? actualMode.definition : null,
+      initialState: actualMode.available ? actualMode.initialState : null,
+      statusConditions,
+    },
+    transitionFirings,
+  );
 
   const handleExportStream = () => {
     if (!actualMode.available || !canExportStream) {
@@ -358,6 +501,21 @@ const ActualEventsContent: React.FC = () => {
                   Input
                 </th>
                 <th className={cx(cellStyle, singleLineCellStyle)}>Output</th>
+                {statusChangesByFiring && (
+                  <th
+                    className={cx(
+                      cellStyle,
+                      singleLineCellStyle,
+                      statusColumnStyle,
+                    )}
+                  >
+                    {/* Name the view when others exist, since only the
+                        first status view drives this column. */}
+                    {statusViews.length > 1 && statusView
+                      ? `Status changes (${statusView.name})`
+                      : "Status changes"}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -368,6 +526,11 @@ const ActualEventsContent: React.FC = () => {
                   }`}
                   firing={firing}
                   index={firstVisibleIndex + index}
+                  statusChanges={
+                    statusChangesByFiring
+                      ? (statusChangesByFiring[firstVisibleIndex + index] ?? [])
+                      : undefined
+                  }
                 />
               ))}
             </tbody>

@@ -4,6 +4,7 @@ import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
+import { useEffectiveEditViewMode } from "../../../react/state/use-effective-edit-view-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
 export const autoLayoutShortcut = "mod+shift+l";
@@ -22,7 +23,6 @@ const useEditorCommands = ({
 }): void => {
   const {
     globalMode,
-    editViewMode,
     setCursorMode,
     setEditionMode,
     setSearchOpen,
@@ -32,6 +32,7 @@ const useEditorCommands = ({
   } = use(EditorContext);
   const undoRedo = use(UndoRedoContext);
   const { applyAutoLayout } = usePetrinautCommands();
+  const editViewMode = useEffectiveEditViewMode();
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;

@@ -2,8 +2,8 @@
  * Per-frame values for the canvas, delivered by subscription rather than by
  * rebuilding the scene.
  *
- * A playback frame moves one number per place and one per transition. The
- * values live in a store whose identity never changes: the provider
+ * A playback frame moves one number per place, one per transition and the
+ * status labels tracked inside each component instance. The values live in a store whose identity never changes: the provider
  * re-renders as frames arrive, its `children` element does not, and an item
  * subscribes to its own value and re-renders only when that value moves.
  */
@@ -20,12 +20,14 @@ import {
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import { SimulationContext } from "../../../react/simulation/context";
 import { EditorContext } from "../../../react/state/editor-context";
+import { useStatusViewNodeStatuses } from "./hooks/use-status-view-node-statuses";
 
 import type {
   InitialMarking,
   SimulationFrameReader,
   SimulationFrameState,
 } from "../../../react/simulation/context";
+import type { ComponentInstanceStatusSummary } from "./hooks/use-status-view-node-statuses";
 import type { TransitionFrameState } from "./renderers/react-flow/react-flow-canvas/react-flow-types";
 
 type FrameSnapshot = {
@@ -33,6 +35,7 @@ type FrameSnapshot = {
   viewedFrame: SimulationFrameState | null;
   initialMarking: InitialMarking;
   simulateMode: boolean;
+  statusSummaries: ReadonlyMap<string, ComponentInstanceStatusSummary>;
 };
 
 type CanvasFrameStore = {
@@ -41,15 +44,39 @@ type CanvasFrameStore = {
   getTokenCount: (placeId: string) => number | null;
   /** A transition's state in the viewed frame, or null when no run exists. */
   getTransitionFrame: (transitionId: string) => TransitionFrameState | null;
+  /**
+   * The status-view labels tracked inside a component instance in the viewed
+   * frame, or null when no status view tracks a token there.
+   */
+  getComponentInstanceStatus: (
+    instanceId: string,
+  ) => ComponentInstanceStatusSummary | null;
 };
 
 const EMPTY_STORE: CanvasFrameStore = {
   subscribe: () => () => {},
   getTokenCount: () => null,
   getTransitionFrame: () => null,
+  getComponentInstanceStatus: () => null,
 };
 
 const CanvasFrameStoreContext = createContext<CanvasFrameStore>(EMPTY_STORE);
+
+const sameStatusSummary = (
+  left: ComponentInstanceStatusSummary | null,
+  right: ComponentInstanceStatusSummary | null,
+): boolean =>
+  left === right ||
+  (left !== null &&
+    right !== null &&
+    left.statusViewId === right.statusViewId &&
+    left.tintColor === right.tintColor &&
+    left.labels.length === right.labels.length &&
+    left.labels.every(
+      (label, index) =>
+        label.labelId === right.labels[index]!.labelId &&
+        label.count === right.labels[index]!.count,
+    ));
 
 const sameTransitionState = (
   left: TransitionFrameState | null,
@@ -72,6 +99,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   );
   const { initialMarking } = use(SimulationContext);
   const { globalMode } = use(EditorContext);
+  const statusSummaries = useStatusViewNodeStatuses();
 
   // Filled on the first render, so the first paint already carries the
   // marking and the viewed frame rather than gaining them a frame later.
@@ -80,6 +108,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
     viewedFrame: currentViewedFrame,
     initialMarking,
     simulateMode: globalMode === "simulate",
+    statusSummaries,
   });
   const listeners = useRef(new Set<() => void>());
   /**
@@ -89,6 +118,10 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
    */
   const transitionCache = useRef(
     new Map<string, TransitionFrameState | null>(),
+  );
+  /** As `transitionCache`, for the instances whose status is mounted. */
+  const statusCache = useRef(
+    new Map<string, ComponentInstanceStatusSummary | null>(),
   );
 
   const [store] = useState<CanvasFrameStore>(() => ({
@@ -127,6 +160,16 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
       cache.set(transitionId, state);
       return state;
     },
+
+    getComponentInstanceStatus: (instanceId) => {
+      const cache = statusCache.current;
+      if (cache.has(instanceId)) {
+        return cache.get(instanceId) ?? null;
+      }
+      const summary = snapshot.current.statusSummaries.get(instanceId) ?? null;
+      cache.set(instanceId, summary);
+      return summary;
+    },
   }));
 
   // Publishing happens after the commit, so a subscriber re-reads a store the
@@ -137,6 +180,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
       viewedFrame: currentViewedFrame,
       initialMarking,
       simulateMode: globalMode === "simulate",
+      statusSummaries,
     };
 
     // Re-read each transition that is mounted, and keep the previous value
@@ -150,10 +194,25 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
       );
     }
 
+    const statuses = statusCache.current;
+    for (const [instanceId, previous] of statuses) {
+      const next = statusSummaries.get(instanceId) ?? null;
+      statuses.set(
+        instanceId,
+        sameStatusSummary(previous, next) ? previous : next,
+      );
+    }
+
     for (const listener of listeners.current) {
       listener();
     }
-  }, [currentViewedFrame, currentFrameReader, initialMarking, globalMode]);
+  }, [
+    currentViewedFrame,
+    currentFrameReader,
+    initialMarking,
+    globalMode,
+    statusSummaries,
+  ]);
 
   return (
     <CanvasFrameStoreContext value={store}>{children}</CanvasFrameStoreContext>
@@ -178,6 +237,18 @@ export const useTransitionFrame = (
   return useSyncExternalStore(
     store.subscribe,
     () => store.getTransitionFrame(transitionId),
+    () => null,
+  );
+};
+
+/** One component instance's status summary, without re-rendering the canvas. */
+export const useComponentInstanceStatus = (
+  instanceId: string,
+): ComponentInstanceStatusSummary | null => {
+  const store = use(CanvasFrameStoreContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getComponentInstanceStatus(instanceId),
     () => null,
   );
 };

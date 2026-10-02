@@ -15,6 +15,7 @@ const hirArtifacts: HirArtifacts = {
   lambdas: {},
   kernels: {},
   metrics: {},
+  statusConditions: {},
 };
 
 const scenarioHir: ScenarioHir = {

@@ -4,6 +4,7 @@ import type {
   ComponentInstance,
   DifferentialEquation,
   ID,
+  Identity,
   InputArc,
   InputArcType,
   Metric,
@@ -12,6 +13,7 @@ import type {
   Place,
   Scenario,
   SDCPN,
+  StatusView,
   Subnet,
   Transition,
 } from "./sdcpn";
@@ -46,6 +48,8 @@ export type SDCPNInput = {
   differentialEquations?: DifferentialEquation[];
   scenarios?: Scenario[];
   metrics?: Metric[];
+  identities?: Identity[];
+  statusViews?: StatusView[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
 };
@@ -128,8 +132,9 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * equivalent value.
  *
  * Optional output fields (`capacity`, `isPort`, `visualizerCode`, `showAsInitialState`,
- * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
- * `componentInstances`) are only set when present on the input, so the result
+ * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `identities`,
+ * `statusViews`, `subnets`, `componentInstances`) are only set when present on
+ * the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`).
  */
@@ -209,6 +214,12 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
   }
   if (input.metrics !== undefined) {
     result.metrics = input.metrics;
+  }
+  if (input.identities !== undefined) {
+    result.identities = input.identities;
+  }
+  if (input.statusViews !== undefined) {
+    result.statusViews = input.statusViews;
   }
   if (input.subnets !== undefined) {
     result.subnets = input.subnets;

@@ -100,7 +100,9 @@ export const sharedSearchToNavigationState = (
         ? "scenarios"
         : search.resourceType === "experiment"
           ? "experiments"
-          : "metrics"
+          : search.resourceType === "status-view"
+            ? "status-views"
+            : "metrics"
       : (search.view ?? baseline.simulateView),
   simulateResource:
     search.resourceType && search.resourceId

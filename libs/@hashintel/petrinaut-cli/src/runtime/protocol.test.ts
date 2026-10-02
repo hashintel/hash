@@ -76,6 +76,7 @@ const emptyHirArtifacts = {
   lambdas: {},
   kernels: {},
   metrics: {},
+  statusConditions: {},
 };
 
 function createModel(modelMetadata = metadata) {

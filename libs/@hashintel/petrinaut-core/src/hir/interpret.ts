@@ -43,6 +43,8 @@ export class HirInterpretError extends Error {
 
 type Env = ReadonlyMap<string, HirValue>;
 
+const EMPTY_LOCALS: Env = new Map();
+
 const CONSTANT_VALUES = {
   PI: Math.PI,
   E: Math.E,
@@ -362,12 +364,15 @@ export function interpretHirExpr(
  * Evaluates a lowered (and, at the caller's responsibility, type-checked)
  * HIR function with the given ambient bindings. Scenario functions declare
  * no parameters — `parameters` and `scenario` reads resolve through
- * `bindings`. Throws `HirInterpretError` (positioned in the user source) on
- * evaluation failure.
+ * `bindings`. Surfaces with declared parameters (status conditions bind the
+ * token as `token`) pass them through `locals`; the map is only read, never
+ * mutated or retained, so a caller may reuse one map across calls. Throws
+ * `HirInterpretError` (positioned in the user source) on evaluation failure.
  */
 export function interpretHir(
   fn: HirFunction,
   bindings: HirInterpretBindings,
+  locals?: ReadonlyMap<string, HirValue>,
 ): HirValue {
-  return evalExpr(fn.body, new Map(), bindings);
+  return evalExpr(fn.body, locals ?? EMPTY_LOCALS, bindings);
 }

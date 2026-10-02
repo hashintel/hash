@@ -15,4 +15,8 @@ export const simulateModeAllowedMutationNames = new Set<
   "addMetric",
   "updateMetric",
   "removeMetric",
+  "addStatusView",
+  "updateStatusView",
+  "removeStatusView",
+  "moveStatusViewLabel",
 ]);
