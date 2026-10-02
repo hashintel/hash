@@ -2951,6 +2951,44 @@ describe("AiAssistantContents", () => {
     },
   );
 
+  test.each(["text", "voice"] as const)(
+    "uses host presentation only for system notes in %s",
+    (inputMode) => {
+      const renderSystemMessage = vi.fn(() => <span>Custom level note</span>);
+      render(
+        <AiAssistantContents
+          input=""
+          inputMode={inputMode}
+          messages={[
+            {
+              id: "note",
+              role: "system",
+              parts: [{ type: "text", text: "Plain fallback" }],
+            },
+            {
+              id: "reply",
+              role: "assistant",
+              parts: [{ type: "text", text: "Assistant response" }],
+            },
+          ]}
+          renderSystemMessage={renderSystemMessage}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="ready"
+        />,
+      );
+      expect(screen.getByRole("note").textContent).toBe("Custom level note");
+      expect(screen.queryByText("Plain fallback")).toBeNull();
+      expect(renderSystemMessage).toHaveBeenCalledOnce();
+      expect(renderSystemMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "note", role: "system" }),
+      );
+    },
+  );
+
   test("hides a closed chat-only panel from the accessibility tree", () => {
     const { container } = render(
       <AiAssistantContents

@@ -123,18 +123,24 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
   expect(screen.queryByRole("status")).toBeNull();
 });
 
-test("reserves the row with the level before the interview starts", () => {
-  render(
-    <InterviewBudgetPill
-      level="standard"
-      context={{
-        conversationId: "new",
-        messages: [],
-        status: "ready",
-        stop: vi.fn(),
-        submitText: vi.fn(),
-      }}
-    />,
-  );
-  expect(screen.getByRole("status").textContent).toBe("Standard · ~10 min");
-});
+test.each(["text", "voice"] as const)(
+  "reserves a blank row before the interview starts in %s",
+  (inputMode) => {
+    render(
+      <InterviewBudgetPill
+        level="standard"
+        context={{
+          conversationId: "new",
+          inputMode,
+          messages: [],
+          status: "ready",
+          stop: vi.fn(),
+          submitText: vi.fn(),
+        }}
+      />,
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("Standard · ~10 min")).toBeNull();
+    expect(document.querySelector("[data-budget-placeholder]")).not.toBeNull();
+  },
+);

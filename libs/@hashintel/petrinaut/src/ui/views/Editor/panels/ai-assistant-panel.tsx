@@ -2360,6 +2360,7 @@ const ConversationAiAssistantPanel = ({
       hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
+      renderSystemMessage={aiAssistant.renderSystemMessage}
       onClearMessages={() => {
         abortAutomaticTools();
         for (const controller of experimentControllersRef.current.values())

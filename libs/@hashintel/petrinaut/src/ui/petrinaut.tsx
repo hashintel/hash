@@ -2,7 +2,13 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
-import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
+import {
+  type FunctionComponent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -153,6 +159,8 @@ export type PetrinautAiAssistant = {
   mapMessagesForDisplay?: (
     messages: PetrinautAiMessage[],
   ) => PetrinautAiMessage[];
+  /** Render display-only system-note content; return undefined for the default presentation. */
+  renderSystemMessage?: (message: PetrinautAiMessage) => ReactNode;
   /**
    * Opt into following host history while locally idle. The predicate must
    * describe the exact snapshot supplied in `messages`, including settlement

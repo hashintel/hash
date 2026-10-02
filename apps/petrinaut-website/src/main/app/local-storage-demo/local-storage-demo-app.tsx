@@ -114,6 +114,7 @@ import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 import {
   InterviewBudgetControl,
+  InterviewBudgetNote,
   InterviewBudgetPill,
 } from "./interview-budget-control";
 import { useFlueChatHistory } from "./use-flue-chat-history";
@@ -463,6 +464,7 @@ export const LocalStorageDemoApp = ({
     {
       conversationId: string;
       after: { id: string; role: string; ordinal: number };
+      level: InterviewBudgetLevel;
       message: PetrinautAiMessage;
     }[]
   >([]);
@@ -1019,6 +1021,14 @@ export const LocalStorageDemoApp = ({
               });
               return mapVoiceMessages?.(withNotes) ?? withNotes;
             },
+            renderSystemMessage: (message: PetrinautAiMessage) => {
+              const note = budgetNotes.find(
+                (entry) => entry.message.id === message.id,
+              );
+              return note ? (
+                <InterviewBudgetNote level={note.level} />
+              ) : undefined;
+            },
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
             renderComposerControl: (
@@ -1037,6 +1047,7 @@ export const LocalStorageDemoApp = ({
                         ...notes,
                         {
                           conversationId: context.conversationId,
+                          level,
                           after: {
                             id: last.id,
                             role: last.role,

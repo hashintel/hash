@@ -85,6 +85,7 @@ export type AiAssistantContentsProps = {
   primaryLabel?: string;
   presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
+  renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   hiddenToolNames?: ReadonlySet<string>;
   workingLabel?: string;
   clearMessagesDisabled?: boolean;
@@ -657,6 +658,7 @@ const AiAssistantMessage = memo(
     experimentStates,
     onCancelExperiment,
     resolveToolPresentation,
+    renderSystemMessage,
     presentation,
     voice,
     expandReasoning,
@@ -672,6 +674,7 @@ const AiAssistantMessage = memo(
     experimentStates?: Record<string, AiExperimentState>;
     onCancelExperiment?: (toolCallId: string) => void;
     resolveToolPresentation?: PetrinautAiToolPresentationResolver;
+    renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
     presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
     voice: boolean;
     expandReasoning: boolean;
@@ -697,6 +700,14 @@ const AiAssistantMessage = memo(
     const { work, answers, cards, brief, voiceAgentReply, voiceAgentWrapUp } =
       renderItems;
     if (message.role === "system") {
+      const content = renderSystemMessage?.(message);
+      if (content !== undefined) {
+        return (
+          <div role="note" data-role="system">
+            {content}
+          </div>
+        );
+      }
       return (
         <div
           role="note"
@@ -704,18 +715,21 @@ const AiAssistantMessage = memo(
           className={css({
             display: "flex",
             alignItems: "center",
-            gap: "1.5",
+            gap: "2",
+            paddingX: "3",
             paddingY: "0.5",
             color: "neutral.fg.body",
-            fontSize: "xs",
+            fontSize: "[11px]",
+            fontWeight: "medium",
+            lineHeight: "[16px]",
           })}
         >
           <Icon
             name="sliders"
+            size="xs"
             className={css({
-              width: "[12px]",
-              height: "[12px]",
               flexShrink: 0,
+              color: "neutral.s90",
             })}
           />
           <div>
@@ -1048,6 +1062,7 @@ export const AiAssistantContents = ({
   voiceMode,
   voiceModeAvailable = false,
   resolveToolPresentation,
+  renderSystemMessage,
   workingLabel,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
@@ -1595,6 +1610,9 @@ export const AiAssistantContents = ({
                 experimentStates={experimentStates}
                 onCancelExperiment={onCancelExperiment}
                 resolveToolPresentation={resolveToolPresentation}
+                renderSystemMessage={
+                  message.role === "system" ? renderSystemMessage : undefined
+                }
                 presentation={presentation}
                 voice={inputMode === "voice"}
                 expandReasoning={isBrunchChat}

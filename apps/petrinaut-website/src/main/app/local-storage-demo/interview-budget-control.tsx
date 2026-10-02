@@ -433,6 +433,44 @@ export const InterviewBudgetControl = ({
   );
 };
 
+export const InterviewBudgetNote = ({
+  level,
+}: {
+  level: InterviewBudgetLevel;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const CurrentIcon = icons[level];
+  const config = interviewBudgetLevelsConfig[level];
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const animation = ref.current?.animate(
+      [
+        { opacity: 0.6, transform: "translateY(2px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 180, easing: "ease-out" },
+    );
+    return () => animation?.cancel();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className={`${levelTheme[level]} ${css({ display: "flex", alignItems: "center", gap: "2", paddingX: "3", paddingY: "0.5", fontSize: "[11px]", lineHeight: "[16px]", color: "var(--budget-color)" })}`}
+    >
+      <CurrentIcon
+        size={12}
+        aria-hidden="true"
+        className={css({ flexShrink: 0 })}
+      />
+      <span className={css({ fontWeight: "medium" })}>{config.name}</span>
+      <span className={css({ color: "neutral.fg.body" })}>
+        {" "}
+        · {config.guide}
+      </span>
+    </div>
+  );
+};
+
 export const InterviewBudgetPill = ({
   level,
   context,
@@ -443,14 +481,17 @@ export const InterviewBudgetPill = ({
   const asked = countInterviewReplies(context.messages);
   const mode = context.inputMode ?? "text";
   const budget = getInterviewBudget(level, mode, asked);
-  if (!budget) return null;
+  // Keep the same footprint as the estimate, including its bottom padding.
+  if (!budget || asked === 0)
+    return (
+      <div
+        aria-hidden="true"
+        data-budget-placeholder
+        className={css({ height: "[26.5px]", flexShrink: 0 })}
+      />
+    );
   const config = interviewBudgetLevelsConfig[level];
-  // The row is always present while a budget is active, so the first reply
-  // and later label changes do not move the composer or Voice dock.
-  const label =
-    asked === 0
-      ? `${config.name} · ${config.guide}`
-      : (interviewBudgetLabel(level, mode, asked) ?? "");
+  const label = interviewBudgetLabel(level, mode, asked) ?? "";
   const nearCap = budget.remaining !== null && budget.remaining <= 1;
   const mechanism =
     budget.questionCap === null
