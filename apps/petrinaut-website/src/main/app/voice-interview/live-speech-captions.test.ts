@@ -66,6 +66,61 @@ test.each(["before", "after"] as const)(
   },
 );
 
+test.each([
+  {
+    split: "whole sentence",
+    acknowledgement: "I'll check. ",
+    reply: "I'll check. ",
+    wrapUp: "The duration is 2.5 hours, not 25.",
+  },
+  {
+    split: "zero-offset fallback",
+    acknowledgement: "",
+    reply: "The duration is 2.",
+    wrapUp: "5 hours, not 25.",
+  },
+])(
+  "preserves wrap-up overlap after progress with the $split split",
+  ({ acknowledgement, reply, wrapUp }) => {
+    const lines = { reply: "", wrapUp: "" };
+    const captions = new LiveSpeechCaptions((_id, kind, line) => {
+      lines[kind] = line.text;
+    });
+    captions.input({ id: "input", text: "Check it", startMs: 100, endMs: 200 });
+    captions.begin("turn");
+    if (acknowledgement) {
+      captions.output({
+        id: "ack",
+        text: acknowledgement,
+        startMs: 300,
+        endMs: 600,
+      });
+    }
+    captions.progress(26_000);
+    captions.output({
+      id: "progress",
+      text: "Still thinking this through.",
+      startMs: 26_100,
+      endMs: 30_000,
+    });
+    captions.output({
+      id: "overlap",
+      text: "The duration is 2.",
+      startMs: 29_900,
+      endMs: 30_100,
+    });
+    captions.output({
+      id: "rest",
+      text: "5 hours, not 25.",
+      startMs: 30_200,
+      endMs: 31_000,
+    });
+    expect(lines).toEqual({ reply: acknowledgement, wrapUp: "" });
+    captions.wrapUp("turn", 30_000);
+    expect(lines).toEqual({ reply, wrapUp });
+  },
+);
+
 test("streams time-ordered input once per event and retires the preview on finalization", () => {
   const input = {
     update: vi.fn<(id: string, text: string) => void>(),

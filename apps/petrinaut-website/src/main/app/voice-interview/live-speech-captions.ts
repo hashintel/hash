@@ -175,7 +175,8 @@ export class LiveSpeechCaptions {
           (window.endMs === undefined || fragment.startMs < window.endMs) &&
           (fragment.startMs < progressStart ||
             (window.wrapUpMs !== undefined &&
-              fragment.startMs >= window.wrapUpMs)),
+              (fragment.startMs >= window.wrapUpMs ||
+                fragment.endMs > window.wrapUpMs))),
       );
       const text = matching.map((fragment) => fragment.text).join("");
       let replyEnd = text.length;
