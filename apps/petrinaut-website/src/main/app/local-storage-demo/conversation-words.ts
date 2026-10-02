@@ -38,6 +38,42 @@ const validateEntries = (input: unknown): readonly ConversationWord[] => {
   return words.map((word, index) => ({ ...word, id: entries[index]!.id }));
 };
 
+type ConversationWordsState = {
+  readonly key: string | null;
+  readonly entries: readonly ConversationWord[];
+  readonly notice: string | null;
+};
+
+const loadConversationWords = (key: string | null): ConversationWordsState => {
+  let raw: string | null;
+  try {
+    raw = key === null ? null : localStorage.getItem(key);
+  } catch {
+    return { key, entries: [], notice: unavailable };
+  }
+  try {
+    const parsed: unknown =
+      raw === null ? { version: 1, entries: [] } : JSON.parse(raw);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      !("version" in parsed) ||
+      parsed.version !== 1 ||
+      !("entries" in parsed) ||
+      Object.keys(parsed).length !== 2
+    )
+      throw new Error("Invalid saved words.");
+    return { key, entries: validateEntries(parsed.entries), notice: null };
+  } catch {
+    return {
+      key,
+      entries: [],
+      notice:
+        "Saved words could not be loaded. No hints will be used until you save a valid list.",
+    };
+  }
+};
+
 /** Unlike general preferences, this store reports failed persistence and never exposes the previous binding. */
 export const useConversationWords = (
   principal: string,
@@ -47,51 +83,21 @@ export const useConversationWords = (
     conversation === null
       ? null
       : conversationWordsKey(principal, conversation);
-  const [state, setState] = useState<{
-    key: string | null;
-    entries: readonly ConversationWord[];
-    notice: string | null;
-  }>();
+  const [stored, setState] = useState(() => loadConversationWords(key));
+  // Loaded during render: Voice can start from a child layout effect, which
+  // runs before this component's effects.
+  let state = stored;
+  if (state.key !== key) {
+    state = loadConversationWords(key);
+    setState(state);
+  }
   useEffect(() => {
-    const refresh = () => {
-      let raw: string | null;
-      try {
-        raw = key === null ? null : localStorage.getItem(key);
-      } catch {
-        setState({ key, entries: [], notice: unavailable });
-        return;
-      }
-      try {
-        const parsed: unknown =
-          raw === null ? { version: 1, entries: [] } : JSON.parse(raw);
-        if (
-          typeof parsed !== "object" ||
-          parsed === null ||
-          !("version" in parsed) ||
-          parsed.version !== 1 ||
-          !("entries" in parsed) ||
-          Object.keys(parsed).length !== 2
-        )
-          throw new Error("Invalid saved words.");
-        setState({
-          key,
-          entries: validateEntries(parsed.entries),
-          notice: null,
-        });
-      } catch {
-        setState({
-          key,
-          entries: [],
-          notice:
-            "Saved words could not be loaded. No hints will be used until you save a valid list.",
-        });
-      }
-    };
-    refresh();
     const changed = (event: StorageEvent) => {
       if (event.key !== key && event.key !== null) return;
       try {
-        if (event.storageArea === localStorage) refresh();
+        if (event.storageArea === localStorage) {
+          setState(loadConversationWords(key));
+        }
       } catch {
         /* Keep tab-local edits. */
       }
@@ -99,7 +105,7 @@ export const useConversationWords = (
     window.addEventListener("storage", changed);
     return () => window.removeEventListener("storage", changed);
   }, [key]);
-  const ready = key !== null && state?.key === key;
+  const ready = key !== null;
   const save = (input: readonly ConversationWord[]) => {
     if (!ready)
       throw new Error("Words are still loading for this conversation.");
