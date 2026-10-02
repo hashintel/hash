@@ -90,7 +90,7 @@ impl<'parts> Check<'parts> {
                 && !self.parts.unit_maps.contains_key(unit_map)
             {
                 self.report(
-                    path.key(property_type.to_string()),
+                    path.key(property_type),
                     IssueKind::UnknownUnitMap {
                         unit_map: unit_map.clone(),
                     },

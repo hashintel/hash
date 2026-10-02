@@ -1,4 +1,7 @@
-use alloc::{borrow::ToOwned as _, string::String, vec::Vec};
+use alloc::{
+    string::{String, ToString as _},
+    vec::Vec,
+};
 use core::fmt::{self, Display, Formatter, Write as _};
 
 use crate::name::{CheckpointName, LinkId, SourceName, StepId, UnitMapName, is_name};
@@ -28,10 +31,10 @@ impl DefinitionPath {
         self.join(PathSegment::Field(name))
     }
 
-    /// Returns this path extended by the map key `key`.
+    /// Returns this path extended by the map key `key`, as it prints.
     #[must_use]
-    pub fn key(&self, key: impl AsRef<str>) -> Self {
-        self.join(PathSegment::Key(key.as_ref().to_owned()))
+    pub fn key(&self, key: impl Display) -> Self {
+        self.join(PathSegment::Key(key.to_string()))
     }
 
     /// Returns this path extended by the list position `index`.
