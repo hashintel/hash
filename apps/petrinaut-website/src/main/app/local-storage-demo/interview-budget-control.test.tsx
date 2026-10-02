@@ -43,7 +43,10 @@ test.each([
     vi.fn(() => ({ matches: true })),
   );
   const { container } = render(<InterviewBudgetNote level={level} />);
-  expect(container.textContent).toBe(text);
+  expect(container.textContent).toBe(`Interview length changed to ${text}`);
+  expect(
+    screen.getByText("Interview length changed to").getAttribute("aria-hidden"),
+  ).toBeNull();
   expect(container.querySelector("svg")?.getAttribute("width")).toBe("12");
 });
 
@@ -74,7 +77,7 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
     toJSON: () => ({}),
   });
   fireEvent.mouseMove(slider, { clientX: 394 });
-  expect(screen.getByText("Deep", { selector: "strong" })).toBeTruthy();
+  expect(screen.getByText("Deep:", { selector: "strong" })).toBeTruthy();
   // Previewing a stop must not change the current selection in the header.
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   fireEvent.mouseEnter(screen.getByRole("button", { name: "Deep" }));
@@ -154,6 +157,9 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
   expect(card.textContent).toContain("Question limit reached.");
   rerender(<InterviewBudgetPill level="deep" context={context} />);
   expect(screen.getByRole("status").textContent).toBe("Question 5 · no limit");
+  expect(card.textContent).toContain(
+    "Brunch offers pauses between topics, with no question limit.",
+  );
   rerender(<InterviewBudgetPill level="off" context={context} />);
   expect(screen.queryByRole("status")).toBeNull();
 });

@@ -402,7 +402,7 @@ export const InterviewBudgetControl = ({
                   <strong
                     className={`${levelTheme[previewLevel]} ${css({ color: "var(--budget-color)", fontWeight: "semibold" })}`}
                   >
-                    {preview.name}
+                    {preview.name}:
                   </strong>{" "}
                 </>
               )}
@@ -444,6 +444,9 @@ export const InterviewBudgetNote = ({
         aria-hidden="true"
         className={css({ flexShrink: 0 })}
       />
+      <span className={css({ srOnly: true })}>
+        Interview length changed to{" "}
+      </span>
       <span className={css({ fontWeight: "medium" })}>{config.name}</span>
       {level !== "off" && (
         <span className={css({ color: "neutral.fg.body" })}>
@@ -483,7 +486,7 @@ export const InterviewBudgetPill = ({
       : `${budget.questionCap} questions · ${asked} asked · ${budget.remaining} left`;
   const note =
     budget.questionCap === null
-      ? "Brunch pauses between topics instead of closing."
+      ? "Brunch offers pauses between topics, with no question limit."
       : budget.remaining === 0
         ? "Question limit reached. Wrap-up lists open items."
         : budget.remaining === 1
