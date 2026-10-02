@@ -182,7 +182,9 @@ export const resolveDraftAuthorityFromHistory = async (
     latest?.toolName !== "getLatestNetDefinition" ||
     latest.state !== "output-available"
   )
-    throw new Error("Brunch needs to read the latest model before drafting.");
+    throw new Error(
+      "The AI assistant needs to read the latest model before drafting.",
+    );
   const envelope = latest.output;
   const metadata =
     typeof envelope === "object" && envelope !== null && "metadata" in envelope
@@ -190,7 +192,9 @@ export const resolveDraftAuthorityFromHistory = async (
       : undefined;
   const revision = metadata?.documentRevision.before;
   if (revision === undefined)
-    throw new Error("Brunch’s latest model read has no document revision.");
+    throw new Error(
+      "The AI assistant’s latest model read has no document revision.",
+    );
   return revision;
 };
 
@@ -318,7 +322,7 @@ export const BrunchDraftExperimentWidget = ({
             : {
                 prepared: null,
                 error:
-                  "The model changed since Brunch read it. Ask Brunch to draft it again.",
+                  "The model changed since the AI assistant read it. Ask it to draft again.",
               };
       } catch (caught) {
         outcome = {
@@ -604,7 +608,7 @@ export const BrunchDraftExperimentWidget = ({
                 ? preparationFailure.kind === "prepare"
                   ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
                   : `The prepared proposal could not be submitted: ${preparationFailure.message}`
-                : "This draft is from an earlier session. Ask Brunch to draft it again to run it.")}
+                : "This draft is from an earlier session. Ask the AI assistant to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
@@ -636,8 +640,9 @@ export const BrunchDraftExperimentWidget = ({
       )}
       {blocksRun ? (
         <p className={noticeStyle} role="alert">
-          Can’t run: a restriction isn’t supported. Ask Brunch to revise the
-          proposal, or tell it you accept a run that only reports on it.
+          Can’t run: a restriction isn’t supported. Ask the AI assistant to
+          revise the proposal, or tell it you accept a run that only reports on
+          it.
         </p>
       ) : null}
       {optimizationUnavailable !== null ? (
@@ -654,7 +659,7 @@ export const BrunchDraftExperimentWidget = ({
         <div className={noticeStyle}>
           <p role="status">
             The model changed since this was drafted. Review the changes below
-            before running, or ask Brunch to draft it again.
+            before running, or ask the AI assistant to draft it again.
           </p>
           <details>
             <summary>Review model changes</summary>

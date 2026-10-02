@@ -60,9 +60,9 @@ const lifecycleTitles = {
     error: "Could not check recorded basis",
   },
   [brunchTools.ping]: {
-    pending: "Checking Brunch connection",
-    success: "Checked Brunch connection",
-    error: "Could not reach Brunch",
+    pending: "Checking connection to the AI assistant",
+    success: "Checked connection to the AI assistant",
+    error: "Could not reach the AI assistant",
   },
 } satisfies Record<VisibleOrdinaryBrunchToolName, LifecycleTitles>;
 
