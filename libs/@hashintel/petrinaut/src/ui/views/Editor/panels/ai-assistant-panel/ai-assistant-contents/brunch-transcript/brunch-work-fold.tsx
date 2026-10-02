@@ -4,8 +4,8 @@ import { type ReactNode, useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { collapsibleContentStyle } from "./shared/collapsible-content-style";
-import { useElapsedTime } from "./shared/use-elapsed-time";
+import { collapsibleContentStyle } from "../shared/collapsible-content-style";
+import { useElapsedTime } from "../shared/use-elapsed-time";
 
 export type BrunchWorkStatus = "streaming" | "settled" | "approval" | "stopped";
 

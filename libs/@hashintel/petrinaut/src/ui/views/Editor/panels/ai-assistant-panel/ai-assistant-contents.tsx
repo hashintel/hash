@@ -1,7 +1,5 @@
 import {
-  memo,
   type ReactNode,
-  type RefObject,
   use,
   useEffect,
   useEffectEvent,
@@ -10,15 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
-import ReactMarkdown from "react-markdown";
 
 import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import {
-  NotificationsContext,
-  type AddNotificationInput,
-} from "../../../../../react/notifications/context";
+import { NotificationsContext } from "../../../../../react/notifications/context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import {
   useVoiceSessionErrorMessage,
@@ -35,45 +29,32 @@ import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
-import { BrunchWorkFold } from "./ai-assistant-contents/brunch-work-fold";
-import {
-  ExperimentCard,
-  type AiExperimentState,
-} from "./ai-assistant-contents/experiment-card";
+import { BrunchResponseStatus } from "./ai-assistant-contents/brunch-response-status";
+import { BrunchTranscript } from "./ai-assistant-contents/brunch-transcript";
+import { ChatTabMark } from "./ai-assistant-contents/chat-tab-mark";
+import { AiAssistantComposer } from "./ai-assistant-contents/composer";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
-import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
   type PromptChip,
 } from "./ai-assistant-contents/prompt-chips";
-import { AiAssistantReasoning } from "./ai-assistant-contents/reasoning";
-import { markdownStyle } from "./ai-assistant-contents/shared/markdown-style";
-import {
-  AiAssistantToolList,
-  type OnInteractiveToolSubmit,
-} from "./ai-assistant-contents/tool-list";
+import { errorNotification } from "./ai-assistant-contents/shared/error-notification";
+import { StockTranscript } from "./ai-assistant-contents/stock-transcript";
 import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
-import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 import { getInteractiveTool } from "./interactive-tools/registry";
 
-import type {
-  PetrinautAiAssistant,
-  PetrinautAiToolPresentationResolver,
-} from "../../../../petrinaut";
+import type { PetrinautAiAssistant } from "../../../../petrinaut";
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
+import type { AiExperimentState } from "./ai-assistant-contents/experiment-card";
+import type { OnInteractiveToolSubmit } from "./ai-assistant-contents/tool-list";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
 
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
-
-const errorNotification = (
-  message: string,
-  detail?: string,
-): AddNotificationInput => ({ detail, message, tone: "error" });
 
 export type AiAssistantContentsProps = {
   additionalTab?: PetrinautAiAssistant["additionalTab"];
@@ -325,16 +306,23 @@ const headerButtonStyle = css({
   },
 });
 
-const messagesStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "3",
-  flex: "[1]",
-  minHeight: "[0]",
-  overflowY: "auto",
-  padding: "3",
-  paddingBottom: "4",
-  overscrollBehavior: "contain",
+const messagesStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "3",
+    flex: "[1]",
+    minHeight: "[0]",
+    overflowY: "auto",
+    padding: "3",
+    overscrollBehavior: "contain",
+  },
+  variants: {
+    presentation: {
+      stock: {},
+      brunch: { paddingBottom: "4" },
+    },
+  },
 });
 
 const emptyStyle = css({
@@ -353,93 +341,6 @@ const emptyStyle = css({
   padding: "[20px]",
 });
 
-const messageStyle = cva({
-  base: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2",
-    padding: "[10px]",
-    fontSize: "sm",
-    fontWeight: "medium",
-    lineHeight: "[1.5]",
-    color: "neutral.s100",
-    userSelect: "text",
-  },
-  variants: {
-    role: {
-      assistant: {
-        alignSelf: "stretch",
-        gap: "1",
-        padding: "[6px 0]",
-        '&[data-input-mode="text"]': {
-          paddingY: "1",
-          '& > [data-answer="brunch"]:not(:first-child)': { marginTop: "1" },
-          "@media (hover: hover) and (pointer: fine)": {
-            "&:not([data-latest-answer]):not(:hover):not(:focus-within) > [data-answer-actions]":
-              {
-                opacity: "0",
-                pointerEvents: "none",
-              },
-          },
-        },
-      },
-      user: {
-        alignSelf: "flex-end",
-        maxWidth: "[92%]",
-        gap: "0.5",
-        padding: "[0]",
-      },
-    },
-  },
-});
-
-// User input isn't Markdown — rendering it as such would mangle stray
-// `*`, `_`, `#`, etc. and collapse the single newlines they typed. Render it
-// verbatim with preserved whitespace instead.
-const userTextStyle = css({
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "1.5",
-  alignSelf: "flex-end",
-  backgroundColor: "neutral.a20",
-  borderRadius: "lg",
-  padding: "[10px]",
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-word",
-});
-
-const answerStyle = cva({
-  base: {
-    overflowWrap: "anywhere",
-  },
-  variants: {
-    presentation: {
-      stock: {},
-      brunch: {
-        alignSelf: "flex-start",
-        maxWidth: "[92%]",
-        backgroundColor: "blue.a20",
-        borderRadius: "lg",
-        padding: "[10px]",
-        color: "neutral.s100",
-        '&[data-streaming="true"]': {
-          animation: "[petrinautComposerActionSwap 180ms ease-out]",
-        },
-        "@media (prefers-reduced-motion: reduce)": {
-          animation: "[none]",
-        },
-        "[data-work-status] &": {
-          alignSelf: "stretch",
-          maxWidth: "full",
-          backgroundColor: "neutral.s00",
-          border: "[1px solid {colors.neutral.a30}]",
-        },
-      },
-    },
-  },
-  defaultVariants: { presentation: "stock" },
-});
-
 const workingStatusStyle = css({
   display: "flex",
   alignItems: "center",
@@ -449,16 +350,6 @@ const workingStatusStyle = css({
   color: "neutral.s80",
   fontSize: "sm",
   fontWeight: "medium",
-  animation: "[petrinautComposerActionSwap 180ms ease-out]",
-  "@media (prefers-reduced-motion: reduce)": { animation: "[none]" },
-});
-
-const stoppedNoteStyle = css({
-  alignSelf: "center",
-  marginTop: "1.5",
-  paddingY: "1",
-  fontSize: "xs",
-  color: "neutral.s80",
 });
 
 const composerWrapStyle = css({
@@ -479,116 +370,6 @@ const composerWrapStyle = css({
     animationName: "[none]",
   },
 });
-
-const composerActionGlyphStyle = css({
-  display: "inline-flex",
-  animationName: "[petrinautComposerActionSwap]",
-  animationDuration: "[140ms]",
-  animationTimingFunction: "[cubic-bezier(0.2, 0.9, 0.3, 1)]",
-  "@media (prefers-reduced-motion: reduce)": {
-    animationName: "[none]",
-  },
-});
-
-const composerActionButtonStyle = css({
-  flexShrink: 0,
-  width: "[30px]",
-  height: "[30px]",
-  minWidth: "[30px]",
-  borderRadius: "[calc({radii.lg} - {spacing.1})]",
-  "&[data-stop=true]": {
-    width: "[28px]",
-    height: "[28px]",
-    minWidth: "[28px]",
-    borderRadius: "full",
-  },
-});
-
-const composerStyle = css({
-  display: "flex",
-  alignItems: "flex-end",
-  gap: "1",
-  borderRadius: "lg",
-  backgroundColor: "neutral.s10",
-  border: "[1px solid {colors.neutral.bd.subtle}]",
-  padding: "1",
-  transition: "[border-color 150ms ease, box-shadow 150ms ease]",
-  _focusWithin: {
-    borderColor: "blue.s50",
-    boxShadow: "[0 0 0 2px {colors.blue.a10}]",
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
-  },
-});
-
-// Caps how tall the composer can auto-grow before it starts scrolling
-// internally. Kept in sync with `maxHeight` below — the auto-grow effect
-// reads this constant directly so the two can't drift.
-const composerMaxHeight = 160;
-
-const composerTextareaStyle = css({
-  flex: "[1]",
-  minWidth: "[0]",
-  minHeight: "[30px]",
-  maxHeight: `[${composerMaxHeight}px]`,
-  paddingX: "2",
-  paddingY: "[5px]",
-  border: "none",
-  outline: "none",
-  resize: "none",
-  overflowY: "auto",
-  backgroundColor: "[transparent]",
-  color: "neutral.fg.body",
-  fontFamily: "[inherit]",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[1.4]",
-  // Animates the height changes driven by the auto-grow effect, so adding a
-  // line (Shift+Enter) or wrapping expands the box smoothly.
-  transition: "[height 120ms ease]",
-  "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
-  },
-  _placeholder: {
-    color: "neutral.s70",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    color: "neutral.s90",
-  },
-});
-
-const composerHintStyle = css({
-  flex: "1",
-  paddingX: "2",
-  paddingBottom: "1",
-  color: "neutral.s80",
-  fontSize: "xs",
-  textAlign: "left",
-});
-
-const StreamingWords = ({
-  text,
-  streaming,
-}: {
-  text: string;
-  streaming: boolean;
-}) =>
-  streaming
-    ? [...text.matchAll(/\S+\s*|\s+/gu)].map((word) => (
-        <span
-          key={word.index}
-          data-streamed-word
-          className={css({
-            animation: "[petrinautComposerActionSwap 180ms ease-out]",
-            "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-          })}
-        >
-          {word[0]}
-        </span>
-      ))
-    : text;
 
 const getPartScrollSignature = (
   part: PetrinautAiMessage["parts"][number],
@@ -628,342 +409,6 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
     .join(",");
   return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
 };
-
-type MessageHandlersRef = RefObject<{
-  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
-  onRetryMessage: (messageId: string) => void;
-}>;
-
-/**
- * Per-message renderer wrapped in `React.memo`.
- *
- * The AI SDK rebuilds the `messages` array on every reasoning/text delta but
- * uses `slice` for unchanged messages and only `structuredClone`s the active
- * one. That gives every completed message a stable reference between chunks,
- * so memoising by reference equality lets us skip re-rendering the whole transcript on
- * every chunk — only the message currently being streamed has to re-render.
- *
- * Callbacks are forwarded via a ref so identity churn from the panel's inline
- * arrow functions doesn't bust the memo.
- */
-const AiAssistantMessage = memo(
-  ({
-    handlersRef,
-    hiddenToolNames,
-    interactiveTools,
-    message,
-    experimentStates,
-    onCancelExperiment,
-    resolveToolPresentation,
-    presentation,
-    voice,
-    expandReasoning,
-    active,
-    stopped,
-    canRetry,
-    latestAnswer,
-  }: {
-    handlersRef: MessageHandlersRef;
-    hiddenToolNames?: ReadonlySet<string>;
-    interactiveTools: readonly PetrinautAiInteractiveTool[];
-    message: PetrinautAiMessage;
-    experimentStates?: Record<string, AiExperimentState>;
-    onCancelExperiment?: (toolCallId: string) => void;
-    resolveToolPresentation?: PetrinautAiToolPresentationResolver;
-    presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
-    voice: boolean;
-    expandReasoning: boolean;
-    active: boolean;
-    stopped: boolean;
-    canRetry: boolean;
-    latestAnswer: boolean;
-  }) => {
-    const { addNotification } = use(NotificationsContext);
-    const [copied, setCopied] = useState(false);
-    useEffect(() => {
-      if (!copied) return;
-      const timer = window.setTimeout(() => setCopied(false), 1_200);
-      return () => window.clearTimeout(timer);
-    }, [copied]);
-    const role = message.role === "user" ? "user" : "assistant";
-    const renderItems = getMessageRenderItems(
-      message,
-      interactiveTools,
-      resolveToolPresentation,
-      hiddenToolNames,
-    );
-    const { work, answers, cards, brief, voiceAgentReply, voiceAgentWrapUp } =
-      renderItems;
-    const wasStopped = stopped || message.metadata?.stopped === true;
-    const awaitingApproval = work.tools.some(
-      (tool) => tool.interactive && tool.state === "input-available",
-    );
-    const working =
-      active &&
-      (expandReasoning ||
-        answers.length === 0 ||
-        work.reasoning.some((item) => item.part.state === "streaming") ||
-        work.tools.some(
-          (tool) =>
-            tool.state === "input-streaming" ||
-            tool.state === "input-available",
-        ));
-    const workStatus = wasStopped
-      ? "stopped"
-      : awaitingApproval
-        ? "approval"
-        : working
-          ? "streaming"
-          : "settled";
-    const writtenAnswer =
-      answers.length > 0 ? (
-        <div
-          className={answerStyle({ presentation })}
-          data-answer={presentation === "brunch" ? "brunch" : undefined}
-          data-streaming={active || undefined}
-        >
-          {answers.map((item) => (
-            <div className={markdownStyle} key={item.key}>
-              <ReactMarkdown>{item.part.text}</ReactMarkdown>
-            </div>
-          ))}
-        </div>
-      ) : null;
-    // Voice renders the written answer inside the fold; Chat renders it below.
-    const showWork =
-      role === "assistant" &&
-      (active ||
-        wasStopped ||
-        work.reasoning.length > 0 ||
-        work.tools.length > 0 ||
-        (voice && answers.length > 0));
-
-    return (
-      <div
-        className={messageStyle({ role })}
-        data-role={role}
-        data-input-mode={voice ? "voice" : "text"}
-        data-latest-answer={latestAnswer || undefined}
-        data-voice-origin={message.metadata?.source === "voice" || undefined}
-      >
-        {role === "user" && (
-          <div className={userTextStyle} data-user-bubble>
-            {!voice && message.metadata?.source === "voice" && (
-              <span
-                role="img"
-                aria-label="Sent using voice"
-                title="Sent using voice"
-                className={css({
-                  display: "inline-flex",
-                  flexShrink: 0,
-                  marginTop: "[4px]",
-                  color: "neutral.s80",
-                })}
-              >
-                <AiVoiceModeIcon size={12} />
-              </span>
-            )}
-            <div className={css({ minWidth: "[0]" })}>
-              {answers.map((item) => (
-                <div key={item.key}>
-                  <StreamingWords
-                    text={item.part.text}
-                    streaming={
-                      item.part.state === "streaming" &&
-                      message.metadata?.source === "voice"
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {brief && <VoiceInputProvenance brief={brief} />}
-        {voiceAgentReply && (
-          <div
-            className={answerStyle({ presentation })}
-            data-answer="voice-reply"
-            aria-busy={voiceAgentReply.state === "streaming"}
-          >
-            <StreamingWords
-              text={voiceAgentReply.text}
-              streaming={voiceAgentReply.state === "streaming"}
-            />
-          </div>
-        )}
-        {showWork && presentation === "brunch" && (
-          <BrunchWorkFold status={workStatus} preserveOpen={expandReasoning}>
-            {work.reasoning.map((item) => (
-              <AiAssistantReasoning
-                key={item.key}
-                isStreaming={active && item.part.state === "streaming"}
-                expandWhileStreaming={expandReasoning && !voice}
-                part={item.part}
-              />
-            ))}
-            <AiAssistantToolList
-              tools={work.tools}
-              active={active}
-              stopped={wasStopped}
-              preserveOpen={expandReasoning}
-              presentation={presentation}
-              onInteractiveToolSubmit={(params) =>
-                handlersRef.current.onInteractiveToolSubmit?.(params)
-              }
-              onSelectToolTarget={(target) =>
-                handlersRef.current.onSelectToolTarget?.(target)
-              }
-            />
-            {voice && writtenAnswer}
-            {voice && working && !writtenAnswer && (
-              <div
-                className={answerStyle({ presentation })}
-                role="status"
-                aria-label="Thinking"
-              >
-                {["92%", "74%", "46%"].map((width) => (
-                  <span
-                    key={width}
-                    style={{ width }}
-                    className={css({
-                      display: "block",
-                      height: "[10px]",
-                      marginY: "2",
-                      borderRadius: "sm",
-                      backgroundColor: "neutral.a30",
-                      animation: "[pulse 1.6s ease-in-out infinite]",
-                      "@media (prefers-reduced-motion: reduce)": {
-                        animation: "none",
-                      },
-                    })}
-                  />
-                ))}
-              </div>
-            )}
-          </BrunchWorkFold>
-        )}
-        {showWork && presentation === "stock" && (
-          <>
-            {work.reasoning.map((item) => (
-              <AiAssistantReasoning
-                key={item.key}
-                isStreaming={active && item.part.state === "streaming"}
-                expandWhileStreaming={active && item.part.state === "streaming"}
-                part={item.part}
-              />
-            ))}
-            <AiAssistantToolList
-              tools={work.tools}
-              active={active}
-              stopped={wasStopped}
-              presentation={presentation}
-              onInteractiveToolSubmit={(params) =>
-                handlersRef.current.onInteractiveToolSubmit?.(params)
-              }
-              onSelectToolTarget={(target) =>
-                handlersRef.current.onSelectToolTarget?.(target)
-              }
-            />
-          </>
-        )}
-        {role === "assistant" &&
-          (!voice || presentation === "stock") &&
-          writtenAnswer}
-        {cards.map((item) =>
-          item.type === "experiment" ? (
-            <ExperimentCard
-              key={item.key}
-              part={item.part}
-              state={experimentStates?.[item.part.toolCallId]}
-              onCancel={onCancelExperiment}
-            />
-          ) : (
-            <AiAssistantToolList
-              key={item.key}
-              tools={[item.tool]}
-              producedCard
-              presentation={presentation}
-              onInteractiveToolSubmit={(params) =>
-                handlersRef.current.onInteractiveToolSubmit?.(params)
-              }
-              onSelectToolTarget={(target) =>
-                handlersRef.current.onSelectToolTarget?.(target)
-              }
-            />
-          ),
-        )}
-        {voiceAgentWrapUp && (
-          <div
-            className={answerStyle({ presentation })}
-            data-answer="voice-wrap-up"
-            aria-busy={voiceAgentWrapUp.state === "streaming"}
-          >
-            <StreamingWords
-              text={voiceAgentWrapUp.text}
-              streaming={voiceAgentWrapUp.state === "streaming"}
-            />
-          </div>
-        )}
-        {role === "assistant" && wasStopped && (
-          <div className={stoppedNoteStyle}>Response stopped</div>
-        )}
-        {presentation === "brunch" &&
-          role === "assistant" &&
-          !voice &&
-          writtenAnswer &&
-          !active && (
-            <div
-              className={css({
-                display: "flex",
-                gap: "1",
-                color: "neutral.s80",
-              })}
-              data-answer-actions
-            >
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label={copied ? "Answer copied" : "Copy answer"}
-                tooltip={copied ? "Copied" : "Copy"}
-                prefix={
-                  <ExperimentalIcon
-                    name={copied ? "check" : "copy"}
-                    size={14}
-                  />
-                }
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      await navigator.clipboard.writeText(
-                        answers.map((answer) => answer.part.text).join("\n\n"),
-                      );
-                      setCopied(true);
-                    } catch {
-                      addNotification(
-                        errorNotification("Could not copy the answer"),
-                      );
-                    }
-                  })();
-                }}
-              />
-              {canRetry && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  aria-label="Retry answer"
-                  tooltip="Retry as a new turn"
-                  prefix={<ExperimentalIcon name="rotate" size={14} />}
-                  onClick={() => handlersRef.current.onRetryMessage(message.id)}
-                />
-              )}
-            </div>
-          )}
-      </div>
-    );
-  },
-);
-AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const getTranscriptLabel = (
   primaryLabel: string | undefined,
@@ -1030,22 +475,12 @@ export const AiAssistantContents = ({
   const voiceSessionWarningMessage = useVoiceSessionWarningMessage();
   const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
-  const hasInput = input.trim().length > 0;
-  const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
   const isBrunchChat = presentation === "brunch";
   const transcriptLabel = getTranscriptLabel(
     primaryLabel,
     inputMode,
     presentation,
   );
-  const pendingLabel =
-    isBrunchChat && isBusy
-      ? showingHostTab
-        ? (workingLabel ?? "Brunch is working")
-        : messages.at(-1)?.role !== "assistant"
-          ? "Waiting for Brunch"
-          : undefined
-      : undefined;
   const awaitingDecision =
     !stopped &&
     messages.some((message) =>
@@ -1068,57 +503,6 @@ export const AiAssistantContents = ({
         ? "Experiment running"
         : undefined
     : undefined;
-
-  const composerAction: {
-    disabled: boolean;
-    glyph: "arrowUp" | "stopFilled" | "voice";
-    isSubmit: boolean;
-    label: string;
-    onClick?: () => void;
-    tone: "brand" | "neutral";
-    type: "button" | "submit";
-    variant: "solid" | "subtle";
-  } = isBusy
-    ? {
-        disabled: false,
-        glyph: "stopFilled",
-        isSubmit: false,
-        label: "Stop AI response",
-        onClick: onStop,
-        tone: isBrunchChat ? "brand" : "neutral",
-        type: "button",
-        variant: isBrunchChat ? "solid" : "subtle",
-      }
-    : canSubmit
-      ? {
-          disabled: false,
-          glyph: "arrowUp",
-          isSubmit: true,
-          label: "Send message",
-          tone: "brand",
-          type: "submit",
-          variant: "solid",
-        }
-      : !hasInput && voiceModeAvailable && onInputModeChange
-        ? {
-            disabled: false,
-            glyph: "voice",
-            isSubmit: false,
-            label: "Start voice mode",
-            onClick: () => onInputModeChange("voice"),
-            tone: "brand",
-            type: "button",
-            variant: "solid",
-          }
-        : {
-            disabled: true,
-            glyph: "arrowUp",
-            isSubmit: false,
-            label: "Send message",
-            tone: "brand",
-            type: "submit",
-            variant: "solid",
-          };
 
   const isVoiceDockCollapsed =
     voiceDockCollapsed && (isVoiceSessionLive || inputMode === "voice");
@@ -1243,6 +627,8 @@ export const AiAssistantContents = ({
     }
     distanceFromEndRef.current =
       node.scrollHeight - node.scrollTop - node.clientHeight;
+    // The stock transcript always follows new output.
+    if (!isBrunchChat) return;
     // The smooth follow scroll only moves down, and can trail an end that
     // grows mid-animation; only the reader moving up stops following.
     if (distanceFromEndRef.current <= 96) {
@@ -1270,22 +656,6 @@ export const AiAssistantContents = ({
   const suppressChips =
     isBrunchChat && (isBusy || experimentRunning || awaitingDecision);
 
-  // Stable container for the per-render callbacks so `AiAssistantMessage`'s
-  // memo comparator doesn't see identity churn from the panel's inline
-  // arrow functions on every render. The ref itself is stable across renders,
-  // so memoised children never re-render due to handler changes — but we
-  // refresh `.current` in an effect so any new closure capture is picked up
-  // by the next event.
-  const firstUserIndex = messages.findIndex(
-    (message) => message.role === "user",
-  );
-  const latestAnswerId = messages.findLast(
-    (message) =>
-      message.role === "assistant" &&
-      message.parts.some(
-        (part) => part.type === "text" && part.text.trim().length > 0,
-      ),
-  )?.id;
   const onRetryMessage = (messageId: string) => {
     if (isBusy || voiceHandoffPending) return;
     const index = messages.findIndex((message) => message.id === messageId);
@@ -1297,6 +667,12 @@ export const AiAssistantContents = ({
       .join("\n\n");
     if (prompt) onRetryPrompt?.(prompt);
   };
+  // Stable container for the per-render callbacks so the memoised transcript
+  // messages don't see identity churn from the panel's inline arrow functions
+  // on every render. The ref itself is stable across renders, so memoised
+  // children never re-render due to handler changes — but we refresh
+  // `.current` in an effect so any new closure capture is picked up by the
+  // next event.
   const handlersRef = useRef({
     onInteractiveToolSubmit,
     onSelectToolTarget,
@@ -1309,6 +685,15 @@ export const AiAssistantContents = ({
       onRetryMessage,
     };
   });
+  const transcriptProps = {
+    experimentStates,
+    handlersRef,
+    hiddenToolNames,
+    interactiveTools,
+    messages,
+    onCancelExperiment,
+    resolveToolPresentation,
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -1320,26 +705,6 @@ export const AiAssistantContents = ({
       }
     }
   }, [composerFocusRequest, isOpen, isVoiceDockCollapsed, panelRef]);
-
-  // Auto-grow the composer to fit its content (up to `composerMaxHeight`,
-  // after which it scrolls internally). Resetting to `auto` before measuring
-  // `scrollHeight` lets the box shrink again when text is removed; both writes
-  // happen synchronously so the browser only paints the final height and the
-  // CSS `height` transition animates the change. `scrollHeight` is a rounded
-  // integer, so the height it yields can land a fraction of a pixel under the
-  // real content and raise a scrollbar on a box that visibly fits; scrolling
-  // is therefore only allowed once the content genuinely passes the cap.
-  useEffect(() => {
-    const textarea = inputRef.current;
-    if (!textarea) {
-      return;
-    }
-    textarea.style.height = "auto";
-    const contentHeight = textarea.scrollHeight;
-    textarea.style.height = `${Math.min(contentHeight, composerMaxHeight)}px`;
-    textarea.style.overflowY =
-      contentHeight > composerMaxHeight ? "auto" : "hidden";
-  }, [input, isOpen]);
 
   const hasScrolledOnceRef = useRef(false);
 
@@ -1447,31 +812,21 @@ export const AiAssistantContents = ({
                     {
                       id: aiTabId,
                       title: transcriptLabel,
-                      mark:
+                      mark: isBrunchChat ? (
                         inputMode === "voice" ? (
                           <AiVoiceModeIcon size={12} />
                         ) : (
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M3 2.5h10v8H7l-4 3v-11Z"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        ),
+                          <ChatTabMark />
+                        )
+                      ) : undefined,
                       attention: { marker: primaryAttention },
                     },
                     {
                       id: hostTabId,
                       title: additionalTab.label,
-                      mark: <Icon name="bars" size="xs" />,
+                      mark: isBrunchChat ? (
+                        <Icon name="bars" size="xs" />
+                      ) : undefined,
                       attention: { count: hostAttentionCount },
                     },
                   ]}
@@ -1537,7 +892,7 @@ export const AiAssistantContents = ({
             role={additionalTab ? "tabpanel" : undefined}
             aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
             hidden={showingHostTab}
-            className={`${messagesStyle} ${panelContentStyle({
+            className={`${messagesStyle({ presentation })} ${panelContentStyle({
               visible: !isVoiceDockCollapsed && !showingHostTab,
             })}`}
             data-testid="ai-transcript"
@@ -1553,37 +908,22 @@ export const AiAssistantContents = ({
                 </div>
               </div>
             )}
-            {messages.map((message, index) => (
-              <AiAssistantMessage
-                hiddenToolNames={hiddenToolNames}
-                interactiveTools={interactiveTools}
-                key={message.id}
-                message={message}
-                handlersRef={handlersRef}
-                experimentStates={experimentStates}
-                onCancelExperiment={onCancelExperiment}
-                resolveToolPresentation={resolveToolPresentation}
-                presentation={presentation}
-                voice={inputMode === "voice"}
-                expandReasoning={isBrunchChat}
-                latestAnswer={message.id === latestAnswerId}
+            {isBrunchChat ? (
+              <BrunchTranscript
+                {...transcriptProps}
+                stopped={stopped}
+                busy={isBusy}
                 canRetry={
-                  onRetryPrompt !== undefined &&
-                  !isBusy &&
-                  !voiceHandoffPending &&
-                  firstUserIndex >= 0 &&
-                  index > firstUserIndex
+                  onRetryPrompt !== undefined && !isBusy && !voiceHandoffPending
                 }
-                active={
-                  isBusy &&
-                  index === messages.length - 1 &&
-                  message.role === "assistant"
-                }
-                stopped={stopped && index === messages.length - 1}
+                voice={inputMode === "voice"}
               />
-            ))}
-            {stopped && messages.at(-1)?.role === "user" && (
-              <div className={stoppedNoteStyle}>Response stopped</div>
+            ) : (
+              <StockTranscript
+                {...transcriptProps}
+                stopped={stopped && !error}
+                busy={isBusy}
+              />
             )}
           </div>
 
@@ -1593,49 +933,24 @@ export const AiAssistantContents = ({
               role="tabpanel"
               aria-labelledby={`tab-${hostTabId}`}
               hidden={!showingHostTab}
-              className={`${messagesStyle} ${panelContentStyle({
-                visible: !isVoiceDockCollapsed && showingHostTab,
-              })}`}
+              className={`${messagesStyle({ presentation })} ${panelContentStyle(
+                {
+                  visible: !isVoiceDockCollapsed && showingHostTab,
+                },
+              )}`}
             >
               {additionalTab.content}
             </div>
           )}
 
           {isBrunchChat && (
-            <div
-              className={`${css({
-                display: "flex",
-                alignItems: "center",
-                gap: "2",
-                height: "[28px]",
-                flexShrink: 0,
-                minWidth: "[0]",
-                paddingX: "3",
-                color: "neutral.s90",
-                fontSize: "xs",
-              })} ${panelContentStyle({ visible: !isVoiceDockCollapsed })}`}
-              data-testid="brunch-response-status"
-            >
-              {pendingLabel && (
-                <LoadingSpinner
-                  aria-hidden="true"
-                  size="xs"
-                  className={css({
-                    color: "blue.s90",
-                    flexShrink: 0,
-                    "@media (prefers-reduced-motion: reduce)": {
-                      animation: "[none !important]",
-                    },
-                  })}
-                />
-              )}
-              <span
-                role="status"
-                className={css({ minWidth: "[0]", truncate: true })}
-              >
-                {pendingLabel}
-              </span>
-            </div>
+            <BrunchResponseStatus
+              busy={isBusy}
+              className={panelContentStyle({ visible: !isVoiceDockCollapsed })}
+              hostTabSelected={showingHostTab}
+              replyStarted={messages.at(-1)?.role === "assistant"}
+              workingLabel={workingLabel}
+            />
           )}
 
           {!isBrunchChat && isBusy && workingLabel && (
@@ -1727,112 +1042,28 @@ export const AiAssistantContents = ({
                     <PromptChips
                       chips={promptChips}
                       disabled={isBusy}
-                      presentation={presentation}
                       onDismiss={() => setChipsDismissed(true)}
                       onSelect={(prompt) => onSendPrompt(prompt)}
+                      presentation={presentation}
                     />
                   </div>
                 )}
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const submitter = (event.nativeEvent as SubmitEvent)
-                      .submitter;
-                    if (
-                      canSubmit &&
-                      submitter?.hasAttribute("data-ai-assistant-submit")
-                    ) {
-                      onSubmit();
-                    }
-                  }}
-                >
-                  <div
-                    className={composerStyle}
-                    data-brunch={isBrunchChat || undefined}
-                  >
-                    <textarea
-                      ref={inputRef}
-                      className={composerTextareaStyle}
-                      rows={1}
-                      value={input}
-                      onChange={(event) =>
-                        onInputChange(event.currentTarget.value)
-                      }
-                      onKeyDown={(event) => {
-                        // Enter sends; Shift+Enter inserts a newline (the textarea's
-                        // native behaviour, so we just let it through). The
-                        // `isComposing` guard stops an IME confirmation keystroke
-                        // from sending a half-finished message.
-                        if (
-                          event.key === "Enter" &&
-                          !event.shiftKey &&
-                          !event.nativeEvent.isComposing
-                        ) {
-                          event.preventDefault();
-                          if (canSubmit) {
-                            onSubmit();
-                          }
-                        }
-                      }}
-                      placeholder={
-                        isBrunchChat || messages.length > 0
-                          ? "Continue iterating..."
-                          : "Describe the process you want to create"
-                      }
-                      aria-label="Message AI assistant"
-                      disabled={voiceHandoffPending}
-                    />
-                    <div
-                      className={css({
-                        display: "contents",
-                        '&[data-brunch="true"]': {
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "1",
-                          "& > :last-child": { marginLeft: "auto" },
-                        },
-                      })}
-                      data-brunch={isBrunchChat || undefined}
-                    >
-                      {composerHint && (
-                        <span className={composerHintStyle} role="status">
-                          {composerHint}
-                        </span>
-                      )}
-                      {composerControl}
-                      <Button
-                        aria-label={composerAction.label}
-                        className={composerActionButtonStyle}
-                        data-stop={(isBrunchChat && isBusy) || undefined}
-                        data-ai-assistant-submit={
-                          composerAction.isSubmit || undefined
-                        }
-                        disabled={composerAction.disabled}
-                        onClick={composerAction.onClick}
-                        prefix={
-                          <span
-                            className={composerActionGlyphStyle}
-                            key={composerAction.glyph}
-                          >
-                            {composerAction.glyph === "voice" ? (
-                              <AiVoiceModeIcon size={16} />
-                            ) : (
-                              <Icon
-                                name={composerAction.glyph}
-                                size={isBrunchChat && isBusy ? "xs" : "sm"}
-                              />
-                            )}
-                          </span>
-                        }
-                        size="sm"
-                        tone={composerAction.tone}
-                        tooltip={composerAction.label}
-                        type={composerAction.type}
-                        variant={composerAction.variant}
-                      />
-                    </div>
-                  </div>
-                </form>
+                <AiAssistantComposer
+                  busy={isBusy}
+                  control={composerControl}
+                  disabled={voiceHandoffPending}
+                  hasHistory={messages.length > 0}
+                  hint={composerHint}
+                  input={input}
+                  inputRef={inputRef}
+                  isOpen={isOpen}
+                  onInputChange={onInputChange}
+                  onInputModeChange={onInputModeChange}
+                  onStop={onStop}
+                  onSubmit={onSubmit}
+                  presentation={presentation}
+                  voiceModeAvailable={voiceModeAvailable}
+                />
               </div>
             </>
           )}

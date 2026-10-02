@@ -25,9 +25,6 @@ import { VoiceSessionContext } from "../../../../../react/voice-session/context"
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import { AiAssistantContents } from "./ai-assistant-contents";
-import { VoiceDock } from "./ai-assistant-contents/voice-dock";
-import { AudioSettings } from "./ai-assistant-contents/voice-dock/audio-popover/settings";
-import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
 import type { PetrinautAiMessage } from "./types";
 
@@ -170,873 +167,6 @@ const DockingHarness = ({
     </EditorContext>
   );
 };
-
-test("live-capability dock keeps microphone direct and Realtime controls absent", async () => {
-  const end = vi.fn();
-  const collapse = vi.fn();
-  const setMicrophoneMuted = vi.fn();
-  const setSpeakerMuted = vi.fn();
-  const setSpeakerVolume = vi.fn();
-  render(
-    <VoiceDock
-      actions={{
-        end,
-        pause: noop,
-        setMicrophoneMuted,
-        setSpeakerMuted,
-        setSpeakerVolume,
-      }}
-      assistantBusy={false}
-      canReadFullResponse={false}
-      canRepeatQuestion={false}
-      canTakeTurn={false}
-      collapsed={false}
-      indicator={<span />}
-      microphoneMuted={false}
-      onStop={noop}
-      onCollapsedToggle={collapse}
-      phase="connected"
-      speakerMuted={false}
-      speakerVolume={1}
-    />,
-  );
-  expect(screen.getByText("Connected")).toBeTruthy();
-  const microphone = screen.getByRole("button", { name: "Mute microphone" });
-  expect(microphone).not.toBeNull();
-  expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Hide conversation" }));
-  expect(collapse).toHaveBeenCalledOnce();
-  fireEvent.click(microphone);
-  expect(setMicrophoneMuted).toHaveBeenCalledWith(true);
-
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  expect(
-    await screen.findByRole("button", { name: "Mute speaker" }),
-  ).toBeTruthy();
-  expect(
-    screen
-      .getByRole("slider", { name: "Speaker volume" })
-      .getAttribute("aria-valuenow"),
-  ).toBe("100");
-  expect(screen.queryByRole("button", { name: "Repeat question" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Read full reply" })).toBeNull();
-  expect(
-    screen.queryByRole("checkbox", { name: "Allow interruptions" }),
-  ).toBeNull();
-  expect(
-    microphone.closest('[data-scope="popover"][data-part="content"]'),
-  ).toBeNull();
-
-  fireEvent.click(screen.getByRole("button", { name: "End voice mode" }));
-  expect(end).toHaveBeenCalledOnce();
-});
-
-test("keeps crowded Voice actions fixed while status content can shrink", () => {
-  render(
-    <VoiceDock
-      actions={{
-        audioSettings: {
-          refreshDevices: noop,
-          requestSpeaker: noop,
-          setMicrophoneDevice: noop,
-          setSpeakerDevice: noop,
-          setVoice: noop,
-          stopVoicePreview: noop,
-        },
-        end: noop,
-        pause: noop,
-        retryPlayback: noop,
-        setMicrophoneMuted: noop,
-        setSpeakerMuted: noop,
-        setSpeakerVolume: noop,
-        takeTurn: noop,
-      }}
-      assistantBusy
-      canReadFullResponse={false}
-      canRepeatQuestion={false}
-      canRetryPlayback
-      canTakeTurn
-      collapsed={false}
-      indicator={<span data-testid="waveform" />}
-      microphoneMuted={false}
-      notice="Audio playback is blocked. Select Play voice audio to hear Live."
-      onCollapsedToggle={noop}
-      onStop={noop}
-      phase="speaking"
-      speakerMuted={false}
-      speakerVolume={1}
-    />,
-  );
-
-  const dock = screen.getByTestId("ai-voice-dock");
-  const getPart = (part: string) => {
-    const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
-    if (!element) throw new Error(`Missing Voice dock part: ${part}`);
-    return element;
-  };
-  const leftActions = getPart("left-actions");
-  const center = getPart("shrinkable-status");
-  const indicator = getPart("fixed-indicator");
-  const status = getPart("visible-status");
-  const rightActions = getPart("right-actions");
-  const liveStatus = getPart("live-status");
-
-  expect(dock.className).toContain("d_grid");
-  expect(dock.className).toContain("grid-tc_[auto_minmax(0,_1fr)_auto]");
-  expect(leftActions.className).toContain("flex-sh_0");
-  expect(rightActions.className).toContain("flex-sh_0");
-  expect(center.className).toContain("min-w_[0]");
-  expect(status.className).toContain("min-w_[0]");
-  expect(indicator.className).toContain("flex-sh_1");
-  expect(indicator.className).toContain("min-w_[32px]");
-  expect(status.className).toContain("ov_hidden");
-  expect(status.className).toContain("tov_ellipsis");
-  expect(within(indicator).getByTestId("waveform")).toBeTruthy();
-  expect(liveStatus.textContent).toBe(
-    "Voice status: Audio playback is blocked. Select Play voice audio to hear Live.",
-  );
-});
-
-test("offers a user-gesture retry while session audio is blocked", () => {
-  const retryPlayback = vi.fn();
-  const commonProps = {
-    actions: { end: noop, pause: noop, retryPlayback },
-    assistantBusy: false,
-    canReadFullResponse: false,
-    canRepeatQuestion: false,
-    canTakeTurn: false,
-    collapsed: false,
-    indicator: <span />,
-    microphoneMuted: false,
-    notice: "Audio playback is blocked. Select Play voice audio to hear Live.",
-    onCollapsedToggle: noop,
-    onStop: noop,
-    phase: "connected" as const,
-    speakerMuted: false,
-    speakerVolume: 1,
-  };
-  const rendered = render(
-    <VoiceDock {...commonProps} canRetryPlayback={true} />,
-  );
-
-  fireEvent.click(screen.getByRole("button", { name: "Play voice audio" }));
-  expect(retryPlayback).toHaveBeenCalledOnce();
-
-  rendered.rerender(<VoiceDock {...commonProps} canRetryPlayback={false} />);
-  expect(screen.queryByRole("button", { name: "Play voice audio" })).toBeNull();
-});
-
-test.each([
-  {
-    absentAction: "Resume voice mode",
-    phase: "error" as const,
-    recoveryAction: "Reconnect voice mode",
-  },
-  {
-    absentAction: "Reconnect voice mode",
-    phase: "paused" as const,
-    recoveryAction: "Resume voice mode",
-  },
-])(
-  "keeps direct microphone beside $phase recovery controls",
-  ({ absentAction, phase, recoveryAction }) => {
-    render(
-      <VoiceDock
-        actions={{
-          end: vi.fn(),
-          pause: noop,
-          reconnect: vi.fn(),
-          resume: vi.fn(),
-          setMicrophoneMuted: vi.fn(),
-        }}
-        assistantBusy={false}
-        canReadFullResponse={false}
-        canRepeatQuestion={false}
-        canTakeTurn={false}
-        collapsed={false}
-        indicator={<span />}
-        microphoneMuted={false}
-        onCollapsedToggle={noop}
-        onStop={noop}
-        phase={phase}
-        speakerMuted={false}
-        speakerVolume={1}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: recoveryAction })).toBeTruthy();
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", {
-        name: "Mute microphone",
-      }).disabled,
-    ).toBe(true);
-    expect(screen.queryByRole("button", { name: absentAction })).toBeNull();
-  },
-);
-
-test.each(["connecting", "error", "paused"] as const)(
-  "disables the direct microphone action while Voice is %s",
-  (phase) => {
-    const setMicrophoneMuted = vi.fn();
-    render(
-      <VoiceDock
-        actions={{
-          end: vi.fn(),
-          pause: noop,
-          setMicrophoneMuted,
-        }}
-        assistantBusy={false}
-        canReadFullResponse={false}
-        canRepeatQuestion={false}
-        canTakeTurn={false}
-        collapsed={false}
-        indicator={<span />}
-        microphoneMuted={false}
-        onCollapsedToggle={noop}
-        onStop={noop}
-        phase={phase}
-        speakerMuted={false}
-        speakerVolume={1}
-      />,
-    );
-
-    const microphone = screen.getByRole<HTMLButtonElement>("button", {
-      name: "Mute microphone",
-    });
-    expect(microphone.disabled).toBe(true);
-    fireEvent.click(microphone);
-    expect(setMicrophoneMuted).not.toHaveBeenCalled();
-  },
-);
-
-test.each(["listening", "thinking", "speaking"] as const)(
-  "keeps the direct microphone action functional while Voice is %s",
-  (phase) => {
-    const setMicrophoneMuted = vi.fn();
-    render(
-      <VoiceDock
-        actions={{
-          end: vi.fn(),
-          pause: noop,
-          setMicrophoneMuted,
-        }}
-        assistantBusy={false}
-        canReadFullResponse={false}
-        canRepeatQuestion={false}
-        canTakeTurn={false}
-        collapsed={false}
-        indicator={<span />}
-        microphoneMuted={false}
-        onCollapsedToggle={noop}
-        onStop={noop}
-        phase={phase}
-        speakerMuted={false}
-        speakerVolume={1}
-      />,
-    );
-
-    const microphone = screen.getByRole<HTMLButtonElement>("button", {
-      name: "Mute microphone",
-    });
-    expect(microphone.disabled).toBe(false);
-    fireEvent.click(microphone);
-    expect(setMicrophoneMuted).toHaveBeenCalledExactlyOnceWith(true);
-  },
-);
-
-test.each(["connecting", "error"] as const)(
-  "disables only speaker controls in Audio options while Voice is %s",
-  async (phase) => {
-    const setInterruptionBySpeaking = vi.fn();
-    const setSpeakerMuted = vi.fn();
-    const setSpeakerVolume = vi.fn();
-    render(
-      <VoiceDock
-        actions={{
-          end: vi.fn(),
-          pause: noop,
-          readFullResponse: vi.fn(),
-          repeatQuestion: vi.fn(),
-          setInterruptionBySpeaking,
-          setSpeakerMuted,
-          setSpeakerVolume,
-        }}
-        assistantBusy={false}
-        canReadFullResponse={false}
-        canRepeatQuestion={false}
-        canTakeTurn={false}
-        collapsed={false}
-        indicator={<span />}
-        interruptionBySpeaking
-        microphoneMuted={false}
-        onCollapsedToggle={noop}
-        onStop={noop}
-        phase={phase}
-        speakerMuted={false}
-        speakerVolume={1}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-    const speakerMute = await screen.findByRole<HTMLButtonElement>("button", {
-      name: "Mute speaker",
-    });
-    const volume = screen.getByRole("slider", { name: "Speaker volume" });
-    expect(speakerMute.disabled).toBe(true);
-    expect(volume.getAttribute("aria-disabled")).toBe("true");
-    fireEvent.click(speakerMute);
-    volume.focus();
-    fireEvent.keyDown(volume, { key: "ArrowLeft" });
-    expect(setSpeakerMuted).not.toHaveBeenCalled();
-    expect(setSpeakerVolume).not.toHaveBeenCalled();
-
-    const interruption = screen.getByRole<HTMLInputElement>("checkbox", {
-      name: "Allow interruptions",
-    });
-    expect(interruption.disabled).toBe(false);
-    fireEvent.click(interruption);
-    await waitFor(() =>
-      expect(setInterruptionBySpeaking).toHaveBeenCalledExactlyOnceWith(false),
-    );
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", {
-        name: "Repeat question",
-      }).disabled,
-    ).toBe(true);
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", {
-        name: "Read full reply",
-      }).disabled,
-    ).toBe(true);
-  },
-);
-
-test.each(["listening", "thinking", "speaking", "paused"] as const)(
-  "keeps speaker controls callable while Voice is %s",
-  async (phase) => {
-    const setSpeakerMuted = vi.fn();
-    const setSpeakerVolume = vi.fn();
-    render(
-      <VoiceDock
-        actions={{
-          end: vi.fn(),
-          pause: noop,
-          setSpeakerMuted,
-          setSpeakerVolume,
-        }}
-        assistantBusy={false}
-        canReadFullResponse={false}
-        canRepeatQuestion={false}
-        canTakeTurn={false}
-        collapsed={false}
-        indicator={<span />}
-        microphoneMuted={false}
-        onCollapsedToggle={noop}
-        onStop={noop}
-        phase={phase}
-        speakerMuted={false}
-        speakerVolume={1}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-    const speakerMute = await screen.findByRole<HTMLButtonElement>("button", {
-      name: "Mute speaker",
-    });
-    const volume = screen.getByRole("slider", { name: "Speaker volume" });
-    expect(speakerMute.disabled).toBe(false);
-    expect(volume.getAttribute("aria-disabled")).not.toBe("true");
-    fireEvent.click(speakerMute);
-    volume.focus();
-    fireEvent.keyDown(volume, { key: "ArrowLeft" });
-    expect(setSpeakerMuted).toHaveBeenCalledExactlyOnceWith(true);
-    await waitFor(() =>
-      expect(setSpeakerVolume).toHaveBeenCalledExactlyOnceWith(0.95),
-    );
-  },
-);
-
-test("shows the speed slider immediately with fine keyboard steps", async () => {
-  const setSpeed = vi.fn();
-  render(
-    <VoiceDock
-      actions={{
-        audioSettings: {
-          refreshDevices: vi.fn(),
-          requestSpeaker: vi.fn(),
-          setMicrophoneDevice: vi.fn(),
-          setSpeakerDevice: vi.fn(),
-          setSpeed,
-          setVoice: vi.fn(),
-        },
-        end: vi.fn(),
-        pause: noop,
-      }}
-      audioSettings={{
-        activeVoice: "alloy",
-        voice: "alloy",
-        voices: [{ value: "alloy", text: "Alloy" }],
-        speed: 1,
-        devices: {
-          microphones: [],
-          speakers: [],
-          microphoneId: "",
-          speakerId: "",
-          canSelectSpeaker: false,
-          canRequestSpeaker: false,
-          busy: false,
-          message: null,
-        },
-      }}
-      assistantBusy={false}
-      canReadFullResponse={false}
-      canRepeatQuestion={false}
-      canTakeTurn={false}
-      collapsed={false}
-      indicator={<span />}
-      microphoneMuted={false}
-      onCollapsedToggle={noop}
-      onStop={noop}
-      phase="connected"
-      speakerMuted={false}
-      speakerVolume={1}
-    />,
-  );
-
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  const speed = await screen.findByRole("slider", { name: "Speed" });
-  expect(speed.getAttribute("aria-valuemin")).toBe("0.25");
-  expect(speed.getAttribute("aria-valuemax")).toBe("1.5");
-  expect(speed.getAttribute("aria-valuenow")).toBe("1");
-  expect(screen.getByText("1.00×")).not.toBeNull();
-  expect(screen.queryByText("Next reply")).toBeNull();
-
-  speed.focus();
-  fireEvent.keyDown(speed, { key: "ArrowRight" });
-  await waitFor(() => expect(setSpeed).toHaveBeenCalledExactlyOnceWith(1.05));
-});
-
-test("keeps voice visible while toggling devices and refreshes devices when opened", async () => {
-  const refreshDevices = vi.fn();
-  const stopVoicePreview = vi.fn();
-  const setVoice = vi.fn();
-  render(
-    <VoiceDock
-      actions={{
-        audioSettings: {
-          refreshDevices,
-          stopVoicePreview,
-          requestSpeaker: vi.fn(),
-          setMicrophoneDevice: vi.fn(),
-          setSpeakerDevice: vi.fn(),
-          setVoice,
-        },
-        end: vi.fn(),
-        pause: noop,
-        setSpeakerVolume: vi.fn(),
-      }}
-      audioSettings={{
-        activeVoice: "alloy",
-        voice: "verse",
-        voicePreview: "playing",
-        voices: [
-          { value: "alloy", text: "Alloy" },
-          { value: "verse", text: "Verse" },
-        ],
-        devices: {
-          microphones: [],
-          speakers: [],
-          microphoneId: "",
-          speakerId: "",
-          canSelectSpeaker: false,
-          canRequestSpeaker: false,
-          busy: false,
-          message: "Allow microphone access to list devices.",
-        },
-      }}
-      assistantBusy={false}
-      canReadFullResponse={false}
-      canRepeatQuestion={false}
-      canTakeTurn={false}
-      collapsed={false}
-      indicator={<span />}
-      microphoneMuted={true}
-      onCollapsedToggle={noop}
-      onStop={noop}
-      phase="connected"
-      speakerMuted={false}
-      speakerVolume={0.65}
-    />,
-  );
-
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  expect(
-    (
-      await screen.findByRole("slider", { name: "Speaker volume" })
-    ).getAttribute("aria-valuenow"),
-  ).toBe("65");
-  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
-  expect(screen.getByText("Voice preview playing").getAttribute("role")).toBe(
-    "status",
-  );
-  expect(
-    screen.queryByRole("button", { name: /play preview|pause preview/i }),
-  ).toBeNull();
-  const nativeVoice = document.querySelector("select");
-  if (!nativeVoice) throw new Error("Missing native voice field");
-  fireEvent.change(nativeVoice, { target: { value: "alloy" } });
-  await waitFor(() =>
-    expect(setVoice).toHaveBeenCalledExactlyOnceWith("alloy"),
-  );
-  expect(screen.queryByRole("button", { name: /^Voice/ })).toBeNull();
-  const devicesToggle = screen.getByRole("button", { name: "Devices" });
-  expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
-  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
-  expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
-  expect(screen.queryByText(/Applies next session/)).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "About voice selection" }),
-  ).toBeTruthy();
-  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
-  expect(
-    screen.queryByText(
-      "Speaking speed is not available with this voice provider.",
-    ),
-  ).toBeNull();
-  expect(screen.queryByRole("button", { name: "Real-time" })).toBeNull();
-  expect(screen.queryByRole("slider", { name: "Speed" })).toBeNull();
-
-  expect(refreshDevices).toHaveBeenCalledOnce();
-  fireEvent.click(devicesToggle);
-  expect(devicesToggle.getAttribute("aria-expanded")).toBe("true");
-  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
-  expect(screen.getByRole("combobox", { name: "Microphone" }).textContent).toBe(
-    "System default",
-  );
-  expect(screen.getByRole("combobox", { name: "Speaker" }).textContent).toBe(
-    "System default",
-  );
-  expect(
-    screen.getByRole<HTMLButtonElement>("combobox", { name: "Speaker" })
-      .disabled,
-  ).toBe(true);
-  expect(
-    screen.getByText("System default — change output in your system settings."),
-  ).not.toBeNull();
-  expect(
-    screen
-      .getByText("Allow microphone access to list devices.")
-      .getAttribute("role"),
-  ).toBe("status");
-  expect(screen.queryByRole("button", { name: "Refresh devices" })).toBeNull();
-  expect(
-    screen.queryByText("Disconnected devices switch to system default."),
-  ).toBeNull();
-  fireEvent.click(devicesToggle);
-  expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
-  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
-  expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
-  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  expect(refreshDevices).toHaveBeenCalledOnce();
-  expect(stopVoicePreview).toHaveBeenCalledOnce();
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  expect(refreshDevices).toHaveBeenCalledTimes(2);
-});
-
-test("summarizes selected audio devices without exposing device IDs", () => {
-  const actions = {
-    refreshDevices: noop,
-    requestSpeaker: noop,
-    setMicrophoneDevice: noop,
-    setSpeakerDevice: noop,
-    setVoice: noop,
-  };
-  const settings = {
-    activeVoice: "alloy",
-    voice: "alloy",
-    voices: [{ value: "alloy", text: "Alloy" }],
-    devices: {
-      microphones: [{ value: "mic-1", text: "Desk microphone" }],
-      speakers: [{ value: "speaker-1", text: "Headphones" }],
-      microphoneId: "mic-1",
-      speakerId: "speaker-1",
-      canSelectSpeaker: true,
-      canRequestSpeaker: false,
-      busy: false,
-      message: null,
-    },
-  };
-  const { rerender } = render(
-    <AudioSettings
-      actions={actions}
-      disabled={false}
-      previewDisabledReason={null}
-      settings={settings}
-    />,
-  );
-  expect(screen.getByRole("button", { name: "Devices" }).textContent).toContain(
-    "Desk microphone · Headphones",
-  );
-  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
-  rerender(
-    <AudioSettings
-      actions={actions}
-      disabled={false}
-      previewDisabledReason={null}
-      settings={{
-        ...settings,
-        devices: {
-          ...settings.devices,
-          microphoneId: "",
-          speakerId: "disconnected-private-id",
-        },
-      }}
-    />,
-  );
-  expect(screen.getByRole("button", { name: "Devices" }).textContent).toContain(
-    "System default · Unavailable speaker",
-  );
-  expect(screen.queryByText(/disconnected-private-id/u)).toBeNull();
-});
-
-test.each<{
-  state: "streaming" | "done";
-  preparationFailed?: boolean;
-  fields: Record<string, string>;
-  label: string;
-  note: string;
-}>([
-  {
-    state: "streaming" as const,
-    fields: {},
-    label: "Preparing for Brunch",
-    note: "Preparing from what you said",
-  },
-  {
-    state: "streaming" as const,
-    fields: { goal: "Compare staffing" },
-    label: "Sending to Brunch",
-    note: "Prepared from what you said",
-  },
-  {
-    state: "done" as const,
-    fields: { goal: "Compare staffing" },
-    label: "Sent to Brunch",
-    note: "Prepared from what you said",
-  },
-  {
-    state: "streaming" as const,
-    preparationFailed: true,
-    fields: {},
-    label: "Sending without preparation",
-    note: "Preparation failed; sending your original words",
-  },
-  {
-    state: "done" as const,
-    preparationFailed: true,
-    fields: {},
-    label: "Sent without preparation",
-    note: "Preparation failed; your original words were sent",
-  },
-])(
-  "labels a brief truthfully: $label",
-  ({ state, fields, preparationFailed, label, note }) => {
-    render(
-      <VoiceInputProvenance brief={{ state, fields, preparationFailed }} />,
-    );
-    const disclosure = screen.getByText(label).closest("details");
-    expect(disclosure?.getAttribute("aria-busy")).toBe(
-      String(state === "streaming"),
-    );
-    expect(screen.getByText(note)).not.toBeNull();
-  },
-);
-
-test("renders absent brief fields as placeholders without confusing verbatim Still open", () => {
-  render(
-    <VoiceInputProvenance
-      brief={{
-        state: "done",
-        fields: { runs: "Still open", stillOpen: "constraints, ask" },
-      }}
-    />,
-  );
-
-  expect(screen.getByText("runs").nextSibling?.textContent).toBe("Still open");
-  expect(screen.getByText("constraints").nextSibling?.textContent).toBe(
-    "Still open",
-  );
-  expect(screen.getByText("ask").nextSibling?.textContent).toBe("Still open");
-  expect(screen.queryByText("still Open")).toBeNull();
-});
-
-test("stops a voice preview only when audio settings unmount", () => {
-  const initialStopVoicePreview = vi.fn();
-  const latestStopVoicePreview = vi.fn();
-  const actions = {
-    refreshDevices: vi.fn(),
-    requestSpeaker: vi.fn(),
-    setMicrophoneDevice: vi.fn(),
-    setSpeakerDevice: vi.fn(),
-    setVoice: vi.fn(),
-  };
-  const settings = {
-    activeVoice: "alloy",
-    voice: "alloy",
-    voices: [{ value: "alloy", text: "Alloy" }],
-    devices: {
-      microphones: [],
-      speakers: [],
-      microphoneId: "",
-      speakerId: "",
-      canSelectSpeaker: false,
-      canRequestSpeaker: false,
-      busy: false,
-      message: null,
-    },
-  };
-  const { rerender, unmount } = render(
-    <AudioSettings
-      actions={{
-        ...actions,
-        stopVoicePreview: initialStopVoicePreview,
-      }}
-      disabled={false}
-      previewDisabledReason={null}
-      settings={settings}
-    />,
-  );
-
-  rerender(
-    <AudioSettings
-      actions={{
-        ...actions,
-        stopVoicePreview: latestStopVoicePreview,
-      }}
-      disabled={false}
-      previewDisabledReason={null}
-      settings={settings}
-    />,
-  );
-
-  expect(initialStopVoicePreview).not.toHaveBeenCalled();
-  expect(latestStopVoicePreview).not.toHaveBeenCalled();
-
-  unmount();
-  expect(initialStopVoicePreview).not.toHaveBeenCalled();
-  expect(latestStopVoicePreview).toHaveBeenCalledOnce();
-});
-
-test("gates voice previews and hides only ordinary status text", async () => {
-  const stopVoicePreview = vi.fn();
-  const setMicrophoneMuted = vi.fn();
-  const setVoice = vi.fn();
-  const dock = (
-    phase: "listening" | "speaking" | "muted" | "connecting",
-    microphoneMuted: boolean,
-  ) => (
-    <VoiceDock
-      actions={{
-        audioSettings: {
-          refreshDevices: vi.fn(),
-          stopVoicePreview,
-          requestSpeaker: vi.fn(),
-          setMicrophoneDevice: vi.fn(),
-          setSpeakerDevice: vi.fn(),
-          setVoice,
-        },
-        end: noop,
-        pause: noop,
-        setSpeakerVolume: noop,
-        setMicrophoneMuted,
-      }}
-      audioSettings={{
-        activeVoice: "alloy",
-        voice: "alloy",
-        voices: [
-          { value: "alloy", text: "Alloy" },
-          { value: "verse", text: "Verse" },
-        ],
-        devices: {
-          microphones: [],
-          speakers: [],
-          microphoneId: "",
-          speakerId: "",
-          canSelectSpeaker: false,
-          canRequestSpeaker: false,
-          busy: false,
-          message: null,
-        },
-      }}
-      assistantBusy={false}
-      canReadFullResponse={false}
-      canRepeatQuestion={false}
-      canTakeTurn={false}
-      collapsed={false}
-      indicator={<span data-testid="waveform" />}
-      microphoneMuted={microphoneMuted}
-      onCollapsedToggle={noop}
-      onStop={noop}
-      phase={phase}
-      speakerMuted={false}
-      speakerVolume={1}
-    />
-  );
-  const { rerender } = render(dock("listening", false));
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  const voice = await screen.findByRole<HTMLButtonElement>("combobox", {
-    name: "Voice",
-  });
-  expect(voice.disabled).toBe(false);
-  const nativeVoice = document.querySelector("select");
-  if (!nativeVoice) throw new Error("Missing native voice field");
-  fireEvent.change(nativeVoice, { target: { value: "verse" } });
-  await waitFor(() =>
-    expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
-  );
-  expect(screen.queryByText("Mute your mic to preview.")).toBeNull();
-  expect(voice.getAttribute("aria-description")).toContain(
-    "Mute your mic to preview.",
-  );
-  const toggle = screen.getByRole("checkbox", { name: "Show status text" });
-  expect((toggle as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(screen.getByText("Show status text"));
-  await waitFor(() =>
-    expect(screen.queryByText("Listening", { exact: true })).toBeNull(),
-  );
-  expect(screen.getByRole("status", { name: "Voice status" }).textContent).toBe(
-    "Voice status: Listening",
-  );
-  expect(screen.getByTestId("waveform")).not.toBeNull();
-
-  rerender(dock("speaking", true));
-  expect(voice.disabled).toBe(false);
-  expect(screen.queryByText("Wait for the agent to finish.")).toBeNull();
-  expect(voice.getAttribute("aria-description")).toContain(
-    "Wait for the agent to finish.",
-  );
-  expect(screen.queryByText("Speaking", { exact: true })).toBeNull();
-  rerender(dock("muted", true));
-  expect(voice.disabled).toBe(false);
-  expect(screen.getByText("Muted", { exact: true })).not.toBeNull();
-  stopVoicePreview.mockClear();
-  fireEvent.click(screen.getByRole("button", { name: "Unmute microphone" }));
-  expect(stopVoicePreview).toHaveBeenCalledOnce();
-  expect(setMicrophoneMuted).toHaveBeenCalledExactlyOnceWith(false);
-  expect(stopVoicePreview.mock.invocationCallOrder[0]).toBeLessThan(
-    setMicrophoneMuted.mock.invocationCallOrder[0]!,
-  );
-
-  rerender(dock("connecting", true));
-  expect(voice.disabled).toBe(false);
-  setVoice.mockClear();
-  fireEvent.change(nativeVoice, { target: { value: "verse" } });
-  await waitFor(() =>
-    expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
-  );
-  expect(screen.getByText("Connecting", { exact: true })).not.toBeNull();
-});
 
 describe("AiAssistantContents", () => {
   test("orders optional voice slots around work and produced cards", async () => {
@@ -1521,6 +651,7 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         inputMode="voice"
+        presentation="brunch"
         onClose={noop}
         onInputChange={noop}
         onStop={noop}
@@ -1692,49 +823,52 @@ describe("AiAssistantContents", () => {
     expect(contentMounted).toHaveBeenCalledOnce();
   });
 
-  test("keeps tab names stable and one tab live region mounted across announcements", () => {
-    const props = {
-      additionalTab: { label: "Ledger", content: <p>Saved account</p> },
-      hostAttentionCount: 2,
-      input: "",
-      messages: [],
-      onClose: noop,
-      onInputChange: noop,
-      onStop: noop,
-      onSubmit: noop,
-      primaryAttention: true,
-      primaryLabel: "Chat",
-      presentation: "brunch" as const,
-      status: "ready" as const,
-    };
-    const { rerender } = render(
-      <AiAssistantContents
-        {...props}
-        attentionAnnouncement="2 unseen Ledger updates"
-      />,
-    );
+  test.each(["stock", "brunch"] as const)(
+    "keeps tab names stable and one tab live region mounted across announcements in the %s presentation",
+    (presentation) => {
+      const props = {
+        additionalTab: { label: "Ledger", content: <p>Saved account</p> },
+        hostAttentionCount: 2,
+        input: "",
+        messages: [],
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        primaryAttention: true,
+        primaryLabel: "Chat",
+        presentation,
+        status: "ready" as const,
+      };
+      const { rerender } = render(
+        <AiAssistantContents
+          {...props}
+          attentionAnnouncement="2 unseen Ledger updates"
+        />,
+      );
 
-    expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
-    expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
-    const tabHeader = within(screen.getByRole("tablist").parentElement!);
-    expect(tabHeader.getAllByRole("status")).toHaveLength(1);
-    expect(tabHeader.getByRole("status").textContent).toBe(
-      "2 unseen Ledger updates",
-    );
+      expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
+      expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
+      const tabHeader = within(screen.getByRole("tablist").parentElement!);
+      expect(tabHeader.getAllByRole("status")).toHaveLength(1);
+      expect(tabHeader.getByRole("status").textContent).toBe(
+        "2 unseen Ledger updates",
+      );
 
-    rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
-    expect(tabHeader.getAllByRole("status")).toHaveLength(1);
-    expect(tabHeader.getByRole("status").textContent).toBe("");
-    rerender(
-      <AiAssistantContents
-        {...props}
-        attentionAnnouncement="2 unseen Ledger updates"
-      />,
-    );
-    expect(tabHeader.getByRole("status").textContent).toBe(
-      "2 unseen Ledger updates",
-    );
-  });
+      rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
+      expect(tabHeader.getAllByRole("status")).toHaveLength(1);
+      expect(tabHeader.getByRole("status").textContent).toBe("");
+      rerender(
+        <AiAssistantContents
+          {...props}
+          attentionAnnouncement="2 unseen Ledger updates"
+        />,
+      );
+      expect(tabHeader.getByRole("status").textContent).toBe(
+        "2 unseen Ledger updates",
+      );
+    },
+  );
 
   test("returns to chat when the host withdraws its additional tab", () => {
     const props = {
@@ -1757,92 +891,6 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByRole("tab", { name: "Notes" })).toBeNull();
     expect(screen.getByTestId("ai-transcript").hidden).toBe(false);
   });
-
-  test.each([
-    {
-      label: "blocked",
-      output: {
-        applied: false,
-        blocked: "readonly",
-        reason: "Read-only document.",
-      },
-    },
-    {
-      label: "declined",
-      output: { applied: false, reason: "User declined auto-layout." },
-    },
-    {
-      label: "no-op",
-      output: {
-        applied: false,
-        reason: "The mutation left the document unchanged.",
-      },
-    },
-    {
-      label: "stale host",
-      output: {
-        applied: false,
-        reason:
-          "The requested base does not match the independently observed document.",
-      },
-    },
-    {
-      label: "contradictory supplied summary",
-      output: {
-        applied: false,
-        reason: "Not applied by the host.",
-        title: "Updated arc weight",
-        detail: "Requested value: 4",
-      },
-    },
-  ])(
-    "renders an explicit $label result as not applied, never requested-value success",
-    async ({ output }) => {
-      render(
-        <AiAssistantContents
-          input=""
-          status="ready"
-          onClose={noop}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          presentation="brunch"
-          messages={[
-            {
-              id: "assistant-unapplied",
-              role: "assistant",
-              parts: [
-                {
-                  type: "dynamic-tool",
-                  toolName: "updateArcWeight",
-                  toolCallId: "unapplied",
-                  state: "output-available",
-                  input: {
-                    transitionId: "transition",
-                    placeId: "place",
-                    arcDirection: "input",
-                    weight: 4,
-                  },
-                  output,
-                },
-              ],
-            },
-          ]}
-        />,
-      );
-      await expandWork();
-      const row = screen.getByRole("button", { name: /Not applied/u });
-      expect(row.getAttribute("data-tone")).toBe("neutral");
-      expect(within(row).getByText(output.reason)).not.toBeNull();
-      expect(
-        within(row).queryByText("Updated arc weight", { exact: true }),
-      ).toBeNull();
-      expect(row.querySelector('[data-tool-status="ok"]')).not.toBeNull();
-      expect(
-        row.querySelector('[data-tool-result-icon="complete"]'),
-      ).toBeNull();
-    },
-  );
 
   test.each(["output-available", "output-error"] as const)(
     "preserves %s applied/error presentation",
@@ -3025,6 +2073,7 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         inputMode={inputMode}
+        presentation="brunch"
         messages={[
           {
             id: "voice-user",
@@ -3078,6 +2127,7 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
+      presentation: "brunch" as const,
       status: "ready" as const,
     };
     const message = (text: string): PetrinautAiMessage[] => [
@@ -3964,15 +3014,14 @@ describe("AiAssistantContents", () => {
       status: "ready" as const,
     };
     const { rerender } = render(<AiAssistantContents {...props} />);
+    const tablist = () => screen.getByRole("tablist");
 
-    expect(screen.getByRole("tablist").getAttribute("data-style-variant")).toBe(
-      "stock",
-    );
+    expect(tablist().getAttribute("data-style-variant")).toBe("stock");
+    expect(tablist().querySelector("[data-mark]")).toBeNull();
 
     rerender(<AiAssistantContents {...props} presentation="brunch" />);
-    expect(screen.getByRole("tablist").getAttribute("data-style-variant")).toBe(
-      "brunch",
-    );
+    expect(tablist().getAttribute("data-style-variant")).toBe("brunch");
+    expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
   });
 
   test("keeps the stock AI transcript label in both input modes", () => {
@@ -4265,61 +3314,72 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByRole("button", { name: /^Activity/u })).toBeNull();
   });
 
-  test("does not auto-follow new content after the reader scrolls more than 96px from the end", () => {
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
-    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
-    const originalRequestAnimationFrame = window.requestAnimationFrame;
-    const scrollTo = vi.fn();
-    window.HTMLElement.prototype.scrollTo = scrollTo;
-    window.requestAnimationFrame = (callback) => {
-      callback(0);
-      return 0;
-    };
-    const props = {
-      input: "",
-      messages: [
-        {
-          id: "assistant-1",
-          role: "assistant" as const,
-          parts: [
-            { type: "text" as const, state: "streaming" as const, text: "One" },
-          ],
-        },
-      ],
-      onClose: noop,
-      onInputChange: noop,
-      onStop: noop,
-      onSubmit: noop,
-      status: "streaming" as const,
-    };
-    const view = render(<AiAssistantContents {...props} />);
-    const transcript = screen.getByTestId("ai-transcript");
-    Object.defineProperties(transcript, {
-      clientHeight: { configurable: true, value: 400 },
-      scrollHeight: { configurable: true, value: 1000 },
-      scrollTop: { configurable: true, writable: true, value: 600 },
-    });
-    fireEvent.scroll(transcript);
-    transcript.scrollTop = 400;
-    fireEvent.scroll(transcript);
-    scrollTo.mockClear();
-
-    view.rerender(
-      <AiAssistantContents
-        {...props}
-        messages={[
+  test.each([
+    { presentation: "brunch", follows: false },
+    { presentation: "stock", follows: true },
+  ] as const)(
+    "$presentation presentation follows new content after the reader scrolls more than 96px from the end: $follows",
+    ({ presentation, follows }) => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
+      const originalScrollTo = window.HTMLElement.prototype.scrollTo;
+      const originalRequestAnimationFrame = window.requestAnimationFrame;
+      const scrollTo = vi.fn();
+      window.HTMLElement.prototype.scrollTo = scrollTo;
+      window.requestAnimationFrame = (callback) => {
+        callback(0);
+        return 0;
+      };
+      const props = {
+        input: "",
+        messages: [
           {
-            ...props.messages[0]!,
-            parts: [{ type: "text", state: "streaming", text: "One two" }],
+            id: "assistant-1",
+            role: "assistant" as const,
+            parts: [
+              {
+                type: "text" as const,
+                state: "streaming" as const,
+                text: "One",
+              },
+            ],
           },
-        ]}
-      />,
-    );
+        ],
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        presentation,
+        status: "streaming" as const,
+      };
+      const view = render(<AiAssistantContents {...props} />);
+      const transcript = screen.getByTestId("ai-transcript");
+      Object.defineProperties(transcript, {
+        clientHeight: { configurable: true, value: 400 },
+        scrollHeight: { configurable: true, value: 1000 },
+        scrollTop: { configurable: true, writable: true, value: 600 },
+      });
+      fireEvent.scroll(transcript);
+      transcript.scrollTop = 400;
+      fireEvent.scroll(transcript);
+      scrollTo.mockClear();
 
-    expect(scrollTo).not.toHaveBeenCalled();
-    window.HTMLElement.prototype.scrollTo = originalScrollTo;
-    window.requestAnimationFrame = originalRequestAnimationFrame;
-  });
+      view.rerender(
+        <AiAssistantContents
+          {...props}
+          messages={[
+            {
+              ...props.messages[0]!,
+              parts: [{ type: "text", state: "streaming", text: "One two" }],
+            },
+          ]}
+        />,
+      );
+
+      expect(scrollTo.mock.calls.length > 0).toBe(follows);
+      window.HTMLElement.prototype.scrollTo = originalScrollTo;
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    },
+  );
 
   test("keeps following while its smooth scroll trails content that grew mid-animation", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
@@ -4346,6 +3406,7 @@ describe("AiAssistantContents", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
+      presentation: "brunch" as const,
       status: "streaming" as const,
     };
     const view = render(<AiAssistantContents {...props} />);
@@ -4491,7 +3552,7 @@ describe("AiAssistantContents", () => {
     );
 
     expect(container.textContent).toMatch(
-      /Thought[\s\S]*I found the current places\./u,
+      /Thinking[\s\S]*I found the current places\./u,
     );
   });
 
@@ -4614,88 +3675,6 @@ describe("AiAssistantContents", () => {
     });
   });
 
-  test("shows known noninteractive tool progress and replaces it with the terminal result", async () => {
-    const createMessages = (
-      state: "input-streaming" | "input-available" | "output-available",
-    ) =>
-      [
-        {
-          id: "assistant-1",
-          role: "assistant",
-          parts: [
-            {
-              type: "tool-addPlace",
-              state,
-              toolCallId: "tool-1",
-              input: {
-                id: "place__buffer",
-                name: "Buffer",
-                colorId: null,
-                dynamicsEnabled: false,
-                differentialEquationId: null,
-                x: 0,
-                y: 0,
-              },
-              output:
-                state === "output-available"
-                  ? { applied: true, title: "Added place Buffer" }
-                  : undefined,
-            },
-          ],
-        },
-      ] as PetrinautAiMessage[];
-    const props = {
-      input: "",
-      onClose: noop,
-      onInputChange: noop,
-      onStop: noop,
-      onSubmit: noop,
-      status: "streaming" as const,
-    };
-    const rendered = render(
-      <AiAssistantContents
-        {...props}
-        messages={createMessages("input-streaming")}
-      />,
-    );
-
-    expect(screen.getByText("Preparing…")).not.toBeNull();
-    await expandWork();
-    const pendingRow = screen.getByRole("button", { name: /Preparing/u });
-    expect(within(pendingRow).queryByText(/Buffer/u)).toBeNull();
-    expect(pendingRow.getAttribute("aria-busy")).toBe("true");
-    expect(pendingRow.getAttribute("data-tone")).toBe("success");
-    expect(
-      pendingRow.querySelector('[data-tool-status="pending"]'),
-    ).not.toBeNull();
-
-    rendered.rerender(
-      <AiAssistantContents
-        {...props}
-        messages={createMessages("input-available")}
-      />,
-    );
-
-    expect(screen.queryByText("Preparing…")).toBeNull();
-    expect(screen.getByText("Running…")).not.toBeNull();
-
-    rendered.rerender(
-      <AiAssistantContents
-        {...props}
-        messages={createMessages("output-available")}
-      />,
-    );
-
-    expect(screen.queryByText("Running…")).toBeNull();
-    const completedRow = screen.getByRole("button", {
-      name: /Added place Buffer/u,
-    });
-    expect(completedRow.hasAttribute("aria-busy")).toBe(false);
-    expect(
-      completedRow.querySelector('[data-tool-status="ok"]'),
-    ).not.toBeNull();
-  });
-
   test("renders individual tool rows with tones and no operations control", async () => {
     const messages: PetrinautAiMessage[] = [
       {
@@ -4761,319 +3740,6 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Deleted 1 item/u })
         .getAttribute("aria-busy"),
     ).toBe("true");
-  });
-
-  test("uses the host presentation resolver at every lifecycle site", async () => {
-    const messages = [
-      {
-        id: "assistant-labels",
-        role: "assistant",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "one",
-            toolCallId: "one",
-            state: "input-streaming",
-          },
-          {
-            type: "dynamic-tool",
-            toolName: "two",
-            toolCallId: "two",
-            state: "input-available",
-            input: {},
-          },
-          {
-            type: "dynamic-tool",
-            toolName: "three",
-            toolCallId: "three",
-            state: "output-available",
-            output: { title: "Stable result title" },
-          },
-          {
-            type: "dynamic-tool",
-            toolName: "four",
-            toolCallId: "four",
-            state: "output-error",
-            errorText: "Host tool failed",
-          },
-          {
-            type: "dynamic-tool",
-            toolName: "unknown-tool",
-            toolCallId: "unknown",
-            state: "output-available",
-            output: { title: "Unknown result title" },
-          },
-          {
-            type: "dynamic-tool",
-            toolName: "five",
-            toolCallId: "not-applied",
-            state: "output-available",
-            output: { applied: false, reason: "Nothing changed" },
-          },
-          {
-            type: "dynamic-tool",
-            toolName: "six",
-            toolCallId: "preserved-detail",
-            state: "output-available",
-            output: {
-              title: "Default result title",
-              detail: "Viewport frame: framed.",
-            },
-          },
-        ],
-      },
-    ] as PetrinautAiMessage[];
-    render(
-      <AiAssistantContents
-        input=""
-        messages={messages}
-        onClose={noop}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        status="streaming"
-        resolveToolPresentation={({ error, output, state, toolName }) => {
-          if (toolName === "unknown-tool") return undefined;
-          if (toolName === "five") {
-            return {
-              title: "Correctable five",
-              tone: "neutral",
-              items: ["Nothing changed"],
-            };
-          }
-          if (toolName === "six") return { title: "Completed six" };
-          const verb =
-            state === "pending"
-              ? toolName === "one"
-                ? "Preparing"
-                : "Running"
-              : state === "success"
-                ? "Completed"
-                : "Could not complete";
-          return {
-            title: `${verb} ${toolName}`,
-            detail:
-              error ??
-              (typeof output === "object" &&
-              output !== null &&
-              "title" in output &&
-              typeof output.title === "string"
-                ? output.title
-                : undefined),
-          };
-        }}
-      />,
-    );
-
-    await expandWork();
-    const preparingOne = screen.getByText("Preparing one").closest("button");
-    const runningTwo = screen.getByText("Running two").closest("button");
-    expect(preparingOne?.getAttribute("aria-busy")).toBe("true");
-    expect(runningTwo?.getAttribute("aria-busy")).toBe("true");
-    expect(screen.queryByText(/operations/u)).toBeNull();
-    expect(screen.getByText("Completed three")).not.toBeNull();
-    expect(screen.getByText("Could not complete four")).not.toBeNull();
-    expect(
-      within(
-        screen.getByText("Completed three").closest("button")!,
-      ).getByTestId("tool-detail").textContent,
-    ).toBe("Stable result title");
-    expect(
-      within(
-        screen.getByText("Could not complete four").closest("button")!,
-      ).getByTestId("tool-detail").textContent,
-    ).toBe("Host tool failed");
-    expect(screen.getByText("Unknown result title")).not.toBeNull();
-    expect(screen.getByText("Correctable five")).not.toBeNull();
-    expect(screen.queryByText("Not applied")).toBeNull();
-    expect(screen.queryByText("Completed five")).toBeNull();
-    expect(
-      screen
-        .getByRole("button", { name: /Correctable five/u })
-        .getAttribute("data-tone"),
-    ).toBe("neutral");
-    expect(
-      screen
-        .getByRole("button", { name: /Correctable five/u })
-        .querySelector('[data-tool-status="ok"]'),
-    ).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Correctable five/u }));
-    expect(screen.getByText("Nothing changed")).not.toBeNull();
-    expect(
-      within(screen.getByText("Completed six").closest("button")!).getByTestId(
-        "tool-detail",
-      ).textContent,
-    ).toBe("Viewport frame: framed.");
-  });
-
-  test("renders host pending, applied, refused and thrown tool cues", async () => {
-    const resolveToolPresentation = ({
-      output,
-      state,
-      toolName,
-    }: {
-      output: unknown;
-      state: "error" | "pending" | "success";
-      toolName: string;
-    }) => {
-      if (toolName !== "mutate_workpiece") return undefined;
-      if (
-        typeof output === "object" &&
-        output !== null &&
-        "disposition" in output &&
-        output.disposition === "refused" &&
-        "message" in output &&
-        typeof output.message === "string"
-      ) {
-        return {
-          title: "Ledger update needs correction",
-          tone: "neutral" as const,
-          items: [output.message],
-        };
-      }
-      return {
-        title:
-          state === "pending"
-            ? "Updating ledger"
-            : state === "success"
-              ? "Updated ledger"
-              : "Could not update ledger",
-        tone:
-          state === "pending"
-            ? ("pending" as const)
-            : state === "error"
-              ? ("danger" as const)
-              : ("success" as const),
-      };
-    };
-    const renderTools = (messages: PetrinautAiMessage[]) =>
-      render(
-        <AiAssistantContents
-          input=""
-          messages={messages}
-          onClose={noop}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          resolveToolPresentation={resolveToolPresentation}
-          status="streaming"
-        />,
-      );
-
-    const pending = renderTools([
-      {
-        id: "assistant-pending",
-        role: "assistant",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "mutate_workpiece",
-            toolCallId: "pending-call",
-            state: "input-streaming",
-            input: {},
-          },
-        ],
-      },
-    ]);
-    await expandWork();
-    const pendingRow = screen.getByRole("button", { name: /Updating ledger/u });
-    expect(pendingRow.getAttribute("data-tone")).toBe("pending");
-    expect(
-      pendingRow.querySelector('[data-tool-status="pending"]'),
-    ).not.toBeNull();
-    pending.unmount();
-
-    const applied = renderTools([
-      {
-        id: "assistant-applied",
-        role: "assistant",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "mutate_workpiece",
-            toolCallId: "applied-call",
-            state: "output-available",
-            input: {},
-            output: {
-              disposition: "applied",
-              applied: true,
-              revisionId: "applied-call",
-              sha256: "b".repeat(64),
-              ordinal: 1,
-            },
-          },
-        ],
-      },
-    ]);
-    await expandWork();
-    const appliedRow = screen.getByRole("button", { name: /Updated ledger/u });
-    expect(appliedRow.getAttribute("data-tone")).toBe("success");
-    expect(appliedRow.querySelector('[data-tool-status="ok"]')).not.toBeNull();
-    applied.unmount();
-
-    const refused = renderTools([
-      {
-        id: "assistant-refused",
-        role: "assistant",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "mutate_workpiece",
-            toolCallId: "refused-call",
-            state: "output-available",
-            input: {},
-            output: {
-              disposition: "refused",
-              applied: false,
-              correctable: true,
-              code: "silent-shrink",
-              message:
-                "Nothing was written; resubmit the complete settled account.",
-              currentRevision: null,
-            },
-          },
-        ],
-      },
-    ]);
-    await expandWork();
-    const refusedRow = screen.getByRole("button", {
-      name: /Ledger update needs correction/u,
-    });
-    expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
-    expect(refusedRow.querySelector('[data-tool-status="ok"]')).not.toBeNull();
-    expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
-    fireEvent.click(refusedRow);
-    expect(
-      screen.getByText(
-        "Nothing was written; resubmit the complete settled account.",
-      ),
-    ).not.toBeNull();
-    refused.unmount();
-
-    renderTools([
-      {
-        id: "assistant-thrown",
-        role: "assistant",
-        parts: [
-          {
-            type: "dynamic-tool",
-            toolName: "mutate_workpiece",
-            toolCallId: "thrown-call",
-            state: "output-error",
-            input: {},
-            errorText: "Current state missing",
-          },
-        ],
-      },
-    ]);
-    await expandWork();
-    const thrownRow = screen.getByRole("button", {
-      name: /Could not update ledger/u,
-    });
-    expect(thrownRow.getAttribute("data-tone")).toBe("danger");
-    expect(
-      thrownRow.querySelector('[data-tool-status="error"]'),
-    ).not.toBeNull();
   });
 
   test("hides configured tool rows without removing their message parts", () => {
@@ -5411,5 +4077,749 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("place: Old place")).not.toBeNull();
     expect(screen.getByText("transition: Old transition")).not.toBeNull();
     expect(screen.getByText("parameter: old_rate")).not.toBeNull();
+  });
+});
+
+const toolRowPresentations = [
+  {
+    presentation: "stock",
+    revealTools: () => Promise.resolve(),
+    markers: {
+      pending: "[data-tool-progress-spinner]",
+      complete: '[data-tool-result-icon="complete"]',
+      notApplied: '[data-tool-result-icon="not-applied"]',
+      error: "svg",
+    },
+  },
+  {
+    presentation: "brunch",
+    revealTools: expandWork,
+    markers: {
+      pending: '[data-tool-status="pending"]',
+      complete: '[data-tool-status="ok"]',
+      notApplied: '[data-tool-status="ok"]',
+      error: '[data-tool-status="error"]',
+    },
+  },
+] as const;
+
+describe.each(toolRowPresentations)(
+  "AiAssistantContents tool rows in the $presentation presentation",
+  ({ presentation, revealTools, markers }) => {
+    test.each([
+      {
+        label: "blocked",
+        output: {
+          applied: false,
+          blocked: "readonly",
+          reason: "Read-only document.",
+        },
+      },
+      {
+        label: "declined",
+        output: { applied: false, reason: "User declined auto-layout." },
+      },
+      {
+        label: "no-op",
+        output: {
+          applied: false,
+          reason: "The mutation left the document unchanged.",
+        },
+      },
+      {
+        label: "stale host",
+        output: {
+          applied: false,
+          reason:
+            "The requested base does not match the independently observed document.",
+        },
+      },
+      {
+        label: "contradictory supplied summary",
+        output: {
+          applied: false,
+          reason: "Not applied by the host.",
+          title: "Updated arc weight",
+          detail: "Requested value: 4",
+        },
+      },
+    ])(
+      "renders an explicit $label result as not applied, never requested-value success",
+      async ({ output }) => {
+        render(
+          <AiAssistantContents
+            input=""
+            status="ready"
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            presentation={presentation}
+            messages={[
+              {
+                id: "assistant-unapplied",
+                role: "assistant",
+                parts: [
+                  {
+                    type: "dynamic-tool",
+                    toolName: "updateArcWeight",
+                    toolCallId: "unapplied",
+                    state: "output-available",
+                    input: {
+                      transitionId: "transition",
+                      placeId: "place",
+                      arcDirection: "input",
+                      weight: 4,
+                    },
+                    output,
+                  },
+                ],
+              },
+            ]}
+          />,
+        );
+        await revealTools();
+        const row = screen.getByRole("button", { name: /Not applied/u });
+        expect(row.getAttribute("data-tone")).toBe("neutral");
+        expect(within(row).getByText(output.reason)).not.toBeNull();
+        expect(
+          within(row).queryByText("Updated arc weight", { exact: true }),
+        ).toBeNull();
+        expect(row.querySelector(markers.notApplied)).not.toBeNull();
+        expect(
+          row.querySelector('[data-tool-result-icon="complete"]'),
+        ).toBeNull();
+      },
+    );
+
+    test("shows known noninteractive tool progress and replaces it with the terminal result", async () => {
+      const createMessages = (
+        state: "input-streaming" | "input-available" | "output-available",
+      ) =>
+        [
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-addPlace",
+                state,
+                toolCallId: "tool-1",
+                input: {
+                  id: "place__buffer",
+                  name: "Buffer",
+                  colorId: null,
+                  dynamicsEnabled: false,
+                  differentialEquationId: null,
+                  x: 0,
+                  y: 0,
+                },
+                output:
+                  state === "output-available"
+                    ? { applied: true, title: "Added place Buffer" }
+                    : undefined,
+              },
+            ],
+          },
+        ] as PetrinautAiMessage[];
+      const props = {
+        input: "",
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        presentation,
+        status: "streaming" as const,
+      };
+      const rendered = render(
+        <AiAssistantContents
+          {...props}
+          messages={createMessages("input-streaming")}
+        />,
+      );
+
+      await revealTools();
+      expect(screen.getByText("Preparing…")).not.toBeNull();
+      const pendingRow = screen.getByRole("button", { name: /Preparing/u });
+      expect(within(pendingRow).queryByText(/Buffer/u)).toBeNull();
+      expect(pendingRow.getAttribute("aria-busy")).toBe("true");
+      expect(pendingRow.getAttribute("data-tone")).toBe("success");
+      expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
+
+      rendered.rerender(
+        <AiAssistantContents
+          {...props}
+          messages={createMessages("input-available")}
+        />,
+      );
+
+      expect(screen.queryByText("Preparing…")).toBeNull();
+      expect(screen.getByText("Running…")).not.toBeNull();
+
+      rendered.rerender(
+        <AiAssistantContents
+          {...props}
+          messages={createMessages("output-available")}
+        />,
+      );
+
+      expect(screen.queryByText("Running…")).toBeNull();
+      const completedRow = screen.getByRole("button", {
+        name: /Added place Buffer/u,
+      });
+      expect(completedRow.hasAttribute("aria-busy")).toBe(false);
+      expect(completedRow.querySelector(markers.complete)).not.toBeNull();
+    });
+
+    test("uses the host presentation resolver at every lifecycle site", async () => {
+      const messages = [
+        {
+          id: "assistant-labels",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "one",
+              toolCallId: "one",
+              state: "input-streaming",
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "two",
+              toolCallId: "two",
+              state: "input-available",
+              input: {},
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "three",
+              toolCallId: "three",
+              state: "output-available",
+              output: { title: "Stable result title" },
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "four",
+              toolCallId: "four",
+              state: "output-error",
+              errorText: "Host tool failed",
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "unknown-tool",
+              toolCallId: "unknown",
+              state: "output-available",
+              output: { title: "Unknown result title" },
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "five",
+              toolCallId: "not-applied",
+              state: "output-available",
+              output: { applied: false, reason: "Nothing changed" },
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "six",
+              toolCallId: "preserved-detail",
+              state: "output-available",
+              output: {
+                title: "Default result title",
+                detail: "Viewport frame: framed.",
+              },
+            },
+          ],
+        },
+      ] as PetrinautAiMessage[];
+      render(
+        <AiAssistantContents
+          input=""
+          messages={messages}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation={presentation}
+          status="streaming"
+          resolveToolPresentation={({ error, output, state, toolName }) => {
+            if (toolName === "unknown-tool") return undefined;
+            if (toolName === "five") {
+              return {
+                title: "Correctable five",
+                tone: "neutral",
+                items: ["Nothing changed"],
+              };
+            }
+            if (toolName === "six") return { title: "Completed six" };
+            const verb =
+              state === "pending"
+                ? toolName === "one"
+                  ? "Preparing"
+                  : "Running"
+                : state === "success"
+                  ? "Completed"
+                  : "Could not complete";
+            return {
+              title: `${verb} ${toolName}`,
+              detail:
+                error ??
+                (typeof output === "object" &&
+                output !== null &&
+                "title" in output &&
+                typeof output.title === "string"
+                  ? output.title
+                  : undefined),
+            };
+          }}
+        />,
+      );
+
+      await revealTools();
+      const preparingOne = screen.getByText("Preparing one").closest("button");
+      const runningTwo = screen.getByText("Running two").closest("button");
+      expect(preparingOne?.getAttribute("aria-busy")).toBe("true");
+      expect(runningTwo?.getAttribute("aria-busy")).toBe("true");
+      expect(screen.queryByText(/operations/u)).toBeNull();
+      expect(screen.getByText("Completed three")).not.toBeNull();
+      expect(screen.getByText("Could not complete four")).not.toBeNull();
+      expect(
+        within(
+          screen.getByText("Completed three").closest("button")!,
+        ).getByTestId("tool-detail").textContent,
+      ).toBe("Stable result title");
+      expect(
+        within(
+          screen.getByText("Could not complete four").closest("button")!,
+        ).getByTestId("tool-detail").textContent,
+      ).toBe("Host tool failed");
+      expect(screen.getByText("Unknown result title")).not.toBeNull();
+      expect(screen.getByText("Correctable five")).not.toBeNull();
+      expect(screen.queryByText("Not applied")).toBeNull();
+      expect(screen.queryByText("Completed five")).toBeNull();
+      expect(
+        screen
+          .getByRole("button", { name: /Correctable five/u })
+          .getAttribute("data-tone"),
+      ).toBe("neutral");
+      expect(
+        screen
+          .getByRole("button", { name: /Correctable five/u })
+          .querySelector(markers.notApplied),
+      ).not.toBeNull();
+      fireEvent.click(
+        screen.getByRole("button", { name: /Correctable five/u }),
+      );
+      expect(screen.getByText("Nothing changed")).not.toBeNull();
+      expect(
+        within(
+          screen.getByText("Completed six").closest("button")!,
+        ).getByTestId("tool-detail").textContent,
+      ).toBe("Viewport frame: framed.");
+    });
+
+    test("renders host pending, applied, refused and thrown tool cues", async () => {
+      const resolveToolPresentation = ({
+        output,
+        state,
+        toolName,
+      }: {
+        output: unknown;
+        state: "error" | "pending" | "success";
+        toolName: string;
+      }) => {
+        if (toolName !== "mutate_workpiece") return undefined;
+        if (
+          typeof output === "object" &&
+          output !== null &&
+          "disposition" in output &&
+          output.disposition === "refused" &&
+          "message" in output &&
+          typeof output.message === "string"
+        ) {
+          return {
+            title: "Ledger update needs correction",
+            tone: "neutral" as const,
+            items: [output.message],
+          };
+        }
+        return {
+          title:
+            state === "pending"
+              ? "Updating ledger"
+              : state === "success"
+                ? "Updated ledger"
+                : "Could not update ledger",
+          tone:
+            state === "pending"
+              ? ("pending" as const)
+              : state === "error"
+                ? ("danger" as const)
+                : ("success" as const),
+        };
+      };
+      const renderTools = (messages: PetrinautAiMessage[]) =>
+        render(
+          <AiAssistantContents
+            input=""
+            messages={messages}
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            presentation={presentation}
+            resolveToolPresentation={resolveToolPresentation}
+            status="streaming"
+          />,
+        );
+
+      const pending = renderTools([
+        {
+          id: "assistant-pending",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "mutate_workpiece",
+              toolCallId: "pending-call",
+              state: "input-streaming",
+              input: {},
+            },
+          ],
+        },
+      ]);
+      await revealTools();
+      const pendingRow = screen.getByRole("button", {
+        name: /Updating ledger/u,
+      });
+      expect(pendingRow.getAttribute("data-tone")).toBe("pending");
+      expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
+      pending.unmount();
+
+      const applied = renderTools([
+        {
+          id: "assistant-applied",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "mutate_workpiece",
+              toolCallId: "applied-call",
+              state: "output-available",
+              input: {},
+              output: {
+                disposition: "applied",
+                applied: true,
+                revisionId: "applied-call",
+                sha256: "b".repeat(64),
+                ordinal: 1,
+              },
+            },
+          ],
+        },
+      ]);
+      await revealTools();
+      const appliedRow = screen.getByRole("button", {
+        name: /Updated ledger/u,
+      });
+      expect(appliedRow.getAttribute("data-tone")).toBe("success");
+      expect(appliedRow.querySelector(markers.complete)).not.toBeNull();
+      applied.unmount();
+
+      const refused = renderTools([
+        {
+          id: "assistant-refused",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "mutate_workpiece",
+              toolCallId: "refused-call",
+              state: "output-available",
+              input: {},
+              output: {
+                disposition: "refused",
+                applied: false,
+                correctable: true,
+                code: "silent-shrink",
+                message:
+                  "Nothing was written; resubmit the complete settled account.",
+                currentRevision: null,
+              },
+            },
+          ],
+        },
+      ]);
+      await revealTools();
+      const refusedRow = screen.getByRole("button", {
+        name: /Ledger update needs correction/u,
+      });
+      expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
+      expect(refusedRow.querySelector(markers.notApplied)).not.toBeNull();
+      expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
+      fireEvent.click(refusedRow);
+      expect(
+        screen.getByText(
+          "Nothing was written; resubmit the complete settled account.",
+        ),
+      ).not.toBeNull();
+      refused.unmount();
+
+      renderTools([
+        {
+          id: "assistant-thrown",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "mutate_workpiece",
+              toolCallId: "thrown-call",
+              state: "output-error",
+              input: {},
+              errorText: "Current state missing",
+            },
+          ],
+        },
+      ]);
+      await revealTools();
+      const thrownRow = screen.getByRole("button", {
+        name: /Could not update ledger/u,
+      });
+      expect(thrownRow.getAttribute("data-tone")).toBe("danger");
+      expect(thrownRow.querySelector(markers.error)).not.toBeNull();
+    });
+  },
+);
+
+describe("AiAssistantContents in the stock presentation", () => {
+  test.each([
+    { status: "streaming" as const, live: true },
+    { status: "error" as const, live: false },
+  ])(
+    "keeps reasoning live only while its reply streams ($status)",
+    ({ status, live }) => {
+      render(
+        <AiAssistantContents
+          input=""
+          messages={[
+            {
+              id: "assistant-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "reasoning",
+                  state: "streaming",
+                  text: "**Planning the net**\n\nUnderstanding the request.",
+                },
+              ],
+            },
+          ]}
+          error={status === "error" ? new Error("Network failed") : undefined}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status={status}
+        />,
+      );
+
+      expect(
+        screen
+          .getByRole("button", { name: /Thinking/u })
+          .getAttribute("aria-expanded"),
+      ).toBe(String(live));
+    },
+  );
+
+  test("renders streamed markdown and collapsed reasoning", () => {
+    const startedAt = Date.parse("2026-05-14T12:00:00Z");
+    const finishedAt = startedAt + 4_500;
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [
+          {
+            type: "reasoning",
+            state: "done",
+            text: "**Planning the net**\n\nUnderstanding the requested model.",
+            providerMetadata: {
+              petrinaut: { startedAt, finishedAt },
+            },
+          },
+          {
+            type: "text",
+            state: "done",
+            text: "**Created** a supply chain model.",
+          },
+        ],
+      },
+    ];
+
+    render(
+      <AiAssistantContents
+        input=""
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(screen.getByText("Created")).not.toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: /Thinking: Planning the net/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+    expect(screen.getByText("Thinking: Planning the net")).not.toBeNull();
+    expect(screen.queryByTestId("reasoning-status")).toBeNull();
+    expect(screen.getByLabelText(/Reasoning time/u)).not.toBeNull();
+  });
+
+  test("selects a target from a completed tool summary without a single-item chevron", () => {
+    const onSelectToolTarget = vi.fn();
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-addPlace",
+            state: "output-available",
+            toolCallId: "tool-1",
+            input: {
+              id: "place__buffer",
+              name: "Buffer",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+            output: {
+              applied: true,
+              title: "Added place Buffer",
+              detail: "Previous name: Queue",
+              target: {
+                kind: "selection",
+                item: { type: "place", id: "place__buffer" },
+              },
+            },
+          },
+        ],
+      },
+    ];
+
+    render(
+      <AiAssistantContents
+        input=""
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onSelectToolTarget={onSelectToolTarget}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    const toolButton = screen.getByRole("button", {
+      name: /Added place Buffer/u,
+    });
+
+    fireEvent.click(toolButton);
+
+    expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
+    expect(toolButton.getAttribute("data-tone")).toBe("success");
+    expect(screen.getByTestId("tool-detail").textContent).toBe(
+      "Previous name: Queue",
+    );
+    expect(onSelectToolTarget).toHaveBeenCalledWith({
+      kind: "selection",
+      item: { type: "place", id: "place__buffer" },
+    });
+  });
+
+  test("prioritizes Stop and retains disabled Send without Voice mode", () => {
+    const onStop = vi.fn();
+    const props = {
+      input: "Draft",
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onStop,
+      onSubmit: vi.fn(),
+      status: "streaming" as const,
+      voiceModeAvailable: true,
+    };
+    const rendered = render(<AiAssistantContents {...props} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+
+    rendered.rerender(
+      <AiAssistantContents
+        {...props}
+        input=""
+        status="ready"
+        voiceModeAvailable={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Send message",
+      }).disabled,
+    ).toBe(true);
+  });
+
+  test("switches the trailing action from Voice mode to Send for trimmed input", () => {
+    const onInputModeChange = vi.fn();
+    const onSubmit = vi.fn();
+    const props = {
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onInputModeChange,
+      onStop: noop,
+      onSubmit,
+      status: "ready" as const,
+      voiceModeAvailable: true,
+    };
+    const rendered = render(<AiAssistantContents {...props} input="" />);
+
+    const voiceButton = screen.getByRole("button", {
+      name: "Start voice mode",
+    });
+    expect(voiceButton.querySelector("svg")).not.toBeNull();
+    expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
+      "tooltip",
+    );
+    fireEvent.click(voiceButton);
+
+    expect(onInputModeChange).toHaveBeenCalledOnce();
+    expect(onInputModeChange).toHaveBeenCalledWith("voice");
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    rendered.rerender(<AiAssistantContents {...props} input="   " />);
+    expect(
+      screen.getByRole("button", { name: "Start voice mode" }),
+    ).not.toBeNull();
+
+    rendered.rerender(
+      <AiAssistantContents {...props} input="  Create a queue  " />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(onSubmit).toHaveBeenCalledOnce();
   });
 });

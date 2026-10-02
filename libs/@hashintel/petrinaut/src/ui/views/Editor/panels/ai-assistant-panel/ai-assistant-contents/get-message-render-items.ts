@@ -1,4 +1,10 @@
 import {
+  getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
+  readPetrinautDocToolName,
+} from "@hashintel/petrinaut-core";
+
+import {
   getPetrinautAiInteractiveToolDefinition,
   type PetrinautAiInteractiveTool,
 } from "../../../../../types/ai-interactive-tool";
@@ -42,8 +48,105 @@ export type MessageRenderItems = {
   voiceAgentWrapUp?: VoiceAgentLine;
 };
 
+/** One entry per run of the message, in the order its parts arrived. */
+export type ChronologicalRenderItem =
+  | { type: "reasoning"; key: string; part: ReasoningMessagePart }
+  | { type: "text"; key: string; part: TextPart }
+  | { type: "experiment"; key: string; part: ExperimentToolPart }
+  | { type: "tools"; key: string; tools: ToolRenderItem[] };
+
 const emptyHiddenToolNames: ReadonlySet<string> = new Set();
 
+/**
+ * The stock presentation's reading of a message: text, reasoning, experiments
+ * and runs of consecutive tool calls interleaved exactly as they streamed.
+ */
+export const getChronologicalRenderItems = (
+  message: PetrinautAiMessage,
+  interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver,
+  hiddenToolNames: ReadonlySet<string> = emptyHiddenToolNames,
+): ChronologicalRenderItem[] => {
+  const items: ChronologicalRenderItem[] = [];
+  let pendingTools: ToolRenderItem[] = [];
+
+  const flushTools = () => {
+    if (pendingTools.length === 0) {
+      return;
+    }
+
+    items.push({
+      type: "tools",
+      key: `${message.id}-tools-${items.length}`,
+      tools: pendingTools,
+    });
+    pendingTools = [];
+  };
+
+  message.parts.forEach((part, index) => {
+    if (part.type === "step-start") {
+      flushTools();
+      return;
+    }
+
+    if (part.type === "text") {
+      flushTools();
+      items.push({
+        type: "text",
+        key: `${message.id}-text-${index}`,
+        part,
+      });
+      return;
+    }
+
+    if (part.type === "reasoning") {
+      flushTools();
+      items.push({
+        type: "reasoning",
+        key: `${message.id}-reasoning-${index}`,
+        part,
+      });
+      return;
+    }
+
+    if (part.type === "tool-createExperiment") {
+      flushTools();
+      items.push({ type: "experiment", key: part.toolCallId, part });
+      return;
+    }
+
+    if (isToolPart(part)) {
+      if (hiddenToolNames.has(getToolName(part))) {
+        return;
+      }
+      const tool = toToolRenderItem(
+        message,
+        part,
+        interactiveTools,
+        resolveToolPresentation,
+      );
+
+      if (
+        tool.toolName === getLatestNetDefinitionToolName ||
+        tool.toolName === getNetCompilationErrorsToolName ||
+        tool.toolName === readPetrinautDocToolName
+      ) {
+        flushTools();
+        pendingTools.push(tool);
+        flushTools();
+        return;
+      }
+
+      pendingTools.push(tool);
+    }
+  });
+
+  flushTools();
+
+  return items;
+};
+
+/** The Brunch presentation's reading of a message, grouped by role in the turn. */
 export const getMessageRenderItems = (
   message: PetrinautAiMessage,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
