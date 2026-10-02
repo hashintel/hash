@@ -461,6 +461,7 @@ missing_inline_in_public_items   = "allow"
 missing_trait_methods            = "allow" # Should be enabled per `impl` instead of globally
 mod_module_files                 = "allow" # Opposite of `clippy::self_named_module_files`
 module_name_repetitions          = "allow"
+must_use_without_reason          = "allow"
 pub_use                          = "allow"
 pub_with_shorthand               = "allow" # Opposite of `clippy::pub_without_shorthand`
 question_mark_used               = "allow"
