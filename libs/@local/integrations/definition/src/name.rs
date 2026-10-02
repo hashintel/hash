@@ -162,7 +162,10 @@ impl FromStr for CheckpointName {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         check_length(value, MAX_CHECKPOINT_BYTES)?;
-        if !value.split('/').all(is_name) {
+        if !value
+            .split('/')
+            .all(|segment| segment.len() <= MAX_NAME_BYTES && is_name(segment))
+        {
             return Err(InvalidName::InvalidSegment);
         }
         Ok(Self(value.to_owned()))
@@ -239,7 +242,7 @@ impl FromStr for UnitCode {
 mod tests {
     use core::str::FromStr as _;
 
-    use super::{CheckpointName, InputAlias, InvalidName, SourceName};
+    use super::{CheckpointName, InputAlias, InvalidName, MAX_NAME_BYTES, SourceName};
 
     #[test]
     fn name_leading_separator() {
@@ -267,11 +270,13 @@ mod tests {
     fn checkpoint_segments() {
         CheckpointName::from_str("aviation/aircraft")
             .expect("names separated by `/` should form a checkpoint name");
+        let long_segment = format!("aviation/{}", "a".repeat(MAX_NAME_BYTES + 1));
         for value in [
             "aviation/../aircraft",
             "/aviation",
             "aviation//aircraft",
             "aviation/",
+            &long_segment,
         ] {
             assert_eq!(
                 CheckpointName::from_str(value),
