@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from "@testing-library/react";
+import { useLayoutEffect } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import {
@@ -43,6 +44,33 @@ test("conversation and principal scope isolate lists and reload restores entries
   expect(
     localStorage.getItem(conversationWordsKey("person", "one")),
   ).toBeNull();
+});
+
+test("layout effects read each conversation's saved words on its first render", () => {
+  for (const [conversation, spelling] of [
+    ["one", "RelayDesk"],
+    ["two", "SDCPN"],
+  ] as const) {
+    localStorage.setItem(
+      conversationWordsKey("person", conversation),
+      JSON.stringify({ version: 1, entries: [{ id: "word", spelling }] }),
+    );
+  }
+  const seen: (readonly string[] | "loading")[] = [];
+  const hook = renderHook(
+    ({ conversation }) => {
+      const words = useConversationWords("person", conversation);
+      useLayoutEffect(() => {
+        seen.push(
+          words.ready ? words.entries.map((word) => word.spelling) : "loading",
+        );
+      });
+      return words;
+    },
+    { initialProps: { conversation: "one" } },
+  );
+  hook.rerender({ conversation: "two" });
+  expect(seen).toEqual([["RelayDesk"], ["SDCPN"]]);
 });
 
 test("invalid persisted input is not used or silently overwritten", () => {
