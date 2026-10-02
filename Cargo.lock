@@ -6384,6 +6384,7 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "cookie",
+ "crc32fast",
  "derive_more",
  "error-stack",
  "hash-graph-authorization",
@@ -6407,6 +6408,7 @@ dependencies = [
  "tracing",
  "type-system",
  "uuid",
+ "zerocopy",
 ]
 
 [[package]]

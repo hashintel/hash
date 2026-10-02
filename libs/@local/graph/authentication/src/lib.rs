@@ -5,6 +5,7 @@
 extern crate alloc;
 
 pub mod actor;
+pub mod api_token;
 pub mod cloudflare;
 pub mod delegation;
 pub mod jwt;
