@@ -3,7 +3,7 @@ import { Box, FormControlLabel, Switch, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useState } from "react";
 
-import { Select, TextField } from "@hashintel/design-system";
+import { Callout, Select, TextField } from "@hashintel/design-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 
 import { createFlowScheduleMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
@@ -11,7 +11,10 @@ import { Button } from "../../../../../shared/ui/button";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { Modal } from "../../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { GoogleAuthProvider } from "../../../../shared/integrations/google/google-auth-context";
+import {
+  GoogleAuthProvider,
+  useIsGoogleAuthAvailable,
+} from "../../../../shared/integrations/google/google-auth-context";
 import { WebSelector } from "../../../../shared/web-selector";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";
@@ -29,6 +32,7 @@ import type {
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
+  PayloadKind,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
@@ -79,6 +83,30 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
     return acc;
   }, {});
 
+const googlePayloadKinds: PayloadKind[] = ["GoogleAccountId", "GoogleSheet"];
+
+const isPayloadValueMissing = (payload: LocalPayload | undefined) => {
+  if (payload?.value === undefined || payload.value === "") {
+    return true;
+  }
+
+  if (
+    payload.kind === "GoogleSheet" &&
+    !Array.isArray(payload.value) &&
+    "newSheetName" in payload.value
+  ) {
+    return payload.value.newSheetName === "";
+  }
+
+  return false;
+};
+
+const GoogleAuthProviderIfRequired = ({
+  children,
+  required,
+}: PropsWithChildren<{ required: boolean }>) =>
+  required ? <GoogleAuthProvider>{children}</GoogleAuthProvider> : children;
+
 type IntervalUnit = "minutes" | "hours" | "days";
 
 const intervalUnitToMs: Record<IntervalUnit, number> = {
@@ -114,6 +142,16 @@ export const RunFlowModal = ({
     generateInitialFormState(outputs ?? []),
   );
 
+  const googleOutputs = (outputs ?? []).filter((output) =>
+    googlePayloadKinds.includes(output.payloadKind),
+  );
+  const hasGoogleInputs = googleOutputs.length > 0;
+
+  const isGoogleAuthAvailable = useIsGoogleAuthAvailable();
+  const hideGoogleInputs = hasGoogleInputs && !isGoogleAuthAvailable;
+  const isMissingGoogleAuth =
+    hideGoogleInputs && googleOutputs.some((output) => output.required);
+
   const [pending, setPending] = useState(false);
 
   const [isScheduleMode, setIsScheduleMode] = useState(false);
@@ -127,19 +165,19 @@ export const RunFlowModal = ({
     CreateFlowScheduleMutationVariables
   >(createFlowScheduleMutation);
 
-  const allRequiredValuesPresent = (outputs ?? []).every((output) => {
-    const stateValue = formState[output.name]?.payload.value;
-    return (
+  const allRequiredValuesPresent = (outputs ?? []).every(
+    (output) =>
       !output.required ||
-      (output.payloadKind === "Text"
-        ? stateValue !== ""
-        : stateValue !== undefined)
-    );
-  });
+      !isPayloadValueMissing(formState[output.name]?.payload),
+  );
 
   const buildOutputValues = (): FlowTrigger["outputs"] => {
     const outputValues: FlowTrigger["outputs"] = [];
     for (const { outputName, payload } of typedValues(formState)) {
+      if (hideGoogleInputs && googlePayloadKinds.includes(payload.kind)) {
+        continue;
+      }
+
       if (typeof payload.value !== "undefined") {
         if (Array.isArray(payload.value) && payload.value.length === 0) {
           continue;
@@ -240,7 +278,7 @@ export const RunFlowModal = ({
       onClose={onClose}
       sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
     >
-      <GoogleAuthProvider>
+      <GoogleAuthProviderIfRequired required={hasGoogleInputs}>
         <Box sx={{ px: 4.5, py: 2.5 }}>
           <Typography
             component="p"
@@ -351,9 +389,23 @@ export const RunFlowModal = ({
             </>
           )}
 
+          {isMissingGoogleAuth && (
+            <Callout type="warning" sx={{ mb: 2.5 }}>
+              This flow needs Google Sheets, which isn't set up on this
+              instance, so it can't be run.
+            </Callout>
+          )}
+
           {(outputs ?? []).map((outputDef) => {
             if (!isSupportedPayloadKind(outputDef.payloadKind)) {
               throw new Error("Unsupported input kind");
+            }
+
+            if (
+              hideGoogleInputs &&
+              googlePayloadKinds.includes(outputDef.payloadKind)
+            ) {
+              return null;
             }
 
             const payload = formState[outputDef.name]?.payload;
@@ -396,7 +448,12 @@ export const RunFlowModal = ({
             setSelectedWebId={(newWebId) => setWebId(newWebId)}
           />
           <Button
-            disabled={!allRequiredValuesPresent || !scheduleValid || pending}
+            disabled={
+              isMissingGoogleAuth ||
+              !allRequiredValuesPresent ||
+              !scheduleValid ||
+              pending
+            }
             size="small"
             onClick={submitValues}
             sx={{ mt: 2.5 }}
@@ -410,7 +467,7 @@ export const RunFlowModal = ({
                 : "Run flow"}
           </Button>
         </Box>
-      </GoogleAuthProvider>
+      </GoogleAuthProviderIfRequired>
     </Modal>
   );
 };
