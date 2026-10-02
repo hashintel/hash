@@ -6415,6 +6415,7 @@ dependencies = [
  "tracing",
  "type-system",
  "uuid",
+ "zerocopy",
 ]
 
 [[package]]

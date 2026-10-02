@@ -12,6 +12,7 @@
 //!
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
 //! a [`HashedApiToken`].
+#![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use core::{
     fmt::{self, Write as _},
@@ -23,23 +24,20 @@ use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
 use rand::{TryRng as _, rngs::SysRng};
 use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
+use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 const PREFIX: &str = "hsh_";
+const PREFIX_BYTES: [u8; PREFIX.len()] = match PREFIX.as_bytes().first_chunk() {
+    Some(prefix) => *prefix,
+    None => unreachable!(),
+};
 const SEPARATOR: char = '_';
 const TYPE_LENGTH: usize = 3;
 const ENVIRONMENT_LENGTH: usize = 2;
 const TOKEN_ID_LENGTH: usize = 22;
 const SECRET_LENGTH: usize = 43;
 const CHECKSUM_LENGTH: usize = 6;
-const TOKEN_LENGTH: usize = PREFIX.len()
-    + TYPE_LENGTH
-    + 1
-    + ENVIRONMENT_LENGTH
-    + 1
-    + TOKEN_ID_LENGTH
-    + 1
-    + SECRET_LENGTH
-    + CHECKSUM_LENGTH;
+const TOKEN_LENGTH: usize = size_of::<TokenLayout>();
 const SECRET_POOL_LENGTH: usize = 64;
 const DISPLAYED_TOKEN_ID_LENGTH: usize = 4;
 
@@ -47,6 +45,30 @@ const DISPLAYED_TOKEN_ID_LENGTH: usize = 4;
 /// bits and the version above them.
 const VERSION_SHIFT: u8 = 3;
 const LEADING_DIGIT_MASK: u8 = 0b111;
+
+/// The bytes of a token, part by part.
+///
+/// Viewing a token's bytes as this layout checks its size and its separators. Parsing checks the
+/// prefix and the checksum on the bytes before, so that their errors come first.
+#[derive(TryFromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C)]
+struct TokenLayout {
+    prefix: [u8; PREFIX.len()],
+    token_type: [u8; TYPE_LENGTH],
+    type_separator: Separator,
+    environment: [u8; ENVIRONMENT_LENGTH],
+    environment_separator: Separator,
+    token_id: [u8; TOKEN_ID_LENGTH],
+    token_id_separator: Separator,
+    secret: [u8; SECRET_LENGTH],
+    checksum: [u8; CHECKSUM_LENGTH],
+}
+
+#[derive(TryFromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(u8)]
+enum Separator {
+    Underscore = SEPARATOR as u8,
+}
 
 /// What an API token acts as.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -193,18 +215,20 @@ impl ApiToken {
     // TODO(BE-791): return the token in a type whose `Debug` output leaves out the secret
     #[must_use]
     pub fn expose(&self) -> String {
-        let mut token = String::with_capacity(TOKEN_LENGTH);
-        token.push_str(PREFIX);
-        token.extend(self.token_type.code().map(char::from));
-        token.push(SEPARATOR);
-        token.extend(self.environment.code().map(char::from));
-        token.push(SEPARATOR);
-        token.extend(encode_token_id(self.version, self.token_id).map(char::from));
-        token.push(SEPARATOR);
-        token.extend(self.secret.iter().copied().map(char::from));
-        let checksum = crc32fast::hash(token.as_bytes());
-        token.extend(encode_base62::<CHECKSUM_LENGTH>(u128::from(checksum)).map(char::from));
-        token
+        let mut token = TokenLayout {
+            prefix: PREFIX_BYTES,
+            token_type: *self.token_type.code(),
+            type_separator: Separator::Underscore,
+            environment: *self.environment.code(),
+            environment_separator: Separator::Underscore,
+            token_id: encode_token_id(self.version, self.token_id),
+            token_id_separator: Separator::Underscore,
+            secret: self.secret,
+            checksum: [0; CHECKSUM_LENGTH],
+        };
+        let (signed, _) = token.as_bytes().split_at(TOKEN_LENGTH - CHECKSUM_LENGTH);
+        token.checksum = encode_base62(u128::from(crc32fast::hash(signed)));
+        token.as_bytes().iter().copied().map(char::from).collect()
     }
 }
 
@@ -304,38 +328,24 @@ impl FromStr for HashedApiToken {
             return Err(ApiTokenParseError::Checksum);
         }
 
-        let (_, body) = signed.split_at(PREFIX.len());
-        let mut parts = body.split(|&byte| char::from(byte) == SEPARATOR);
-        let (Some(token_type), Some(environment), Some(token_id), Some(secret), None) = (
-            parts.next(),
-            parts.next(),
-            parts.next(),
-            parts.next(),
-            parts.next(),
-        ) else {
-            return Err(ApiTokenParseError::Encoding);
-        };
+        let token = TokenLayout::try_ref_from_bytes(token.as_bytes())
+            .map_err(|_error| ApiTokenParseError::Encoding)?;
+        let token_type =
+            ApiTokenType::from_code(token.token_type).ok_or(ApiTokenParseError::Type)?;
+        let environment =
+            Environment::from_code(token.environment).ok_or(ApiTokenParseError::Environment)?;
+        let (version, token_id) = decode_token_id(&token.token_id)?;
 
-        let token_type = <[u8; TYPE_LENGTH]>::try_from(token_type)
-            .ok()
-            .and_then(ApiTokenType::from_code)
-            .ok_or(ApiTokenParseError::Type)?;
-        let environment = <[u8; ENVIRONMENT_LENGTH]>::try_from(environment)
-            .ok()
-            .and_then(Environment::from_code)
-            .ok_or(ApiTokenParseError::Environment)?;
-        let (version, token_id) = decode_token_id(token_id)?;
-        let secret = <&[u8; SECRET_LENGTH]>::try_from(secret)
-            .ok()
-            .filter(|secret| secret.iter().all(u8::is_ascii_alphanumeric))
-            .ok_or(ApiTokenParseError::Encoding)?;
+        if !token.secret.iter().all(u8::is_ascii_alphanumeric) {
+            return Err(ApiTokenParseError::Encoding);
+        }
 
         Ok(Self {
             token_type,
             environment,
             version,
             token_id,
-            secret_hash: hash_secret(secret),
+            secret_hash: hash_secret(&token.secret),
         })
     }
 }
@@ -392,12 +402,11 @@ fn encode_token_id(version: ApiTokenVersion, token_id: ApiTokenId) -> [u8; TOKEN
 /// The version and the token ID of the token-ID digits `digits` of a token.
 ///
 /// Fails with [`ApiTokenParseError::Version`] for an unknown version, and with
-/// [`ApiTokenParseError::Encoding`] if `digits` are not [`TOKEN_ID_LENGTH`] Base62 digits of a
-/// 128-bit number.
-fn decode_token_id(digits: &[u8]) -> Result<(ApiTokenVersion, ApiTokenId), ApiTokenParseError> {
-    let Ok([first, rest @ ..]) = <&[u8; TOKEN_ID_LENGTH]>::try_from(digits) else {
-        return Err(ApiTokenParseError::Encoding);
-    };
+/// [`ApiTokenParseError::Encoding`] if `digits` are not the Base62 digits of a 128-bit number.
+fn decode_token_id(
+    digits: &[u8; TOKEN_ID_LENGTH],
+) -> Result<(ApiTokenVersion, ApiTokenId), ApiTokenParseError> {
+    let [first, rest @ ..] = digits;
     let first = base62_value(*first).ok_or(ApiTokenParseError::Encoding)?;
     let version =
         ApiTokenVersion::from_number(first >> VERSION_SHIFT).ok_or(ApiTokenParseError::Version)?;
