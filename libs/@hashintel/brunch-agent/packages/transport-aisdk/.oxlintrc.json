@@ -45,9 +45,10 @@
             "group": [
               "@hashintel/brunch-agent/*",
               "!@hashintel/brunch-agent/constants",
+              "!@hashintel/brunch-agent/words",
               "@hashintel/brunch-agent-*"
             ],
-            "message": "Brunch transports must remain independent of Brunch core and extensions, except core's browser-safe `./constants` slice."
+            "message": "Brunch transports must remain independent of Brunch core and extensions, except its browser-safe constants and vocabulary contracts."
           }
         ]
       }

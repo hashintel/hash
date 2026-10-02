@@ -23,6 +23,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { Button } from "@hashintel/ds-components";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -106,6 +107,7 @@ import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
+import { useConversationWords } from "./conversation-words";
 import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 import { useFlueChatHistory } from "./use-flue-chat-history";
@@ -114,6 +116,8 @@ import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
+import { isTeachableVoiceMessage, WordsConfigurer } from "./words-configurer";
+import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
@@ -121,6 +125,7 @@ import type {
   DocumentRecord,
   DocumentRepository,
 } from "./documents/document-repository";
+import type { BrunchWord } from "@hashintel/brunch-agent";
 
 const useCurrentSettlementAction = (
   settleRevision: DocumentRepository["settleRevision"],
@@ -235,6 +240,7 @@ export const getBrunchVoiceMode = (
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
   isToolAwaitingApproval?: (toolCallId: string) => boolean,
+  readWords?: () => readonly BrunchWord[],
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -261,6 +267,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      readWords={readWords}
       mediationHistory={mediationHistory}
       isToolAwaitingApproval={isToolAwaitingApproval}
       settlements={settlements}
@@ -445,6 +452,11 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
+  const wordsPreference = useWordsPreference();
+  const [wordsDialog, setWordsDialog] = useState<{
+    key: string;
+    context?: string;
+  } | null>(null);
   const {
     enabled: realtimeEnabled,
     ready: realtimePreferenceReady,
@@ -671,6 +683,24 @@ export const LocalStorageDemoApp = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
+  const words = useConversationWords(brunchPrincipal, conversationId);
+  const wordsActive =
+    brunchSelected &&
+    wordsPreference.ready &&
+    wordsPreference.enabled &&
+    conversationId !== null;
+  const readWords = useCallback((): readonly BrunchWord[] => {
+    if (!wordsActive) return [];
+    if (!words.ready)
+      throw new Error("Words are still loading for this conversation.");
+    return words.entries.map(({ spelling, pronunciation }) => ({
+      spelling,
+      ...(pronunciation === undefined ? {} : { pronunciation }),
+    }));
+  }, [wordsActive, words.ready, words.entries]);
+  if (wordsDialog !== null && (!wordsActive || wordsDialog.key !== words.key)) {
+    setWordsDialog(null);
+  }
   // Each binding gets its own non-persisted approval authority.
   const mutationApproval = useMemo(
     () => ({
@@ -825,6 +855,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.snapshot,
         mediationHistory,
         (toolCallId) => mutationApproval.coordinator.hasPending(toolCallId),
+        readWords,
       ),
     [
       brunchSelected,
@@ -838,6 +869,7 @@ export const LocalStorageDemoApp = ({
       realtimePreferenceReady,
       voiceEnabled,
       voicePreferenceReady,
+      readWords,
     ],
   );
   const transportClientPromise = flueClientPromise;
@@ -847,6 +879,8 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
+          readWords: () =>
+            wordsActive ? readWords().map((word) => word.spelling) : undefined,
           ...(constructionBrowser
             ? { initialData: { binding: constructionBrowser.binding } }
             : {}),
@@ -894,6 +928,8 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
+    readWords,
+    wordsActive,
   ]);
 
   const inBandBrowserTools = useMemo(
@@ -955,6 +991,52 @@ export const LocalStorageDemoApp = ({
               ).activityIdentities
         : undefined;
     return {
+      headerActions:
+        wordsActive && words.key ? (
+          <>
+            <Button
+              size="xs"
+              variant="ghost"
+              disabled={!words.ready}
+              onClick={() => setWordsDialog({ key: words.key! })}
+            >
+              Words
+            </Button>
+            {wordsDialog?.key === words.key && (
+              <WordsConfigurer
+                key={wordsDialog.key}
+                entries={words.entries}
+                ready={words.ready}
+                notice={words.notice}
+                save={words.save}
+                context={wordsDialog.context}
+                onClose={() => setWordsDialog(null)}
+              />
+            )}
+          </>
+        ) : undefined,
+      renderUserMessageActions:
+        wordsActive && words.ready && words.key
+          ? (message: PetrinautAiMessage) =>
+              isTeachableVoiceMessage(message) ? (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() =>
+                    setWordsDialog({
+                      key: words.key!,
+                      context: message.parts
+                        .flatMap((part) =>
+                          part.type === "text" ? [part.text] : [],
+                        )
+                        .join(""),
+                    })
+                  }
+                >
+                  Teach this word
+                </Button>
+              ) : null
+          : undefined,
       additionalTab: constructionBrowser
         ? {
             label: "Ledger",
@@ -1021,6 +1103,7 @@ export const LocalStorageDemoApp = ({
       },
       onClearMessages: () => {
         if (flueClientPromise !== null && incarnationId !== undefined) {
+          words.clear();
           const initialId =
             ordinaryConstructionConversationIdFrom(incarnationId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
@@ -1068,6 +1151,9 @@ export const LocalStorageDemoApp = ({
     flueHistory.snapshot,
     petrinautAiChatTransport,
     setAiMessagesByNetId,
+    words,
+    wordsActive,
+    wordsDialog,
   ]);
 
   if (
@@ -1153,6 +1239,9 @@ export const LocalStorageDemoApp = ({
                     setVoiceEnabled={setVoiceEnabled}
                     voiceEnabled={brunchSelected && voiceEnabled}
                     voicePreferenceReady={voicePreferenceReady}
+                    wordsEnabled={wordsPreference.enabled}
+                    wordsPreferenceReady={wordsPreference.ready}
+                    setWordsEnabled={wordsPreference.setEnabled}
                   />
                 ),
               }}

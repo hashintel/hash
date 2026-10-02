@@ -16,6 +16,7 @@ import {
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
+  petrinautUserMessageText,
   type ConversationIdentity,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
@@ -86,7 +87,9 @@ function VisibleMessage({ message }: { message: FlueConversationMessage }) {
           return (
             // oxlint-disable-next-line react/no-array-index-key -- Flue text parts expose no stable identifier.
             <p className="message__text" key={partIndex}>
-              {part.text}
+              {message.role === "user"
+                ? petrinautUserMessageText(part.text)
+                : part.text}
             </p>
           );
         }

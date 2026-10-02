@@ -2,6 +2,11 @@ import {
   isSupportedVoice,
   voicePreferenceHeader,
 } from "../../shared/voice-settings.js";
+import {
+  decodeVoiceWords,
+  pronunciationInstructions,
+  voiceWordsHeader,
+} from "../../shared/voice-words.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 import { guardVoiceRequest } from "./voice-request-guard.js";
@@ -145,6 +150,13 @@ export const createOpenAILiveSessionHandler =
       const sdp = new TextDecoder().decode(body.subarray(0, length));
       if (!sdp.trimStart().startsWith("v=0"))
         return respond("Invalid SDP.", 400);
+
+      let words;
+      try {
+        words = decodeVoiceWords(request.headers.get(voiceWordsHeader));
+      } catch {
+        return respond("Invalid voice words.", 400);
+      }
       signal.throwIfAborted();
       const upstream = await fetch("https://api.openai.com/v1/live/sessions", {
         method: "POST",
@@ -156,7 +168,7 @@ export const createOpenAILiveSessionHandler =
         body: JSON.stringify({
           session: {
             model: "gpt-live-1",
-            instructions,
+            instructions: instructions + pronunciationInstructions(words),
             delegation: { type: "client" },
             store: false,
             audio: { output: { voice } },

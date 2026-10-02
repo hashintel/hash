@@ -2338,6 +2338,8 @@ const ConversationAiAssistantPanel = ({
   return (
     <AiAssistantContents
       additionalTab={aiAssistant.additionalTab}
+      headerActions={aiAssistant.headerActions}
+      renderUserMessageActions={aiAssistant.renderUserMessageActions}
       attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
