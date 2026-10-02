@@ -1,6 +1,13 @@
 import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
+import {
+  interviewBudgetContextKey,
+  parseInterviewBudget,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
+
+import { interviewBudgetLevels } from "../../../shared/interview-budget";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   BrunchPanelConversationTracker,
@@ -9,6 +16,91 @@ import {
 } from "./brunch-panel-transport";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+
+test.each(interviewBudgetLevels)(
+  "sends current %s budget on each submission, with Off identical to the legacy request",
+  async (level) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(503, "test admission unavailable");
+    });
+    const initialData = {
+      binding: {
+        documentId: "document",
+        conversationId: "conversation",
+        incarnationId: "incarnation",
+      },
+    };
+    for (const source of ["text", "voice"] as const) {
+      for (const asked of [0, 2, 9]) {
+        const transport = createBrunchPanelTransport(
+          Promise.resolve({ send } as unknown as FlueClient),
+          new BrunchPanelConversationTracker(),
+          {
+            initialData,
+            interviewBudgetLevel: level,
+            interviewRepliesAsked: asked,
+          },
+        );
+        await expect(
+          transport.sendMessages({
+            trigger: "submit-message",
+            chatId: "conversation",
+            messageId: undefined,
+            abortSignal: undefined,
+            messages: [
+              // Rendered messages can merge steps or include a wrap-up. They
+              // are deliberately different from the host's canonical count.
+              {
+                id: "reply",
+                role: "assistant",
+                parts: [{ type: "text", text: "Recorded." }],
+              },
+              {
+                id: "answer",
+                role: "user",
+                ...(source === "voice" ? { metadata: { source } } : {}),
+                parts: [{ type: "text", text: "Four agents" }],
+              },
+            ],
+          }),
+        ).rejects.toThrow();
+        const request = send.mock.lastCall?.[0];
+        if (level === "off") {
+          expect(JSON.stringify(request)).toBe(
+            JSON.stringify({
+              idempotencyKey: "ai-sdk:user:answer",
+              message: { kind: "user", body: "Four agents" },
+              initialData,
+            }),
+          );
+        } else {
+          const caps =
+            source === "text"
+              ? { quick: 3, standard: 6, thorough: 10, deep: null }
+              : { quick: 2, standard: 4, thorough: 7, deep: null };
+          const questionCap = caps[level];
+          const budget = {
+            level,
+            questionCap,
+            asked,
+            remaining:
+              questionCap === null ? null : Math.max(0, questionCap - asked),
+          };
+          expect(request?.initialData).toEqual(initialData);
+          expect(
+            parsePetrinautUserMessageBody(request?.message.body ?? ""),
+          ).toEqual({
+            kind: "contextual",
+            userText: "Four agents",
+            diagnosticsContext: "",
+            submissionContext: { [interviewBudgetContextKey]: budget },
+          });
+          expect(parseInterviewBudget(budget)).toEqual(budget);
+        }
+      }
+    }
+  },
+);
 
 test("publishes Stop immediately and supports unsubscribe", () => {
   const tracker = new BrunchPanelConversationTracker();

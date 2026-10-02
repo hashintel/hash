@@ -52,6 +52,10 @@ import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
+import {
+  interviewBudgetLevelsConfig,
+  type InterviewBudgetLevel,
+} from "../../../shared/interview-budget";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -84,6 +88,7 @@ import {
   resolveDraftAuthorityFromHistory,
 } from "./brunch-draft-experiment-interactive-tool";
 import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
+import { countInterviewReplies } from "./brunch-interview-budget";
 import {
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
@@ -108,11 +113,20 @@ import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
+import {
+  InterviewBudgetControl,
+  InterviewBudgetNote,
+  InterviewBudgetPill,
+} from "./interview-budget-control";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoiceMediationHistory } from "./use-voice-mediation-history";
-import { useRealtimePreference, useVoicePreference } from "./voice-preference";
+import {
+  useInterviewBudgetPreference,
+  useRealtimePreference,
+  useVoicePreference,
+} from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -234,6 +248,7 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
+  interviewBudgetLevel?: InterviewBudgetLevel,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -260,6 +275,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      interviewBudgetLevel={interviewBudgetLevel}
       mediationHistory={mediationHistory}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
@@ -443,6 +459,25 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
+  const {
+    level: selectedInterviewBudgetLevel,
+    setLevel: setInterviewBudgetLevel,
+    enabled: interviewBudgetEnabled,
+    setEnabled: setInterviewBudgetEnabled,
+    ready: interviewBudgetPreferenceReady,
+  } = useInterviewBudgetPreference();
+  const interviewBudgetLevel =
+    interviewBudgetEnabled && interviewBudgetPreferenceReady
+      ? selectedInterviewBudgetLevel
+      : "off";
+  const [budgetNotes, setBudgetNotes] = useState<
+    {
+      conversationId: string;
+      after: { id: string; role: string; ordinal: number };
+      level: InterviewBudgetLevel;
+      message: PetrinautAiMessage;
+    }[]
+  >([]);
   const {
     enabled: realtimeEnabled,
     ready: realtimePreferenceReady,
@@ -747,6 +782,9 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
   );
+  const interviewRepliesAsked = countInterviewReplies(
+    flueHistory.snapshot ?? { messages: [] },
+  );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
     : undefined;
@@ -822,6 +860,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        interviewBudgetLevel,
       ),
     [
       brunchSelected,
@@ -829,6 +868,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       mediationHistory,
+      interviewBudgetLevel,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -843,6 +883,8 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
+          interviewBudgetLevel,
+          interviewRepliesAsked,
           ...(constructionBrowser
             ? { initialData: { binding: constructionBrowser.binding } }
             : {}),
@@ -890,6 +932,8 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
+    interviewBudgetLevel,
+    interviewRepliesAsked,
   ]);
 
   const inBandBrowserTools = useMemo(
@@ -967,12 +1011,95 @@ export const LocalStorageDemoApp = ({
         ? {
             primaryLabel: "Chat",
             presentation: "brunch" as const,
-            mapMessagesForDisplay: mapVoiceMessages,
+            mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
+              // Canonical history re-identifies an optimistic user message
+              // once its turn settles, so an anchor whose id is gone falls
+              // back to its position among messages of the same role.
+              const ids = new Set(messages.map((message) => message.id));
+              const ordinals = new Map<string, number>();
+              const withNotes = messages.flatMap((message) => {
+                const ordinal = (ordinals.get(message.role) ?? 0) + 1;
+                ordinals.set(message.role, ordinal);
+                return [
+                  message,
+                  ...budgetNotes
+                    .filter(
+                      (note) =>
+                        note.conversationId === conversationId &&
+                        (ids.has(note.after.id)
+                          ? note.after.id === message.id
+                          : note.after.role === message.role &&
+                            note.after.ordinal === ordinal),
+                    )
+                    .map((note) => note.message),
+                ];
+              });
+              return mapVoiceMessages?.(withNotes) ?? withNotes;
+            },
+            renderSystemMessage: (message: PetrinautAiMessage) => {
+              const note = budgetNotes.find(
+                (entry) => entry.message.id === message.id,
+              );
+              return note ? (
+                <InterviewBudgetNote level={note.level} />
+              ) : undefined;
+            },
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Brunch is working",
             renderComposerControl: (
               context: PetrinautAiComposerControlContext,
-            ) => <BrunchExperimentFollowUp context={context} />,
+            ) => (
+              <>
+                <BrunchExperimentFollowUp context={context} />
+                {interviewBudgetEnabled && (
+                  <InterviewBudgetControl
+                    level={interviewBudgetLevel}
+                    onChange={(level) => {
+                      if (level === interviewBudgetLevel) return;
+                      const last = context.messages.at(-1);
+                      if (last) {
+                        const config = interviewBudgetLevelsConfig[level];
+                        setBudgetNotes((notes) => [
+                          ...notes,
+                          {
+                            conversationId: context.conversationId,
+                            level,
+                            after: {
+                              id: last.id,
+                              role: last.role,
+                              ordinal: context.messages.filter(
+                                (message) => message.role === last.role,
+                              ).length,
+                            },
+                            message: {
+                              id: `interview-budget:${crypto.randomUUID()}`,
+                              role: "system",
+                              parts: [
+                                {
+                                  type: "text",
+                                  text: `${config.name} · ${config.guide}`,
+                                },
+                              ],
+                            },
+                          },
+                        ]);
+                      }
+                      setInterviewBudgetLevel(level);
+                    }}
+                  />
+                )}
+              </>
+            ),
+            renderComposerStatus: (
+              context: PetrinautAiComposerControlContext,
+            ) =>
+              interviewBudgetEnabled ? (
+                <InterviewBudgetPill
+                  level={interviewBudgetLevel}
+                  context={context}
+                  asked={interviewRepliesAsked}
+                />
+              ) : null,
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
@@ -1045,6 +1172,11 @@ export const LocalStorageDemoApp = ({
     };
   }, [
     aiMessagesByNetId,
+    budgetNotes,
+    interviewBudgetEnabled,
+    interviewBudgetLevel,
+    interviewRepliesAsked,
+    setInterviewBudgetLevel,
     mapVoiceMessages,
     brunchSelected,
     brunchVoiceMode,
@@ -1141,10 +1273,15 @@ export const LocalStorageDemoApp = ({
                     assistantReady={assistantSelectionReady}
                     brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                     brunchSelected={brunchSelected}
+                    interviewBudgetEnabled={interviewBudgetEnabled}
+                    interviewBudgetPreferenceReady={
+                      interviewBudgetPreferenceReady
+                    }
                     openAIVoiceConfig={openAIVoiceConfig}
                     realtimeEnabled={realtimeEnabled}
                     realtimePreferenceReady={realtimePreferenceReady}
                     selectAssistant={selectAssistant}
+                    setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                     setRealtimeEnabled={setRealtimeEnabled}
                     setVoiceEnabled={setVoiceEnabled}
                     voiceEnabled={brunchSelected && voiceEnabled}

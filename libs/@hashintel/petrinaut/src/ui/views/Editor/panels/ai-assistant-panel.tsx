@@ -2307,6 +2307,7 @@ const ConversationAiAssistantPanel = ({
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
+    inputMode: interactionMode,
     messages,
     status,
     stopped,
@@ -2344,6 +2345,9 @@ const ConversationAiAssistantPanel = ({
       }
       composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
+      composerStatus={aiAssistant.renderComposerStatus?.(
+        composerControlContext,
+      )}
       error={streamError ?? error}
       experimentStates={experimentStates}
       hostExperimentRunning={hostExperimentReport?.running ?? false}
@@ -2356,6 +2360,7 @@ const ConversationAiAssistantPanel = ({
       hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
+      renderSystemMessage={aiAssistant.renderSystemMessage}
       onClearMessages={() => {
         abortAutomaticTools();
         for (const controller of experimentControllersRef.current.values())

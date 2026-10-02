@@ -1,3 +1,8 @@
+import {
+  interviewBudgetHeader,
+  liveInterviewBudgetInstruction,
+  type InterviewBudgetLevel,
+} from "../../../shared/interview-budget";
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import {
   createOutputEchoTrace,
@@ -25,6 +30,8 @@ export interface LiveConversationState {
     | "error";
   readonly message: string | null;
   readonly playbackBlocked?: boolean;
+  /** Quiet pacing context, independent of speech and connection health. */
+  readonly interviewBudgetUpdate?: "pending" | "failed";
   /** Local media activity for the dock, never a turn or playback-completion signal. */
   readonly activity?: {
     readonly microphoneLevel: number;
@@ -70,6 +77,7 @@ export const createLiveConversation = (
     readonly output: (fragment: LiveTranscriptFragment) => void;
     readonly closed: () => void;
   },
+  initialBudgetLevel: InterviewBudgetLevel = "off",
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
@@ -111,6 +119,16 @@ export const createLiveConversation = (
   let speakerMuted = false;
   let speakerVolume = 1;
   let voice = "marin";
+  let budgetLevel = initialBudgetLevel;
+  let acknowledgedBudgetLevel = initialBudgetLevel;
+  let pendingBudgetAppend:
+    | { eventId: string; level: InterviewBudgetLevel }
+    | undefined;
+  let budgetUpdateFailed = false;
+  let budgetSyncQueued = false;
+  // Assigned before start() installs event listeners; acknowledgements can
+  // schedule another append, so these handlers reference each other.
+  let syncInterviewBudget: () => void;
   let detachAudioSettings: (() => void) | undefined;
   let started = false;
   let playbackBlocked = false;
@@ -139,10 +157,32 @@ export const createLiveConversation = (
       : null,
     ...(playbackBlocked ? { playbackBlocked: true } : {}),
     ...(activity ? { activity } : {}),
+    ...(pendingBudgetAppend
+      ? { interviewBudgetUpdate: "pending" }
+      : budgetUpdateFailed
+        ? { interviewBudgetUpdate: "failed" }
+        : {}),
   });
 
   const reportAppendResult = (result: LiveAppendResult) => {
     logLiveDiagnostic("append.result", { sessionId, ...result });
+    if (pendingBudgetAppend?.eventId === result.eventId) {
+      const level = pendingBudgetAppend.level;
+      if (result.status !== "unknown") {
+        pendingBudgetAppend = undefined;
+        if (result.status === "accepted") acknowledgedBudgetLevel = level;
+        budgetUpdateFailed =
+          result.status !== "accepted" && budgetLevel === level;
+        // Send a newer selection, never retry the failed/uncertain one.
+        if (budgetLevel !== level) syncInterviewBudget();
+      }
+      onState(
+        activeState(
+          recoveryTimers.size === 0 ? "connected" : "connecting",
+          lastActivity,
+        ),
+      );
+    }
     onAppendResult(result);
   };
 
@@ -153,6 +193,7 @@ export const createLiveConversation = (
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
+    pendingBudgetAppend = undefined;
     openDelegations.clear();
     clearTimeout(activityTimer);
     recoveryTimers.forEach((timer) => clearTimeout(timer));
@@ -435,6 +476,7 @@ export const createLiveConversation = (
         },
       });
     if (recoveryTimers.size === 0) onState(activeState("connected"));
+    syncInterviewBudget();
     activityTimer = setTimeout(() => void sampleActivity(), 100);
     flushFinalizedInputs();
   };
@@ -823,13 +865,23 @@ export const createLiveConversation = (
     abort.signal.throwIfAborted();
     const sdp = connection.localDescription?.sdp;
     if (!sdp) throw new Error("Missing local SDP");
-    if (kind === "live") liveCreationRequested = true;
+    if (kind === "live") {
+      liveCreationRequested = true;
+      acknowledgedBudgetLevel = budgetLevel;
+    }
     connectionStages.set(kind, "waiting for session HTTP response");
     const response = await fetch(`/api/voice/${kind}-session`, {
       method: "POST",
       headers: {
         "content-type": "application/sdp",
-        ...(kind === "live" ? { [voicePreferenceHeader]: voice } : {}),
+        ...(kind === "live"
+          ? {
+              [voicePreferenceHeader]: voice,
+              ...(budgetLevel === "off"
+                ? {}
+                : { [interviewBudgetHeader]: budgetLevel }),
+            }
+          : {}),
       },
       body: sdp,
       signal: abort.signal,
@@ -929,6 +981,7 @@ export const createLiveConversation = (
     kind: LiveAppendResult["kind"],
     text: string,
     delegationId: string | null,
+    interviewBudgetLevel?: InterviewBudgetLevel,
   ): boolean => {
     if (stopping) return false;
     const result: LiveAppendResult = {
@@ -937,6 +990,13 @@ export const createLiveConversation = (
       delegationId,
       status: "unknown",
     };
+    if (interviewBudgetLevel !== undefined) {
+      pendingBudgetAppend = {
+        eventId: result.eventId,
+        level: interviewBudgetLevel,
+      };
+      budgetUpdateFailed = false;
+    }
     const liveChannel = channels.get("live");
     if (
       ready.size !== 2 ||
@@ -965,6 +1025,36 @@ export const createLiveConversation = (
     return true;
   };
 
+  syncInterviewBudget = () => {
+    if (budgetSyncQueued) return;
+    budgetSyncQueued = true;
+    queueMicrotask(() => {
+      budgetSyncQueued = false;
+      if (stopping || finished || ready.size !== 2 || pendingBudgetAppend)
+        return;
+      if (budgetLevel === acknowledgedBudgetLevel) {
+        if (budgetUpdateFailed) {
+          budgetUpdateFailed = false;
+          onState(
+            activeState(
+              recoveryTimers.size === 0 ? "connected" : "connecting",
+              lastActivity,
+            ),
+          );
+        }
+        return;
+      }
+      append(
+        "thinking",
+        budgetLevel === "off"
+          ? "Interview length is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
+          : liveInterviewBudgetInstruction(budgetLevel),
+        null,
+        budgetLevel,
+      );
+    });
+  };
+
   const setMicrophoneMuted = (muted: boolean): void => {
     if (stopping || finished) return;
     microphoneMuted = muted;
@@ -987,6 +1077,12 @@ export const createLiveConversation = (
     retryPlayback: playAudio,
     start,
     stop,
+    setInterviewBudgetLevel: (level: InterviewBudgetLevel) => {
+      budgetLevel = level;
+      // Coalesce changes made in the same turn; this is quiet context, never
+      // an instruction redirect and never a reason to interrupt speech.
+      syncInterviewBudget();
+    },
     setMicrophoneMuted,
     setSpeakerMuted,
     setSpeakerVolume,

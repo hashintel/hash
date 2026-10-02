@@ -1,6 +1,9 @@
 import { expect, test } from "vitest";
 
-import { snapshotToUiMessages } from "../src";
+import {
+  petrinautContextualUserMessageBody,
+  snapshotToUiMessages,
+} from "../src";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -32,6 +35,50 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
 const projectionOptions = {
   clientToolNames: new Set(["readPetrinautDoc"]),
 };
+
+test("rehydrates contextual messages as human text, never as transport metadata", () => {
+  const body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: { hostKey: { asked: 1 } },
+  });
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        id: "user",
+        role: "user",
+        purpose: "user",
+        display: "visible",
+        parts: [{ type: "text", text: body, state: "done" }],
+      },
+      {
+        id: "assistant",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [{ type: "text", text: body, state: "done" }],
+      },
+    ],
+  };
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    {
+      id: "user",
+      role: "user",
+      parts: [{ type: "text", text: "Four agents", state: "done" }],
+    },
+    {
+      id: "assistant",
+      role: "assistant",
+      parts: [{ type: "text", text: body, state: "done" }],
+    },
+  ]);
+  expect(snapshot.messages[0]?.parts[0]).toEqual({
+    type: "text",
+    text: body,
+    state: "done",
+  });
+});
 
 test("marks only the durably aborted assistant response stopped after reopen", () => {
   const snapshot: FlueConversationSnapshot = {

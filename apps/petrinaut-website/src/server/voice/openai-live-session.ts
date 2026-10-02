@@ -1,4 +1,9 @@
 import {
+  interviewBudgetHeader,
+  isInterviewBudgetLevel,
+  liveInterviewBudgetInstruction,
+} from "../../shared/interview-budget.js";
+import {
   isSupportedVoice,
   voicePreferenceHeader,
 } from "../../shared/voice-settings.js";
@@ -115,6 +120,11 @@ export const createOpenAILiveSessionHandler =
     if (!isSupportedVoice("live", voice))
       return respond("Unsupported voice.", 400);
 
+    const budgetLevel = request.headers.get(interviewBudgetHeader) ?? "off";
+    if (!isInterviewBudgetLevel(budgetLevel))
+      return respond("Unsupported interview length.", 400);
+    const budgetInstruction = liveInterviewBudgetInstruction(budgetLevel);
+
     const signal = AbortSignal.any([
       request.signal,
       AbortSignal.timeout(availability.connectionTimeoutMs),
@@ -153,7 +163,9 @@ export const createOpenAILiveSessionHandler =
         body: JSON.stringify({
           session: {
             model: "gpt-live-1",
-            instructions,
+            instructions: budgetInstruction
+              ? `${instructions}\n\n${budgetInstruction}`
+              : instructions,
             delegation: { type: "client" },
             store: false,
             audio: { output: { voice } },

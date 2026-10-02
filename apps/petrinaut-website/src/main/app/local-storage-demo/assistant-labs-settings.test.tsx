@@ -23,10 +23,13 @@ const defaultProps = {
   assistantReady: true,
   brunchConfigured: true,
   brunchSelected: false,
+  interviewBudgetEnabled: false,
+  interviewBudgetPreferenceReady: true,
   openAIVoiceConfig: voiceConfig,
   realtimeEnabled: false,
   realtimePreferenceReady: true,
   selectAssistant: vi.fn(),
+  setInterviewBudgetEnabled: vi.fn(),
   setRealtimeEnabled: vi.fn(),
   setVoiceEnabled: vi.fn(),
   voiceEnabled: false,
@@ -81,6 +84,31 @@ test("selects Brunch, enables Voice, and explains when Voice is unavailable", as
   expect(
     screen.getByText("Voice is unavailable in this deployment."),
   ).toBeDefined();
+});
+
+test("shows Interview length only within Brunch and waits for its preference", async () => {
+  const view = render(<AssistantLabsSettings {...defaultProps} />);
+  expect(
+    screen.queryByRole("checkbox", { name: "Interview length" }),
+  ).toBeNull();
+  view.rerender(
+    <AssistantLabsSettings
+      {...defaultProps}
+      brunchSelected
+      interviewBudgetPreferenceReady={false}
+    />,
+  );
+  expect(
+    screen.getByRole("checkbox", { name: "Interview length" }),
+  ).toHaveProperty("disabled", true);
+  view.rerender(<AssistantLabsSettings {...defaultProps} brunchSelected />);
+  const toggle = screen.getByRole("checkbox", { name: "Interview length" });
+  expect(toggle).toHaveProperty("checked", false);
+  expect(toggle).toHaveProperty("disabled", false);
+  fireEvent.click(toggle);
+  await waitFor(() =>
+    expect(defaultProps.setInterviewBudgetEnabled).toHaveBeenCalledWith(true),
+  );
 });
 
 test("shows Realtime only for enabled Brunch Voice and waits for capability", async () => {

@@ -85,10 +85,12 @@ export type AiAssistantContentsProps = {
   primaryLabel?: string;
   presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
+  renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   hiddenToolNames?: ReadonlySet<string>;
   workingLabel?: string;
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
+  composerStatus?: ReactNode;
   composerFocusRequest?: number;
   error?: Error;
   experimentStates?: Record<string, AiExperimentState>;
@@ -619,14 +621,17 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   if (messages.length === 0) {
     return "0";
   }
-  const last = messages[messages.length - 1]!;
+  const trailing = messages[messages.length - 1]!;
+  // Host system notes can trail the turn they annotate while it streams.
+  const last =
+    messages.findLast((message) => message.role !== "system") ?? trailing;
   const lastPart = last.parts[last.parts.length - 1];
   const partSignature = lastPart ? getPartScrollSignature(lastPart) : "";
   const dataSignature = last.parts
     .filter((part) => part !== lastPart && part.type.startsWith("data-"))
     .map(getPartScrollSignature)
     .join(",");
-  return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
+  return `${messages.length}:${trailing.id}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
 };
 
 type MessageHandlersRef = RefObject<{
@@ -656,6 +661,7 @@ const AiAssistantMessage = memo(
     experimentStates,
     onCancelExperiment,
     resolveToolPresentation,
+    renderSystemMessage,
     presentation,
     voice,
     expandReasoning,
@@ -671,6 +677,7 @@ const AiAssistantMessage = memo(
     experimentStates?: Record<string, AiExperimentState>;
     onCancelExperiment?: (toolCallId: string) => void;
     resolveToolPresentation?: PetrinautAiToolPresentationResolver;
+    renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
     presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
     voice: boolean;
     expandReasoning: boolean;
@@ -695,6 +702,47 @@ const AiAssistantMessage = memo(
     );
     const { work, answers, cards, brief, voiceAgentReply, voiceAgentWrapUp } =
       renderItems;
+    if (message.role === "system") {
+      const content = renderSystemMessage?.(message);
+      if (content !== undefined) {
+        return (
+          <div role="note" data-role="system">
+            {content}
+          </div>
+        );
+      }
+      return (
+        <div
+          role="note"
+          data-role="system"
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "2",
+            paddingX: "3",
+            paddingY: "0.5",
+            color: "neutral.fg.body",
+            fontSize: "[11px]",
+            fontWeight: "medium",
+            lineHeight: "[16px]",
+          })}
+        >
+          <Icon
+            name="info"
+            size="xs"
+            className={css({
+              flexShrink: 0,
+              color: "neutral.s90",
+            })}
+          />
+          <div>
+            {answers.map((item) => (
+              <div key={item.key}>{item.part.text}</div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     const wasStopped = stopped || message.metadata?.stopped === true;
     const awaitingApproval = work.tools.some(
       (tool) => tool.interactive && tool.state === "input-available",
@@ -982,6 +1030,7 @@ export const AiAssistantContents = ({
   onCancelExperiment,
   clearMessagesDisabled = false,
   composerControl,
+  composerStatus,
   composerFocusRequest = 0,
   error,
   input,
@@ -1016,6 +1065,7 @@ export const AiAssistantContents = ({
   voiceMode,
   voiceModeAvailable = false,
   resolveToolPresentation,
+  renderSystemMessage,
   workingLabel,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
@@ -1563,6 +1613,9 @@ export const AiAssistantContents = ({
                 experimentStates={experimentStates}
                 onCancelExperiment={onCancelExperiment}
                 resolveToolPresentation={resolveToolPresentation}
+                renderSystemMessage={
+                  message.role === "system" ? renderSystemMessage : undefined
+                }
                 presentation={presentation}
                 voice={inputMode === "voice"}
                 expandReasoning={isBrunchChat}
@@ -1665,11 +1718,13 @@ export const AiAssistantContents = ({
             </div>
           )}
 
+          {!isVoiceDockCollapsed && composerStatus}
           {isVoiceSessionLive ? (
             <div ref={voiceDockRef}>
               <LiveVoiceDock
                 assistantBusy={isBusy}
                 collapsed={isVoiceDockCollapsed}
+                composerControl={composerControl}
                 errorIndicator={voiceAlertIndicator}
                 onCollapsedEnd={onCollapsedVoiceEnd}
                 onStop={onStop}
@@ -1750,6 +1805,7 @@ export const AiAssistantContents = ({
                     className={composerStyle}
                     data-brunch={isBrunchChat || undefined}
                   >
+                    {isBrunchChat && composerControl}
                     <textarea
                       ref={inputRef}
                       className={composerTextareaStyle}
@@ -1799,7 +1855,7 @@ export const AiAssistantContents = ({
                           {composerHint}
                         </span>
                       )}
-                      {composerControl}
+                      {!isBrunchChat && composerControl}
                       <Button
                         aria-label={composerAction.label}
                         className={composerActionButtonStyle}
