@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Support host-owned status above the assistant composer and expanded Voice controls without increasing the collapsed dock's height, keep composer controls available during live Voice sessions, and supply the current input mode to host controls. Place host controls at the left of the Brunch composer and Voice dock, separate from submission and session actions. Display system messages as visible notes in Chat and Voice, with optional host-owned rendering.
+Add `renderComposerStatus` for host-owned status above the composer or expanded Voice dock, without changing the collapsed dock's height, and `renderSystemMessage` for host-owned system-note content. Pass the current `inputMode` to composer controls, keep composer controls available in the live Voice dock, and display system messages as visible notes in Chat and Voice. With `presentation: "brunch"`, composer controls sit at the leading edge of the composer and Voice dock, separate from submission and session actions.
