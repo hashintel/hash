@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # renovate: datasource=github-releases depName=jdx/mise
-MISE_VERSION=2026.9.1
+MISE_VERSION=2026.9.11
 
 case "$(uname -m)" in
   x86_64) arch=x64 ;;
