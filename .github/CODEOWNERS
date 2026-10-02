@@ -1,3 +1,9 @@
+# Rust
+*.rs @hashintel/rust
+Cargo.toml @hashintel/rust
+/libs/@local/hashql/ @hashintel/rust
+/libs/@local/harpc/ @hashintel/rust
+
 # Design system
 /apps/hashdotdesign/ @hashintel/design-system
 /libs/@hashintel/ds-*/ @hashintel/design-system
