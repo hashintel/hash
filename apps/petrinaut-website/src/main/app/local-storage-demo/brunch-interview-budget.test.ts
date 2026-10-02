@@ -84,11 +84,12 @@ test("wrap-up does not spend a question when the length is raised after closing"
   expect(countInterviewReplies({ messages })).toBe(7);
 });
 
-test("wrap-up does not spend a question when the closing answer joins a busy reply", () => {
+test("a closing answer that joins a busy reply makes only the host's later text the wrap-up", () => {
   const messages: FlueConversationMessage[] = [
     ...Array.from({ length: 5 }, (_, index) =>
       reply(`question-${index}`, "Recorded."),
     ),
+    reply("host", "Which hours does the second shift cover?"),
     {
       id: "last-answer",
       submissionId: "closing",
@@ -113,9 +114,12 @@ test("wrap-up does not spend a question when the closing answer joins a busy rep
         },
       ],
     },
-    reply("host", "Stated: six agents. Open: arrival rate."),
+    {
+      ...reply("host-wrap-up", "Stated: six agents. Open: arrival rate."),
+      submissionId: "host",
+    },
   ];
-  expect(countInterviewReplies({ messages })).toBe(6);
+  expect(countInterviewReplies({ messages })).toBe(7);
   expect(
     countInterviewReplies({
       messages,
@@ -127,5 +131,5 @@ test("wrap-up does not spend a question when the closing answer joins a busy rep
         },
       ],
     }),
-  ).toBe(5);
+  ).toBe(6);
 });

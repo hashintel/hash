@@ -4,7 +4,20 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 
-import type { FlueConversationState } from "@flue/sdk";
+import type { FlueConversationMessage, FlueConversationState } from "@flue/sdk";
+
+const closesInterview = (message: FlueConversationMessage): boolean =>
+  message.parts.some((part) => {
+    if (part.type !== "text") return false;
+    const body = parsePetrinautUserMessageBody(part.text);
+    return (
+      parseInterviewBudget(
+        body.kind === "contextual"
+          ? body.submissionContext?.[interviewBudgetContextKey]
+          : undefined,
+      )?.remaining === 0
+    );
+  });
 
 /**
  * Count canonical replies, not AI SDK rendering entries (which can merge steps
@@ -16,39 +29,36 @@ export const countInterviewReplies = ({
   settlements = [],
 }: Pick<FlueConversationState, "messages"> &
   Partial<Pick<FlueConversationState, "settlements">>): number => {
-  const closingSubmissions = new Set<string>();
-  for (const message of messages) {
-    if (message.purpose !== "user" || message.submissionId === undefined)
-      continue;
-    for (const part of message.parts) {
-      if (part.type !== "text") continue;
-      const body = parsePetrinautUserMessageBody(part.text);
-      const budget = parseInterviewBudget(
-        body.kind === "contextual"
-          ? body.submissionContext?.[interviewBudgetContextKey]
-          : undefined,
-      );
-      if (budget?.remaining === 0) closingSubmissions.add(message.submissionId);
-    }
-  }
+  const answeredBy = new Map(
+    settlements.flatMap(({ submissionId, answeredBySubmissionId }) =>
+      answeredBySubmissionId === undefined
+        ? []
+        : [[submissionId, answeredBySubmissionId] as const],
+    ),
+  );
   // A closing answer that joined a busy response is answered by the host
-  // submission's reply.
-  for (const { submissionId, answeredBySubmissionId } of settlements) {
-    if (
-      answeredBySubmissionId !== undefined &&
-      closingSubmissions.has(submissionId)
-    )
-      closingSubmissions.add(answeredBySubmissionId);
-  }
-  return messages.filter(
-    (message) =>
+  // submission's later messages; host replies before it were still questions.
+  const wrapUpSubmissions = new Set<string>();
+  let replies = 0;
+  for (const message of messages) {
+    if (message.purpose === "user" && message.submissionId !== undefined) {
+      if (closesInterview(message)) {
+        wrapUpSubmissions.add(message.submissionId);
+        const host = answeredBy.get(message.submissionId);
+        if (host !== undefined) wrapUpSubmissions.add(host);
+      }
+    } else if (
       message.role === "assistant" &&
       message.purpose === "assistant" &&
       message.display === "visible" &&
-      !closingSubmissions.has(message.submissionId ?? "") &&
+      !wrapUpSubmissions.has(message.submissionId ?? "") &&
       message.parts.some(
         (part) =>
           part.type === "text" && part.state === "done" && part.text.trim(),
-      ),
-  ).length;
+      )
+    ) {
+      replies++;
+    }
+  }
+  return replies;
 };
