@@ -77,7 +77,7 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   // Previewing a stop must not change the current selection in the header.
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   fireEvent.mouseEnter(screen.getByRole("button", { name: "Deep" }));
-  expect(screen.getByText(/Probes units, ranges and edge cases/)).toBeTruthy();
+  expect(screen.getByText(/Keep exploring, without a limit/)).toBeTruthy();
   fireEvent.change(slider, { target: { value: "1" } });
   expect(slider.getAttribute("aria-valuetext")).toBe("Quick · ~5 min");
   fireEvent.click(screen.getByRole("button", { name: "Off" }));
