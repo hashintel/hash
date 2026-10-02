@@ -44,6 +44,13 @@ pub struct MissingLinkData;
 #[must_use]
 pub struct UnexpectedLinkData;
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("The link has the same left and right entity: {entity_id}")]
+#[must_use]
+pub struct SelfReferentialLinkData {
+    pub entity_id: EntityId,
+}
+
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", content = "error", rename_all = "camelCase")]
@@ -51,6 +58,7 @@ pub struct UnexpectedLinkData;
 pub enum LinkDataStateError {
     Missing(Report<MissingLinkData>),
     Unexpected(Report<UnexpectedLinkData>),
+    SelfReferential(Report<SelfReferentialLinkData>),
 }
 
 #[derive(Debug, serde::Serialize)]

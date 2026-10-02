@@ -48,7 +48,9 @@ mod tests {
     use std::collections::HashMap;
 
     use error_stack::ResultExt as _;
-    use hash_graph_store::entity::ValidateEntityComponents;
+    use hash_graph_store::entity::{
+        LinkDataStateError, LinkValidationReport, ValidateEntityComponents,
+    };
     use hash_graph_temporal_versioning::{
         ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
@@ -64,10 +66,11 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         knowledge::{
-            entity::id::EntityUuid,
+            entity::{LinkData, id::EntityUuid},
             property::{
                 Property, PropertyObject, PropertyObjectWithMetadata, PropertyValueWithMetadata,
-                PropertyWithMetadata, metadata::PropertyMetadata,
+                PropertyWithMetadata,
+                metadata::{PropertyMetadata, PropertyProvenance},
             },
             value::{ValueMetadata, metadata::ValueProvenance},
         },
@@ -502,5 +505,84 @@ mod tests {
         .visit_value(&data_type_ref, &mut value, &mut metadata, &provider)
         .await?;
         Ok(PropertyValueWithMetadata { value, metadata })
+    }
+
+    async fn validate_friend_of_link(
+        left_entity_id: EntityId,
+        right_entity_id: EntityId,
+    ) -> LinkValidationReport {
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+        for entity_type in [
+            hash_graph_test_data::entity_type::LINK_V1,
+            hash_graph_test_data::entity_type::link::FRIEND_OF_V1,
+        ] {
+            let entity_type = serde_json::from_str::<EntityType>(entity_type)
+                .expect("entity type should be valid JSON");
+            ontology_type_resolver.add_unresolved_entity_type(
+                EntityTypeUuid::from_url(&entity_type.id),
+                Arc::new(entity_type),
+            );
+        }
+
+        let friend_of = serde_json::from_str::<EntityType>(
+            hash_graph_test_data::entity_type::link::FRIEND_OF_V1,
+        )
+        .expect("entity type should be valid JSON");
+        let resolved_data = ontology_type_resolver
+            .resolve_entity_type_metadata(EntityTypeUuid::from_url(&friend_of.id))
+            .expect("entity type should be resolvable");
+        let schema = ClosedMultiEntityType::from_multi_type_closed_schema(iter::once(
+            ClosedEntityType::from_resolve_data(friend_of, &resolved_data)
+                .expect("entity type should be closable"),
+        ))
+        .expect("multi entity type should be closable");
+
+        let link_data = LinkData {
+            left_entity_id,
+            right_entity_id,
+            left_entity_confidence: None,
+            left_entity_provenance: PropertyProvenance::default(),
+            right_entity_confidence: None,
+            right_entity_provenance: PropertyProvenance::default(),
+        };
+
+        Some(&link_data)
+            .validate(
+                &schema,
+                ValidateEntityComponents::full(),
+                &Provider::new([], [], [], []),
+            )
+            .await
+    }
+
+    fn entity_id(uuid: u128) -> EntityId {
+        EntityId {
+            web_id: WebId::new(EntityUuid::new(Uuid::from_u128(1))),
+            entity_uuid: EntityUuid::new(Uuid::from_u128(uuid)),
+            draft_id: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn link_with_same_left_and_right_entity_is_rejected() {
+        let report = validate_friend_of_link(entity_id(2), entity_id(2)).await;
+
+        assert!(
+            matches!(
+                report.link_data,
+                Some(LinkDataStateError::SelfReferential(_))
+            ),
+            "link data with the same left and right entity should be rejected, got {report:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn link_with_different_left_and_right_entity_is_not_self_referential() {
+        let report = validate_friend_of_link(entity_id(2), entity_id(3)).await;
+
+        assert!(
+            report.link_data.is_none(),
+            "link data with different left and right entities should be accepted, got {report:?}"
+        );
     }
 }

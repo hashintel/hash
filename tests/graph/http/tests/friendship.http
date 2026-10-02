@@ -1555,6 +1555,56 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     });
 %}
 
+### Validate link from a person to itself
+POST http://127.0.0.1:4000/entities/validate
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "entityTypes": ["{{friendship_link_entity_type_id}}"],
+  "properties": { "value": {} },
+  "linkData": {
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_a_entity_id}}"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body["0"].link.linkData.type === "selfReferential", "Self-referential link validation error expected");
+    });
+%}
+
+### Insert link from a person to itself
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "webId": "{{user_id}}",
+  "properties": { "value": {} },
+  "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
+  "linkData": {
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_a_entity_id}}"
+  },
+  "draft": true,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 400, "Response status is not 400");
+    });
+%}
+
 ### Insert link between entities
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
