@@ -242,6 +242,9 @@ export const LiveConversationControl = ({
     );
     let offeredInput: string | undefined;
     const appendInputs = new Map<string, string>();
+    // Appends sent before the person last started speaking belong to the
+    // interrupted turn; a late acceptance must not caption the new one.
+    const turnAppends = new Set<string>();
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
@@ -290,7 +293,10 @@ export const LiveConversationControl = ({
       },
       (result) => {
         if (session.current !== next) return;
-        if (result.kind === "commentary") {
+        if (result.status === "unknown") turnAppends.add(result.eventId);
+        const currentTurn = turnAppends.has(result.eventId);
+        if (result.status !== "unknown") turnAppends.delete(result.eventId);
+        if (currentTurn && result.kind === "commentary") {
           if (offeredInput) {
             appendInputs.set(result.eventId, offeredInput);
             offeredInput = undefined;
@@ -303,6 +309,7 @@ export const LiveConversationControl = ({
           }
           if (result.status !== "unknown") appendInputs.delete(result.eventId);
         } else if (
+          currentTurn &&
           result.kind === "instructions" &&
           result.delegationId === null &&
           result.status === "accepted" &&
@@ -334,6 +341,7 @@ export const LiveConversationControl = ({
           bridge.current?.speechStarted();
           offeredInput = undefined;
           appendInputs.clear();
+          turnAppends.clear();
         },
         input: (fragment) => {
           if (session.current === next) captions.input(fragment);

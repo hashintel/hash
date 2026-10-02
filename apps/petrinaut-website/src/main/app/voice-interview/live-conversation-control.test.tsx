@@ -341,6 +341,68 @@ test("captions a Live turn in the history it began in after a switch", async () 
   expect(second.project([])).toEqual([]);
 });
 
+test("progress accepted after the person speaks again does not hide the new reply", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const history = new VoiceMediationHistory("standalone");
+  render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={history}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const progress = {
+    eventId: "progress",
+    kind: "commentary" as const,
+    delegationId: null,
+  };
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "one",
+      text: "Compare four",
+      startMs: 100,
+      endMs: 300,
+    });
+    call[2]({ id: "first", text: "Compare four", startedDuringOutput: false });
+    call[4]({ ...progress, status: "unknown" });
+    call[6]?.started();
+    call[6]?.input({
+      id: "two",
+      text: "Make it seven",
+      startMs: 1000,
+      endMs: 1200,
+    });
+    call[2]({
+      id: "second",
+      text: "Make it seven",
+      startedDuringOutput: false,
+    });
+    call[4]({ ...progress, status: "accepted", startMs: 1300 });
+    call[6]?.output({
+      id: "reply",
+      text: "Seven it is.",
+      startMs: 1400,
+      endMs: 1600,
+    });
+  });
+  expect(
+    history.project([]).find((message) => message.id === "voice-reply:second")
+      ?.parts,
+  ).toEqual([
+    {
+      type: "data-voiceAgentReply",
+      data: { text: "Seven it is.", state: "streaming" },
+    },
+  ]);
+});
+
 test("retires a Live preview from the history it began in after a switch", async () => {
   const { call, first, second, switchConversation } =
     await renderSwitchingLive();
@@ -1894,13 +1956,13 @@ test("Live progress observes the host approval gate and stays out of written voi
       null,
     );
     act(() => {
-      call[4]({
+      const progress = {
         eventId: "progress",
-        kind: "commentary",
+        kind: "commentary" as const,
         delegationId: null,
-        status: "accepted",
-        startMs: 46_000,
-      });
+      };
+      call[4]({ ...progress, status: "unknown" });
+      call[4]({ ...progress, status: "accepted", startMs: 46_000 });
       call[6]?.output({
         id: "progress-output",
         text: "Making those changes now.",
