@@ -79,9 +79,6 @@ export const InterviewBudgetControl = ({
   return (
     <span
       className={`${css({ display: "inline-flex", flexShrink: 0 })} ${levelTheme[level]}`}
-      style={
-        { "--budget-marker": `${selectedIndex * 4}px` } as React.CSSProperties
-      }
     >
       <Button
         ref={triggerRef}
@@ -100,20 +97,6 @@ export const InterviewBudgetControl = ({
           color: "var(--budget-color) !important",
           backgroundColor: "var(--budget-tint) !important",
           transition: "[background-color 260ms ease-out, color 260ms ease-out]",
-          _before: {
-            content: '""',
-            position: "absolute",
-            left: "[50%]",
-            bottom: "[-5px]",
-            width: "var(--budget-marker)",
-            height: "[2px]",
-            borderRadius: "[1px]",
-            transform: "[translateX(-50%)]",
-            backgroundColor: "var(--budget-color)",
-            opacity: "[0.6]",
-            transition:
-              "[width 260ms cubic-bezier(0.16, 1, 0.3, 1), background-color 260ms ease-out]",
-          },
           '&[data-budget-level="off"]': {
             backgroundColor: "[transparent !important]",
             color: "neutral.s80 !important",
@@ -122,7 +105,6 @@ export const InterviewBudgetControl = ({
           _hover: { filter: "[saturate(1.15) brightness(0.97)]" },
           _motionReduce: {
             transition: "[none]",
-            _before: { transition: "[none]" },
           },
         })}
         data-budget-level={level}
