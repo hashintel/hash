@@ -1,19 +1,30 @@
 {
   "extends": ["//"],
   "tasks": {
+    // TODO(SRE-1089): run type checking on all Python files, instead of just source files
+    "check:ty": {
+      "command": ["uv", "run", "--active", "--frozen", "ty", "check", "src"],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "manifest": {
+      "dependsOn": ["^manifest", "@hashintel/petrinaut-cli#manifest"]
+    },
     "codegen": {
-      "dependsOn": ["@hashintel/petrinaut-cli#codegen"],
-      "inputs": [
-        "../../@hashintel/petrinaut-cli/schemas/**",
-        "scripts/generate-models.sh",
-        "pyproject.toml",
-        "uv.lock"
+      "command": ["./scripts/generate-models.sh"],
+      "dependsOn": [
+        "manifest",
+        "@hashintel/petrinaut-cli#codegen",
+        "@hashintel/petrinaut-cli#manifest"
       ],
+      "inputs": ["scripts/generate-models.sh"],
       "outputs": ["src/petrinaut/models.py"],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
+    "test": {
+      "dependsOn": ["codegen", "manifest", "@hashintel/petrinaut-cli#build"]
+    },
     "test:unit": {
-      "dependsOn": ["codegen", "^manifest"]
+      "dependsOn": ["test"]
     }
   }
 }

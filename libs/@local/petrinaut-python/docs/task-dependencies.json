@@ -1,28 +1,16 @@
 {
-  "package": "@local/petrinaut-python",
-  "dependencies": [
-    "@hashintel/petrinaut-cli"
-  ],
+  "package": "petrinaut-python",
+  "dependencies": [],
   "tasks": {
     "codegen": {
       "dependsOn": [
         "@hashintel/petrinaut-cli#codegen"
-      ]
-    },
-    "lint:ruff": {
-      "dependsOn": []
-    },
-    "lint:types": {
-      "dependsOn": [
-        "codegen"
-      ]
-    },
-    "test:unit": {
-      "dependsOn": [
-        "codegen"
       ],
-      "env": [
-        "TEST_COVERAGE"
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core",
+        "petrinaut-optimizer-core"
       ]
     }
   }

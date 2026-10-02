@@ -70,6 +70,9 @@
     // A test reads its dependencies' sources through the toolchain, so their inputs belong
     // in its hash whether or not a build runs first. Packages that import from `dist` add
     // `^build` themselves.
+    "test": {
+      "dependsOn": ["^manifest"]
+    },
     "test:unit": {
       "dependsOn": ["^manifest"],
       "env": ["TEST_COVERAGE"]
@@ -121,13 +124,6 @@
     "lint:tsc": {
       "dependsOn": ["codegen", "^build"]
     },
-    // Python linting and type checking. `uv run` syncs the package's
-    // environment from its own lockfile. Ruff reads the sources as text, while
-    // type checking resolves the package's own generated modules.
-    "lint:ruff": {},
-    "lint:types": {
-      "dependsOn": ["codegen"]
-    },
     "fix:eslint": {
       "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
@@ -161,6 +157,7 @@
   "futureFlags": {
     "affectedUsingTaskInputs": true,
     "experimentalCargoWorkspaces": true,
+    "experimentalPythonWorkspaces": true,
     "experimentalTaskCommand": true
   }
 }
