@@ -136,11 +136,13 @@ const setup = ({
   audioMuted = false,
   audioVolume = 1,
   inputEnabled = true,
+  readWords,
 }: {
   readonly audioSettings?: VoiceAudioSettings;
   readonly audioMuted?: boolean;
   readonly audioVolume?: number;
   readonly inputEnabled?: boolean;
+  readonly readWords?: Parameters<typeof createLiveConversation>[7];
 } = {}) => {
   const sent = [[], []] as [string[], string[]];
   const createChannel = (events: string[]) =>
@@ -227,6 +229,7 @@ const setup = ({
     onAppendResult,
     audioSettings,
     speech,
+    readWords,
   );
   const emit = (connection: 0 | 1, data: unknown) =>
     channels[connection].dispatchEvent(
@@ -264,6 +267,70 @@ const connect = async (fixture: ReturnType<typeof setup>) => {
   fixture.emit(0, { type: "session.started" });
   fixture.emit(1, { type: "session.created" });
 };
+
+test("invalid start-time words fail before microphone capture without an unhandled rejection", async () => {
+  const fixture = setup({
+    readWords: () => {
+      throw new Error("Words are still loading");
+    },
+  });
+  await expect(fixture.conversation.start()).resolves.toBeUndefined();
+  expect(fixture.getUserMedia).not.toHaveBeenCalled();
+  expect(fixture.fetch).not.toHaveBeenCalled();
+  expect(fixture.onState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ phase: "error" }),
+  );
+});
+
+test("both Live requests and the guard use one snapshot despite edits during connection", async () => {
+  let words = [{ spelling: "RelayDesk" }];
+  const readWords = vi.fn(() => words);
+  const fixture = setup({ readWords });
+  const headers: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: string, init: RequestInit) => {
+      headers.push(
+        new Headers(init.headers).get("x-petrinaut-voice-words") ?? "",
+      );
+      words = [{ spelling: "NewDraft" }];
+      return Response.json({ sdp: "v=0", sessionId: "opaque" });
+    }),
+  );
+  await connect(fixture);
+  expect(readWords).toHaveBeenCalledOnce();
+  expect(headers).toHaveLength(2);
+  expect(headers[0]).toBe(headers[1]);
+  expect(JSON.parse(atob(headers[0]!))).toEqual({
+    version: 1,
+    entries: [{ spelling: "RelayDesk" }],
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "word",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "word",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "word",
+    transcript: "RelayDesk",
+    content_index: 0,
+  });
+  expect(fixture.onFinalizedInput).toHaveBeenCalledOnce();
+  expect(
+    fixture.onFinalizedInput.mock.calls[0]?.[0].transcriptionPrompt,
+  ).toContain("RelayDesk");
+  expect(
+    fixture.onFinalizedInput.mock.calls[0]?.[0].transcriptionPrompt,
+  ).not.toContain("NewDraft");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
 
 test("a transcript finalized after newer speech keeps its identity but cannot revive old speech", async () => {
   const fixture = setup();
@@ -1898,9 +1965,9 @@ test("records transcription confidence on input.finalized from numbers only", as
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
-    ["id", "text", "startedDuringOutput", "minLogprob"],
-    ["id", "text", "startedDuringOutput"],
-    ["id", "text", "startedDuringOutput"],
+    ["id", "text", "transcriptionPrompt", "startedDuringOutput", "minLogprob"],
+    ["id", "text", "transcriptionPrompt", "startedDuringOutput"],
+    ["id", "text", "transcriptionPrompt", "startedDuringOutput"],
   ]);
   expect(fixture.onFinalizedInput.mock.calls[0]?.[0].minLogprob).toBe(-1.9004);
   const traced = JSON.stringify(debug.mock.calls);
@@ -2084,8 +2151,15 @@ test("passes Live's recent words only with speech that overlapped its audible ou
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
-    ["id", "text", "superseded", "startedDuringOutput", "liveOutputText"],
-    ["id", "text", "startedDuringOutput"],
+    [
+      "id",
+      "text",
+      "transcriptionPrompt",
+      "superseded",
+      "startedDuringOutput",
+      "liveOutputText",
+    ],
+    ["id", "text", "transcriptionPrompt", "startedDuringOutput"],
   ]);
   expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([
     expect.objectContaining({ itemId: "early", overlappedOutput: true }),

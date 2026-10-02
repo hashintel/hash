@@ -18,6 +18,7 @@ import simulationPanels from "../../../../../../docs/simulation-panels.md?raw";
 import simulation from "../../../../../../docs/simulation.md?raw";
 import usefulPatterns from "../../../../../../docs/useful-patterns.md?raw";
 import visualSettings from "../../../../../../docs/visual-settings.md?raw";
+import words from "../../../../../../docs/words.md?raw";
 
 const htmlImagePattern = /<img\b[^>]*\/?>(?:\s*<\/img>)?/gi;
 const markdownImagePattern = /!\[[^\]]*]\([^)]*\)/g;
@@ -43,6 +44,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   "actual-mode": actualMode,
   preview,
   "ai-assistant": aiAssistant,
+  words,
   "visual-settings": visualSettings,
   "code-editor": codeEditor,
   "compilation-output": compilationOutput,

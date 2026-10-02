@@ -58,6 +58,8 @@ const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
 
 export type AiAssistantContentsProps = {
   additionalTab?: PetrinautAiAssistant["additionalTab"];
+  headerActions?: PetrinautAiAssistant["headerActions"];
+  renderUserMessageActions?: PetrinautAiAssistant["renderUserMessageActions"];
   attentionAnnouncement?: string;
   hostAttentionCount?: number;
   hostTabSelected?: boolean;
@@ -421,6 +423,8 @@ export const getTranscriptLabel = (
 
 export const AiAssistantContents = ({
   additionalTab,
+  headerActions,
+  renderUserMessageActions,
   attentionAnnouncement,
   experimentStates,
   hostExperimentRunning = false,
@@ -687,6 +691,7 @@ export const AiAssistantContents = ({
   });
   const transcriptProps = {
     experimentStates,
+    renderUserMessageActions,
     handlersRef,
     hiddenToolNames,
     interactiveTools,
@@ -841,6 +846,18 @@ export const AiAssistantContents = ({
                 />
               )}
             </div>
+            {headerActions && (
+              <div
+                className={css({
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1",
+                })}
+              >
+                {headerActions}
+              </div>
+            )}
             <Button
               size="xs"
               variant="ghost"

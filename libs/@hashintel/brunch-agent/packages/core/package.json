@@ -16,6 +16,11 @@
       "@dev/source": "./src/constants.ts",
       "import": "./dist/constants.js"
     },
+    "./words": {
+      "types": "./src/words.ts",
+      "@dev/source": "./src/words.ts",
+      "import": "./dist/words.js"
+    },
     "./client-tools": {
       "types": "./src/client-tools.ts",
       "@dev/source": "./src/client-tools.ts",

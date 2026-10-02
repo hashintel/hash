@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -11,6 +12,7 @@ import {
   type FlueChatResponseMessageCompletedEvent,
   type FlueChatResponseMessageStartedEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { validateWords, type BrunchWord } from "@hashintel/brunch-agent/words";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "./canonical-speech";
@@ -293,6 +295,7 @@ const recordLatency = (event: VoiceLatencyEvent): void => {
 const AvailableVoiceInterviewControl = ({
   config,
   context,
+  readWords,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -304,6 +307,7 @@ const AvailableVoiceInterviewControl = ({
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
+  readWords: () => readonly BrunchWord[];
   resolveInputSubmission?: ResolveSubmission;
   resolveResponseSubmission?: ResolveSubmissions;
   settlements?: readonly VoiceSubmissionSettlement[];
@@ -328,6 +332,7 @@ const AvailableVoiceInterviewControl = ({
       navigator.mediaDevices,
     );
     const session = new OpenAIRealtimeSession({
+      readWords,
       audioSettings,
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -631,6 +636,7 @@ const AvailableVoiceInterviewControl = ({
 
 const PinnedVoiceInterviewControl = ({
   config,
+  readWords,
   mediationHistory,
   isToolAwaitingApproval,
   resolveInputSubmission,
@@ -645,6 +651,7 @@ const PinnedVoiceInterviewControl = ({
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly readWords?: () => readonly BrunchWord[];
   readonly mediationHistory?: VoiceMediationHistory;
   readonly isToolAwaitingApproval?: (toolCallId: string) => boolean;
   readonly resolveInputSubmission?: ResolveSubmission;
@@ -659,6 +666,17 @@ const PinnedVoiceInterviewControl = ({
 }) => {
   // Labs changes apply between Voice sessions, never during an active turn.
   // The host ends the current session before returning to text mode.
+  const wordsReader = useRef(readWords);
+  const pinnedWords = useRef<readonly BrunchWord[] | undefined>(undefined);
+  useLayoutEffect(() => {
+    wordsReader.current = readWords;
+    if (context.inputMode === "text") pinnedWords.current = undefined;
+  }, [context.inputMode, readWords]);
+  // Stable even for the legacy store constructed once. Retries keep this snapshot.
+  const readSessionWords = useCallback(() => {
+    pinnedWords.current ??= validateWords(wordsReader.current?.() ?? []);
+    return pinnedWords.current;
+  }, []);
   const [sessionConfig, setSessionConfig] = useState(config);
   if (
     context.inputMode === "text" &&
@@ -672,6 +690,7 @@ const PinnedVoiceInterviewControl = ({
     return (
       <LiveConversationControl
         {...context}
+        readWords={readSessionWords}
         mediationHistory={mediationHistory}
         isToolAwaitingApproval={isToolAwaitingApproval}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
@@ -705,6 +724,7 @@ const PinnedVoiceInterviewControl = ({
       key={context.conversationId}
       config={sessionConfig}
       context={context}
+      readWords={readSessionWords}
       resolveInputSubmission={resolveInputSubmission}
       resolveResponseSubmission={resolveResponseSubmission}
       settlements={settlements}

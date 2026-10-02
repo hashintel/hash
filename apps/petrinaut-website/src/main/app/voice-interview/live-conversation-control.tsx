@@ -39,6 +39,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
     | "isToolAwaitingApproval"
+    | "readWords"
   > & {
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
@@ -66,6 +67,7 @@ const prepareVoice = async (
 
 export const LiveConversationControl = ({
   mediationHistory,
+  readWords,
   acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
@@ -353,6 +355,7 @@ export const LiveConversationControl = ({
         },
         closed: () => captions.close(),
       },
+      readWords,
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
@@ -388,7 +391,13 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
+  }, [
+    audioSettingsStore,
+    connectionTimeoutMs,
+    phase,
+    setVoiceActive,
+    readWords,
+  ]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;

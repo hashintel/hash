@@ -1,7 +1,10 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 
 import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
-import { petrinautContextualUserMessageBody } from "./contextual-user-message";
+import {
+  petrinautContextualUserMessageBody,
+  petrinautWordsUserMessageBody,
+} from "./contextual-user-message";
 import { serializeErrorText } from "./error-text";
 import {
   readLiveToolStream,
@@ -28,6 +31,8 @@ export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
+  petrinautWordsUserMessageBody,
+  petrinautUserMessageText,
 } from "./contextual-user-message";
 export {
   agentOwnershipHeaders,
@@ -59,6 +64,8 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
 
 export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
+  /** Host-captured snapshot for this admission, reused for retries. */
+  readonly words?: readonly string[];
   /** Opaque host-owned initialization, sent on user submissions only. */
   readonly initialData?: AgentPromptOptions["initialData"];
   /** Best-effort pre-admission presentation; canonical Flue history remains authoritative. */
@@ -384,12 +391,20 @@ export const createFlueChatTransport = <
     const message: DeliveredMessage = {
       kind: "user",
       body:
-        diagnosticsContext === undefined
-          ? userMessage.text
-          : petrinautContextualUserMessageBody({
+        options.words !== undefined
+          ? petrinautWordsUserMessageBody({
               userText: userMessage.text,
-              diagnosticsContext,
-            }),
+              words: options.words,
+              ...(diagnosticsContext === undefined
+                ? {}
+                : { diagnosticsContext }),
+            })
+          : diagnosticsContext === undefined
+            ? userMessage.text
+            : petrinautContextualUserMessageBody({
+                userText: userMessage.text,
+                diagnosticsContext,
+              }),
     };
     const idempotencyKey = `ai-sdk:user:${userMessage.id}`;
     if (Array.from(idempotencyKey).length > 256) {

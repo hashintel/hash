@@ -46,9 +46,11 @@ const canonicalSegment = (
 const createHarness = ({
   audioSettings,
   connectionTimeoutMs = 15_000,
+  readWords,
 }: {
   readonly audioSettings?: VoiceAudioSettings;
   readonly connectionTimeoutMs?: number;
+  readonly readWords?: () => readonly { spelling: string }[];
 } = {}) => {
   let requestNumber = 0;
   let animationFrameNumber = 0;
@@ -101,6 +103,7 @@ const createHarness = ({
   );
   const reportDiagnostic = vi.fn();
   const session = new OpenAIRealtimeSession({
+    readWords,
     cancelAnimationFrame: vi.fn((handle) => {
       animationFrames.delete(handle);
     }),
@@ -207,6 +210,31 @@ const authorizeLatestSpeechResponse = (
 describe("OpenAIRealtimeSession", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  test("captures hints at connect, leaves them unchanged during use and refreshes on the next connection", async () => {
+    let words = [{ spelling: "RelayDesk" }];
+    const readWords = vi.fn(() => words);
+    const harness = createHarness({ readWords });
+    await harness.session.connect();
+    const firstHeaders = new Headers(harness.fetch.mock.calls[0]?.[1]?.headers);
+    expect(
+      JSON.parse(atob(firstHeaders.get("x-petrinaut-voice-words")!)),
+    ).toEqual({ version: 1, entries: words });
+    words = [{ spelling: "Bay Three" }];
+    expect(harness.session.getTranscriptionPrompt()).toContain("RelayDesk");
+    expect(harness.session.getTranscriptionPrompt()).not.toContain("Bay Three");
+    expect(readWords).toHaveBeenCalledOnce();
+    await harness.session.disconnect();
+    await harness.session.connect();
+    expect(harness.session.getTranscriptionPrompt()).toContain("Bay Three");
+    const secondHeaders = new Headers(
+      harness.fetch.mock.calls[1]?.[1]?.headers,
+    );
+    expect(
+      JSON.parse(atob(secondHeaders.get("x-petrinaut-voice-words")!)),
+    ).toEqual({ version: 1, entries: words });
+    await harness.session.disconnect();
   });
 
   test("stops voice preview before reopening the Realtime microphone", async () => {

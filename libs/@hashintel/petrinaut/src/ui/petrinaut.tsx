@@ -85,6 +85,10 @@ export type PetrinautAiToolPresentationResolver = (
 export type PetrinautAiAssistant = {
   /** Selects the assistant's visual presentation. Defaults to "stock". */
   presentation?: PetrinautAiAssistantPresentation;
+  /** Optional host controls alongside the assistant header. */
+  headerActions?: React.ReactNode;
+  /** Host actions for displayed Brunch user messages, including local voice captions. */
+  renderUserMessageActions?: (message: PetrinautAiMessage) => React.ReactNode;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls

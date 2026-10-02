@@ -169,6 +169,45 @@ const DockingHarness = ({
 };
 
 describe("AiAssistantContents", () => {
+  test("host Words controls coexist with Ledger and disappear from unchanged user rows when removed", () => {
+    const message: PetrinautAiMessage = {
+      id: "voice-caption",
+      role: "user",
+      metadata: { source: "voice" },
+      parts: [{ type: "text", text: "relay desk", state: "done" }],
+    };
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      presentation: "brunch" as const,
+      status: "ready" as const,
+      messages: [message],
+      additionalTab: { label: "Ledger", content: <p>Ledger stays mounted</p> },
+    };
+    const view = render(
+      <AiAssistantContents
+        {...props}
+        headerActions={<button type="button">Words</button>}
+        renderUserMessageActions={() => (
+          <button type="button">Teach this word</button>
+        )}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Teach this word" }),
+    ).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Ledger/u })).toBeDefined();
+    view.rerender(<AiAssistantContents {...props} />);
+    expect(
+      screen.queryByRole("button", { name: "Teach this word" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+  });
+
   test("orders optional voice slots around work and produced cards", async () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",
