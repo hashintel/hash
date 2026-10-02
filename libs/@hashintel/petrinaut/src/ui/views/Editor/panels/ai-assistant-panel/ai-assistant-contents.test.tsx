@@ -4386,6 +4386,55 @@ describe("AiAssistantContents", () => {
     window.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
+  test("auto-follows a reply that streams beneath a trailing system note", () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
+    window.requestAnimationFrame = (callback) => {
+      callback(0);
+      return 0;
+    };
+    const messages = (text: string): PetrinautAiMessage[] => [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [{ type: "text", state: "streaming", text }],
+      },
+      {
+        id: "note-1",
+        role: "system",
+        parts: [{ type: "text", text: "Short interview" }],
+      },
+    ];
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const view = render(
+      <AiAssistantContents {...props} messages={messages("How many")} />,
+    );
+    scrollTo.mockClear();
+
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={messages("How many agents work each shift?")}
+      />,
+    );
+
+    expect(scrollTo.mock.instances).toContain(
+      screen.getByTestId("ai-transcript"),
+    );
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
   test("does not show an empty Activity fold above a plain Chat answer", () => {
     render(
       <AiAssistantContents

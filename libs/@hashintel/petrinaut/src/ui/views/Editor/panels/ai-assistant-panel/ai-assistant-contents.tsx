@@ -621,14 +621,17 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   if (messages.length === 0) {
     return "0";
   }
-  const last = messages[messages.length - 1]!;
+  const trailing = messages[messages.length - 1]!;
+  // Host system notes can trail the turn they annotate while it streams.
+  const last =
+    messages.findLast((message) => message.role !== "system") ?? trailing;
   const lastPart = last.parts[last.parts.length - 1];
   const partSignature = lastPart ? getPartScrollSignature(lastPart) : "";
   const dataSignature = last.parts
     .filter((part) => part !== lastPart && part.type.startsWith("data-"))
     .map(getPartScrollSignature)
     .join(",");
-  return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
+  return `${messages.length}:${trailing.id}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
 };
 
 type MessageHandlersRef = RefObject<{
