@@ -23,6 +23,7 @@ reqwest       = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+aes-siv        = { workspace = true }
 cookie         = { workspace = true }
 crc32fast      = { workspace = true }
 derive_more    = { workspace = true, features = ["debug", "display", "error"] }

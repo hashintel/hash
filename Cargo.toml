@@ -125,6 +125,7 @@ problematic.path                    = "libs/problematic/rust"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
+aes-siv                            = { version = "0.8.0", default-features = false, features = ["zeroize"] }
 aide                               = { version = "0.16.0-alpha.4" }
 annotate-snippets                  = { version = "0.12.8", default-features = false }
 ansi-to-html                       = { version = "0.2.2", default-features = false }
