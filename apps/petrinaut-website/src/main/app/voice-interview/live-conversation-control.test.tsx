@@ -1233,7 +1233,7 @@ const mockMediation = () => {
   return fetch;
 };
 
-test("the prepared brief enters the real admission helper and only its settled canonical prose is summarized for Live", async () => {
+const offerSettledWrapUp = async () => {
   const fetch = mockMediation();
   const tracker = new BrunchPanelConversationTracker();
   const history = new VoiceMediationHistory("test");
@@ -1370,6 +1370,12 @@ test("the prepared brief enters the real admission helper and only its settled c
       }),
     }),
   );
+  return { call, history, messages, props, session, tracker };
+};
+
+test("the prepared brief enters the real admission helper and only its settled canonical prose is summarized for Live", async () => {
+  const { call, history, messages, props, session, tracker } =
+    await offerSettledWrapUp();
   act(() => {
     const append = {
       eventId: "summary",
@@ -1421,6 +1427,43 @@ test("the prepared brief enters the real admission helper and only its settled c
     }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
+});
+
+test("a summary that could not be sent does not caption later progress as its wrap-up", async () => {
+  const { call, history, messages } = await offerSettledWrapUp();
+  const progress = {
+    eventId: "progress",
+    kind: "commentary" as const,
+    delegationId: null,
+  };
+  act(() => {
+    call[4]({
+      eventId: "summary",
+      kind: "commentary",
+      delegationId: "delegation-1",
+      status: "local-failure",
+    });
+    call[4]({ ...progress, status: "unknown" });
+    call[4]({ ...progress, status: "accepted", startMs: 500 });
+    call[6]?.output({
+      id: "spoken",
+      text: "Still checking the reviewers.",
+      startMs: 600,
+      endMs: 900,
+    });
+  });
+  expect(
+    history
+      .project([
+        {
+          id: "utterance-1",
+          role: "user",
+          parts: [{ type: "text", text: "Canonical brief" }],
+        },
+        ...messages,
+      ])
+      .map((entry) => entry.id),
+  ).not.toContain("voice-wrap-up:utterance-1");
 });
 
 test("Stop sends the partial answer to Live quietly and Continue admits one new turn", async () => {

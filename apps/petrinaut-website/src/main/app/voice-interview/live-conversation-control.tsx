@@ -294,7 +294,9 @@ export const LiveConversationControl = ({
       (result) => {
         if (session.current !== next) return;
         if (result.status === "unknown") turnAppends.add(result.eventId);
-        const currentTurn = turnAppends.has(result.eventId);
+        // A local failure is reported synchronously, without a prior unknown.
+        const currentTurn =
+          result.status === "local-failure" || turnAppends.has(result.eventId);
         if (result.status !== "unknown") turnAppends.delete(result.eventId);
         if (currentTurn && result.kind === "commentary") {
           if (offeredInput) {
