@@ -485,9 +485,9 @@ export const InterviewBudgetPill = ({
     budget.questionCap === null
       ? "Brunch pauses between topics instead of closing."
       : budget.remaining === 0
-        ? "Brunch closes after this answer; open items stay listed."
+        ? "Question limit reached. Wrap-up lists open items."
         : budget.remaining === 1
-          ? "Brunch closes after this question; open items stay listed."
+          ? "Wrap-up follows your answer to the final question; open items stay listed."
           : "An estimate, not a countdown.";
   return (
     <div
@@ -527,6 +527,9 @@ export const InterviewBudgetPill = ({
                 {config.name} · {config.guide}
               </b>
               {mechanism}
+            </p>
+            <p className={css({ margin: "[6px 0 0]" })}>
+              Each Brunch reply counts as one question.
             </p>
             <p
               className={css({

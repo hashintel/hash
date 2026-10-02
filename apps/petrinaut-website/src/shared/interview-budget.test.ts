@@ -35,11 +35,11 @@ it("uses mode-specific caps and keeps already asked questions after a downgrade"
 it("renders a question-derived estimate, never a clock", () => {
   expect(interviewBudgetLabel("standard", "text", 2)).toBe("~7 min left");
   expect(interviewBudgetLabel("standard", "text", 5)).toBe(
-    "Last question · ~2 min",
+    "1 question left · ~2 min",
   );
-  expect(interviewBudgetLabel("standard", "text", 6)).toBe("Wrapping up");
+  expect(interviewBudgetLabel("standard", "text", 6)).toBe("Ready to wrap up");
   expect(interviewBudgetLabel("standard", "voice", 3)).toBe(
-    "Last question · ~3 min",
+    "1 question left · ~3 min",
   );
   expect(interviewBudgetLabel("deep", "text", 4)).toBe("Question 4 · no limit");
   expect(interviewBudgetLabel("off", "voice", 2)).toBeNull();

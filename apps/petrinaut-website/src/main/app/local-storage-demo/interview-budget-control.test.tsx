@@ -60,6 +60,7 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   expect(screen.getByRole("group", { name: "Interview length" })).toBeTruthy();
   expect(screen.getByText("Interview length")).toBeTruthy();
   expect(screen.queryByText("Choose how much detail to explore.")).toBeNull();
+  expect(screen.getByText("Focus on the main steps.")).toBeTruthy();
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
     left: 100,
@@ -77,13 +78,20 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   // Previewing a stop must not change the current selection in the header.
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   fireEvent.mouseEnter(screen.getByRole("button", { name: "Deep" }));
-  expect(screen.getByText(/Keep exploring, without a limit/)).toBeTruthy();
+  expect(
+    screen.getByText(/Keep exploring, with pauses between topics/),
+  ).toBeTruthy();
+  fireEvent.mouseEnter(screen.getByRole("button", { name: "Thorough" }));
+  expect(screen.getByText(/Explore details and exceptions/)).toBeTruthy();
   fireEvent.change(slider, { target: { value: "1" } });
   expect(slider.getAttribute("aria-valuetext")).toBe("Quick · ~5 min");
   fireEvent.click(screen.getByRole("button", { name: "Off" }));
   expect(
-    screen.getByRole("button", { name: "Interview length: Off · No budget" }),
+    screen.getByRole("button", {
+      name: "Interview length: Off · Usual pacing",
+    }),
   ).toBeTruthy();
+  expect(screen.getByText("Use Brunch’s usual pacing.")).toBeTruthy();
 });
 
 test("Escape closes the control and returns focus to its trigger", async () => {
@@ -123,20 +131,27 @@ test("pill counts canonical replies, changes with mode and disappears for Off", 
   const { rerender } = render(
     <InterviewBudgetPill level="standard" context={context} />,
   );
-  expect(screen.getByRole("status").textContent).toBe("Last question · ~2 min");
+  expect(screen.getByRole("status").textContent).toBe(
+    "1 question left · ~2 min",
+  );
   const trigger = screen.getByRole("status").parentElement;
   if (!trigger) throw new Error("Missing estimate tooltip trigger");
   fireEvent.focus(trigger);
   const card = await screen.findByRole("tooltip");
   expect(card.textContent).toContain("6 questions · 5 asked · 1 left");
-  expect(card.textContent).toContain("open");
+  expect(card.textContent).toContain(
+    "Each Brunch reply counts as one question.",
+  );
+  expect(card.textContent).toContain("your answer to the final question");
+  expect(card.textContent).toContain("open items stay listed");
   rerender(
     <InterviewBudgetPill
       level="standard"
       context={{ ...context, inputMode: "voice" }}
     />,
   );
-  expect(screen.getByRole("status").textContent).toBe("Wrapping up");
+  expect(screen.getByRole("status").textContent).toBe("Ready to wrap up");
+  expect(card.textContent).toContain("Question limit reached.");
   rerender(<InterviewBudgetPill level="deep" context={context} />);
   expect(screen.getByRole("status").textContent).toBe("Question 5 · no limit");
   rerender(<InterviewBudgetPill level="off" context={context} />);

@@ -10,11 +10,11 @@ export const interviewBudgetHeader = "x-petrinaut-interview-budget";
 export const interviewBudgetLevelsConfig = {
   off: {
     name: "Off",
-    guide: "No budget",
+    guide: "Usual pacing",
     minutes: 0,
     text: null,
     voice: null,
-    description: "No set length.",
+    description: "Use Brunch’s usual pacing.",
   },
   quick: {
     name: "Quick",
@@ -30,7 +30,7 @@ export const interviewBudgetLevelsConfig = {
     minutes: 10,
     text: 6,
     voice: 4,
-    description: "Cover the main steps.",
+    description: "Focus on the main steps.",
   },
   thorough: {
     name: "Thorough",
@@ -38,7 +38,7 @@ export const interviewBudgetLevelsConfig = {
     minutes: 20,
     text: 10,
     voice: 7,
-    description: "Include details and exceptions.",
+    description: "Explore details and exceptions.",
   },
   deep: {
     name: "Deep",
@@ -46,7 +46,7 @@ export const interviewBudgetLevelsConfig = {
     minutes: 0,
     text: null,
     voice: null,
-    description: "Keep exploring, without a limit.",
+    description: "Keep exploring, with pauses between topics.",
   },
 } as const;
 
@@ -102,13 +102,13 @@ export const interviewBudgetLabel = (
   if (!budget) return null;
   if (budget.remaining === null || budget.questionCap === null)
     return `Question ${asked} · no limit`;
-  if (budget.remaining === 0) return "Wrapping up";
+  if (budget.remaining === 0) return "Ready to wrap up";
   const minutes = Math.round(
     (budget.remaining * interviewBudgetLevelsConfig[level].minutes) /
       budget.questionCap,
   );
   return budget.remaining === 1
-    ? `Last question · ~${minutes} min`
+    ? `1 question left · ~${minutes} min`
     : `~${minutes} min left`;
 };
 
