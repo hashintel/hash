@@ -152,7 +152,7 @@ impl<'heap> Resolver<'_, 'heap> {
     ) -> Result<MultiResolveItemIterator<'heap>, ResolutionError<'heap>> {
         let mut item = module
             .items
-            .into_iter()
+            .iter()
             .copied()
             .filter(move |item| item.name == name)
             .map(Reference::Item)
@@ -200,13 +200,13 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        let module = self.registry.modules.index(module);
+        let module = self.registry.modules[module];
 
         if module.items.is_empty() {
             return Err(ResolutionError::ModuleEmpty { depth });
         }
 
-        Ok(module.items.into_iter().copied().map(Reference::Item))
+        Ok(module.items.iter().copied().map(Reference::Item))
     }
 
     #[define_opaque(ModuleItemIterator)]
@@ -225,7 +225,7 @@ impl<'heap> Resolver<'_, 'heap> {
             }
 
             return Ok(ResolveIter::Glob(
-                module.items.into_iter().copied().map(Reference::Item),
+                module.items.iter().copied().map(Reference::Item),
             ));
         }
 
@@ -261,7 +261,7 @@ impl<'heap> Resolver<'_, 'heap> {
                 });
             };
 
-            module = self.registry.modules.index(next);
+            module = self.registry.modules[next];
         };
 
         match self.options.mode {
@@ -291,7 +291,7 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolutionError::PackageNotFound {
                 depth: 0,
                 name,
-                suggestions: self.suggest(|| self.registry.suggestions()),
+                suggestions: self.suggest(|| self.registry.suggestions().collect()),
             });
         };
 
@@ -444,13 +444,13 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        let module = self.registry.modules.index(module);
+        let module = self.registry.modules[module];
 
         if module.items.is_empty() {
             return Err(ResolutionError::ModuleEmpty { depth: 0 });
         }
 
-        Ok(module.items.into_iter().copied().map(Reference::Item))
+        Ok(module.items.iter().copied().map(Reference::Item))
     }
 
     #[expect(clippy::panic_in_result_fn, reason = "sanity check")]
@@ -503,7 +503,7 @@ impl<'heap> Resolver<'_, 'heap> {
                 });
             };
 
-            let module = self.registry.modules.index(module);
+            let module = self.registry.modules[module];
             return self.resolve_impl(query, module);
         }
 
@@ -526,13 +526,13 @@ impl<'heap> Resolver<'_, 'heap> {
 #[cfg(test)]
 mod test {
     #![coverage(off)]
-    use core::{assert_matches, num::NonZero};
+    use core::assert_matches;
 
     use super::{Reference, ResolutionError};
     use crate::{
         heap::Heap,
         module::{
-            ModuleId, ModuleRegistry, PartialModule, Universe,
+            ModuleRegistry, Universe,
             item::Item,
             namespace::{ImportOptions, ModuleNamespace, ResolutionMode},
             resolver::{Resolver, ResolverMode, ResolverOptions},
@@ -889,19 +889,10 @@ mod test {
     fn module_empty_error() {
         let heap = Heap::new();
         let env = Environment::new(&heap);
-        let registry = ModuleRegistry::new(&env);
 
-        // Create an empty module and register it
-        let empty_module_id = registry.intern_module(|_| {
-            PartialModule {
-                name: heap.intern_symbol("empty_module"),
-                parent: ModuleId::ROOT,
-                depth: const { NonZero::new(1).unwrap() },
-                items: registry.intern_items(&[]), // No items
-            }
-        });
-
-        registry.register(empty_module_id);
+        let mut builder = ModuleRegistry::builder(&env);
+        builder.insert_root_module(heap.intern_symbol("empty_module"), |_| &[]);
+        let registry = builder.finish();
 
         let resolver = Resolver {
             registry: &registry,

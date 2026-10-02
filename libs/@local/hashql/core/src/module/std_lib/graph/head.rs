@@ -1,8 +1,12 @@
+use core::alloc::Allocator;
+
 use crate::{
     module::{
-        StandardLibrary,
         locals::TypeDef,
-        std_lib::{self, ModuleDef, StandardLibraryModule, core::func, decl},
+        std_lib::{
+            self, CacheId, ModuleCache, ModuleDef, StandardLibraryContext, StandardLibraryModule,
+            core::func, decl,
+        },
     },
     symbol::{Symbol, sym},
 };
@@ -18,34 +22,39 @@ pub(in crate::module::std_lib) struct Head {
 impl<'heap> StandardLibraryModule<'heap> for Head {
     type Children = ();
 
+    const CACHE_ID: CacheId = CacheId::GraphHead;
+
     fn name() -> Symbol<'heap> {
         sym::head
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
-        let heap = lib.heap;
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
-        let query_temporal_axes_ty = lib
-            .manifest::<std_lib::graph::temporal::Temporal>()
+        let query_temporal_axes_ty = cache
+            .request::<std_lib::graph::temporal::Temporal>(context)
             .expect_type(sym::QueryTemporalAxes);
 
-        let mut graph_ty = lib
-            .manifest::<std_lib::graph::Graph>()
-            .expect_type(heap.intern_symbol("Graph"));
-        graph_ty.instantiate(&mut lib.instantiate);
+        let mut graph_ty = cache
+            .request::<std_lib::graph::Graph>(context)
+            .expect_type(sym::Graph);
+        graph_ty.instantiate(&mut context.instantiate);
 
-        let mut entity = lib
-            .manifest::<std_lib::graph::types::knowledge::entity::Entity>()
-            .expect_newtype(heap.intern_symbol("Entity"));
-        entity.instantiate(&mut lib.instantiate);
+        let mut entity = cache
+            .request::<std_lib::graph::types::knowledge::entity::Entity>(context)
+            .expect_newtype(sym::Entity);
+        entity.instantiate(&mut context.instantiate);
 
         // ::graph::head::entities(axis: TimeAxis) -> Graph<Entity<?>>;
-        let entities_returns = lib.ty.apply(
+        let entities_returns = context.ty.apply(
             [(
                 graph_ty.arguments[0].id,
-                lib.ty
-                    .apply([(entity.arguments[0].id, lib.ty.unknown())], entity.id),
+                context
+                    .ty
+                    .apply([(entity.arguments[0].id, context.ty.unknown())], entity.id),
             )],
             graph_ty.id,
         );
@@ -53,7 +62,7 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
             &mut def,
             sym::path::graph_head_entities,
             [sym::entities],
-            decl!(lib; <>(axis: query_temporal_axes_ty.id) -> entities_returns),
+            decl!(context; <>(axis: query_temporal_axes_ty.id) -> entities_returns),
         );
 
         def
