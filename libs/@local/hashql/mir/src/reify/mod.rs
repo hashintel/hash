@@ -112,7 +112,7 @@ struct CrossCompileState<'heap, S: Allocator> {
     /// Cache of already-created type constructors to avoid duplication.
     ctor: FastHashMap<Symbol<'heap>, DefId>,
 
-    var_pool: MixedBitSetPool<VarId>,
+    var_pool: MixedBitSetPool<VarId, S>,
 }
 
 /// The core reification engine that converts individual HIR nodes to MIR bodies.
@@ -508,11 +508,12 @@ pub fn from_hir<'heap, A: Allocator, S: Allocator + Clone>(
         thunks,
         ctor: FastHashMap::default(),
         diagnostics: ReifyDiagnosticIssues::new(),
-        var_pool: MixedBitSetPool::with_recycler(
+        var_pool: MixedBitSetPool::with_recycler_in(
             8,
             MixedBitSetRecycler {
                 domain_size: context.hir.counter.var.size(),
             },
+            context.scratch.clone(),
         ),
     };
 
