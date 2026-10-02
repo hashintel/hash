@@ -2793,6 +2793,45 @@ describe("AiAssistantContents", () => {
     },
   );
 
+  test.each(["setup", "listening"] as const)(
+    "omits the status row from the collapsed %s Voice dock",
+    (phase) => {
+      const store = createVoiceSessionStore();
+      if (phase === "listening")
+        store.setState({
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase,
+        });
+      const contents = (collapsed: boolean) => (
+        <VoiceSessionContext.Provider value={store}>
+          <AiAssistantContents
+            input=""
+            inputMode="voice"
+            messages={[]}
+            composerStatus={
+              <div data-testid="interview-estimate">~5 min left</div>
+            }
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            status="ready"
+            voiceDockCollapsed={collapsed}
+          />
+        </VoiceSessionContext.Provider>
+      );
+      const { rerender } = render(contents(true));
+      expect(screen.getByTestId("ai-voice-dock")).toBeTruthy();
+      expect(screen.queryByTestId("interview-estimate")).toBeNull();
+      rerender(contents(false));
+      expect(screen.getByTestId("interview-estimate").textContent).toBe(
+        "~5 min left",
+      );
+    },
+  );
+
   test("contains voice failures in the collapsed dock without a toast", async () => {
     const store = createVoiceSessionStore();
     store.setState({

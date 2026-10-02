@@ -1715,7 +1715,7 @@ export const AiAssistantContents = ({
             </div>
           )}
 
-          {composerStatus}
+          {!isVoiceDockCollapsed && composerStatus}
           {isVoiceSessionLive ? (
             <div ref={voiceDockRef}>
               <LiveVoiceDock
