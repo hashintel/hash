@@ -1,64 +1,74 @@
 ---
 name: eliciting
-description: Builds and verifies an evidence-faithful operational account through conversation and consulted material. Use for substantive interviewing, source consultation, consequential correction or conflict resolution, and adequacy judgments.
+description: Interviewing the person about their operation. Use before asking a substantive question, consulting a source, handling a correction or conflict, pinning down a quantity, or deciding the account is enough. Not for changing the net; that is `constructing`.
 ---
 
-# Eliciting an operational account
+# Interviewing for an operational model
 
-Make the account useful for the person's stated purpose and protected conditions. The five roles below are not phases, a questionnaire or Ledger addresses: directives govern conduct and selection; cues suggest hypotheses; moves are chosen for the active need; information needs describe what the account may need to say; verification tests its adequacy. Construction proceeds alongside this work under `constructing`.
+The person knows their operation mostly in practice, not in general statements: they can tell you what happened last Tuesday far better than what "usually" happens, and what they say they do drifts from what they do. So ask about real occasions, choose each question for what its answer could change in the model the purpose needs, and keep what they said apart from what you supplied.
 
-## Directives
+The Ledger's coverage says what the account still needs. This skill is how to ask for it.
 
-- Establish the objective, candidate levers and protected conditions early, then gain rough end-to-end breadth before precision. A local ambiguity earns immediate attention when it changes the objective, a protected condition or interpretation of the wider account; otherwise preserve it and continue mapping.
-- Follow the person's vocabulary and active account. Ask one answerable opening; group later questions only when they share one frame. For practice, prefer a concrete remembered case. Select the next action from purpose and the broadly mapped account, not a register, Note order or target topology.
-- Keep supplied evidence, consulted material and agent authorship distinct. Preserve unknown, unasked, declined, deferred, ambiguous, corrected, conflicting and context-dependent states. Determine correction, conflict or contextual coexistence before reconciling differing accounts.
-- Record promptly through the Ledger tools under the always-on cadence. Write a contribution cold-readably with its subject, selecting conditions and qualifications together; file it once and link related Notes by returned ids. A deferred consequential gap states what is missing, why it matters and what could resolve it. Exact fields, addresses and add/supersede semantics belong to the mounted tools.
-- Use operational language during elicitation. Places, transitions, arcs, colours, tokens, distributions, schemas and filing categories may guide attention but cannot supply facts or dictate question order.
-- Stop on request and deliver useful partial work. Fluency, elapsed time, fatigue, category fullness, Ledger size or a precise fragment do not establish completion.
+## Choosing the next question
 
-## Cues to investigate
+Ask the question whose answer could most change what the model will answer. Early on, that is usually breadth: the part of the operation still in fog, or the purpose not yet pinned. Later, it is the unmet need the purpose's measure depends on. It is not the newest gap, the next Ledger dimension, or whatever the net could represent. Pursue an ambiguity at once only if it could change the goal, a protected condition, or how you read the rest; otherwise record it and keep mapping.
 
-- Hedges such as “usually,” “roughly” and “sometimes” may signal harmless imprecision, contextual variation, a distribution or an exception. “Always” and “never” may signal a rule, constraint or unexamined exception.
-- “Should,” posted procedures and documents may describe prescribed rather than practiced behaviour. Quick assent to agent-authored wording confirms acceptance, not independent authorship.
-- Tension between accounts may signal correction, conflict, ambiguity or an unnamed selecting condition. Silence may mean irrelevant, unknown, unasked, declined, forgotten or deferred.
-- Waiting, shared or occupied capabilities, shifts and opening windows may signal prerequisites, contention, release semantics or calendar-dependent elapsed time.
-- Failure, retry, breakdown and expiry language may signal alternative outcomes, surviving state, occupied resources, recovery scope or terminal fate.
-- Warming, draining, wear, charge or level language may signal continuous change, thresholds or directional mode changes. Batch, lot and load language may signal grouping, release and split/merge rules.
-- Burden or impatience changes interaction strategy, not evidential completeness. Falling yield signals a change of move or thread. Repeated local refinement while consequential regions remain rough signals a breadth failure.
+Open with a short battery that pins the purpose: at most three or four questions, all about what the model is for. After that, one question frame per turn. Use their words, never places, transitions, arcs, tokens or colours.
 
-Treat every cue as a hypothesis. It neither establishes a fact nor automatically deserves the next question.
+## Questioning styles
 
-## Investigative moves
+- **Open-ended.** Encourage detailed responses and explanations. "Can you walk me through what happened?"
+- **Closed-ended.** Seek specific information with yes/no or multiple-choice questions. "Did this happen last Tuesday?"
+- **Hypothetical.** Explore potential scenarios to understand reasoning and decision-making. "What would you do if X occurred?"
+- **Reflective.** Prompt the person to consider their own actions and thought processes. "Why did you choose that approach?"
+- **Comparative.** Ask for comparisons to highlight differences and similarities. "How does this case differ from the last one?"
 
-- Slice one remembered case from admission or trigger to outcome or handoff. Choose the flowing unit that makes the case intelligible and expose activity order, dependencies, branches, waiting and outcomes at rough resolution.
-- Sweep one purpose-relevant property across already discovered cases or activities: timing, input use, availability, contextual variation, policy, failure/recovery, boundary behaviour or evidence. Do not sweep headings.
-- Ask for the last occurrence, a witness, counterexample or borderline case to ground general claims and practiced rules. Ask for the basis—what was observed, recorded or judged—when it changes confidence or applicability.
-- Follow a consequential resource through acquisition, occupancy, release and changed return state. Distinguish inputs consumed or transformed, reserved then released, and read while remaining available.
-- Use contrastive cases or place accounts side by side to separate correction, conflict and contextual coexistence. Mark offered alternatives as agent-authored.
-- Restate or propose low-risk structure for correction when that is faster than eliciting it from nothing; retain its authorship until settled.
-- Investigate quantities only to the narrowest form the purpose needs. Separate a memorable incident from a rate, typical from tail, and work time from calendar elapsed time. Use a judgeable decision threshold when an exact value is unavailable, without converting it into the unknown value.
-- Trace failures through work, resources, retry scope, recovery and terminal outcome. Turn waiting into a question about its cause and release event. Check mode changes in both directions and grouped movement for count-versus-clock release, splitting and capacity effects.
-- Consult an authorized source when needed, present its result as attributed material, and ask how it relates to the person's account. If unavailable, preserve the gap.
-- Deposit and defer an unavailable or low-value answer with its consequence and return condition. At voluntary close, offer one concise correction opportunity rather than repeatedly summarizing.
+## Questioning Moves
 
-## Information needs
+Choose a move for the active gap, ask, see what changed, then choose again.
 
-Gather only what the purpose makes consequential, but make unsupported dependencies visible:
+- **Walk a case.** At the start, and whenever an account turns general. Pick the unit that flows (an order, a batch, a patient, a vehicle) and follow one recent real one from what started it to how it ended, roughly: what happened next, what each step needed, where it waited, what could have gone differently.
+- **Ask about the last time.** When a claim says "usually", "always", is in the present tense, or comes from a written rule. "When did that last happen? What did you do?" A written rule says what should happen; the last contested case shows what does.
+- **Sweep one property.** Once a case has shown several steps or resources, take one property that matters to the purpose (duration, what each step uses, who decides, what can go wrong) across all of them. Sweep properties, never headings.
+- **Ask for the basis.** When confidence or applicability depends on it. "How do you know? What do you look at? What would a newcomer get wrong here?"
+- **Run a premortem.** When rare or severe outcomes matter and ordinary recall doesn't reach them. "Say it's the worst month you've had a year from now. What happened?" Ask for mechanism and sequence, not sentiment.
+- **Contrast.** When a statement has two consequential readings. Offer both as concrete alternatives that differ on one point, say they are yours, and ask which is closer.
+- **Put accounts side by side.** When two accounts differ. "Earlier you said X; now Y. Are you correcting X, or do both hold under different conditions?" Record a correction as a supersession, a conflict as two contested Notes, and coexistence as two Notes with their selecting conditions.
+- **Trade outcomes.** When they can't state a priority. Offer two concrete outcomes that trade one concern against another, and vary the pair until the boundary is useful. Don't invent weights.
+- **Propose for correction.** When low-risk structure is faster to correct than to draw out. It stays your proposal until they settle it; their "yes" is acceptance, not their own evidence.
+- **Consult.** When something must be looked up and a mounted tool can do it. Present the result as attributed material and ask how it relates to their account. Without a tool, say the lookup is not possible.
+- **Deposit and defer.** When an answer is unavailable or not worth the turn. Record what is missing, why it matters, and what would answer it. A promise to come back is not a deposit.
 
-- **Purpose:** intended decision, comparison, explanation or question; audience; boundary and horizon; confidence need; what must not be claimed; objectives and direction; candidate levers; protected conditions; measures, priorities, trade-offs and judgeable thresholds where supported.
-- **Process spine:** case unit, admission or trigger, prerequisites and initial state; ordered logical activities; branches and joins; waiting; outputs, outcomes, termination and handoff. One logical activity may later require several net elements.
-- **Participants and things:** actors, locations, flowing things and resources; roles, counts, capacities, availability, eligibility, compatibility and relevant carried state. A location or resource is target structure only through operational effects.
-- **Activities and input use:** prerequisites, performer, consumed/transformed, reserved and read inputs, occupancy, outputs, duration, success/failure and state changes.
-- **Alternatives and disruption:** practiced decisions, tie-breaking, overrides, exceptions, failures, retry and recovery scope, surviving work and resources, terminal outcomes and contention policy.
-- **Quantity and context:** units, durations, rates, counts, capacities, arrivals and probabilities; typical versus tail; item, direction, mode, regime, calendar, load, location or resource selecting each value; continuous change, threshold and reset; grouping, directional losses and hidden waiting causes.
-- **Evidence:** observations, records, replays, comparisons or judgments that could make the model credible; data sources and unavailable evidence. Keep validation evidence separate from the person's prediction of results.
-- **Epistemic account:** exact wording where interpretation depends on it; assumptions with reason, consequence and check route; unknowns, omissions, corrections, conflicts and contextual coexistence; construction losses that a cold reader must know.
+## What process language usually hides
 
-## Verification
+A cue is a hypothesis to test, not a fact to record. Follow it only when it could bear on the purpose.
 
-- Before asking, compare breadth with purpose: is a consequential region still unmapped while another has accumulated detail? Confirm that the question resolves an active uncertainty and uses one focused frame.
-- Before recording, ensure every load-bearing claim is person-supplied, attributed consulted material with standing visible, or agent-authored. Preserve hedges and selecting context; do not turn assent into independent evidence or flatten correction, conflict and variation.
-- Check that a cold reader can reconstruct the purpose, rough process spine, load-bearing assumptions and unresolved conflicts, and identify the smallest consequential next question without the transcript.
-- Trace objectives to operational material or label them unsupported. Check admission, ordered activities, branch conditions and outcomes; input-use mode; resource acquisition and release; failure fate and retry scope; contextual quantities; directional effects; and the cause of waiting where consequential.
-- Diagnose locally: fluent conversation without a consequential distinction calls for another move; schema-shaped questioning returns to a case; silent hardening restores the hedge; unsupported content is removed or relabelled; a dead spine needs the smallest connection; a disappearing resource needs its release account; context collapse restores selecting conditions.
-- At close, state what the account supports and what each remaining gap prevents. A disclosed gap or stand-in permits partial delivery, not an unsupported conclusion.
+| They say                                              | Suspect                                                     | Ask                                                                                            |
+| ----------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| "usually", "roughly", "it depends"                    | variation with a selecting condition, or harmless vagueness | whether it matters; if so, the last time, or what decides                                      |
+| "always", "never", "the rule is", a document          | a posted rule that practice bends                           | the last contested or exceptional case                                                         |
+| waiting, "we have to wait for"                        | an unavailable input, resource, approval, batch or calendar | what it waits for and what event lets it continue                                              |
+| a person, machine, bay or vehicle several steps share | contention                                                  | how many, who gets it when two need it, when it frees, in what state                           |
+| something a step needs                                | used up, held then released, or only looked at              | which; if held, when and in what state it comes back                                           |
+| breaks, redo, retry, scrap, expires                   | a failure path                                              | what is lost, what repeats (one step, a stretch, the whole case), what stays held, how it ends |
+| warming, wear, charge, level, draining                | a drifting quantity with a threshold                        | what crosses what, what happens then, whether it resets                                        |
+| changeover, setup, cleaning, restart                  | a mode change                                               | whether A to B costs the same as B to A                                                        |
+| batch, lot, load                                      | grouped movement                                            | released by count or by clock; whether groups split or merge                                   |
+| shifts, opening hours, weekends                       | a calendar                                                  | elapsed time versus work time                                                                  |
+
+## Quantities
+
+Ask only to the precision the purpose needs: whether the typical case, the spread or the tail matters. A memorable incident shows a mechanism, not a rate; ask how often out of how many, over what period. For a spread, ask for a bound ("nine times in ten, under how long?") rather than minimum, most likely and maximum. With no value available, ask what threshold would change the decision, and keep the value itself unknown. Keep every number with what selects it: the item, direction, shift, load or mode.
+
+## When the interview goes wrong
+
+- Fluent, but nothing new recorded: change the move.
+- Questions following Ledger dimensions or net structure: return to a case.
+- Precision rising without evidence: restore the hedge, or mark the assumption as yours.
+- Several refinements in one place while other parts are still fog: go wide again.
+- Two contextual values merged into one: restore the conditions.
+- Patience running out: name the smallest gap that matters and offer the choice between spending the next turn there or stopping with it visible. Impatience changes how you ask, not what is known.
+
+## Closing
+
+At a voluntary close, read back the account once, with its assumptions, conflicts and gaps, and give one focused chance to correct it. State each gap by what it stops the model from answering.

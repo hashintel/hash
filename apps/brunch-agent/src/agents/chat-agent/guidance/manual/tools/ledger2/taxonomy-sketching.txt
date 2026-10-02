@@ -1,0 +1,67 @@
+entity_kind
+	thing|material|object
+	location
+	resource
+	activity
+	actor
+	policy|rule
+	event
+	quantity
+	spine|flow
+
+origin: where the content came from.
+	assumed: the agent supplied a stand-in that nothing said supports.
+	inferred: the agent derived it from what was said.
+	evidenced: it's in material they shared.
+	stated: the person said it
+
+status: whether the person has agreed to it.
+	open: it matters and nobody knows yet.
+	tentative: the person hedged, or the agent proposed it and the person hasn't agreed yet.
+	confirmed: the person said it without hedging, or agreed when asked.
+	conflicted: the person said it without hedging, or agreed when asked.
+	out-of-scope: the person agreed it stays outside the model.
+
+===
+
+ELICITATION
+	claim
+		id:
+		turn:
+		text:
+		refs: (objective|constraint|scope|appetite|entity)[]
+	objective
+		purpose|goal
+		maximum|minimum
+		target|optimum
+		metric
+		lever
+	constraint
+		limit
+		threshold
+	scope
+		horizon
+			[how much simulated time the model runs over]
+		boundary|externality
+	appetite
+		turns: int
+		time: int
+	entity
+		name
+		kind
+
+
+CONSTRUCTION
+	mutation
+		revision:
+		turn:
+		claims:
+	element
+		text
+		status
+		entities
+		claims
+		maps
+			claims: id[]
+		gaps
+			claims: id[]
