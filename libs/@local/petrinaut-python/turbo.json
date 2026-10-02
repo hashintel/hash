@@ -1,11 +1,32 @@
 {
   "extends": ["//"],
   "tasks": {
-    // TODO(SRE-1089): run type checking on all Python files, instead of just source files
-    "check:ty": {
-      "command": ["uv", "run", "--active", "--frozen", "ty", "check", "src"],
+    "lint:tach": {
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check"
+      ]
+    },
+    "lint:deptry": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        "src",
+        "scripts"
+      ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
+    "check:ty": { "dependsOn": ["codegen"] },
     "manifest": {
       "dependsOn": ["^manifest", "@hashintel/petrinaut-cli#manifest"]
     },
@@ -24,7 +45,17 @@
       "dependsOn": ["codegen", "manifest", "@hashintel/petrinaut-cli#build"]
     },
     "test:unit": {
-      "dependsOn": ["test"]
+      "dependsOn": ["codegen", "manifest", "@hashintel/petrinaut-cli#build"],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "pytest",
+        "."
+      ]
     }
   }
 }

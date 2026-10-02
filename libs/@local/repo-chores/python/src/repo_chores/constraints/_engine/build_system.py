@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from typing import Self, override
 
 from repo_chores.constraints._engine.document import DocumentArray, DocumentString, DocumentTable
+from repo_chores.constraints._engine.document_native import NativeTable
 from repo_chores.constraints._engine.manifest import Manifest
 from repo_chores.constraints._engine.requirement import RequirementList
 from repo_chores.constraints._engine.strings import StringList
@@ -12,7 +13,9 @@ _FIELD = ("build-system",)
 class BuildSystem:
     """The live build-system table, including its mutable requirement list."""
 
-    def __init__(self, value: DocumentTable) -> None:
+    __hash__ = None
+
+    def __init__(self, value: DocumentTable[NativeTable]) -> None:
         self._value = value
 
     @classmethod
@@ -20,7 +23,7 @@ class BuildSystem:
         value = manifest.document.expect(_FIELD, DocumentTable)
         return cls(value) if value is not None else None
 
-    def value(self) -> DocumentTable:
+    def value(self) -> DocumentTable[NativeTable]:
         return self._value
 
     @property

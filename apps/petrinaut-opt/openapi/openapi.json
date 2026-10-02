@@ -168,8 +168,42 @@
     },
     "/optimize/runs": {
       "post": {
-        "description": "Start a detached run that remains available for later SSE attachment.\n\nWhen the caller stamps ``x-hash-account-id`` (the authenticated proxy\ndoes), the run is owned: the account is single-flight while it lives, and\nonly requests carrying the same tag may attach to or cancel it.",
+        "description": "Start a detached run owned by the account stamped by the authenticated proxy.",
         "operationId": "post_optimize_runs_optimize_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-hash-request-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hash-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-hash-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hash-Account-Id"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -237,6 +271,38 @@
               "title": "Run Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-hash-request-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hash-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-hash-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hash-Account-Id"
+            }
           }
         ],
         "responses": {
@@ -262,7 +328,7 @@
     },
     "/optimize/runs/{run_id}/events": {
       "get": {
-        "description": "Attach to a detached run and replay events after the supplied cursor.\n\nThe route is excluded from ASGI auto-instrumentation (see\n``telemetry.py``): its response live-tails until the consumer detaches,\nand a SERVER span that long would read as worst-case latency in the RED\nSLIs and only export on disconnect. A short manual SERVER span covers\njust the attach itself \u2014 run lookup, cursor resolution, and attachment\nregistration \u2014 and ends when the tail starts, so the latency SLI\nmeasures \"was attaching fast\" while the client\u2192optimizer service-graph\nedge is preserved.",
+        "description": "Replay after the cursor, then tail without tying the run to this connection.",
         "operationId": "get_optimize_run_events_optimize_runs__run_id__events_get",
         "parameters": [
           {
@@ -289,6 +355,54 @@
                 }
               ],
               "title": "Cursor"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-hash-request-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hash-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-hash-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hash-Account-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "last-event-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
             }
           }
         ],

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from itertools import pairwise
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, override
 
 from tomlkit import parse
 from tomlkit.container import Container, OutOfOrderTableProxy
@@ -38,6 +38,7 @@ from repo_chores.constraints._engine.document_native import (
     copy_native,
     description,
     equivalent,
+    inline_table,
     native,
     order_sections,
     prepend_assignment,
@@ -168,7 +169,9 @@ class DocumentNode[Native: NativeItem]:
             layout.restore()
 
 
-type DocumentItem = DocumentString | DocumentValue | DocumentArray | DocumentTables | DocumentTable
+type DocumentItem = (
+    DocumentString | DocumentValue | DocumentArray | DocumentTables | DocumentTable[NativeTable]
+)
 
 
 class DocumentString(DocumentNode[String]):
@@ -211,7 +214,7 @@ class DocumentString(DocumentNode[String]):
 
 class DocumentValue(DocumentNode[Item]):
     @classmethod
-    def from_bool(cls, value: bool, *, location: Location) -> Self:
+    def from_bool(cls, *, value: bool, location: Location) -> Self:
         return cls(item(value), location=location)
 
     @property
@@ -256,6 +259,7 @@ class DocumentArray(DocumentNode[Array], Iterable[DocumentItem]):
     def __len__(self) -> int:
         return len(self.item)
 
+    @override
     def __iter__(self) -> Iterator[DocumentItem]:
         return (self.get(index) for index in range(len(self)))
 
@@ -329,7 +333,7 @@ class DocumentArray(DocumentNode[Array], Iterable[DocumentItem]):
 
             yield value
 
-    def tables(self) -> Iterator[DocumentTable]:
+    def tables(self) -> Iterator[DocumentTable[NativeTable]]:
         for value in self:
             if not isinstance(value, DocumentTable):
                 raise ManifestError(
@@ -486,10 +490,11 @@ class DocumentArray(DocumentNode[Array], Iterable[DocumentItem]):
             elif indent is not None and "," in indent.s:
                 prefix.append(_ArrayItemGroup(indent=indent))
 
-            if value.comment is not None and comma is not None and "\n" in comma.s:
-                comma = Whitespace(comma.s.replace("\r", "").replace("\n", ""))
-
-            value.comma = comma
+            value.comma = (
+                Whitespace(comma.s.replace("\r", "").replace("\n", ""))
+                if value.comment is not None and comma is not None and "\n" in comma.s
+                else comma
+            )
 
         groups = [
             *header,
@@ -512,7 +517,7 @@ class DocumentArray(DocumentNode[Array], Iterable[DocumentItem]):
                 following.indent = Whitespace(newline + whitespace)
 
         array._value[:] = groups
-        list.__setitem__(array, slice(None), [entry[-1].value for entry in reordered])
+        list.__setitem__(array, slice(None), [entry[-1].value for entry in reordered])  # ruff: ignore[unnecessary-dunder-call] - Bypass Array's formatting mutation; native groups already moved.
         array._reindex()
 
         recorder.record(
@@ -553,7 +558,7 @@ class DocumentTables(DocumentNode[AoT]):
         self._position(table)
         return table
 
-    def get(self, index: int) -> DocumentTable:
+    def get(self, index: int) -> DocumentTable[Table]:
         table = self.item[index]
         return DocumentTable(
             table,
@@ -562,10 +567,10 @@ class DocumentTables(DocumentNode[AoT]):
             root=self._root,
         )
 
-    def __iter__(self) -> Iterator[DocumentTable]:
+    def __iter__(self) -> Iterator[DocumentTable[Table]]:
         return (self.get(index) for index in range(len(self)))
 
-    def insert(self, index: int, value: DocumentTable) -> None:
+    def insert(self, index: int, value: DocumentTable[NativeTable]) -> None:
         copied = value.copy_native()
         if not isinstance(copied, Table):
             raise TypeError("expected a header table")
@@ -604,7 +609,7 @@ class DocumentTable[Native: NativeTable](DocumentNode[Native], Iterable[str]):
         table = (
             InlineTable(Container(), Trivia(), new=True)
             if inline
-            else Table(Container(), Trivia(), False)
+            else Table(Container(), Trivia(), is_aot_element=False)
         )
 
         for name, value in entries:
@@ -612,6 +617,7 @@ class DocumentTable[Native: NativeTable](DocumentNode[Native], Iterable[str]):
 
         return DocumentTable(table, location=location)
 
+    @override
     def __iter__(self) -> Iterator[str]:
         return iter(self.item)
 
@@ -792,7 +798,9 @@ class DocumentTable[Native: NativeTable](DocumentNode[Native], Iterable[str]):
                             if not isinstance(component, str):
                                 raise PathError(depth)
 
-                            table = Table(Container(), Trivia(), False, is_super_table=True)
+                            table = Table(
+                                Container(), Trivia(), is_aot_element=False, is_super_table=True
+                            )
                             table[component] = prepared
 
                             prepared = table
@@ -850,11 +858,11 @@ class DocumentTable[Native: NativeTable](DocumentNode[Native], Iterable[str]):
                 ),
             )
 
-    def set_boolean(self, path: LocationPath, value: bool) -> None:
+    def set_boolean(self, path: LocationPath, *, value: bool) -> None:
         self.assign(
             field=path,
             value=DocumentValue.from_bool(
-                value,
+                value=value,
                 location=Location(
                     manifest=self.location.manifest, path=(*self.location.path, *path)
                 ),
@@ -873,7 +881,7 @@ def _wrap(
     def current[Native: NativeItem](expected: type[Native] | tuple[type[Native], ...]) -> Native:
         value = read()
         if not isinstance(value, expected):
-            raise LookupError("A document item changed type after it was read")
+            raise LookupError("A document item changed type after it was read")  # ruff: ignore[type-check-without-type-error] - Replacement invalidates a retained view, not a caller argument.
 
         return value
 
@@ -953,29 +961,13 @@ class Document(DocumentTable[Container]):
         heading: Body = []
 
         for index, entry in enumerate(entries):
-            inline = InlineTable(Container(), Trivia(), new=True)
+            inline, entry_comments = inline_table(entry)
             comments = layout.leading.pop(id(entry), [])
 
             if index == 0:
                 heading, comments = comments, []
 
-            if entry.trivia.comment:
-                comments.append((None, Comment(Trivia(comment=entry.trivia.comment))))
-
-            for name, value in entry.value.body:
-                if name is None:
-                    if isinstance(value, Comment):
-                        comments.append((None, value))
-
-                    continue
-
-                if value.trivia.comment:
-                    comments.append((None, Comment(Trivia(comment=value.trivia.comment))))
-
-                copied = copy_native(value)
-                copied.trivia.comment = copied.trivia.comment_ws = ""
-                copied.trivia.indent = copied.trivia.trail = ""
-                inline[name] = copied
+            comments.extend(entry_comments)
 
             for _, comment in comments:
                 if isinstance(comment, Comment):

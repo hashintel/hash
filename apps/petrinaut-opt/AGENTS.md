@@ -2,7 +2,7 @@
 
 Python service running Optuna optimization studies over Petrinaut simulations.
 
-- Depends on `@local/petrinaut-python` and `@local/petrinaut-optimizer-core`; nothing in the service references `petrinaut-cli` directly. Study construction, suggestion and the trial cap live in the core, which is written to load under Pyodide too; the service adds the HTTP API, the worker thread and telemetry.
+- Depends on the `petrinaut-python` bindings and `petrinaut-optimizer-core` Python packages. The service itself does not call the CLI directly; the bindings spawn it, so the Docker image bundles `@hashintel/petrinaut-cli`. Study construction, suggestion and the trial cap live in the core, which also loads under Pyodide; the service adds the HTTP API, the worker thread and telemetry.
 - Experiment and optimization code stays pure: the host owns worker counts, threads, and other OS concerns.
 - Run tests with `uv run pytest` from this directory.
 

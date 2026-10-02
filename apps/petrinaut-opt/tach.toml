@@ -1,9 +1,0 @@
-# The service imports its package as `src`, so resolve from this package root.
-exclude                      = ["tests/", "scripts/"]
-forbid_circular_dependencies = true
-root_module                  = "forbid"
-source_roots                 = ["."]
-
-[[modules]]
-depends_on = []
-path       = "src"

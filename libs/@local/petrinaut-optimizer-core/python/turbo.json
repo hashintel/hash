@@ -1,13 +1,42 @@
 {
   "extends": ["//"],
   "tasks": {
-    // TODO(SRE-1089): run type checking on all Python files, instead of just source files
-    "check:ty": {
-      "command": ["uv", "run", "--active", "--frozen", "ty", "check", "src"],
+    "lint:tach": {
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "tach",
+        "check"
+      ]
+    },
+    "lint:deptry": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "deptry",
+        "src"
+      ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
     "test:unit": {
-      "dependsOn": ["test"]
+      "dependsOn": ["^manifest"],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "pytest",
+        "."
+      ]
     }
   }
 }

@@ -1,7 +1,0 @@
-forbid_circular_dependencies = true
-root_module                  = "forbid"
-source_roots                 = ["src"]
-
-[[modules]]
-depends_on = []
-path       = "petrinaut_optimizer_core"

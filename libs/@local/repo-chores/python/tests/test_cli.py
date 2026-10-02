@@ -53,7 +53,7 @@ def cli_fixtures(
     return _CliFixtures(tmp_path, monkeypatch, capsys)
 
 
-def operation(location: Location, before: object, after: object, rule: str) -> Operation:
+def operation(location: Location, before: object, after: object, *, rule: str) -> Operation:
     return Operation(
         location=location,
         kind=OperationKind.SET,
@@ -68,7 +68,7 @@ def operation(location: Location, before: object, after: object, rule: str) -> O
 def check(*, changed: bool = False, blocked: bool = False) -> CheckReport:
     location = Location(manifest=Path("pyproject.toml"), path=("project", "name"))
     return CheckReport(
-        operations=(operation(location, "old", "new", "test"),) if changed else (),
+        operations=(operation(location, "old", "new", rule="test"),) if changed else (),
         diffs=(
             ManifestDiff(
                 path=location.manifest,
@@ -206,7 +206,7 @@ def test_grouped_literal_plain_output(
     error = RuleError(location=location, rule="pin_[red]", error=ValueError("missing [bold]pin"))
     warning = RuleWarning(location=location, rule="pin_[red]", warning=Warning("inspect [link]"))
     report = CheckReport(
-        operations=(operation(location, "foo>=1", "foo>=2", "pin_[red]"),),
+        operations=(operation(location, "foo>=1", "foo>=2", rule="pin_[red]"),),
         diffs=(ManifestDiff(path=manifest, before=b"a = 1 # [bold]\n", after=b"a = 2\n"),),
         diagnostics=(warning, error),
         passes=1,

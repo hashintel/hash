@@ -20,7 +20,7 @@ from repo_chores.constraints._engine.document import (
 from repo_chores.constraints._engine.location import LocationPath
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def trace() -> Iterator[MutationRecorder]:
     recorder = MutationRecorder()
     with recorder.activate():
@@ -148,13 +148,15 @@ _SECTIONS = [
 
 
 @pytest.mark.parametrize("case", _SECTIONS)
+@pytest.mark.usefixtures("trace")
 def test_section_order_keeps_explanations(case: SectionCase) -> None:
     proxy = _proxy(case.source)
     proxy.sort_sections(_positions(case.sections))
     assert proxy.render() == case.expected
     proxy.set_string(case.field, "updated")
     changed = proxy.expect(case.field, DocumentString)
-    assert changed is not None and changed.item == "updated"
+    assert changed is not None
+    assert changed.item == "updated"
     rendered = proxy.render()
     proxy.sort_sections(_positions(case.sections))
     assert proxy.render() == rendered
@@ -211,6 +213,7 @@ def test_section_order_keeps_explanations(case: SectionCase) -> None:
         ),
     ],
 )
+@pytest.mark.usefixtures("trace")
 def test_inline_authors(source: str, sections: tuple[LocationPath, ...], expected: str) -> None:
     proxy = _proxy(source)
     proxy.inline_array_of_tables(("project", "authors"))
@@ -252,6 +255,7 @@ def test_nested_author_table_refuses_before_mutation(trace: MutationRecorder) ->
         ),
     ],
 )
+@pytest.mark.usefixtures("trace")
 def test_delete(source: str, field: LocationPath, expected: str) -> None:
     proxy = _proxy(source)
     proxy.remove(field)
@@ -259,6 +263,7 @@ def test_delete(source: str, field: LocationPath, expected: str) -> None:
     assert proxy.at(field) is None
 
 
+@pytest.mark.usefixtures("trace")
 def test_retained_table_string_after_sort_and_removal() -> None:
     source = "[z]\nname = 'before' # keep\n[a]\nvalue = 1\n"
     document = _proxy(source)
@@ -275,9 +280,11 @@ def test_retained_table_string_after_sort_and_removal() -> None:
     with pytest.raises(LookupError, match="removed"):
         name.set("must not write")
     replacement = document.expect(("z", "name"), DocumentString)
-    assert replacement is not None and replacement.item == "replacement"
+    assert replacement is not None
+    assert replacement.item == "replacement"
 
 
+@pytest.mark.usefixtures("trace")
 def test_insert_into_empty_array_keeps_footer() -> None:
     source = "requires = [ # opening\n    # footer\n]\n"
     document = _proxy(source)
@@ -289,6 +296,7 @@ def test_insert_into_empty_array_keeps_footer() -> None:
     assert tomlkit.parse(expected)["requires"] == ["first"]
 
 
+@pytest.mark.usefixtures("trace")
 def test_replace_table_keeps_following_section_comment() -> None:
     source = "[project]\nname = 'p'\n[tool.old]\nvalue = 1\n\n# survivor\n[keep]\nvalue = 2\n"
     document = _proxy(source)
@@ -315,7 +323,7 @@ def test_trace_and_equal_assignment(trace: MutationRecorder) -> None:
     array = proxy.at(("project", "deps"))
     assert isinstance(array, DocumentArray)
     with mutation(reason="reason"):
-        proxy.set_boolean(("project", "flag"), False)
+        proxy.set_boolean(("project", "flag"), value=False)
         array.insert(1, DocumentString.from_str("b", location=array.location.descend(1)))
     array.permute([1, 0])
     assert proxy.render() == "[project]\nname = 'p' # keep\nflag = false\ndeps = [\"b\", 'a']\n"

@@ -218,6 +218,7 @@ class DependencyMap(Mapping[str, DependencySet]):
         self._field = field
         self._diagnostics = diagnostics
 
+    @override
     def __getitem__(self, name: str) -> DependencySet:
         if name not in self:
             raise KeyError(name)
@@ -226,15 +227,18 @@ class DependencyMap(Mapping[str, DependencySet]):
             manifest=self._manifest, field=(*self._field, name), diagnostics=self._diagnostics
         )
 
+    @override
     def __contains__(self, name: object) -> bool:
         table = self._manifest.document.expect(self._field, DocumentTable)
 
         return table is not None and name in table
 
+    @override
     def __iter__(self) -> Iterator[str]:
         table = self._manifest.document.expect(self._field, DocumentTable)
 
         return iter(table) if table is not None else iter(())
 
+    @override
     def __len__(self) -> int:
         return sum(1 for _ in self)

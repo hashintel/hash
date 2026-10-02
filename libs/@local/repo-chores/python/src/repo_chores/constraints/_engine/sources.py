@@ -11,6 +11,7 @@ from repo_chores.constraints._engine.document import (
     DocumentTables,
     DocumentValue,
 )
+from repo_chores.constraints._engine.document_native import NativeTable
 from repo_chores.constraints._engine.location import Location
 from repo_chores.constraints._engine.manifest import Manifest
 
@@ -18,11 +19,13 @@ _FIELD = ("tool", "uv", "sources")
 
 
 class DependencySource:
-    def __init__(self, definition: DocumentTable | DocumentArray | DocumentTables) -> None:
+    def __init__(
+        self, definition: DocumentTable[NativeTable] | DocumentArray | DocumentTables
+    ) -> None:
         self._definition = definition
 
     @property
-    def definition(self) -> DocumentTable | DocumentArray | DocumentTables:
+    def definition(self) -> DocumentTable[NativeTable] | DocumentArray | DocumentTables:
         return self._definition
 
     @property
@@ -87,7 +90,12 @@ class ManifestSources(DependencySources):
         location = Location(manifest=self._document.location.manifest, path=(*_FIELD, key))
 
         table = DocumentTable.from_entries(
-            (("workspace", DocumentValue.from_bool(True, location=location.descend("workspace"))),),
+            (
+                (
+                    "workspace",
+                    DocumentValue.from_bool(value=True, location=location.descend("workspace")),
+                ),
+            ),
             location=location,
             inline=True,
         )

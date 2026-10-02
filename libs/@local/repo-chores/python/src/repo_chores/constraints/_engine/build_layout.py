@@ -4,6 +4,7 @@ from pathlib import Path
 
 from repo_chores.constraints._engine.diagnostics import ManifestError
 from repo_chores.constraints._engine.document import DocumentString, DocumentTable
+from repo_chores.constraints._engine.document_native import NativeTable
 from repo_chores.constraints._engine.strings import StringList
 
 _FIELD = ("tool", "uv", "build-backend")
@@ -12,7 +13,7 @@ _FIELD = ("tool", "uv", "build-backend")
 class UvBuildLayout:
     """The live uv build-backend configuration with uv's defaults on absent fields."""
 
-    def __init__(self, document: DocumentTable) -> None:
+    def __init__(self, document: DocumentTable[NativeTable]) -> None:
         self._document = document
 
     @property

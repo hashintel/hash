@@ -1,17 +1,19 @@
 from collections.abc import Iterator
 
-from repo_chores.constraints._engine.diagnostics import ManifestError
+from repo_chores.constraints._engine.diagnostics import Diagnostics, ManifestError
 from repo_chores.constraints._engine.document import (
+    Document,
     DocumentArray,
     DocumentString,
     DocumentTable,
     DocumentTables,
 )
+from repo_chores.constraints._engine.document_native import NativeTable
 from repo_chores.constraints._engine.location import Location, LocationPath
 
 
 class Author:
-    def __init__(self, value: DocumentTable) -> None:
+    def __init__(self, value: DocumentTable[NativeTable]) -> None:
         self._value = value
 
     @property
@@ -40,9 +42,19 @@ class Author:
 
 
 class AuthorList:
-    def __init__(self, owner: DocumentTable, path: LocationPath) -> None:
+    def __init__(self, owner: Document, path: LocationPath, *, diagnostics: Diagnostics) -> None:
         self._owner = owner
         self._path = path
+        self._diagnostics = diagnostics
+
+    def inline(self) -> None:
+        try:
+            self._owner.inline_array_of_tables(self._path)
+        except (TypeError, ValueError) as error:
+            self._diagnostics.error(
+                location=Location(manifest=self._owner.location.manifest, path=self._path),
+                exception=error,
+            )
 
     def _array(self) -> DocumentArray | DocumentTables | None:
         value = self._owner.at(self._path)

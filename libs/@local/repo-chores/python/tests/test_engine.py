@@ -1,4 +1,5 @@
 import copy
+import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Never
@@ -171,7 +172,8 @@ ini_options = { testpaths = [] }
     [author] = package.authors
     [dependency_source] = package.sources.values()
     pytest_config = package.pytest
-    assert version is not None and license_expression is not None
+    assert version is not None
+    assert license_expression is not None
 
     reads: tuple[tuple[Callable[[], object], LocationPath], ...] = (
         (lambda: str(version), ("project", "requires-python")),
@@ -463,6 +465,100 @@ def test_stale_manifest(engine_case: EngineCase, monkeypatch: pytest.MonkeyPatch
     assert engine_case.member_manifest.read_text() == MEMBER + "# external writer\n"
 
 
+def test_turbo_creation_and_live_views(engine_case: EngineCase) -> None:
+    target = engine_case.member / "turbo.json"
+
+    def update(workspace: Workspace) -> None:
+        member = next(iter(workspace.members))
+        member.python_version = SpecifierSet(">=3.14")
+        config = workspace.turbo(member)
+        first = config.task("lint:deptry")
+        second = config.task("lint:deptry")
+        first.command = ["uv", "deptry", "src"]
+        assert second.command == ["uv", "deptry", "src"]
+        # Reading a missing root file, or deleting an absent override, creates nothing.
+        workspace.turbo(workspace).task("test-member#lint:deptry").command = None
+
+    check = engine_case.engine.check((update,))
+    assert check.status is CheckStatus.CHANGES
+    assert not target.exists()
+    assert engine_case.member_manifest.read_text() == MEMBER
+    created = next(diff for diff in check.diffs if diff.path == target)
+    assert created.before is None
+    assert created.unified().startswith("--- /dev/null\n")
+    assert engine_case.engine.fix((update,)).status is FixStatus.APPLIED
+    assert target.is_file()
+    assert not (engine_case.root / "turbo.json").exists()
+    assert engine_case.engine.check((update,)).status is CheckStatus.CLEAN
+    assert engine_case.engine.fix((update,)).status is FixStatus.UNCHANGED
+
+
+def test_turbo_cycle_blocks_all_writes(engine_case: EngineCase) -> None:
+    target = engine_case.member / "turbo.json"
+    original = '{"tasks":{"lint:deptry":{"command":["left"]}}}'
+    target.write_text(original)
+
+    def alternate(workspace: Workspace) -> None:
+        member = next(iter(workspace.members))
+        member.python_version = SpecifierSet(">=3.14")
+        task = workspace.turbo(member).task("lint:deptry")
+        task.command = ["right"] if task.command == ["left"] else ["left"]
+
+    report = engine_case.engine.fix((alternate,))
+    assert report.status is FixStatus.BLOCKED
+    assert report.written == ()
+    assert target.read_text() == original
+    assert engine_case.member_manifest.read_text() == MEMBER
+
+
+@pytest.mark.parametrize("symlink", [False, True])
+def test_unchanged_turbo_input_verified(
+    engine_case: EngineCase, monkeypatch: pytest.MonkeyPatch, *, symlink: bool
+) -> None:
+    target = engine_case.root / "turbo.json"
+    target.write_text("{}")
+    apply = ManifestWrites.apply
+
+    def update(workspace: Workspace) -> None:
+        assert workspace.turbo(workspace).task("unused").command is None
+        next(iter(workspace.members)).python_version = SpecifierSet(">=3.14")
+
+    def change_before_apply(writes: ManifestWrites) -> tuple[Path, ...]:
+        if symlink:
+            target.unlink()
+            target.symlink_to(engine_case.root / "missing.json")
+        else:
+            target.write_text('{"external": true}')
+        return apply(writes)
+
+    monkeypatch.setattr(ManifestWrites, "apply", change_before_apply)
+    with pytest.raises(ConcurrentManifestChangeError):
+        engine_case.engine.fix((update,))
+    assert engine_case.member_manifest.read_text() == MEMBER
+
+
+def test_turbo_concurrent_creation_cannot_be_overwritten(
+    engine_case: EngineCase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = engine_case.member / "turbo.json"
+    link = os.link
+
+    def update(workspace: Workspace) -> None:
+        workspace.turbo(next(iter(workspace.members))).task("test").command = ["echo", "hello"]
+
+    def create_before_link(source: Path, destination: Path) -> None:
+        assert destination == target
+        destination.write_text('{"external": true}', encoding="utf-8")
+        link(source, destination)
+
+    monkeypatch.setattr(os, "link", create_before_link)
+    with pytest.raises(FixError) as caught:
+        engine_case.engine.fix((update,))
+    assert caught.value.written == ()
+    assert target.read_text() == '{"external": true}'
+    assert not tuple(target.parent.glob(".turbo.json.*.tmp"))
+
+
 def test_retained_configuration_views(engine_case: EngineCase) -> None:
     package = engine_case.member_package()
     version = package.python_version
@@ -489,9 +585,10 @@ def test_source_field_views(engine_case: EngineCase) -> None:
     assert flag is not None
     recorder = MutationRecorder()
     with recorder.activate():
-        first.definition.set_boolean(("workspace",), True)
+        first.definition.set_boolean(("workspace",), value=True)
         package.sources.use_workspace("mixed-name")
-    assert second.is_workspace and flag.boolean
+    assert second.is_workspace
+    assert flag.boolean
     assert len(recorder.operations) == 1
     assert "Mixed_Name = { workspace = true } # source" in package.manifest.render().decode()
 
@@ -506,11 +603,11 @@ def test_layout_and_path_views(engine_case: EngineCase) -> None:
         member = next(iter(workspace.members))
         layout = member.uv_build_layout
         tests = member.pytest.test_paths
-        roots = workspace.tach.source_roots
+        roots = member.tach.source_roots
         layout.module_names = ("module",)
         layout.module_root = "lib"
         member.pytest.test_paths = (member.directory / "tests",)
-        workspace.tach.source_roots = (workspace.directory / "lib",)
+        member.tach.source_roots = (member.directory / "lib",)
         assert list(layout.module_names or ()) == ["module"]
         assert layout.module_root == "lib"
         assert list(tests) == [Path("tests")]
@@ -543,7 +640,8 @@ def test_author_table_removal(engine_case: EngineCase) -> None:
             second.name = None
     rendered = package.manifest.render().decode()
     assert package.authors[0].name == "Retained"
-    assert "# second" in rendered and "# first" not in rendered
+    assert "# second" in rendered
+    assert "# first" not in rendered
     assert "# sibling\n[tool.other]\nvalue = 1" in rendered
     assert "# tail\n[tool.tail]\nvalue = 2" in rendered
 
@@ -560,7 +658,7 @@ def test_author_assignment_keeps_comments() -> None:
     )
     with MutationRecorder().activate():
         package.authors[0].name = "HASH"
-        package.inline_authors()
+        package.authors.inline()
         package.sort_sections(key=lambda path: path[0] != "project")
     assert package.manifest.render().decode() == (
         "[project]\nname = 'p'\n\n# identity explanation\nauthors = [\n"
@@ -798,7 +896,8 @@ def test_build_requirements_are_live(engine_case: EngineCase) -> None:
 
     def update(workspace: Workspace) -> None:
         build = next(iter(workspace.members)).build_system
-        assert build is not None and build.requires is not None
+        assert build is not None
+        assert build.requires is not None
         if build.build_backend is not None:
             return
         zulu = build.requires[0]
@@ -809,7 +908,8 @@ def test_build_requirements_are_live(engine_case: EngineCase) -> None:
         # Copying a table must not give two manifests the same mutable nodes.
         zulu.specifier = SpecifierSet(">=3")
         copied = workspace.build_system
-        assert copied is not None and copied.requires is not None
+        assert copied is not None
+        assert copied.requires is not None
         assert copied.requires[1].specifier == SpecifierSet(">=2")
         assert build.requires[1].specifier == SpecifierSet(">=3")
 

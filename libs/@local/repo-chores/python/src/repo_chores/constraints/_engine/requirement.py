@@ -108,6 +108,7 @@ class RequirementList(MutableSequence[Requirement]):
     def __init__(self, requirements: DocumentArray) -> None:
         self._array = requirements
 
+    @override
     def __len__(self) -> int:
         return len(self._array)
 
@@ -186,6 +187,7 @@ class RequirementList(MutableSequence[Requirement]):
             requirement == item for requirement in self
         )
 
+    @override
     def insert(self, index: int, value: Requirement) -> None:
         self._array.insert(index, value.value())
 

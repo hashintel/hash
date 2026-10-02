@@ -16,7 +16,7 @@
     },
     "check:openapi": {
       "dependsOn": [
-        "codegen"
+        "petrinaut-python#codegen"
       ],
       "cache": false,
       "affectedBy": [
@@ -34,6 +34,12 @@
         "@hashintel/petrinaut-core",
         "@local/petrinaut-optimizer-core"
       ]
+    },
+    "lint:deptry": {
+      "dependsOn": []
+    },
+    "lint:tach": {
+      "dependsOn": []
     },
     "start": {
       "dependsOn": [
@@ -53,6 +59,19 @@
       ],
       "cache": false,
       "persistent": true,
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "@hashintel/petrinaut-core",
+        "@local/petrinaut-optimizer-core"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "check:openapi"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",

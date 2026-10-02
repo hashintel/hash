@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """Optuna study orchestration backed by the Petrinaut optimization protocol."""
-
-from __future__ import annotations
 
 import asyncio
 import json
@@ -11,20 +8,22 @@ import os
 import threading
 from collections.abc import Callable, Mapping
 from contextlib import suppress
-from typing import Any, cast
+from typing import Protocol
 
 import optuna
-import petrinaut_optimizer_core as optimizer_core
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 from opentelemetry.trace import Span, Status, StatusCode
+from optuna.trial import BaseTrial
+
+import petrinaut_optimizer_core as optimizer_core
 from petrinaut import (
     OptimizationDescribeResult,
-    OptimizationSession,
     PetrinautRunError,
 )
-
-from src.utils import Phase, set_status
+from petrinaut_optimization.events import EventBus
+from petrinaut_optimization.status import Phase, StatusStoreUpdateEvent
+from petrinaut_optimization.tasks import join_task
 
 log = logging.getLogger("pn_optimize")
 tracer = trace.get_tracer("pn_optimize")
@@ -37,7 +36,13 @@ MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE = "HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS"
 DEFAULT_MAX_STUDY_SECONDS = 900.0
 _DISCONNECT_POLL_SECONDS = 0.1
 _WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
-_SENTINEL = object()
+
+
+class _StudyFinished:
+    """The worker has enqueued every trial or failure event."""
+
+
+_SENTINEL = _StudyFinished()
 
 
 def max_study_seconds_from_environment() -> float:
@@ -59,14 +64,28 @@ def max_study_seconds_from_environment() -> float:
     return value
 
 
+type PetrinautOptimizerEvents = StatusStoreUpdateEvent
+
+
+class OptimizationModel(Protocol):
+    """The session operations needed to initialize and evaluate a study."""
+
+    def describe(self) -> OptimizationDescribeResult | Mapping[str, object]: ...
+
+    def objective(self, parameter_values: dict[str, optimizer_core.Scalar], /) -> float: ...
+
+    def close(self, *, graceful: bool = True) -> None: ...
+
+
 class PetrinautOptimizer:
     """Optimize the flat parameter descriptors the bindings report."""
 
     def __init__(
         self,
-        pn_model: OptimizationSession,
+        pn_model: OptimizationModel,
         *,
-        description: OptimizationDescribeResult | Mapping[str, Any] | None = None,
+        bus: EventBus[PetrinautOptimizerEvents],
+        description: OptimizationDescribeResult | Mapping[str, object] | None = None,
     ) -> None:
         raw = pn_model.describe() if description is None else description
         # Test doubles and stored payloads hand over plain mappings; a real
@@ -76,9 +95,8 @@ class PetrinautOptimizer:
             if isinstance(raw, OptimizationDescribeResult)
             else OptimizationDescribeResult.model_validate(raw)
         )
-        self.description = optimizer_core.parse_description(
-            described.model_dump(mode="json")
-        )
+        self.description = optimizer_core.parse_description(described.model_dump(mode="json"))
+        self.bus = bus
         self.parameters = self.description.parameters
         self.direction = self.description.direction
         self.n_trials = self.description.trials
@@ -86,11 +104,11 @@ class PetrinautOptimizer:
         self.pn_model = pn_model
         self.lock = threading.Lock()
 
-    def suggest(self, trial: optuna.Trial) -> dict[str, optimizer_core.Scalar]:
+    def suggest(self, trial: BaseTrial) -> dict[str, optimizer_core.Scalar]:
         """Ask Optuna for each non-fixed scenario parameter the study describes."""
         return optimizer_core.suggest(trial, self.parameters)
 
-    def objective(self, trial: optuna.Trial) -> float:
+    def objective(self, trial: BaseTrial) -> float:
         """Propose one flat parameter set and ask Petrinaut to evaluate it."""
         prune_cause: PetrinautRunError | None = None
         with tracer.start_as_current_span("optimization.trial") as span:
@@ -104,7 +122,7 @@ class PetrinautOptimizer:
                 # so it does not trip the default ERROR status / exception event.
                 # Genuinely unexpected exceptions still propagate through the
                 # `with` block and are recorded as errors as usual.
-                span.set_attribute("optuna.trial.pruned", True)
+                span.set_attribute("optuna.trial.pruned", value=True)
                 log.warning(
                     "trial %d failed — pruned",
                     trial.number,
@@ -115,21 +133,19 @@ class PetrinautOptimizer:
                 span.set_attribute("optuna.trial.value", value)
                 return value
 
-        raise optuna.TrialPruned() from prune_cause
+        raise optuna.TrialPruned from prune_cause
 
     def _start_study_worker(
         self,
+        *,
         loop: asyncio.AbstractEventLoop,
-        events: asyncio.Queue[dict[str, Any] | object],
+        events: asyncio.Queue[dict[str, object] | _StudyFinished],
         stop_flag: threading.Event | None = None,
         n_trials: int | None = None,
         payload_builder: (
-            Callable[[optuna.Study, optuna.trial.FrozenTrial], dict[str, Any] | None]
-            | None
+            Callable[[optuna.Study, optuna.trial.FrozenTrial], dict[str, object] | None] | None
         ) = None,
-        *,
-        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None]
-        | None = None,
+        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None] | None = None,
     ) -> tuple[threading.Thread, Span]:
         """Run the study on a worker thread that inherits the request's context.
 
@@ -141,16 +157,13 @@ class PetrinautOptimizer:
         """
         if n_trials is None:
             raise ValueError("n_trials is required")
+
         study_callback = callback
         if study_callback is None:
             if stop_flag is None or payload_builder is None:
-                raise ValueError(
-                    "callback or detached-run callback inputs are required"
-                )
+                raise ValueError("callback or detached-run callback inputs are required")
 
-            def emit_trial_payload(
-                study: optuna.Study, trial: optuna.trial.FrozenTrial
-            ) -> None:
+            def emit_trial_payload(study: optuna.Study, trial: optuna.trial.FrozenTrial) -> None:
                 payload = payload_builder(study, trial)
                 if payload is not None:
                     loop.call_soon_threadsafe(events.put_nowait, payload)
@@ -175,7 +188,7 @@ class PetrinautOptimizer:
                     n_trials=n_trials,
                     callbacks=[study_callback],
                 )
-            except Exception as error:
+            except Exception as error:  # ruff: ignore[blind-except]
                 study_span.record_exception(error)
                 study_span.set_status(Status(StatusCode.ERROR))
                 loop.call_soon_threadsafe(
@@ -191,9 +204,7 @@ class PetrinautOptimizer:
         return worker, study_span
 
     @staticmethod
-    def _trial_payload(
-        _study: optuna.Study, trial: optuna.trial.FrozenTrial
-    ) -> dict[str, Any]:
+    def _trial_payload(_study: optuna.Study, trial: optuna.trial.FrozenTrial) -> dict[str, object]:
         return {
             "step": trial.number,
             "params": dict(trial.params),
@@ -202,46 +213,75 @@ class PetrinautOptimizer:
             "state": trial.state.name,
         }
 
+    async def _finish_study(
+        self,
+        *,
+        worker: threading.Thread,
+        study_span: Span,
+        completed: bool,
+        log_context: Mapping[str, str | None],
+    ) -> None:
+        try:
+            try:
+                await asyncio.to_thread(self.pn_model.close, graceful=completed)
+            finally:
+                await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
+                if worker.is_alive():
+                    log.error(
+                        "Petrinaut optimizer worker did not stop after session shutdown",
+                        extra={"event": "worker_join_timeout", **log_context},
+                    )
+        finally:
+            self.lock.release()
+            # No completed trial means no best value to report.
+            with suppress(ValueError):
+                study_span.set_attribute("optuna.study.best_value", self.study.best_value)
+            study_span.end()
+
     async def pump_events(
         self,
-        app: Any,
         run_id: str,
         n_trials: int,
         *,
-        on_event: Callable[[str], Any],
+        on_event: Callable[[str], object],
         cancel_event: asyncio.Event,
-        on_outcome: Callable[[str], Any] | None = None,
+        on_outcome: Callable[[str], object] | None = None,
         correlation: Mapping[str, str | None] | None = None,
     ) -> str:
         """Run a bounded detached study and append its frames to the event log."""
         log_context = {**(correlation or {}), "run_id": run_id}
 
-        def record_nothing(_outcome: str) -> None:
-            return None
-
-        record_outcome = on_outcome if on_outcome is not None else record_nothing
+        record_outcome = on_outcome if on_outcome is not None else lambda _outcome: None
         if not self.lock.acquire(blocking=False):
             on_event('event: error\ndata: {"message": "already running"}\n\n')
             record_outcome("failed")
             return "failed"
 
-        set_status(app, run_id, phase=Phase.running, detail="optimization running")
+        self.bus.publish(
+            StatusStoreUpdateEvent(
+                run_id=run_id, changes={"phase": Phase.running, "detail": "optimization running"}
+            )
+        )
+
         log.info(
             "optimization study started",
             extra={"event": "study_started", "trials": n_trials, **log_context},
         )
         loop = asyncio.get_running_loop()
-        events: asyncio.Queue[dict[str, Any] | object] = asyncio.Queue()
+        events: asyncio.Queue[dict[str, object] | _StudyFinished] = asyncio.Queue()
         stop_flag = threading.Event()
 
         worker, study_span = self._start_study_worker(
-            loop, events, stop_flag, n_trials, self._trial_payload
+            loop=loop,
+            events=events,
+            stop_flag=stop_flag,
+            n_trials=n_trials,
+            payload_builder=self._trial_payload,
         )
         max_study_seconds = max_study_seconds_from_environment()
-        study_deadline = (
-            loop.time() + max_study_seconds if max_study_seconds > 0 else None
-        )
+        study_deadline = loop.time() + max_study_seconds if max_study_seconds > 0 else None
         completed = False
+
         try:
             while True:
                 if cancel_event.is_set():
@@ -259,7 +299,11 @@ class PetrinautOptimizer:
                             "optimization study exceeded its "
                             f"{max_study_seconds:g} second execution limit"
                         )
-                        set_status(app, run_id, phase=Phase.error, detail=message)
+                        self.bus.publish(
+                            StatusStoreUpdateEvent(
+                                run_id=run_id, changes={"phase": Phase.error, "detail": message}
+                            )
+                        )
                         log.warning(
                             "optimization study timed out",
                             extra={
@@ -278,14 +322,16 @@ class PetrinautOptimizer:
                     # keep draining: a study that actually finished within
                     # the limit is reported as completed.
                 try:
-                    item = await asyncio.wait_for(
-                        events.get(), timeout=_DISCONNECT_POLL_SECONDS
-                    )
-                except asyncio.TimeoutError:
+                    item = await asyncio.wait_for(events.get(), timeout=_DISCONNECT_POLL_SECONDS)
+                except TimeoutError:
                     continue
-                if item is _SENTINEL:
-                    set_status(
-                        app, run_id, phase=Phase.done, detail="optimization completed"
+
+                if isinstance(item, _StudyFinished):
+                    self.bus.publish(
+                        StatusStoreUpdateEvent(
+                            run_id=run_id,
+                            changes={"phase": Phase.done, "detail": "optimization completed"},
+                        )
                     )
                     completed = True
                     log.info(
@@ -299,37 +345,34 @@ class PetrinautOptimizer:
                     on_event("event: done\ndata: {}\n\n")
                     record_outcome("completed")
                     return "completed"
-                event = cast(dict[str, Any], item)
-                if event.get("state") == "ERROR":
-                    set_status(
-                        app,
-                        run_id,
-                        phase=Phase.error,
-                        detail=cast(str, event.get("message")),
+
+                if item.get("state") == "ERROR":
+                    self.bus.publish(
+                        StatusStoreUpdateEvent(
+                            run_id=run_id,
+                            changes={
+                                "phase": Phase.error,
+                                "detail": item.get("message"),
+                            },
+                        )
                     )
                     log.warning(
                         "optimization study failed",
                         extra={"event": "study_failed", **log_context},
                     )
-                    on_event(f"data: {json.dumps(event)}\n\n")
+                    on_event(f"data: {json.dumps(item)}\n\n")
                     record_outcome("failed")
                     return "failed"
-                on_event(f"data: {json.dumps(event)}\n\n")
+                on_event(f"data: {json.dumps(item)}\n\n")
         finally:
             stop_flag.set()
-            try:
-                await asyncio.to_thread(self.pn_model.close, graceful=completed)
-                await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
-                if worker.is_alive():
-                    log.error(
-                        "Petrinaut optimizer worker did not stop after session shutdown",
-                        extra={"event": "worker_join_timeout", **log_context},
+            await join_task(
+                asyncio.create_task(
+                    self._finish_study(
+                        worker=worker,
+                        study_span=study_span,
+                        completed=completed,
+                        log_context=log_context,
                     )
-            finally:
-                self.lock.release()
-                # No completed trial means no best value to report.
-                with suppress(ValueError):
-                    study_span.set_attribute(
-                        "optuna.study.best_value", self.study.best_value
-                    )
-                study_span.end()
+                )
+            )

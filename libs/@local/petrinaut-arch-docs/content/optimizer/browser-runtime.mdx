@@ -66,8 +66,8 @@ does not offer these controls, and the provider refuses to start a study on it.
    `create_browser_study(description, parallelism)` builds the study once per
    run (the constant-liar TPE sampler when `parallelism` is above 1) and keeps
    it in a handle;
-   `run_browser_study(handle, trials, evaluate, on_trial, is_cancelled)` runs
-   one segment on that handle, asking the sampler for values and awaiting the
+   `run_browser_study(handle, trials, **callbacks)` runs
+   one segment on that handle with keyword-only callbacks, asking the sampler for values and awaiting the
    `evaluate` callback for each trial, with up to the handle's `parallelism`
    trials in flight; `release_browser_study(handle)` drops the study.
 4. **Worker → channel.** Each `evaluate` crosses to the main thread as

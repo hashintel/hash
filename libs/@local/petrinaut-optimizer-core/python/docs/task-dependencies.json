@@ -1,5 +1,18 @@
 {
   "package": "petrinaut-optimizer-core",
   "dependencies": [],
-  "tasks": {}
+  "tasks": {
+    "lint:deptry": {
+      "dependsOn": []
+    },
+    "lint:tach": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
 }

@@ -9,6 +9,18 @@
     "lint:constraints": {
       "dependsOn": [],
       "cache": false
+    },
+    "lint:deptry": {
+      "dependsOn": []
+    },
+    "lint:tach": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
     }
   }
 }
