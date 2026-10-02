@@ -55,16 +55,12 @@ export const WordsConfigurer = ({
     requestAnimationFrame(() => addButton.current?.focus());
   };
   return (
-    <Dialog size="sm" onClose={onClose} aria-label="Words for Voice assistant">
+    <Dialog size="sm" onClose={onClose} aria-label="Custom words">
       <Dialog.Header
         title={
-          editing
-            ? editing.id
-              ? "Edit word"
-              : "Add a word"
-            : "Words for Voice assistant"
+          editing ? (editing.id ? "Edit word" : "Add a word") : "Custom words"
         }
-        description="Help Brunch recognize names and terms."
+        description="Help recognize and pronounce names and terms."
       />
       <Dialog.Body>
         <div className={stackStyle}>
@@ -180,9 +176,7 @@ export const WordsConfigurer = ({
                   Add word
                 </Button>
               </div>
-              {entries.length === 0 ? (
-                <p>Add a name Brunch mishears.</p>
-              ) : (
+              {entries.length > 0 && (
                 <ul
                   className={css({
                     listStyle: "none",
@@ -237,17 +231,15 @@ export const WordsConfigurer = ({
               )}
               {saved && (
                 <p role="status">
-                  {notice ? "Updated in this tab." : "Saved."} Restart Voice to
-                  use these changes.
+                  {notice ? "Updated in this tab." : "Saved."}
                 </p>
               )}
             </>
           )}
           <div className={mutedStyle}>
             <p>
-              Changes apply to Brunch’s next reply. Restart Voice to use them
-              when hearing or speaking. Saved in this browser for this
-              conversation. Clearing the conversation clears this list.
+              Restart Voice to apply changes. Words are saved in this browser
+              and cleared with this conversation.
             </p>
           </div>
         </div>

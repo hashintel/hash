@@ -170,9 +170,9 @@ export const AssistantLabsSettings = ({
       )}
       {brunchSelected && setWordsEnabled && (
         <AssistantSetting
-          description="Teach Brunch names and terms. Saved in this browser for this conversation. Voice changes apply when you restart Voice."
+          description="Help recognize and pronounce names and terms."
           disabled={!wordsPreferenceReady}
-          label="Words for Voice assistant"
+          label="Custom words"
           onChange={setWordsEnabled}
           value={wordsEnabled}
         />
