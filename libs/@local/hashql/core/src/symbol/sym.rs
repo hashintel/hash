@@ -55,6 +55,8 @@ hashql_macros::define_symbols! {
     end,
     entity,
     Entity,
+    EntityType,
+    EntityTypeMetadata,
     entity_edition_id,
     entity_id,
     entity_type_ids,
@@ -195,6 +197,7 @@ hashql_macros::define_symbols! {
     body,
     tmp,
     decision_time_now,
+    Graph,
     graph,
     types,
     principal,
@@ -206,10 +209,13 @@ hashql_macros::define_symbols! {
     url,
     result,
     json,
+    JsonPath,
+    JsonPathSegment,
     // [tidy] sort alphabetically end
 
     internal: {
-        ClosureEnv: "'<ClosureEnv>"
+        ClosureEnv: "'<ClosureEnv>",
+        marker: "'marker"
     },
 
     symbol: {
@@ -361,15 +367,28 @@ hashql_macros::define_symbols! {
                 sqrt: "::core::math::sqrt",
                 cbrt: "::core::math::cbrt",
                 root: "::core::math::root",
+            },
+            result: {
+                Ok: "::core::result::Ok",
+                Err: "::core::result::Err",
             }
         },
         graph: {
+            Graph: "::graph::Graph",
             entity: {
                 is_of_type: "::graph::entity::is_of_type",
                 property: "::graph::entity::property",
             },
             tmp: {
                 decision_time_now: "::graph::tmp::decision_time_now",
+            },
+            types: {
+                ontology: {
+                    entity_type: {
+                        EntityType: "::graph::types::ontology::entity_type::EntityType",
+                        EntityTypeMetadata: "::graph::types::ontology::entity_type::EntityTypeMetadata",
+                    }
+                }
             }
         }
         // [tidy] sort alphabetically end

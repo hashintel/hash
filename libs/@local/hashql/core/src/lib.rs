@@ -40,7 +40,8 @@
     variant_count,
     const_range_bounds,
     const_index,
-    clone_to_uninit
+    clone_to_uninit,
+    maybe_uninit_fill
 )]
 
 extern crate alloc;
