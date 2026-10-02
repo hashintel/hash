@@ -1,0 +1,24 @@
+//@ run: pass
+//@ description: Same intrinsic used in value position twice shares a single synthetic body
+[
+  "let",
+  "apply",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer", "f": "_" } },
+    "_",
+    ["f", "a", "b"]
+  ],
+  [
+    "let",
+    "r1",
+    ["apply", { "#literal": 1 }, { "#literal": 2 }, "<="],
+    [
+      "let",
+      "r2",
+      ["apply", { "#literal": 3 }, { "#literal": 4 }, "<="],
+      "r2"
+    ]
+  ]
+]
