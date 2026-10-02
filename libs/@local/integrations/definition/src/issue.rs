@@ -1,8 +1,6 @@
 use alloc::{borrow::ToOwned as _, string::String, vec::Vec};
 use core::fmt::{self, Display, Formatter, Write as _};
 
-use type_system::ontology::VersionedUrl;
-
 use crate::name::{CheckpointName, LinkId, SourceName, StepId, UnitMapName, is_name};
 
 /// One step of a [`DefinitionPath`].
@@ -122,19 +120,8 @@ pub enum IssueKind {
     ReadsOwnCheckpoint { checkpoint: CheckpointName },
     #[display("unit map `{unit_map}` is not declared")]
     UnknownUnitMap { unit_map: UnitMapName },
-    #[display("unit map has no units and no fallback")]
-    EmptyUnitMap,
-    #[display("branch has no steps")]
-    EmptyBranch,
-    #[display("link reads no checkpoints")]
-    EmptyInputs,
     #[display("link reads several checkpoints but has no step to combine them")]
     UncombinedInputs,
-    #[display("`{first}` and `{second}` are versions of the same property type")]
-    ConflictingPropertyVersions {
-        first: VersionedUrl,
-        second: VersionedUrl,
-    },
 }
 
 /// A problem in a definition, with its location.

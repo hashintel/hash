@@ -25,7 +25,7 @@ mod unit_map;
 pub use self::{
     definition::{Definition, DefinitionParts},
     issue::{DefinitionIssue, DefinitionPath, IssueKind, PathSegment},
-    link::{LinkEndpoint, LinkInput, LinkPipeline, LinkStep},
+    link::{EmptyLinkInputs, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline, LinkStep},
     name::{
         CheckpointName, ColumnName, ConnectorId, InputAlias, InvalidName, LinkId, SourceName,
         StepId, UnitCode, UnitMapName,
@@ -34,6 +34,9 @@ pub use self::{
     source::{
         Coverage, EmptySqlQuery, InvalidPrimaryKey, PrimaryKey, Source, SourceKind, SqlQuery,
     },
-    step::{Accessor, Action, BranchStep, Coercion, EntitySink, Properties, Step, StepKind},
-    unit_map::UnitMap,
+    step::{
+        Accessor, Action, BranchStep, Branches, Coercion, ConflictingPropertyVersions, EntitySink,
+        InvalidBranches, Properties, Step, StepKind,
+    },
+    unit_map::{EmptyUnitMap, UnitMap},
 };

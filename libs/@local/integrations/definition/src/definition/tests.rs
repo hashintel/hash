@@ -10,9 +10,9 @@ use core::{fmt::Debug, str::FromStr};
 use type_system::ontology::VersionedUrl;
 
 use crate::{
-    Accessor, Action, BranchStep, Coverage, Definition, DefinitionParts, EntityPipeline,
-    EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkPipeline, LinkStep, PrimaryKey, Source,
-    SourceKind, SourceName, SqlQuery, Step, StepKind, UnitMap,
+    Accessor, Action, BranchStep, Branches, Coverage, Definition, DefinitionParts, EntityPipeline,
+    EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline, LinkStep, PrimaryKey,
+    Properties, Source, SourceKind, SourceName, SqlQuery, Step, StepKind, UnitMap,
 };
 
 const TYPES: &str = "https://example.test/@demo/types";
@@ -53,10 +53,13 @@ fn sink(entity_type: &str, entity_id: &str, properties: Vec<(&str, Accessor)>) -
     Action::Sink(EntitySink {
         entity_type: url(entity_type),
         entity_id: parse(entity_id),
-        properties: properties
-            .into_iter()
-            .map(|(property_type, accessor)| (url(property_type), accessor))
-            .collect(),
+        properties: Properties::try_from(
+            properties
+                .into_iter()
+                .map(|(property_type, accessor)| (url(property_type), accessor))
+                .collect::<BTreeMap<_, _>>(),
+        )
+        .expect("test properties should not conflict"),
     })
 }
 
@@ -75,10 +78,11 @@ fn aviation() -> DefinitionParts {
         ]),
         unit_maps: BTreeMap::from([(
             parse("masses"),
-            UnitMap {
-                units: BTreeMap::from([(parse("KG"), url("data-type/kilogram/v/1"))]),
-                fallback: Some(url("data-type/mass/v/1")),
-            },
+            UnitMap::new(
+                BTreeMap::from([(parse("KG"), url("data-type/kilogram/v/1"))]),
+                Some(url("data-type/mass/v/1")),
+            )
+            .expect("test unit maps should not be empty"),
         )]),
         entity_pipelines: vec![
             EntityPipeline {
@@ -144,7 +148,7 @@ fn aviation() -> DefinitionParts {
                 column: parse("HOME_BASE"),
             },
             link_type: url("entity-type/based-at/v/1"),
-            properties: BTreeMap::new(),
+            properties: Properties::default(),
         }],
     }
 }
@@ -363,10 +367,13 @@ fn duplicate_checkpoint() {
     let mut parts = aviation();
     pipeline_mut(&mut parts, "airfields").steps.push(Step {
         id: parse("fan-out"),
-        kind: StepKind::Branch(vec![vec![BranchStep {
-            id: parse("cp-again"),
-            action: Action::Checkpoint(parse("aviation/aircraft")),
-        }]]),
+        kind: StepKind::Branch(
+            Branches::new([vec![BranchStep {
+                id: parse("cp-again"),
+                action: Action::Checkpoint(parse("aviation/aircraft")),
+            }]])
+            .expect("test branches should not be empty"),
+        ),
     });
     assert_eq!(
         issues(parts),
@@ -437,68 +444,19 @@ fn unknown_unit_map() {
 }
 
 #[test]
-fn empty_unit_map() {
-    let mut parts = aviation();
-    parts.unit_maps.insert(
-        parse("lengths"),
-        UnitMap {
-            units: BTreeMap::new(),
-            fallback: None,
-        },
-    );
-    assert_eq!(
-        issues(parts),
-        [("unitMaps.lengths".to_owned(), IssueKind::EmptyUnitMap)],
-        "a unit map without units or a fallback should be reported"
-    );
-}
-
-#[test]
-fn empty_branch() {
-    let mut parts = aviation();
-    pipeline_mut(&mut parts, "airfields").steps.push(Step {
-        id: parse("fan-out"),
-        kind: StepKind::Branch(vec![vec![]]),
-    });
-    assert_eq!(
-        issues(parts),
-        [(
-            "pipelines.entities[1].steps[2].branches[0]".to_owned(),
-            IssueKind::EmptyBranch
-        )],
-        "a branch without steps should be reported"
-    );
-}
-
-#[test]
-fn inputs_empty() {
-    let mut parts = aviation();
-    parts
-        .link_pipelines
-        .first_mut()
-        .expect("the link pipeline should exist")
-        .input = LinkInput::Inputs(BTreeMap::new());
-    assert_eq!(
-        issues(parts),
-        [(
-            "pipelines.links[0].inputs".to_owned(),
-            IssueKind::EmptyInputs
-        )],
-        "a link without input checkpoints should be reported"
-    );
-}
-
-#[test]
 fn inputs_uncombined() {
     let mut parts = aviation();
     parts
         .link_pipelines
         .first_mut()
         .expect("the link pipeline should exist")
-        .input = LinkInput::Inputs(BTreeMap::from([
-        (parse("aircraft"), parse("aviation/aircraft")),
-        (parse("airfields"), parse("aviation/airfields")),
-    ]));
+        .input = LinkInput::Inputs(
+        LinkInputs::try_from(BTreeMap::from([
+            (parse("aircraft"), parse("aviation/aircraft")),
+            (parse("airfields"), parse("aviation/airfields")),
+        ]))
+        .expect("test inputs should not be empty"),
+    );
     assert_eq!(
         issues(parts),
         [(
@@ -506,33 +464,6 @@ fn inputs_uncombined() {
             IssueKind::UncombinedInputs
         )],
         "a link that reads several checkpoints without a step should be reported"
-    );
-}
-
-#[test]
-fn conflicting_property_versions() {
-    let mut parts = aviation();
-    let Some(Step {
-        kind: StepKind::Action(Action::Sink(sink)),
-        ..
-    }) = pipeline_mut(&mut parts, "airfields").steps.first_mut()
-    else {
-        panic!("the first airfields step should be a sink");
-    };
-    sink.properties
-        .insert(url("property-type/name/v/2"), column("FIELD_NAME"));
-    assert_eq!(
-        issues(parts),
-        [(
-            format!(
-                r#"pipelines.entities[1].steps[0].properties["{TYPES}/property-type/name/v/2"]"#
-            ),
-            IssueKind::ConflictingPropertyVersions {
-                first: url("property-type/name/v/1"),
-                second: url("property-type/name/v/2"),
-            }
-        )],
-        "two versions of one property type should be reported at the later one"
     );
 }
 

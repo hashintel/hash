@@ -36,15 +36,6 @@ impl<'parts> Check<'parts> {
         self.issues.push(DefinitionIssue { path, kind });
     }
 
-    fn unit_maps(&mut self) {
-        for (name, unit_map) in &self.parts.unit_maps {
-            if unit_map.units.is_empty() && unit_map.fallback.is_none() {
-                let path = DefinitionPath::default().field("unitMaps").key(name);
-                self.report(path, IssueKind::EmptyUnitMap);
-            }
-        }
-    }
-
     fn pipeline_sources(&mut self) {
         let entities = entities_path();
 
@@ -106,22 +97,6 @@ impl<'parts> Check<'parts> {
                 );
             }
         }
-
-        // Keys are sorted by base URL first, so versions of one property type are adjacent.
-        let property_types: Vec<_> = properties.keys().collect();
-        for pair in property_types.windows(2) {
-            if let [first, second] = pair
-                && first.base_url == second.base_url
-            {
-                self.report(
-                    path.key(second.to_string()),
-                    IssueKind::ConflictingPropertyVersions {
-                        first: (*first).clone(),
-                        second: (*second).clone(),
-                    },
-                );
-            }
-        }
     }
 
     fn action(&mut self, pipeline_index: usize, action: &'parts Action, path: &DefinitionPath) {
@@ -153,16 +128,8 @@ impl<'parts> Check<'parts> {
                 StepKind::Action(action) => self.action(pipeline_index, action, &path),
                 StepKind::Branch(branches) => {
                     let branches_path = path.field("branches");
-                    if branches.is_empty() {
-                        self.report(branches_path.clone(), IssueKind::EmptyBranch);
-                    }
-
                     for (branch_index, branch) in branches.iter().enumerate() {
                         let branch_path = branches_path.index(branch_index);
-                        if branch.is_empty() {
-                            self.report(branch_path.clone(), IssueKind::EmptyBranch);
-                        }
-
                         for (inner_index, inner) in branch.iter().enumerate() {
                             let inner_path = branch_path.index(inner_index);
                             self.step_id(&inner.id, &inner_path);
@@ -188,10 +155,7 @@ impl<'parts> Check<'parts> {
             }
             LinkInput::Inputs(inputs) => {
                 let inputs_path = path.field("inputs");
-                if inputs.is_empty() {
-                    self.report(inputs_path.clone(), IssueKind::EmptyInputs);
-                }
-                if inputs.len() > 1 && link.steps.is_empty() {
+                if inputs.iter().len() > 1 && link.steps.is_empty() {
                     self.report(inputs_path.clone(), IssueKind::UncombinedInputs);
                 }
 
@@ -329,7 +293,6 @@ impl<'parts> Check<'parts> {
             steps: BTreeSet::new(),
         };
 
-        check.unit_maps();
         check.pipeline_sources();
         for (index, pipeline) in parts.entity_pipelines.iter().enumerate() {
             check.entity_steps(index, pipeline);
