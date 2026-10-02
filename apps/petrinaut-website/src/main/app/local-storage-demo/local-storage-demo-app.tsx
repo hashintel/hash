@@ -458,8 +458,17 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
-  const { level: interviewBudgetLevel, setLevel: setInterviewBudgetLevel } =
-    useInterviewBudgetPreference();
+  const {
+    level: selectedInterviewBudgetLevel,
+    setLevel: setInterviewBudgetLevel,
+    enabled: interviewBudgetEnabled,
+    setEnabled: setInterviewBudgetEnabled,
+    ready: interviewBudgetPreferenceReady,
+  } = useInterviewBudgetPreference();
+  const interviewBudgetLevel =
+    interviewBudgetEnabled && interviewBudgetPreferenceReady
+      ? selectedInterviewBudgetLevel
+      : "off";
   const [budgetNotes, setBudgetNotes] = useState<
     {
       conversationId: string;
@@ -1036,51 +1045,54 @@ export const LocalStorageDemoApp = ({
             ) => (
               <>
                 <BrunchExperimentFollowUp context={context} />
-                <InterviewBudgetControl
-                  level={interviewBudgetLevel}
-                  onChange={(level) => {
-                    if (level === interviewBudgetLevel) return;
-                    const last = context.messages.at(-1);
-                    if (last) {
-                      const config = interviewBudgetLevelsConfig[level];
-                      setBudgetNotes((notes) => [
-                        ...notes,
-                        {
-                          conversationId: context.conversationId,
-                          level,
-                          after: {
-                            id: last.id,
-                            role: last.role,
-                            ordinal: context.messages.filter(
-                              (message) => message.role === last.role,
-                            ).length,
+                {interviewBudgetEnabled && (
+                  <InterviewBudgetControl
+                    level={interviewBudgetLevel}
+                    onChange={(level) => {
+                      if (level === interviewBudgetLevel) return;
+                      const last = context.messages.at(-1);
+                      if (last) {
+                        const config = interviewBudgetLevelsConfig[level];
+                        setBudgetNotes((notes) => [
+                          ...notes,
+                          {
+                            conversationId: context.conversationId,
+                            level,
+                            after: {
+                              id: last.id,
+                              role: last.role,
+                              ordinal: context.messages.filter(
+                                (message) => message.role === last.role,
+                              ).length,
+                            },
+                            message: {
+                              id: `interview-budget:${crypto.randomUUID()}`,
+                              role: "system",
+                              parts: [
+                                {
+                                  type: "text",
+                                  text: `${config.name} · ${config.guide}`,
+                                },
+                              ],
+                            },
                           },
-                          message: {
-                            id: `interview-budget:${crypto.randomUUID()}`,
-                            role: "system",
-                            parts: [
-                              {
-                                type: "text",
-                                text: `${config.name} · ${config.guide}`,
-                              },
-                            ],
-                          },
-                        },
-                      ]);
-                    }
-                    setInterviewBudgetLevel(level);
-                  }}
-                />
+                        ]);
+                      }
+                      setInterviewBudgetLevel(level);
+                    }}
+                  />
+                )}
               </>
             ),
             renderComposerStatus: (
               context: PetrinautAiComposerControlContext,
-            ) => (
-              <InterviewBudgetPill
-                level={interviewBudgetLevel}
-                context={context}
-              />
-            ),
+            ) =>
+              interviewBudgetEnabled ? (
+                <InterviewBudgetPill
+                  level={interviewBudgetLevel}
+                  context={context}
+                />
+              ) : null,
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
@@ -1154,6 +1166,7 @@ export const LocalStorageDemoApp = ({
   }, [
     aiMessagesByNetId,
     budgetNotes,
+    interviewBudgetEnabled,
     interviewBudgetLevel,
     setInterviewBudgetLevel,
     mapVoiceMessages,
@@ -1252,10 +1265,15 @@ export const LocalStorageDemoApp = ({
                     assistantReady={assistantSelectionReady}
                     brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                     brunchSelected={brunchSelected}
+                    interviewBudgetEnabled={interviewBudgetEnabled}
+                    interviewBudgetPreferenceReady={
+                      interviewBudgetPreferenceReady
+                    }
                     openAIVoiceConfig={openAIVoiceConfig}
                     realtimeEnabled={realtimeEnabled}
                     realtimePreferenceReady={realtimePreferenceReady}
                     selectAssistant={selectAssistant}
+                    setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                     setRealtimeEnabled={setRealtimeEnabled}
                     setVoiceEnabled={setVoiceEnabled}
                     voiceEnabled={brunchSelected && voiceEnabled}
