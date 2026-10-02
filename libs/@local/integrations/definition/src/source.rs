@@ -10,7 +10,8 @@ pub struct EmptySqlQuery;
 /// The text of an SQL query that is not empty.
 ///
 /// The text is checked only for emptiness here. The engine parses it when the pipeline runs.
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::AsRef)]
+#[as_ref(forward)]
 pub struct SqlQuery(String);
 
 impl TryFrom<String> for SqlQuery {
@@ -21,12 +22,6 @@ impl TryFrom<String> for SqlQuery {
             return Err(EmptySqlQuery);
         }
         Ok(Self(query))
-    }
-}
-
-impl AsRef<str> for SqlQuery {
-    fn as_ref(&self) -> &str {
-        &self.0
     }
 }
 
