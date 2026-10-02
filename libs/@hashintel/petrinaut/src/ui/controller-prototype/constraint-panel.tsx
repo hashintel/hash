@@ -35,6 +35,7 @@ import { useDraftField } from "../hooks/use-draft-field";
 import { UI_MESSAGES } from "../constants/ui-messages";
 import { LastExperiment } from "./constraint-results";
 import { ConstraintIcon } from "./constraint-tree";
+import { SubjectPicker } from "./subject-picker";
 
 import type {
   Check,
@@ -144,16 +145,6 @@ const codeLineStyle = css({
 const addButtonsStyle = css({ display: "flex", gap: "1", marginLeft: "-1" });
 
 const codeActionsStyle = css({ display: "flex", justifyContent: "flex-end" });
-
-const dotStyle = css({
-  display: "inline-block",
-  width: "[8px]",
-  height: "[8px]",
-  borderRadius: "full",
-  backgroundColor: "neutral.s90",
-  marginRight: "1.5",
-  flexShrink: "0",
-});
 
 // The tooltip trigger zeroes its line height for icons, so text needs its own.
 const tooltipFillStyle = css({
@@ -601,28 +592,18 @@ const SubjectSelect: React.FC<{
   const { petriNetDefinition } = use(SDCPNContext);
   const groups = subjectGroups(petriNetDefinition, constraint.forEvery);
   const items = groups.flatMap((group) => group.items);
+  const value = check.subject ? subjectValue(check.subject) : "";
   return (
-    <Select
-      required
-      size="sm"
-      width={fill ? "fullWidth" : "fitContent"}
-      aria-label="Subject"
-      disabled={disabled}
+    <SubjectPicker
+      groups={groups}
+      value={value}
+      text={items.find((item) => item.value === value)?.text}
       placeholder={placeholder}
-      value={check.subject ? subjectValue(check.subject) : ""}
-      items={groups}
-      renderItem={(value) => {
-        const text = items.find((item) => item.value === value)?.text;
-        const dotted = !constraint.forEvery && !value.startsWith("metric:");
-        return (
-          <span>
-            {dotted ? <span className={dotStyle} /> : null}
-            {text ?? value}
-          </span>
-        );
-      }}
-      onChange={(value) => {
-        const subject = value ? parseSubjectValue(value) : null;
+      dotted={!constraint.forEvery && !value.startsWith("metric:")}
+      disabled={disabled}
+      fill={fill}
+      onChange={(next) => {
+        const subject = parseSubjectValue(next);
         if (subject) {
           onChange(subject);
         }

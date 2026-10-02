@@ -11,6 +11,7 @@ import {
   parseSubjectValue,
   readConstraints,
   subjectGroups,
+  subjectRowText,
   subjectUnit,
   constraintModeHint,
   constraintModeNote,
@@ -215,6 +216,14 @@ describe("subjects", () => {
         .find((group) => group.id === "fields")
         ?.items.some((item) => item.text === "MachineUp · health"),
     ).toBe(true);
+  });
+
+  it("drops the tab's own word from a row's text", () => {
+    expect(subjectRowText("tokens", "Backorders · tokens")).toBe("Backorders");
+    expect(subjectRowText("fields", "MachineUp · health")).toBe(
+      "MachineUp · health",
+    );
+    expect(subjectRowText("metrics", "Scrap")).toBe("Scrap");
   });
 
   it("offers only the token type's fields under a for-every", () => {

@@ -320,6 +320,10 @@ export const subjectGroups = (
   ].filter((group) => group.items.length > 0);
 };
 
+/** A subject's row text inside its kind tab, which already says "tokens". */
+export const subjectRowText = (groupId: string, text: string): string =>
+  groupId === "tokens" ? text.replace(/ · tokens$/, "") : text;
+
 const identifier = (name: string): string =>
   name.replace(/[^\p{L}\p{N}_]/gu, "");
 
