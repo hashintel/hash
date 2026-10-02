@@ -1,7 +1,8 @@
 import { buildVoiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
-import { pronunciationInstructions } from "../../shared/voice-words.js";
-
-import type { BrunchWord } from "@hashintel/brunch-agent/words";
+import {
+  pronunciationInstructions,
+  type VoiceWord,
+} from "../../shared/voice-words.js";
 
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
 export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v3";
@@ -51,7 +52,7 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
  */
 export const createOpenAIRealtimeSession = (
   voice = "marin",
-  words: readonly BrunchWord[] = [],
+  words: readonly VoiceWord[] = [],
 ) => ({
   type: "realtime" as const,
   model: "gpt-realtime-2",

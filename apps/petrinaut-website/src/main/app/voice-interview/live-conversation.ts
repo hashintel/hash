@@ -3,6 +3,7 @@ import { buildVoiceTranscriptionPrompt } from "../../../shared/voice-transcripti
 import {
   encodeVoiceWords,
   voiceWordsHeader,
+  type VoiceWord,
 } from "../../../shared/voice-words";
 import {
   createOutputEchoTrace,
@@ -19,8 +20,6 @@ import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { LiveTranscriptFragment } from "./live-speech-captions";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
-import type { BrunchWord } from "@hashintel/brunch-agent";
-
 export interface LiveConversationState {
   readonly phase:
     | "idle"
@@ -80,7 +79,7 @@ export const createLiveConversation = (
     readonly output: (fragment: LiveTranscriptFragment) => void;
     readonly closed: () => void;
   },
-  readWords?: () => readonly BrunchWord[],
+  readWords?: () => readonly VoiceWord[],
 ) => {
   let wordsHeader: string | undefined;
   let transcriptionPrompt: string | undefined;

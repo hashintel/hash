@@ -1,4 +1,4 @@
-import type { BrunchWord } from "@hashintel/brunch-agent/words";
+import type { VoiceWord } from "./voice-words.js";
 
 /** Shared by provider configuration and local completed-transcript admission. */
 export const voiceTranscriptionPrompt =
@@ -11,7 +11,7 @@ export const voiceTranscriptionPrompt =
  * angle brackets or control characters.
  */
 export const buildVoiceTranscriptionPrompt = (
-  words: readonly BrunchWord[],
+  words: readonly VoiceWord[],
 ): string =>
   words.length === 0
     ? voiceTranscriptionPrompt

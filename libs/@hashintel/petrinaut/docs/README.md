@@ -40,7 +40,6 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
-- [Custom words](words.md) -- Add preferred spellings and optional pronunciations for a conversation.
 - [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.
 - [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, and Labs.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.

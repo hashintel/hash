@@ -1,8 +1,9 @@
 import { useId, useRef, useState } from "react";
 
-import { maxWords } from "@hashintel/brunch-agent/words";
 import { Button, Dialog, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+
+import { maxWords } from "../../../shared/voice-words";
 
 import type { ConversationWord } from "./conversation-words";
 

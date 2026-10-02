@@ -1,10 +1,54 @@
-import { validateWords, type BrunchWord } from "@hashintel/brunch-agent/words";
+import {
+  normalizePetrinautWordLiteral,
+  petrinautWordSpellingLimits,
+  validatePetrinautWordSpellings,
+} from "@hashintel/brunch-agent-transport-aisdk/words";
+
+/** Only the spelling reaches Brunch; pronunciation stays with the speaking model. */
+export type VoiceWord = Readonly<{ spelling: string; pronunciation?: string }>;
+
+export const maxWords = petrinautWordSpellingLimits.count;
+
+export const validateWords = (input: unknown): readonly VoiceWord[] => {
+  if (!Array.isArray(input) || input.length > maxWords) {
+    throw new Error(`Use at most ${maxWords} words.`);
+  }
+  const entries = input.map((entry: unknown) => {
+    if (
+      typeof entry !== "object" ||
+      entry === null ||
+      Array.isArray(entry) ||
+      !("spelling" in entry) ||
+      Object.keys(entry).some(
+        (key) => key !== "spelling" && key !== "pronunciation",
+      )
+    ) {
+      throw new Error("Invalid word entry.");
+    }
+    return {
+      spelling: entry.spelling,
+      pronunciation:
+        "pronunciation" in entry
+          ? normalizePetrinautWordLiteral(entry.pronunciation, 120)
+          : undefined,
+    };
+  });
+  const spellings = validatePetrinautWordSpellings(
+    entries.map((entry) => entry.spelling),
+  );
+  return spellings.map((spelling, index) => {
+    const pronunciation = entries[index]?.pronunciation;
+    return pronunciation === undefined
+      ? { spelling }
+      : { spelling, pronunciation };
+  });
+};
 
 export const voiceWordsHeader = "x-petrinaut-voice-words";
 
 /** ASCII-only HTTP header; no user text enters headers unencoded. */
 export const encodeVoiceWords = (
-  input: readonly BrunchWord[],
+  input: readonly VoiceWord[],
 ): string | undefined => {
   const entries = validateWords(input);
   if (entries.length === 0) return undefined;
@@ -24,7 +68,7 @@ export const encodeVoiceWords = (
 
 export const decodeVoiceWords = (
   header: string | null,
-): readonly BrunchWord[] => {
+): readonly VoiceWord[] => {
   if (header === null) return [];
   if (
     header.length === 0 ||
@@ -51,7 +95,7 @@ export const decodeVoiceWords = (
 };
 
 export const pronunciationInstructions = (
-  words: readonly BrunchWord[],
+  words: readonly VoiceWord[],
 ): string => {
   const notes = words.filter((word) => word.pronunciation !== undefined);
   return notes.length === 0
