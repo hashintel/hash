@@ -1,7 +1,7 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { type ReactNode, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { collapsibleContentStyle } from "../shared/collapsible-content-style";
@@ -44,7 +44,45 @@ const triggerStyle = css({
     animation: "[shimmer 2.4s linear infinite]",
     "@media (prefers-reduced-motion: reduce)": { animation: "none" },
   },
+  "&[data-pending]": {
+    cursor: "default",
+    _hover: { backgroundColor: "[transparent]" },
+  },
 });
+const workIconSlotStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[16px]",
+  height: "[16px]",
+  flexShrink: 0,
+});
+const spinnerStyle = css({
+  color: "blue.s90",
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "[none !important]",
+  },
+});
+
+const WorkIcon = ({ working }: { working: boolean }) => (
+  <span className={workIconSlotStyle}>
+    {working ? (
+      <LoadingSpinner aria-hidden="true" size="xs" className={spinnerStyle} />
+    ) : (
+      <Icon name="sparkles" size="sm" />
+    )}
+  </span>
+);
+
+/** Stands where the Activity fold will appear until Brunch's first part arrives. */
+export const BrunchWorkPending = ({ label }: { label: string }) => (
+  <div className={foldStyle} data-work-status="pending">
+    <span className={triggerStyle} data-working data-pending role="status">
+      <WorkIcon working />
+      <span data-label>{label}</span>
+    </span>
+  </div>
+);
 
 export const BrunchWorkFold = ({
   status,
@@ -90,14 +128,13 @@ export const BrunchWorkFold = ({
         className={triggerStyle}
         data-working={status === "streaming"}
       >
-        <Icon name="sparkles" size="sm" />
+        <WorkIcon working={status === "streaming"} />
         <span data-label>{label}</span>
         <Icon name="chevronUp" size="xs" data-chevron />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div
           data-work-details
-          data-bounded={preserveOpen && status !== "approval"}
           className={css({
             display: "flex",
             flexDirection: "column",
@@ -105,18 +142,6 @@ export const BrunchWorkFold = ({
             margin: "[4px 0 2px 5px]",
             paddingLeft: "3",
             borderLeft: "[2px solid {colors.neutral.a30}]",
-            "&[data-bounded=true]": {
-              maxHeight: "[240px]",
-              overflowY: "auto",
-              overscrollBehavior: "contain",
-              scrollbarGutter: "stable",
-              "&::-webkit-scrollbar": { width: "[6px]" },
-              "&::-webkit-scrollbar-thumb": {
-                borderRadius: "full",
-                backgroundColor: "neutral.a60",
-              },
-              "&::-webkit-scrollbar-track": { backgroundColor: "neutral.a10" },
-            },
           })}
         >
           {children}

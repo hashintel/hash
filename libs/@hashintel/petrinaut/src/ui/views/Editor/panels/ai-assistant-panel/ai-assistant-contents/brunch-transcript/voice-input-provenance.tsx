@@ -52,9 +52,9 @@ export const VoiceInputProvenance = ({ brief }: { brief: VoiceBrief }) => (
           : "Sent without preparation"
         : brief.state === "streaming"
           ? Object.keys(brief.fields).length === 0
-            ? "Preparing for Brunch"
-            : "Sending to Brunch"
-          : "Sent to Brunch"}
+            ? "Preparing request"
+            : "Sending request"
+          : "Request sent"}
       <Icon name="chevronRight" size="xs" data-chevron />
     </summary>
     <div

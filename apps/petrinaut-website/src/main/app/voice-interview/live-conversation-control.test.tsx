@@ -482,13 +482,13 @@ test("starts acknowledged Live after the previous session finishes stopping", ()
 
   rerender(<VoiceInterviewControl {...props} config={config} />);
 
-  expect(screen.getByText("Stopping voice…")).toBeTruthy();
-  expect(screen.queryByText("Voice disconnected")).toBeNull();
+  expect(screen.queryByRole("region", { name: "Voice mode retry" })).toBeNull();
   expect(
-    screen
-      .getByRole("button", { name: "Retry voice" })
-      .hasAttribute("disabled"),
-  ).toBe(true);
+    screen.queryByRole("region", { name: "Voice mode consent" }),
+  ).toBeNull();
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ phase: "connecting" }),
+  );
   expect(createLiveConversation).toHaveBeenCalledOnce();
   act(() =>
     onState({

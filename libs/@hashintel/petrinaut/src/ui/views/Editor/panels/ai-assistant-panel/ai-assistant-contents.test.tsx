@@ -226,7 +226,7 @@ describe("AiAssistantContents", () => {
       />,
     );
     expect(container.textContent).toMatch(
-      /Sent to Brunch[\s\S]*I’ll ask Brunch\.[\s\S]*Activity[\s\S]*Written answer[\s\S]*Experiment draft[\s\S]*Your draft is ready\./u,
+      /Request sent[\s\S]*I’ll ask Brunch\.[\s\S]*Activity[\s\S]*Written answer[\s\S]*Experiment draft[\s\S]*Your draft is ready\./u,
     );
     expect(
       screen
@@ -238,9 +238,9 @@ describe("AiAssistantContents", () => {
         .getByRole("region", { name: "Drafted experiment" })
         .closest("[data-work-status]"),
     ).toBeNull();
-    const brief = screen.getByText("Sent to Brunch").closest("details");
+    const brief = screen.getByText("Request sent").closest("details");
     expect(brief?.open).toBe(false);
-    fireEvent.click(screen.getByText("Sent to Brunch"));
+    fireEvent.click(screen.getByText("Request sent"));
     expect(screen.getByText("Arrival rate")).not.toBeNull();
     rerender(
       <AiAssistantContents
@@ -261,7 +261,7 @@ describe("AiAssistantContents", () => {
         ]}
       />,
     );
-    expect(screen.queryByText("Sent to Brunch")).toBeNull();
+    expect(screen.queryByText("Request sent")).toBeNull();
     expect(screen.queryByText("I’ll ask Brunch.")).toBeNull();
     await expandWork();
     expect(screen.getByText("Plain reply")).not.toBeNull();
@@ -334,6 +334,50 @@ describe("AiAssistantContents", () => {
       expect(pending.getAttribute("aria-expanded")).toBe("true"),
     );
     expect(screen.getByText(/"revision": 7/u)).not.toBeNull();
+  });
+
+  test("shows every counted tool without scrolling inside Activity", async () => {
+    const toolNames = ["one", "two", "three", "four", "five"];
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="ready"
+        messages={[
+          {
+            id: "five-tools",
+            role: "assistant",
+            parts: [
+              ...toolNames.map((toolName) => ({
+                type: "dynamic-tool" as const,
+                toolName,
+                toolCallId: toolName,
+                state: "output-available" as const,
+                input: {},
+                output: {},
+              })),
+              { type: "text" as const, text: "Done" },
+            ],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+
+    expect(screen.getByRole("button", { name: "Used 5 tools" })).not.toBeNull();
+    for (const toolName of toolNames)
+      expect(
+        screen.getByRole("button", {
+          name: new RegExp(`\\b${toolName}\\b`, "u"),
+        }),
+      ).not.toBeNull();
+    const details = container.querySelector("[data-work-details]");
+    expect(details?.className).not.toContain("max-h_");
+    expect(details?.className).not.toContain("ov-y_auto");
   });
 
   test("marks unfinished stock tools cancelled after a stop", () => {
@@ -676,7 +720,7 @@ describe("AiAssistantContents", () => {
       .getByText("Compare three agents")
       .closest("[data-user-bubble]");
     expect(bubble).not.toBeNull();
-    expect(bubble?.contains(screen.getByText("Sent to Brunch"))).toBe(false);
+    expect(bubble?.contains(screen.getByText("Request sent"))).toBe(false);
   });
 
   test("copies an answer and retries its own user prompt rather than the latest prompt", async () => {
@@ -2785,7 +2829,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/Ask AI to create a Petri net/u)).not.toBeNull();
   });
 
-  test("reserves a Brunch-only response status without adding transcript work", () => {
+  test("holds the Activity row's place while waiting for Brunch", () => {
     const props = {
       input: "",
       messages: [
@@ -2805,21 +2849,17 @@ describe("AiAssistantContents", () => {
     const { rerender } = render(
       <AiAssistantContents {...props} status="ready" />,
     );
-    const slot = screen.getByTestId("brunch-response-status");
-    expect(slot.textContent).toBe("");
+    const transcript = screen.getByTestId("ai-transcript");
+    expect(screen.queryByTestId("brunch-response-status")).toBeNull();
+    expect(within(transcript).queryByRole("status")).toBeNull();
 
     rerender(<AiAssistantContents {...props} status="submitted" />);
-    expect(screen.getByTestId("brunch-response-status")).toBe(slot);
-    expect(within(slot).getByRole("status").textContent).toBe(
-      "Waiting for Brunch",
-    );
-    expect(within(slot).queryByRole("button")).toBeNull();
+    const waiting = within(transcript).getByRole("status");
+    expect(waiting.textContent).toBe("Working…");
+    expect(waiting.closest('[data-work-status="pending"]')).not.toBeNull();
+    expect(within(waiting).queryByRole("button")).toBeNull();
     expect(screen.queryByRole("button", { name: "Working…" })).toBeNull();
-    expect(
-      within(screen.getByTestId("ai-transcript")).queryByText(
-        /Waiting for Brunch/,
-      ),
-    ).toBeNull();
+    expect(screen.queryByTestId("brunch-response-status")).toBeNull();
 
     rerender(
       <AiAssistantContents
@@ -2835,12 +2875,12 @@ describe("AiAssistantContents", () => {
         ]}
       />,
     );
-    expect(screen.getByRole("button", { name: "Working…" })).toBeTruthy();
-    expect(within(slot).getByRole("status").textContent).toBe("");
+    const working = screen.getByRole("button", { name: "Working…" });
+    expect(working.querySelector('[data-work-status="pending"]')).toBeNull();
+    expect(document.querySelector('[data-work-status="pending"]')).toBeNull();
 
     rerender(<AiAssistantContents {...props} status="ready" />);
-    expect(screen.getByTestId("brunch-response-status")).toBe(slot);
-    expect(slot.textContent).toBe("");
+    expect(within(transcript).queryByRole("status")).toBeNull();
 
     rerender(
       <AiAssistantContents
@@ -2854,6 +2894,93 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByRole("button", { name: "Working…" })).toBeNull();
     expect(screen.queryByText(/Brunch/u)).toBeNull();
   });
+
+  test.each(["voice", "text"] as const)(
+    "keeps Activity off Live's spoken reply message (%s)",
+    (inputMode) => {
+      const request: PetrinautAiMessage = {
+        id: "request",
+        role: "user",
+        metadata: { source: "voice" },
+        parts: [{ type: "text", text: "Review this model" }],
+      };
+      const spokenReply: PetrinautAiMessage = {
+        id: "voice-reply:request",
+        role: "assistant",
+        metadata: { source: "voice" },
+        parts: [
+          {
+            type: "data-voiceAgentReply",
+            data: { text: "I hear you.", state: "done" },
+          },
+        ],
+      };
+      const props = {
+        input: "",
+        inputMode,
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        primaryLabel: "Chat",
+        presentation: "brunch" as const,
+      };
+      const replyTurn = () =>
+        screen
+          .getByText("I hear you.")
+          .closest<HTMLElement>('[data-role="assistant"]')!;
+      const { rerender } = render(
+        <AiAssistantContents
+          {...props}
+          messages={[request, spokenReply]}
+          status="submitted"
+        />,
+      );
+
+      expect(replyTurn().querySelector("[data-work-status]")).toBeNull();
+      const waiting = within(screen.getByTestId("ai-transcript")).getByRole(
+        "status",
+      );
+      expect(waiting.textContent).toBe("Working…");
+      expect(replyTurn().nextElementSibling?.contains(waiting)).toBe(true);
+
+      rerender(
+        <AiAssistantContents
+          {...props}
+          messages={[
+            request,
+            spokenReply,
+            {
+              id: "response",
+              role: "assistant",
+              parts: [
+                { type: "reasoning", text: "Inspect", state: "streaming" },
+              ],
+            },
+          ]}
+          status="streaming"
+        />,
+      );
+
+      expect(replyTurn().querySelector("[data-work-status]")).toBeNull();
+      expect(screen.getAllByRole("button", { name: "Working…" })).toHaveLength(
+        1,
+      );
+      expect(document.querySelector('[data-work-status="pending"]')).toBeNull();
+
+      rerender(
+        <AiAssistantContents
+          {...props}
+          messages={[request, spokenReply]}
+          status="ready"
+          stopped
+        />,
+      );
+
+      expect(replyTurn().textContent).not.toContain("Response stopped");
+      expect(screen.getByText("Response stopped")).not.toBeNull();
+    },
+  );
 
   test("keeps Brunch prompt chips mounted but inaccessible while waiting", () => {
     const props = {
@@ -2913,6 +3040,38 @@ describe("AiAssistantContents", () => {
 
     rerender(<AiAssistantContents {...props} status="ready" />);
     expect(screen.queryByText("Brunch is working")).toBeNull();
+  });
+
+  test("keeps the Brunch working status visible while the host tab is selected", () => {
+    render(
+      <AiAssistantContents
+        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        hostTabSelected
+        input=""
+        messages={[
+          {
+            id: "request",
+            role: "user",
+            parts: [{ type: "text", text: "Review this model" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="submitted"
+      />,
+    );
+
+    const status = screen.getByTestId("brunch-response-status");
+    expect(status.textContent).toBe("Working…");
+    expect(status.closest("[hidden]")).toBeNull();
+    expect(
+      document
+        .querySelector('[data-work-status="pending"]')
+        ?.closest("[hidden]"),
+    ).not.toBeNull();
   });
 
   test("keeps the working label visible while the host tab is selected", () => {
@@ -3015,13 +3174,53 @@ describe("AiAssistantContents", () => {
     };
     const { rerender } = render(<AiAssistantContents {...props} />);
     const tablist = () => screen.getByRole("tablist");
+    const inactiveTab = () => screen.getByRole("tab", { name: "Ledger" });
 
     expect(tablist().getAttribute("data-style-variant")).toBe("stock");
     expect(tablist().querySelector("[data-mark]")).toBeNull();
+    expect(inactiveTab().className).toContain("op_[0.6]");
 
     rerender(<AiAssistantContents {...props} presentation="brunch" />);
     expect(tablist().getAttribute("data-style-variant")).toBe("brunch");
     expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
+    expect(inactiveTab().className).not.toContain("op_[0.6]");
+  });
+
+  test("keeps the stock transcript chrome for a stock assistant", () => {
+    const props = {
+      input: "",
+      messages: [
+        {
+          id: "user-1",
+          role: "user" as const,
+          parts: [{ type: "text" as const, text: "A stock prompt" }],
+        },
+        {
+          id: "assistant-1",
+          role: "assistant" as const,
+          parts: [{ type: "text" as const, text: "A stock answer" }],
+        },
+      ],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { container, rerender } = render(<AiAssistantContents {...props} />);
+    const userMessage = () => container.querySelector('[data-role="user"]');
+    const userBubble = () => container.querySelector("[data-user-bubble]");
+    const assistantMessage = () =>
+      container.querySelector('[data-role="assistant"]');
+
+    expect(userMessage()?.className).toContain("bg-c_neutral.bg.subtle");
+    expect(userBubble()).toBeNull();
+    expect(assistantMessage()?.className).not.toContain("p_[6px_0]");
+
+    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    expect(userMessage()?.className).not.toContain("bg-c_neutral.bg.subtle");
+    expect(userBubble()?.className).toContain("bg-c_neutral.a20");
+    expect(assistantMessage()?.className).toContain("p_[6px_0]");
   });
 
   test("keeps the stock AI transcript label in both input modes", () => {

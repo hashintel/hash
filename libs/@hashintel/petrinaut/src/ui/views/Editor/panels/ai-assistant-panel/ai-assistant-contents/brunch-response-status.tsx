@@ -2,30 +2,19 @@ import { LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 /**
- * A fixed-height row below the transcript that names the wait while the chat
- * has nothing new to show: before the reply starts, or while the host tab
- * hides it. It stays mounted so the layout doesn't jump.
+ * A fixed-height row below the host tab that names Brunch's work while the
+ * host tab hides the chat. It stays mounted so the layout doesn't jump.
  */
 export const BrunchResponseStatus = ({
   busy,
   className,
-  hostTabSelected,
-  replyStarted,
   workingLabel,
 }: {
   busy: boolean;
   className?: string;
-  hostTabSelected: boolean;
-  replyStarted: boolean;
   workingLabel?: string;
 }) => {
-  const label = !busy
-    ? undefined
-    : hostTabSelected
-      ? (workingLabel ?? "Brunch is working")
-      : replyStarted
-        ? undefined
-        : "Waiting for Brunch";
+  const label = busy ? (workingLabel ?? "Working…") : undefined;
 
   return (
     <div

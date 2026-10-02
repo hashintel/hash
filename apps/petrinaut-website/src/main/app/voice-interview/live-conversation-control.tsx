@@ -122,6 +122,7 @@ export const LiveConversationControl = ({
   );
   const sessionActive = useRef(false);
   const handledVoiceSelection = useRef(false);
+  const [startAwaitingStop, setStartAwaitingStop] = useState(false);
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
@@ -367,6 +368,7 @@ export const LiveConversationControl = ({
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;
+      setStartAwaitingStop(false);
       return;
     }
     if (handledVoiceSelection.current) return;
@@ -375,12 +377,17 @@ export const LiveConversationControl = ({
       return;
     }
     handledVoiceSelection.current = tryStartLiveConversation();
+    setStartAwaitingStop(!handledVoiceSelection.current);
   }, [
     disclosureAcknowledged,
     inputMode,
     isAiAssistantOpen,
     tryStartLiveConversation,
   ]);
+  // Reopening Voice while the previous session is still closing starts the
+  // next one as soon as it ends, so that wait is part of connecting.
+  const sessionPhase =
+    startAwaitingStop && phase === "stopping" ? "connecting" : phase;
   const setMicrophoneMuted = useCallback((muted: boolean) => {
     if (!sessionActive.current || !session.current) return;
     session.current.setMicrophoneMuted(muted);
@@ -443,13 +450,15 @@ export const LiveConversationControl = ({
     reportVoiceSessionState(
       inputMode === "voice" &&
         isAiAssistantOpen &&
-        (phase === "connecting" || phase === "connected" || phase === "error")
+        (sessionPhase === "connecting" ||
+          sessionPhase === "connected" ||
+          sessionPhase === "error")
         ? {
             audioSettings,
             phase:
-              phase === "error"
+              sessionPhase === "error"
                 ? "error"
-                : phase === "connecting"
+                : sessionPhase === "connecting"
                   ? "connecting"
                   : activity?.outputActive
                     ? "speaking"
@@ -478,6 +487,7 @@ export const LiveConversationControl = ({
     inputMode,
     isAiAssistantOpen,
     phase,
+    sessionPhase,
     message,
     playbackBlocked,
     activity,
@@ -508,7 +518,11 @@ export const LiveConversationControl = ({
     };
   }, [reportVoiceSessionState, setVoiceActive]);
 
-  if (inputMode !== "voice" || phase === "connecting" || phase === "connected")
+  if (
+    inputMode !== "voice" ||
+    sessionPhase === "connecting" ||
+    sessionPhase === "connected"
+  )
     return null;
   const exitVoiceMode = () => {
     void end();

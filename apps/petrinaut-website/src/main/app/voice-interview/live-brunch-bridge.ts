@@ -201,6 +201,56 @@ export class LiveBrunchBridge {
       this.#waitingForComposer = undefined;
   }
 
+  /**
+   * Submission follows the conversation shown now, so words prepared in
+   * another one are not admitted here. Like words cancelled by speech, they
+   * stay sendable in the conversation shown now.
+   */
+  #withdrawSwitched(turn: Turn): void {
+    this.#turns.delete(turn);
+    this.#preparations.delete(turn.preparation);
+    turn.history.failed(turn.inputId);
+    this.#dependencies.mediation.history.unsent(
+      turn.inputId,
+      turn.inputText,
+      this.#chat.messages?.at(-1)?.id,
+    );
+    logLiveDiagnostic("brunch.conversation-switched", {
+      inputId: turn.inputId,
+      delegationId: turn.delegationId,
+      submitted: false,
+    });
+    this.#dependencies.notice(
+      "Your earlier utterance was not sent because the conversation changed. Use the composer to send it.",
+    );
+    this.#unserved(
+      turn.delegationId,
+      "The request was not submitted because the conversation changed.",
+    );
+  }
+
+  /** Settlement follows the conversation shown now, where a turn submitted elsewhere never settles. */
+  #releaseSwitchedTurns(): void {
+    const history = this.#dependencies.mediation.history;
+    for (const turn of this.#turns) {
+      if (!turn.submitted || turn.history === history) continue;
+      this.#turns.delete(turn);
+      this.#preparations.delete(turn.preparation);
+      if (this.#waitingForComposer === turn)
+        this.#waitingForComposer = undefined;
+      logLiveDiagnostic("brunch.conversation-switched", {
+        inputId: turn.inputId,
+        submissionId: turn.submissionId,
+        delegationId: turn.delegationId,
+        submitted: true,
+      });
+      this.#unserved(
+        turn.delegationId,
+        "The conversation was switched before Brunch finished; its answer stays in the original conversation.",
+      );
+    }
+  }
+
   /** Frees the composer from one stale turn; other turns and delegations stay. */
   #evict(turn: Turn): void {
     turn.preparation.abort();
@@ -394,6 +444,10 @@ export class LiveBrunchBridge {
         logLiveDiagnostic("brief.unavailable", { inputId: input.id });
         turn.history.preparationFailed(input.id);
       }
+      if (turn.history !== this.#dependencies.mediation.history) {
+        this.#withdrawSwitched(turn);
+        return;
+      }
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       turn.submitted = true;
       const result = await this.#dependencies.submit({
@@ -499,6 +553,7 @@ export class LiveBrunchBridge {
     const enteredError =
       chat.status === "error" && this.#chat.status !== "error";
     this.#chat = chat;
+    this.#releaseSwitchedTurns();
     if (stopped || enteredError) {
       this.#interruptTurns(stopped ? "stopped" : "error");
       return;

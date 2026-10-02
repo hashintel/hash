@@ -943,12 +943,10 @@ export const AiAssistantContents = ({
             </div>
           )}
 
-          {isBrunchChat && (
+          {isBrunchChat && showingHostTab && (
             <BrunchResponseStatus
               busy={isBusy}
               className={panelContentStyle({ visible: !isVoiceDockCollapsed })}
-              hostTabSelected={showingHostTab}
-              replyStarted={messages.at(-1)?.role === "assistant"}
               workingLabel={workingLabel}
             />
           )}
