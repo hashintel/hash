@@ -8,6 +8,8 @@ import {
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
+import { InstalledPluginsProvider } from "../../plugins/installed-plugins";
+import { definePetrinautPlugin } from "../../plugins/plugin";
 import { EditorView } from "./editor-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -229,4 +231,27 @@ describe("Edit workspace views", () => {
       ).toBeNull();
     },
   );
+});
+
+describe("Plugin components", () => {
+  test("mount inside the workspace row, below the top bar", () => {
+    const overlayPlugin = definePetrinautPlugin({
+      id: "test.overlay",
+      component: () => <aside aria-label="Plugin overlay" />,
+    });
+    const { container } = render(
+      <InstalledPluginsProvider plugins={[overlayPlugin]}>
+        <EditorView titleEditable />
+      </InstalledPluginsProvider>,
+    );
+    // The top bar renders beside the row, into the container; an overlay
+    // mounted outside the row would have the container as its parent.
+    const row = screen.getByRole("complementary", {
+      name: "Plugin overlay",
+    }).parentElement;
+    expect(row).not.toBe(container);
+    expect(
+      row?.contains(screen.getByRole("button", { name: "Canvas zoom 1" })),
+    ).toBe(true);
+  });
 });

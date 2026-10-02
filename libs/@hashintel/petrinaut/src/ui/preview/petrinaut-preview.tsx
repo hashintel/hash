@@ -36,6 +36,12 @@ import {
   PetrinautDocumentProvider,
 } from "../../react/petrinaut-provider-layers";
 import { SimulationProvider } from "../../react/simulation/provider";
+import {
+  InstalledPlugins,
+  InstalledPluginsProvider,
+} from "../plugins/installed-plugins";
+import { resolveInstalledPlugins } from "../plugins/plugin";
+import { usePetrinautPluginsConfiguration } from "../plugins/plugins-provider";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
 import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
 import {
@@ -163,7 +169,10 @@ export type PetrinautPreviewProps = {
    * model's named scenarios without mounting Petrinaut's language tooling.
    */
   quickSimulation?: PetrinautPreviewQuickSimulation;
-  /** Host actions displayed alongside the canvas zoom controls. */
+  /**
+   * @deprecated Install a plugin with a `viewport-controls` button through
+   * `PetrinautPluginsProvider` instead.
+   */
   viewportActions?: ViewportAction[];
 };
 
@@ -174,6 +183,10 @@ export type PetrinautPreviewProps = {
  * exact same {@link SDCPNView} as the editor. It intentionally mounts neither
  * Monaco/LSP nor experiments, optimizations, or AI. Hosts may opt into a
  * bounded Quick Simulation surface by supplying precompiled artifacts.
+ *
+ * Plugins from `PetrinautPluginsProvider` run here too, without the editor's
+ * built-ins: the Preview has viewport controls for their buttons but no top
+ * bar, panels or edit views.
  */
 export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   definition,
@@ -250,6 +263,11 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
+  const installedPlugins = resolveInstalledPlugins(
+    [],
+    usePetrinautPluginsConfiguration().plugins,
+  );
+
   /**
    * `handle` is rebuilt whenever the host swaps the model, while `handle.id`
    * stays the host's own, so handle identity is what marks a swap. Counting
@@ -323,47 +341,50 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
           </div>
           <PreviewPropertiesPanel />
         </main>
+        <InstalledPlugins />
       </div>
     </PetrinautCanvasProvider>
   );
 
   return (
     <PortalContainerContext value={portalContainerRef}>
-      <PetrinautDocumentProvider
-        key={documentKey}
-        instance={instance}
-        netManagement={netManagement}
-      >
-        <PetrinautNavigationProvider
-          controller={navigationAdapter}
-          initialState={{
-            mode: hasQuickSimulation ? "simulate" : "edit",
-            simulateView: "scenarios",
-          }}
-          key={handle.id}
+      <InstalledPluginsProvider plugins={installedPlugins}>
+        <PetrinautDocumentProvider
+          key={documentKey}
+          instance={instance}
+          netManagement={netManagement}
         >
-          <PetrinautPresentationProvider profile="preview">
-            {quickSimulation && simulationCompiler ? (
-              <NotificationsProvider>
-                <SimulationProvider
-                  key={runSettingsKey}
-                  compiler={simulationCompiler}
-                  initialConfiguration={{
-                    dt: quickSimulation.dt,
-                    maxTime: quickSimulation.maxTime,
-                  }}
-                  requireScenario
-                  workerFactory={quickSimulation.workerFactory}
-                >
-                  {canvas}
-                </SimulationProvider>
-              </NotificationsProvider>
-            ) : (
-              canvas
-            )}
-          </PetrinautPresentationProvider>
-        </PetrinautNavigationProvider>
-      </PetrinautDocumentProvider>
+          <PetrinautNavigationProvider
+            controller={navigationAdapter}
+            initialState={{
+              mode: hasQuickSimulation ? "simulate" : "edit",
+              simulateView: "scenarios",
+            }}
+            key={handle.id}
+          >
+            <PetrinautPresentationProvider profile="preview">
+              {quickSimulation && simulationCompiler ? (
+                <NotificationsProvider>
+                  <SimulationProvider
+                    key={runSettingsKey}
+                    compiler={simulationCompiler}
+                    initialConfiguration={{
+                      dt: quickSimulation.dt,
+                      maxTime: quickSimulation.maxTime,
+                    }}
+                    requireScenario
+                    workerFactory={quickSimulation.workerFactory}
+                  >
+                    {canvas}
+                  </SimulationProvider>
+                </NotificationsProvider>
+              ) : (
+                canvas
+              )}
+            </PetrinautPresentationProvider>
+          </PetrinautNavigationProvider>
+        </PetrinautDocumentProvider>
+      </InstalledPluginsProvider>
     </PortalContainerContext>
   );
 };

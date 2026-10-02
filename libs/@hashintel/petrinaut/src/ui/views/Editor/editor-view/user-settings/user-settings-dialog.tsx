@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { PluginSettingsGroups } from "../../../../plugins/plugin-settings-groups";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
@@ -582,6 +583,10 @@ export const UserSettingsDialog = ({
                       {settingsLabs !== undefined && settingsLabs !== null && (
                         <FocusControls>{settingsLabs}</FocusControls>
                       )}
+                      <PluginSettingsGroups
+                        section="labs"
+                        Frame={SettingsGroup}
+                      />
                     </>
                   )}
                 </FocusStack>

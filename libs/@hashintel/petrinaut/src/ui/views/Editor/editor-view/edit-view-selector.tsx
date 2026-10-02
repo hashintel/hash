@@ -6,6 +6,8 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
+import type { PetrinautPluginEditView } from "../../../plugins/plugin";
+
 const selectorStyle = css({
   display: "flex",
   position: "absolute",
@@ -67,7 +69,16 @@ const placementStyle = cva({
   },
 });
 
-export const EditViewSelector = () => {
+/**
+ * Switches between the Canvas, the Definitions view and the edit views
+ * plugins contribute. An edit view the navigation names but nothing provides
+ * reads as the Canvas, which is what the editor shows in that case.
+ */
+export const EditViewSelector = ({
+  editViews,
+}: {
+  editViews: readonly PetrinautPluginEditView[];
+}) => {
   const {
     editViewMode,
     setEditViewMode,
@@ -77,7 +88,9 @@ export const EditViewSelector = () => {
     isPanelAnimating,
   } = use(EditorContext);
   const { showAnimations } = use(UserSettingsContext);
-  const isCanvas = editViewMode === "canvas";
+  const isCanvas =
+    editViewMode !== "definitions" &&
+    !editViews.some((view) => view.id === editViewMode);
   const left =
     isCanvas && (isLeftSidebarOpen || isSearchOpen)
       ? leftSidebarWidth + 12
@@ -104,11 +117,12 @@ export const EditViewSelector = () => {
         })}
         aria-label="Edit view"
         size="xs"
-        value={editViewMode}
+        value={isCanvas ? "canvas" : editViewMode}
         onChange={setEditViewMode}
         items={[
           { label: "Canvas", value: "canvas" },
           { label: "Definitions", value: "definitions" },
+          ...editViews.map((view) => ({ label: view.label, value: view.id })),
         ]}
       />
     </div>

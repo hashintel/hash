@@ -8,6 +8,8 @@ import { createCommandRegistry } from "@hashintel/petrinaut-core";
 import { CommandRegistryProvider } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { InstalledPluginsProvider } from "../../plugins/installed-plugins";
+import { definePetrinautPlugin } from "../../plugins/plugin";
 import { EditorCommands } from "./use-editor-commands";
 
 vi.mock("../../../react", () => ({
@@ -109,6 +111,33 @@ describe("auto-layout shortcut", () => {
     );
     fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
     expect(layout).not.toHaveBeenCalled();
+  });
+
+  it("follows the Canvas when the location names an edit view nothing provides", () => {
+    const editor = renderHook(() => use(EditorContext)).result.current;
+    const layout = vi.fn(async () => {});
+    const plugin = definePetrinautPlugin({
+      id: "test.views",
+      editViews: [
+        { id: "test-view", label: "Test view", component: () => null },
+      ],
+    });
+    const renderIn = (editViewMode: string) => (
+      <InstalledPluginsProvider plugins={[plugin]}>
+        <EditorContext value={{ ...editor, editViewMode }}>
+          <EditorCommands applyAutoLayoutAndFrame={layout} />
+        </EditorContext>
+      </InstalledPluginsProvider>
+    );
+    const { rerender } = render(renderIn("stale-view"), {
+      wrapper: EditableNet,
+    });
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
+    expect(layout).toHaveBeenCalledOnce();
+
+    rerender(renderIn("test-view"));
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
+    expect(layout).toHaveBeenCalledOnce();
   });
 });
 

@@ -19,6 +19,10 @@ import {
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { petrinautBuiltInPlugins } from "./plugins/built-in-plugins";
+import { InstalledPluginsProvider } from "./plugins/installed-plugins";
+import { resolveInstalledPlugins } from "./plugins/plugin";
+import { usePetrinautPluginsConfiguration } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
   PetrinautPresentationProvider,
@@ -201,9 +205,14 @@ export type PetrinautProps = {
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
+  /**
+   * @deprecated Install a plugin with a `viewport-controls` button through
+   * `PetrinautPluginsProvider` instead.
+   */
   viewportActions?: ViewportAction[];
   /**
-   * Host-supplied components to inject at specific locations in the editor.
+   * @deprecated Install a plugin with top-bar buttons or items, or a Labs
+   * settings group, through `PetrinautPluginsProvider` instead.
    */
   slots?: PetrinautSlots;
   /**
@@ -245,7 +254,9 @@ const noop = () => {};
  * the editor.
  *
  * Net-management concerns (title, switching) are passed alongside the handle
- * because they're not part of Core — they live in the host app.
+ * because they're not part of Core — they live in the host app. Buttons,
+ * commands, panel sections and edit views come from plugins, installed through
+ * `PetrinautPluginsProvider` above this component.
  */
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
@@ -274,6 +285,12 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
+  const pluginsConfiguration = usePetrinautPluginsConfiguration();
+  const installedPlugins = resolveInstalledPlugins(
+    pluginsConfiguration.builtInPlugins ?? petrinautBuiltInPlugins,
+    pluginsConfiguration.plugins,
+  );
+
   const netManagement: NetManagement = {
     title,
     setTitle,
@@ -284,31 +301,33 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 
   return (
     <PortalContainerContext value={portalContainerRef}>
-      <PetrinautProvider
-        instance={instance}
-        netManagement={netManagement}
-        simulationWorkerFactory={simulationWorkerFactory}
-        monteCarloWorkerFactory={monteCarloWorkerFactory}
-        lspWorkerFactory={lspWorkerFactory}
-        navigation={navigation}
-      >
-        <PetrinautPresentationProvider profile={presentationProfile}>
-          <MonacoProvider>
-            <Stack
-              className={cx(editorRootStyle, "petrinaut-root")}
-              ref={portalContainerRef}
-            >
-              <EditorView
-                aiAssistant={aiAssistant}
-                hideNetManagementControls={hideNetManagementControls}
-                slots={slots}
-                titleEditable={titleEditable}
-                viewportActions={viewportActions}
-              />
-            </Stack>
-          </MonacoProvider>
-        </PetrinautPresentationProvider>
-      </PetrinautProvider>
+      <InstalledPluginsProvider plugins={installedPlugins}>
+        <PetrinautProvider
+          instance={instance}
+          netManagement={netManagement}
+          simulationWorkerFactory={simulationWorkerFactory}
+          monteCarloWorkerFactory={monteCarloWorkerFactory}
+          lspWorkerFactory={lspWorkerFactory}
+          navigation={navigation}
+        >
+          <PetrinautPresentationProvider profile={presentationProfile}>
+            <MonacoProvider>
+              <Stack
+                className={cx(editorRootStyle, "petrinaut-root")}
+                ref={portalContainerRef}
+              >
+                <EditorView
+                  aiAssistant={aiAssistant}
+                  hideNetManagementControls={hideNetManagementControls}
+                  slots={slots}
+                  titleEditable={titleEditable}
+                  viewportActions={viewportActions}
+                />
+              </Stack>
+            </MonacoProvider>
+          </PetrinautPresentationProvider>
+        </PetrinautProvider>
+      </InstalledPluginsProvider>
     </PortalContainerContext>
   );
 };

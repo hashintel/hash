@@ -9,6 +9,7 @@ import { UserSettingsContext } from "../../../../react/state/user-settings-conte
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { SettingsIcon } from "../../../experimental-icons";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { PluginToolbarItems } from "../../../plugins/plugin-toolbar-items";
 import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
 
@@ -160,6 +161,10 @@ export const ViewportControls: React.FC<{
           prefix={action.icon}
         />
       ))}
+      <PluginToolbarItems
+        placement="viewport-controls"
+        buttonClassName={chromeBackground}
+      />
     </div>
   );
 };
