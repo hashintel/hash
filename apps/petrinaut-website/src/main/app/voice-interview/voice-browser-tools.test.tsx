@@ -6,7 +6,6 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
-import { canonicalPetrinautClientToolNames } from "../local-storage-demo/brunch-client-tools";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -232,7 +231,6 @@ test.each([
           transport: createBrunchPanelTransport(
             Promise.resolve(client),
             tracker,
-            { clientToolNames: canonicalPetrinautClientToolNames },
           ),
           renderVoiceMode: (current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />

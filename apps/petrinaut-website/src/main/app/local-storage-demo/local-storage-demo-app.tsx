@@ -22,7 +22,7 @@ import {
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent/conversation-identity";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -89,6 +89,10 @@ import {
   createBrunchMutationApprovalCoordinator,
   createBrunchMutationApprovalInteractiveTools,
 } from "./brunch-mutation-approval";
+import {
+  canonicalBrunchFlueAdapter,
+  createBrunchFlueAdapter,
+} from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -741,11 +745,20 @@ export const LocalStorageDemoApp = ({
   const constructionClientTools = brunchSelected
     ? brunchPetrinautClientToolNames
     : undefined;
+  const flueAdapter = useMemo(
+    () =>
+      constructionClientTools === undefined
+        ? canonicalBrunchFlueAdapter
+        : createBrunchFlueAdapter({
+            clientToolNames: constructionClientTools,
+            dynamicClientToolNames,
+          }),
+    [constructionClientTools, dynamicClientToolNames],
+  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionClientTools,
-    dynamicClientToolNames,
+    flueAdapter,
   );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
@@ -857,17 +870,7 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          ...(constructionClientTools === undefined
-            ? {}
-            : {
-                clientToolNames: constructionClientTools,
-                dynamicClientToolNames,
-                ...(canonicalHostTools === undefined
-                  ? {}
-                  : {
-                      mapClientToolInput: (call) => call.input,
-                    }),
-              }),
+          adapter: flueAdapter,
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
             reportBrunchFailure("server-tool", new Error(event.errorText), {
@@ -882,10 +885,8 @@ export const LocalStorageDemoApp = ({
   }, [
     conversationTracker,
     conversationId,
-    constructionClientTools,
     constructionBrowser,
-    canonicalHostTools,
-    dynamicClientToolNames,
+    flueAdapter,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,

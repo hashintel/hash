@@ -12,10 +12,10 @@ import {
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
@@ -56,6 +56,9 @@ import type {
 } from "@hashintel/petrinaut/ui";
 
 const defaultTransportOptions = vi.hoisted(() => ({
+  current: null as unknown,
+}));
+const brunchFlueAdapterTools = vi.hoisted(() => ({
   current: null as unknown,
 }));
 const brunchPanelTransportOptions = vi.hoisted(() => ({
@@ -125,6 +128,18 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("./brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
+vi.mock("./brunch-flue-adapter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./brunch-flue-adapter")>();
+  return {
+    ...actual,
+    createBrunchFlueAdapter: (
+      tools: Parameters<typeof actual.createBrunchFlueAdapter>[0],
+    ) => {
+      brunchFlueAdapterTools.current = tools;
+      return actual.createBrunchFlueAdapter(tools);
+    },
+  };
+});
 vi.mock("./brunch-panel-transport", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("./brunch-panel-transport")>();
@@ -1351,13 +1366,10 @@ describe("local storage demo Brunch controls", () => {
       ?.aiAssistant as PetrinautAiAssistant;
     const transportOptions = brunchPanelTransportOptions.current as {
       readonly initialData?: { readonly binding?: unknown };
+    };
+    const adapterTools = brunchFlueAdapterTools.current as {
       readonly clientToolNames?: ReadonlySet<string>;
       readonly dynamicClientToolNames?: ReadonlySet<string>;
-      readonly mapClientToolInput?: (call: {
-        input: unknown;
-        toolCallId: string;
-        toolName: string;
-      }) => unknown;
     };
 
     const conversationId = brunchEvaluationConversationIdFrom(
@@ -1390,7 +1402,7 @@ describe("local storage demo Brunch controls", () => {
       documentId: "net-1",
       incarnationId,
     });
-    expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
+    expect([...(adapterTools.clientToolNames ?? [])].toSorted()).toEqual(
       [...brunchPetrinautClientToolNames].toSorted(),
     );
     expect(
@@ -1401,7 +1413,6 @@ describe("local storage demo Brunch controls", () => {
         "removePlace",
       ]),
     );
-    expect(transportOptions.mapClientToolInput).toEqual(expect.any(Function));
     // Every configured Brunch browser tool, the draft included, settles in band.
     expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(
       true,
@@ -1410,9 +1421,7 @@ describe("local storage demo Brunch controls", () => {
       aiAssistant.inBandBrowserTools?.has(brunchTools.draftPetrinautExperiment),
     ).toBe(false);
     // I captures the experiment source at the browser lane barrier, not while projecting transport input.
-    expect(
-      [...(transportOptions.dynamicClientToolNames ?? [])].toSorted(),
-    ).toEqual(
+    expect([...(adapterTools.dynamicClientToolNames ?? [])].toSorted()).toEqual(
       [
         ...canonicalPetrinautClientToolNames,
         brunchTools.draftPetrinautExperiment,

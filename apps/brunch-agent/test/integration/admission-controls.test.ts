@@ -4,7 +4,7 @@ import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
-import { createFlueUiStream } from "@hashintel/brunch-agent-transport-aisdk";
+import { createFlueUiStream } from "@local/flue-aisdk-transport";
 
 import { runNodeScript } from "./run-node-script";
 

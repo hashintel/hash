@@ -2,6 +2,7 @@ import { generateId, type UIMessageChunk } from "ai";
 
 import {
   createExperimentToolName,
+  petrinautDiagnosticsContextMessageId,
   type PetrinautExperimentRequest,
   type PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
@@ -15,7 +16,11 @@ const describeResult = (result: PetrinautExperimentResult): string => {
   if (result.status !== "complete") {
     const status =
       result.status === "cancelled" ? "was cancelled" : "could not finish";
-    return `The experiment ${status} after ${result.runsCompleted} completed runs. ${result.message ?? "Send another request to try again."}`;
+    return `The experiment ${status} after ${
+      result.runsCompleted
+    } completed runs. ${
+      result.message ?? "Send another request to try again."
+    }`;
   }
   const infectedShare = result.metrics.find(
     (metric) => metric.id === "metric__infected_fraction",
@@ -53,7 +58,7 @@ export const createExperimentDemoTransport = (): PetrinautAiChatTransport => ({
     const lastUserIndex = messages.findLastIndex(
       (message) =>
         message.role === "user" &&
-        message.id !== "petrinaut-diagnostics-context",
+        message.id !== petrinautDiagnosticsContextMessageId,
     );
     const prompt =
       messages[lastUserIndex]?.parts

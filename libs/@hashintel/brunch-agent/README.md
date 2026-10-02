@@ -6,7 +6,8 @@ Brunch is the elicitation agent used by Petrinaut to build and explain operation
 
 - [`packages/core/`](./packages/core/) — `@hashintel/brunch-agent`: the core prompt, elicitation skill, workpiece contracts, and Flue contribution.
 - [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) — the mounted SDCPN/Petrinaut plugin, including its prompt, modelling skill, and construction tools.
-- [`packages/transport-aisdk/`](./packages/transport-aisdk/) — the AI SDK transport over a caller-provided Flue client.
+
+The AI SDK transport over a Flue conversation, including the live tool-input channel, is the product-neutral [`@local/flue-aisdk-transport`](../../@local/flue-aisdk-transport/). Brunch supplies its browser-tool envelope, contextual-message framing and message-metadata projection to it through core's browser-safe slices.
 
 The server and composition point live in [`apps/brunch-agent/`](../../../apps/brunch-agent/). Petrinaut’s browser-side integration lives in [`apps/petrinaut-website/`](../../../apps/petrinaut-website/).
 

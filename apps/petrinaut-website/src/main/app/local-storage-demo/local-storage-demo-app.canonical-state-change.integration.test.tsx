@@ -15,7 +15,7 @@ import {
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
 import {
   petrinautAiModel,
   type PetrinautDocHandle,
