@@ -30,6 +30,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { UtteranceJudgmentMode } from "../../../shared/live-utterance-judgment";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
@@ -135,6 +136,7 @@ export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
   readonly provider?: "realtime" | "live";
+  readonly utteranceJudgment?: Exclude<UtteranceJudgmentMode, "off">;
 }
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
@@ -272,6 +274,9 @@ export const loadOpenAIVoiceConfig = async (
       ...(body.provider === undefined
         ? {}
         : { provider: body.provider as "realtime" | "live" }),
+      ...(body.provider === "live" && body.utteranceJudgment === "log"
+        ? { utteranceJudgment: body.utteranceJudgment }
+        : {}),
     };
   } catch {
     return null;
@@ -673,6 +678,7 @@ const PinnedVoiceInterviewControl = ({
         mediationHistory={mediationHistory}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
+        utteranceJudgment={sessionConfig.utteranceJudgment}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}
         registerVoiceModeSessionControls={
           context.registerVoiceModeSessionControls

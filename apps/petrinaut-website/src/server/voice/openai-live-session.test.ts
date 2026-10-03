@@ -90,6 +90,7 @@ describe("Live configuration and session creation", () => {
         available,
         provider,
         connectionTimeoutMs: 15_000,
+        utteranceJudgment: "off",
       });
     },
   );

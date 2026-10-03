@@ -4,6 +4,7 @@ import {
 } from "../../shared/voice-settings.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
+import { readBoundedBody } from "./read-bounded-body.js";
 import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const instructions = `You are a calm, friendly process interview assistant. Speak as one
@@ -121,25 +122,9 @@ export const createOpenAILiveSessionHandler =
     ]);
     try {
       signal.throwIfAborted();
-      const body = new Uint8Array(65_536);
-      let length = 0;
-      try {
-        // Bound memory while reading, including chunked offers, and cancel stalled uploads.
-        await request.body?.pipeTo(
-          new WritableStream<Uint8Array>({
-            write(chunk) {
-              length += chunk.byteLength;
-              if (length > body.byteLength) throw new Error("SDP too large");
-              body.set(chunk, length - chunk.byteLength);
-            },
-          }),
-          { signal },
-        );
-      } catch (error) {
-        if (length > body.byteLength) return respond("SDP too large.", 413);
-        throw error;
-      }
-      const sdp = new TextDecoder().decode(body.subarray(0, length));
+      const body = await readBoundedBody(request, 65_536, signal);
+      if (!body) return respond("SDP too large.", 413);
+      const sdp = new TextDecoder().decode(body);
       if (!sdp.trimStart().startsWith("v=0"))
         return respond("Invalid SDP.", 400);
       signal.throwIfAborted();
