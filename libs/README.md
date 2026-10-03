@@ -65,9 +65,9 @@ The publishing process is tested automatically, and therefore can be verified th
 
 ### TypeScript
 
-Publishing of TypeScript libraries is handled via [Changesets](https://github.com/changesets/changesets).
+Publishing of TypeScript libraries is handled via [Changesets](https://github.com/changesets/changesets). The Changesets configuration, including the packages it ignores, is in [.changeset/config.json](/.changeset/config.json).
 
-To record a change for publication:
+A PR that changes an npm-publishable package adds a changeset file under `.changeset/`. To record a change for publication:
 
 1. From the root of the repository, run `yarn changeset`
 2. Select the package(s) affected by this change (space to select, enter to move to the next step)
@@ -77,6 +77,16 @@ To record a change for publication:
 1. Select the semver increment
 2. Describe the change
 3. Commit the created changeset file
+
+The changeset text becomes the package's published changelog entry, so write it for the package's consumers:
+
+- Describe the change as a consumer of the package experiences it: behaviour changes, bug fixes, and interface changes. Leave out implementation details that do not affect consumers, and do not mention this repository or its internal systems.
+- Every sentence must apply to each package the changeset lists. When a PR changes several packages in different ways, write a separate changeset for each package.
+- Use at most one paragraph per changeset.
+
+A package's own `AGENTS.md` can set further conventions, such as the semver increment it accepts. Check it before writing the changeset.
+
+The full changeset-writing guidance is in the [`publishing-packages` skill](../.agents/skills/publishing-packages/SKILL.md).
 
 When a PR with a changeset file is merged, the change is added to a PR entitled 'Version Packages',
 which has a diff showing the version increments which will be applied to affected packages, including dependents.
