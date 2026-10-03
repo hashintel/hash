@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -673,10 +672,12 @@ const PinnedVoiceInterviewControl = ({
     if (context.inputMode === "text") pinnedWords.current = undefined;
   }, [context.inputMode, readWords]);
   // Stable even for the legacy store constructed once. Retries keep this snapshot.
-  const readSessionWords = useCallback(() => {
-    pinnedWords.current ??= validateWords(wordsReader.current?.() ?? []);
+  const readSessionWords = () => {
+    if (pinnedWords.current === undefined) {
+      pinnedWords.current = validateWords(wordsReader.current?.() ?? []);
+    }
     return pinnedWords.current;
-  }, []);
+  };
   const [sessionConfig, setSessionConfig] = useState(config);
   if (
     context.inputMode === "text" &&
