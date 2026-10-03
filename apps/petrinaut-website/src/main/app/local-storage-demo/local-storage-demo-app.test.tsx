@@ -17,8 +17,18 @@ import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
-import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
-import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import {
+  canonicalPetrinautClientToolNames,
+  brunchPetrinautClientToolNames,
+} from "../assistants/brunch/brunch-client-tools";
+import {
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "../assistants/brunch/brunch-conversation-id";
+import { BrunchPanelConversationTracker } from "../assistants/brunch/brunch-panel-transport";
+import { OpenAIRealtimeSession } from "../assistants/voice/openai-realtime-session";
+import { VoiceInterviewControl } from "../assistants/voice/voice-interview-control";
+import { voicePreferenceStorageKey } from "../assistants/voice/voice-preference";
 import {
   assistantSelectionStorageKey,
   defaultAssistantSelection,
@@ -26,20 +36,10 @@ import {
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
 import {
-  canonicalPetrinautClientToolNames,
-  brunchPetrinautClientToolNames,
-} from "./brunch-client-tools";
-import {
-  brunchEvaluationConversationIdFrom,
-  ordinaryConstructionConversationIdFrom,
-} from "./brunch-conversation-id";
-import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
-import {
   getBrunchVoiceMode,
   LocalStorageDemoApp,
   requestFlueStop,
 } from "./local-storage-demo-app";
-import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type {
   AgentConversationObservationSnapshot,
@@ -88,23 +88,28 @@ const brunchPreviewConfig = vi.hoisted(() => ({
   chatEndpoint: "/agents/chat",
   isBrunchConfigured: true,
 }));
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../assistants/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
 }));
 
-vi.mock("./brunch-mutation-approval", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("./brunch-mutation-approval")>();
-  return {
-    ...actual,
-    createBrunchMutationApprovalCoordinator: () => {
-      const coordinator = actual.createBrunchMutationApprovalCoordinator();
-      vi.spyOn(coordinator, "close");
-      mutationApprovalCoordinators.push(coordinator);
-      return coordinator;
-    },
-  };
-});
+vi.mock(
+  "../assistants/brunch/brunch-mutation-approval",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../assistants/brunch/brunch-mutation-approval")
+      >();
+    return {
+      ...actual,
+      createBrunchMutationApprovalCoordinator: () => {
+        const coordinator = actual.createBrunchMutationApprovalCoordinator();
+        vi.spyOn(coordinator, "close");
+        mutationApprovalCoordinators.push(coordinator);
+        return coordinator;
+      },
+    };
+  },
+);
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
@@ -122,26 +127,31 @@ const editorProps = vi.hoisted(() => ({
   } | null,
 }));
 
-vi.mock("./brunch-principal", () => ({
+vi.mock("../assistants/brunch/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
-vi.mock("./brunch-panel-transport", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("./brunch-panel-transport")>();
-  return {
-    ...actual,
-    createBrunchPanelTransport: (
-      client: Parameters<typeof actual.createBrunchPanelTransport>[0],
-      tracker: Parameters<typeof actual.createBrunchPanelTransport>[1],
-      options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
-    ) => {
-      brunchPanelTransportOptions.current = options;
-      brunchPanelTransportTracker.current = tracker;
-      brunchPanelTransportSessions.current.push({ client, tracker });
-      return actual.createBrunchPanelTransport(client, tracker, options);
-    },
-  };
-});
+vi.mock(
+  "../assistants/brunch/brunch-panel-transport",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../assistants/brunch/brunch-panel-transport")
+      >();
+    return {
+      ...actual,
+      createBrunchPanelTransport: (
+        client: Parameters<typeof actual.createBrunchPanelTransport>[0],
+        tracker: Parameters<typeof actual.createBrunchPanelTransport>[1],
+        options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
+      ) => {
+        brunchPanelTransportOptions.current = options;
+        brunchPanelTransportTracker.current = tracker;
+        brunchPanelTransportSessions.current.push({ client, tracker });
+        return actual.createBrunchPanelTransport(client, tracker, options);
+      },
+    };
+  },
+);
 
 vi.mock("@hashintel/petrinaut/ui", () => ({
   DefaultChatTransport: class {

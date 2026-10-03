@@ -34,8 +34,8 @@ import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/loa
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "./brunch-panel-transport";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
+} from "../assistants/brunch/brunch-panel-transport";
+import { resolveBrunchToolPresentation } from "../assistants/brunch/brunch-tool-presentation";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
