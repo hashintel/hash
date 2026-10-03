@@ -20,14 +20,14 @@ metadata:
 
 # Publishing Packages
 
-The "Publishing" section of [`libs/README.md`](../../../libs/README.md#publishing) is the source of truth for releasing packages from this repository, including when a PR needs a changeset and how to write the changelog text. Read it before adding or editing a changeset.
+npm-publishable packages in this repository are versioned and released with [changesets](https://github.com/changesets/changesets). The changeset configuration, including which packages are ignored, lives in [`.changeset/config.json`](../../../.changeset/config.json).
 
-`yarn changeset` prompts interactively. Instead of running it, create the changeset file under `.changeset/` directly: a kebab-case file name, the semver increment for each package in the frontmatter, and the changelog text as the body.
+## Changesets
 
-```md
----
-"@hashintel/petrinaut": patch
----
+A PR that changes an npm-publishable package adds a changeset file under `.changeset/`. The changeset text becomes the package's published changelog entry, so write it for the package's consumers:
 
-One paragraph describing the change as the package's consumers experience it.
-```
+- Describe the change as a consumer of the package experiences it: behaviour changes, bug fixes, and interface changes. Leave out implementation details that do not affect consumers, and do not mention this repository or its internal systems.
+- Every sentence must apply to each package the changeset lists. When a PR changes several packages in different ways, write a separate changeset for each package.
+- Use at most one paragraph per changeset.
+
+A package's own `AGENTS.md` can carry further conventions, such as the bump level it accepts; check it before writing the changeset.
