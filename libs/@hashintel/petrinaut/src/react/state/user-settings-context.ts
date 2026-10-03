@@ -70,11 +70,10 @@ export type UserSettings = {
    */
   showCompilationOutput: boolean;
   /**
-   * Shows a host's Brunch demo affordances, such as the demo site's
-   * prepared-fixture selector. Toggled from a palette command the host
-   * registers; the settings dialog has no control for it.
+   * The plugin whose assistant the AI panel shows, by plugin id. `null` means
+   * the first installed assistant; a stale id falls back to it too.
    */
-  brunchDemoMode: boolean;
+  aiAssistantId: string | null;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -102,7 +101,7 @@ export type UserSettingsActions = {
   setEnableNetComponents: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
-  setBrunchDemoMode: (value: boolean) => void;
+  setAiAssistantId: (pluginId: string | null) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -135,7 +134,7 @@ export const defaultUserSettings: UserSettings = {
   enableNetComponents: false,
   showWalkthroughOnInit: true,
   showCompilationOutput: false,
-  brunchDemoMode: false,
+  aiAssistantId: null,
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -167,7 +166,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setEnableNetComponents: () => {},
   setShowWalkthroughOnInit: () => {},
   setShowCompilationOutput: () => {},
-  setBrunchDemoMode: () => {},
+  setAiAssistantId: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };

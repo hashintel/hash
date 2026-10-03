@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 import type { EntityId } from "@blockprotocol/type-system";
-import type { PetrinautProps, SDCPN } from "@hashintel/petrinaut";
+import type { PetrinautAiAssistant, SDCPN } from "@hashintel/petrinaut";
 import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
 
 export type PetrinautAiMessage = NonNullable<
-  NonNullable<PetrinautProps["aiAssistant"]>["messages"]
+  PetrinautAiAssistant["messages"]
 >[number];
 
 /**

@@ -12,6 +12,35 @@
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 export {
+  definePetrinautPlugin,
+  type PetrinautAssistantProvider,
+  type PetrinautAssistantTab,
+  type PetrinautPlugin,
+  type PetrinautPluginApi,
+  type PetrinautPluginButtonProvider,
+  type PetrinautPluginDocument,
+  type PetrinautPluginProviders,
+} from "./plugins/define-petrinaut-plugin";
+export type {
+  PetrinautFlagSpec,
+  PetrinautPluginButtonPlace,
+  PetrinautPluginManifest,
+  PetrinautPluginTopBarPlace,
+  PetrinautSettingSpec,
+} from "./plugins/plugin-manifest";
+export {
+  definePluginToken,
+  type PluginToken,
+  type PluginTokenValue,
+} from "./plugins/plugin-token";
+export {
+  PetrinautPluginsProvider,
+  type PetrinautPluginsProviderProps,
+  useInstalledPlugins,
+  usePluginRuntime,
+} from "./plugins/plugins-provider";
+export { createAssistantPlugin } from "./plugins/create-assistant-plugin";
+export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,
 } from "./views/Editor/panels/ai-assistant-panel/ai-assistant-contents/experiment-execution-card";
@@ -253,10 +282,6 @@ export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
 // Viewport action — shape consumers use to add custom buttons to the
 // viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.
-export type { ViewportAction } from "./types/viewport-action";
-
-// Slots — named locations into which the host can inject arbitrary React components.
-export type { PetrinautSlots } from "./types/petrinaut-slots";
 
 // Walkthrough — first-visit product tour. Exposed so embedders can drive it
 // programmatically (e.g. trigger from their own help menu) without relying on

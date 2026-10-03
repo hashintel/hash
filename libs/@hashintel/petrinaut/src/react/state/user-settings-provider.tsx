@@ -43,6 +43,8 @@ type PersistedUserSettings = Partial<UserSettings> & {
    */
   enableAdHocScenarios?: boolean;
   enableNotebookView?: boolean;
+  /** Gated a demo-only File menu entry. Dropped on the next write. */
+  brunchDemoMode?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -60,6 +62,7 @@ const loadSettings = (): UserSettings => {
         enableOptimizationSurface: _enableOptimizationSurface,
         enableAdHocScenarios: _enableAdHocScenarios,
         enableNotebookView: _enableNotebookView,
+        brunchDemoMode: _brunchDemoMode,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -149,8 +152,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ),
       }));
     },
-    setBrunchDemoMode: (value: boolean) =>
-      setState((prev) => ({ ...prev, brunchDemoMode: value })),
+    setAiAssistantId: (pluginId: string | null) =>
+      setState((prev) => ({ ...prev, aiAssistantId: pluginId })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

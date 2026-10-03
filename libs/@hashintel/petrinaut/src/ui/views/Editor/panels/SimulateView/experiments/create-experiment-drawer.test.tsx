@@ -303,7 +303,7 @@ const TestProviders = ({
     setShowWalkthroughOnInit: () => {},
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
-    setBrunchDemoMode: () => {},
+    setAiAssistantId: () => {},
     updateSubViewSection: () => {},
   };
 

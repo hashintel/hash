@@ -8,6 +8,8 @@ import {
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
+import { createAssistantPlugin } from "../../plugins/create-assistant-plugin";
+import { PetrinautPluginsProvider } from "../../plugins/plugins-provider";
 import { EditorView } from "./editor-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -105,6 +107,14 @@ const aiAssistant: PetrinautAiAssistant = {
   },
 };
 
+const plugins = [
+  createAssistantPlugin({
+    id: "test.assistant",
+    label: "AI",
+    assistant: aiAssistant,
+  }),
+];
+
 const EditorAtMode = ({
   mode,
   view = "canvas",
@@ -122,7 +132,9 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <EditorView aiAssistant={aiAssistant} titleEditable />
+      <PetrinautPluginsProvider plugins={plugins}>
+        <EditorView titleEditable />
+      </PetrinautPluginsProvider>
     </EditorContext.Provider>
   );
 };

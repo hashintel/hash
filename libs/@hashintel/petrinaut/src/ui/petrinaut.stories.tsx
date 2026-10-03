@@ -16,6 +16,8 @@ import {
 import { PetrinautOptimizationContext } from "../react/optimization-context";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
+import { createAssistantPlugin } from "./plugins/create-assistant-plugin";
+import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
 
 import type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
@@ -607,15 +609,30 @@ const HandleSpikeRender = ({
     });
   }, [handle]);
 
+  const plugins = useMemo(
+    () =>
+      aiAssistant
+        ? [
+            createAssistantPlugin({
+              id: "story.assistant",
+              label: "AI",
+              assistant: aiAssistant,
+            }),
+          ]
+        : [],
+    [aiAssistant],
+  );
+
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <Petrinaut
-        aiAssistant={aiAssistant}
-        handle={handle}
-        title={title}
-        setTitle={setTitle}
-        hideNetManagementControls="all"
-      />
+      <PetrinautPluginsProvider plugins={plugins}>
+        <Petrinaut
+          handle={handle}
+          title={title}
+          setTitle={setTitle}
+          hideNetManagementControls="all"
+        />
+      </PetrinautPluginsProvider>
       <pre
         style={{
           position: "absolute",

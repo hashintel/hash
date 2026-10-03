@@ -366,7 +366,7 @@ const createStoryVoiceSessionStore = (
 };
 
 const Frame = ({
-  additionalTab,
+  extraTabs,
   composerControl,
   error,
   experimentStates,
@@ -388,7 +388,7 @@ const Frame = ({
   voiceSession,
   workingLabel,
 }: {
-  additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
+  extraTabs?: ComponentProps<typeof AiAssistantContents>["extraTabs"];
   composerControl?: ComponentProps<
     typeof AiAssistantContents
   >["composerControl"];
@@ -444,7 +444,7 @@ const Frame = ({
           data-testid="ai-assistant-story-frame"
         >
           <AiAssistantContents
-            additionalTab={additionalTab}
+            extraTabs={extraTabs}
             composerControl={composerControl}
             error={error}
             experimentStates={experimentStates}
@@ -504,15 +504,18 @@ export const Floating: Story = {
 export const WithWorkpieceTab: Story = {
   render: () => (
     <Frame
-      additionalTab={{
-        label: "Workpiece",
-        content: (
-          <div>
-            <h2>Model account</h2>
-            <p>A saved description of the process being modeled.</p>
-          </div>
-        ),
-      }}
+      extraTabs={[
+        {
+          id: "workpiece",
+          label: "Workpiece",
+          content: (
+            <div>
+              <h2>Model account</h2>
+              <p>A saved description of the process being modeled.</p>
+            </div>
+          ),
+        },
+      ]}
       messages={[userMessage, assistantMarkdownMessage]}
     />
   ),
@@ -1540,7 +1543,9 @@ const BrunchWaitingPreview = () => {
       </Button>
       <Frame
         key={String(voice)}
-        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        extraTabs={[
+          { id: "ledger", label: "Ledger", content: <p>Saved account</p> },
+        ]}
         primaryLabel="Chat"
         presentation="brunch"
         messages={[userMessage]}
@@ -2120,6 +2125,7 @@ const supportDeskUser: PetrinautAiMessage = {
   ],
 };
 const ledgerTab = {
+  id: "ledger",
   label: "Ledger",
   content: <p>Support desk · arrival rate still open</p>,
 };
@@ -2128,7 +2134,7 @@ export const ChatTurn: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       messages={[supportDeskUser, conversationTurn]}
     />
   ),
@@ -2164,7 +2170,7 @@ export const VoiceMediatedTurn: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "speaking" })}
@@ -2236,7 +2242,7 @@ export const ChatVoiceOrigin: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       messages={[
         { ...supportDeskUser, metadata: { source: "voice" } },
         conversationTurn,
@@ -2306,7 +2312,7 @@ export const VoicePreparing: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
@@ -2410,7 +2416,7 @@ export const VoiceStopped: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "listening" })}
@@ -2431,7 +2437,7 @@ const ExperimentExample = ({
   return (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       onCancelExperiment={() => setCancelled(true)}
       messages={[
         supportDeskUser,

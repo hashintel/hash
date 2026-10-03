@@ -27,9 +27,9 @@ import {
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { petrinautAiModel } from "@hashintel/petrinaut-core";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
+import { DEFAULT_CHAT_MODEL } from "../../../../../brunch-agent/src/chat-model";
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import {
   BrunchPanelConversationTracker,
@@ -40,6 +40,10 @@ import { resolveBrunchToolPresentation } from "../assistants/brunch/brunch-tool-
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noop = () => {};
+/** The server runs its default model when `BRUNCH_CHAT_MODEL` is unset; the faux provider must answer to it. */
+const defaultChatModelId = DEFAULT_CHAT_MODEL.slice(
+  DEFAULT_CHAT_MODEL.indexOf("/") + 1,
+);
 const originalFetch = globalThis.fetch;
 
 const firstMarkdown = [
@@ -105,7 +109,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
   delete process.env.BRUNCH_CHAT_THINKING;
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   const faux = fauxProvider({
-    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    models: [{ id: defaultChatModelId, reasoning: true }],
     provider: "openai",
   });
   faux.setResponses([

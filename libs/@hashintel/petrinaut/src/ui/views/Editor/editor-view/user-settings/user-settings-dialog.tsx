@@ -13,7 +13,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { FocusControls } from "../../../../worksheet/focus-controls";
+import { useAssistantChoice } from "../../../../plugins/plugin-assistants";
+import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
@@ -38,6 +39,7 @@ const settingsDialogStyles = {
   },
 } as const;
 const settingsDialogStyle = css(settingsDialogStyles);
+const assistantSelectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
 
 const sections = [
   {
@@ -351,19 +353,21 @@ const SettingsTabs = () => {
   );
 };
 
+const pluginRowComponents = { Group: SettingsGroup, Row: SettingRow };
+
 export const UserSettingsDialog = ({
   section,
-  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
-  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
   const settings = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
+  const assistantChoice = useAssistantChoice();
+  const activeAssistantId = assistantChoice.activeId;
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
@@ -481,6 +485,38 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowWalkthroughOnInit}
                         />
                       </SettingsGroup>
+                      {/* One assistant plugin needs no choice; several do. */}
+                      {assistantChoice.assistants.length > 1 &&
+                        activeAssistantId !== undefined && (
+                          <SettingsGroup title="AI assistant">
+                            <SettingRow
+                              label="Assistant"
+                              description="Choose which assistant answers in the AI panel."
+                              wideControl
+                            >
+                              {(aria) => (
+                                <Select
+                                  {...aria}
+                                  size="sm"
+                                  className={assistantSelectStyle}
+                                  required
+                                  value={activeAssistantId}
+                                  onChange={assistantChoice.choose}
+                                  items={assistantChoice.assistants.map(
+                                    (assistant) => ({
+                                      value: assistant.id,
+                                      text: assistant.label,
+                                    }),
+                                  )}
+                                />
+                              )}
+                            </SettingRow>
+                          </SettingsGroup>
+                        )}
+                      <PluginSettingsRows
+                        section="general"
+                        components={pluginRowComponents}
+                      />
                     </>
                   )}
                   {item.id === "viewport" && (
@@ -557,6 +593,10 @@ export const UserSettingsDialog = ({
                           onChange={settings.setPartialSelection}
                         />
                       </SettingsGroup>
+                      <PluginSettingsRows
+                        section="viewport"
+                        components={pluginRowComponents}
+                      />
                     </>
                   )}
                   {item.id === "labs" && (
@@ -579,9 +619,10 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowCompilationOutput}
                         />
                       </SettingsGroup>
-                      {settingsLabs !== undefined && settingsLabs !== null && (
-                        <FocusControls>{settingsLabs}</FocusControls>
-                      )}
+                      <PluginSettingsRows
+                        section="labs"
+                        components={pluginRowComponents}
+                      />
                     </>
                   )}
                 </FocusStack>

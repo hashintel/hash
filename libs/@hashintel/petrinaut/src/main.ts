@@ -25,8 +25,35 @@ export type {
 } from "./react/optimization-context";
 export { PetrinautOptimizationContext } from "./react/optimization-context";
 
-export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
-export type { ViewportAction } from "./ui/types/viewport-action";
+export {
+  definePetrinautPlugin,
+  type PetrinautAssistantProvider,
+  type PetrinautAssistantTab,
+  type PetrinautPlugin,
+  type PetrinautPluginApi,
+  type PetrinautPluginButtonProvider,
+  type PetrinautPluginDocument,
+  type PetrinautPluginProviders,
+} from "./ui/plugins/define-petrinaut-plugin";
+export type {
+  PetrinautFlagSpec,
+  PetrinautPluginButtonPlace,
+  PetrinautPluginManifest,
+  PetrinautPluginTopBarPlace,
+  PetrinautSettingSpec,
+} from "./ui/plugins/plugin-manifest";
+export {
+  definePluginToken,
+  type PluginToken,
+  type PluginTokenValue,
+} from "./ui/plugins/plugin-token";
+export {
+  PetrinautPluginsProvider,
+  type PetrinautPluginsProviderProps,
+  useInstalledPlugins,
+  usePluginRuntime,
+} from "./ui/plugins/plugins-provider";
+export { createAssistantPlugin } from "./ui/plugins/create-assistant-plugin";
 export type {
   PetrinautAiComposerControl,
   PetrinautAiComposerControlContext,

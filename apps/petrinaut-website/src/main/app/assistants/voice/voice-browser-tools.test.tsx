@@ -4,7 +4,11 @@ import { useLayoutEffect } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import {
+  createAssistantPlugin,
+  Petrinaut,
+  PetrinautPluginsProvider,
+} from "@hashintel/petrinaut/ui";
 
 import {
   NoopResizeObserver,
@@ -218,11 +222,11 @@ test.each([
         differentialEquations: [],
       },
     });
-    render(
-      <Petrinaut
-        handle={handle}
-        lspWorkerFactory={cleanDiagnosticsWorker}
-        aiAssistant={{
+    const plugins = [
+      createAssistantPlugin({
+        id: "test.assistant",
+        label: "AI",
+        assistant: {
           automaticTools: [],
           conversationId: "test",
           requestStop: async () => {
@@ -237,11 +241,16 @@ test.each([
             tracker,
             { clientToolNames: canonicalPetrinautClientToolNames },
           ),
-          renderVoiceMode: (current) => (
+          renderVoiceMode: (current: PetrinautAiVoiceModeContext) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
           ),
-        }}
-      />,
+        },
+      }),
+    ];
+    render(
+      <PetrinautPluginsProvider plugins={plugins}>
+        <Petrinaut handle={handle} lspWorkerFactory={cleanDiagnosticsWorker} />
+      </PetrinautPluginsProvider>,
     );
     await waitFor(() => expect(context).toBeDefined());
     await act(async () => {

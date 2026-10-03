@@ -19,11 +19,13 @@ import { CommandRegistryProvider } from "../../../../react/commands/command-regi
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
+import { PetrinautPluginsProvider } from "../../../plugins/plugins-provider";
 import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
-import type { ReactNode } from "react";
+import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 
 beforeEach(() => {
   localStorage.clear();
@@ -47,20 +49,37 @@ afterEach(() => {
   Reflect.deleteProperty(HTMLElement.prototype, "scrollTo");
 });
 
+const noPlugins: readonly PetrinautPlugin[] = [];
+
+const testPlugins: readonly PetrinautPlugin[] = [
+  definePetrinautPlugin(
+    {
+      id: "test.plugin",
+      name: "Test plugin",
+      flags: {
+        voice: { default: false, label: "Voice", description: "Talk." },
+      },
+    },
+    () => ({}),
+  ),
+];
+
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
-  settingsLabs?: ReactNode,
+  plugins: readonly PetrinautPlugin[] = noPlugins,
 ) => {
   const registry = createCommandRegistry();
   const result = render(
     <CommandRegistryProvider registry={registry}>
       <UserSettingsProvider>
-        <PetrinautNavigationProvider initialState={initialState}>
-          <PetrinautOptimizationContext value={optimization}>
-            <UserSettings settingsLabs={settingsLabs} />
-          </PetrinautOptimizationContext>
-        </PetrinautNavigationProvider>
+        <PetrinautPluginsProvider plugins={plugins}>
+          <PetrinautNavigationProvider initialState={initialState}>
+            <PetrinautOptimizationContext value={optimization}>
+              <UserSettings />
+            </PetrinautOptimizationContext>
+          </PetrinautNavigationProvider>
+        </PetrinautPluginsProvider>
       </UserSettingsProvider>
     </CommandRegistryProvider>,
   );
@@ -432,70 +451,63 @@ describe("Labs settings", () => {
     ).toBeNull();
   });
 
-  it("renders host Labs content after the built-in groups", async () => {
-    const withoutHost = renderSettings({
+  it("renders a plugin's flags as Labs rows after the built-in groups and persists a toggle", async () => {
+    const withoutPlugin = renderSettings({
       overlay: { type: "user-settings", section: "labs" },
     });
     await screen.findByRole("heading", { name: "Labs" });
-    expect(
-      screen.queryByRole("region", { name: "Host AI settings" }),
-    ).toBeNull();
-    withoutHost.unmount();
+    expect(screen.queryByRole("region", { name: "Test plugin" })).toBeNull();
+    withoutPlugin.unmount();
 
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
       null,
-      <section aria-label="Host AI settings">
-        <button type="button">Use Brunch</button>
-      </section>,
+      testPlugins,
     );
     await screen.findByRole("heading", { name: "Labs" });
+    const regions = screen.getAllByRole("region");
     expect(
-      screen.getByRole("region", { name: "Host AI settings" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Use Brunch" })).toBeTruthy();
+      regions.indexOf(screen.getByRole("region", { name: "Test plugin" })),
+    ).toBeGreaterThan(
+      regions.indexOf(screen.getByRole("region", { name: "Developer tools" })),
+    );
+    const voice = screen.getByRole("checkbox", {
+      name: "Voice",
+    }) as HTMLInputElement;
+    expect(voice.checked).toBe(false);
+    expect(screen.getByText("Talk.")).toBeTruthy();
+
+    await act(async () => fireEvent.click(voice));
+    expect(voice.checked).toBe(true);
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:plugin:test.plugin") ?? "{}"),
+    ).toEqual({ voice: true });
   });
 
-  it("walks enabled host Labs controls and crosses the existing focus flow", async () => {
+  it("walks plugin Labs rows and crosses the existing focus flow", async () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
       null,
-      <section aria-label="Host AI settings">
-        <button type="button" disabled>
-          Unavailable first
-        </button>
-        <button type="button">First host control</button>
-        <button type="button" aria-disabled="true">
-          Unavailable middle
-        </button>
-        <button type="button">Last host control</button>
-      </section>,
+      testPlugins,
     );
     await screen.findByRole("heading", { name: "Labs" });
     const labs = screen.getByRole("tab", { name: "Labs" });
     const compilation = screen.getByRole("checkbox", {
       name: "Compilation output",
     });
-    const first = screen.getByRole("button", {
-      name: "First host control",
-    });
-    const last = screen.getByRole("button", { name: "Last host control" });
+    const voice = screen.getByRole("checkbox", { name: "Voice" });
 
     act(() => compilation.focus());
     fireEvent.keyDown(compilation, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(first);
-    fireEvent.keyDown(first, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(last);
-    fireEvent.keyDown(last, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(first);
-    fireEvent.keyDown(first, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(voice);
+    fireEvent.keyDown(voice, { key: "ArrowUp" });
     expect(document.activeElement).toBe(compilation);
 
-    act(() => last.focus());
-    fireEvent.keyDown(last, { key: "ArrowLeft" });
+    act(() => voice.focus());
+    fireEvent.keyDown(voice, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(labs);
     fireEvent.keyDown(labs, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(last);
+    expect(document.activeElement).toBe(voice);
   });
 });
 

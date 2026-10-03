@@ -8,13 +8,18 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createReadableStore,
+} from "@hashintel/petrinaut-core";
 import {
   definePetrinautAiInteractiveTool,
+  definePetrinautPlugin,
   Petrinaut,
+  PetrinautPluginsProvider,
 } from "@hashintel/petrinaut/ui";
 
 import { useFlueChatHistory } from "./use-flue-chat-history";
@@ -25,6 +30,7 @@ import type {
   FlueClient,
 } from "@flue/sdk";
 import type {
+  PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
@@ -181,6 +187,37 @@ const VoiceMode = ({
   return null;
 };
 
+/**
+ * Installs one assistant plugin whose chat follows the `assistant` prop. The
+ * plugin keeps its identity across history updates, as a host plugin would,
+ * so only its published chat changes.
+ */
+const AssistantHost = ({
+  assistant,
+  children,
+}: {
+  assistant: PetrinautAiAssistant;
+  children: ReactNode;
+}) => {
+  const [chat] = useState(() =>
+    createReadableStore<PetrinautAiAssistant | null>(assistant),
+  );
+  const [plugins] = useState(() => [
+    definePetrinautPlugin(
+      { id: "test.assistant", name: "AI", assistant: { label: "AI" } },
+      () => ({ assistant: { chat } }),
+    ),
+  ]);
+  useLayoutEffect(() => {
+    chat.set(assistant);
+  }, [chat, assistant]);
+  return (
+    <PetrinautPluginsProvider plugins={plugins}>
+      {children}
+    </PetrinautPluginsProvider>
+  );
+};
+
 const ContinuityPanel = ({
   clientPromise,
   endVoice,
@@ -207,20 +244,20 @@ const ContinuityPanel = ({
   );
   if (!history.ready || history.messages === undefined) return null;
   return (
-    <Petrinaut
-      aiAssistant={{
+    <AssistantHost
+      assistant={{
         conversationId,
         interactiveTools: [voiceAnswerTool],
         messages: history.messages,
         requestStop,
-        renderVoiceMode: (context) => (
+        renderVoiceMode: (context: PetrinautAiVoiceModeContext) => (
           <VoiceMode context={context} endVoice={endVoice} />
         ),
         transport,
       }}
-      handle={handle}
-      lspWorkerFactory={inertWorker}
-    />
+    >
+      <Petrinaut handle={handle} lspWorkerFactory={inertWorker} />
+    </AssistantHost>
   );
 };
 

@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
+import { Button, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { NotificationsContext } from "../../../../../react/notifications/context";
@@ -55,13 +55,28 @@ import type { PetrinautAiMessage } from "./types";
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
+const EMPTY_EXTRA_TABS: readonly AiAssistantExtraTab[] = [];
+
+/** A tab beside the chat, rendered by the assistant plugin. */
+export type AiAssistantExtraTab = {
+  id: string;
+  label: string;
+  mark?: ReactNode;
+  /** Unseen updates, shown as a badge. */
+  attention?: number;
+  content: ReactNode;
+};
+
+/** The chat tab's id in `activeTabId`; every other id is an extra tab's. */
+export const CHAT_TAB_ID = "chat";
 
 export type AiAssistantContentsProps = {
-  additionalTab?: PetrinautAiAssistant["additionalTab"];
+  /** Tabs after the chat tab. The tab strip shows only when there is at least one. */
+  extraTabs?: readonly AiAssistantExtraTab[];
+  /** `CHAT_TAB_ID` or an extra tab's id. Uncontrolled when omitted. */
+  activeTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
   attentionAnnouncement?: string;
-  hostAttentionCount?: number;
-  hostTabSelected?: boolean;
-  onHostTabSelectedChange?: (selected: boolean) => void;
   primaryAttention?: boolean;
   primaryLabel?: string;
   presentation?: PetrinautAiAssistant["presentation"];
@@ -420,7 +435,9 @@ export const getTranscriptLabel = (
     : (primaryLabel ?? "AI");
 
 export const AiAssistantContents = ({
-  additionalTab,
+  extraTabs = EMPTY_EXTRA_TABS,
+  activeTabId: controlledActiveTabId,
+  onActiveTabChange,
   attentionAnnouncement,
   experimentStates,
   hostExperimentRunning = false,
@@ -433,8 +450,6 @@ export const AiAssistantContents = ({
   inputMode = "text",
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   isOpen = true,
-  hostAttentionCount = 0,
-  hostTabSelected: controlledHostTabSelected,
   hiddenToolNames,
   messages,
   onClearMessages,
@@ -442,7 +457,6 @@ export const AiAssistantContents = ({
   onCollapsedVoiceEnd,
   onInputModeChange,
   onInputChange,
-  onHostTabSelectedChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
@@ -464,11 +478,17 @@ export const AiAssistantContents = ({
   workingLabel,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
-  const aiTabId = `${panelId}-ai`;
-  const hostTabId = `${panelId}-host`;
-  const [internalHostTabSelected, setInternalHostTabSelected] = useState(false);
-  const hostTabSelected = controlledHostTabSelected ?? internalHostTabSelected;
-  const showingHostTab = additionalTab !== undefined && hostTabSelected;
+  const tabDomId = (tabId: string) => `${panelId}-${tabId}`;
+  const [internalActiveTabId, setInternalActiveTabId] = useState(CHAT_TAB_ID);
+  const requestedTabId = controlledActiveTabId ?? internalActiveTabId;
+  // A tab that disappeared falls back to the chat without a state update.
+  const activeTabId =
+    requestedTabId === CHAT_TAB_ID ||
+    extraTabs.some((tab) => tab.id === requestedTabId)
+      ? requestedTabId
+      : CHAT_TAB_ID;
+  const hasTabs = extraTabs.length > 0;
+  const showingHostTab = activeTabId !== CHAT_TAB_ID;
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
@@ -803,14 +823,14 @@ export const AiAssistantContents = ({
               {...(isFloating ? handleProps : {})}
             >
               <AiAssistantIcon size={16} />
-              {!additionalTab && <span>{transcriptLabel}</span>}
+              {!hasTabs && <span>{transcriptLabel}</span>}
             </HeaderLabel>
             <div className={headerTabsStyle}>
-              {additionalTab && (
+              {hasTabs && (
                 <HorizontalTabsHeader
                   subViews={[
                     {
-                      id: aiTabId,
+                      id: tabDomId(CHAT_TAB_ID),
                       title: transcriptLabel,
                       mark: isBrunchChat ? (
                         inputMode === "voice" ? (
@@ -821,22 +841,22 @@ export const AiAssistantContents = ({
                       ) : undefined,
                       attention: { marker: primaryAttention },
                     },
-                    {
-                      id: hostTabId,
-                      title: additionalTab.label,
-                      mark: isBrunchChat ? (
-                        <Icon name="bars" size="xs" />
-                      ) : undefined,
-                      attention: { count: hostAttentionCount },
-                    },
+                    ...extraTabs.map((tab) => ({
+                      id: tabDomId(tab.id),
+                      title: tab.label,
+                      mark: tab.mark,
+                      attention: { count: tab.attention },
+                    })),
                   ]}
-                  activeTabId={showingHostTab ? hostTabId : aiTabId}
+                  activeTabId={tabDomId(activeTabId)}
                   announcement={attentionAnnouncement}
                   styleVariant={presentation}
-                  onTabChange={(tabId) => {
-                    const selected = tabId === hostTabId;
-                    setInternalHostTabSelected(selected);
-                    onHostTabSelectedChange?.(selected);
+                  onTabChange={(domId) => {
+                    const tabId =
+                      extraTabs.find((tab) => tabDomId(tab.id) === domId)?.id ??
+                      CHAT_TAB_ID;
+                    setInternalActiveTabId(tabId);
+                    onActiveTabChange?.(tabId);
                   }}
                 />
               )}
@@ -888,9 +908,11 @@ export const AiAssistantContents = ({
           </div>
 
           <div
-            id={additionalTab ? `tabpanel-${aiTabId}` : undefined}
-            role={additionalTab ? "tabpanel" : undefined}
-            aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
+            id={hasTabs ? `tabpanel-${tabDomId(CHAT_TAB_ID)}` : undefined}
+            role={hasTabs ? "tabpanel" : undefined}
+            aria-labelledby={
+              hasTabs ? `tab-${tabDomId(CHAT_TAB_ID)}` : undefined
+            }
             hidden={showingHostTab}
             className={`${messagesStyle({ presentation })} ${panelContentStyle({
               visible: !isVoiceDockCollapsed && !showingHostTab,
@@ -927,21 +949,22 @@ export const AiAssistantContents = ({
             )}
           </div>
 
-          {additionalTab && (
+          {extraTabs.map((tab) => (
             <div
-              id={`tabpanel-${hostTabId}`}
+              key={tab.id}
+              id={`tabpanel-${tabDomId(tab.id)}`}
               role="tabpanel"
-              aria-labelledby={`tab-${hostTabId}`}
-              hidden={!showingHostTab}
+              aria-labelledby={`tab-${tabDomId(tab.id)}`}
+              hidden={activeTabId !== tab.id}
               className={`${messagesStyle({ presentation })} ${panelContentStyle(
                 {
-                  visible: !isVoiceDockCollapsed && showingHostTab,
+                  visible: !isVoiceDockCollapsed && activeTabId === tab.id,
                 },
               )}`}
             >
-              {additionalTab.content}
+              {tab.content}
             </div>
-          )}
+          ))}
 
           {isBrunchChat && showingHostTab && (
             <BrunchResponseStatus

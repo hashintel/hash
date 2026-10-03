@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { useCommandRegistry, useCommands } from "@hashintel/petrinaut/react";
-import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
+import {
+  definePetrinautPlugin,
+  KeyboardShortcut,
+} from "@hashintel/petrinaut/ui";
 
 import type { CSSProperties } from "react";
 
@@ -196,3 +199,12 @@ export const CommandPalette = () => {
     </div>
   );
 };
+
+/**
+ * The palette as a plugin: its root mounts the overlay and the ⌘K opener
+ * beside every editor the host installs it for.
+ */
+export const commandPalettePlugin = definePetrinautPlugin(
+  { id: "website.command-palette", name: "Command palette" },
+  () => ({ root: CommandPalette }),
+);
