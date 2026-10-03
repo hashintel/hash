@@ -274,7 +274,8 @@ export const loadOpenAIVoiceConfig = async (
       ...(body.provider === undefined
         ? {}
         : { provider: body.provider as "realtime" | "live" }),
-      ...(body.provider === "live" && body.utteranceJudgment === "log"
+      ...(body.provider === "live" &&
+      (body.utteranceJudgment === "log" || body.utteranceJudgment === "enforce")
         ? { utteranceJudgment: body.utteranceJudgment }
         : {}),
     };

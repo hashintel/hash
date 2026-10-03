@@ -96,8 +96,8 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `OPENAI_VOICE_API_KEY`              | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
 | `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for the log-only Live experiment.                                                       |
-| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission, in local development only. Others are off.          |
+| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for Live utterance experiments.                                                         |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` observes; `enforce` gates and drops withheld speech. Local development and previews only; others are off.  |
 | `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the model id; the default is `petrinautAiModel` in `@hashintel/petrinaut-core`.                        |
 | `PETRINAUT_AI_REASONING_EFFORT`     | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `petrinautAiModel.reasoningEffort`.                               |
 | `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
@@ -323,19 +323,103 @@ safety bound. This longer window measures results missed by the initial
 one-second cutoff; it is not an enforcement deadline and never delays submission.
 Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
 and 2 seconds separately from failures/timeouts, which are not successful latency
-samples. Log mode runs only in local development (`NODE_ENV=development`,
-no `VERCEL_ENV`), where its diagnostics are recorded.
-This endpoint inherits the unauthenticated Voice boundary; origin checks are
-not authentication. Do not enable it on a public deployment.
+samples. Log mode runs in local development (`NODE_ENV=development`, no
+`VERCEL_ENV`) and on Vercel preview deployments; production keeps it off.
+Browser traces are recorded only in local development; previews rely on the
+server log described under [utterance gating](#utterance-gating-trial-fe-1779).
+Origin checks and the per-client rate limit are not authentication.
 
 Acceptance requires a real log-only support-desk run: opening modelling request,
 "okay", a staffing range, Brunch's question repeated back, and "hang on". Retain
 the five metadata-only triples and latency p50, verify one unchanged submission
 per eligible utterance, and check `JSON.stringify(trace)` contains none of the
 spoken or offered text. Synthetic fixtures and a working endpoint do not prove
-classification quality or real latency. Enforcement is not implemented in this
-milestone; threshold, timeout and any later delegation override remain subject
-to a separate owner decision after reviewing those traces.
+classification quality or real latency. Log mode never enforces its decisions.
+
+#### Utterance gating trial (FE-1779)
+
+The trial uses `PETRINAUT_LIVE_UTTERANCE_JUDGMENT=enforce` with the same
+server-side keys and Live enablement as above. It runs in local development
+(`NODE_ENV=development`, `VERCEL_ENV` unset) and on Vercel preview deployments
+(`VERCEL_ENV=preview`). Production keeps both modes off whatever the variable
+says.
+
+The endpoint has no caller authentication. Its same-origin check stops other
+websites, not scripts, so each client IP is limited to 30 judgments a minute;
+on Vercel, requests without a resolvable client IP are rejected. The limit
+lives in function memory, resets on cold start and is not shared between
+instances, so it slows misuse of `TYPESAFE_API_KEY` rather than preventing it.
+Give previews a dedicated TypeSafe key with low usage limits and alerts, keep
+local dev servers private, and unset the variable and redeploy to end the trial.
+
+Each request that passes the mode check writes one `[Petrinaut voice]` line
+with `operation: "utterance-judgment"` to the server log (the Vite terminal
+locally, Vercel runtime logs on previews): `mode`, `outcome`, `status`,
+`durationMs`, and when known `contribution`, `confidence` and `upstreamStatus`.
+It never includes text, client IPs or provider bodies. The server cannot see
+the browser's one-second deadline or the gate's decision; browser
+`[Petrinaut Live trace]` records cover those, in local development only.
+
+Each eligible finalized transcript is judged once with the latest finalized
+Brunch turn and last successfully offered Brunch prose as context. All three
+text fields go to TypeSafe, never to diagnostic traces. A short confirmation
+can be interview content; mixed content and requests to send information to
+Brunch take priority over incidental speech.
+
+Submit the original transcript for interview content, confidence below 0.8,
+failure, or a one-second deadline expiry. Other contributions at confidence
+0.8 or higher are withheld. Live voice remains independent. The deadline bounds
+classification wait, not composer/admission wait; eligible submissions queue
+in transcript order while the composer is busy.
+
+Stopping a response cancels pending gated work; a fresh voice turn can still
+submit. Brunch entering an error state does the same: inputs still awaiting
+judgment, and inputs already cleared but waiting for the composer, are
+discarded without retry. Speaking again discards them like unsubmitted
+ungated turns: their words stay visible to send from the composer, and their
+delegations are told the person started speaking again; superseded ones,
+already replaced by newer speech, are dropped quietly. Each discarded input
+gets an `input.dropped` trace with `reason` (`stopped`, `error`,
+`speech-started`, or `ended` when voice ends) and the gate `decision` it had
+reached (`pending` or `submit`), metadata only.
+
+Withholding is silent: there is no **Not sent to Brunch** list or **Send to
+Brunch** button. **A wrongly held answer cannot be recovered through the UI.**
+Ending voice clears session-local state and cancels pending work. No automatic
+retry or replay occurs after reconnect. Check canonical history if admission is
+unconfirmed.
+
+Transcripts skipped by the empty or short-during-output checks are never
+judged. GPT-Live delegation neither chooses nor releases a transcript, but it
+pairs with gated transcripts as described above, including while judgment is
+pending, so Brunch prose for a submitted transcript is offered on its
+delegation. A withheld control or relay request leaves its delegation for Live
+to answer itself; other withheld speech declines it. A delegation that arrives
+after the judgment gets the same policy until a newer input reaches the gate.
+`judgment.result` records the applied decision and `input.withheld` (or, for a
+late delegation, `delegation.matched`) the delegation outcome, using metadata
+only.
+
+To check local enforcement, filter DevTools Console by `[Petrinaut Live trace]`:
+
+1. Start the local enforcement configuration above. Speak the support-desk
+   script; confirm withheld inputs have a `judgment.result` trace with
+   `"applied":"withhold"`, no `brunch.admitted` trace, and none of their text.
+2. Check meaningful short answers and corrections still reach Brunch.
+3. End voice and start again. Confirm old held inputs are not replayed.
+
+On a preview, run the same script and filter Vercel runtime logs by
+`utterance-judgment`: compare `contribution` and `outcome` counts with what was
+said, and check `durationMs` and any `rate-limited` or `upstream-error` lines.
+
+The threshold and deadline (`utteranceWithholdConfidence`, which log-mode
+recommendations also use, and `utteranceJudgmentDeadlineMs`, both in
+`src/shared/live-utterance-judgment.ts`) are trial settings, not validated
+production policy.
+Before production enablement, run the support-desk script plus contextual short
+answers; measure false withholding, Brunch-start delay, and avoided
+submissions. Synthetic tests do not establish classification quality, real Live
+responsiveness, or latency reliability. Production enforcement needs separate sign-off.
 
 ### Brunch Voice mode
 

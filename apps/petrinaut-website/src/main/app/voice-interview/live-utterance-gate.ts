@@ -1,0 +1,157 @@
+import {
+  shouldWithholdUtterance,
+  utteranceJudgmentDeadlineMs,
+} from "../../../shared/live-utterance-judgment";
+import { logLiveDiagnostic } from "./shared/live-diagnostic";
+
+import type {
+  UtteranceJudgment,
+  UtteranceJudgmentState,
+  WithheldContribution,
+} from "../../../shared/live-utterance-judgment";
+import type { FinalizedInput } from "./live-conversation";
+
+/** Why queued input was discarded: Stop, a Brunch error, the end of voice, newer speech, or speech starting again. */
+export type DiscardReason =
+  | "stopped"
+  | "error"
+  | "ended"
+  | "superseded"
+  | "speech-started";
+
+interface Entry {
+  readonly input: FinalizedInput;
+  readonly cancel: () => void;
+  decision: "pending" | "submit" | "withhold";
+}
+
+interface Dependencies {
+  readonly judge?: (
+    state: UtteranceJudgmentState,
+    signal: AbortSignal,
+  ) => Promise<UtteranceJudgment | null>;
+  readonly canSubmit: () => boolean;
+  readonly submit: (input: FinalizedInput) => void;
+  /** Called once per withheld input, when its judgment arrives. */
+  readonly withhold: (
+    input: FinalizedInput,
+    contribution: WithheldContribution,
+  ) => void;
+}
+
+/** Local experiment: owns decisions, never canonical admission. Withheld input is dropped. */
+export class LiveUtteranceGate {
+  readonly #dependencies: Dependencies;
+  readonly #queue: Entry[] = [];
+  readonly #cancellations = new Set<() => void>();
+  #stopped = false;
+
+  public constructor(dependencies: Dependencies) {
+    this.#dependencies = dependencies;
+  }
+
+  public accept(input: FinalizedInput, state: UtteranceJudgmentState): void {
+    if (this.#stopped) return;
+    const controller = new AbortController();
+    const startedAt = performance.now();
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const cancel = () => {
+      settled = true;
+      clearTimeout(timer);
+      controller.abort();
+      this.#cancellations.delete(cancel);
+    };
+    const entry: Entry = { input, cancel, decision: "pending" };
+    this.#queue.push(entry);
+    const finish = (judgment: UtteranceJudgment | null, timedOut = false) => {
+      if (settled || this.#stopped) return;
+      settled = true;
+      cancel();
+      const withheld = shouldWithholdUtterance(judgment)
+        ? judgment.contribution
+        : null;
+      entry.decision = withheld === null ? "submit" : "withhold";
+      logLiveDiagnostic("judgment.result", {
+        inputId: input.id,
+        judgment: judgment !== null,
+        contribution: judgment?.contribution ?? null,
+        confidence: judgment?.confidence ?? null,
+        latencyMs: Math.round(performance.now() - startedAt),
+        timedOut,
+        decision: entry.decision,
+        applied: entry.decision,
+        mode: "enforce",
+      });
+      if (withheld !== null) this.#dependencies.withhold(input, withheld);
+      this.drain();
+    };
+    timer = setTimeout(() => finish(null, true), utteranceJudgmentDeadlineMs);
+    this.#cancellations.add(cancel);
+    try {
+      const judgment = this.#dependencies.judge?.(state, controller.signal);
+      if (judgment)
+        void judgment.then(
+          (result) => finish(result),
+          () => finish(null),
+        );
+      else finish(null);
+    } catch {
+      finish(null);
+    }
+  }
+
+  public drain(): void {
+    if (this.#stopped) return;
+    while (this.#queue[0]?.decision === "withhold") this.#queue.shift();
+    const entry = this.#queue[0];
+    if (entry?.decision !== "submit" || !this.#dependencies.canSubmit()) return;
+    this.#queue.shift();
+    this.#dependencies.submit(entry.input);
+  }
+
+  /** Discards superseded inputs not yet submitted and returns their IDs. */
+  public evictSuperseded(): string[] {
+    const evicted: string[] = [];
+    for (let i = this.#queue.length - 1; i >= 0; i--) {
+      const entry = this.#queue[i];
+      if (!entry?.input.superseded || entry.decision === "withhold") continue;
+      entry.cancel();
+      this.#queue.splice(i, 1);
+      evicted.unshift(entry.input.id);
+      logLiveDiagnostic("input.dropped", {
+        inputId: entry.input.id,
+        reason: "superseded",
+        decision: entry.decision,
+      });
+    }
+    this.drain();
+    return evicted;
+  }
+
+  /**
+   * Discards inputs awaiting judgment or admission and returns them; withheld
+   * ones were already reported.
+   */
+  public cancelPending(reason: DiscardReason): FinalizedInput[] {
+    for (const cancel of this.#cancellations) cancel();
+    const discarded: FinalizedInput[] = [];
+    for (const { input, decision } of this.#queue) {
+      if (decision === "withhold") continue;
+      discarded.push(input);
+      logLiveDiagnostic("input.dropped", {
+        inputId: input.id,
+        reason,
+        decision,
+      });
+    }
+    this.#queue.length = 0;
+    return discarded;
+  }
+
+  public stop(): void {
+    if (this.#stopped) return;
+    this.#stopped = true;
+    this.cancelPending("ended");
+  }
+}

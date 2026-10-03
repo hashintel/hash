@@ -27,6 +27,7 @@ const setup = (
     offered: vi.fn(),
   },
   judge?: ConstructorParameters<typeof LiveBrunchBridge>[0]["judge"],
+  options: Partial<ConstructorParameters<typeof LiveBrunchBridge>[0]> = {},
 ) => {
   const appendCommentary = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendCommentary"]
@@ -62,6 +63,7 @@ const setup = (
     submit,
     judge,
     mediation,
+    ...options,
   });
   const update = (
     overrides: Partial<Parameters<typeof bridge.update>[0]> = {},
@@ -800,6 +802,592 @@ const judgmentRecords = () =>
         ) as Record<string, unknown>,
     )
     .filter((record) => record.event === "judgment.result");
+
+test("enforcement withholds once and a later delegation cannot submit it", async () => {
+  vi.stubEnv("DEV", true);
+  const judge = vi.fn(async () => ({
+    contribution: "social_or_backchannel" as const,
+    confidence: 0.8,
+  }));
+  const fixture = setup(undefined, judge, { enforce: true });
+  const input = speech("one", "PRIVATE okay");
+  fixture.bridge.acceptDelegation("early");
+  await fixture.bridge.accept(input);
+  await fixture.bridge.accept(input);
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(judge).toHaveBeenCalledOnce();
+  fixture.bridge.acceptDelegation("late");
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(judgmentRecords()).toMatchObject([
+    { mode: "enforce", applied: "withhold", confidence: 0.8 },
+  ]);
+  expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+});
+
+test.each([
+  { contribution: "interview_content" as const, confidence: 1 },
+  { contribution: "control" as const, confidence: 0.799 },
+  null,
+])("enforcement submits content or uncertainty: %j", async (judgment) => {
+  const fixture = setup(undefined, async () => judgment, { enforce: true });
+  await fixture.bridge.accept(speech("one", "original answer"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("one");
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    '"utterance":"original answer"',
+  );
+});
+
+test("enforcement preserves input order across judgments and busy admission", async () => {
+  const first = Promise.withResolvers<UtteranceJudgment | null>();
+  const second = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi
+    .fn()
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(second.promise);
+  const fixture = setup(undefined, judge, { enforce: true });
+  fixture.update({ canAcceptVoiceInput: false });
+  void fixture.bridge.accept(speech("one", "first"));
+  void fixture.bridge.accept(speech("two", "second"));
+  second.resolve(null);
+  await Promise.resolve();
+  fixture.update();
+  expect(fixture.submit).not.toHaveBeenCalled();
+  first.resolve(null);
+  await vi.waitFor(() =>
+    expect(fixture.submit.mock.calls.map(([input]) => input.id)).toEqual([
+      "one",
+      "two",
+    ]),
+  );
+});
+
+test("enforcement waits for admission, not an older response, before draining the next input", async () => {
+  const fixture = setup(undefined, async () => null, { enforce: true });
+  const firstResponse = Promise.withResolvers<void>();
+  const secondResponse = Promise.withResolvers<void>();
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await firstResponse.promise;
+    return { kind: "message", messageId: input.id, submissionId: "first" };
+  });
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await secondResponse.promise;
+    return { kind: "message", messageId: input.id, submissionId: "second" };
+  });
+  await fixture.bridge.accept(speech("one", "Four reviewers"));
+  await fixture.bridge.accept(speech("two", "Seven, not four"));
+  await fixture.bridge.accept(speech("three", "Approval is optional"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(1));
+  fixture.submit.mock.calls[0]![0].onAdmission("first");
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+  firstResponse.resolve();
+  await firstResponse.promise;
+  await Promise.resolve();
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  fixture.submit.mock.calls[1]![0].onAdmission("second");
+  await vi.waitFor(() =>
+    expect(fixture.submit.mock.calls.map(([input]) => input.id)).toEqual([
+      "one",
+      "two",
+      "three",
+    ]),
+  );
+  secondResponse.resolve();
+  await secondResponse.promise;
+  fixture.bridge.stop();
+});
+
+test("enforcement offers admitted Brunch prose on the delegation that arrived during judgment", async () => {
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const fixture = setup(undefined, () => pending.promise, { enforce: true });
+  await fixture.bridge.accept(speech("one", "Four reviewers"));
+  fixture.bridge.acceptDelegation("delegation");
+  expect(fixture.submit).not.toHaveBeenCalled();
+  pending.resolve(null);
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  await vi.waitFor(() =>
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+      segment().text,
+      "delegation",
+    ),
+  );
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  fixture.bridge.stop();
+});
+
+test.each([
+  ["empty", speech("skipped", ".")],
+  [
+    "short-during-output",
+    { id: "skipped", text: "Yes", startedDuringOutput: true },
+  ],
+])(
+  "enforcement never judges input the %s stage skips",
+  async (_stage, input) => {
+    const judge = vi.fn(async () => null);
+    const fixture = setup(undefined, judge, { enforce: true });
+    await fixture.bridge.accept(input);
+    expect(judge).not.toHaveBeenCalled();
+    expect(fixture.submit).not.toHaveBeenCalled();
+    await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+    expect(judge).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ transcript: "Seven reviewers" }),
+      expect.any(AbortSignal),
+    );
+    fixture.bridge.stop();
+  },
+);
+
+test.each([
+  ["control", "leave"],
+  ["relay_request", "leave"],
+  ["social_or_backchannel", "decline"],
+  ["restates_assistant", "decline"],
+  ["no_content", "decline"],
+] as const)(
+  "enforcement withholding %s input applies delegation policy %s",
+  async (contribution, policy) => {
+    vi.stubEnv("DEV", true);
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(null);
+    const fixture = setup(undefined, judge, { enforce: true });
+    await fixture.bridge.accept(speech("held", "PRIVATE incidental"));
+    fixture.bridge.acceptDelegation("delegation");
+    pending.resolve({ contribution, confidence: 0.9 });
+    await pending.promise;
+    await Promise.resolve();
+    expect(fixture.submit).not.toHaveBeenCalled();
+    expect(fixture.appendInstructions.mock.calls).toEqual(
+      policy === "decline"
+        ? [[expect.stringContaining("not sent to the backend"), "delegation"]]
+        : [],
+    );
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.withheld")).toEqual([
+      expect.objectContaining({
+        inputId: "held",
+        delegationId: "delegation",
+        delegation: policy,
+      }),
+    ]);
+
+    // A released delegation is never reused for later speech or closed later.
+    await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+    await vi.waitFor(() =>
+      expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ id: "answer" }),
+      ),
+    );
+    fixture.bridge.responseStarted(started);
+    fixture.bridge.responseCompleted({
+      ...started,
+      position: { batch: 2, index: 0 },
+    });
+    fixture.update({ segments: [segment()], settlements: completed });
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+        segment().text,
+        null,
+      ),
+    );
+    fixture.bridge.stopResponse();
+    fixture.bridge.stop();
+    expect(fixture.appendInstructions).toHaveBeenCalledTimes(
+      policy === "decline" ? 1 : 0,
+    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+  },
+);
+
+test.each([
+  ["control", "leave"],
+  ["no_content", "decline"],
+] as const)(
+  "a delegation arriving after %s input is withheld applies policy %s",
+  async (contribution, policy) => {
+    vi.stubEnv("DEV", true);
+    const judge = vi
+      .fn()
+      .mockResolvedValueOnce({ contribution, confidence: 0.9 })
+      .mockResolvedValue(null);
+    const fixture = setup(undefined, judge, { enforce: true });
+    fixture.speechPending.mockReturnValue(false);
+    await fixture.bridge.accept(speech("held", "PRIVATE incidental"));
+    await Promise.resolve();
+    fixture.bridge.acceptDelegation("late");
+    expect(fixture.appendInstructions.mock.calls).toEqual(
+      policy === "decline"
+        ? [[expect.stringContaining("not sent to the backend"), "late"]]
+        : [],
+    );
+    expect(
+      traceRecords(diagnosticSpy.mock.calls, "delegation.matched"),
+    ).toEqual([
+      expect.objectContaining({
+        inputId: "held",
+        delegationId: "late",
+        delegation: policy,
+      }),
+    ]);
+
+    // The delegation is neither deferred nor reused by later speech.
+    await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+    await Promise.resolve();
+    expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "answer" }),
+    );
+    fixture.bridge.stop();
+    expect(fixture.appendInstructions).toHaveBeenCalledTimes(
+      policy === "decline" ? 1 : 0,
+    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+  },
+);
+
+test("a newer input takes late delegations over from a withheld one", async () => {
+  vi.stubEnv("DEV", true);
+  const judge = vi
+    .fn()
+    .mockResolvedValueOnce({ contribution: "no_content", confidence: 0.9 })
+    .mockResolvedValue(null);
+  const fixture = setup(undefined, judge, { enforce: true });
+  await fixture.bridge.accept(speech("held", "um"));
+  await fixture.bridge.accept(speech("answer", "Seven reviewers"));
+  fixture.bridge.acceptDelegation("delegation");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(traceRecords(diagnosticSpy.mock.calls, "delegation.matched")).toEqual([
+    expect.objectContaining({ inputId: "answer", delegationId: "delegation" }),
+  ]);
+  fixture.bridge.stop();
+});
+
+test("a superseded input awaiting judgment never claims a Live delegation", async () => {
+  vi.stubEnv("DEV", true);
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const fixture = setup(undefined, () => pending.promise, { enforce: true });
+  await fixture.bridge.accept({
+    ...speech("old", "Old request"),
+    superseded: true,
+  });
+  fixture.bridge.acceptDelegation("delegation");
+  expect(traceRecords(diagnosticSpy.mock.calls, "delegation.matched")).toEqual(
+    [],
+  );
+  expect(
+    traceRecords(diagnosticSpy.mock.calls, "delegation.unclaimed"),
+  ).toEqual([expect.objectContaining({ delegationId: "delegation" })]);
+  fixture.bridge.stop();
+});
+
+test("enforcement drops a superseded transcript quietly when another turn holds the composer", async () => {
+  const judge = vi.fn(async () => null);
+  const fixture = setup(undefined, judge, { enforce: true });
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  await fixture.bridge.accept(speech("current", "Correction"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.notice.mockClear();
+  await fixture.bridge.accept({
+    ...speech("stale", "Old request"),
+    superseded: true,
+  });
+  fixture.update();
+  await Promise.resolve();
+
+  expect(judge).toHaveBeenCalledOnce();
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.notice).not.toHaveBeenCalled();
+  fixture.bridge.stop();
+});
+
+test.each([
+  ["awaiting judgment", false],
+  ["waiting for the composer", true],
+] as const)(
+  "a correction evicts a superseded gated input %s",
+  async (_state, judged) => {
+    vi.stubEnv("DEV", true);
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(null);
+    const fixture = setup(undefined, judge, { enforce: true });
+    await fixture.bridge.accept({
+      ...speech("old", "Old request"),
+      superseded: true,
+    });
+    if (judged) {
+      fixture.update({ canAcceptVoiceInput: false });
+      pending.resolve(null);
+      await pending.promise;
+      await Promise.resolve();
+      expect(fixture.submit).not.toHaveBeenCalled();
+    }
+    await fixture.bridge.accept(speech("correction", "Correction"));
+    fixture.update();
+    pending.resolve(null);
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+    await Promise.resolve();
+
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    expect(fixture.submit.mock.calls[0]?.[0].id).toBe("correction");
+    expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+      expect.objectContaining({
+        inputId: "old",
+        reason: "superseded",
+        decision: judged ? "submit" : "pending",
+      }),
+    ]);
+    fixture.bridge.stop();
+  },
+);
+
+test.each([
+  ["awaiting judgment", false],
+  ["waiting for the composer", true],
+] as const)(
+  "speech start withdraws a gated input %s like an unsent turn",
+  async (_state, judged) => {
+    vi.stubEnv("DEV", true);
+    const history = new VoiceMediationHistory("test");
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(null);
+    const fixture = setup(
+      {
+        history,
+        prepare: async () => ({}),
+        summarize: async (text) => text,
+        offered: vi.fn(),
+      },
+      judge,
+      { enforce: true },
+    );
+    await fixture.bridge.accept(speech("old", "PRIVATE earlier answer"));
+    fixture.bridge.acceptDelegation("old-delegation");
+    if (judged) {
+      fixture.update({ canAcceptVoiceInput: false });
+      pending.resolve(null);
+      await pending.promise;
+      await Promise.resolve();
+      expect(fixture.submit).not.toHaveBeenCalled();
+    }
+
+    fixture.bridge.speechStarted();
+    fixture.bridge.acceptDelegation("new-delegation");
+    fixture.update();
+    pending.resolve(null);
+    await pending.promise;
+    await Promise.resolve();
+
+    expect(fixture.submit).not.toHaveBeenCalled();
+    expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+    expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining("started speaking again"),
+      "old-delegation",
+    );
+    expect(fixture.notice).toHaveBeenLastCalledWith(
+      expect.stringContaining("started speaking again"),
+    );
+    expect(
+      history.project([]).find((message) => message.id === "old")?.parts,
+    ).toEqual([{ type: "text", text: "PRIVATE earlier answer" }]);
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+      expect.objectContaining({
+        inputId: "old",
+        reason: "speech-started",
+        decision: judged ? "submit" : "pending",
+      }),
+    ]);
+
+    // The new speech keeps the delegation that arrived after it started.
+    await fixture.bridge.accept(speech("new", "Seven reviewers"));
+    await vi.waitFor(() =>
+      expect(fixture.submit).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ id: "new" }),
+      ),
+    );
+    fixture.bridge.responseStarted(started);
+    fixture.bridge.responseCompleted({
+      ...started,
+      position: { batch: 2, index: 0 },
+    });
+    fixture.update({ segments: [segment()], settlements: completed });
+    await vi.waitFor(() =>
+      expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+        segment().text,
+        "new-delegation",
+      ),
+    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+    fixture.bridge.stop();
+  },
+);
+
+test("speech start drops a superseded gated input quietly", async () => {
+  vi.stubEnv("DEV", true);
+  const history = new VoiceMediationHistory("test");
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi.fn().mockReturnValue(pending.promise);
+  const fixture = setup(
+    {
+      history,
+      prepare: async () => ({}),
+      summarize: async (text) => text,
+      offered: vi.fn(),
+    },
+    judge,
+    { enforce: true },
+  );
+  await fixture.bridge.accept({
+    ...speech("old", "PRIVATE replaced words"),
+    superseded: true,
+  });
+
+  fixture.bridge.speechStarted();
+  pending.resolve(null);
+  await pending.promise;
+  await Promise.resolve();
+
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+  expect(fixture.notice).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(
+    history.project([]).find((message) => message.id === "old"),
+  ).toBeUndefined();
+  expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+    expect.objectContaining({
+      inputId: "old",
+      reason: "speech-started",
+      decision: "pending",
+    }),
+  ]);
+  expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+  fixture.bridge.stop();
+});
+
+test("enforcement fails open at one second and ignores a late withholding result", async () => {
+  vi.useFakeTimers();
+  try {
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi.fn<
+      NonNullable<ConstructorParameters<typeof LiveBrunchBridge>[0]["judge"]>
+    >(() => pending.promise);
+    const fixture = setup(undefined, judge, { enforce: true });
+    void fixture.bridge.accept(speech("one", "answer"));
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fixture.submit).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    expect(judge.mock.calls[0]?.[1].aborted).toBe(true);
+    pending.resolve({ contribution: "control", confidence: 1 });
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    fixture.bridge.stop();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("stopping enforcement cancels pending input", async () => {
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi
+    .fn()
+    .mockResolvedValueOnce({ contribution: "control", confidence: 1 })
+    .mockReturnValueOnce(pending.promise);
+  const fixture = setup(undefined, judge, { enforce: true });
+  await fixture.bridge.accept(speech("held", "hang on"));
+  void fixture.bridge.accept(speech("pending", "answer"));
+  fixture.bridge.stop();
+  pending.resolve(null);
+  await pending.promise;
+  expect(fixture.submit).not.toHaveBeenCalled();
+  expect(judge.mock.calls[1]?.[1].aborted).toBe(true);
+});
+
+test("stopping a response cancels gated work but permits a fresh voice turn", async () => {
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi
+    .fn()
+    .mockResolvedValueOnce(null)
+    .mockReturnValueOnce(pending.promise)
+    .mockResolvedValueOnce(null);
+  const fixture = setup(undefined, judge, { enforce: true });
+  fixture.update({ canAcceptVoiceInput: false });
+  await fixture.bridge.accept(speech("queued", "old queued input"));
+  void fixture.bridge.accept(speech("pending", "old pending judgment"));
+  fixture.bridge.stopResponse();
+  expect(judge.mock.calls[1]?.[1].aborted).toBe(true);
+  fixture.update({ stopped: true });
+  pending.resolve(null);
+  await pending.promise;
+  expect(fixture.submit).not.toHaveBeenCalled();
+  await fixture.bridge.accept(speech("fresh", "new answer"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("fresh");
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    '"utterance":"new answer"',
+  );
+  fixture.bridge.stop();
+});
+
+test.each([
+  [
+    "error",
+    (fixture: ReturnType<typeof setup>) => fixture.update({ status: "error" }),
+  ],
+  [
+    "stopped",
+    (fixture: ReturnType<typeof setup>) => fixture.bridge.stopResponse(),
+  ],
+  ["ended", (fixture: ReturnType<typeof setup>) => fixture.bridge.stop()],
+] as const)(
+  "enforcement traces each gated input discarded as %s without text",
+  async (reason, interrupt) => {
+    vi.stubEnv("DEV", true);
+    const pending = Promise.withResolvers<UtteranceJudgment | null>();
+    const judge = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ contribution: "control", confidence: 1 })
+      .mockReturnValueOnce(pending.promise);
+    const fixture = setup(undefined, judge, { enforce: true });
+    fixture.update({ canAcceptVoiceInput: false });
+    await fixture.bridge.accept(speech("cleared", "PRIVATE cleared answer"));
+    await fixture.bridge.accept(speech("held", "PRIVATE hang on"));
+    void fixture.bridge.accept(speech("pending", "PRIVATE pending answer"));
+    interrupt(fixture);
+    pending.resolve(null);
+    await pending.promise;
+    expect(fixture.submit).not.toHaveBeenCalled();
+    expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+      expect.objectContaining({
+        inputId: "cleared",
+        reason,
+        decision: "submit",
+      }),
+      expect.objectContaining({
+        inputId: "pending",
+        reason,
+        decision: "pending",
+      }),
+    ]);
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
+    fixture.bridge.stop();
+  },
+);
 
 test("log mode does not wait for judgments or introduce new admission drops", async () => {
   vi.stubEnv("DEV", true);

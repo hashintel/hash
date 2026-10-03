@@ -47,6 +47,7 @@ vi.mock("./live-conversation", () => ({
   })),
 }));
 beforeEach(() => {
+  vi.stubEnv("DEV", true);
   const values = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -65,6 +66,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   window.localStorage.clear();
 });
@@ -480,6 +482,111 @@ test("a delayed superseded final never replaces the newer Live input preview", a
       .project([])
       .some((message) => message.id.startsWith("voice-preview:")),
   ).toBe(false);
+});
+
+test.each([true, false])(
+  "withholds judged control speech with development traces %s",
+  async (development) => {
+    vi.stubEnv("DEV", development);
+    window.localStorage.setItem(
+      LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        Response.json({ contribution: "control", confidence: 0.99 }),
+      );
+    const trace = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const props = context();
+    try {
+      render(
+        <VoiceInterviewControl
+          {...props}
+          config={{ ...config, utteranceJudgment: "enforce" }}
+        />,
+      );
+      const [onState, , onInput] = vi.mocked(createLiveConversation).mock
+        .calls[0]!;
+      act(() => onState({ phase: "connected", message: null }));
+      await act(async () =>
+        onInput({
+          id: "held",
+          text: "PRIVATE hang on",
+          startedDuringOutput: false,
+        }),
+      );
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(props.submitVoiceInput).not.toHaveBeenCalled();
+      if (development) {
+        expect(trace).toHaveBeenCalledWith(
+          expect.stringContaining('"applied":"withhold"'),
+        );
+      } else {
+        expect(trace).not.toHaveBeenCalled();
+      }
+      expect(JSON.stringify(trace.mock.calls)).not.toContain("PRIVATE");
+    } finally {
+      fetch.mockRestore();
+      trace.mockRestore();
+    }
+  },
+);
+
+test("connected enforcement uses context without letting delegation release held speech", async () => {
+  window.localStorage.setItem(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+    Response.json({
+      contribution: "social_or_backchannel",
+      confidence: 0.99,
+    }),
+  );
+  const props = context();
+  props.messages.push({
+    id: "question",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "Do five staff cover weekends?", state: "done" },
+    ],
+  });
+  vi.mocked(props.submitVoiceInput).mockResolvedValue({
+    kind: "message",
+    messageId: "one",
+  });
+  try {
+    render(
+      <VoiceInterviewControl
+        {...props}
+        config={{ ...config, utteranceJudgment: "enforce" }}
+        resolveInputSubmission={() => "root"}
+      />,
+    );
+    const [onState, , onInput, onDelegation] = vi.mocked(createLiveConversation)
+      .mock.calls[0]!;
+    act(() => onState({ phase: "connected", message: null }));
+    await act(async () =>
+      onInput({
+        id: "one",
+        text: "okay",
+        startedDuringOutput: false,
+      }),
+    );
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    const body = fetch.mock.calls[0]?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected a JSON request");
+    expect(JSON.parse(body)).toMatchObject({
+      currentInterviewQuestion: "Do five staff cover weekends?",
+    });
+    act(() => onDelegation("unmatched"));
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    act(() => onState({ phase: "ended", message: null }));
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+  } finally {
+    fetch.mockRestore();
+  }
 });
 
 test("starts Live directly after the voice disclosure is acknowledged", () => {

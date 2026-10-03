@@ -26,20 +26,25 @@ export const getVoiceProvider = (
 };
 
 /**
- * Only the log-only experiment is authorized; unknown modes remain off. Its
- * results are logged only in local development, so it runs nowhere else.
+ * Both modes run in local development and on Vercel preview deployments;
+ * production rollout is not approved. Unknown modes remain off.
  */
 export const getUtteranceJudgmentMode = (
   environment: VoiceEnvironment,
-): UtteranceJudgmentMode =>
-  environment.NODE_ENV === "development" &&
-  !environment.VERCEL_ENV &&
-  getOpenAIVoiceAvailability(environment).available &&
-  getVoiceProvider(environment) === "live" &&
-  environment.TYPESAFE_API_KEY?.trim() &&
-  environment.PETRINAUT_LIVE_UTTERANCE_JUDGMENT === "log"
-    ? "log"
-    : "off";
+): UtteranceJudgmentMode => {
+  const permittedDeployment =
+    environment.VERCEL_ENV === "preview" ||
+    (environment.NODE_ENV === "development" && !environment.VERCEL_ENV);
+  if (
+    !permittedDeployment ||
+    !getOpenAIVoiceAvailability(environment).available ||
+    getVoiceProvider(environment) !== "live" ||
+    !environment.TYPESAFE_API_KEY?.trim()
+  )
+    return "off";
+  const mode = environment.PETRINAUT_LIVE_UTTERANCE_JUDGMENT;
+  return mode === "log" || mode === "enforce" ? mode : "off";
+};
 
 export const createOpenAIVoiceConfigHandler =
   (environment: VoiceEnvironment) =>

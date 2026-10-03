@@ -1,20 +1,26 @@
-import { maxUtteranceTextLength } from "../../../shared/live-utterance-judgment";
+import {
+  maxUtteranceTextLength,
+  shouldWithholdUtterance,
+} from "../../../shared/live-utterance-judgment";
 import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import {
   liveUtteranceStages,
   routeUtterance,
 } from "./live-brunch-bridge/utterance-pipeline";
+import { LiveUtteranceGate } from "./live-utterance-gate";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type {
   UtteranceJudgment,
   UtteranceJudgmentState,
+  WithheldContribution,
 } from "../../../shared/live-utterance-judgment";
 import type { VoiceBriefFields } from "../../../shared/voice-mediation";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
+import type { DiscardReason } from "./live-utterance-gate";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -32,6 +38,7 @@ import type {
 
 interface Chat {
   readonly canAcceptVoiceInput: boolean;
+  readonly currentInterviewQuestion?: string | null;
   readonly segments: readonly CanonicalSpeechSegment[];
   /** Visible text, including streaming/stopped parts, for quiet interruption context only. */
   readonly messages?: readonly PetrinautAiMessage[];
@@ -55,6 +62,18 @@ interface Turn {
   readonly history: VoiceMediationHistory;
 }
 
+/**
+ * A gated input awaiting judgment or admission; it holds its delegation until
+ * then. A withheld input without a delegation stays while it is the newest
+ * gated input, so a late delegation still gets the withheld policy.
+ */
+type GatedInput = Pick<
+  Turn,
+  "inputId" | "delegationId" | "submissionId" | "superseded"
+> & {
+  withheld?: WithheldContribution;
+};
+
 type Submit = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
@@ -70,6 +89,21 @@ const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
   "doubtful-short-during-output": "leave",
   "short-during-output": "leave",
   empty: "decline",
+};
+
+/**
+ * The gate withholds after the input has claimed its delegation. Controls and
+ * relay requests are Live's to answer, so their delegation gets no Brunch
+ * instruction; other withheld speech declines it like empty input.
+ */
+const delegationOnWithhold: Readonly<
+  Record<WithheldContribution, "decline" | "leave">
+> = {
+  control: "leave",
+  relay_request: "leave",
+  social_or_backchannel: "decline",
+  restates_assistant: "decline",
+  no_content: "decline",
 };
 
 interface Dependencies {
@@ -93,7 +127,8 @@ interface Dependencies {
   readonly notice: (message: string | null) => void;
   /** Transcription speech has started and its transcript isn't finalized yet. */
   readonly speechPending: () => boolean;
-  /** Optional log-only observation. Never controls submission or admission. */
+  readonly enforce?: boolean;
+  /** Observes alongside submission unless local enforcement is enabled. */
   readonly judge?: (
     state: UtteranceJudgmentState,
     signal: AbortSignal,
@@ -120,10 +155,12 @@ const summaryStoppedInstruction =
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
+  readonly #gate?: LiveUtteranceGate;
   readonly #abort = new AbortController();
   readonly #seenInputs = new Set<string>();
   readonly #offeredSegments = new Set<string>();
   readonly #turns = new Set<Turn>();
+  readonly #gatedInputs = new Map<string, GatedInput>();
   /** Settled turns whose spoken summary is still being prepared. */
   readonly #summarizing = new Set<Turn>();
   readonly #preparations = new Set<AbortController>();
@@ -150,11 +187,60 @@ export class LiveBrunchBridge {
 
   public constructor(dependencies: Dependencies) {
     this.#dependencies = dependencies;
+    if (dependencies.enforce) {
+      this.#gate = new LiveUtteranceGate({
+        judge: dependencies.judge,
+        canSubmit: () =>
+          !this.#abort.signal.aborted &&
+          !this.#waitingForComposer &&
+          this.#chat.canAcceptVoiceInput &&
+          this.#chat.status !== "error",
+        submit: (input) => {
+          const delegationId =
+            this.#gatedInputs.get(input.id)?.delegationId ?? null;
+          this.#gatedInputs.delete(input.id);
+          void this.#submitInput(input, delegationId);
+        },
+        withhold: (input, contribution) => {
+          const gated = this.#gatedInputs.get(input.id);
+          const delegationId = gated?.delegationId ?? null;
+          if (
+            gated &&
+            delegationId === null &&
+            [...this.#gatedInputs.keys()].at(-1) === input.id
+          )
+            gated.withheld = contribution;
+          else this.#gatedInputs.delete(input.id);
+          logLiveDiagnostic("input.withheld", {
+            inputId: input.id,
+            delegationId,
+            delegation: delegationOnWithhold[contribution],
+          });
+          this.#declineWithheld(contribution, delegationId);
+        },
+      });
+    }
+  }
+
+  #declineWithheld(
+    contribution: WithheldContribution,
+    delegationId: string | null,
+  ): void {
+    if (
+      delegationOnWithhold[contribution] === "decline" &&
+      delegationId !== null
+    )
+      this.#dependencies.appendInstructions(
+        "That speech did not add to the interview and was not sent to the backend. Ask the person to continue without assuming an answer.",
+        delegationId,
+      );
   }
 
   public stop(): void {
     this.#closeDeferredDelegations();
     this.#abort.abort();
+    this.#gate?.stop();
+    this.#gatedInputs.clear();
     this.speechStarted();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
@@ -184,6 +270,27 @@ export class LiveBrunchBridge {
         );
     }
     this.#turns.clear();
+    // Gated inputs awaiting judgment or the composer are unsubmitted turns too.
+    if (this.#gate && !this.#abort.signal.aborted) {
+      for (const input of this.#gate.cancelPending("speech-started")) {
+        const delegationId =
+          this.#gatedInputs.get(input.id)?.delegationId ?? null;
+        this.#gatedInputs.delete(input.id);
+        // Newer speech already replaced these words; resending them is not asked for.
+        if (input.superseded) continue;
+        this.#dependencies.mediation.history.unsent(
+          input.id,
+          input.text,
+          this.#chat.messages?.at(-1)?.id,
+        );
+        withdrew = true;
+        if (delegationId !== null)
+          this.#dependencies.appendInstructions(
+            speakingAgainInstruction,
+            delegationId,
+          );
+      }
+    }
     if (withdrew)
       this.#dependencies.notice(
         "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",
@@ -279,10 +386,20 @@ export class LiveBrunchBridge {
 
   public acceptDelegation(delegationId: string): void {
     if (this.#abort.signal.aborted) return;
-    const turn = [...this.#turns].findLast(
+    // Gated inputs are newer than every submitted turn. Pairing never decides
+    // whether the gate submits an input.
+    const turn = [...this.#turns, ...this.#gatedInputs.values()].findLast(
       (candidate) => !candidate.superseded && candidate.delegationId === null,
     );
-    if (turn) {
+    if (turn && "withheld" in turn && turn.withheld !== undefined) {
+      this.#gatedInputs.delete(turn.inputId);
+      logLiveDiagnostic("delegation.matched", {
+        delegationId,
+        inputId: turn.inputId,
+        delegation: delegationOnWithhold[turn.withheld],
+      });
+      this.#declineWithheld(turn.withheld, delegationId);
+    } else if (turn) {
       turn.delegationId = delegationId;
       logLiveDiagnostic("delegation.matched", {
         delegationId,
@@ -388,12 +505,16 @@ export class LiveBrunchBridge {
       }
       return;
     }
-    if (!input.superseded && this.#waitingForComposer?.superseded)
-      this.#evict(this.#waitingForComposer);
+    if (!input.superseded) {
+      if (this.#waitingForComposer?.superseded)
+        this.#evict(this.#waitingForComposer);
+      for (const inputId of this.#gate?.evictSuperseded() ?? [])
+        this.#gatedInputs.delete(inputId);
+    }
     if (
       input.text.length > maxUtteranceTextLength ||
-      this.#waitingForComposer ||
-      !this.#chat.canAcceptVoiceInput
+      ((input.superseded || !this.#gate) &&
+        (this.#waitingForComposer || !this.#chat.canAcceptVoiceInput))
     ) {
       logLiveDiagnostic("input.dropped", {
         inputId: input.id,
@@ -420,6 +541,33 @@ export class LiveBrunchBridge {
       this.#unserved(delegationId, "The request was not submitted.");
       return;
     }
+    if (this.#gate) {
+      // A newer input takes over late delegations from a withheld one.
+      for (const gated of this.#gatedInputs.values())
+        if (gated.withheld) this.#gatedInputs.delete(gated.inputId);
+      this.#gatedInputs.set(input.id, {
+        inputId: input.id,
+        delegationId,
+        superseded: input.superseded,
+      });
+      this.#gate.accept(input, {
+        transcript: input.text,
+        // Keep the tails, where the latest question is, within the wire limit.
+        offeredBrunchText:
+          this.#lastOfferedText?.slice(-maxUtteranceTextLength) ?? null,
+        currentInterviewQuestion:
+          this.#chat.currentInterviewQuestion?.slice(-maxUtteranceTextLength) ??
+          null,
+      });
+      return;
+    }
+    await this.#submitInput(input, delegationId);
+  }
+
+  async #submitInput(
+    input: FinalizedInput,
+    delegationId: string | null,
+  ): Promise<void> {
     this.#dependencies.notice(null);
     const turn: Turn = {
       inputId: input.id,
@@ -440,7 +588,8 @@ export class LiveBrunchBridge {
     this.#preparations.add(turn.preparation);
     // No await: a slow judge must not change the composer's admission window.
     const { judge } = this.#dependencies;
-    if (judge) void this.#observeJudgment(judge, turn, input.text);
+    if (judge && !this.#gate)
+      void this.#observeJudgment(judge, turn, input.text);
     try {
       let text = input.text;
       const mediation = this.#dependencies.mediation;
@@ -482,6 +631,7 @@ export class LiveBrunchBridge {
           // not response completion, frees the composer's waiting-input slot.
           if (this.#waitingForComposer === turn)
             this.#waitingForComposer = undefined;
+          queueMicrotask(() => this.#gate?.drain());
         },
       });
       this.#abort.signal.throwIfAborted();
@@ -513,6 +663,7 @@ export class LiveBrunchBridge {
     } finally {
       if (this.#waitingForComposer === turn)
         this.#waitingForComposer = undefined;
+      this.#gate?.drain();
     }
   }
 
@@ -537,12 +688,7 @@ export class LiveBrunchBridge {
       // Provider errors can contain source text. Record only an absent judgment.
     }
     // Delegation is traced separately; any override needs its own decision.
-    const decision =
-      judgment === null ||
-      judgment.confidence < 0.8 ||
-      judgment.contribution === "interview_content"
-        ? "submit"
-        : "withhold";
+    const decision = shouldWithholdUtterance(judgment) ? "withhold" : "submit";
     logLiveDiagnostic("judgment.result", {
       inputId: turn.inputId,
       delegationId: turn.delegationId,
@@ -614,9 +760,14 @@ export class LiveBrunchBridge {
       return;
     }
     this.#settle();
+    this.#gate?.drain();
   }
 
-  #interruptTurns(reason: "stopped" | "error"): void {
+  #interruptTurns(reason: Exclude<DiscardReason, "ended">): void {
+    this.#gate?.cancelPending(reason);
+    for (const { delegationId } of this.#gatedInputs.values())
+      this.#unserved(delegationId, "The request was not submitted.");
+    this.#gatedInputs.clear();
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
