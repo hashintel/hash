@@ -23,7 +23,6 @@ import {
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type {
@@ -56,6 +55,10 @@ await vi.hoisted(async () => {
     value: ClipboardItem,
   });
 });
+
+/** Petrinaut's user settings, where the assistant choice lives. */
+const userSettingsStorageKey = "petrinaut:user-settings";
+const brunchChosen = JSON.stringify({ aiAssistantId: "website.brunch" });
 
 const fixture = vi.hoisted(() => ({
   client: null as FlueClient | null,
@@ -178,7 +181,7 @@ test.each(["Dismiss", "Run"] as const)(
       },
       clear() {},
       getItem: (key: string) =>
-        key === assistantSelectionStorageKey ? "brunch" : null,
+        key === userSettingsStorageKey ? brunchChosen : null,
       key: () => null,
       removeItem() {},
       setItem() {},

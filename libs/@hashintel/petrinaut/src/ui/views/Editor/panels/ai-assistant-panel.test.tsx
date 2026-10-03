@@ -48,6 +48,8 @@ import {
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { createAssistantPlugin } from "../../../plugins/create-assistant-plugin";
+import { PetrinautPluginsProvider } from "../../../plugins/plugins-provider";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
@@ -58,8 +60,10 @@ import {
   getVoiceToolCallIds,
   safelyAddToolOutput,
 } from "./ai-assistant-panel";
+import { CHAT_TAB_ID } from "./ai-assistant-panel/ai-assistant-contents";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type { PetrinautAssistantTab } from "../../../plugins/define-petrinaut-plugin";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiInputMode,
@@ -70,7 +74,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { UIMessageChunk } from "ai";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 let voiceModeMounts = 0;
 let voiceModeUnmounts = 0;
@@ -261,8 +265,37 @@ const EditorTestProvider = ({
   );
 };
 
+/**
+ * Owns the active assistant tab as the editor does in production: the panel
+ * always passes `activeTabId` down controlled, so a tab switch needs an owner.
+ */
+const TabbedAiAssistantPanel = ({
+  initialActiveTabId,
+  onActiveTabChange,
+  ...props
+}: Omit<ComponentProps<typeof AiAssistantPanel>, "activeTabId"> & {
+  initialActiveTabId?: string;
+}) => {
+  const [activeTabId, setActiveTabId] = useState(
+    initialActiveTabId ?? CHAT_TAB_ID,
+  );
+  return (
+    <AiAssistantPanel
+      {...props}
+      activeTabId={activeTabId}
+      onActiveTabChange={(tabId) => {
+        setActiveTabId(tabId);
+        onActiveTabChange?.(tabId);
+      }}
+    />
+  );
+};
+
 const renderTestPanel = ({
   aiAssistant,
+  tabs,
+  activeTabId,
+  onActiveTabChange,
   editorContext = editorContextValue,
   errorTracker = { captureException: () => {} },
   initialInteractionMode,
@@ -279,6 +312,11 @@ const renderTestPanel = ({
   experimentHost,
 }: {
   aiAssistant: PetrinautAiAssistant;
+  /** Tabs the assistant plugin adds beside the chat. */
+  tabs?: readonly PetrinautAssistantTab[];
+  /** Seeds the harness-owned active tab; `CHAT_TAB_ID` when omitted. */
+  activeTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
   editorContext?: EditorContextValue;
   errorTracker?: ErrorTracker;
   initialInteractionMode?: PetrinautAiInputMode;
@@ -296,6 +334,16 @@ const renderTestPanel = ({
   });
   const instance = createPetrinaut({ document: handle });
   testInstances.push(instance);
+  // The canvas reserves space for the window only while a plugin assistant is
+  // active, so the assistant under test is installed as one. Built once per
+  // render so rerenders keep the install.
+  const plugins = [
+    createAssistantPlugin({
+      id: "test.assistant",
+      label: aiAssistant.primaryLabel ?? "AI",
+      assistant: aiAssistant,
+    }),
+  ];
   const sdcpnContext: SDCPNContextValue = {
     createNewNet: () => {},
     existingNets: [],
@@ -318,29 +366,34 @@ const renderTestPanel = ({
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <ErrorTrackerContext.Provider value={errorTracker}>
-        <ExperimentHostContext
-          value={
-            experimentHost ?? {
-              runExperiment: () =>
-                Promise.reject(new Error("Experiment host unavailable")),
+        <PetrinautPluginsProvider plugins={plugins}>
+          <ExperimentHostContext
+            value={
+              experimentHost ?? {
+                runExperiment: () =>
+                  Promise.reject(new Error("Experiment host unavailable")),
+              }
             }
-          }
-        >
-          <NotificationsProvider>
-            <EditorTestProvider value={nextEditorContext}>
-              <SDCPNContext.Provider value={sdcpnContext}>
-                <AiAssistantPanel
-                  aiAssistant={nextAiAssistant}
-                  initialInteractionMode={nextInitialInteractionMode}
-                  initialMessage={nextInitialMessage}
-                  onInitialInteractionModeConsumed={
-                    onInitialInteractionModeConsumed
-                  }
-                />
-              </SDCPNContext.Provider>
-            </EditorTestProvider>
-          </NotificationsProvider>
-        </ExperimentHostContext>
+          >
+            <NotificationsProvider>
+              <EditorTestProvider value={nextEditorContext}>
+                <SDCPNContext.Provider value={sdcpnContext}>
+                  <TabbedAiAssistantPanel
+                    aiAssistant={nextAiAssistant}
+                    tabs={tabs}
+                    initialActiveTabId={activeTabId}
+                    onActiveTabChange={onActiveTabChange}
+                    initialInteractionMode={nextInitialInteractionMode}
+                    initialMessage={nextInitialMessage}
+                    onInitialInteractionModeConsumed={
+                      onInitialInteractionModeConsumed
+                    }
+                  />
+                </SDCPNContext.Provider>
+              </EditorTestProvider>
+            </NotificationsProvider>
+          </ExperimentHostContext>
+        </PetrinautPluginsProvider>
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
@@ -374,6 +427,12 @@ const renderTestPanel = ({
         ),
       ),
   };
+};
+
+const ledgerTab: PetrinautAssistantTab = {
+  id: "ledger",
+  label: "Ledger",
+  render: () => <p>Ledger body</p>,
 };
 
 afterEach(() => {
@@ -529,9 +588,15 @@ describe("AiAssistantPanel composer submissions", () => {
     renderTestPanel({
       aiAssistant: {
         conversationId: "host-tab",
-        additionalTab: { label: "Workpiece", content: <p>Saved workpiece</p> },
         transport: { sendMessages, reconnectToStream: async () => null },
       },
+      tabs: [
+        {
+          id: "workpiece",
+          label: "Workpiece",
+          render: () => <p>Saved workpiece</p>,
+        },
+      ],
     });
     const hostTab = screen.getByRole("tab", { name: "Workpiece" });
     screen.getByRole("tab", { name: "AI" }).focus();
@@ -550,91 +615,6 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("baselines, deduplicates, caps and acknowledges host activity", async () => {
-    const transport = {
-      sendMessages: vi.fn<PetrinautAiTransport["sendMessages"]>(),
-      reconnectToStream: async () => null,
-    };
-    const config = (activityIdentities: readonly string[]) => ({
-      conversationId: "host-attention",
-      primaryLabel: "Chat",
-      additionalTab: {
-        label: "Ledger",
-        content: <p>Ledger body</p>,
-        activityIdentities,
-      },
-      transport,
-    });
-    const mounted = renderTestPanel({ aiAssistant: config(["baseline"]) });
-    expect(screen.queryByText("9+")).toBeNull();
-
-    mounted.rerenderPanel(
-      config([
-        "baseline",
-        ...Array.from({ length: 11 }, (_, index) => `revision-${index}`),
-      ]),
-    );
-    expect(await screen.findByText("9+")).not.toBeNull();
-    mounted.rerenderPanel(
-      config([
-        "baseline",
-        ...Array.from({ length: 11 }, (_, index) => `revision-${index}`),
-      ]),
-    );
-    const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
-    expect(ledgerTab.querySelector('[aria-hidden="true"]')).not.toBeNull();
-
-    fireEvent.click(ledgerTab);
-    await waitFor(() => expect(screen.queryByText("9+")).toBeNull());
-
-    mounted.rerenderPanel(config(["baseline", "revision-0"]), {
-      ...editorContextValue,
-      isAiAssistantOpen: false,
-    });
-    mounted.rerenderPanel(
-      config(["baseline", "revision-0", "closed-revision"]),
-      {
-        ...editorContextValue,
-        isAiAssistantOpen: false,
-      },
-    );
-    expect(await screen.findByText("1")).not.toBeNull();
-    expect(
-      document.querySelector('[role="tab"][aria-label="Ledger"]'),
-    ).not.toBeNull();
-  });
-
-  test("clears live text after a tick so an identical announcement can fire later", async () => {
-    const transport = {
-      sendMessages: vi.fn<PetrinautAiTransport["sendMessages"]>(),
-      reconnectToStream: async () => null,
-    };
-    const config = (activityIdentities: readonly string[]) => ({
-      conversationId: "repeat-announcement",
-      primaryLabel: "Chat",
-      additionalTab: {
-        label: "Ledger",
-        content: <p>Ledger body</p>,
-        activityIdentities,
-      },
-      transport,
-    });
-    const mounted = renderTestPanel({ aiAssistant: config(["baseline"]) });
-
-    mounted.rerenderPanel(config(["baseline", "revision-1"]));
-    const attentionAnnouncement = screen.getByText("1 unseen Ledger update");
-    expect(attentionAnnouncement.getAttribute("role")).toBe("status");
-    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
-    expect(attentionAnnouncement.textContent).toBe("");
-
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Chat" }));
-    mounted.rerenderPanel(config(["baseline", "revision-1", "revision-2"]));
-    expect(screen.getByText("1 unseen Ledger update")).toBe(
-      attentionAnnouncement,
-    );
-  });
-
   test("marks the labelled chat when a response terminates behind the host tab", async () => {
     const transport: PetrinautAiTransport = {
       reconnectToStream: async () => null,
@@ -648,17 +628,10 @@ describe("AiAssistantPanel composer submissions", () => {
         ]),
     };
     renderTestPanel({
-      aiAssistant: {
-        primaryLabel: "Chat",
-        additionalTab: {
-          label: "Ledger",
-          content: <p>Ledger body</p>,
-          activityIdentities: [],
-        },
-        transport,
-      },
+      aiAssistant: { primaryLabel: "Chat", transport },
+      tabs: [ledgerTab],
+      activeTabId: "ledger",
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
@@ -683,11 +656,6 @@ describe("AiAssistantPanel composer submissions", () => {
     renderTestPanel({
       aiAssistant: {
         primaryLabel: "Chat",
-        additionalTab: {
-          label: "Ledger",
-          content: <p>Ledger body</p>,
-          activityIdentities: [],
-        },
         transport: {
           reconnectToStream: async () => null,
           sendMessages: async () => {
@@ -695,8 +663,9 @@ describe("AiAssistantPanel composer submissions", () => {
           },
         },
       },
+      tabs: [ledgerTab],
+      activeTabId: "ledger",
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
@@ -3509,11 +3478,6 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         primaryLabel: "Chat",
         presentation: "brunch",
-        additionalTab: {
-          label: "Ledger",
-          content: <p>Ledger body</p>,
-          activityIdentities: [],
-        },
         renderComposerControl: ({ stop }) => (
           <button
             type="button"
@@ -3526,6 +3490,7 @@ describe("AiAssistantPanel composer submissions", () => {
         ),
         transport,
       },
+      tabs: [ledgerTab],
       initialMessage: "Start a long response",
     });
     await screen.findByText("Partial response");

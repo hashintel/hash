@@ -6,11 +6,9 @@ import {
   nextRequestId,
 } from "../../shared/messages";
 
-import type { PetrinautProps } from "@hashintel/petrinaut";
+import type { PetrinautAiAssistant } from "@hashintel/petrinaut";
 
-type PetrinautAiChatTransport = NonNullable<
-  PetrinautProps["aiAssistant"]
->["transport"];
+type PetrinautAiChatTransport = PetrinautAiAssistant["transport"];
 
 /**
  * The Petrinaut AI assistant runs inside this sandboxed null-origin iframe,

@@ -2,7 +2,13 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
-import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
+import {
+  type FunctionComponent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -19,6 +25,7 @@ import {
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { usePluginRuntime } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
   PetrinautPresentationProvider,
@@ -85,21 +92,6 @@ export type PetrinautAiToolPresentationResolver = (
 export type PetrinautAiAssistant = {
   /** Selects the assistant's visual presentation. Defaults to "stock". */
   presentation?: PetrinautAiAssistantPresentation;
-  /**
-   * Host-owned content beside the AI transcript in the panel's tab bar.
-   * Switching tabs keeps both bodies mounted and the composer/Voice controls
-   * available. Omitted: the stock assistant has its unchanged single view.
-   */
-  additionalTab?: {
-    label: string;
-    content: React.ReactNode;
-    /**
-     * Opaque, stable identities for host activity represented by this tab.
-     * `undefined` means history is not ready; the first defined collection is
-     * baseline hydration and does not attract attention.
-     */
-    activityIdentities?: readonly (number | string)[];
-  };
   /** Label for the transcript tab/header. Defaults to "AI". */
   primaryLabel?: string;
   /** Status shown while a turn is submitted or streaming. */
@@ -178,8 +170,6 @@ export type PetrinautAiAssistant = {
 
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
-import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -200,12 +190,6 @@ export type PetrinautProps = {
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
-  aiAssistant?: PetrinautAiAssistant;
-  viewportActions?: ViewportAction[];
-  /**
-   * Host-supplied components to inject at specific locations in the editor.
-   */
-  slots?: PetrinautSlots;
   /**
    * Optional simulation-worker factory. Provide this when the host bundler
    * needs to own worker instantiation (e.g. when consuming the published
@@ -256,9 +240,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
-  aiAssistant,
-  viewportActions,
-  slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
@@ -273,6 +254,14 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
+
+  // Plugins read the open document from their runtime, which outlives this
+  // editor's documents; publish the handle while it is the one shown.
+  const pluginRuntime = usePluginRuntime();
+  useLayoutEffect(() => {
+    pluginRuntime.setDocument({ id: handle.id, handle });
+    return () => pluginRuntime.setDocument(null);
+  }, [pluginRuntime, handle]);
 
   const netManagement: NetManagement = {
     title,
@@ -299,11 +288,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               ref={portalContainerRef}
             >
               <EditorView
-                aiAssistant={aiAssistant}
                 hideNetManagementControls={hideNetManagementControls}
-                slots={slots}
                 titleEditable={titleEditable}
-                viewportActions={viewportActions}
               />
             </Stack>
           </MonacoProvider>

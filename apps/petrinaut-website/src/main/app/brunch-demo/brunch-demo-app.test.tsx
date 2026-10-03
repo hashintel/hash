@@ -7,13 +7,21 @@ import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 
 const controllers: PetrinautNavigationController[] = [];
 
-vi.mock("../sentry-feedback-button", () => ({
-  useSentryFeedbackAction: () => ({
-    key: "sentry-feedback",
-    icon: null,
-    label: "Feedback",
-    tooltip: "Feedback",
-  }),
+// The plugins provider comes from the real editor module, whose chart library
+// reads `matchMedia` on import; jsdom lacks it.
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
+});
+
+vi.mock("../sentry-feedback-plugin", () => ({
+  // Sentry is not configured in tests; an empty plugin keeps the route's
+  // plugin list shaped as in production.
+  sentryFeedbackPlugin: {
+    manifest: { id: "website.sentry-feedback", name: "Sentry feedback" },
+    body: () => ({}),
+  },
 }));
 
 vi.mock("./brunch-actual-mode-route", () => ({

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
@@ -8,6 +8,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { Petrinaut, type PetrinautAiAssistant } from "./petrinaut";
+import { createAssistantPlugin } from "./plugins/create-assistant-plugin";
+import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -131,6 +133,21 @@ export const PetrinautStoryProvider = ({
     });
   };
 
+  // The story's assistant becomes a one-plugin install, as a host would do.
+  const plugins = useMemo(
+    () =>
+      aiAssistant
+        ? [
+            createAssistantPlugin({
+              id: "story.assistant",
+              label: "AI",
+              assistant: aiAssistant,
+            }),
+          ]
+        : [],
+    [aiAssistant],
+  );
+
   const currentNet = nets[currentNetId]!;
   const handle = handlesByNetId[currentNetId];
 
@@ -139,9 +156,8 @@ export const PetrinautStoryProvider = ({
   }
 
   return (
-    <>
+    <PetrinautPluginsProvider plugins={plugins}>
       <Petrinaut
-        aiAssistant={aiAssistant}
         handle={handle}
         existingNets={existingNets}
         createNewNet={createNewNet}
@@ -152,6 +168,6 @@ export const PetrinautStoryProvider = ({
         title={currentNet.title}
       />
       {children}
-    </>
+    </PetrinautPluginsProvider>
   );
 };

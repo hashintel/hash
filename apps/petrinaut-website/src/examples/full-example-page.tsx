@@ -1,7 +1,12 @@
 import { useEffect } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { useTitle } from "@hashintel/petrinaut/react";
+import {
+  definePetrinautPlugin,
+  Petrinaut,
+  PetrinautPluginsProvider,
+} from "@hashintel/petrinaut/ui";
 
 import { getOEmbedDiscoveryUrl } from "./oembed-discovery";
 import { getReadonlyExampleHandle } from "./readonly-example-handle";
@@ -27,6 +32,19 @@ const titleStyle = css({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 });
+
+/** Shows the example's title where the editable net title would be. */
+const ExampleTitle = () => <span className={titleStyle}>{useTitle()}</span>;
+
+const exampleTitlePlugin = definePetrinautPlugin(
+  {
+    id: "website.example-title",
+    name: "Example title",
+    topBarItems: { title: { place: "top-bar-start" } },
+  },
+  () => ({ topBarItems: { title: ExampleTitle } }),
+);
+const examplePlugins = [exampleTitlePlugin];
 
 export type FullExamplePageProps = {
   example: LoadedExample;
@@ -68,19 +86,16 @@ export const FullExamplePage = ({
         title={`${example.catalog.title} oEmbed profile`}
         type="application/json+oembed"
       />
-      <Petrinaut
-        handle={handle}
-        hideNetManagementControls="all"
-        navigation={navigation}
-        presentationProfile="review"
-        readonly
-        slots={{
-          topBarStart: (
-            <span className={titleStyle}>{example.catalog.title}</span>
-          ),
-        }}
-        title={example.catalog.title}
-      />
+      <PetrinautPluginsProvider plugins={examplePlugins}>
+        <Petrinaut
+          handle={handle}
+          hideNetManagementControls="all"
+          navigation={navigation}
+          presentationProfile="review"
+          readonly
+          title={example.catalog.title}
+        />
+      </PetrinautPluginsProvider>
     </main>
   );
 };

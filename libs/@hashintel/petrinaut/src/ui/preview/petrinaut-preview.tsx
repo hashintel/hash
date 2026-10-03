@@ -56,7 +56,6 @@ import {
 } from "./quick-simulation";
 
 import type { NetManagement } from "../../react/net-management-context";
-import type { ViewportAction } from "../types/viewport-action";
 
 const noop = () => {};
 
@@ -164,7 +163,6 @@ export type PetrinautPreviewProps = {
    */
   quickSimulation?: PetrinautPreviewQuickSimulation;
   /** Host actions displayed alongside the canvas zoom controls. */
-  viewportActions?: ViewportAction[];
 };
 
 /**
@@ -182,7 +180,6 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   navigation,
   quickSimulation,
   title = "Petrinaut model",
-  viewportActions,
 }) => {
   const generatedDocumentId = useId();
   const portalContainerRef = useRef<HTMLDivElement>(null);
@@ -314,7 +311,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
         </header>
         <main className={previewMainStyle}>
           <div className={previewCanvasStyle}>
-            <SDCPNView viewportActions={viewportActions} />
+            <SDCPNView />
             {quickSimulation && (
               <PreviewSimulationPlaybackControls
                 allowedPlaybackSpeeds={playbackOptions?.allowedPlaybackSpeeds}

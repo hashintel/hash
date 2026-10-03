@@ -294,14 +294,16 @@ optimizer, so it does not require the Python service or Docker.
 
 ## Host-owned interactive AI tools
 
-Hosts can render their own dynamic AI tools inline in Petrinaut's chat panel.
-Define each tool with runtime input and output schemas, then pass the resulting
-registration through `aiAssistant.interactiveTools`:
+An assistant plugin can render its own dynamic AI tools inline in Petrinaut's
+chat panel. Define each tool with runtime input and output schemas, then pass
+the resulting registration through the chat configuration's `interactiveTools`:
 
 ```tsx
 import {
+  createAssistantPlugin,
   definePetrinautAiInteractiveTool,
   Petrinaut,
+  PetrinautPluginsProvider,
 } from "@hashintel/petrinaut";
 import { z } from "zod";
 
@@ -321,13 +323,17 @@ const confirmationTool = definePetrinautAiInteractiveTool({
     ),
 });
 
-<Petrinaut
-  aiAssistant={{
-    transport,
-    interactiveTools: [confirmationTool],
-  }}
-  handle={handle}
-/>;
+const plugins = [
+  createAssistantPlugin({
+    id: "host.assistant",
+    label: "AI",
+    assistant: { transport, interactiveTools: [confirmationTool] },
+  }),
+];
+
+<PetrinautPluginsProvider plugins={plugins}>
+  <Petrinaut handle={handle} />
+</PetrinautPluginsProvider>;
 ```
 
 Any object with a `parse(unknown)` method can be used as a schema; Zod is only
@@ -335,7 +341,7 @@ an example and is not required by Petrinaut. The input schema is checked when
 the dynamic call arrives and again before rendering. The output schema is
 checked before Petrinaut calls the AI SDK's `addToolOutput`.
 
-A host can instead register a non-interactive dynamic tool in `aiAssistant.automaticTools`. Each registration names the tool, supplies input and output parsers, and implements `execute({ input, mutations, commands, handle, readDiagnosticsContext, toolCallId, signal })`. Petrinaut validates the input, passes the mounted mutation and command surfaces, the document handle, a `readDiagnosticsContext()` that reports the editor's current TypeScript diagnostics as the built-in compilation read does, and an `AbortSignal` (aborted on Stop or conversation switch), validates the returned output, inserts that one outer result, and continues the turn automatically. When a host tool changes the document, Petrinaut treats diagnostics as pending until they catch up with that change; a host tool that leaves the document unchanged does not. `petrinautDocsContent` (from `/ui`) exposes the user-guide pages the built-in documentation read serves, so a host tool under its own name can answer with the same text.
+An assistant can instead register a non-interactive dynamic tool in its `automaticTools`. Each registration names the tool, supplies input and output parsers, and implements `execute({ input, mutations, commands, handle, readDiagnosticsContext, toolCallId, signal })`. Petrinaut validates the input, passes the mounted mutation and command surfaces, the document handle, a `readDiagnosticsContext()` that reports the editor's current TypeScript diagnostics as the built-in compilation read does, and an `AbortSignal` (aborted on Stop or conversation switch), validates the returned output, inserts that one outer result, and continues the turn automatically. When a host tool changes the document, Petrinaut treats diagnostics as pending until they catch up with that change; a host tool that leaves the document unchanged does not. `petrinautDocsContent` (from `/ui`) exposes the user-guide pages the built-in documentation read serves, so a host tool under its own name can answer with the same text.
 
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`

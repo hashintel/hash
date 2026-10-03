@@ -49,8 +49,10 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
+import { PluginContributionBoundary } from "../../../plugins/plugin-boundary";
 import {
   AiAssistantContents,
+  CHAT_TAB_ID,
   getTranscriptLabel,
 } from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
@@ -73,6 +75,7 @@ import {
 } from "./ai-assistant-panel/tool-summaries";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type { PetrinautAssistantTab } from "../../../plugins/define-petrinaut-plugin";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
@@ -495,6 +498,11 @@ const applyPetrinautAiCommand = async ({
 
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
+  /** Tabs the assistant plugin adds beside the chat. */
+  tabs?: readonly PetrinautAssistantTab[];
+  /** `CHAT_TAB_ID` or a plugin tab id; the editor owns it so plugins can read it. */
+  activeTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
   applyAutoLayoutAndFrame?: () => Promise<{
     commitCount: number;
     frameStatus: FrameSceneResult;
@@ -503,19 +511,22 @@ interface AiAssistantPanelProps {
   frameSceneAfterRender?: () => Promise<FrameSceneResult>;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
-  offerStartPosture?: boolean;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
 
+const EMPTY_TABS: readonly PetrinautAssistantTab[] = [];
+
 const ConversationAiAssistantPanel = ({
   aiAssistant,
+  tabs = EMPTY_TABS,
+  activeTabId = CHAT_TAB_ID,
+  onActiveTabChange,
   applyAutoLayoutAndFrame,
   focusRequest = 0,
   frameSceneAfterRender,
   initialInteractionMode,
   initialMessage,
-  offerStartPosture = false,
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
@@ -1530,56 +1541,12 @@ const ConversationAiAssistantPanel = ({
       : continuationPending && chatStatus === "ready"
         ? "submitted"
         : chatStatus;
-  const [hostTabSelected, setHostTabSelected] = useState(false);
-  const [hostAttentionCount, setHostAttentionCount] = useState(0);
+  const hostTabSelected = activeTabId !== CHAT_TAB_ID;
   const [primaryAttention, setPrimaryAttention] = useState(false);
   const [attentionAnnouncement, setAttentionAnnouncement] = useState("");
-  const seenHostActivityRef = useRef<Set<string> | undefined>(undefined);
   const conversationWasBusyRef = useRef(false);
-  const hostActivityIdentities = aiAssistant.additionalTab?.activityIdentities;
 
   useEffect(() => {
-    if (hostActivityIdentities === undefined) {
-      return;
-    }
-    const currentIdentities = new Set(
-      hostActivityIdentities.map(
-        (identity) => `${typeof identity}:${String(identity)}`,
-      ),
-    );
-    const previousIdentities = seenHostActivityRef.current;
-    if (previousIdentities === undefined) {
-      seenHostActivityRef.current = currentIdentities;
-      return;
-    }
-
-    let additions = 0;
-    for (const identity of currentIdentities) {
-      if (!previousIdentities.has(identity)) {
-        additions += 1;
-        previousIdentities.add(identity);
-      }
-    }
-    if (additions === 0 || (isAiAssistantOpen && hostTabSelected)) {
-      return;
-    }
-    const nextAttentionCount = hostAttentionCount + additions;
-    setHostAttentionCount(nextAttentionCount);
-    setAttentionAnnouncement(
-      `${nextAttentionCount} unseen ${aiAssistant.additionalTab?.label ?? "tab"} update${nextAttentionCount === 1 ? "" : "s"}`,
-    );
-  }, [
-    aiAssistant.additionalTab?.label,
-    hostActivityIdentities,
-    hostAttentionCount,
-    hostTabSelected,
-    isAiAssistantOpen,
-  ]);
-
-  useEffect(() => {
-    if (isAiAssistantOpen && hostTabSelected) {
-      setHostAttentionCount(0);
-    }
     if (isAiAssistantOpen && !hostTabSelected) {
       setPrimaryAttention(false);
     }
@@ -2302,7 +2269,6 @@ const ConversationAiAssistantPanel = ({
   const promptChips = selectPromptChips({
     hasConversation,
     isNetEmpty,
-    offerStartPosture,
   });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
@@ -2329,6 +2295,26 @@ const ConversationAiAssistantPanel = ({
     setVoiceActive,
     submitVoiceInput,
   });
+  // Each plugin tab renders behind its own boundary, so a failing tab leaves
+  // the chat and the other tabs in place.
+  const extraTabs = tabs.map((tab) => {
+    const Content = tab.render;
+    return {
+      id: tab.id,
+      label: tab.label,
+      mark: tab.mark,
+      attention: tab.attention,
+      content: (
+        <PluginContributionBoundary
+          pluginId={tab.id}
+          contributionId={tab.id}
+          place="assistant-tab"
+        >
+          <Content />
+        </PluginContributionBoundary>
+      ),
+    };
+  });
   const hiddenAutomaticToolNames = new Set(
     aiAssistant.automaticTools
       ?.filter(({ visibility }) => visibility === "hidden")
@@ -2337,7 +2323,9 @@ const ConversationAiAssistantPanel = ({
 
   return (
     <AiAssistantContents
-      additionalTab={aiAssistant.additionalTab}
+      extraTabs={extraTabs}
+      activeTabId={activeTabId}
+      onActiveTabChange={onActiveTabChange}
       attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
@@ -2352,8 +2340,6 @@ const ConversationAiAssistantPanel = ({
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
-      hostAttentionCount={hostAttentionCount}
-      hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
       onClearMessages={() => {
@@ -2469,7 +2455,6 @@ const ConversationAiAssistantPanel = ({
           });
         });
       }}
-      onHostTabSelectedChange={setHostTabSelected}
       onSelectToolTarget={(target) =>
         selectTarget(target, {
           navigateTo,
