@@ -16,12 +16,8 @@ import {
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  petrinautAiModel,
-  type PetrinautDocHandle,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
 
+import { DEFAULT_CHAT_MODEL } from "../../../../../brunch-agent/src/chat-model";
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import {
   InProcessLspWorker,
@@ -33,6 +29,7 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
+import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 import type { ComponentProps, ReactNode } from "react";
 
 await vi.hoisted(async () => {
@@ -40,6 +37,11 @@ await vi.hoisted(async () => {
     await import("../shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
+
+/** The server runs its default model when `BRUNCH_CHAT_MODEL` is unset; the faux provider must answer to it. */
+const defaultChatModelId = DEFAULT_CHAT_MODEL.slice(
+  DEFAULT_CHAT_MODEL.indexOf("/") + 1,
+);
 
 const fixture = vi.hoisted(() => ({
   fetch: null as typeof fetch | null,
@@ -150,7 +152,7 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({
     provider: "openai",
-    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    models: [{ id: defaultChatModelId, reasoning: true }],
   });
   faux.setResponses([
     fauxAssistantMessage(
