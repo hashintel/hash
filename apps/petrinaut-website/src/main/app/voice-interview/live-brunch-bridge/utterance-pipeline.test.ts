@@ -22,6 +22,37 @@ const traceRecords = (calls: readonly (readonly unknown[])[]) =>
 
 const input = { id: "one", text: "PRIVATE okay", startedDuringOutput: true };
 
+test("prompt regurgitation is shadow-only and never logs the taught vocabulary", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const transcriptionPrompt =
+    "Preferred spellings RelayDesk North Dock Bay Three Processing Center";
+  expect(
+    routeUtterance(
+      {
+        id: "prompt",
+        text: transcriptionPrompt,
+        transcriptionPrompt,
+        startedDuringOutput: false,
+      },
+      liveUtteranceStages,
+    ),
+  ).toBeNull();
+  expect(JSON.stringify(debug.mock.calls)).toContain("prompt-regurgitation");
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("RelayDesk");
+  expect(
+    routeUtterance(
+      {
+        id: "name",
+        text: "RelayDesk",
+        transcriptionPrompt,
+        startedDuringOutput: false,
+      },
+      liveUtteranceStages,
+    ),
+  ).toBeNull();
+});
+
 test("sends when no stage skips", () => {
   expect(
     routeUtterance(input, [{ name: "probe", mode: "on", skip: () => null }]),

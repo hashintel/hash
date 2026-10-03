@@ -38,6 +38,7 @@ import { workpieceEvidenceSources } from "../../conversation/workpiece.ts";
 import { projectBrunchContext } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
+import { useWords } from "./words.ts";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
@@ -57,6 +58,7 @@ const chatModelOptions = {
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   useContextProjection(projectBrunchContext);
+  useWords();
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {

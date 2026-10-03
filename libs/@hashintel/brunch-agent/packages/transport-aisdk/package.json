@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
+    },
+    "./words": {
+      "types": "./src/words.ts",
+      "@dev/source": "./src/words.ts",
+      "import": "./dist/words.js"
     }
   },
   "scripts": {

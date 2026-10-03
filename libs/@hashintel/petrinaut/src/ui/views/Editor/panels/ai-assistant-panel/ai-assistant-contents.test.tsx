@@ -169,6 +169,68 @@ const DockingHarness = ({
 };
 
 describe("AiAssistantContents", () => {
+  test("host Words controls coexist with Ledger and can be removed without changing user rows", () => {
+    const message: PetrinautAiMessage = {
+      id: "voice-caption",
+      role: "user",
+      metadata: { source: "voice" },
+      parts: [{ type: "text", text: "relay desk", state: "done" }],
+    };
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      presentation: "brunch" as const,
+      status: "ready" as const,
+      messages: [message],
+      additionalTab: { label: "Ledger", content: <p>Ledger stays mounted</p> },
+    };
+    const view = render(
+      <AiAssistantContents
+        {...props}
+        headerActions={<button type="button">Words</button>}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Ledger/u })).toBeDefined();
+    view.rerender(<AiAssistantContents {...props} />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+    expect(screen.getByText("relay desk")).toBeDefined();
+  });
+
+  test("voice-only host actions follow the selected mode, not session state", () => {
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      presentation: "brunch" as const,
+      status: "ready" as const,
+      actionsInputMode: "voice" as const,
+      headerActions: <button type="button">Words</button>,
+      messages: [
+        {
+          id: "voice-caption",
+          role: "user" as const,
+          metadata: { source: "voice" as const },
+          parts: [{ type: "text" as const, text: "relay desk" }],
+        },
+      ],
+    };
+    const view = render(<AiAssistantContents {...props} inputMode="text" />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+
+    view.rerender(<AiAssistantContents {...props} inputMode="voice" />);
+    expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+
+    view.rerender(<AiAssistantContents {...props} inputMode="text" />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+    expect(screen.getByText("relay desk")).toBeDefined();
+  });
+
   test("orders optional voice slots around work and produced cards", async () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",

@@ -1,7 +1,9 @@
 import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./browser-tool-result";
+import { validatePetrinautWordSpellings } from "./words";
 
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
+const wordsPrefix = "petrinaut-contextual-user-message:v2\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
 const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
 
@@ -15,7 +17,12 @@ export type PetrinautUserMessageBody =
       PetrinautContextualUserMessagePayload,
       "userText"
     >)
-  | ({ readonly kind: "contextual" } & PetrinautContextualUserMessagePayload)
+  | {
+      readonly kind: "contextual";
+      readonly userText: string;
+      readonly diagnosticsContext?: string;
+      readonly words?: readonly string[];
+    }
   | { readonly kind: "invalid-contextual" };
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
@@ -57,11 +64,37 @@ export const petrinautContextualUserMessageBody = (
   return body;
 };
 
+/** Version two carries a replaceable spelling snapshot, never pronunciation or transcript context. */
+export const petrinautWordsUserMessageBody = (payload: {
+  readonly userText: string;
+  readonly words: readonly string[];
+  readonly diagnosticsContext?: string;
+}): string => {
+  if (
+    !payload.userText ||
+    Array.from(payload.userText).length >
+      PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH
+  ) {
+    throw new Error("The contextual user text is invalid or too long.");
+  }
+  if (payload.diagnosticsContext !== undefined) {
+    petrinautContextualUserMessageBody({
+      userText: payload.userText,
+      diagnosticsContext: payload.diagnosticsContext,
+    });
+  }
+  const body = `${wordsPrefix}${JSON.stringify({ ...payload, words: validatePetrinautWordSpellings(payload.words) })}`;
+  if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH)
+    throw new Error("The contextual user message body is too long.");
+  return body;
+};
+
 /** Separate human evidence from host diagnostics while leaving ordinary bodies untouched. */
 export const parsePetrinautUserMessageBody = (
   body: string,
 ): PetrinautUserMessageBody => {
-  if (!body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)) {
+  const hasWords = body.startsWith(wordsPrefix);
+  if (!hasWords && !body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)) {
     return { kind: "ordinary", userText: body };
   }
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
@@ -70,12 +103,43 @@ export const parsePetrinautUserMessageBody = (
   let parsed: unknown;
   try {
     parsed = JSON.parse(
-      body.slice(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length),
+      body.slice(
+        hasWords
+          ? wordsPrefix.length
+          : PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length,
+      ),
     );
   } catch {
     return { kind: "invalid-contextual" };
   }
   const payload = asRecord(parsed);
+  if (hasWords) {
+    if (
+      payload === null ||
+      typeof payload.userText !== "string" ||
+      !(
+        hasExactKeys(payload, ["userText", "words"]) ||
+        hasExactKeys(payload, ["diagnosticsContext", "userText", "words"])
+      ) ||
+      ("diagnosticsContext" in payload &&
+        typeof payload.diagnosticsContext !== "string")
+    ) {
+      return { kind: "invalid-contextual" };
+    }
+    try {
+      const result = {
+        userText: payload.userText,
+        words: validatePetrinautWordSpellings(payload.words),
+        ...(typeof payload.diagnosticsContext === "string"
+          ? { diagnosticsContext: payload.diagnosticsContext }
+          : {}),
+      };
+      petrinautWordsUserMessageBody(result);
+      return { kind: "contextual", ...result };
+    } catch {
+      return { kind: "invalid-contextual" };
+    }
+  }
   if (
     payload === null ||
     !hasExactKeys(payload, ["diagnosticsContext", "userText"]) ||
@@ -97,4 +161,12 @@ export const parsePetrinautUserMessageBody = (
     userText: payload.userText,
     diagnosticsContext: payload.diagnosticsContext,
   };
+};
+
+/** Presentation/evidence text excludes host vocabulary and diagnostics. */
+export const petrinautUserMessageText = (body: string): string => {
+  const parsed = parsePetrinautUserMessageBody(body);
+  return parsed.kind === "invalid-contextual"
+    ? "[Invalid contextual user message]"
+    : parsed.userText;
 };

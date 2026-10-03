@@ -1,6 +1,7 @@
 import {
   createFlueChatTransport,
   FlueChatAdmissionError,
+  validatePetrinautWordSpellings,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
@@ -34,6 +35,22 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
+  readonly #wordsByMessage = new Map<string, readonly string[] | undefined>();
+
+  public captureWords(
+    messageId: string,
+    read?: () => readonly string[] | undefined,
+  ): readonly string[] | undefined {
+    if (!this.#wordsByMessage.has(messageId)) {
+      const words = read?.();
+      this.#wordsByMessage.set(
+        messageId,
+        words === undefined ? undefined : validatePetrinautWordSpellings(words),
+      );
+    }
+    return this.#wordsByMessage.get(messageId);
+  }
+
   // Local admissions only, scoped to this conversation tracker. Retain until
   // the tracker is replaced; missing retained history fails closed.
   readonly #admittedSubmissionIds = new Set<string>();
@@ -327,6 +344,7 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   options?: {
+    readonly readWords?: () => readonly string[] | undefined;
     readonly initialData?: FlueChatTransportOptions["initialData"];
     /** Browser tools executed by Petrinaut's static panel registry. */
     readonly clientToolNames?: ReadonlySet<string>;
@@ -341,9 +359,17 @@ export const createBrunchPanelTransport = (
   sendMessages: (sendOptions) =>
     tracker.trackSubmission(
       (async () => {
+        const user = sendOptions.messages.findLast(
+          (message) => message.id !== "petrinaut-diagnostics-context",
+        );
+        const words =
+          user === undefined
+            ? undefined
+            : tracker.captureWords(user.id, options?.readWords);
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
+          ...(words === undefined ? {} : { words }),
           ...(options?.initialData === undefined
             ? {}
             : { initialData: options.initialData }),

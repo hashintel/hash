@@ -38,6 +38,7 @@ const editorRootStyle = css({
 
 import type {
   PetrinautAiComposerControl,
+  PetrinautAiInputMode,
   PetrinautAiVoiceMode,
 } from "./types/ai-assistant-composer-control";
 import type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
@@ -85,6 +86,10 @@ export type PetrinautAiToolPresentationResolver = (
 export type PetrinautAiAssistant = {
   /** Selects the assistant's visual presentation. Defaults to "stock". */
   presentation?: PetrinautAiAssistantPresentation;
+  /** Optional host controls alongside the assistant header. */
+  headerActions?: React.ReactNode;
+  /** Restrict header actions to this input mode. Omitted: both modes. */
+  actionsInputMode?: PetrinautAiInputMode;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls

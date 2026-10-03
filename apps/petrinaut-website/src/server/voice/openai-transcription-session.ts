@@ -1,3 +1,8 @@
+import { buildVoiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
+import {
+  decodeVoiceWords,
+  voiceWordsHeader,
+} from "../../shared/voice-words.js";
 import {
   createVoiceRequestId,
   voiceDurationMs,
@@ -105,6 +110,12 @@ export const createOpenAITranscriptionSessionHandler =
       if (!sdp.trimStart().startsWith("v=0"))
         return respond("Invalid SDP.", 400);
       signal.throwIfAborted();
+      let words;
+      try {
+        words = decodeVoiceWords(request.headers.get(voiceWordsHeader));
+      } catch {
+        return respond("Invalid voice words.", 400);
+      }
 
       // The unified multipart calls schema only configures realtime sessions.
       // Configure transcription on a client secret, retained server-side, then
@@ -126,7 +137,11 @@ export const createOpenAITranscriptionSessionHandler =
               audio: {
                 input: {
                   noise_reduction: { type: "far_field" },
-                  transcription: { model: "gpt-4o-transcribe", language: "en" },
+                  transcription: {
+                    model: "gpt-4o-transcribe",
+                    language: "en",
+                    prompt: buildVoiceTranscriptionPrompt(words),
+                  },
                   turn_detection: { type: "semantic_vad", eagerness: "medium" },
                 },
               },
