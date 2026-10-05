@@ -19,7 +19,7 @@ import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
 import { inBandBrowserToolNames } from "./agents/chat-agent/tool-catalogue.ts";
-import { assertChatModelConfigured } from "./chat-model-configuration.ts";
+import { verifyChatModel } from "./chat-model-configuration.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createBrowserCallRouter } from "./http/browser-calls.ts";
@@ -177,9 +177,21 @@ for (const provider of chatProviders) registerAdmittedProvider(provider);
 
 // Production refuses to start without a usable chat model, as it does without
 // database configuration; otherwise every chat fails at its first model call.
+// A provider outage only warns, so it cannot keep replacement tasks down.
 if (process.env.NODE_ENV === "production") {
   try {
-    await assertChatModelConfigured(chatProviders);
+    const verification = await verifyChatModel(chatProviders);
+    if (!verification.verified) {
+      diagnostics.note("model.configuration", {
+        verified: false,
+        reason: verification.reason,
+      });
+    } else if (verification.shutdownDate) {
+      diagnostics.note("model.configuration", {
+        verified: true,
+        shutdownDate: verification.shutdownDate,
+      });
+    }
   } catch (error) {
     diagnostics.report("model.configuration", error);
     // The process exits right after this, so flush the failure span first.
