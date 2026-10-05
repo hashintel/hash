@@ -95,7 +95,6 @@ impl<'heap> Item<'heap> {
         })
     }
 
-    #[must_use]
     pub fn absolute_path_rev(
         &self,
         registry: &ModuleRegistry<'heap>,
