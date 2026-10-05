@@ -17,6 +17,7 @@
     iter_array_chunks,
     maybe_uninit_fill,
     try_blocks,
+    array_try_map,
 )]
 #![cfg_attr(test, feature(
     // Library Features

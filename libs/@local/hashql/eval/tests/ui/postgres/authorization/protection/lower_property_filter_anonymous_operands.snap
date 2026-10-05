@@ -1,0 +1,7 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/protection/tests.rs
+expression: "snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters)"
+---
+CASE WHEN ((FALSE) OR (FALSE) OR (TRUE) OR (TRUE) OR (FALSE) OR (FALSE) OR ("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)) THEN ARRAY[$2]::text[] ELSE ARRAY[]::text[] END
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa, "https://hash.ai/@h/types/property-type/email/"] }
