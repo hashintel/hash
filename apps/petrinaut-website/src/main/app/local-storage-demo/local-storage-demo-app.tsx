@@ -18,14 +18,11 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { LuBookOpen } from "react-icons/lu";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import {
   createJsonDocHandle,
   type DocumentRevisionId,
@@ -118,7 +115,7 @@ import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
-import { WordsConfigurer } from "./words-configurer";
+import { WordsHeaderAction } from "./words-configurer";
 import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -455,9 +452,6 @@ export const LocalStorageDemoApp = ({
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
   const wordsPreference = useWordsPreference();
-  const [wordsDialog, setWordsDialog] = useState<{
-    key: string;
-  } | null>(null);
   const {
     enabled: realtimeEnabled,
     ready: realtimePreferenceReady,
@@ -699,9 +693,6 @@ export const LocalStorageDemoApp = ({
       ...(pronunciation === undefined ? {} : { pronunciation }),
     }));
   }, [wordsActive, words.ready, words.entries]);
-  if (wordsDialog !== null && (!wordsActive || wordsDialog.key !== words.key)) {
-    setWordsDialog(null);
-  }
   // Each binding gets its own non-persisted approval authority.
   const mutationApproval = useMemo(
     () => ({
@@ -995,37 +986,13 @@ export const LocalStorageDemoApp = ({
       actionsInputMode: "voice" as const,
       headerActions:
         wordsActive && words.key ? (
-          <>
-            <Button
-              size="xs"
-              variant="ghost"
-              aria-label="Words"
-              prefix={
-                <LuBookOpen
-                  aria-hidden="true"
-                  size={14}
-                  className={css({
-                    display: "inline-block",
-                    verticalAlign: "middle",
-                  })}
-                />
-              }
-              disabled={!words.ready}
-              onClick={() => setWordsDialog({ key: words.key! })}
-            >
-              Words
-            </Button>
-            {wordsDialog?.key === words.key && (
-              <WordsConfigurer
-                key={wordsDialog.key}
-                entries={words.entries}
-                ready={words.ready}
-                notice={words.notice}
-                save={words.save}
-                onClose={() => setWordsDialog(null)}
-              />
-            )}
-          </>
+          <WordsHeaderAction
+            key={words.key}
+            entries={words.entries}
+            ready={words.ready}
+            notice={words.notice}
+            save={words.save}
+          />
         ) : undefined,
       additionalTab: constructionBrowser
         ? {
@@ -1143,7 +1110,6 @@ export const LocalStorageDemoApp = ({
     setAiMessagesByNetId,
     words,
     wordsActive,
-    wordsDialog,
   ]);
 
   if (

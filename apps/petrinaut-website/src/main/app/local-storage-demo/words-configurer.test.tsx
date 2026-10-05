@@ -12,11 +12,31 @@ import {
   conversationWordsKey,
   useConversationWords,
 } from "./conversation-words";
-import { WordsConfigurer } from "./words-configurer";
+import { WordsConfigurer, WordsHeaderAction } from "./words-configurer";
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
+});
+
+test("leaving Voice closes the Words dialog and returning does not reopen it", async () => {
+  // Petrinaut renders header actions only in Voice, so leaving Voice unmounts them.
+  const Header = ({ voice }: { voice: boolean }) =>
+    voice ? (
+      <WordsHeaderAction entries={[]} notice={null} ready save={vi.fn()} />
+    ) : null;
+  const view = render(<Header voice />);
+  fireEvent.click(screen.getByRole("button", { name: "Words" }));
+  expect(
+    await screen.findByRole("dialog", { name: "Custom words" }),
+  ).toBeDefined();
+
+  view.rerender(<Header voice={false} />);
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  view.rerender(<Header voice />);
+  expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test("Voice assistant words are added from the list without a transcript teaching action", async () => {

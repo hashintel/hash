@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react";
+import { LuBookOpen } from "react-icons/lu";
 
 import { Button, Dialog, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -246,5 +247,39 @@ export const WordsConfigurer = ({
         </div>
       </Dialog.Body>
     </Dialog>
+  );
+};
+
+/**
+ * Owns the dialog's open state, so leaving Voice (which unmounts the header
+ * actions) closes the dialog for good instead of reopening it on return.
+ */
+export const WordsHeaderAction = (
+  props: Omit<Parameters<typeof WordsConfigurer>[0], "onClose">,
+) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button
+        size="xs"
+        variant="ghost"
+        aria-label="Words"
+        prefix={
+          <LuBookOpen
+            aria-hidden="true"
+            size={14}
+            className={css({
+              display: "inline-block",
+              verticalAlign: "middle",
+            })}
+          />
+        }
+        disabled={!props.ready}
+        onClick={() => setOpen(true)}
+      >
+        Words
+      </Button>
+      {open && <WordsConfigurer {...props} onClose={() => setOpen(false)} />}
+    </>
   );
 };
