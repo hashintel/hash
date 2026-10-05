@@ -6632,6 +6632,7 @@ dependencies = [
  "simple-mermaid",
  "specta",
  "thiserror 2.0.18",
+ "time",
  "tokio",
  "tokio-postgres",
  "tracing",

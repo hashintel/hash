@@ -24,7 +24,7 @@ use core::{
 
 use aws_lc_rs::error::Unspecified;
 use error_stack::Report;
-use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
+use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
 use sha2::{Digest as _, Sha256};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
@@ -76,28 +76,6 @@ enum Separator {
     Underscore = SEPARATOR as u8,
 }
 
-/// What an API token acts as.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ApiTokenType {
-    /// A token that acts as the user it belongs to.
-    User,
-}
-
-impl ApiTokenType {
-    const fn code(self) -> &'static [u8; TYPE_LENGTH] {
-        match self {
-            Self::User => b"pat",
-        }
-    }
-
-    const fn from_code(code: [u8; TYPE_LENGTH]) -> Option<Self> {
-        match &code {
-            b"pat" => Some(Self::User),
-            _ => None,
-        }
-    }
-}
-
 /// The environment an API token belongs to.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Environment {
@@ -123,28 +101,6 @@ impl Environment {
             b"pd" => Some(Self::Production),
             b"sg" => Some(Self::Staging),
             b"lc" => Some(Self::Local),
-            _ => None,
-        }
-    }
-}
-
-/// The version of the format an API token is written in.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ApiTokenVersion {
-    /// The initial version.
-    V0,
-}
-
-impl ApiTokenVersion {
-    const fn number(self) -> u8 {
-        match self {
-            Self::V0 => 0,
-        }
-    }
-
-    const fn from_number(number: u8) -> Option<Self> {
-        match number {
-            0 => Some(Self::V0),
             _ => None,
         }
     }

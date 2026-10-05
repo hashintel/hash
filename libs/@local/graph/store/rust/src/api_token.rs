@@ -2,6 +2,17 @@
 //!
 //! A store records a token's SHA-256 secret hash only in encrypted form, never its secret.
 
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::time::Duration;
+
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
+use error_stack::Report;
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, IsNull, ToSql, Type};
+use time::OffsetDateTime;
+use type_system::principal::{actor::UserId, actor_group::WebId};
 use uuid::Uuid;
 
 /// The identifier of an API token.
@@ -26,6 +37,112 @@ impl ApiTokenId {
 impl From<ApiTokenId> for Uuid {
     fn from(token_id: ApiTokenId) -> Self {
         token_id.0
+    }
+}
+
+/// What an API token acts as.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ApiTokenType {
+    /// A token that acts as the user it belongs to.
+    User,
+}
+
+impl ApiTokenType {
+    /// The three-letter code of the type.
+    #[must_use]
+    pub const fn code(self) -> &'static [u8; 3] {
+        match self {
+            Self::User => b"pat",
+        }
+    }
+
+    /// The type with the code `code`, or `None` for an unknown code.
+    #[must_use]
+    pub const fn from_code(code: [u8; 3]) -> Option<Self> {
+        match &code {
+            b"pat" => Some(Self::User),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for ApiTokenType {
+    postgres_types::accepts!(TEXT);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        str::from_utf8(self.code())?.to_sql(ty, out)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl FromSql<'_> for ApiTokenType {
+    postgres_types::accepts!(TEXT);
+
+    fn from_sql(ty: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        let code = <&str>::from_sql(ty, raw)?;
+        <[u8; 3]>::try_from(code.as_bytes())
+            .ok()
+            .and_then(Self::from_code)
+            .ok_or_else(|| format!("unknown API token type `{code}`").into())
+    }
+}
+
+/// The version of the format an API token is written in.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ApiTokenVersion {
+    /// The initial version.
+    V0,
+}
+
+impl ApiTokenVersion {
+    /// The number of the version.
+    #[must_use]
+    pub const fn number(self) -> u8 {
+        match self {
+            Self::V0 => 0,
+        }
+    }
+
+    /// The version with the number `number`, or `None` for an unknown one.
+    #[must_use]
+    pub const fn from_number(number: u8) -> Option<Self> {
+        match number {
+            0 => Some(Self::V0),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for ApiTokenVersion {
+    postgres_types::accepts!(INT2);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        i16::from(self.number()).to_sql(ty, out)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl FromSql<'_> for ApiTokenVersion {
+    postgres_types::accepts!(INT2);
+
+    fn from_sql(ty: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        let number = i16::from_sql(ty, raw)?;
+        u8::try_from(number)
+            .ok()
+            .and_then(Self::from_number)
+            .ok_or_else(|| format!("unknown API token version `{number}`").into())
     }
 }
 
@@ -84,4 +201,92 @@ impl From<ApiTokenEncryptionKeyId> for Uuid {
     fn from(key_id: ApiTokenEncryptionKeyId) -> Self {
         key_id.0
     }
+}
+
+/// An API token to record.
+#[derive(Debug)]
+pub struct CreateApiTokenParams {
+    pub token_id: ApiTokenId,
+    pub token_type: ApiTokenType,
+    pub version: ApiTokenVersion,
+    /// The user the token acts as. The token belongs to the user's web.
+    pub user_id: UserId,
+    pub name: String,
+    /// How long the token stays valid after its creation, or `None` for a token without expiry.
+    pub lifetime: Option<Duration>,
+    pub encryption_key_id: ApiTokenEncryptionKeyId,
+    pub encrypted_secret_hash: ApiTokenEncryptedSecretHash,
+}
+
+/// What a store records about an API token, without its encrypted secret hash.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApiTokenMetadata {
+    pub token_id: ApiTokenId,
+    pub token_type: ApiTokenType,
+    pub version: ApiTokenVersion,
+    /// The web that owns the token.
+    pub web_id: WebId,
+    pub name: String,
+    pub created_at: OffsetDateTime,
+    pub expires_at: Option<OffsetDateTime>,
+    pub last_used_at: Option<OffsetDateTime>,
+    pub revoked_at: Option<OffsetDateTime>,
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the API token could not be recorded")]
+pub struct ApiTokenInsertionError;
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the API tokens could not be read")]
+pub struct ApiTokenRetrievalError;
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum ApiTokenRevocationError {
+    /// The web has no API token with the requested ID.
+    #[display("the API token does not exist")]
+    NotFound,
+    #[display("the API token could not be revoked")]
+    Store,
+}
+
+/// Records, lists and revokes the API tokens of webs.
+pub trait ApiTokenStore {
+    /// Records the API token `params` describes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ApiTokenInsertionError`] if the token cannot be recorded, for example because the
+    /// user does not exist or the token ID is taken.
+    fn create_api_token(
+        &mut self,
+        params: CreateApiTokenParams,
+    ) -> impl Future<Output = Result<ApiTokenMetadata, Report<ApiTokenInsertionError>>> + Send;
+
+    /// Returns the API tokens of `web_id`, newest first, expired and revoked ones included.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ApiTokenRetrievalError`] if the tokens cannot be read.
+    fn list_api_tokens(
+        &self,
+        web_id: WebId,
+    ) -> impl Future<Output = Result<Vec<ApiTokenMetadata>, Report<ApiTokenRetrievalError>>> + Send;
+
+    /// Revokes the API token `token_id` of `web_id`.
+    ///
+    /// A revoked token keeps the time it was first revoked at.
+    ///
+    /// # Errors
+    ///
+    /// - [`NotFound`] if `web_id` has no token `token_id`
+    /// - [`Store`] if the token cannot be revoked
+    ///
+    /// [`NotFound`]: ApiTokenRevocationError::NotFound
+    /// [`Store`]: ApiTokenRevocationError::Store
+    fn revoke_api_token(
+        &mut self,
+        web_id: WebId,
+        token_id: ApiTokenId,
+    ) -> impl Future<Output = Result<(), Report<ApiTokenRevocationError>>> + Send;
 }
