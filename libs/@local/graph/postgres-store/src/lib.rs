@@ -8,8 +8,12 @@
     trait_alias,
 
     // Library Features
+    const_array,
+    const_closures,
+    const_trait_impl,
     extend_one,
-    iter_intersperse
+    iter_intersperse,
+    variant_count
 )]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
