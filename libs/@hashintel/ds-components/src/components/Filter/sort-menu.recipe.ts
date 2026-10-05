@@ -16,6 +16,13 @@ export const directionSuffix = cva({
   },
 });
 
+// The hover tint is computed from the backdrop fill its owner publishes
+// (--item-bg on list rows, --button-bg on the trigger Button): OKLCH relative
+// color moves the fill's lightness a constant 0.1 toward the opposite
+// extreme — sign() flips the direction at mid lightness — keeping chroma and
+// hue. Uniform contrast at any fill luminance, but only as accurate as the
+// published var (alpha fills publish opaque equivalents; ghost assumes the
+// s00 surface).
 export const directionToggle = cva({
   base: {
     appearance: "none",
@@ -33,11 +40,13 @@ export const directionToggle = cva({
     padding: "0",
     transition: "[background 0.1s ease, color 0.1s ease]",
     "&:hover": {
-      background: "neutral.a50",
+      background:
+        "[oklch(from var(--item-bg, {colors.white}) calc(l - 0.1 * sign(l - 0.5)) c h)]",
       color: "neutral.s120",
     },
     "&:focus": {
-      background: "neutral.a50",
+      background:
+        "[oklch(from var(--item-bg, {colors.white}) calc(l - 0.1 * sign(l - 0.5)) c h)]",
       color: "neutral.s120",
     },
   },
@@ -120,7 +129,8 @@ export const triggerDirectionToggle = cva({
     margin: "[-3px]",
     transition: "[background 0.1s ease]",
     "&:hover": {
-      background: "neutral.a50",
+      background:
+        "[oklch(from var(--button-bg, {colors.neutral.s00}) calc(l - 0.1 * sign(l - 0.5)) c h)]",
     },
   },
   variants: {
