@@ -54,12 +54,55 @@ import {
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import {
+  BrunchPanelConversationTracker,
+  type BrunchPanelAdmissionTarget,
+  createBrunchPanelTransport,
+} from "../plugins/_shared/brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
+import {
+  brunchEvaluationConversationIdFrom,
+  getOrCreateBrunchConversationId,
+  ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import { getOrCreateBrunchPrincipal } from "../plugins/brunch/conversation/brunch-principal";
+import { useFlueChatHistory } from "../plugins/brunch/conversation/use-flue-chat-history";
+import {
+  useProcessAgentBinding,
+  type FixtureProcessAgentConfiguration,
+  type ProcessAgentBinding,
+} from "../plugins/brunch/conversation/use-process-agent-binding";
+import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-workpiece-history";
+import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
+import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  createBrunchDraftExperimentInteractiveTool,
+  resolveDraftAuthorityFromHistory,
+} from "../plugins/brunch/tools/brunch-draft-experiment-interactive-tool";
+import { BrunchExperimentFollowUp } from "../plugins/brunch/tools/brunch-experiment-follow-up";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+} from "../plugins/brunch/tools/brunch-mutation-approval";
+import {
+  createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromHistory,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplay,
+  type CanonicalPetrinautReplayReadiness,
+} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
+import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
+import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
+import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
-} from "../voice-interview/voice-interview-control";
+} from "../plugins/voice/session/voice-interview-control";
+import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -67,56 +110,13 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
-import {
-  useProcessAgentBinding,
-  type FixtureProcessAgentConfiguration,
-  type ProcessAgentBinding,
-} from "./assistants/brunch/use-process-agent-binding";
-import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
-import {
-  brunchEvaluationConversationIdFrom,
-  getOrCreateBrunchConversationId,
-  ordinaryConstructionConversationIdFrom,
-  replaceBrunchConversationId,
-} from "./brunch-conversation-id";
-import {
-  createBrunchDraftExperimentInteractiveTool,
-  resolveDraftAuthorityFromHistory,
-} from "./brunch-draft-experiment-interactive-tool";
-import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
-import {
-  createBrunchMutationAdmission,
-  createBrunchMutationApprovalCoordinator,
-  createBrunchMutationApprovalInteractiveTools,
-} from "./brunch-mutation-approval";
-import {
-  BrunchPanelConversationTracker,
-  type BrunchPanelAdmissionTarget,
-  createBrunchPanelTransport,
-} from "./brunch-panel-transport";
-import {
-  createCanonicalPetrinautHostTools,
-  issuedCanonicalCallsFromHistory,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-  type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
-} from "./brunch-petrinaut-tools";
-import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
-import { getOrCreateBrunchPrincipal } from "./brunch-principal";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
-import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
-import { createInBandBrowserCalls } from "./in-band-browser-call";
-import { useFlueChatHistory } from "./use-flue-chat-history";
-import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
-import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
-import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
+import type { VoiceMediationHistory } from "../plugins/voice/history/voice-mediation-history";
 import type {
   DocumentRecord,
   DocumentRepository,
