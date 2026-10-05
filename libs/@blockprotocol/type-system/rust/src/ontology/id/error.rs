@@ -3,6 +3,14 @@ use thiserror::Error;
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+pub enum OntologyTypeMajorVersionError {
+    #[display("Type version cannot be incremented beyond {}", u32::MAX)]
+    Overflow,
+    #[display("Type version cannot be decremented below 1")]
+    Underflow,
+}
+
 // TODO: Use error-stack
 //   see https://linear.app/hash/issue/BE-160/simplify-error-handling-in-type-system-package
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]

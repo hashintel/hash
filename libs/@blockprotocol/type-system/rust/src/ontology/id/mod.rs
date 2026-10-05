@@ -33,11 +33,18 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{cmp, fmt, num::IntErrorKind, str::FromStr};
+use core::{
+    cmp, fmt,
+    num::{IntErrorKind, NonZero, ParseIntError},
+    str::FromStr,
+};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-pub use error::{ParseBaseUrlError, ParseDraftInfoError, ParseVersionedUrlError};
+pub use error::{
+    OntologyTypeMajorVersionError, ParseBaseUrlError, ParseDraftInfoError, ParseVersionedUrlError,
+};
+use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -226,6 +233,101 @@ impl<'a> FromSql<'a> for BaseUrl {
     }
 }
 
+/// A major version between 1 and [`u32::MAX`].
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    derive_more::Display,
+    derive_more::From,
+)]
+#[serde(transparent)]
+pub struct OntologyTypeMajorVersion(NonZero<u32>);
+
+impl OntologyTypeMajorVersion {
+    pub const MAX: Self = Self(NonZero::<u32>::MAX);
+    pub const MIN: Self = Self(NonZero::<u32>::MIN);
+
+    #[must_use]
+    pub const fn new(value: u32) -> Option<Self> {
+        match NonZero::new(value) {
+            Some(value) => Some(Self(value)),
+            None => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn get(self) -> u32 {
+        self.0.get()
+    }
+
+    /// Parses a major version in the given radix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is not an integer between 1 and [`u32::MAX`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `radix` is outside the range 2 to 36.
+    pub fn from_str_radix(value: &str, radix: u32) -> Result<Self, ParseIntError> {
+        NonZero::<u32>::from_str_radix(value, radix).map(Self)
+    }
+
+    /// # Errors
+    ///
+    /// Returns [`OntologyTypeMajorVersionError::Overflow`] at [`Self::MAX`].
+    pub fn next(self) -> Result<Self, Report<OntologyTypeMajorVersionError>> {
+        self.0
+            .checked_add(1)
+            .map(Self)
+            .ok_or_else(|| Report::new(OntologyTypeMajorVersionError::Overflow))
+    }
+
+    /// # Errors
+    ///
+    /// Returns [`OntologyTypeMajorVersionError::Underflow`] at [`Self::MIN`].
+    pub fn previous(self) -> Result<Self, Report<OntologyTypeMajorVersionError>> {
+        self.get()
+            .checked_sub(1)
+            .and_then(Self::new)
+            .ok_or_else(|| Report::new(OntologyTypeMajorVersionError::Underflow))
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for OntologyTypeMajorVersion {
+    postgres_types::accepts!(INT8);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        i64::from(self.get()).to_sql(ty, out)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for OntologyTypeMajorVersion {
+    postgres_types::accepts!(INT8);
+
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self(NonZero::try_from(u32::try_from(i64::from_sql(
+            ty, raw,
+        )?)?)?))
+    }
+}
+
 /// Pre-release version information for an ontology type.
 ///
 /// Represents different pre-release stages following semantic versioning conventions.
@@ -335,12 +437,12 @@ impl FromStr for PreRelease {
 ///
 /// // Published version
 /// let v1 = OntologyTypeVersion::from_str("1").unwrap();
-/// assert_eq!(v1.major, 1);
+/// assert_eq!(v1.major.get(), 1);
 /// assert!(v1.pre_release.is_none());
 ///
 /// // Draft version
 /// let draft = OntologyTypeVersion::from_str("2-draft.lane123.5").unwrap();
-/// assert_eq!(draft.major, 2);
+/// assert_eq!(draft.major.get(), 2);
 /// assert!(matches!(draft.pre_release, Some(PreRelease::Draft { .. })));
 ///
 /// // Ordering: published > draft (same major)
@@ -354,7 +456,7 @@ pub struct OntologyTypeVersion {
     // We don't really have a way to inform specta that this type is a string so we fake the type
     // to be a transparent type with only a single string type
     #[cfg_attr(feature = "codegen", specta(type = String))]
-    pub major: u32,
+    pub major: OntologyTypeMajorVersion,
     #[cfg_attr(feature = "codegen", specta(skip))]
     pub pre_release: Option<PreRelease>,
 }
@@ -395,7 +497,7 @@ impl FromStr for OntologyTypeVersion {
             };
 
         Ok(Self {
-            major: u32::from_str(version).map_err(|error| {
+            major: OntologyTypeMajorVersion::from_str_radix(version, 10).map_err(|error| {
                 if *error.kind() == IntErrorKind::Empty {
                     ParseOntologyTypeVersionError::MissingVersion
                 } else {
@@ -472,7 +574,7 @@ impl ToSql for OntologyTypeVersion {
         if self.pre_release.is_some() {
             todo!("https://linear.app/hash/issue/BE-161/allow-ids-for-pre-release-type-to-be-stored-in-postgres");
         }
-        i64::from(self.major).to_sql(ty, out)
+        self.major.to_sql(ty, out)
     }
 }
 
@@ -482,7 +584,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
-            major: i64::from_sql(ty, raw)?.try_into()?,
+            major: OntologyTypeMajorVersion::from_sql(ty, raw)?,
             pre_release: None,
         })
     }
@@ -864,7 +966,7 @@ mod tests {
         assert_eq!(
             record_id.version,
             OntologyTypeVersion {
-                major: 3,
+                major: OntologyTypeMajorVersion::new(3).expect("version should be nonzero"),
                 pre_release: None
             }
         );
@@ -933,17 +1035,17 @@ mod tests {
     fn ontology_version_parsing() -> Result<(), Box<dyn Error>> {
         // Test published versions
         let v1 = OntologyTypeVersion::from_str("1")?;
-        assert_eq!(v1.major, 1);
+        assert_eq!(v1.major.get(), 1);
         assert_eq!(v1.pre_release, None);
         assert_eq!(v1.to_string(), "1");
 
         let v42 = OntologyTypeVersion::from_str("42")?;
-        assert_eq!(v42.major, 42);
+        assert_eq!(v42.major.get(), 42);
         assert_eq!(v42.pre_release, None);
 
         // Test draft versions
         let draft = OntologyTypeVersion::from_str("2-draft.abcd1234.5")?;
-        assert_eq!(draft.major, 2);
+        assert_eq!(draft.major.get(), 2);
         let Some(PreRelease::Draft { lane, revision }) = draft.pre_release.as_ref() else {
             panic!("draft should have pre-release information");
         };
@@ -952,6 +1054,62 @@ mod tests {
         assert_eq!(draft.to_string(), "2-draft.abcd1234.5");
 
         Ok(())
+    }
+
+    #[test]
+    fn ontology_version_zero() {
+        for version in ["0", "0-draft.lane.1"] {
+            let error = OntologyTypeVersion::from_str(version)
+                .expect_err("zero should be rejected as an ontology version");
+            assert!(
+                matches!(error, ParseOntologyTypeVersionError::ParseVersion(_)),
+                "zero should fail major version parsing"
+            );
+        }
+    }
+
+    #[test]
+    fn major_version_steps() {
+        for value in [1, 2, u32::MAX - 1] {
+            let version = OntologyTypeMajorVersion::new(value)
+                .expect("a positive value should create a major version");
+            let next = version.next().expect("the version should have a successor");
+            assert_eq!(
+                next.get(),
+                value + 1,
+                "the successor should increment the version"
+            );
+            assert_eq!(
+                next.previous()
+                    .expect("the successor should have a predecessor"),
+                version,
+                "the predecessor should restore the original version"
+            );
+        }
+    }
+
+    #[test]
+    fn major_version_boundaries() {
+        assert!(
+            OntologyTypeMajorVersion::new(0).is_none(),
+            "zero should be rejected"
+        );
+        let overflow = OntologyTypeMajorVersion::MAX
+            .next()
+            .expect_err("the maximum version should have no successor");
+        assert_eq!(
+            overflow.current_context(),
+            &OntologyTypeMajorVersionError::Overflow,
+            "incrementing the maximum should report overflow"
+        );
+        let underflow = OntologyTypeMajorVersion::MIN
+            .previous()
+            .expect_err("the minimum version should have no predecessor");
+        assert_eq!(
+            underflow.current_context(),
+            &OntologyTypeMajorVersionError::Underflow,
+            "decrementing the minimum should report underflow"
+        );
     }
 
     #[test]
@@ -966,10 +1124,64 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn ontology_version_from_sql_zero() {
+        let mut buffer = BytesMut::new();
+        0_i64
+            .to_sql(&Type::INT8, &mut buffer)
+            .expect("zero should serialize as a PostgreSQL integer");
+
+        OntologyTypeVersion::from_sql(&Type::INT8, &buffer)
+            .expect_err("zero should be rejected as an ontology version");
+    }
+
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn major_version_sql_boundaries() {
+        for major in [OntologyTypeMajorVersion::MIN, OntologyTypeMajorVersion::MAX] {
+            let mut buffer = BytesMut::new();
+            major
+                .to_sql_checked(&Type::INT8, &mut buffer)
+                .expect("major version should serialize as a PostgreSQL integer");
+            assert_eq!(
+                i64::from_sql(&Type::INT8, &buffer)
+                    .expect("major version should use the PostgreSQL INT8 encoding"),
+                i64::from(major.get())
+            );
+            assert_eq!(
+                OntologyTypeMajorVersion::from_sql(&Type::INT8, &buffer)
+                    .expect("major version should deserialize from a PostgreSQL integer"),
+                major
+            );
+            assert_eq!(
+                OntologyTypeVersion::from_sql(&Type::INT8, &buffer)
+                    .expect("ontology version should deserialize from a PostgreSQL integer"),
+                OntologyTypeVersion {
+                    major,
+                    pre_release: None,
+                }
+            );
+        }
+    }
+
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn major_version_sql_out_of_range() {
+        for value in [-1_i64, 0, i64::from(u32::MAX) + 1] {
+            let mut buffer = BytesMut::new();
+            value
+                .to_sql(&Type::INT8, &mut buffer)
+                .expect("value should serialize as a PostgreSQL integer");
+            OntologyTypeMajorVersion::from_sql(&Type::INT8, &buffer)
+                .expect_err("value outside the major version range should be rejected");
+        }
+    }
+
     #[test]
     fn ontology_version_ordering_same_major() -> Result<(), Box<dyn Error>> {
         let published = OntologyTypeVersion {
-            major: 2,
+            major: OntologyTypeMajorVersion::new(2).expect("version should be nonzero"),
             pre_release: None,
         };
 
@@ -1085,7 +1297,7 @@ mod tests {
         let parsed = VersionedUrl::from_str(url_str).expect("should parse draft URL");
 
         assert_eq!(parsed.base_url.as_str(), "https://example.com/person/");
-        assert_eq!(parsed.version.major, 2);
+        assert_eq!(parsed.version.major.get(), 2);
 
         let Some(PreRelease::Draft { lane, revision }) = parsed.version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
@@ -1259,7 +1471,7 @@ mod tests {
         let version = OntologyTypeVersion::from_str("1-draft.lane.with.dots.5")
             .expect("Should accept multiple dots in lane identifier");
 
-        assert_eq!(version.major, 1);
+        assert_eq!(version.major.get(), 1);
         let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
         };
@@ -1270,7 +1482,7 @@ mod tests {
         let version2 = OntologyTypeVersion::from_str("2-draft.v1.alpha.3.10")
             .expect("Should accept lane with numbers and dots");
 
-        assert_eq!(version2.major, 2);
+        assert_eq!(version2.major.get(), 2);
         let Some(PreRelease::Draft {
             lane: lane2,
             revision: rev2,
@@ -1288,7 +1500,7 @@ mod tests {
         let version = OntologyTypeVersion::from_str("3-draft.my-draft.2")
             .expect("Should accept 'draft' in lane identifier");
 
-        assert_eq!(version.major, 3);
+        assert_eq!(version.major.get(), 3);
         let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
         };

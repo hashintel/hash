@@ -1,9 +1,13 @@
 import { useRouter } from "next/router";
 
-import { parseOntologyTypeVersion } from "@blockprotocol/type-system";
+import {
+  parseOntologyTypeVersion,
+  validateVersionedUrl,
+} from "@blockprotocol/type-system";
 
 import { getLayoutWithSidebar } from "../../../../shared/layout";
 import { DataType } from "../../../shared/data-type";
+import { NotFound } from "../../../shared/not-found";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import type { BaseUrl } from "@blockprotocol/type-system";
@@ -16,6 +20,14 @@ const Page: NextPageWithLayout = () => {
   ] as [string, "v" | undefined, `${number}` | undefined]; // @todo validate that the URL is formatted as expected;
 
   const dataTypeBaseUrl = atob(base64EncodedBaseUrl) as BaseUrl;
+
+  if (
+    requestedVersionString &&
+    validateVersionedUrl(`${dataTypeBaseUrl}v/${requestedVersionString}`)
+      .type === "Err"
+  ) {
+    return <NotFound resourceLabel={{ label: "data type" }} />;
+  }
 
   const requestedVersion = requestedVersionString
     ? parseOntologyTypeVersion(requestedVersionString)
