@@ -32,8 +32,8 @@ import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-con
 import { brunchPlugin } from "../plugins/brunch/plugin";
 import { commandPalettePlugin } from "../plugins/command-palette/plugin";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
+import { sentryFeedbackPlugin } from "../plugins/sentry-feedback/plugin";
 import { voicePlugin } from "../plugins/voice/plugin";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { resolveDefaultAssistant } from "./default-assistant";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
@@ -56,7 +56,7 @@ const defaultAssistant = resolveDefaultAssistant(
  * assistant in the list is the default; User settings can pick another.
  */
 const selectDemoPlugins = (): readonly PetrinautPlugin[] => {
-  const chrome = [commandPalettePlugin];
+  const chrome = [sentryFeedbackPlugin, commandPalettePlugin];
   if (!brunchPreviewConfig.isBrunchConfigured) {
     return [...chrome, petrinautAiPlugin];
   }
@@ -78,7 +78,6 @@ export const LocalStorageDemoApp = ({
   ) => void;
   search: SharedExampleSearch;
 }) => {
-  const sentryFeedbackAction = useSentryFeedbackAction();
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -178,7 +177,6 @@ export const LocalStorageDemoApp = ({
             readonly={false}
             setTitle={setTitle}
             title={currentDocument.title}
-            viewportActions={[sentryFeedbackAction]}
           />
         </WalkthroughProvider>
       </BrunchHostContext>

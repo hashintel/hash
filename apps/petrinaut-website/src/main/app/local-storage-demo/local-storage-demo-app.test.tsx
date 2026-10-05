@@ -1748,6 +1748,7 @@ describe("assistant selection", () => {
     // Voice is installed beside Brunch for when it is chosen.
     expect(storedAssistantChoice()).toBeNull();
     expect(installedPluginIds()).toEqual([
+      "website.sentry-feedback",
       "website.command-palette",
       "website.petrinaut-ai",
       "website.brunch",
@@ -2291,6 +2292,7 @@ describe("assistant selection", () => {
     // Neither Brunch nor Voice is installed, so Petrinaut lists one assistant
     // and registers no switch command.
     expect(installedPluginIds()).toEqual([
+      "website.sentry-feedback",
       "website.command-palette",
       "website.petrinaut-ai",
     ]);

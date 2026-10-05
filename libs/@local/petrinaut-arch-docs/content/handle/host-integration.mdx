@@ -382,17 +382,16 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                             |
 | `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                                      |
 | `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                          |
-| `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                           |
 | `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                           |
 | `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                         |
 | `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers.          |
 | `plugins`                                                                | The plugins that provide the AI assistant, toolbar buttons, top-bar items, settings and flags. Omitted: no assistant and no plugin contributions. |
 
 The AI assistant, extra toolbar buttons and top-bar items come from plugins
-passed through `plugins`. The older `aiAssistant`, `viewportActions` and
-`slots` props still work beside them: Petrinaut runs `aiAssistant` as an
-internal assistant plugin placed first, and renders `viewportActions` and
-`slots` content next to the plugins' contributions. A plugin declares
+passed through `plugins`. The older `aiAssistant` and `slots` props still
+work beside them: Petrinaut runs `aiAssistant` as an internal assistant
+plugin placed first, and renders `slots` content next to the plugins'
+top-bar items and Labs rows. A plugin declares
 its contributions in a manifest and returns them from a body Petrinaut runs as
 a hook in a host component beside the editor view; after each commit the host
 publishes what the body returned to a store the view reads, so a plugin

@@ -8,15 +8,19 @@ import {
   ActualModeContext,
   type PetrinautNavigationController,
 } from "@hashintel/petrinaut/react";
-import { Petrinaut, type ViewportAction } from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { StatusPage } from "../../../shared/status-page";
+import { sentryFeedbackPlugin } from "../plugins/sentry-feedback/plugin";
 
 import type {
   ActualModeSource,
   PetrinautDocHandle,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+
+/** This route's only contribution to the editor chrome. */
+const plugins = [sentryFeedbackPlugin];
 
 const getSourceKey = (source: ActualModeSource): string =>
   `${source.kind}:${source.endpoint}:${source.runId ?? ""}`;
@@ -26,13 +30,11 @@ const BrunchPetrinautWithHandle = ({
   navigation,
   source,
   title,
-  viewportActions,
 }: {
   definition: SDCPN;
   navigation: PetrinautNavigationController;
   source: ActualModeSource;
   title: string;
-  viewportActions: ViewportAction[];
 }) => {
   const [handle] = useState<PetrinautDocHandle>(() =>
     createJsonDocHandle({
@@ -50,12 +52,12 @@ const BrunchPetrinautWithHandle = ({
     <div style={{ height: "100vh", width: "100vw" }}>
       <Petrinaut
         handle={handle}
+        plugins={plugins}
         hideNetManagementControls="except-title"
         navigation={navigation}
         readonly
         setTitle={() => {}}
         title={title}
-        viewportActions={viewportActions}
       />
     </div>
   );
@@ -63,10 +65,8 @@ const BrunchPetrinautWithHandle = ({
 
 export const BrunchPetrinaut = ({
   navigation,
-  viewportActions,
 }: {
   navigation: PetrinautNavigationController;
-  viewportActions: ViewportAction[];
 }) => {
   const actualMode = use(ActualModeContext);
   const definition = actualMode.available ? actualMode.definition : null;
@@ -116,7 +116,6 @@ export const BrunchPetrinaut = ({
         actualMode.title ??
         (source.runId ? `Brunch run ${source.runId}` : "Brunch run")
       }
-      viewportActions={viewportActions}
     />
   );
 };

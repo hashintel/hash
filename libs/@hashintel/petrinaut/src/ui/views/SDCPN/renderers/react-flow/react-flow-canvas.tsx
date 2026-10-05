@@ -111,7 +111,6 @@ const paneStyle = css({
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
   containerSize,
-  viewportActions,
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
@@ -320,9 +319,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           {showMinimap && presentation.showMinimap && (
             <MiniMap pannable zoomable />
           )}
-          {!isActualMode && (
-            <ViewportControls viewportActions={viewportActions} />
-          )}
+          {!isActualMode && <ViewportControls />}
         </ReactFlow>
       </div>
     </CanvasControllerContext>

@@ -80,7 +80,6 @@ import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
-import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -170,7 +169,6 @@ const EditorViewContent = ({
   hideNetManagementControls,
   slots,
   titleEditable,
-  viewportActions,
 }: {
   /**
    * See {@link TopBar} for the full semantics.
@@ -178,7 +176,6 @@ const EditorViewContent = ({
   hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
   titleEditable: boolean;
-  viewportActions?: ViewportAction[];
 }) => {
   // The assistant window's content comes from the active assistant plugin
   // and the plugins extending it: the chat kit's configuration and the tabs.
@@ -630,10 +627,7 @@ const EditorViewContent = ({
                     <PropertiesPanel />
 
                     {/* SDCPN Visualization */}
-                    <SDCPNView
-                      onControllerChange={registerController}
-                      viewportActions={viewportActions}
-                    />
+                    <SDCPNView onControllerChange={registerController} />
 
                     {showEmptyAiHero && (
                       <AiCtaModal

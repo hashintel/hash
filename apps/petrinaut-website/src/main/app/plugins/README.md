@@ -18,6 +18,7 @@ that is the conversation contract between Brunch and Voice.
 | `voice/`           | `website.voice`           | Voice mode on Brunch's assistant; the Voice and Realtime flags             |
 | `petrinaut-ai/`    | `website.petrinaut-ai`    | Petrinaut AI, Petrinaut's own assistant over the website's chat route      |
 | `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's command registry, with its top-bar button |
+| `sentry-feedback/` | `website.sentry-feedback` | A feedback button in the viewport controls                                 |
 
 The demo shell (`../local-storage-demo/local-storage-demo-app.tsx`) chooses
 the list and passes it to `<Petrinaut plugins>`. What a plugin needs from the

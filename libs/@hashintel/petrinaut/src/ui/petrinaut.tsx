@@ -237,7 +237,6 @@ import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { ViewportAction } from "./types/viewport-action";
 
 /** Props of `<Petrinaut>`. */
 export type PetrinautProps = {
@@ -278,7 +277,6 @@ export type PetrinautProps = {
    * with `additionalTab` as its one tab.
    */
   aiAssistant?: PetrinautAiAssistant;
-  viewportActions?: ViewportAction[];
   /**
    * Host-supplied components to inject at specific locations in the editor.
    */
@@ -333,7 +331,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   createNewNet = noop,
   loadPetriNet = noop,
   aiAssistant,
-  viewportActions,
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -397,7 +394,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                     hideNetManagementControls={hideNetManagementControls}
                     slots={slots}
                     titleEditable={titleEditable}
-                    viewportActions={viewportActions}
                   />
                 </PetrinautPluginsProvider>
               </AiAssistantPropContext>
