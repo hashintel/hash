@@ -94,7 +94,9 @@ service:
 `.trimStart(),
   );
 
-  await run("docker", ["network", "create", network]);
+  // Internal: the smoke needs no egress, and the model lookup below must
+  // find its provider unreachable rather than reject a synthetic key.
+  await run("docker", ["network", "create", "--internal", network]);
   await run("docker", [
     "run",
     "--detach",
@@ -170,7 +172,8 @@ service:
     "--volume",
     `${certificate}:/run/config/rds-ca.pem:ro`,
   ];
-  // Startup resolves the default OpenAI model's credential but never calls it.
+  // Startup looks the model up with this key; the internal network keeps the
+  // provider unreachable, which must warn and still start.
   const modelConfiguration = [
     "--env",
     "OPENAI_API_KEY=container-smoke-synthetic-key",
@@ -215,6 +218,16 @@ service:
     throw new AggregateError(
       [error],
       `Brunch failed to become healthy:\n${stdout}\n${stderr}`,
+    );
+  }
+
+  const { stderr: startupErrors, stdout: startupLogs } = await run("docker", [
+    "logs",
+    applicationContainer,
+  ]);
+  if (!`${startupLogs}\n${startupErrors}`.includes("provider-unreachable")) {
+    throw new Error(
+      `Brunch did not report its unverifiable chat model:\n${startupLogs}\n${startupErrors}`,
     );
   }
 

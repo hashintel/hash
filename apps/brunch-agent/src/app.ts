@@ -26,7 +26,7 @@ import {
 
 import { agents } from "./agents/index.ts";
 import { brunchEnv } from "./env.ts";
-import { assertChatModelConfigured } from "./server/chat-model-configuration.ts";
+import { verifyChatModel } from "./server/chat-model-configuration.ts";
 import { healthHandler } from "./server/health.ts";
 import { assetHandler } from "./server/http/assets.ts";
 import { createBrowserCallRouter } from "./server/http/browser-calls.ts";
@@ -215,9 +215,21 @@ for (const provider of chatProviders) registerAdmittedProvider(provider);
 
 // Production refuses to start without a usable chat model, as it does without
 // database configuration; otherwise every chat fails at its first model call.
+// A provider outage only warns, so it cannot keep replacement tasks down.
 if (process.env.NODE_ENV === "production") {
   try {
-    await assertChatModelConfigured(chatProviders);
+    const verification = await verifyChatModel(chatProviders);
+    if (!verification.verified) {
+      diagnostics.note("model.configuration", {
+        verified: false,
+        reason: verification.reason,
+      });
+    } else if (verification.shutdownDate) {
+      diagnostics.note("model.configuration", {
+        verified: true,
+        shutdownDate: verification.shutdownDate,
+      });
+    }
   } catch (error) {
     diagnostics.report("model.configuration", error);
     // The process exits right after this, so flush the failure span first.
