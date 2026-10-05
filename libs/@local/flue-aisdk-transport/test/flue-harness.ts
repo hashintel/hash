@@ -4,6 +4,7 @@ import {
   instrument,
   useDataWriter,
   useModel,
+  useResponseFinish,
   useResponseStart,
   useTool,
 } from "@flue/runtime";
@@ -83,10 +84,12 @@ export const startFlueHarness = async () => {
   const faux = fauxProvider({ provider: "faux" });
   const model = faux.getModel();
   let responseMetadata: Record<string, unknown> | undefined;
+  let responseFinishMetadata: Record<string, unknown> | undefined;
 
   function HarnessAgent() {
     useModel(`${model.provider}/${model.id}`);
     useResponseStart(() => responseMetadata);
+    useResponseFinish(() => responseFinishMetadata);
     const writeProgress = useDataWriter("progress");
     useTool(
       defineTool({
@@ -205,6 +208,12 @@ export const startFlueHarness = async () => {
     /** Metadata the agent attaches when its next responses start. */
     setResponseMetadata: (metadata: Record<string, unknown> | undefined) => {
       responseMetadata = metadata;
+    },
+    /** Metadata the agent merges onto its next responses as they finish. */
+    setResponseFinishMetadata: (
+      metadata: Record<string, unknown> | undefined,
+    ) => {
+      responseFinishMetadata = metadata;
     },
     stop: async () => {
       await flue.stop();
