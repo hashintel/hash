@@ -14,6 +14,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
   definePetrinautAiInteractiveTool,
+  definePetrinautPlugin,
   Petrinaut,
 } from "@hashintel/petrinaut/ui";
 
@@ -25,6 +26,7 @@ import type {
   FlueClient,
 } from "@flue/sdk";
 import type {
+  PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
@@ -120,16 +122,19 @@ const createObservationHarness = (
   const observe = vi.fn((): AgentConversationObservation => {
     const listeners = new Set<() => void>();
     activeListeners.add(listeners);
+
     return {
       close: () => activeListeners.delete(listeners),
       getSnapshot: () => snapshot,
       refresh: vi.fn(),
       subscribe: (listener) => {
         listeners.add(listener);
+
         return () => listeners.delete(listener);
       },
     };
   });
+
   return {
     clientPromise: Promise.resolve({
       observe,
@@ -178,8 +183,20 @@ const VoiceMode = ({
       phase: "listening",
     });
   }, [inputMode, reportVoiceSessionState, setVoiceActive]);
+
   return null;
 };
+
+/**
+ * One assistant plugin whose chat is the given configuration. Rebuilt per
+ * render under the same id, so the editor keeps the plugin and only its chat
+ * changes, as a host plugin's would.
+ */
+const assistantPluginFor = (assistant: PetrinautAiAssistant) =>
+  definePetrinautPlugin(
+    { id: "test.assistant", name: "AI", assistant: { label: "AI" } },
+    () => ({ assistant: { chat: assistant } }),
+  );
 
 const ContinuityPanel = ({
   clientPromise,
@@ -206,19 +223,22 @@ const ContinuityPanel = ({
     voiceClientToolNames,
   );
   if (!history.ready || history.messages === undefined) return null;
+
   return (
     <Petrinaut
-      aiAssistant={{
-        conversationId,
-        interactiveTools: [voiceAnswerTool],
-        messages: history.messages,
-        requestStop,
-        renderVoiceMode: (context) => (
-          <VoiceMode context={context} endVoice={endVoice} />
-        ),
-        transport,
-      }}
       handle={handle}
+      plugins={[
+        assistantPluginFor({
+          conversationId,
+          interactiveTools: [voiceAnswerTool],
+          messages: history.messages,
+          requestStop,
+          renderVoiceMode: (context: PetrinautAiVoiceModeContext) => (
+            <VoiceMode context={context} endVoice={endVoice} />
+          ),
+          transport,
+        }),
+      ]}
       lspWorkerFactory={inertWorker}
     />
   );
@@ -354,6 +374,7 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
   };
   const requestStop = vi.fn(async () => {
     observation.publish(stoppedSnapshot);
+
     return "stop-requested" as const;
   });
 

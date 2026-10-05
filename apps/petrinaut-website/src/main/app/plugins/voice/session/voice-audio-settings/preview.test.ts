@@ -27,6 +27,7 @@ const setup = () => {
   });
   vi.stubGlobal("Audio", function MockAudio(source?: string) {
     audio.src = source ?? "";
+
     return audio;
   });
   const fetch = vi.fn();
@@ -39,6 +40,7 @@ const setup = () => {
     output: () => output,
     onState,
   };
+
   return {
     audio,
     fetch,

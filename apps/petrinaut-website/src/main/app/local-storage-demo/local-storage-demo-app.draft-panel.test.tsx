@@ -23,7 +23,6 @@ import {
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type {
@@ -57,6 +56,10 @@ await vi.hoisted(async () => {
   });
 });
 
+/** Petrinaut's user settings, where the assistant choice lives. */
+const userSettingsStorageKey = "petrinaut:user-settings";
+const brunchChosen = JSON.stringify({ aiAssistantId: "website.brunch" });
+
 const fixture = vi.hoisted(() => ({
   client: null as FlueClient | null,
   controller: null as DocumentController | null,
@@ -78,6 +81,7 @@ vi.mock(
       await importOriginal<
         typeof import("@hashintel/petrinaut-core/workers/monte-carlo")
       >();
+
     return {
       ...actual,
       createMonteCarloWorker: actual.createInProcessMonteCarloWorker,
@@ -92,6 +96,7 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/sdk")>()),
   createFlueClient: () => {
     if (!fixture.client) throw new Error("Missing test Flue client");
+
     return fixture.client;
   },
 }));
@@ -108,6 +113,7 @@ vi.mock("./documents/use-document-controller", () => ({
   useDocumentController: () => {
     if (!fixture.controller)
       throw new Error("Missing test document controller");
+
     return { controller: fixture.controller };
   },
 }));
@@ -115,6 +121,7 @@ vi.mock("../plugins/brunch/conversation/use-process-agent-binding", () => ({
   useProcessAgentBinding: () => {
     if (!fixture.baseBinding)
       throw new Error("Missing test process agent binding");
+
     return fixture.baseBinding;
   },
 }));
@@ -178,7 +185,7 @@ test.each(["Dismiss", "Run"] as const)(
       },
       clear() {},
       getItem: (key: string) =>
-        key === assistantSelectionStorageKey ? "brunch" : null,
+        key === userSettingsStorageKey ? brunchChosen : null,
       key: () => null,
       removeItem() {},
       setItem() {},
@@ -291,6 +298,7 @@ test.each(["Dismiss", "Run"] as const)(
           draftResult.resolve(
             JSON.parse(init.body) as { output: { status: string } },
           );
+
           return Response.json({ settled: true });
         }
         throw new Error(`Unexpected fetch ${target}`);

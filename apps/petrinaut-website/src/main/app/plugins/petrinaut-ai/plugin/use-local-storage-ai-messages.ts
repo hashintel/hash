@@ -11,6 +11,25 @@ const rootLocalStorageKey = "petrinaut-ai-messages";
 type AiMessagesByNetId = Record<string, PetrinautAiMessage[]>;
 const noAiMessages: AiMessagesByNetId = {};
 
+const isAiMessage = (message: unknown): message is PetrinautAiMessage =>
+  typeof message === "object" &&
+  message !== null &&
+  "id" in message &&
+  typeof message.id === "string" &&
+  "role" in message &&
+  (message.role === "user" ||
+    message.role === "assistant" ||
+    message.role === "system") &&
+  "parts" in message &&
+  Array.isArray(message.parts) &&
+  message.parts.every(
+    (part: unknown) =>
+      typeof part === "object" &&
+      part !== null &&
+      "type" in part &&
+      typeof part.type === "string",
+  );
+
 const readMessages = (): AiMessagesByNetId => {
   const stored = readBrowserStorage(localStorage, rootLocalStorageKey);
   if (stored === null) return {};
@@ -29,30 +48,12 @@ const readMessages = (): AiMessagesByNetId => {
         ([netId, messages]) =>
           netId.length > 0 &&
           Array.isArray(messages) &&
-          messages.every(
-            (message: unknown) =>
-              typeof message === "object" &&
-              message !== null &&
-              "id" in message &&
-              typeof message.id === "string" &&
-              "role" in message &&
-              (message.role === "user" ||
-                message.role === "assistant" ||
-                message.role === "system") &&
-              "parts" in message &&
-              Array.isArray(message.parts) &&
-              message.parts.every(
-                (part: unknown) =>
-                  typeof part === "object" &&
-                  part !== null &&
-                  "type" in part &&
-                  typeof part.type === "string",
-              ),
-          ),
+          messages.every(isAiMessage),
       )
     ) {
       return {};
     }
+
     return Object.fromEntries(entries) as AiMessagesByNetId;
   } catch {
     return {};
@@ -66,12 +67,31 @@ const writeMessages = (messages: AiMessagesByNetId): void =>
     JSON.stringify(messages),
   );
 
-export const useLocalStorageAiMessages = () => {
+/**
+ * The saved transcript of one document and how to replace or clear it. Every
+ * document's transcript lives under one storage key, so a write keeps the
+ * other documents' transcripts.
+ */
+export const useLocalStorageAiMessages = (
+  documentId: string,
+): readonly [
+  PetrinautAiMessage[] | undefined,
+  (messages: PetrinautAiMessage[] | undefined) => void,
+] => {
   const [aiMessagesByNetId, setAiMessagesByNetId] = usePersistedState({
     fallback: noAiMessages,
     read: readMessages,
     storageKey: rootLocalStorageKey,
     write: writeMessages,
   });
-  return { aiMessagesByNetId, setAiMessagesByNetId };
+  const setMessages = (messages: PetrinautAiMessage[] | undefined) =>
+    setAiMessagesByNetId((previous) => {
+      const next = { ...previous };
+      if (messages === undefined) delete next[documentId];
+      else next[documentId] = messages;
+
+      return next;
+    });
+
+  return [aiMessagesByNetId[documentId], setMessages];
 };

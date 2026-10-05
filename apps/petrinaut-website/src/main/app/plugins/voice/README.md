@@ -1,7 +1,12 @@
-# Voice
+# Voice plugin
 
-Voice mode on the Brunch assistant. The demo shell renders the interview
-control into the AI panel while Brunch is selected and Voice is enabled.
+`plugin.tsx` holds the manifest, with the Voice and Realtime flags and the
+`BrunchConversation` token it requires, and binds `plugin/use-voice-plugin.tsx`
+to it. That body extends Brunch's assistant while Brunch is the shown
+assistant: it checks the deployment's voice capability, keeps the mediation
+history per conversation, and returns the voice controls and the caption
+projection that Petrinaut merges into Brunch's chat.
+`brunch-voice-mode.tsx` binds the interview control to one conversation.
 
 | Folder      | Holds                                                                         |
 | ----------- | ----------------------------------------------------------------------------- |

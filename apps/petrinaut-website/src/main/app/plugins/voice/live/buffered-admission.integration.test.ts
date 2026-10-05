@@ -50,6 +50,7 @@ const voice = () => {
     },
   });
   bridge.start(1);
+
   return { bridge, speakCanonical };
 };
 

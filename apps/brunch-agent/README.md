@@ -10,7 +10,7 @@ yarn dev:brunch
 
 The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. Local development loads `apps/brunch-agent/.env.development`, selecting `openai/gpt-5.6-sol` with low reasoning by default, like the persona launcher. An explicit process environment or app-local `.env.local` can override these values; deployment model settings are separate and not established by this dev default. A configured credential does not authorize a paid run. When Brunch is selected, the typed panel and Voice mode bind the conversation to the open document: Brunch composes its prompt, SDCPN skill, elicitation, Ledger, document-revision attribution, and explanation with Petrinaut-owned capability guidance and the complete canonical `petrinautAiTools` catalogue. Petrinaut retains canonical schemas, execution, and model-visible outputs.
 
-Native Stock remains a separate assistant choice; `VITE_PETRINAUT_DEFAULT_ASSISTANT` selects native Stock or Brunch.
+Petrinaut AI remains a separate assistant choice; `VITE_PETRINAUT_DEFAULT_ASSISTANT` (`petrinaut-ai` or `brunch`) selects which assistant the website installs first.
 
 For browser-visible persona testing, use the [persona launcher and operator guide](src/evaluations/persona/README.md):
 

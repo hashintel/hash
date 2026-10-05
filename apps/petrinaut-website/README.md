@@ -45,18 +45,18 @@ left behind are dropped, matching the editor's own rule when a visitor switches
 away from an untouched net.
 
 The editor chooses the initial document after saved nets load. Open tabs refresh
-their saved nets and stock-assistant messages when local storage changes, and
+their saved nets and Petrinaut AI messages when local storage changes, and
 updates start from the latest persisted value so another tab's documents survive.
 
 ## Choosing the assistant
 
-Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and automatically enables **Voice**. You can turn **Enable Voice** off manually; that choice survives reload until you select Brunch again. Voice defaults on for an already selected Brunch assistant unless explicitly disabled. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled`. These preferences belong to the website host, not Petrinaut.
+The assistants are Petrinaut plugins the demo shell passes to the editor (see `src/main/app/plugins/README.md`): Petrinaut AI always, and Brunch with Voice mode when `VITE_BRUNCH_CHAT_ENDPOINT` is configured. The first assistant plugin in the list is the default; `VITE_PETRINAUT_DEFAULT_ASSISTANT` (`petrinaut-ai` by default, or `brunch`) puts Brunch first for a Brunch-focused deployment or test launch.
 
-When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by default. Leave it off to use Live; turn it on to use Realtime. This choice is saved under `petrinaut-website:realtime-enabled` and applies to the next Voice session. Changing it does not interrupt active audio: end Voice and start it again to switch providers.
+With both installed, **User settings → General → AI assistant** picks one, and the command palette (⌘K) offers **Use the Brunch assistant** and **Use the Petrinaut assistant**. The choice is stored with Petrinaut's user settings under `petrinaut:user-settings`, so changing the launch fallback does not migrate existing users. With Petrinaut AI selected, the panel talks to `/api/chat` with Petrinaut's own tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, Petrinaut AI is the only assistant: no selector and no command.
 
-A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
+Voice is the Voice plugin's contribution to Brunch's assistant. **User settings → Labs → Voice** holds its two flags, stored under `petrinaut:plugin:website.voice`: **Voice**, on by default, and **Realtime transcription**, off by default. Leave Realtime off to use Live; turn it on to use Realtime. Changing it does not interrupt active audio: end Voice and start it again to switch providers. Voice is available only when Brunch is selected, the Voice flag is on, and the server capability check reports Voice available. Turning the flag on does not start microphone capture or a provider session.
 
-Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
+**User settings → Plugins** lists every plugin with a switch to run it. Switching Brunch off also switches off Voice, which requires it.
 
 ## Example embeds and oEmbed
 
@@ -99,7 +99,7 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the model id; the default is `stockAssistantModel` in `api/chat.ts`.                                   |
 | `PETRINAUT_AI_REASONING_EFFORT`    | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `stockAssistantModel.reasoningEffort` in `api/chat.ts`            |
 | `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
-| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
+| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `petrinaut-ai` (default) or `brunch`; explicit stored choices still win.                   |
 | `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.

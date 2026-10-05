@@ -4,7 +4,7 @@ import { useLayoutEffect } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { createAssistantPlugin, Petrinaut } from "@hashintel/petrinaut/ui";
 
 import {
   NoopResizeObserver,
@@ -42,6 +42,7 @@ const VoiceObserver = ({
   onUpdate: (context: PetrinautAiVoiceModeContext) => void;
 }) => {
   useLayoutEffect(() => onUpdate(current), [current, onUpdate]);
+
   return null;
 };
 type LspWorker = Awaited<ReturnType<LspWorkerFactory>>;
@@ -50,6 +51,7 @@ type LspWorkerListener = Parameters<LspWorker["addEventListener"]>[1];
 
 const cleanDiagnosticsWorker: LspWorkerFactory = () => {
   const listeners = new Set<LspWorkerListener>();
+
   return {
     postMessage(message: LspWorkerMessage) {
       if (message.method !== "sdcpn/diagnostics" || !("id" in message)) return;
@@ -167,11 +169,13 @@ test.each([
         speakCanonical,
         subscribe: (listener) => {
           emitInput = listener;
+
           return () => {};
         },
       },
       submitInterviewAnswer: async (input) => {
         if (!context) throw new Error("Panel did not mount");
+
         return submitVoiceInputWithAdmission({
           input,
           submitVoiceInput: context.submitVoiceInput,
@@ -218,11 +222,11 @@ test.each([
         differentialEquations: [],
       },
     });
-    render(
-      <Petrinaut
-        handle={handle}
-        lspWorkerFactory={cleanDiagnosticsWorker}
-        aiAssistant={{
+    const plugins = [
+      createAssistantPlugin({
+        id: "test.assistant",
+        label: "AI",
+        assistant: {
           automaticTools: [],
           conversationId: "test",
           requestStop: async () => {
@@ -230,6 +234,7 @@ test.each([
             bridge.cancelPendingSpeech();
             bridge.completeTurnHandoff();
             finishStoppedStep?.();
+
             return "already-settled";
           },
           transport: createBrunchPanelTransport(
@@ -237,10 +242,17 @@ test.each([
             tracker,
             { clientToolNames: canonicalPetrinautClientToolNames },
           ),
-          renderVoiceMode: (current) => (
+          renderVoiceMode: (current: PetrinautAiVoiceModeContext) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
           ),
-        }}
+        },
+      }),
+    ];
+    render(
+      <Petrinaut
+        handle={handle}
+        plugins={plugins}
+        lspWorkerFactory={cleanDiagnosticsWorker}
       />,
     );
     await waitFor(() => expect(context).toBeDefined());
@@ -259,6 +271,7 @@ test.each([
       );
       expect(send).toHaveBeenCalledOnce();
       expect(speakCanonical).not.toHaveBeenCalled();
+
       return;
     }
     if (outcome === "withheld") {
@@ -278,6 +291,7 @@ test.each([
       if (context) updateVoice(context);
       expect(send).toHaveBeenCalledOnce();
       expect(speakCanonical).not.toHaveBeenCalled();
+
       return;
     }
   },

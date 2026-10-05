@@ -24,7 +24,6 @@ import {
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type { DocumentRepository } from "./documents/document-repository";
@@ -42,6 +41,8 @@ await vi.hoisted(async () => {
 const defaultChatModelId = DEFAULT_CHAT_MODEL.slice(
   DEFAULT_CHAT_MODEL.indexOf("/") + 1,
 );
+/** Petrinaut's user settings, where the assistant choice lives. */
+const userSettingsStorageKey = "petrinaut:user-settings";
 
 const fixture = vi.hoisted(() => ({
   fetch: null as typeof fetch | null,
@@ -51,6 +52,7 @@ const fixture = vi.hoisted(() => ({
 }));
 vi.mock("@flue/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@flue/sdk")>();
+
   return {
     ...actual,
     createFlueClient: (
@@ -59,6 +61,7 @@ vi.mock("@flue/sdk", async (importOriginal) => {
       const client = actual.createFlueClient(options);
       // The server's own in-process history client passes its own fetch.
       if (options.fetch === undefined) fixture.client = client;
+
       return client;
     },
   };
@@ -66,11 +69,13 @@ vi.mock("@flue/sdk", async (importOriginal) => {
 vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/petrinaut/ui")>();
+
   return {
     ...actual,
     WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
       fixture.handle = props.handle;
+
       return <actual.Petrinaut {...props} />;
     },
   };
@@ -80,6 +85,7 @@ vi.mock("./documents/use-document-controller", async (importOriginal) => {
     await importOriginal<
       typeof import("./documents/use-document-controller")
     >();
+
   return {
     ...actual,
     useDocumentController: (
@@ -87,6 +93,7 @@ vi.mock("./documents/use-document-controller", async (importOriginal) => {
     ) => {
       const result = actual.useDocumentController(input);
       fixture.repository = result.controller.repository;
+
       return result;
     },
   };
@@ -114,6 +121,7 @@ beforeAll(async () => {
       new URL(request.url).pathname.startsWith("/agents/chat/")
     )
       return fixture.fetch(request);
+
     return Promise.reject(new Error("External fetch forbidden"));
   };
   vi.stubGlobal("ResizeObserver", NoopResizeObserver);
@@ -215,7 +223,10 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   const initialRevisionId = "initial-revision";
   let unmount = () => {};
   try {
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    localStorage.setItem(
+      userSettingsStorageKey,
+      JSON.stringify({ aiAssistantId: "website.brunch" }),
+    );
     localStorage.setItem(
       "petrinaut-sdcpn",
       JSON.stringify({
