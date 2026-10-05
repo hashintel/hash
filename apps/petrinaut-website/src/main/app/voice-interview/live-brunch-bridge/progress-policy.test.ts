@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 
-import { ProgressPolicy } from "./live-progress-policy";
+import { ProgressPolicy } from "./progress-policy";
 
 const tool = (at: number, name: string, duration = 400) => ({
   at,
@@ -72,16 +72,13 @@ const scenarios = [
       tool(4_800, "createExperiment", 35_000),
     ],
     settleAt: 45_000,
-    expected: [
-      "Setting up the comparison.",
-      "Still setting up the comparison.",
-    ],
+    expected: ["Setting up the comparison."],
   },
   {
-    name: "thinking only",
+    name: "slow turn without tools",
     tools: [],
     settleAt: 26_000,
-    expected: ["Give me a moment on this one."],
+    expected: [],
   },
   {
     name: "interruption held",
@@ -144,20 +141,38 @@ test("approval waits stay silent, then execution gets its own running clock", ()
   expect(commentary).toHaveBeenCalledWith("Making those changes now.");
 });
 
-test("ack, running, gap, repeat and cap gates include their exact boundaries", () => {
+test("ack and running gates include their exact boundaries, then one line caps the turn", () => {
   const { policy, commentary } = setup();
   policy.toolStarted("one", "addPlace", 4_100);
   expect(policy.evaluate(6_599)?.speak).toBe(false);
   expect(policy.evaluate(6_600)?.speak).toBe(true);
-  expect(policy.evaluate(26_600)?.speak).toBe(false);
-  expect(policy.evaluate(36_599)?.speak).toBe(false);
-  expect(policy.evaluate(36_600)?.speak).toBe(true);
   policy.toolStarted("two", "createExperiment", 60_000);
-  expect(policy.evaluate(100_000)?.speak).toBe(false);
-  expect(commentary.mock.calls).toEqual([
-    ["Making those changes now."],
-    ["Still working through the changes."],
-  ]);
+  expect(policy.evaluate(100_000)?.reason).toBe("line-cap");
+  expect(commentary.mock.calls).toEqual([["Making those changes now."]]);
+});
+
+test("a refused progress append still uses the turn's only line", () => {
+  const { policy, commentary } = setup();
+  commentary.mockReturnValue(false);
+  policy.toolStarted("one", "createExperiment", 7_000);
+  expect(policy.evaluate(7_000)).toMatchObject({
+    speak: false,
+    reason: "send-failed",
+  });
+  commentary.mockReturnValue(true);
+  expect(policy.evaluate(60_000)?.reason).toBe("line-cap");
+  expect(commentary).toHaveBeenCalledOnce();
+});
+
+test("an idle turn stays silent until a tool has run", () => {
+  const { policy, commentary } = setup();
+  expect(policy.evaluate(30_000)?.reason).toBe("no-tools");
+  policy.toolStarted("one", "getLatestNetDefinition", 30_000);
+  policy.toolFinished("one", 30_500, false);
+  expect(policy.evaluate(35_500)?.speak).toBe(true);
+  expect(commentary).toHaveBeenCalledExactlyOnceWith(
+    "Give me a moment on this one.",
+  );
 });
 
 test.each([
@@ -210,15 +225,13 @@ test("a fast non-substrate burst after acknowledgement stays silent", () => {
   expect(commentary).not.toHaveBeenCalled();
 });
 
-test("a changed phase still waits twenty seconds and Live speech holds it", () => {
+test("Live speech holds an otherwise qualifying line", () => {
   const { policy } = setup();
-  policy.evaluate(6_600);
   policy.toolStarted("experiment", "createExperiment", 26_000);
-  expect(policy.evaluate(26_599)?.speak).toBe(false);
   policy.liveSpeaking(true);
-  expect(policy.evaluate(26_600)?.speak).toBe(false);
+  expect(policy.evaluate(26_000)?.reason).toBe("live-speaking");
   policy.liveSpeaking(false);
-  expect(policy.evaluate(26_601)?.speak).toBe(true);
+  expect(policy.evaluate(26_001)?.speak).toBe(true);
 });
 
 test("phase changes publish quiet state even before speech qualifies; duplicates do not reset running time", () => {
@@ -276,11 +289,13 @@ test("concurrent same-name calls and failed edits cannot imply completed edits",
   policy.toolStarted("three", "addPlace", 3_000);
   policy.toolFinished("one", 4_000, true);
   policy.toolFinished("three", 5_000, true);
+  policy.userSpeaking(true);
   expect(policy.evaluate(6_600)?.phase.state).toBe("running");
+  policy.userSpeaking(false);
   policy.toolFinished("two", 7_000, false);
-  policy.evaluate(36_600);
-  expect(commentary).not.toHaveBeenCalledWith(
-    "The edits are in. Give me a moment.",
+  expect(policy.evaluate(12_000)?.speak).toBe(true);
+  expect(commentary).toHaveBeenCalledExactlyOnceWith(
+    "Give me a moment on this one.",
   );
 });
 
@@ -291,6 +306,7 @@ test("input streaming does not count as executing, and a new turn resets gates",
   policy.endTurn();
   expect(policy.evaluate(61_000)).toBeNull();
   policy.startTurn(62_000);
+  policy.toolStarted("two", "addPlace", 64_000);
   expect(policy.evaluate(70_000)?.speak).toBe(false);
   policy.acknowledged(71_000);
   expect(policy.evaluate(77_000)?.speak).toBe(true);

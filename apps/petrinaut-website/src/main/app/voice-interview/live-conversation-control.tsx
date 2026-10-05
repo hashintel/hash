@@ -245,9 +245,6 @@ export const LiveConversationControl = ({
     // Appends sent before the person last started speaking belong to the
     // interrupted turn; a late acceptance must not caption the new one.
     const turnAppends = new Set<string>();
-    // Null-delegation commentary without an offered wrap-up is a progress
-    // line; it outlives speech start so a late failure still stays quiet.
-    const progressAppends = new Set<string>();
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
@@ -301,41 +298,30 @@ export const LiveConversationControl = ({
         const currentTurn =
           result.status === "local-failure" || turnAppends.has(result.eventId);
         if (result.status !== "unknown") turnAppends.delete(result.eventId);
-        if (currentTurn && result.kind === "commentary") {
+        if (currentTurn && result.kind === "commentary" && result.progress) {
+          if (result.status === "accepted" && result.startMs !== undefined)
+            captions.progress(result.startMs);
+        } else if (currentTurn && result.kind === "commentary") {
           if (offeredInput) {
             appendInputs.set(result.eventId, offeredInput);
             offeredInput = undefined;
-          } else if (
-            result.delegationId === null &&
-            !appendInputs.has(result.eventId)
-          ) {
-            progressAppends.add(result.eventId);
           }
           const inputId = appendInputs.get(result.eventId);
-          if (result.status === "accepted" && result.startMs !== undefined) {
-            if (inputId) captions.wrapUp(inputId, result.startMs);
-            else if (result.delegationId === null)
-              captions.progress(result.startMs);
-          }
+          if (
+            inputId &&
+            result.status === "accepted" &&
+            result.startMs !== undefined
+          )
+            captions.wrapUp(inputId, result.startMs);
           if (result.status !== "unknown") appendInputs.delete(result.eventId);
-        } else if (
-          currentTurn &&
-          result.kind === "instructions" &&
-          result.delegationId === null &&
-          result.status === "accepted" &&
-          result.startMs !== undefined
-        ) {
-          captions.progress(result.startMs);
         }
         // Every successful local send starts as unknown. Neither waiting
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
-        if (result.status === "unknown") return;
-        const progress = progressAppends.delete(result.eventId);
-        if (result.status === "accepted") return;
+        if (result.status === "unknown" || result.status === "accepted") return;
         // Quiet interruption context and progress lines are best effort, not
         // an audible answer.
-        if (result.kind === "thinking" || progress) return;
+        if (result.kind === "thinking" || result.progress) return;
         const label =
           result.kind === "commentary" ? "answer" : "continuation instruction";
         const outcome =
@@ -387,6 +373,7 @@ export const LiveConversationControl = ({
         },
       },
       appendCommentary: next.appendCommentary,
+      appendProgress: next.appendProgress,
       appendInstructions: next.appendInstructions,
       appendThinking: next.appendThinking,
       notice: setWarningMessage,

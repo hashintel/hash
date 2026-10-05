@@ -2,11 +2,11 @@ import { getToolName, isToolUIPart } from "ai";
 
 import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
+import { ProgressPolicy } from "./live-brunch-bridge/progress-policy";
 import {
   liveUtteranceStages,
   routeUtterance,
 } from "./live-brunch-bridge/utterance-pipeline";
-import { ProgressPolicy } from "./live-progress-policy";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { VoiceBriefFields } from "../../../shared/voice-mediation";
@@ -87,10 +87,9 @@ interface Dependencies {
     text: string,
     delegationId: string | null,
   ) => boolean;
-  readonly appendInstructions: (
-    text: string,
-    delegationId: string | null,
-  ) => boolean;
+  /** A spoken-only progress line, outside any delegation. */
+  readonly appendProgress: (text: string) => boolean;
+  readonly appendInstructions: (text: string, delegationId: string) => boolean;
   /** Quiet progress/interruption context, never spoken or bound to a delegation. */
   readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
@@ -169,6 +168,14 @@ export class LiveBrunchBridge {
     this.#liveSpeaking = on;
   }
 
+  #liveAudioMayBePlaying(now: number): boolean {
+    return (
+      this.#liveSpeaking ||
+      now < this.#progressPendingUntil ||
+      now < this.#liveSpeechHoldUntil
+    );
+  }
+
   #stopProgress(): void {
     clearInterval(this.#progressTimer);
     this.#progressTimer = undefined;
@@ -244,11 +251,7 @@ export class LiveBrunchBridge {
         }
       }
       turn.progress.userSpeaking(this.#dependencies.speechPending());
-      turn.progress.liveSpeaking(
-        this.#liveSpeaking ||
-          now < this.#progressPendingUntil ||
-          now < this.#liveSpeechHoldUntil,
-      );
+      turn.progress.liveSpeaking(this.#liveAudioMayBePlaying(now));
       turn.progress.evaluate(now);
     }
   }
@@ -536,9 +539,7 @@ export class LiveBrunchBridge {
       progressOffered: false,
       progress: new ProgressPolicy({
         commentary: (line) => {
-          // Keep this selector local: null-delegation commentary is awaiting
-          // real-provider verification; instructions is a one-line fallback.
-          const sent = this.#dependencies.appendCommentary(line, null);
+          const sent = this.#dependencies.appendProgress(line);
           turn.progressOffered = true;
           // Allow output to begin before sending a simultaneously settled wrap-up.
           // A provider that stays silent must not block the summary indefinitely.
@@ -1089,9 +1090,7 @@ export class LiveBrunchBridge {
       );
       while (
         turn.progressOffered &&
-        (this.#liveSpeaking ||
-          Date.now() < this.#progressPendingUntil ||
-          Date.now() < this.#liveSpeechHoldUntil) &&
+        this.#liveAudioMayBePlaying(Date.now()) &&
         !turn.preparation.signal.aborted &&
         !this.#abort.signal.aborted
       ) {

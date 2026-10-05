@@ -1,6 +1,8 @@
 import { petrinautToolEffects } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 
+import type { PetrinautToolCapability } from "@hashintel/brunch-agent-plugin-sdcpn";
+
 type Capability =
   | "read"
   | "mutation"
@@ -9,6 +11,13 @@ type Capability =
   | "substrate"
   | "other";
 type ToolState = "preparing" | "running" | "awaiting-approval";
+
+const petrinautCapabilities = {
+  "petrinaut-read": "read",
+  "petrinaut-mutation": "mutation",
+  "petrinaut-command": "command",
+  "petrinaut-experiment": "experiment",
+} as const satisfies Record<PetrinautToolCapability, Capability>;
 
 const capabilityOf = (name: string): Capability => {
   if (name === brunchTools.draftPetrinautExperiment) return "experiment";
@@ -21,49 +30,26 @@ const capabilityOf = (name: string): Capability => {
   if (Object.hasOwn(petrinautToolEffects, name)) {
     const { capability } =
       petrinautToolEffects[name as keyof typeof petrinautToolEffects];
-    return {
-      "petrinaut-read": "read",
-      "petrinaut-mutation": "mutation",
-      "petrinaut-command": "command",
-      "petrinaut-experiment": "experiment",
-    }[capability] as Capability;
+    return petrinautCapabilities[capability];
   }
   // Ledger, explanation, diagnostic and unknown tools share a generic phrase,
   // but must not inherit substrate's immediate running gate.
   return "other";
 };
 
-const genericToolPhrases = [
-  "Working through the details.",
-  "Still working through the details.",
-] as const;
+const genericToolPhrase = "Working through the details.";
 
 const phrases = {
-  read: [
-    "Looking over the model as it stands.",
-    "Still reading through the model.",
-  ],
-  mutation: ["Making those changes now.", "Still working through the changes."],
-  command: ["Tidying up the layout.", "Still tidying the layout."],
-  experiment: [
-    "Setting up the comparison.",
-    "Still setting up the comparison.",
-  ],
-  substrate: genericToolPhrases,
-  other: genericToolPhrases,
-  thinking: ["Give me a moment on this one.", "Still thinking this through."],
-  "thinking-after-edits": [
-    "The edits are in. Give me a moment.",
-    "Still thinking this through.",
-  ],
-  "thinking-after-read": [
-    "I've had a look at the model. Give me a moment.",
-    "Still thinking this through.",
-  ],
-  "thinking-after-experiment": [
-    "The comparison is drafted. One moment.",
-    "Still thinking this through.",
-  ],
+  read: "Looking over the model as it stands.",
+  mutation: "Making those changes now.",
+  command: "Tidying up the layout.",
+  experiment: "Setting up the comparison.",
+  substrate: genericToolPhrase,
+  other: genericToolPhrase,
+  thinking: "Give me a moment on this one.",
+  "thinking-after-edits": "The edits are in. Give me a moment.",
+  "thinking-after-read": "I've had a look at the model. Give me a moment.",
+  "thinking-after-experiment": "The comparison is drafted. One moment.",
 } as const;
 
 interface Phase {
@@ -245,8 +231,6 @@ export class ProgressPolicy {
       this.#thinking(turn, info, now);
       turn.lastPhase = `${info.phase}|${info.state}`;
     }
-    const lastLine = turn.lines.at(-1);
-    const sinceLine = lastLine ? now - lastLine.at : Infinity;
     const slowClass = info.phase === "experiment" || info.phase === "substrate";
     const checks: readonly (readonly [string, boolean])[] = [
       ["settled", !turn.settled],
@@ -255,15 +239,14 @@ export class ProgressPolicy {
       ["awaiting-approval", info.state !== "awaiting-approval"],
       ["unacknowledged", turn.ackAt !== null],
       ["quiet-after-ack", turn.ackAt !== null && now - turn.ackAt >= 6_000],
-      ["minimum-gap", sinceLine >= 20_000],
+      ["no-tools", turn.tools.size > 0],
       [
         "activity",
         info.state === "running"
           ? info.runningFor >= (slowClass ? 0 : 2_500)
           : info.state === "idle" && info.idleFor >= 5_000,
       ],
-      ["line-cap", turn.lines.length < 2],
-      ["same-phase", lastLine?.phase !== info.phase || sinceLine >= 30_000],
+      ["line-cap", turn.lines.length === 0],
     ];
     const reason = checks.find(([, passed]) => !passed)?.[0] ?? null;
     if (reason !== null) {
@@ -285,7 +268,7 @@ export class ProgressPolicy {
     }
     if (info.phase === "awaiting-approval")
       return { speak: false, phase: info, reason: "awaiting-approval" };
-    const line = phrases[info.phase][lastLine?.phase === info.phase ? 1 : 0];
+    const line = phrases[info.phase];
     // A refused append consumes its slot too: never retry or replay automatically.
     turn.lines.push({ at: now, phase: info.phase });
     this.#thinking(turn, info, now);

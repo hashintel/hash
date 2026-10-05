@@ -38,6 +38,7 @@ vi.mock("./live-conversation", () => ({
     start: vi.fn(async () => {}),
     stop: liveConversationMocks.stop,
     appendCommentary: vi.fn(() => true),
+    appendProgress: vi.fn(() => true),
     appendInstructions: vi.fn(() => true),
     appendThinking: vi.fn(() => true),
     speechPending: vi.fn(() => true),
@@ -361,6 +362,7 @@ test("progress accepted after the person speaks again does not hide the new repl
     eventId: "progress",
     kind: "commentary" as const,
     delegationId: null,
+    progress: true as const,
   };
   act(() => {
     call[6]?.started();
@@ -1435,6 +1437,7 @@ test("a summary that could not be sent does not caption later progress as its wr
     eventId: "progress",
     kind: "commentary" as const,
     delegationId: null,
+    progress: true as const,
   };
   act(() => {
     call[4]({
@@ -1898,7 +1901,11 @@ test("failed progress lines do not warn that an answer failed", async () => {
   await start();
   const call = vi.mocked(createLiveConversation).mock.lastCall!;
   act(() => call[0]({ phase: "connected", message: null }));
-  const progress = { kind: "commentary" as const, delegationId: null };
+  const progress = {
+    kind: "commentary" as const,
+    delegationId: null,
+    progress: true as const,
+  };
   act(() => {
     call[4]({ ...progress, eventId: "rejected", status: "unknown" });
     call[4]({ ...progress, eventId: "rejected", status: "rejected" });
@@ -2010,7 +2017,7 @@ test("Live progress observes the host approval gate and stays out of written voi
       await vi.advanceTimersByTimeAsync(30_000);
     });
     expect(awaitingApproval).toHaveBeenCalledWith("delete");
-    expect(session.appendCommentary).not.toHaveBeenCalled();
+    expect(session.appendProgress).not.toHaveBeenCalled();
     awaitingApproval.mockReturnValue(false);
     act(() =>
       call[0]({
@@ -2022,7 +2029,7 @@ test("Live progress observes the host approval gate and stays out of written voi
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
-    expect(session.appendCommentary).not.toHaveBeenCalled();
+    expect(session.appendProgress).not.toHaveBeenCalled();
     act(() =>
       call[0]({
         phase: "connected",
@@ -2033,15 +2040,15 @@ test("Live progress observes the host approval gate and stays out of written voi
     await act(async () => {
       await vi.advanceTimersByTimeAsync(6_000);
     });
-    expect(session.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    expect(session.appendProgress).toHaveBeenCalledExactlyOnceWith(
       "Making those changes now.",
-      null,
     );
     act(() => {
       const progress = {
         eventId: "progress",
         kind: "commentary" as const,
         delegationId: null,
+        progress: true as const,
       };
       call[4]({ ...progress, status: "unknown" });
       call[4]({ ...progress, status: "accepted", startMs: 46_000 });

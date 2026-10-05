@@ -28,6 +28,9 @@ const setup = (
   const appendCommentary = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendCommentary"]
   >(() => true);
+  const appendProgress = vi.fn<
+    ConstructorParameters<typeof LiveBrunchBridge>[0]["appendProgress"]
+  >(() => true);
   const appendInstructions = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendInstructions"]
   >(() => true);
@@ -53,6 +56,7 @@ const setup = (
   );
   const bridge = new LiveBrunchBridge({
     appendCommentary,
+    appendProgress,
     appendInstructions,
     appendThinking,
     notice,
@@ -76,6 +80,7 @@ const setup = (
     bridge,
     mediation,
     appendCommentary,
+    appendProgress,
     appendInstructions,
     appendThinking,
     notice,
@@ -1026,6 +1031,7 @@ test("Stop aborts pending admission and its late resolution cannot produce comme
   let signal: AbortSignal | undefined;
   const bridge = new LiveBrunchBridge({
     appendCommentary: fixture.appendCommentary,
+    appendProgress: fixture.appendProgress,
     appendInstructions: fixture.appendInstructions,
     appendThinking: fixture.appendThinking,
     mediation: fixture.mediation,
@@ -2493,11 +2499,10 @@ test("progress leaves the delegation open and settlement waits for Live speech",
   await vi.advanceTimersByTimeAsync(2_000);
   fixture.bridge.liveSpeaking(false);
   await vi.advanceTimersByTimeAsync(5_999);
-  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendProgress).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(251);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+  expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
     "Setting up the comparison.",
-    null,
   );
   fixture.bridge.liveSpeaking(true);
   fixture.bridge.responseCompleted({
@@ -2506,24 +2511,25 @@ test("progress leaves the delegation open and settlement waits for Live speech",
   });
   fixture.update({ segments: [segment()], settlements: completed });
   await vi.advanceTimersByTimeAsync(3_000);
-  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
   fixture.bridge.liveSpeaking(false);
   await vi.advanceTimersByTimeAsync(1_000);
-  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
   // A short acoustic pause is not completion. Resumed output extends the hold,
   // even when it outlasts the initial five-second allowance for speech to start.
   fixture.bridge.liveSpeaking(true);
   await vi.advanceTimersByTimeAsync(2_000);
   fixture.bridge.liveSpeaking(false);
   await vi.advanceTimersByTimeAsync(1_499);
-  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(1);
-  expect(fixture.appendCommentary).toHaveBeenLastCalledWith(
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
     segment().text,
     "delegation",
   );
   await vi.advanceTimersByTimeAsync(40_000);
-  expect(fixture.appendCommentary).toHaveBeenCalledTimes(2);
+  expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+  expect(fixture.appendProgress).toHaveBeenCalledOnce();
   fixture.bridge.stop();
   expect(vi.getTimerCount()).toBe(0);
 });
@@ -2539,25 +2545,24 @@ test.each(["silent", "delayed"] as const)(
     fixture.bridge.responseStarted(started);
     fixture.update({ status: "streaming", messages: [runningTool()] });
     await vi.advanceTimersByTimeAsync(6_000);
-    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
       "Setting up the comparison.",
-      null,
     );
     wrapUp(fixture);
     await vi.advanceTimersByTimeAsync(4_000);
-    expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
     if (output === "delayed") {
       fixture.bridge.liveSpeaking(true);
       await vi.advanceTimersByTimeAsync(2_000);
-      expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+      expect(fixture.appendCommentary).not.toHaveBeenCalled();
       fixture.bridge.liveSpeaking(false);
       await vi.advanceTimersByTimeAsync(1_499);
     } else {
       await vi.advanceTimersByTimeAsync(999);
     }
-    expect(fixture.appendCommentary).toHaveBeenCalledOnce();
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
-    expect(fixture.appendCommentary).toHaveBeenLastCalledWith(
+    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
       segment().text,
       "delegation",
     );
@@ -2585,10 +2590,10 @@ test.each(["speech", "stop", "teardown"] as const)(
     else fixture.bridge.stop();
     fixture.bridge.liveSpeaking(false);
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
       "Setting up the comparison.",
-      null,
     );
+    expect(fixture.appendCommentary).not.toHaveBeenCalled();
     expect(fixture.mediation.offered).not.toHaveBeenCalled();
     fixture.bridge.stop();
     expect(vi.getTimerCount()).toBe(0);
@@ -2608,7 +2613,7 @@ test("approval changes are polled even without a new message snapshot", async ()
     messages: [runningTool("removePlace")],
   });
   await vi.advanceTimersByTimeAsync(40_000);
-  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendProgress).not.toHaveBeenCalled();
   expect(
     fixture.appendThinking.mock.calls.some(([text]) =>
       text.includes('"phase":"awaiting-approval"'),
@@ -2616,11 +2621,10 @@ test("approval changes are polled even without a new message snapshot", async ()
   ).toBe(true);
   fixture.isToolAwaitingApproval.mockReturnValue(false);
   await vi.advanceTimersByTimeAsync(2_500);
-  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendProgress).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(250);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+  expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
     "Making those changes now.",
-    null,
   );
   fixture.bridge.stop();
 });
@@ -2641,11 +2645,7 @@ test.each(["speech", "stop", "error", "settlement"] as const)(
     else if (cause === "error") fixture.update({ status: "error" });
     else wrapUp(fixture);
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(
-      fixture.appendCommentary.mock.calls.filter(
-        ([text]) => text === "Setting up the comparison.",
-      ),
-    ).toEqual([]);
+    expect(fixture.appendProgress).not.toHaveBeenCalled();
     fixture.bridge.stop();
   },
 );
@@ -2662,11 +2662,8 @@ test("historical and unrelated tools cannot supply progress for this turn", asyn
     status: "streaming",
     messages: [runningTool(), { ...runningTool(), id: "unrelated" }],
   });
-  await vi.advanceTimersByTimeAsync(6_250);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
-    "Give me a moment on this one.",
-    null,
-  );
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(fixture.appendProgress).not.toHaveBeenCalled();
   fixture.bridge.stop();
 });
 
@@ -2683,7 +2680,7 @@ test("a tool continuation can report progress after its initial submission settl
   });
   fixture.update({ status: "streaming", settlements: completed });
   await vi.advanceTimersByTimeAsync(7_000);
-  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendProgress).not.toHaveBeenCalled();
   fixture.bridge.responseStarted({
     ...started,
     submissionId: "continuation",
@@ -2695,9 +2692,8 @@ test("a tool continuation can report progress after its initial submission settl
     messages: [runningTool()],
   });
   await vi.advanceTimersByTimeAsync(250);
-  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+  expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
     "Setting up the comparison.",
-    null,
   );
   fixture.bridge.stop();
 });
@@ -2729,11 +2725,10 @@ test.each([true, false])(
       ],
     });
     await vi.advanceTimersByTimeAsync(6_250);
-    expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
       applied
         ? "The edits are in. Give me a moment."
         : "Give me a moment on this one.",
-      null,
     );
     fixture.bridge.stop();
   },
