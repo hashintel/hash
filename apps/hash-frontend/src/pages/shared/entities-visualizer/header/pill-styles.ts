@@ -2,8 +2,14 @@ import { chipClasses } from "@mui/material";
 
 import type { SxProps, Theme } from "@mui/material";
 
+/**
+ * The ds `Filter` chips' sm height (14px font × 1.6 line-height + 2 × 2px
+ * padding + 2 × 1px border), so the pills level with the chips beside them.
+ */
+const dsFilterChipHeight = "28.4px";
+
 const basePillSx = {
-  height: 26,
+  height: dsFilterChipHeight,
   borderRadius: "4px",
   background: ({ palette }: Theme) => palette.gray[5],
   [`.${chipClasses.label}`]: {
@@ -40,7 +46,7 @@ export const iconPillSx: SxProps<Theme> = {
 };
 
 export const activePillSx: SxProps<Theme> = {
-  height: 26,
+  height: dsFilterChipHeight,
   borderRadius: "4px",
   border: ({ palette }: Theme) => `1px solid ${palette.blue[40]}`,
   background: ({ palette }: Theme) => palette.blue[15],
