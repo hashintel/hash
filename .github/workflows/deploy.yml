@@ -626,6 +626,9 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_DEPLOY_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # Waits for the started rollout, so a release whose tasks never become
+      # healthy fails this job, and with it the Slack notice in `passed`. While
+      # it waits, later deploys of the same service queue behind it.
       - name: Redeploy ${{ matrix.service }} staging service
         uses: $/.github/actions/redeploy-ecs-service
         with:

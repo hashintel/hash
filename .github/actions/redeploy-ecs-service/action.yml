@@ -1,5 +1,7 @@
 name: Redeploy ECS service
-description: Force a new ECS service deployment. AWS credentials must be configured upstream.
+description: >-
+  Force a new ECS service deployment and wait for that deployment to finish
+  rolling out. AWS credentials must be configured upstream.
 
 inputs:
   ECS_CLUSTER_NAME:
@@ -8,6 +10,10 @@ inputs:
   ECS_SERVICE_NAME:
     description: ECS service name
     required: true
+  ROLLOUT_TIMEOUT_MINUTES:
+    description: How long the started deployment may take to complete before the step fails
+    required: false
+    default: "30"
 
 runs:
   using: composite
@@ -16,9 +22,78 @@ runs:
       env:
         ECS_CLUSTER_NAME: ${{ inputs.ECS_CLUSTER_NAME }}
         ECS_SERVICE_NAME: ${{ inputs.ECS_SERVICE_NAME }}
+        ROLLOUT_TIMEOUT_MINUTES: ${{ inputs.ROLLOUT_TIMEOUT_MINUTES }}
       shell: bash
       run: |
-        aws ecs update-service \
+        set -euo pipefail
+
+        deployment_id=$(aws ecs update-service \
           --cluster "${ECS_CLUSTER_NAME}" \
           --service "${ECS_SERVICE_NAME}" \
-          --force-new-deployment 1> /dev/null
+          --force-new-deployment \
+          --query "service.deployments[?status=='PRIMARY'].id | [0]" \
+          --output text)
+        echo "Started deployment ${deployment_id} of ${ECS_SERVICE_NAME}"
+
+        recent_events() {
+          aws ecs describe-services \
+            --cluster "${ECS_CLUSTER_NAME}" \
+            --services "${ECS_SERVICE_NAME}" \
+            --query "services[0].events[:10].[createdAt, message]" \
+            --output text || true
+        }
+
+        # Follow this deployment rather than the service: a circuit-breaker
+        # rollback leaves the service stable on the previous release, and a
+        # task that never becomes healthy leaves this deployment IN_PROGRESS.
+        deadline=$((SECONDS + ROLLOUT_TIMEOUT_MINUTES * 60))
+        last_progress=""
+        while :; do
+          deployment=$(aws ecs describe-services \
+            --cluster "${ECS_CLUSTER_NAME}" \
+            --services "${ECS_SERVICE_NAME}" \
+            --output json \
+            | jq -c --arg id "${deployment_id}" \
+                '.services[0].deployments // [] | map(select(.id == $id)) | .[0] // empty')
+          if [[ -z "${deployment}" ]]; then
+            echo "::error ::Deployment ${deployment_id} of ${ECS_SERVICE_NAME} was replaced before it completed."
+            recent_events
+            exit 1
+          fi
+
+          status=$(jq -r '.status' <<<"${deployment}")
+          rollout_state=$(jq -r '.rolloutState // "UNREPORTED"' <<<"${deployment}")
+          progress=$(jq -r '"\(.rolloutState // "UNREPORTED"): \(.runningCount)/\(.desiredCount) running, \(.pendingCount) pending, \(.failedTasks) failed"' <<<"${deployment}")
+          if [[ "${progress}" != "${last_progress}" ]]; then
+            echo "${progress}"
+            last_progress="${progress}"
+          fi
+
+          case "${rollout_state}" in
+            COMPLETED)
+              echo "Deployment ${deployment_id} of ${ECS_SERVICE_NAME} completed."
+              exit 0
+              ;;
+            FAILED)
+              echo "::error ::Deployment ${deployment_id} of ${ECS_SERVICE_NAME} failed: $(jq -r '.rolloutStateReason // "no reason reported"' <<<"${deployment}")"
+              recent_events
+              exit 1
+              ;;
+            UNREPORTED)
+              echo "::error ::${ECS_SERVICE_NAME} reports no rollout state, so this step cannot confirm the deployment."
+              exit 1
+              ;;
+          esac
+
+          if [[ "${status}" != "PRIMARY" ]]; then
+            echo "::error ::Deployment ${deployment_id} of ${ECS_SERVICE_NAME} stopped being the primary deployment before it completed."
+            recent_events
+            exit 1
+          fi
+          if (( SECONDS >= deadline )); then
+            echo "::error ::Deployment ${deployment_id} of ${ECS_SERVICE_NAME} did not complete within ${ROLLOUT_TIMEOUT_MINUTES} minutes."
+            recent_events
+            exit 1
+          fi
+          sleep 15
+        done
