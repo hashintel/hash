@@ -36,11 +36,8 @@ CROSS JOIN LATERAL (
             - (
                 CASE
                     WHEN
-                        ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
-                        AND (
-                            "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
-                        )
-                        THEN ARRAY[$7]::text []
+                        "entity_temporal_metadata_0_0_0"."entity_uuid" = $9
+                        THEN ARRAY[$10]::text []
                     ELSE ARRAY[]::text []
                 END
             )
@@ -53,11 +50,8 @@ CROSS JOIN LATERAL (
             - (
                 CASE
                     WHEN
-                        ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
-                        AND (
-                            "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
-                        )
-                        THEN ARRAY[$7]::text []
+                        "entity_temporal_metadata_0_0_0"."entity_uuid" = $9
+                        THEN ARRAY[$10]::text []
                     ELSE ARRAY[]::text []
                 END
             )
@@ -86,7 +80,26 @@ CROSS JOIN LATERAL
             ) AS "row"
     ) AS "continuation_0_0"
 WHERE
-    (FALSE)
+    (
+        (
+            (
+                ("entity_temporal_metadata_0_0_0"."entity_uuid" = $5)
+                OR ("entity_temporal_metadata_0_0_0"."web_id" = $6)
+            )
+        )
+        AND (
+            NOT (
+                (
+                    ARRAY_POSITIONS(
+                        "entity_edition_cache_0_0_2"."base_urls", $7
+                    )
+                    && ARRAY_POSITIONS(
+                        "entity_edition_cache_0_0_2"."versions", $8
+                    )
+                )
+            )
+        )
+    )
     AND (
         ("entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange))
         AND (
@@ -103,4 +116,4 @@ $3: Symbol(name)
 $4: Input(expected)
 ============================= Auxiliary Parameters =============================
 
-AuxiliaryParameters { initial_offset: 4, parameters: ["https://hash.ai/@h/types/entity-type/user/", User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/"] }
+AuxiliaryParameters { initial_offset: 4, parameters: [EntityUuid(11111111-1111-1111-1111-111111111111), WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))), "https://hash.ai/@h/types/entity-type/restricted/", OntologyTypeVersion { major: 1, pre_release: None }, User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/"] }
