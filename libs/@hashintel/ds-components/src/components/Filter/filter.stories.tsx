@@ -269,24 +269,30 @@ const changeLogStyle: React.CSSProperties = {
   color: "#667",
 };
 
-/** Controlled harness that renders the Filter plus a log of onChange calls. */
+/** Controlled harness: the Filter plus a log of onChange/onInput calls. */
 const Demo = <ValueMap extends Record<string, unknown>>({
   initialValue = null,
   ...filterProps
-}: Omit<React.ComponentProps<typeof Filter<ValueMap>>, "value" | "onChange"> & {
+}: Omit<
+  React.ComponentProps<typeof Filter<ValueMap>>,
+  "value" | "onChange" | "onInput"
+> & {
   initialValue?: FilterValue<ValueMap> | null;
 }) => {
   const [value, setValue] = useState<FilterValue<ValueMap> | null>(
     initialValue,
   );
   const [changes, setChanges] = useState<string[]>([]);
+  const log = (entry: string) => {
+    setChanges((previous) => [...previous.slice(-4), entry]);
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Filter<ValueMap>
         removeable={{
           onRemove: () => {
             setValue(null);
-            setChanges((previous) => [...previous.slice(-4), "onRemove()"]);
+            log("onRemove()");
           },
         }}
         {...filterProps}
@@ -294,14 +300,15 @@ const Demo = <ValueMap extends Record<string, unknown>>({
         onChange={(...change: FilterChange<ValueMap>) => {
           const [key, nextValue] = change;
           setValue({ key, value: nextValue } as FilterValue<ValueMap>);
-          setChanges((previous) => [
-            ...previous.slice(-4),
-            `onChange(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`,
-          ]);
+          log(`onChange(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`);
+        }}
+        onInput={(...change: FilterChange<ValueMap>) => {
+          const [key, nextValue] = change;
+          log(`onInput(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`);
         }}
       />
       <pre style={changeLogStyle}>
-        {changes.length > 0 ? changes.join("\n") : "no onChange fired yet"}
+        {changes.length > 0 ? changes.join("\n") : "nothing fired yet"}
       </pre>
     </div>
   );

@@ -36,7 +36,7 @@ import {
   abandonedFadeStyle,
   CHIP_COLLAPSE_MS,
   FilterGroupAbandonmentContext,
-  focusWithoutRing,
+  focusInitialSegment,
   shouldAnimateChipRemoval,
   startChipCollapse,
   isAbandonable,
@@ -223,9 +223,13 @@ const FilterSelectInput = ({
  * `<Filter<{ contains: string; between: [string, number]; empty: null }>>`.
  *
  * `onChange` (and the selected operator's own `onChange`) fires only once
- * every input is filled in and the user either presses Enter or moves focus
- * outside the control. Clearing every input and submitting the same way
+ * every input is filled in and the user either presses Enter — in any of the
+ * inputs, so a draft filled out of order still commits — or moves focus
+ * outside the control. Clearing every input and committing the same way
  * fires `(key, null)`; a partially filled multi-input draft never fires.
+ * The optional `onInput` instead fires on every edit — each keystroke,
+ * select change and operator switch — with the draft's value while it is
+ * complete and `null` otherwise.
  * Operators with `input: null` commit immediately on selection. Select
  * inputs additionally commit when their dropdown closes — except when it
  * closes via Escape, which cancels without committing: a single select's
@@ -247,6 +251,7 @@ export const Filter = <
   operators,
   value = null,
   onChange,
+  onInput,
   errors,
   disabled,
   testId,
@@ -259,7 +264,13 @@ export const Filter = <
   propertyLabel: string;
   operators: ItemOrGroup<FilterOperator<ValueMap>>[];
   value?: FilterValue<ValueMap> | null;
+  /** Fires when a complete (or fully cleared) draft is committed */
   onChange: (...change: FilterChange<ValueMap>) => void;
+  /**
+   * Fires on every edit, with the draft's value while it is complete and
+   * `null` otherwise
+   */
+  onInput?: (...change: FilterChange<ValueMap>) => void;
   /** Validation errors, shown in a tooltip below the filter on hover/focus */
   errors?: string[];
   disabled?: boolean;
@@ -267,8 +278,10 @@ export const Filter = <
   /** The size (height) of the element */
   size?: FormInputSize;
   /**
-   * Focus the chip's first interactive segment (the operator trigger, or the
-   * first input) once on mount. For chips created by a user action whose
+   * Focus the chip once on mount — its first input when an operator is
+   * pre-selected and takes input (an empty select input opens its dropdown
+   * too), otherwise the operator trigger. For chips created by a user action
+   * whose
    * mount coincides with their container's — where FilterGroup's own
    * fresh-chip focus treats them as restored state — so keyboard flow still
    * lands inside the new chip.
@@ -316,12 +329,7 @@ export const Filter = <
         if (root.contains(document.activeElement)) {
           return;
         }
-        const segment = root.querySelector<HTMLElement>(
-          'button:enabled:not([data-part="remove"]), input:enabled',
-        );
-        if (segment) {
-          focusWithoutRing(root, segment);
-        }
+        focusInitialSegment(root);
       });
     });
   }, []);
@@ -428,6 +436,24 @@ export const Filter = <
     );
   };
 
+  const emitInput = (key: string | null, draftSlots: SlotValue[]) => {
+    if (!onInput || key === null) {
+      return;
+    }
+    const operator = operatorByKey(key);
+    if (!operator) {
+      return;
+    }
+    const normalized = normalizeSlots(operator, draftSlots);
+    const nextValue = isDraftComplete(normalized)
+      ? draftValue(operator, normalized)
+      : null;
+    (onInput as unknown as (key: string, value: unknown) => void)(
+      key,
+      nextValue,
+    );
+  };
+
   const focusSlot = (index: number) => {
     const element = inputRefs.current[index];
     if (!element) {
@@ -465,6 +491,7 @@ export const Filter = <
         : slotsForValue(operator, null);
     setDraftKey(nextKey);
     applySlots(nextSlots);
+    emitInput(nextKey, nextSlots);
     if (configs.length === 0) {
       // No input to fill in: choosing the operator is itself the submission.
       commitDraft(nextKey, nextSlots);
@@ -499,6 +526,7 @@ export const Filter = <
     const next = [...slotsRef.current];
     next[index] = slotValue;
     applySlots(next);
+    emitInput(draftKey, next);
   };
 
   // Left/Right move focus between the chip's segments — the operator trigger
@@ -584,13 +612,18 @@ export const Filter = <
   ) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      // In a multi-input operator, Enter advances to the next input; only
-      // Enter on the last input submits the draft.
-      if (inputRefs.current[inputIndex + 1]) {
-        focusSlot(inputIndex + 1);
-        return;
-      }
+      // Enter submits from any input, so a multi-input draft filled out of
+      // order still commits; while the draft is incomplete it instead
+      // advances to the next input.
       commitDraft(draftKey, slotsRef.current);
+      const operator = operatorByKey(draftKey);
+      if (
+        operator &&
+        !isDraftComplete(normalizeSlots(operator, slotsRef.current)) &&
+        inputRefs.current[inputIndex + 1]
+      ) {
+        focusSlot(inputIndex + 1);
+      }
     } else if (event.key === "Escape") {
       // Restore the value this input held when it received focus
       setSlot(inputIndex, inputFocusValueRef.current);
@@ -832,6 +865,7 @@ export const Filter = <
           return (
             <span
               className={cx(classes.inputSlot, classes.selectSlot)}
+              data-part="input-slot"
               data-disabled={disabled ? "" : undefined}
               key={segmentKey}
             >
@@ -913,6 +947,7 @@ export const Filter = <
         return (
           <span
             className={classes.inputSlot}
+            data-part="input-slot"
             data-disabled={disabled ? "" : undefined}
             key={segmentKey}
           >

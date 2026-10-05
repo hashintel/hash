@@ -122,9 +122,10 @@ export type FilterValue<ValueMap extends Record<string, unknown>> = {
 
 /**
  * Discriminated (key, value) argument pairs for the Filter-level `onChange`
- * — checking `key` in the handler narrows `value` to that operator's type.
- * The key is always a concrete operator key: clearing the inputs fires
- * `(key, null)`, and removal is signalled via `removeable.onRemove` instead.
+ * and `onInput` — checking `key` in the handler narrows `value` to that
+ * operator's type. The key is always a concrete operator key: clearing the
+ * inputs fires `(key, null)`, and removal is signalled via
+ * `removeable.onRemove` instead.
  */
 export type FilterChange<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: [key: Key, value: ValueMap[Key] | null];
@@ -324,6 +325,37 @@ export const focusWithoutRing = (
   document.addEventListener("pointerdown", lift, true);
   chipRoot.addEventListener("focusout", lift, true);
   target.focus();
+};
+
+/**
+ * Mount/creation focus for a chip: the first input when an operator is
+ * already selected and takes input (only then are input slots rendered),
+ * otherwise the first interactive segment — the operator trigger. Never the
+ * remove button. A select input's focus target is its trigger; an empty one
+ * (zag marks it `data-placeholder-shown`) also gets its dropdown opened: at
+ * rest it doesn't read as pressable, so landing on it closed is
+ * disorienting. zag's select trigger toggles on plain clicks, synthetic
+ * ones included.
+ */
+export const focusInitialSegment = (chip: HTMLElement): void => {
+  const target =
+    chip.querySelector<HTMLElement>(
+      '[data-part="input-slot"] :is(input:enabled, [data-part="trigger"]:enabled)',
+    ) ??
+    chip.querySelector<HTMLElement>(
+      'button:enabled:not([data-part="remove"]), input:enabled',
+    );
+  if (!target) {
+    return;
+  }
+  focusWithoutRing(chip, target);
+  if (
+    target.matches(
+      '[data-part="input-slot"] [data-part="trigger"][data-placeholder-shown]',
+    )
+  ) {
+    target.click();
+  }
 };
 
 /** How long the group sits untouched before abandoned chips start fading. */

@@ -185,6 +185,28 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     (propertyFilter) => propertyFilter.baseUrl === archivedPropertyBaseUrl,
   );
 
+  /**
+   * Clears every added filter chip. The web and type pills are deliberately
+   * untouched: they are permanent scope selectors with default values —
+   * "where am I looking" — while the chips are criteria stacked through
+   * "+ Add filter", which is exactly the action "Clear" undoes. Wiping the
+   * scope would also be the costlier mistake: re-adding a chip is cheap,
+   * reconstructing a careful web/type selection is not.
+   *
+   * Only the visible chips are cleared: filters hidden in this view (the
+   * graph's link-only properties) are preserved for the table view, matching
+   * how hiding works everywhere else in the ribbon. The archived chip is
+   * never hidden, so its scope-widening always resets with it.
+   */
+  const handleClearPropertyFilters = () =>
+    setFilterState((prev) => ({
+      ...prev,
+      includeArchived: false,
+      propertyFilters: prev.propertyFilters.filter((propertyFilter) =>
+        hiddenPropertyBaseUrls.has(propertyFilter.baseUrl),
+      ),
+    }));
+
   const [propertySearch, setPropertySearch] = useState("");
   const searchTerms = propertySearch.toLowerCase().split(/\s+/).filter(Boolean);
   const matchesSearch = (title: string) => {
@@ -348,6 +370,13 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
               }
             }}
           />
+          {/* A lone chip's own remove button already covers clearing. */}
+          {visiblePropertyFilters.length > 1 && (
+            <FilterGroup.ClearFilters
+              aria-label="Clear filters"
+              onClick={handleClearPropertyFilters}
+            />
+          )}
         </FilterGroup>
       </DsComponentsScope>
     </Box>

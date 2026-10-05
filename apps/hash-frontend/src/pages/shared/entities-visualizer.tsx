@@ -949,7 +949,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           view === "Table" ? (
             <DsComponentsScope>
               <SortMenu<SortableEntitiesTableColumnKey>
-                variant="ghost"
                 size="xs"
                 items={entitySorters}
                 value={{

@@ -40,7 +40,7 @@ export const SortMenu = <SortKey extends string = string>({
   searchable = false,
   align = "left",
   renderTrigger = "default",
-  variant = "subtle",
+  variant = "ghost",
   size = "sm",
   className,
   iconName,
