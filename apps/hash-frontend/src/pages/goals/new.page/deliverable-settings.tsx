@@ -15,7 +15,10 @@ import {
 } from "@hashintel/design-system";
 
 import { GoogleAccountSelect } from "../../shared/integrations/google/google-account-select";
-import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
+import {
+  GoogleAuthProvider,
+  useIsGoogleAuthAvailable,
+} from "../../shared/integrations/google/google-auth-context";
 import { SelectOrNameGoogleSheet } from "../../shared/integrations/google/select-or-name-google-sheet";
 
 import type { GoogleSheet } from "@local/hash-isomorphic-utils/flows/types";
@@ -206,28 +209,30 @@ export const DeliverableSettings = ({
   settings,
   setSettings,
 }: DeliverableSettingsProps) => {
+  const isGoogleAuthAvailable = useIsGoogleAuthAvailable();
+
   return (
-    <Box>
-      <SpreadsheetSettings
-        spreadsheetSettings={settings.spreadsheet}
-        setSpreadsheetSettings={(newSpreadsheetSettings) =>
-          setSettings((currentSettings) => ({
-            ...currentSettings,
-            spreadsheet: newSpreadsheetSettings,
-          }))
-        }
-      />
-      <Box sx={{ mt: 1 }}>
-        <DocumentSettings
-          documentSettings={settings.document}
-          setDocumentSettings={(newDocumentSettings) =>
+    <Stack gap={1}>
+      {isGoogleAuthAvailable && (
+        <SpreadsheetSettings
+          spreadsheetSettings={settings.spreadsheet}
+          setSpreadsheetSettings={(newSpreadsheetSettings) =>
             setSettings((currentSettings) => ({
               ...currentSettings,
-              document: newDocumentSettings,
+              spreadsheet: newSpreadsheetSettings,
             }))
           }
         />
-      </Box>
-    </Box>
+      )}
+      <DocumentSettings
+        documentSettings={settings.document}
+        setDocumentSettings={(newDocumentSettings) =>
+          setSettings((currentSettings) => ({
+            ...currentSettings,
+            document: newDocumentSettings,
+          }))
+        }
+      />
+    </Stack>
   );
 };

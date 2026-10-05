@@ -2,12 +2,14 @@ use aide::{
     axum::{ApiRouter, routing::get_with},
     transform::TransformOperation,
 };
-use axum::Json;
 use schemars::JsonSchema;
 use serde::Serialize;
 use type_system::principal::actor::ActorId;
 
-use super::credentials::{Actor, Credentials, MaybeActor};
+use super::{
+    credentials::{Actor, Credentials, MaybeActor},
+    extract::Json,
+};
 
 /// The resolved caller.
 #[derive(Serialize, JsonSchema)]

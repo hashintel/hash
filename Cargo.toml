@@ -8,6 +8,7 @@ exclude = [
 ]
 members = [
     "apps/hash-graph",
+    "apps/hash-integrations",
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec/rust",
     "libs/@local/codegen",
@@ -35,13 +36,21 @@ members = [
     "libs/@local/harpc/tower",
     "libs/@local/harpc/types",
     "libs/@local/harpc/wire-protocol",
-    "libs/@local/hashql/*",
+    "libs/@local/hashql/ast",
+    "libs/@local/hashql/compiletest",
+    "libs/@local/hashql/core",
+    "libs/@local/hashql/diagnostics",
+    "libs/@local/hashql/eval",
+    "libs/@local/hashql/hir",
+    "libs/@local/hashql/macros",
+    "libs/@local/hashql/mir",
+    "libs/@local/hashql/syntax-jexpr",
     "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
-    "libs/antsi",
+    "libs/@local/typst-railroad",
     "libs/darwin-kperf",
     "libs/darwin-kperf/codegen",
     "libs/darwin-kperf/criterion",
@@ -134,6 +143,7 @@ aws-smithy-types                   = { version = "1.6.3", default-features = fal
 aws-types                          = { version = "1.6.0", default-features = false }
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
+axum-extra                         = { version = "0.12.6", default-features = false }
 base16ct                           = { version = "1.0.0", default-features = false }
 base64                             = { version = "0.22.1" }
 bitvec                             = { version = "1.0.1", default-features = false }
@@ -157,6 +167,7 @@ codspeed-criterion-compat-walltime = { version = "4.3.0", default-features = fal
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
 convert_case                       = { version = "0.11.0", default-features = false }
 cookie                             = { version = "0.18.2", default-features = false }
+crc32fast                          = { version = "1.5.0", default-features = false }
 criterion                          = { version = "0.8.0", default-features = false }
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
@@ -257,6 +268,7 @@ proc-macro2                        = { version = "1.0.103", default-features = f
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                              = { version = "1.0.41", default-features = false }
+railroad                           = { version = "0.3.9", default-features = false }
 rancor                             = { version = "0.1.2", default-features = false }
 rand                               = { version = "0.10.0", default-features = false }
 rand_core                          = { version = "0.10.0", default-features = false }
@@ -351,6 +363,7 @@ uuid                               = { version = "1.18.1", default-features = fa
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
+wasm-minimal-protocol              = { version = "0.2.1", default-features = false }
 winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
 zerocopy                           = { version = "0.8.55" }
@@ -447,6 +460,7 @@ missing_inline_in_public_items   = "allow"
 missing_trait_methods            = "allow" # Should be enabled per `impl` instead of globally
 mod_module_files                 = "allow" # Opposite of `clippy::self_named_module_files`
 module_name_repetitions          = "allow"
+must_use_without_reason          = "allow"
 pub_use                          = "allow"
 pub_with_shorthand               = "allow" # Opposite of `clippy::pub_without_shorthand`
 question_mark_used               = "allow"

@@ -22,6 +22,11 @@ area/apps > hash-graph:
   - changed-files:
       - any-glob-to-any-file: apps/hash-graph/**
 
+area/apps > hash-integrations:
+  - changed-files:
+      - any-glob-to-any-file: apps/hash-integrations/**
+      - any-glob-to-any-file: libs/@local/integrations/**
+
 area/blocks:
   - changed-files:
       - any-glob-to-any-file: blocks/**
@@ -65,10 +70,6 @@ area/infra > terraform:
 area/libs:
   - changed-files:
       - any-glob-to-any-file: libs/**
-
-area/libs > antsi:
-  - changed-files:
-      - any-glob-to-any-file: libs/antsi/**
 
 area/libs > error-stack:
   - changed-files:

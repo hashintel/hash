@@ -1,6 +1,9 @@
 [registry]
 global-min-publish-age = "7 days"
 
+[resolver]
+incompatible-rust-versions = "allow"
+
 [registries.crates-io]
 protocol = "sparse"
 

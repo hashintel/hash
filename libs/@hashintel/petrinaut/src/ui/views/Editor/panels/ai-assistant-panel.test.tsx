@@ -582,7 +582,7 @@ describe("AiAssistantPanel composer submissions", () => {
       ]),
     );
     const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
-    expect(ledgerTab.querySelector("[data-attention]")).not.toBeNull();
+    expect(ledgerTab.querySelector('[aria-hidden="true"]')).not.toBeNull();
 
     fireEvent.click(ledgerTab);
     await waitFor(() => expect(screen.queryByText("9+")).toBeNull());
@@ -667,14 +667,14 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
+      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
     );
     fireEvent.click(chatTab);
     await waitFor(() =>
       expect(
         screen
           .getByRole("tab", { name: "Chat" })
-          .querySelector("[data-attention]"),
+          .querySelector('[aria-hidden="true"]'),
       ).toBeNull(),
     );
   });
@@ -705,7 +705,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
+      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
     );
   });
 

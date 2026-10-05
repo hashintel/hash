@@ -281,7 +281,7 @@ where
         LoadExternalPropertyTypeRequest::Create { schema, provenance } => {
             if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id, error);
+                tracing::warn!(id = %schema.id, error);
                 return Err(status_to_response(Status::<()>::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),

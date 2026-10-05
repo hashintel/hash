@@ -46,12 +46,24 @@ const tabButtonStyle = cva({
       },
     },
     active: {
-      true: {
+      true: {},
+      false: {},
+    },
+  },
+  compoundVariants: [
+    {
+      styleVariant: "stock",
+      active: true,
+      css: {
         opacity: "[1]",
         backgroundColor: "[rgba(0, 0, 0, 0.08)]",
         color: "neutral.s125",
       },
-      false: {
+    },
+    {
+      styleVariant: "stock",
+      active: false,
+      css: {
         opacity: "[0.6]",
         color: "neutral.s105",
         _hover: {
@@ -61,7 +73,7 @@ const tabButtonStyle = cva({
         },
       },
     },
-  },
+  ],
 });
 
 /**

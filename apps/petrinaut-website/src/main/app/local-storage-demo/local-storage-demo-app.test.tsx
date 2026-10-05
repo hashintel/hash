@@ -428,7 +428,7 @@ describe("local storage demo Brunch voice integration", () => {
       ]),
     );
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
-    expect(aiAssistant.workingLabel).toBe("Brunch is working");
+    expect(aiAssistant.workingLabel).toBe("Working…");
     expect(
       aiAssistant.resolveToolPresentation?.({
         toolName: "layout_petrinaut_net",

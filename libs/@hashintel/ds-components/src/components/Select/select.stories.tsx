@@ -578,9 +578,10 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
           items={colorItems}
           value={valueA}
           onChange={(next) => {
-            // Compile-time narrowing proof — fails if TValue widens to `string`.
-            const narrowed: ColorValue | null | undefined = next;
-            setValueA(narrowed ?? null);
+            // Compile-time narrowing proof — fails if TValue widens to
+            // `string`, or if onChange's argument widens past `null`.
+            const narrowed: ColorValue | null = next;
+            setValueA(narrowed);
           }}
           renderItem={renderColorItem}
           renderSelectedItem={renderColorItem}
@@ -589,7 +590,7 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
           {...spreadArgs}
           items={colorItems}
           value={valueB}
-          onChange={(next) => setValueB(next ?? null)}
+          onChange={setValueB}
           renderItem={renderColorItem}
           renderSelectedItem={renderColorSelected}
         />
@@ -599,7 +600,7 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
           {...spreadArgs}
           items={colorItems}
           value={valueC}
-          onChange={(next) => setValueC(next ?? null)}
+          onChange={setValueC}
           renderItem={renderColorItem}
           renderSelectedItem={renderColorDoubleHeight}
         />
@@ -607,7 +608,7 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
           {...spreadArgs}
           items={colorItems}
           value={valueD}
-          onChange={(next) => setValueD(next ?? null)}
+          onChange={setValueD}
           renderItem={renderColorItem}
           renderSelectedItem={renderColorHalfHeight}
         />
@@ -621,7 +622,7 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
             {...spreadArgs}
             items={colorItems}
             value={valueE}
-            onChange={(next) => setValueE(next ?? null)}
+            onChange={setValueE}
             renderItem={renderColorItem}
             renderSelectedItem={renderColorHalfHeight}
             connectToRightInput
@@ -630,7 +631,7 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
             {...spreadArgs}
             items={colorItems}
             value={valueF}
-            onChange={(next) => setValueF(next ?? null)}
+            onChange={setValueF}
             renderItem={renderColorItem}
             renderSelectedItem={renderColorDoubleHeight}
             connectToLeftInput

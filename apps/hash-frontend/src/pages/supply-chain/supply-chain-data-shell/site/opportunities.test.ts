@@ -217,7 +217,7 @@ describe("buildSiteOpportunities", () => {
     ).toBe("Material / Supplier A / Buy");
   });
 
-  it("uses current sample size for planning confidence", () => {
+  it("combines current and previous-period samples for confidence, matching the sample filter", () => {
     const opportunities = build({
       planningRows: [
         planning({
@@ -226,11 +226,23 @@ describe("buildSiteOpportunities", () => {
           plan: 10,
           stats: stats({ n: 20, median: 8, p95: 13 }),
         }),
+        planning({
+          id: "plan-no-prev",
+          previousTrendN: 0,
+          plan: 10,
+          stats: stats({ n: 20, median: 8, p95: 13 }),
+        }),
       ],
     });
 
+    const withLowPrevious = opportunities.find(
+      (opportunity) => opportunity.stepId === "plan-prev-low",
+    );
+    expect(withLowPrevious?.confidenceLabel).toBe("Low sample");
+    expect(withLowPrevious?.previousSampleN).toBe(1);
+    // An empty previous period is not a low sample, just absent.
     expect(
-      opportunities.find((opportunity) => opportunity.kind === "planning_over")
+      opportunities.find((opportunity) => opportunity.stepId === "plan-no-prev")
         ?.confidenceLabel,
     ).toBe("Good sample");
   });

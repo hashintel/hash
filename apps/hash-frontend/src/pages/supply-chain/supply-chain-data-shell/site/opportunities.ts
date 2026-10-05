@@ -78,16 +78,16 @@ function opportunityId(
   return [siteId, kind, context, siteNodeKey(node)].join("::");
 }
 
+/**
+ * Confidence tier for the sample badge. Combines the current and previous
+ * period counts exactly like the shared `sampleConfidence` step filter, so
+ * the badge and an applied filter never disagree.
+ */
 function confidenceLabel(
   currentN: number,
   previousN: number | null | undefined,
-  hasRequiredData: boolean,
-  includePrevious: boolean,
 ): string {
-  if (!hasRequiredData) {
-    return "Low sample";
-  }
-  const tier = combinedSampleTier(currentN, includePrevious ? previousN : null);
+  const tier = combinedSampleTier(currentN, previousN);
   if (tier === "low" || tier === "none") {
     return "Low sample";
   }
@@ -154,9 +154,10 @@ function planningOpportunity(
     impactValue: `${p95DeviationPct > 0 ? "+" : ""}${formatNumber(p95DeviationPct, { maximumFractionDigits: 0 })}%`,
     impactTone: kind === "planning_over" ? "danger" : "success",
     evidence: `Plan ${formatNumber(plan, { maximumFractionDigits: 0 })}d; median ${formatNumber(row.stats.median, { maximumFractionDigits: 1 })}d; P95 ${formatNumber(row.stats.p95, { maximumFractionDigits: 1 })}d`,
-    sampleLabel: sampleLabel(row.stats.n, null, row),
+    sampleLabel: sampleLabel(row.stats.n, row.previousTrendN, row),
     currentSampleN: row.stats.n,
-    confidenceLabel: confidenceLabel(row.stats.n, null, true, false),
+    previousSampleN: row.previousTrendN,
+    confidenceLabel: confidenceLabel(row.stats.n, row.previousTrendN),
     score: Math.abs(p95DeviationPct),
     briefHref: briefHref("planning", row, kind),
   };
@@ -183,6 +184,8 @@ export function buildSiteOpportunities({
     // opportunity is driven by carrying cost (kg-days x assumptions), so its
     // qualification and displayed value must not change when the Measure
     // dropdown is toggled. Below the 5k floor the saving isn't worth surfacing.
+    // Rows missing `cost.unit_price` have periodCost 0, so the floor also
+    // guarantees every surfaced opportunity has complete cost inputs.
     const days = row.stats.median;
     if (
       days == null ||
@@ -205,14 +208,10 @@ export function buildSiteOpportunities({
       impactValue: formatCost(row.periodCost, currency, { compact: true }),
       impactTone: "danger",
       evidence: `${formatNumber(days, { maximumFractionDigits: 1 })}d observed; ${formatNumber(row.stats.p95, { maximumFractionDigits: 1 })}d P95`,
-      sampleLabel: sampleLabel(row.stats.n, null, row),
+      sampleLabel: sampleLabel(row.stats.n, row.previousTrendN, row),
       currentSampleN: row.stats.n,
-      confidenceLabel: confidenceLabel(
-        row.stats.n,
-        null,
-        row.cost?.unit_price != null,
-        false,
-      ),
+      previousSampleN: row.previousTrendN,
+      confidenceLabel: confidenceLabel(row.stats.n, row.previousTrendN),
       score: row.periodCost,
       briefHref: briefHref("dwell", row, "dwell_cost"),
     });

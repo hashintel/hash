@@ -38,10 +38,10 @@ export const styles = sva({
       // swaps in the hover value so an absorbed/whole-chip badge darkens like a standalone one.
       "--chip-badge-bg": "var(--colors-color-palette-bg-solid-min)",
       "--chip-badge-bg-hover":
-        "[color-mix(in oklab, currentColor calc(12% + var(--chip-active-boost, 0%)), var(--colors-color-palette-bg-solid-min))]",
+        "[color-mix(in oklab, currentColor calc(12% + var(--chip-active-boost, 0%)), {colors.colorPalette.bgSolid.min})]",
       // Softer hover for an *absorbed* badge/angle (shares its button with the label)
       "--chip-badge-bg-hover-soft":
-        "[color-mix(in oklab, currentColor calc(8% + var(--chip-active-boost, 0%)), var(--colors-color-palette-bg-solid-min))]",
+        "[color-mix(in oklab, currentColor calc(8% + var(--chip-active-boost, 0%)), {colors.colorPalette.bgSolid.min})]",
       // Angle parallelogram tint + hover value. Hovering the button that owns
       // the angle swaps in the hover value so an absorbed/whole-chip angle
       // darkens to the same colour a standalone clickable one gets.
@@ -72,7 +72,7 @@ export const styles = sva({
       "--chip-hover-tint-soft":
         "[color-mix(in oklab, var(--chip-hover-ink) calc(5% + var(--chip-active-boost, 0%)), transparent)]",
       "--chip-ring-color":
-        "[color-mix(in oklab, var(--colors-color-palette-fg-link) 65%, transparent)]",
+        "[color-mix(in oklab, {colors.colorPalette.fg.link} 65%, transparent)]",
       "--chip-ring-soft": "[3px]",
       // A segment ring's round outer corner, capped at ~half the chip height. A
       // radii-full chip's ~9999px radius would trigger border-radius
@@ -240,7 +240,7 @@ export const styles = sva({
           lineHeight: "[1.5]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1.5px]",
-          "--chip-padding-x": "var(--spacing-1\\.5)",
+          "--chip-padding-x": "[5px]",
           "--chip-radius": "var(--radii-md)",
         },
       },
@@ -250,7 +250,7 @@ export const styles = sva({
           lineHeight: "[1.5]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[2px]",
-          "--chip-padding-x": "var(--spacing-2)",
+          "--chip-padding-x": "[6px]",
           "--chip-radius": "7px",
         },
       },
@@ -395,7 +395,7 @@ export const styles = sva({
         root: {
           _hover: {
             background:
-              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), var(--colors-color-palette-bg-solid-subtle))]",
+              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), {colors.colorPalette.bgSolid.subtle})]",
             borderColor: "colorPalette.bd.solid.hover",
           },
         },
@@ -408,7 +408,7 @@ export const styles = sva({
         root: {
           _hover: {
             background:
-              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), var(--colors-color-palette-bg-solid-surface-active))]",
+              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), {colors.colorPalette.bgSolid.surface.active})]",
           },
         },
       },
@@ -420,7 +420,7 @@ export const styles = sva({
         root: {
           _hover: {
             background:
-              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), var(--colors-white))]",
+              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), {colors.white})]",
             borderColor: "colorPalette.bd.solid",
           },
         },

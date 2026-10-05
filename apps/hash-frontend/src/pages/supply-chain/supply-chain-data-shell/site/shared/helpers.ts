@@ -92,12 +92,55 @@ export function subtitleForVendor(value: VendorOtifStats): string {
 
 // ── Table sorting ──────────────────────────────────────────────────────────
 
+const nullRankFor = (dir: SortDir): number =>
+  dir === "desc" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+
+/**
+ * Sort-menu-only metrics shared by the three step tables, derived from fields
+ * every row variant carries. Returns undefined for keys it does not handle
+ * (the table's own sorter takes over); null values rank last either way.
+ */
+function sharedStepSortValue(
+  row: SiteNode & { trendPct?: number | null; previousValue?: number | null },
+  key: SortKey,
+): number | null | undefined {
+  switch (key) {
+    case "trend":
+      return row.trendPct ?? null;
+    case "previous":
+      return row.previousValue ?? null;
+    default:
+      return undefined;
+  }
+}
+
+/** Comparator for the shared menu-only keys, or null when the key is not one. */
+function compareSharedStepSort<
+  Row extends SiteNode & {
+    trendPct?: number | null;
+    previousValue?: number | null;
+  },
+>(left: Row, right: Row, sort: { key: SortKey; dir: SortDir }): number | null {
+  const leftValue = sharedStepSortValue(left, sort.key);
+  if (leftValue === undefined) {
+    return null;
+  }
+  const nullRank = nullRankFor(sort.dir);
+  const va = leftValue ?? nullRank;
+  const vb = sharedStepSortValue(right, sort.key) ?? nullRank;
+  return sort.dir === "desc" ? vb - va : va - vb;
+}
+
 export function sortRows(
   rows: DwellRow[],
   sort: { key: SortKey; dir: SortDir },
   measure: BaseMeasure = "median",
 ): DwellRow[] {
   return [...rows].sort((left, right) => {
+    const shared = compareSharedStepSort(left, right, sort);
+    if (shared !== null) {
+      return shared;
+    }
     let va = 0;
     let vb = 0;
     if (sort.key === "median") {
@@ -162,6 +205,10 @@ export function sortPlanningRows(
   };
 
   return [...rows].sort((left, right) => {
+    const shared = compareSharedStepSort(left, right, sort);
+    if (shared !== null) {
+      return shared;
+    }
     let va = 0;
     let vb = 0;
     if (sort.key === "deviation") {
@@ -242,6 +289,10 @@ export function sortTrendRows(
   measure: BaseMeasure = "median",
 ): TrendRow[] {
   return [...rows].sort((left, right) => {
+    const shared = compareSharedStepSort(left, right, sort);
+    if (shared !== null) {
+      return shared;
+    }
     let va = 0;
     let vb = 0;
     if (sort.key === "median") {
@@ -305,6 +356,10 @@ export function sortSupplierRows(
           return value.mean_days_late_when_late ?? 0;
         case "maxLate":
           return value.max_days_late;
+        case "nLate":
+          return value.n_late;
+        case "materialsCount":
+          return value.materials?.length ?? 0;
         default:
           return 0;
       }

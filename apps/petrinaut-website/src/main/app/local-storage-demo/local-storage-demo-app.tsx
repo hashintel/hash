@@ -1045,7 +1045,7 @@ export const LocalStorageDemoApp = ({
               ) : undefined;
             },
             resolveToolPresentation: resolveBrunchToolPresentation,
-            workingLabel: "Brunch is working",
+            workingLabel: "Working…",
             renderComposerControl: (
               context: PetrinautAiComposerControlContext,
             ) => (

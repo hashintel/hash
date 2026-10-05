@@ -1,0 +1,30 @@
+{
+  "package": "hash-integrations",
+  "dependencies": [
+    "hash-telemetry"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "hash-repo-chores#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros",
+        "hash-repo-chores"
+      ]
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
+    }
+  }
+}

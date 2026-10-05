@@ -80,7 +80,7 @@ export type BaseInputProps = {
   React.AriaAttributes;
 
 type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
-type PrefixOrSuffix = (
+export type PrefixOrSuffix = (
   | { iconName: IconName; onClick?: () => void; disabled?: boolean }
   | { text: string; onClick?: () => void; disabled?: boolean }
   | { content: React.ReactNode }
@@ -114,11 +114,19 @@ const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
-function renderAdornment(
+export function renderAdornment(
   type: "prefix" | "suffix",
   adornment: PrefixOrSuffix,
   size: FormInputSize,
-  classes: BaseInputSlots,
+  classes: Pick<
+    BaseInputSlots,
+    | "prefix"
+    | "suffix"
+    | "adornment"
+    | "adornmentButton"
+    | "adornmentText"
+    | "disabledButton"
+  >,
 ): React.ReactNode {
   const content = isIconAdornment(adornment) ? (
     <Icon name={adornment.iconName} size={iconSizeMap[size]} />

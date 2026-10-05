@@ -107,7 +107,7 @@ export const toVoiceSessionState = ({
     microphoneLevel: snapshot.microphoneLevel,
     notice:
       snapshot.inputNotice === "answer-pending"
-        ? "Answer captured. Waiting for Brunch."
+        ? "Answer captured. Working on it."
         : snapshot.inputNotice === "answer-already-pending"
           ? "Previous answer waiting. Please try again after it is sent."
           : snapshot.inputNotice === "not-heard"

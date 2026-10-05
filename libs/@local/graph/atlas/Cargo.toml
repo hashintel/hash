@@ -82,6 +82,7 @@ time                      = { workspace = true }
 tokio-util                = { workspace = true, features = ["io"] }
 tower                     = { workspace = true }
 tracing                   = { workspace = true }
+tracing-opentelemetry     = { workspace = true }
 tracing-subscriber        = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation      = { workspace = true }
 zeroize                   = { workspace = true, features = ["alloc"] }
