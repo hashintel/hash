@@ -1,6 +1,6 @@
 # Custom words
 
-On the Petrinaut website, open **User settings → Labs**, select **Use Brunch**, and enable **Custom words**. Custom words is off by default and does not start Voice or the microphone.
+On the Petrinaut website, open **User settings → Labs**, select **Use Brunch**, turn on **Enable Voice**, and enable **Custom words**. Custom words is off by default and does not start Voice or the microphone. Turning off Voice in Labs also stops words from being used.
 
 ## Add a name or term
 
@@ -10,11 +10,11 @@ Use names and terms, not definitions or instructions. The list accepts up to 50 
 
 ## When hints apply
 
-- **Brunch:** preferred spellings accompany the next submitted request, including typed requests. They are hints, not new process facts.
-- **Hearing:** spellings are added to the transcription prompt when you start Voice. Both Live and Realtime keep their existing transcription model and pause detection.
-- **Speaking:** only entries with pronunciation notes are supplied to the speaking model. They guide delivery, not the written answer.
+- **Brunch:** every request, typed or spoken, carries the current list, so changes apply from your next request. They are hints, not new process facts.
+- **Hearing:** spellings are added to the transcription prompt when a Voice session starts. Both Live and Realtime keep their existing transcription model and pause detection.
+- **Speaking:** only entries with pronunciation notes are supplied to the speaking model when a Voice session starts. They guide delivery, not the written answer.
 
-Restart Voice after adding, editing, removing, or disabling Words. Active sessions and their retries keep the list they started with. Hints are best effort: recognition and pronunciation can still be wrong. Very short speech during assistant playback may still be ignored by existing Voice filtering.
+Hearing and speaking keep the list a Voice session started with, including across its retries. To apply changes to them, end the session and start Voice again. Returning to text chat ends a session; with Live, so does closing the assistant panel. Hints are best effort: recognition and pronunciation can still be wrong. Very short speech during assistant playback may still be ignored by existing Voice filtering.
 
 ## Storage and privacy
 

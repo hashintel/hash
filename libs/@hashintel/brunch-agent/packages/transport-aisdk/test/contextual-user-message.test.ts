@@ -12,7 +12,7 @@ test("v2 preserves human text and keeps diagnostics and words separate", () => {
     diagnosticsContext: "host diagnostics",
   });
   expect(parsePetrinautUserMessageBody(body)).toEqual({
-    kind: "contextual",
+    kind: "contextual-words",
     userText: "Use RelayDesk.",
     words: ["RelayDesk"],
     diagnosticsContext: "host diagnostics",
@@ -21,7 +21,7 @@ test("v2 preserves human text and keeps diagnostics and words separate", () => {
     parsePetrinautUserMessageBody(
       petrinautWordsUserMessageBody({ userText: "Clear", words: [] }),
     ),
-  ).toEqual({ kind: "contextual", userText: "Clear", words: [] });
+  ).toEqual({ kind: "contextual-words", userText: "Clear", words: [] });
 });
 
 test.each([

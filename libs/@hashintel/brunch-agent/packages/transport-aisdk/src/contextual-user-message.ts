@@ -12,17 +12,19 @@ export interface PetrinautContextualUserMessagePayload {
   readonly diagnosticsContext: string;
 }
 
+export interface PetrinautWordsUserMessagePayload {
+  readonly userText: string;
+  readonly words: readonly string[];
+  readonly diagnosticsContext?: string;
+}
+
 export type PetrinautUserMessageBody =
   | ({ readonly kind: "ordinary" } & Pick<
       PetrinautContextualUserMessagePayload,
       "userText"
     >)
-  | {
-      readonly kind: "contextual";
-      readonly userText: string;
-      readonly diagnosticsContext?: string;
-      readonly words?: readonly string[];
-    }
+  | ({ readonly kind: "contextual" } & PetrinautContextualUserMessagePayload)
+  | ({ readonly kind: "contextual-words" } & PetrinautWordsUserMessagePayload)
   | { readonly kind: "invalid-contextual" };
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
@@ -65,11 +67,9 @@ export const petrinautContextualUserMessageBody = (
 };
 
 /** Version two carries a replaceable spelling snapshot, never pronunciation or transcript context. */
-export const petrinautWordsUserMessageBody = (payload: {
-  readonly userText: string;
-  readonly words: readonly string[];
-  readonly diagnosticsContext?: string;
-}): string => {
+export const petrinautWordsUserMessageBody = (
+  payload: PetrinautWordsUserMessagePayload,
+): string => {
   if (
     !payload.userText ||
     Array.from(payload.userText).length >
@@ -127,7 +127,7 @@ export const parsePetrinautUserMessageBody = (
       return { kind: "invalid-contextual" };
     }
     try {
-      const result = {
+      const result: PetrinautWordsUserMessagePayload = {
         userText: payload.userText,
         words: validatePetrinautWordSpellings(payload.words),
         ...(typeof payload.diagnosticsContext === "string"
@@ -135,7 +135,7 @@ export const parsePetrinautUserMessageBody = (
           : {}),
       };
       petrinautWordsUserMessageBody(result);
-      return { kind: "contextual", ...result };
+      return { kind: "contextual-words", ...result };
     } catch {
       return { kind: "invalid-contextual" };
     }

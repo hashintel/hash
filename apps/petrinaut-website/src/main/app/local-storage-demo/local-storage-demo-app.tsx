@@ -679,20 +679,24 @@ export const LocalStorageDemoApp = ({
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
   const words = useConversationWords(brunchPrincipal, conversationId);
+  // Words are edited from Voice mode, so they apply only while Voice is on.
   const wordsActive =
     brunchSelected &&
+    voicePreferenceReady &&
+    voiceEnabled &&
     wordsPreference.ready &&
     wordsPreference.enabled &&
     conversationId !== null;
-  const readWords = useCallback((): readonly VoiceWord[] => {
-    if (!wordsActive) return [];
-    if (!words.ready)
-      throw new Error("Words are still loading for this conversation.");
-    return words.entries.map(({ spelling, pronunciation }) => ({
-      spelling,
-      ...(pronunciation === undefined ? {} : { pronunciation }),
-    }));
-  }, [wordsActive, words.ready, words.entries]);
+  const readWords = useCallback(
+    (): readonly VoiceWord[] =>
+      wordsActive
+        ? words.entries.map(({ spelling, pronunciation }) => ({
+            spelling,
+            ...(pronunciation === undefined ? {} : { pronunciation }),
+          }))
+        : [],
+    [wordsActive, words.entries],
+  );
   // Each binding gets its own non-persisted approval authority.
   const mutationApproval = useMemo(
     () => ({
@@ -871,8 +875,7 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
-          readWords: () =>
-            wordsActive ? readWords().map((word) => word.spelling) : undefined,
+          readWords: () => readWords().map((word) => word.spelling),
           ...(constructionBrowser
             ? { initialData: { binding: constructionBrowser.binding } }
             : {}),
@@ -921,7 +924,6 @@ export const LocalStorageDemoApp = ({
     reportBrunchFailure,
     transportClientPromise,
     readWords,
-    wordsActive,
   ]);
 
   const inBandBrowserTools = useMemo(
@@ -989,7 +991,6 @@ export const LocalStorageDemoApp = ({
           <WordsHeaderAction
             key={words.key}
             entries={words.entries}
-            ready={words.ready}
             notice={words.notice}
             save={words.save}
           />

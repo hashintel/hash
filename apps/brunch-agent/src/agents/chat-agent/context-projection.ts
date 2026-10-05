@@ -315,8 +315,7 @@ const prefixUserMessageId = (
     const parsed = parsePetrinautUserMessageBody(text);
     if (parsed.kind === "invalid-contextual")
       return "[Invalid contextual user message]";
-    return parsed.kind === "contextual" &&
-      parsed.diagnosticsContext !== undefined
+    return parsed.kind !== "ordinary" && parsed.diagnosticsContext !== undefined
       ? `${parsed.userText}\n\nHost diagnostics (not human evidence):\n${parsed.diagnosticsContext}`
       : parsed.userText;
   };

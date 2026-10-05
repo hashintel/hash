@@ -664,13 +664,8 @@ const PinnedVoiceInterviewControl = ({
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
   // Labs changes apply between Voice sessions, never during an active turn.
-  // The host ends the current session before returning to text mode.
   const wordsReader = useRef(readWords);
   const pinnedWords = useRef<readonly VoiceWord[] | undefined>(undefined);
-  useLayoutEffect(() => {
-    wordsReader.current = readWords;
-    if (context.inputMode === "text") pinnedWords.current = undefined;
-  }, [context.inputMode, readWords]);
   // Stable even for the legacy store constructed once. Retries keep this snapshot.
   const readSessionWords = () => {
     if (pinnedWords.current === undefined) {
@@ -686,6 +681,15 @@ const PinnedVoiceInterviewControl = ({
   ) {
     setSessionConfig(config);
   }
+  // Returning to text ends any session; closing the panel ends a Live session
+  // but only pauses Realtime, which keeps its words until it ends.
+  const sessionEnded =
+    context.inputMode === "text" ||
+    (sessionConfig.provider === "live" && !context.isAiAssistantOpen);
+  useLayoutEffect(() => {
+    wordsReader.current = readWords;
+    if (sessionEnded) pinnedWords.current = undefined;
+  }, [sessionEnded, readWords]);
   if (sessionConfig.provider === "live") {
     if (!context.registerVoiceModeSessionControls) return null;
     return (

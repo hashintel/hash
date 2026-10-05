@@ -35,7 +35,11 @@ const validateEntries = (input: unknown): readonly ConversationWord[] => {
   });
   const words = validateWords(entries.map((entry) => entry.word));
   encodeVoiceWords(words);
-  return words.map((word, index) => ({ ...word, id: entries[index]!.id }));
+  return words.map((word, index) => {
+    const id = entries[index]?.id;
+    if (id === undefined) throw new Error("Invalid saved word identity.");
+    return { ...word, id };
+  });
 };
 
 type ConversationWordsState = {
@@ -105,10 +109,8 @@ export const useConversationWords = (
     window.addEventListener("storage", changed);
     return () => window.removeEventListener("storage", changed);
   }, [key]);
-  const ready = key !== null;
   const save = (input: readonly ConversationWord[]) => {
-    if (!ready)
-      throw new Error("Words are still loading for this conversation.");
+    if (key === null) throw new Error("This conversation has no words list.");
     const entries = validateEntries(input);
     let notice: string | null = null;
     try {
@@ -130,9 +132,8 @@ export const useConversationWords = (
   };
   return {
     key,
-    ready,
-    entries: ready ? state.entries : [],
-    notice: ready ? state.notice : null,
+    entries: key === null ? [] : state.entries,
+    notice: key === null ? null : state.notice,
     save,
     clear,
   };

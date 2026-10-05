@@ -17,8 +17,8 @@ export const useWords = (): void => {
   const incoming =
     parsed === undefined
       ? undefined
-      : parsed.kind === "contextual"
-        ? (parsed.words ?? [])
+      : parsed.kind === "contextual-words"
+        ? parsed.words
         : [];
   const [persisted, setPersisted] = usePersistentState<readonly string[]>(
     "brunch.words.v1",

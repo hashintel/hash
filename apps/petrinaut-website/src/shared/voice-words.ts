@@ -8,6 +8,8 @@ import {
 export type VoiceWord = Readonly<{ spelling: string; pronunciation?: string }>;
 
 export const maxWords = petrinautWordSpellingLimits.count;
+export const maxSpellingLength = petrinautWordSpellingLimits.length;
+export const maxPronunciationLength = 120;
 
 export const validateWords = (input: unknown): readonly VoiceWord[] => {
   if (!Array.isArray(input) || input.length > maxWords) {
@@ -29,7 +31,10 @@ export const validateWords = (input: unknown): readonly VoiceWord[] => {
       spelling: entry.spelling,
       pronunciation:
         "pronunciation" in entry
-          ? normalizePetrinautWordLiteral(entry.pronunciation, 120)
+          ? normalizePetrinautWordLiteral(
+              entry.pronunciation,
+              maxPronunciationLength,
+            )
           : undefined,
     };
   });

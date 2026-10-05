@@ -4,7 +4,11 @@ import { LuBookOpen } from "react-icons/lu";
 import { Button, Dialog, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { maxWords } from "../../../shared/voice-words";
+import {
+  maxPronunciationLength,
+  maxSpellingLength,
+  maxWords,
+} from "../../../shared/voice-words";
 
 import type { ConversationWord } from "./conversation-words";
 
@@ -31,13 +35,11 @@ const rowStyle = css({
 /** The form only saves hints. It never submits a message. */
 export const WordsConfigurer = ({
   entries,
-  ready,
   notice,
   save,
   onClose,
 }: {
   entries: readonly ConversationWord[];
-  ready: boolean;
   notice: string | null;
   save: (entries: readonly ConversationWord[]) => void;
   onClose: () => void;
@@ -131,7 +133,8 @@ export const WordsConfigurer = ({
               />
               <p className={mutedStyle}>
                 A short, plain-text sound hint. No definitions or instructions.
-                Up to 80 spelling characters and 120 pronunciation characters.
+                Up to {maxSpellingLength} spelling characters and{" "}
+                {maxPronunciationLength} pronunciation characters.
               </p>
               {error && (
                 <p id={`${id}-error`} role="alert">
@@ -148,9 +151,7 @@ export const WordsConfigurer = ({
                 <Button type="button" variant="subtle" onClick={finish}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={!ready}>
-                  Save word
-                </Button>
+                <Button type="submit">Save word</Button>
               </div>
             </form>
           ) : (
@@ -169,7 +170,7 @@ export const WordsConfigurer = ({
                 <Button
                   ref={addButton}
                   size="sm"
-                  disabled={!ready || entries.length >= maxWords}
+                  disabled={entries.length >= maxWords}
                   onClick={() => {
                     setEditing({ spelling: "", pronunciation: "" });
                     setSaved(false);
@@ -240,8 +241,9 @@ export const WordsConfigurer = ({
           )}
           <div className={mutedStyle}>
             <p>
-              Restart Voice to apply changes. Words are saved in this browser
-              and cleared with this conversation.
+              Changes apply to your next request. Restart Voice to apply them to
+              hearing and speaking. Words are saved in this browser and cleared
+              with this conversation.
             </p>
           </div>
         </div>
@@ -274,7 +276,6 @@ export const WordsHeaderAction = (
             })}
           />
         }
-        disabled={!props.ready}
         onClick={() => setOpen(true)}
       >
         Words

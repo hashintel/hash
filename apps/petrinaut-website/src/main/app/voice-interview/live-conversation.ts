@@ -20,6 +20,7 @@ import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type { LiveTranscriptFragment } from "./live-speech-captions";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
+
 export interface LiveConversationState {
   readonly phase:
     | "idle"

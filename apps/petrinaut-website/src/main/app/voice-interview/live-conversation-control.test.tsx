@@ -405,6 +405,43 @@ test("progress accepted after the person speaks again does not hide the new repl
   ]);
 });
 
+test("closing the panel ends a Live session, so reopening it reads the current words", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const first = () => [{ spelling: "RelayDesk" }];
+  const next = () => [{ spelling: "Bay Three" }];
+  const view = render(
+    <VoiceInterviewControl {...props} config={config} readWords={first} />,
+  );
+  await start();
+  const sessions = vi.mocked(createLiveConversation).mock.calls.length;
+  const firstSession = vi.mocked(createLiveConversation).mock.lastCall!;
+  expect(firstSession[7]?.()).toEqual([{ spelling: "RelayDesk" }]);
+  view.rerender(
+    <VoiceInterviewControl
+      {...props}
+      isAiAssistantOpen={false}
+      config={config}
+      readWords={next}
+    />,
+  );
+  act(() => firstSession[0]({ phase: "ended", message: null }));
+  view.rerender(
+    <VoiceInterviewControl {...props} config={config} readWords={next} />,
+  );
+  await waitFor(() =>
+    expect(vi.mocked(createLiveConversation).mock.calls).toHaveLength(
+      sessions + 1,
+    ),
+  );
+  expect(vi.mocked(createLiveConversation).mock.lastCall![7]?.()).toEqual([
+    { spelling: "Bay Three" },
+  ]);
+});
+
 test("retires a Live preview from the history it began in after a switch", async () => {
   const { call, first, second, switchConversation } =
     await renderSwitchingLive();

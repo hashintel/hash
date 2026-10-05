@@ -23,7 +23,7 @@ test("leaving Voice closes the Words dialog and returning does not reopen it", a
   // Petrinaut renders header actions only in Voice, so leaving Voice unmounts them.
   const Header = ({ voice }: { voice: boolean }) =>
     voice ? (
-      <WordsHeaderAction entries={[]} notice={null} ready save={vi.fn()} />
+      <WordsHeaderAction entries={[]} notice={null} save={vi.fn()} />
     ) : null;
   const view = render(<Header voice />);
   fireEvent.click(screen.getByRole("button", { name: "Words" }));
@@ -46,7 +46,6 @@ test("Voice assistant words are added from the list without a transcript teachin
     <WordsConfigurer
       entries={[]}
       notice={null}
-      ready
       save={save}
       onClose={vi.fn()}
     />,
@@ -62,7 +61,7 @@ test("Voice assistant words are added from the list without a transcript teachin
   expect(screen.queryByRole("list")).toBeNull();
   expect(
     screen.getByText(
-      "Restart Voice to apply changes. Words are saved in this browser and cleared with this conversation.",
+      "Changes apply to your next request. Restart Voice to apply them to hearing and speaking. Words are saved in this browser and cleared with this conversation.",
     ),
   ).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Add word" }));
@@ -94,7 +93,6 @@ test.each(["edited", "other"])(
       return (
         <WordsConfigurer
           entries={words.entries}
-          ready={words.ready}
           notice={words.notice}
           save={words.save}
           onClose={vi.fn()}
@@ -171,7 +169,7 @@ test("allows the 50th word and disables Add at the limit", async () => {
     id: `word-${index}`,
     spelling: `Bay ${index}`,
   }));
-  const props = { notice: null, ready: true, save: vi.fn(), onClose: vi.fn() };
+  const props = { notice: null, save: vi.fn(), onClose: vi.fn() };
   const view = render(
     <WordsConfigurer {...props} entries={entries.slice(0, 49)} />,
   );

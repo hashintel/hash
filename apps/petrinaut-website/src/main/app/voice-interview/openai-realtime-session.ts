@@ -20,6 +20,7 @@ import {
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
+
 export interface OpenAIRealtimeTranscriptKey {
   readonly connectionEpoch: number;
   readonly contentIndex: number;

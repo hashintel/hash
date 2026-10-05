@@ -46,7 +46,9 @@ export const validatePetrinautWordSpellings = (
     seen.add(key);
     total += Array.from(spelling).length;
     if (total > petrinautWordSpellingLimits.totalLength) {
-      throw new Error("Use at most 1,000 spelling characters in total.");
+      throw new Error(
+        `Use at most ${petrinautWordSpellingLimits.totalLength.toLocaleString("en")} spelling characters in total.`,
+      );
     }
     return spelling;
   });

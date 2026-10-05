@@ -34,11 +34,7 @@ export {
   petrinautWordsUserMessageBody,
   petrinautUserMessageText,
 } from "./contextual-user-message";
-export {
-  normalizePetrinautWordLiteral,
-  petrinautWordSpellingLimits,
-  validatePetrinautWordSpellings,
-} from "./words";
+export { validatePetrinautWordSpellings } from "./words";
 export {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -69,7 +65,10 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
 
 export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
-  /** Host-captured snapshot for this admission, reused for retries. */
+  /**
+   * Host-captured snapshot for this admission, reused for retries. An empty
+   * list sends an ordinary message, which also clears Brunch's snapshot.
+   */
   readonly words?: readonly string[];
   /** Opaque host-owned initialization, sent on user submissions only. */
   readonly initialData?: AgentPromptOptions["initialData"];
@@ -396,7 +395,7 @@ export const createFlueChatTransport = <
     const message: DeliveredMessage = {
       kind: "user",
       body:
-        options.words !== undefined
+        options.words !== undefined && options.words.length > 0
           ? petrinautWordsUserMessageBody({
               userText: userMessage.text,
               words: options.words,

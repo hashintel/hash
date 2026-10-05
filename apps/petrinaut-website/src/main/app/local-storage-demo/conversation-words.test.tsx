@@ -56,14 +56,12 @@ test("layout effects read each conversation's saved words on its first render", 
       JSON.stringify({ version: 1, entries: [{ id: "word", spelling }] }),
     );
   }
-  const seen: (readonly string[] | "loading")[] = [];
+  const seen: (readonly string[])[] = [];
   const hook = renderHook(
     ({ conversation }) => {
       const words = useConversationWords("person", conversation);
       useLayoutEffect(() => {
-        seen.push(
-          words.ready ? words.entries.map((word) => word.spelling) : "loading",
-        );
+        seen.push(words.entries.map((word) => word.spelling));
       });
       return words;
     },

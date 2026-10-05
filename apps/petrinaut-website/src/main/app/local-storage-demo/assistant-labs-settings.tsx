@@ -168,15 +168,18 @@ export const AssistantLabsSettings = ({
           value={realtimeEnabled}
         />
       )}
-      {brunchSelected && setWordsEnabled && (
-        <AssistantSetting
-          description="Help recognize and pronounce names and terms."
-          disabled={!wordsPreferenceReady}
-          label="Custom words"
-          onChange={setWordsEnabled}
-          value={wordsEnabled}
-        />
-      )}
+      {brunchSelected &&
+        voicePreferenceReady &&
+        voiceEnabled &&
+        setWordsEnabled && (
+          <AssistantSetting
+            description="Help recognize and pronounce names and terms."
+            disabled={!wordsPreferenceReady}
+            label="Custom words"
+            onChange={setWordsEnabled}
+            value={wordsEnabled}
+          />
+        )}
     </section>
   );
 };
