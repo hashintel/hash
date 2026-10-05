@@ -10,6 +10,7 @@
         "generatorName": "typescript-axios",
         "output": "#{cwd}",
         "inputSpec": "http://host.docker.internal:5002/openapi.json",
+        "templateDir": "#{cwd}/templates",
         "additionalProperties": {
           "npmName": "@local/internal-api-client",
           "npmVersion": "0.0.0-private",
