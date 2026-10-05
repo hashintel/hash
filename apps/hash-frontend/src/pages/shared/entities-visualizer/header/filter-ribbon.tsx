@@ -14,7 +14,10 @@ import {
   getDefaultOperatorForKind,
 } from "../shared/property-filters/get-operators-for-kind";
 import { filterChipPillChrome } from "./filter-ribbon/filter-chip-pill-chrome";
-import { PropertyFilterChip } from "./filter-ribbon/property-filter-chip";
+import {
+  PropertyFilterChip,
+  type SwitchablePropertyOption,
+} from "./filter-ribbon/property-filter-chip";
 import { TypeFilterPill } from "./type-filter-pill";
 import { type InternalWeb, WebFilterPill } from "./web-filter-pill";
 
@@ -156,6 +159,45 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       ],
     }));
 
+  /**
+   * Switches an existing chip to a different property. A same-kind switch
+   * keeps the operator and value (except enums, whose option sets are
+   * per-property); otherwise the chip resets to the new kind's default
+   * operator, ready for a value like a freshly added filter.
+   */
+  const handleSwitchPropertyFilter = (
+    id: string,
+    property: SwitchablePropertyOption,
+  ) =>
+    setPropertyFilters((prev) =>
+      prev.map((propertyFilter) => {
+        if (propertyFilter.id !== id) {
+          return propertyFilter;
+        }
+        const keepsValue =
+          propertyFilter.kind === property.kind && property.kind !== "enum";
+        return {
+          id: propertyFilter.id,
+          baseUrl: property.baseUrl,
+          title: property.title,
+          kind: property.kind,
+          operator: keepsValue
+            ? propertyFilter.operator
+            : getDefaultOperatorForKind(property.kind),
+          ...(keepsValue
+            ? {
+                value: propertyFilter.value,
+                secondValue: propertyFilter.secondValue,
+                values: propertyFilter.values,
+              }
+            : {}),
+          ...(property.enumOptions
+            ? { enumOptions: property.enumOptions }
+            : {}),
+        };
+      }),
+    );
+
   const handleCommitPropertyFilter = (id: string, committed: PropertyFilter) =>
     setPropertyFilters((prev) =>
       prev.map((propertyFilter) =>
@@ -207,6 +249,15 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
         hiddenPropertyBaseUrls.has(propertyFilter.baseUrl),
       ),
     }));
+
+  // What a chip's property segment offers switching to: every filterable
+  // property on display (the archived pseudo-property stays out — its chip
+  // carries scope side-effects and a bespoke operator catalog).
+  const switchablePropertyOptions: SwitchablePropertyOption[] =
+    visiblePropertyFilterMetadata
+      .filter((property) => property.baseUrl !== archivedPropertyBaseUrl)
+      .flatMap((property) => (property.filterable ? [property] : []))
+      .sort((left, right) => left.title.localeCompare(right.title));
 
   const [propertySearch, setPropertySearch] = useState("");
   const searchTerms = propertySearch.toLowerCase().split(/\s+/).filter(Boolean);
@@ -341,6 +392,14 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
                 propertyFilter.baseUrl === archivedPropertyBaseUrl
                   ? archivedFilterOperators
                   : undefined
+              }
+              propertyOptions={
+                propertyFilter.baseUrl === archivedPropertyBaseUrl
+                  ? undefined
+                  : switchablePropertyOptions
+              }
+              onSwitchProperty={(property) =>
+                handleSwitchPropertyFilter(propertyFilter.id, property)
               }
               onCommit={(committed) =>
                 handleCommitPropertyFilter(propertyFilter.id, committed)

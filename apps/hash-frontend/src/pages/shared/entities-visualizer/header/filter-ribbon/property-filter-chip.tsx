@@ -6,11 +6,18 @@ import { getOperatorsForKind } from "../../shared/property-filters/get-operators
 
 import type { OperatorDescriptor } from "../../shared/property-filters/get-operators-for-kind";
 import type {
+  FilterableProperty,
   PropertyFilter,
   PropertyFilterOperator,
 } from "../../shared/property-filters/property-filter";
-import type { FilterOperator } from "@hashintel/ds-components";
+import type { FilterOperator, MenuItem } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
+
+/** What a property switch carries over to the chip — see `onSwitchProperty`. */
+export type SwitchablePropertyOption = Pick<
+  FilterableProperty,
+  "baseUrl" | "title" | "kind" | "enumOptions"
+>;
 
 /**
  * Operator keys map to `unknown` rather than per-operator value types: which
@@ -78,9 +85,24 @@ export const PropertyFilterChip: FunctionComponent<{
   /** Overrides the kind-derived operator catalog (the archived filter's). */
   operatorDescriptors?: OperatorDescriptor[];
   className?: string;
+  /**
+   * The properties the chip's property segment offers switching to (it
+   * renders as a menu trigger when present, ticking the current property).
+   */
+  propertyOptions?: SwitchablePropertyOption[];
+  /** Fires with the picked property when it differs from the current one. */
+  onSwitchProperty?: (property: SwitchablePropertyOption) => void;
   onCommit: (committed: PropertyFilter) => void;
   onRemove: () => void;
-}> = ({ filter, operatorDescriptors, className, onCommit, onRemove }) => {
+}> = ({
+  filter,
+  operatorDescriptors,
+  className,
+  propertyOptions,
+  onSwitchProperty,
+  onCommit,
+  onRemove,
+}) => {
   const operators = useMemo<
     Array<FilterOperator<PropertyFilterValueMap>>
   >(() => {
@@ -122,11 +144,29 @@ export const PropertyFilterChip: FunctionComponent<{
     [filter],
   );
 
+  const propertyMenu = useMemo<MenuItem[] | undefined>(() => {
+    if (!propertyOptions?.length || !onSwitchProperty) {
+      return undefined;
+    }
+    return propertyOptions.map((property) => ({
+      id: property.baseUrl,
+      text: property.title,
+      selected: property.baseUrl === filter.baseUrl,
+      selectedStyle: "tick" as const,
+      onClick: () => {
+        if (property.baseUrl !== filter.baseUrl) {
+          onSwitchProperty(property);
+        }
+      },
+    }));
+  }, [propertyOptions, onSwitchProperty, filter.baseUrl]);
+
   return (
     <Filter<PropertyFilterValueMap>
       className={className}
       property={filter.id}
       propertyLabel={filter.title}
+      propertyMenu={propertyMenu}
       operators={operators}
       value={value}
       onChange={(operator, committed) => {
