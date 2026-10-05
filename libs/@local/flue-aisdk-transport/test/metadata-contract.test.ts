@@ -8,7 +8,11 @@ import * as v from "valibot";
 import { afterAll, expect, test } from "vitest";
 
 import { createFlueAiSdkAdapter } from "../src/client";
-import { harnessAdapterConfig, startFlueHarness } from "./flue-harness";
+import {
+  expectLiveReopenParity,
+  harnessAdapterConfig,
+  startFlueHarness,
+} from "./flue-harness";
 
 import type { UIMessage, UIMessageChunk } from "ai";
 
@@ -38,6 +42,43 @@ test("schema-valid agent metadata reaches the message as the host type", async (
 
   expect(turn.live.message?.metadata).toEqual({ model: "faux" });
   expect(turn.reopened.at(-1)?.metadata).toEqual({ model: "faux" });
+});
+
+test("start and finish metadata merge live as Flue merges them into history", async () => {
+  harness.setResponseMetadata({
+    model: "faux",
+    usage: { input: 3, cache: { read: 1 } },
+    tags: ["drafted"],
+  });
+  harness.setResponseFinishMetadata({
+    usage: { output: 5, cache: { write: 2 } },
+    tags: ["settled"],
+    finishedAt: 7,
+  });
+  harness.script([fauxAssistantMessage([fauxText("Merged.")])]);
+  const turn = await harness.runTurn("Merge", {
+    adapter: {
+      // The AI SDK deep-merges metadata objects, which would mask this
+      // package's merge; it replaces arrays, so the live message carries the
+      // transport's merged metadata as projected.
+      projectMetadata: ({ agentMetadata }) =>
+        agentMetadata === undefined ? undefined : { merged: [agentMetadata] },
+    },
+  });
+  harness.setResponseMetadata(undefined);
+  harness.setResponseFinishMetadata(undefined);
+
+  expect(turn.reopened.at(-1)?.metadata).toEqual({
+    merged: [
+      {
+        model: "faux",
+        usage: { input: 3, output: 5, cache: { read: 1, write: 2 } },
+        tags: ["settled"],
+        finishedAt: 7,
+      },
+    ],
+  });
+  expectLiveReopenParity(turn);
 });
 
 test("metadata that fails the schema ends the live turn with an error, and reopening throws", async () => {

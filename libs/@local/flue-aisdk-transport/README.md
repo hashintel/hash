@@ -19,14 +19,14 @@ Per transport, `submittedUserMessage` frames the admitted user turn, and `initia
 
 ## AI SDK compatibility
 
-The transport targets `ai@6.0.286` and `@flue/sdk`/`@flue/runtime` `2.0.3`. Upstream cases come from vercel/ai at that tag (commit `38f42fce`). When either dependency moves, rerun the suites below and re-derive any case whose upstream source changed.
+The transport targets `ai@6.0.286` and `@flue/sdk`/`@flue/runtime` `2.0.3`. Upstream cases come from vercel/ai at that tag (commit `38f42fce`). When either dependency moves, rerun the suites below and re-derive any case whose upstream source changed. `test/dependency-baseline.test.ts` fails until the versions in the previous sentence match the pinned ones, so a dependency bump cannot merge without that review.
 
 - Every chunk sequence the unit tests and `AbstractChat` consume must pass the AI SDK wire schema and reduce through `readUIMessageStream` and `validateUIMessages` ([`test/ai-sdk-oracle.ts`](test/ai-sdk-oracle.ts)).
 - [`test/`](test/) runs an in-process Flue runtime with a scripted model and this package's live channel:
   - `upstream-reducer-cases.test.ts` reproduces cases from `process-ui-message-stream.test.ts` as real Flue turns.
   - `chat.test.ts` drives the AI SDK's own `AbstractChat`, mapped to cases in `chat.test.ts`.
   - `live-reopen-parity.test.ts` covers the shapes no upstream case produces. Every real Flue turn in both suites requires the reduced live response to equal the message its stored history reopens as.
-  - `metadata-contract.test.ts` holds the metadata half of the host contract.
+  - `metadata-contract.test.ts` holds the metadata half of the host contract, including metadata written at a response's start and finish, which the transport merges as Flue does.
 
 The upstream and `AbstractChat` suites label each case as a guarantee (behaviour the AI SDK types or documents), an observed behaviour the transport relies on, or a decision. The parity and metadata suites assert this package's own contract, and label only the cases that pin a decision below. The decisions and known gaps are:
 
