@@ -34,7 +34,10 @@ import type { InterviewBudgetLevel } from "../../../shared/interview-budget";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiInputMode,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
   messageId: string,
@@ -634,6 +637,7 @@ const PinnedVoiceInterviewControl = ({
   config,
   interviewBudgetLevel,
   mediationHistory,
+  onInputModeChange,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -648,6 +652,8 @@ const PinnedVoiceInterviewControl = ({
   readonly config: OpenAIVoiceConfig;
   readonly interviewBudgetLevel?: InterviewBudgetLevel;
   readonly mediationHistory?: VoiceMediationHistory;
+  /** Mirrors the panel's input surface; reports `text` once Voice unmounts. */
+  readonly onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
@@ -661,6 +667,11 @@ const PinnedVoiceInterviewControl = ({
   // Labs changes apply between Voice sessions, never during an active turn.
   // The host ends the current session before returning to text mode.
   const [sessionConfig, setSessionConfig] = useState(config);
+  useLayoutEffect(() => {
+    if (!onInputModeChange) return;
+    onInputModeChange(context.inputMode);
+    return () => onInputModeChange("text");
+  }, [context.inputMode, onInputModeChange]);
   if (
     context.inputMode === "text" &&
     (sessionConfig.provider !== config.provider ||

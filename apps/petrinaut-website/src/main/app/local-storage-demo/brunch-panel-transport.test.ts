@@ -102,6 +102,53 @@ test.each(interviewBudgetLevels)(
   },
 );
 
+test.each([
+  ["text sent during Voice", undefined, "voice", 4],
+  ["queued Voice input sent after switching to text", "voice", "text", 6],
+] as const)(
+  "budgets %s by the panel's input mode, matching the estimate",
+  async (_case, source, inputMode, questionCap) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(503, "test admission unavailable");
+    });
+    const tracker = new BrunchPanelConversationTracker();
+    tracker.recordInputMode(inputMode);
+    const transport = createBrunchPanelTransport(
+      Promise.resolve({ send } as unknown as FlueClient),
+      tracker,
+      { interviewBudgetLevel: "standard", interviewRepliesAsked: 1 },
+    );
+    await expect(
+      transport.sendMessages({
+        trigger: "submit-message",
+        chatId: "conversation",
+        messageId: undefined,
+        abortSignal: undefined,
+        messages: [
+          {
+            id: "answer",
+            role: "user",
+            ...(source === undefined ? {} : { metadata: { source } }),
+            parts: [{ type: "text", text: "Four agents" }],
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+    expect(
+      parsePetrinautUserMessageBody(send.mock.lastCall?.[0].message.body ?? ""),
+    ).toMatchObject({
+      submissionContext: {
+        [interviewBudgetContextKey]: {
+          level: "standard",
+          questionCap,
+          asked: 1,
+          remaining: questionCap - 1,
+        },
+      },
+    });
+  },
+);
+
 test("publishes Stop immediately and supports unsubscribe", () => {
   const tracker = new BrunchPanelConversationTracker();
   const listener = vi.fn();

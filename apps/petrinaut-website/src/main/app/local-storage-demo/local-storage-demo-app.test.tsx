@@ -1719,9 +1719,18 @@ describe("assistant selection", () => {
           setVoiceActive: vi.fn(),
           submitVoiceInput: vi.fn(),
         });
-        if (!isValidElement<{ interviewBudgetLevel: string }>(voice))
+        if (
+          !isValidElement<{
+            interviewBudgetLevel: string;
+            onInputModeChange?: (mode: "text" | "voice") => void;
+          }>(voice)
+        )
           throw new Error("Missing Voice control");
         expect(voice.props.interviewBudgetLevel).toBe(level);
+        voice.props.onInputModeChange?.("voice");
+        expect(brunchPanelTransportTracker.current?.inputMode).toBe("voice");
+        voice.props.onInputModeChange?.("text");
+        expect(brunchPanelTransportTracker.current?.inputMode).toBe("text");
       };
       const firstView = render(
         <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,

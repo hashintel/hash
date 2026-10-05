@@ -21,7 +21,10 @@ import type {
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiChatTransport,
+  PetrinautAiInputMode,
+} from "@hashintel/petrinaut/ui";
 
 export type BrunchPanelAdmission = Parameters<
   NonNullable<FlueChatTransportOptions["onAdmission"]>
@@ -82,6 +85,20 @@ export class BrunchPanelConversationTracker {
     (event: FlueChatResponseMessageCompletedEvent) => void
   >();
   readonly #stopRequestedListeners = new Set<() => void>();
+  #inputMode: PetrinautAiInputMode | undefined;
+
+  /**
+   * The panel's input surface as reported by Voice, so a text turn sent
+   * during Voice gets the same allowance as the estimate. Until Voice
+   * reports, each message's own source decides.
+   */
+  public get inputMode(): PetrinautAiInputMode | undefined {
+    return this.#inputMode;
+  }
+
+  public recordInputMode(mode: PetrinautAiInputMode): void {
+    this.#inputMode = mode;
+  }
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
     this.#admittedSubmissionIds.add(admission.admission.submissionId);
@@ -229,9 +246,10 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const budget = getInterviewBudget(
           options?.interviewBudgetLevel ?? "off",
-          sendOptions.messages.at(-1)?.metadata?.source === "voice"
-            ? "voice"
-            : "text",
+          tracker.inputMode ??
+            (sendOptions.messages.at(-1)?.metadata?.source === "voice"
+              ? "voice"
+              : "text"),
           options?.interviewRepliesAsked ?? 0,
         );
         const transport = createFlueChatTransport({
