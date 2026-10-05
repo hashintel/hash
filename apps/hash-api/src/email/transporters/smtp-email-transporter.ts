@@ -9,7 +9,7 @@ import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,
 } from "./types";
-import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import type { SMTPSentMessageInfo, Transporter } from "nodemailer";
 
 export interface SmtpEmailTransporterConfig {
   from: string;
@@ -17,7 +17,7 @@ export interface SmtpEmailTransporterConfig {
 }
 
 export class SmtpEmailTransporter implements EmailTransporter {
-  private nodemailerTransporter: nodemailer.Transporter<SMTPTransport.SentMessageInfo>;
+  private nodemailerTransporter: Transporter<SMTPSentMessageInfo>;
 
   constructor(private config: SmtpEmailTransporterConfig) {
     const host = getRequiredEnv("SMTP_SERVER_HOST");
