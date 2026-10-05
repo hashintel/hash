@@ -16,11 +16,6 @@
       "@dev/source": "./src/constants.ts",
       "import": "./dist/constants.js"
     },
-    "./contextual-user-message": {
-      "types": "./src/contextual-user-message.ts",
-      "@dev/source": "./src/contextual-user-message.ts",
-      "import": "./dist/contextual-user-message.js"
-    },
     "./conversation-identity": {
       "types": "./src/conversation-identity.ts",
       "@dev/source": "./src/conversation-identity.ts",

@@ -1,5 +1,5 @@
+import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "@hashintel/brunch-agent/client-tools";
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent/contextual-user-message";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { finalUserMessage } from "@local/flue-aisdk-transport";
 
