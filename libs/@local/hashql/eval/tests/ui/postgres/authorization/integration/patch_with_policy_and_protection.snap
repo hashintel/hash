@@ -116,4 +116,4 @@ $3: Symbol(name)
 $4: Input(expected)
 ============================= Auxiliary Parameters =============================
 
-AuxiliaryParameters { initial_offset: 4, parameters: [EntityUuid(11111111-1111-1111-1111-111111111111), WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))), "https://hash.ai/@h/types/entity-type/restricted/", OntologyTypeVersion { major: 1, pre_release: None }, User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/"] }
+AuxiliaryParameters { initial_offset: 4, parameters: [EntityUuid(11111111-1111-1111-1111-111111111111), WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))), "https://hash.ai/@h/types/entity-type/restricted/", OntologyTypeVersion { major: OntologyTypeMajorVersion(1), pre_release: None }, User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/"] }
