@@ -33,8 +33,9 @@ export const iconPillSx: SxProps<Theme> = {
     fontSize: 12,
     color: ({ palette }: Theme) => palette.common.black,
   },
+  // The web/type pills' MUI Chip hover computes to gray[30]; match it.
   "&:hover": {
-    background: ({ palette }: Theme) => palette.gray[15],
+    background: ({ palette }: Theme) => palette.gray[30],
   },
 };
 

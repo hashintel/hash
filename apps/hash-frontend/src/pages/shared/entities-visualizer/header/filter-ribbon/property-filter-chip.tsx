@@ -77,9 +77,10 @@ export const PropertyFilterChip: FunctionComponent<{
   filter: PropertyFilter;
   /** Overrides the kind-derived operator catalog (the archived filter's). */
   operatorDescriptors?: OperatorDescriptor[];
+  className?: string;
   onCommit: (committed: PropertyFilter) => void;
   onRemove: () => void;
-}> = ({ filter, operatorDescriptors, onCommit, onRemove }) => {
+}> = ({ filter, operatorDescriptors, className, onCommit, onRemove }) => {
   const operators = useMemo<
     Array<FilterOperator<PropertyFilterValueMap>>
   >(() => {
@@ -123,6 +124,7 @@ export const PropertyFilterChip: FunctionComponent<{
 
   return (
     <Filter<PropertyFilterValueMap>
+      className={className}
       property={filter.id}
       propertyLabel={filter.title}
       operators={operators}

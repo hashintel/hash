@@ -13,6 +13,7 @@ import {
   archivedFilterOperators,
   getDefaultOperatorForKind,
 } from "../shared/property-filters/get-operators-for-kind";
+import { filterChipPillChrome } from "./filter-ribbon/filter-chip-pill-chrome";
 import { PropertyFilterChip } from "./filter-ribbon/property-filter-chip";
 import { TypeFilterPill } from "./type-filter-pill";
 import { type InternalWeb, WebFilterPill } from "./web-filter-pill";
@@ -334,6 +335,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           {visiblePropertyFilters.map((propertyFilter) => (
             <PropertyFilterChip
               key={propertyFilter.id}
+              className={filterChipPillChrome}
               filter={propertyFilter}
               operatorDescriptors={
                 propertyFilter.baseUrl === archivedPropertyBaseUrl
