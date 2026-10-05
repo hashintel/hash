@@ -200,7 +200,7 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
       [],
     );
 
-    // The real editor renders every plugin's root inside itself.
+    // The real editor renders every plugin's root inside itself (the palette).
     return plugins.map(({ manifest, providers }) => (
       <Fragment key={manifest.id}>{providers.root}</Fragment>
     ));
@@ -1748,6 +1748,7 @@ describe("assistant selection", () => {
     // Voice is installed beside Brunch for when it is chosen.
     expect(storedAssistantChoice()).toBeNull();
     expect(installedPluginIds()).toEqual([
+      "website.command-palette",
       "website.petrinaut-ai",
       "website.brunch",
       "website.voice",
@@ -2289,6 +2290,9 @@ describe("assistant selection", () => {
     expect(petrinautAi.automaticTools).toBeUndefined();
     // Neither Brunch nor Voice is installed, so Petrinaut lists one assistant
     // and registers no switch command.
-    expect(installedPluginIds()).toEqual(["website.petrinaut-ai"]);
+    expect(installedPluginIds()).toEqual([
+      "website.command-palette",
+      "website.petrinaut-ai",
+    ]);
   });
 });

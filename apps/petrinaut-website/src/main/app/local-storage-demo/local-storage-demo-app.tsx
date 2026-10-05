@@ -14,7 +14,6 @@
 
 import { useCallback, useState } from "react";
 
-import { CommandRegistryProvider } from "@hashintel/petrinaut/react";
 import {
   Petrinaut,
   type PetrinautPlugin,
@@ -25,13 +24,13 @@ import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
-import { CommandPalette } from "../command-palette";
 import {
   type BrunchHost,
   BrunchHostContext,
 } from "../plugins/brunch/brunch-host";
 import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
 import { brunchPlugin } from "../plugins/brunch/plugin";
+import { commandPalettePlugin } from "../plugins/command-palette/plugin";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { voicePlugin } from "../plugins/voice/plugin";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -52,20 +51,21 @@ const defaultAssistant = resolveDefaultAssistant(
 );
 
 /**
- * The plugins this demo gives the editor: Petrinaut AI and, when an endpoint
- * is configured, Brunch with Voice mode. The first assistant in the list is
- * the default; User settings can pick another.
+ * The plugins this demo gives the editor: the chrome plugins, Petrinaut AI,
+ * and, when an endpoint is configured, Brunch with Voice mode. The first
+ * assistant in the list is the default; User settings can pick another.
  */
 const selectDemoPlugins = (): readonly PetrinautPlugin[] => {
+  const chrome = [commandPalettePlugin];
   if (!brunchPreviewConfig.isBrunchConfigured) {
-    return [petrinautAiPlugin];
+    return [...chrome, petrinautAiPlugin];
   }
   const assistants =
     defaultAssistant === "brunch"
       ? [brunchPlugin, petrinautAiPlugin]
       : [petrinautAiPlugin, brunchPlugin];
 
-  return [...assistants, voicePlugin];
+  return [...chrome, ...assistants, voicePlugin];
 };
 
 export const LocalStorageDemoApp = ({
@@ -167,23 +167,20 @@ export const LocalStorageDemoApp = ({
         <UnsavedChangeNotice message={unsavedChangeMessage} />
       )}
       <BrunchHostContext value={brunchHost}>
-        <CommandRegistryProvider>
-          <WalkthroughProvider steps={walkthroughSteps}>
-            <Petrinaut
-              handle={activeHandle.handle}
-              plugins={plugins}
-              existingNets={existingNets}
-              createNewNet={createNewNet}
-              loadPetriNet={loadPetriNet}
-              navigation={navigation}
-              readonly={false}
-              setTitle={setTitle}
-              title={currentDocument.title}
-              viewportActions={[sentryFeedbackAction]}
-            />
-          </WalkthroughProvider>
-          <CommandPalette />
-        </CommandRegistryProvider>
+        <WalkthroughProvider steps={walkthroughSteps}>
+          <Petrinaut
+            handle={activeHandle.handle}
+            plugins={plugins}
+            existingNets={existingNets}
+            createNewNet={createNewNet}
+            loadPetriNet={loadPetriNet}
+            navigation={navigation}
+            readonly={false}
+            setTitle={setTitle}
+            title={currentDocument.title}
+            viewportActions={[sentryFeedbackAction]}
+          />
+        </WalkthroughProvider>
       </BrunchHostContext>
     </div>
   );
