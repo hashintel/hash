@@ -382,7 +382,17 @@ where
                     Some(cursor.position.clone()),
                 ),
             };
-        let temporal_axes = instant_axes(transaction_time, decision_time);
+        let temporal_axes = if params.filter.include_archived {
+            QueryTemporalAxes::DecisionTime {
+                pinned: PinnedTemporalAxis::new(transaction_time),
+                variable: VariableTemporalAxis::new(
+                    TemporalBound::Unbounded,
+                    LimitedTemporalBound::Inclusive(decision_time),
+                ),
+            }
+        } else {
+            instant_axes(transaction_time, decision_time)
+        };
 
         // TODO(BE-707): assemble the view-entity policy filter through a shared
         //  entry point instead of repeating the extraction on every read path.
