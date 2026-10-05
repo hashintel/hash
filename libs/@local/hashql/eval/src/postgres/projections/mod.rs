@@ -14,8 +14,11 @@ use hashql_core::symbol::sym;
 
 use super::Parameters;
 
+mod auxiliary;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use auxiliary::AuxiliaryProjections;
 
 /// Output columns of the direct-type aggregation lateral.
 enum EntityTypeIds {
@@ -72,6 +75,10 @@ impl Projections {
             left: None,
             right: None,
         }
+    }
+
+    pub(crate) const fn snapshot(&self) -> Self {
+        Self { ..*self }
     }
 
     const fn next_alias(index: &mut usize) -> Alias {

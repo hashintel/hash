@@ -69,6 +69,11 @@ pub enum Function {
     /// [`BinaryOperator::HammingDistance`]: super::BinaryOperator::HammingDistance
     BinaryQuantize(Box<Expression>),
     Unnest(Vec<Expression>),
+    /// Returns all subscript positions where the array element equals the given value.
+    ///
+    /// Transpiles to `array_positions(<array>, <value>)` in PostgreSQL.
+    /// Returns an integer array (e.g. `{1,3}`) or an empty array if no match.
+    ArrayPositions(Box<Expression>, Box<Expression>),
     /// The `row_number` window function: the 1-based position of the row within its window.
     ///
     /// Transpiles to `row_number()`. Wrap the resulting expression in [`Expression::Window`] to
@@ -202,6 +207,7 @@ impl Function {
             | Self::CharLength(expr)
             | Self::Subvector { vector: expr, .. } => visitor(expr),
             Self::JsonContains(lhs, rhs)
+            | Self::ArrayPositions(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::JsonPathQueryArray(lhs, rhs)
             | Self::Coalesce(lhs, rhs)
@@ -307,6 +313,7 @@ impl Function {
             | Self::CharLength(expr)
             | Self::Subvector { vector: expr, .. } => visitor(expr),
             Self::JsonContains(lhs, rhs)
+            | Self::ArrayPositions(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::JsonPathQueryArray(lhs, rhs)
             | Self::Coalesce(lhs, rhs)
@@ -636,6 +643,13 @@ impl Transpile for Function {
                 fmt.write_str("subvector(")?;
                 vector.transpile(fmt)?;
                 write!(fmt, ", {start}, {count})")
+            }
+            Self::ArrayPositions(array, value) => {
+                fmt.write_str("array_positions(")?;
+                array.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
+                fmt.write_char(')')
             }
             Self::JsonPathQueryFirst(target, path) => {
                 fmt.write_str("jsonb_path_query_first(")?;
