@@ -84,10 +84,6 @@ The changeset text becomes the package's published changelog entry, so write it 
 - Every sentence must apply to each package the changeset lists. When a PR changes several packages in different ways, write a separate changeset for each package.
 - Use at most one paragraph per changeset.
 
-A package's own `AGENTS.md` can set further conventions, such as the semver increment it accepts. Check it before writing the changeset.
-
-The full changeset-writing guidance is in the [`publishing-packages` skill](../.agents/skills/publishing-packages/SKILL.md).
-
 When a PR with a changeset file is merged, the change is added to a PR entitled 'Version Packages',
 which has a diff showing the version increments which will be applied to affected packages, including dependents.
 
