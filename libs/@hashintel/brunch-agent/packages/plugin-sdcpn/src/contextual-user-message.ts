@@ -1,4 +1,4 @@
-import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "./client-tools";
+import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "@hashintel/brunch-agent/client-tools";
 
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
