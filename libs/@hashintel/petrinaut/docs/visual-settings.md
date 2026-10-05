@@ -12,11 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                             |
-| ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the welcome guide.                    |
-| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
+| Section      | Settings                                                                            |
+| ------------ | ----------------------------------------------------------------------------------- |
+| **General**  | Animations, panel loading, the welcome guide, and the AI assistant choice.          |
+| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection.                |
+| **Plugins**  | The plugins the host gave this editor: switch each on or off, and see what it adds. |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.                     |
 
 ## General
 
@@ -165,6 +166,30 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
+
+## Plugins
+
+Hosts extend Petrinaut with plugins: an AI assistant, extra toolbar buttons,
+top-bar items, settings and flags. The **Plugins** section lists every plugin
+the host gave this editor in one table, a line per plugin with its name, its
+author and a switch. Click a line to open the plugin's description and what it
+contributes. The table's header counts the plugins and how many of them run.
+
+- The **switch** runs the plugin for you, or not. Off, it contributes nothing:
+  its assistant, buttons, items and settings rows disappear until you switch
+  it back on. The editor itself stays as it is: your selection, panels and
+  open dialogs survive the switch.
+- Labels beside the name say more. **Assistant** marks a plugin that provides
+  an AI assistant, and **Extends** one that adds to another plugin's
+  assistant. **Needs** names the plugin a switched-off plugin depends on: its
+  switch stays on, greyed out, until that plugin runs again. **Not running**
+  marks a plugin that stopped on an error.
+- The **contributions**, under the description, are small tags for what the
+  plugin declares: its assistant, buttons and where they sit, top-bar items,
+  settings and flags, the services it provides to or requires from other
+  plugins, and whether it renders inside the editor.
+
+Without plugins the section says so.
 
 ## Labs
 

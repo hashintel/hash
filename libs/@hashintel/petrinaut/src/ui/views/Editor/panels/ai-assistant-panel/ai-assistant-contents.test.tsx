@@ -39,6 +39,7 @@ vi.mock("react-markdown", async (importOriginal) => {
     ...actual,
     default: (props: Parameters<typeof actual.default>[0]) => {
       renderMarkdown();
+
       return createElement(actual.default, props);
     },
   };
@@ -96,6 +97,7 @@ afterEach(() => {
 
 const HostContent = ({ onMount }: { onMount: () => void }) => {
   useEffect(onMount, [onMount]);
+
   return <p>Saved account</p>;
 };
 const HostControl = ({
@@ -107,8 +109,10 @@ const HostControl = ({
 }) => {
   useEffect(() => {
     onMount();
+
     return onUnmount;
   }, [onMount, onUnmount]);
+
   return <span>Host control</span>;
 };
 const DockingHarness = ({
@@ -124,6 +128,7 @@ const DockingHarness = ({
   const [placement, setPlacement] = useState<"docked" | "floating">("docked");
   const [isOpen, setOpen] = useState(true);
   const [input, setInput] = useState("");
+
   return (
     <EditorContext
       value={{
@@ -136,10 +141,13 @@ const DockingHarness = ({
         Reopen assistant
       </button>
       <AiAssistantContents
-        additionalTab={{
-          label: "Workpiece",
-          content: <p>Saved model account</p>,
-        }}
+        extraTabs={[
+          {
+            id: "host",
+            label: "Workpiece",
+            content: <p>Saved model account</p>,
+          },
+        ]}
         composerControl={
           <HostControl onMount={onMount} onUnmount={onUnmount} />
         }
@@ -828,10 +836,13 @@ describe("AiAssistantContents", () => {
     const contentMounted = vi.fn();
     render(
       <AiAssistantContents
-        additionalTab={{
-          label: "Workpiece",
-          content: <HostContent onMount={contentMounted} />,
-        }}
+        extraTabs={[
+          {
+            id: "host",
+            label: "Workpiece",
+            content: <HostContent onMount={contentMounted} />,
+          },
+        ]}
         input="Unsent question"
         status="streaming"
         messages={[
@@ -871,8 +882,14 @@ describe("AiAssistantContents", () => {
     "keeps tab names stable and one tab live region mounted across announcements in the %s presentation",
     (presentation) => {
       const props = {
-        additionalTab: { label: "Ledger", content: <p>Saved account</p> },
-        hostAttentionCount: 2,
+        extraTabs: [
+          {
+            id: "host",
+            label: "Ledger",
+            attention: 2,
+            content: <p>Saved account</p>,
+          },
+        ],
         input: "",
         messages: [],
         onClose: noop,
@@ -927,7 +944,7 @@ describe("AiAssistantContents", () => {
     const { rerender } = render(
       <AiAssistantContents
         {...props}
-        additionalTab={{ label: "Notes", content: <p>Host notes</p> }}
+        extraTabs={[{ id: "host", label: "Notes", content: <p>Host notes</p> }]}
       />,
     );
     fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
@@ -1158,10 +1175,12 @@ describe("AiAssistantContents", () => {
     const Stage = () => {
       useEffect(() => {
         voiceModeMounts += 1;
+
         return () => {
           voiceModeUnmounts += 1;
         };
       }, []);
+
       return <div>Voice mode</div>;
     };
     const props = {
@@ -1173,7 +1192,7 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
       voiceMode: <Stage />,
-      additionalTab: { label: "Notes", content: <p>Saved notes</p> },
+      extraTabs: [{ id: "host", label: "Notes", content: <p>Saved notes</p> }],
     };
     const { rerender } = render(
       <AiAssistantContents {...props} isOpen={true} />,
@@ -1976,6 +1995,7 @@ describe("AiAssistantContents", () => {
   test("isolates microphone-level updates from completed transcript messages", () => {
     const VoiceLevel = () => {
       const [level, setLevel] = useState(0);
+
       return (
         <button type="button" onClick={() => setLevel(0.75)}>
           {`Microphone level ${level}`}
@@ -3045,8 +3065,10 @@ describe("AiAssistantContents", () => {
   test("keeps the Brunch working status visible while the host tab is selected", () => {
     render(
       <AiAssistantContents
-        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
-        hostTabSelected
+        extraTabs={[
+          { id: "host", label: "Ledger", content: <p>Saved account</p> },
+        ]}
+        activeTabId="host"
         input=""
         messages={[
           {
@@ -3077,8 +3099,10 @@ describe("AiAssistantContents", () => {
   test("keeps the working label visible while the host tab is selected", () => {
     render(
       <AiAssistantContents
-        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
-        hostTabSelected
+        extraTabs={[
+          { id: "host", label: "Ledger", content: <p>Saved account</p> },
+        ]}
+        activeTabId="host"
         input=""
         messages={[]}
         onClose={noop}
@@ -3162,8 +3186,13 @@ describe("AiAssistantContents", () => {
   });
 
   test("uses stock tabs for a stock assistant with an additional tab", () => {
+    const hostTab = {
+      id: "host",
+      label: "Ledger",
+      content: <p>Ledger body</p>,
+    };
     const props = {
-      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      extraTabs: [hostTab],
       input: "",
       messages: [],
       onClose: noop,
@@ -3180,10 +3209,21 @@ describe("AiAssistantContents", () => {
     expect(tablist().querySelector("[data-mark]")).toBeNull();
     expect(inactiveTab().className).toContain("op_[0.6]");
 
+    // The chat tab's mark comes with the presentation; an extra tab's mark
+    // comes from the plugin that renders the tab.
     rerender(<AiAssistantContents {...props} presentation="brunch" />);
     expect(tablist().getAttribute("data-style-variant")).toBe("brunch");
-    expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
+    expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(1);
     expect(inactiveTab().className).not.toContain("op_[0.6]");
+
+    rerender(
+      <AiAssistantContents
+        {...props}
+        extraTabs={[{ ...hostTab, mark: <span>L</span> }]}
+        presentation="brunch"
+      />,
+    );
+    expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
   });
 
   test("keeps the stock transcript chrome for a stock assistant", () => {
@@ -3239,7 +3279,9 @@ describe("AiAssistantContents", () => {
     rerender(
       <AiAssistantContents
         {...props}
-        additionalTab={{ label: "Ledger", content: <p>Ledger body</p> }}
+        extraTabs={[
+          { id: "host", label: "Ledger", content: <p>Ledger body</p> },
+        ]}
         inputMode="voice"
       />,
     );
@@ -3248,7 +3290,7 @@ describe("AiAssistantContents", () => {
 
   test("shows the host transcript label, switching Brunch Chat to Voice", () => {
     const props = {
-      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      extraTabs: [{ id: "host", label: "Ledger", content: <p>Ledger body</p> }],
       input: "",
       inputMode: "voice" as const,
       messages: [],
@@ -3409,6 +3451,7 @@ describe("AiAssistantContents", () => {
     // Make rAF synchronous so the scroll effect runs before the assertion.
     window.requestAnimationFrame = (callback) => {
       callback(0);
+
       return 0;
     };
     window.cancelAnimationFrame = () => {};
@@ -3452,6 +3495,7 @@ describe("AiAssistantContents", () => {
     window.HTMLElement.prototype.scrollTo = scrollTo;
     window.requestAnimationFrame = (callback) => {
       callback(0);
+
       return 0;
     };
     const messageWithReply = (text: string): PetrinautAiMessage => ({
@@ -3526,6 +3570,7 @@ describe("AiAssistantContents", () => {
       window.HTMLElement.prototype.scrollTo = scrollTo;
       window.requestAnimationFrame = (callback) => {
         callback(0);
+
         return 0;
       };
       const props = {
@@ -3588,6 +3633,7 @@ describe("AiAssistantContents", () => {
     window.HTMLElement.prototype.scrollTo = scrollTo;
     window.requestAnimationFrame = (callback) => {
       callback(0);
+
       return 0;
     };
     const props = {
@@ -4558,6 +4604,7 @@ describe.each(toolRowPresentations)(
                 : state === "success"
                   ? "Completed"
                   : "Could not complete";
+
             return {
               title: `${verb} ${toolName}`,
               detail:
@@ -4641,6 +4688,7 @@ describe.each(toolRowPresentations)(
             items: [output.message],
           };
         }
+
         return {
           title:
             state === "pending"

@@ -366,7 +366,7 @@ const createStoryVoiceSessionStore = (
 };
 
 const Frame = ({
-  additionalTab,
+  extraTabs,
   composerControl,
   error,
   experimentStates,
@@ -388,7 +388,7 @@ const Frame = ({
   voiceSession,
   workingLabel,
 }: {
-  additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
+  extraTabs?: ComponentProps<typeof AiAssistantContents>["extraTabs"];
   composerControl?: ComponentProps<
     typeof AiAssistantContents
   >["composerControl"];
@@ -444,7 +444,7 @@ const Frame = ({
           data-testid="ai-assistant-story-frame"
         >
           <AiAssistantContents
-            additionalTab={additionalTab}
+            extraTabs={extraTabs}
             composerControl={composerControl}
             error={error}
             experimentStates={experimentStates}
@@ -504,15 +504,18 @@ export const Floating: Story = {
 export const WithWorkpieceTab: Story = {
   render: () => (
     <Frame
-      additionalTab={{
-        label: "Workpiece",
-        content: (
-          <div>
-            <h2>Model account</h2>
-            <p>A saved description of the process being modeled.</p>
-          </div>
-        ),
-      }}
+      extraTabs={[
+        {
+          id: "workpiece",
+          label: "Workpiece",
+          content: (
+            <div>
+              <h2>Model account</h2>
+              <p>A saved description of the process being modeled.</p>
+            </div>
+          ),
+        },
+      ]}
       messages={[userMessage, assistantMarkdownMessage]}
     />
   ),
@@ -834,6 +837,7 @@ export const ExtendedAudioSettings: Story = {
     const dockButtons = within(dock).getAllByRole("button");
     const position = (element: HTMLElement) => {
       const { x, y, width, height } = element.getBoundingClientRect();
+
       return { x, y, width, height };
     };
     const positions = () => dockButtons.map(position);
@@ -1038,6 +1042,7 @@ export const VoiceSessionLongWarning: Story = {
     const getPart = (part: string) => {
       const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
       if (!element) throw new Error(`Missing Voice dock part: ${part}`);
+
       return element;
     };
 
@@ -1530,6 +1535,7 @@ export const WaitingForResponse: Story = {
 const BrunchWaitingPreview = () => {
   const [waiting, setWaiting] = useState(false);
   const [voice, setVoice] = useState(false);
+
   return (
     <>
       <Button onClick={() => setWaiting((value) => !value)}>
@@ -1540,7 +1546,9 @@ const BrunchWaitingPreview = () => {
       </Button>
       <Frame
         key={String(voice)}
-        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        extraTabs={[
+          { id: "ledger", label: "Ledger", content: <p>Saved account</p> },
+        ]}
         primaryLabel="Chat"
         presentation="brunch"
         messages={[userMessage]}
@@ -1598,6 +1606,7 @@ export const BrunchWaitingForResponse: Story = {
 const BrunchStreamingPreview = () => {
   const [step, setStep] = useState(0);
   const [finished, setFinished] = useState(false);
+
   return (
     <>
       <Button onClick={() => setStep((value) => value + 1)}>
@@ -1659,6 +1668,7 @@ const activityLabelOffset = (canvasElement: HTMLElement) => {
   }
   const frame = transcript.getBoundingClientRect();
   const label = labels[0]!.getBoundingClientRect();
+
   return {
     x: label.x - frame.x,
     y: label.y - frame.y + transcript.scrollTop,
@@ -1777,6 +1787,7 @@ const BrunchVoiceTurnPreview = () => {
   const [step, setStep] = useState(0);
   const [voice, setVoice] = useState(true);
   const { status, response } = voiceTurnSteps[step]!;
+
   return (
     <>
       <Button
@@ -1968,6 +1979,7 @@ const PendingToolLifecycleHarness = () => {
   useEffect(() => {
     if (!running) return;
     const timer = window.setTimeout(() => setRunning(false), 3_000);
+
     return () => window.clearTimeout(timer);
   }, [running]);
 
@@ -2120,6 +2132,7 @@ const supportDeskUser: PetrinautAiMessage = {
   ],
 };
 const ledgerTab = {
+  id: "ledger",
   label: "Ledger",
   content: <p>Support desk · arrival rate still open</p>,
 };
@@ -2128,7 +2141,7 @@ export const ChatTurn: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       messages={[supportDeskUser, conversationTurn]}
     />
   ),
@@ -2164,7 +2177,7 @@ export const VoiceMediatedTurn: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "speaking" })}
@@ -2236,7 +2249,7 @@ export const ChatVoiceOrigin: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       messages={[
         { ...supportDeskUser, metadata: { source: "voice" } },
         conversationTurn,
@@ -2306,7 +2319,7 @@ export const VoicePreparing: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
@@ -2373,6 +2386,7 @@ export const VoiceSending: Story = {
 
 const VoicePreparationFailure = () => {
   const [admitted, setAdmitted] = useState(false);
+
   return (
     <>
       <Button onClick={() => setAdmitted(true)}>Confirm admission</Button>
@@ -2410,7 +2424,7 @@ export const VoiceStopped: Story = {
   render: () => (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       inputMode="voice"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "listening" })}
@@ -2428,10 +2442,11 @@ const ExperimentExample = ({
   optimization?: boolean;
 }) => {
   const [cancelled, setCancelled] = useState(false);
+
   return (
     <Frame
       presentation="brunch"
-      additionalTab={ledgerTab}
+      extraTabs={[ledgerTab]}
       onCancelExperiment={() => setCancelled(true)}
       messages={[
         supportDeskUser,

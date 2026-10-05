@@ -49,8 +49,10 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
+import { PluginContributionBoundary } from "../../../plugins/plugin-boundary";
 import {
   AiAssistantContents,
+  CHAT_TAB_ID,
   getTranscriptLabel,
 } from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
@@ -64,6 +66,7 @@ import {
 } from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
+import { advanceTabsAttention } from "./ai-assistant-panel/tab-attention";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -73,6 +76,7 @@ import {
 } from "./ai-assistant-panel/tool-summaries";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type { PetrinautResolvedAssistantTab } from "../../../plugins/plugin-assistants";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
@@ -84,6 +88,7 @@ import type {
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
 import type { FrameSceneResult } from "../../SDCPN/canvas-renderer";
+import type { TabsAttention } from "./ai-assistant-panel/tab-attention";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
@@ -106,6 +111,7 @@ const selectTarget = (
 ) => {
   if (target.kind === "selection") {
     actions.selectItem(target.item);
+
     return;
   }
 
@@ -171,6 +177,7 @@ const hasRunnableAutomaticToolCalls = (
   automaticTools: PetrinautAiAssistant["automaticTools"],
 ): boolean => {
   const message = messages.at(-1);
+
   return (
     message?.role === "assistant" &&
     !message.metadata?.stopped &&
@@ -251,6 +258,7 @@ const browserToolErrorText = (error: unknown): string => {
   } catch {
     // Fall through to the stable fallback for cyclic values.
   }
+
   return "The browser tool failed.";
 };
 
@@ -293,6 +301,7 @@ const addDynamicToolOutput = (
   const addToolOutputForDynamicTool = addToolOutput as unknown as (
     dynamicParams: typeof params,
   ) => void | PromiseLike<void>;
+
   return Promise.resolve(addToolOutputForDynamicTool(params));
 };
 
@@ -332,6 +341,7 @@ const beginVoiceToolSubmission = (
   }
 
   submissionState.pendingSubmissionCount += 1;
+
   return submissionState;
 };
 
@@ -355,6 +365,7 @@ const finishVoiceToolSubmission = (
       ...submissionState,
       pendingSubmissionCount,
     });
+
     return;
   }
 
@@ -484,10 +495,12 @@ const applyPetrinautAiCommand = async ({
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case "applyAutoLayout": {
       const { commitCount } = await applyAutoLayoutAndFrame();
+
       return toPetrinautAiToolOutput(summarizeApplyAutoLayout({ commitCount }));
     }
     default: {
       const unhandledToolName: never = aiToolCall.toolName;
+
       return unhandledToolName;
     }
   }
@@ -495,6 +508,11 @@ const applyPetrinautAiCommand = async ({
 
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
+  /** Tabs the assistant plugins add beside the chat. */
+  tabs?: readonly PetrinautResolvedAssistantTab[];
+  /** `CHAT_TAB_ID` or a plugin tab id; the editor owns it. */
+  activeTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
   applyAutoLayoutAndFrame?: () => Promise<{
     commitCount: number;
     frameStatus: FrameSceneResult;
@@ -503,19 +521,23 @@ interface AiAssistantPanelProps {
   frameSceneAfterRender?: () => Promise<FrameSceneResult>;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
-  offerStartPosture?: boolean;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
 
+const EMPTY_TABS: readonly PetrinautResolvedAssistantTab[] = [];
+const NO_TABS_ATTENTION: TabsAttention = {};
+
 const ConversationAiAssistantPanel = ({
   aiAssistant,
+  tabs = EMPTY_TABS,
+  activeTabId = CHAT_TAB_ID,
+  onActiveTabChange,
   applyAutoLayoutAndFrame,
   focusRequest = 0,
   frameSceneAfterRender,
   initialInteractionMode,
   initialMessage,
-  offerStartPosture = false,
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
@@ -551,6 +573,7 @@ const ConversationAiAssistantPanel = ({
   }, []);
   useEffect(() => {
     const controllers = experimentControllersRef.current;
+
     return () => {
       for (const controller of controllers.values()) controller.abort();
       controllers.clear();
@@ -645,6 +668,7 @@ const ConversationAiAssistantPanel = ({
 
   const readDiagnosticsContext = useCallback(() => {
     if (!instance) throw new Error("The AI assistant has no editor instance.");
+
     return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
   }, [instance, requestDiagnosticsRef]);
 
@@ -700,6 +724,7 @@ const ConversationAiAssistantPanel = ({
               "Voice mode could not stop safely. End Voice mode and retry.",
             ),
           );
+
           return;
         }
         try {
@@ -714,6 +739,7 @@ const ConversationAiAssistantPanel = ({
           setStreamError(
             caught instanceof Error ? caught : new Error(String(caught)),
           );
+
           return;
         }
       }
@@ -824,6 +850,7 @@ const ConversationAiAssistantPanel = ({
   const reportExperimentRunning = useCallback((running: boolean) => {
     const report = { running };
     setHostExperimentReport(report);
+
     return () =>
       setHostExperimentReport((current) =>
         current === report ? null : current,
@@ -879,6 +906,7 @@ const ConversationAiAssistantPanel = ({
     const termination = automaticToolTerminationRef.current;
     if (termination?.generation !== generation) return false;
     if (termination.kind === "stopped") withholdContinuationForStop();
+
     return true;
   };
   const automaticToolTurnIsTerminatedRef = useLatest(
@@ -898,6 +926,7 @@ const ConversationAiAssistantPanel = ({
       !automaticToolTurnIsTerminated(generation);
     if (!canContinue()) {
       pendingAutomaticToolCallExecutionsRef.current.delete(executionKey);
+
       return;
     }
     const currentAddToolOutput = addToolOutputRef.current;
@@ -982,6 +1011,7 @@ const ConversationAiAssistantPanel = ({
           pendingAutomaticToolCallExecutionsRef.current.delete(
             `${executionConversationId}:${toolCall.toolCallId}`,
           );
+
           return;
         }
         await addAutomaticToolOutput({
@@ -989,6 +1019,7 @@ const ConversationAiAssistantPanel = ({
           toolCallId: toolCall.toolCallId,
           output,
         } as never);
+
         return;
       }
       if (!aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
@@ -996,6 +1027,7 @@ const ConversationAiAssistantPanel = ({
           toolCall,
           aiAssistant.interactiveTools ?? [],
         );
+
         return;
       }
       // I-mode canonical tools may be projected dynamically to execute while Flue is awaiting them.
@@ -1054,6 +1086,7 @@ const ConversationAiAssistantPanel = ({
           experimentControllersRef.current.delete(toolCall.toolCallId);
         }
       }
+
       return;
     }
 
@@ -1067,6 +1100,7 @@ const ConversationAiAssistantPanel = ({
           extensions: instance.extensions,
         },
       });
+
       return;
     }
 
@@ -1076,6 +1110,7 @@ const ConversationAiAssistantPanel = ({
         toolCallId: toolCall.toolCallId,
         output: await readDiagnosticsContext(),
       });
+
       return;
     }
 
@@ -1086,6 +1121,7 @@ const ConversationAiAssistantPanel = ({
         toolCallId: toolCall.toolCallId,
         output: petrinautDocsContent[doc],
       });
+
       return;
     }
 
@@ -1099,6 +1135,7 @@ const ConversationAiAssistantPanel = ({
             reason: "The host application does not provide title editing.",
           } satisfies AiToolOutput,
         });
+
         return;
       }
 
@@ -1113,6 +1150,7 @@ const ConversationAiAssistantPanel = ({
             reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
           } satisfies AiToolOutput,
         });
+
         return;
       }
 
@@ -1134,6 +1172,7 @@ const ConversationAiAssistantPanel = ({
               : undefined,
         } satisfies AiToolOutput,
       });
+
       return;
     }
 
@@ -1164,6 +1203,7 @@ const ConversationAiAssistantPanel = ({
             reason: formatReadOnlyReason(currentReadOnlyReason),
           } satisfies AiToolOutput,
         });
+
         return;
       }
     }
@@ -1192,6 +1232,7 @@ const ConversationAiAssistantPanel = ({
           applyAutoLayoutAndFrame ??
           (async () => {
             const { commitCount } = await instance.commands.applyAutoLayout();
+
             return { commitCount, frameStatus: "no-renderer" };
           }),
       });
@@ -1200,6 +1241,7 @@ const ConversationAiAssistantPanel = ({
         toolCallId: toolCall.toolCallId,
         output,
       });
+
       return;
     }
 
@@ -1259,6 +1301,7 @@ const ConversationAiAssistantPanel = ({
         throw new Error(
           `In-band tool ${toolCall.toolName} settled without an output.`,
         );
+
       return outputs[0];
     };
     // Run at the start of this call's document-lane turn, so a Stop while it
@@ -1328,6 +1371,7 @@ const ConversationAiAssistantPanel = ({
         return true;
       }
       withholdContinuationForStop();
+
       return false;
     },
     // Without throttling, every reasoning-delta / text-delta chunk triggers a
@@ -1386,6 +1430,7 @@ const ConversationAiAssistantPanel = ({
         setStreamError(null);
         aiAssistant.onMessages?.(finalized);
         setStopped(true);
+
         return;
       }
 
@@ -1415,6 +1460,7 @@ const ConversationAiAssistantPanel = ({
       );
       if (aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
         executeIssuedBrowserCall(toolCall);
+
         return undefined;
       }
       if (!toolCall.dynamic) return undefined;
@@ -1424,6 +1470,7 @@ const ConversationAiAssistantPanel = ({
         )
       )
         return undefined;
+
       return executeToolCall({ toolCall });
     },
   });
@@ -1431,6 +1478,7 @@ const ConversationAiAssistantPanel = ({
     toolHostIdentityRef.current = conversationId;
     addToolOutputRef.current = addToolOutput;
     sendAutomaticToolContinuationRef.current = () => sendMessage();
+
     return () => {
       if (addToolOutputRef.current === addToolOutput) {
         addToolOutputRef.current = null;
@@ -1467,6 +1515,7 @@ const ConversationAiAssistantPanel = ({
         const hostError = new Error("The AI assistant tool host is not ready.");
         reportOperationalFailure(hostError, "continuation");
         setStreamError(hostError);
+
         return;
       }
       void sendContinuation().catch((caught: unknown) => {
@@ -1530,56 +1579,26 @@ const ConversationAiAssistantPanel = ({
       : continuationPending && chatStatus === "ready"
         ? "submitted"
         : chatStatus;
-  const [hostTabSelected, setHostTabSelected] = useState(false);
-  const [hostAttentionCount, setHostAttentionCount] = useState(0);
+  const hostTabSelected = activeTabId !== CHAT_TAB_ID;
   const [primaryAttention, setPrimaryAttention] = useState(false);
   const [attentionAnnouncement, setAttentionAnnouncement] = useState("");
-  const seenHostActivityRef = useRef<Set<string> | undefined>(undefined);
   const conversationWasBusyRef = useRef(false);
-  const hostActivityIdentities = aiAssistant.additionalTab?.activityIdentities;
+  // Unseen updates of the plugin tabs, advanced during render from the
+  // identities each tab reports; the shown tab counts nothing.
+  const [tabsAttention, setTabsAttention] = useState(NO_TABS_ATTENTION);
+  const advancedAttention = advanceTabsAttention(
+    tabsAttention,
+    tabs,
+    isAiAssistantOpen ? activeTabId : null,
+  );
+  if (advancedAttention.attention !== tabsAttention) {
+    setTabsAttention(advancedAttention.attention);
+    if (advancedAttention.announcement !== null) {
+      setAttentionAnnouncement(advancedAttention.announcement);
+    }
+  }
 
   useEffect(() => {
-    if (hostActivityIdentities === undefined) {
-      return;
-    }
-    const currentIdentities = new Set(
-      hostActivityIdentities.map(
-        (identity) => `${typeof identity}:${String(identity)}`,
-      ),
-    );
-    const previousIdentities = seenHostActivityRef.current;
-    if (previousIdentities === undefined) {
-      seenHostActivityRef.current = currentIdentities;
-      return;
-    }
-
-    let additions = 0;
-    for (const identity of currentIdentities) {
-      if (!previousIdentities.has(identity)) {
-        additions += 1;
-        previousIdentities.add(identity);
-      }
-    }
-    if (additions === 0 || (isAiAssistantOpen && hostTabSelected)) {
-      return;
-    }
-    const nextAttentionCount = hostAttentionCount + additions;
-    setHostAttentionCount(nextAttentionCount);
-    setAttentionAnnouncement(
-      `${nextAttentionCount} unseen ${aiAssistant.additionalTab?.label ?? "tab"} update${nextAttentionCount === 1 ? "" : "s"}`,
-    );
-  }, [
-    aiAssistant.additionalTab?.label,
-    hostActivityIdentities,
-    hostAttentionCount,
-    hostTabSelected,
-    isAiAssistantOpen,
-  ]);
-
-  useEffect(() => {
-    if (isAiAssistantOpen && hostTabSelected) {
-      setHostAttentionCount(0);
-    }
     if (isAiAssistantOpen && !hostTabSelected) {
       setPrimaryAttention(false);
     }
@@ -1613,6 +1632,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
     const timeout = setTimeout(() => setAttentionAnnouncement(""), 0);
+
     return () => clearTimeout(timeout);
   }, [attentionAnnouncement]);
 
@@ -1628,6 +1648,7 @@ const ConversationAiAssistantPanel = ({
         return;
       followedMessagesRef.current = aiAssistant.messages;
       setMessages(aiAssistant.messages);
+
       return;
     }
     if (
@@ -1718,10 +1739,12 @@ const ConversationAiAssistantPanel = ({
             toolHostIdentityRef.current !== conversationId
           ) {
             pendingAutomaticToolCallExecutionsRef.current.delete(executionKey);
+
             return;
           }
           if (automaticToolTurnIsTerminatedRef.current(generation)) {
             pendingAutomaticToolCallExecutionsRef.current.delete(executionKey);
+
             return;
           }
           void Promise.resolve()
@@ -1756,6 +1779,7 @@ const ConversationAiAssistantPanel = ({
               await Promise.resolve()
                 .then(() => {
                   const currentAddToolOutput = addToolOutputRef.current;
+
                   return currentAddToolOutput
                     ? addDynamicToolOutput(currentAddToolOutput, {
                         tool: toolCall.toolName,
@@ -1987,6 +2011,7 @@ const ConversationAiAssistantPanel = ({
         parts: [{ text: submissionText, type: "text" }],
         role: "user",
       });
+
       return { kind: "message", messageId };
     },
     [composerSubmissionStateRef, reportOperationalFailure],
@@ -2023,6 +2048,7 @@ const ConversationAiAssistantPanel = ({
       }
 
       setVoiceInputQueued(true);
+
       return new Promise((resolve, reject) => {
         const withdraw = (): void => {
           // Only the entry still holding this input may be withdrawn; a
@@ -2056,6 +2082,7 @@ const ConversationAiAssistantPanel = ({
       setVoiceInputQueued(false);
       queued.release();
       queued.reject(new Error("Voice mode could not accept that input."));
+
       return;
     }
     if (status !== "ready") {
@@ -2123,6 +2150,7 @@ const ConversationAiAssistantPanel = ({
           caught instanceof Error ? caught : new Error(String(caught)),
         );
       }
+
       return;
     }
     await stopCurrentResponse();
@@ -2160,6 +2188,7 @@ const ConversationAiAssistantPanel = ({
 
       if (interactionModeRef.current !== "voice" && !voiceActiveRef.current) {
         void submitAndRecover();
+
         return;
       }
 
@@ -2170,6 +2199,7 @@ const ConversationAiAssistantPanel = ({
             "Voice mode could not stop safely. End Voice mode and retry.",
           ),
         );
+
         return;
       }
 
@@ -2188,6 +2218,7 @@ const ConversationAiAssistantPanel = ({
         voiceHandoffPendingRef.current = false;
         setVoiceHandoffPending(false);
         selectInteractionMode("voice");
+
         return;
       }
 
@@ -2198,6 +2229,7 @@ const ConversationAiAssistantPanel = ({
         })
         .then(() => {
           setVoiceActive(false);
+
           return submitAndRecover();
         })
         .finally(() => {
@@ -2219,6 +2251,7 @@ const ConversationAiAssistantPanel = ({
       initialInteractionMode === null
     ) {
       consumedInitialInteractionModeRef.current = null;
+
       return;
     }
 
@@ -2260,6 +2293,7 @@ const ConversationAiAssistantPanel = ({
     const trimmedInitialMessage = initialMessage?.trim();
     if (!trimmedInitialMessage) {
       submittedInitialMessageRef.current = null;
+
       return;
     }
 
@@ -2302,7 +2336,6 @@ const ConversationAiAssistantPanel = ({
   const promptChips = selectPromptChips({
     hasConversation,
     isNetEmpty,
-    offerStartPosture,
   });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
@@ -2329,6 +2362,23 @@ const ConversationAiAssistantPanel = ({
     setVoiceActive,
     submitVoiceInput,
   });
+  // Each plugin tab renders behind its own boundary, so a failing tab leaves
+  // the chat and the other tabs in place.
+  const extraTabs = tabs.map((tab) => ({
+    id: tab.id,
+    label: tab.label,
+    mark: tab.mark,
+    attention: advancedAttention.attention[tab.id]?.count ?? 0,
+    content: (
+      <PluginContributionBoundary
+        pluginId={tab.pluginId}
+        contributionId={tab.id}
+        place="assistant-tab"
+      >
+        {tab.content}
+      </PluginContributionBoundary>
+    ),
+  }));
   const hiddenAutomaticToolNames = new Set(
     aiAssistant.automaticTools
       ?.filter(({ visibility }) => visibility === "hidden")
@@ -2337,7 +2387,9 @@ const ConversationAiAssistantPanel = ({
 
   return (
     <AiAssistantContents
-      additionalTab={aiAssistant.additionalTab}
+      extraTabs={extraTabs}
+      activeTabId={activeTabId}
+      onActiveTabChange={onActiveTabChange}
       attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
@@ -2352,8 +2404,6 @@ const ConversationAiAssistantPanel = ({
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
-      hostAttentionCount={hostAttentionCount}
-      hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
       onClearMessages={() => {
@@ -2413,6 +2463,7 @@ const ConversationAiAssistantPanel = ({
           // its own continuation while streaming, but AI SDK checks again when
           // the stream reaches ready. The ready-state effect owns the one send.
           explicitContinuationToolCallIdsRef.current.add(toolCallId);
+
           return addDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
@@ -2440,6 +2491,7 @@ const ConversationAiAssistantPanel = ({
             toolCallId,
             output: petrinautOutput,
           });
+
           return;
         }
 
@@ -2454,6 +2506,7 @@ const ConversationAiAssistantPanel = ({
               reason: formatReadOnlyReason(readOnlyAtSubmit),
             } satisfies AiToolOutput,
           });
+
           return;
         }
 
@@ -2469,7 +2522,6 @@ const ConversationAiAssistantPanel = ({
           });
         });
       }}
-      onHostTabSelectedChange={setHostTabSelected}
       onSelectToolTarget={(target) =>
         selectTarget(target, {
           navigateTo,

@@ -48,6 +48,8 @@ import {
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { createAssistantPlugin } from "../../../plugins/create-assistant-plugin";
+import { PetrinautPluginsProvider } from "../../../plugins/plugins-provider";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
@@ -58,8 +60,10 @@ import {
   getVoiceToolCallIds,
   safelyAddToolOutput,
 } from "./ai-assistant-panel";
+import { CHAT_TAB_ID } from "./ai-assistant-panel/ai-assistant-contents";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type { PetrinautAssistantTab } from "../../../plugins/define-petrinaut-plugin";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiInputMode,
@@ -70,7 +74,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { UIMessageChunk } from "ai";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 let voiceModeMounts = 0;
 let voiceModeUnmounts = 0;
@@ -236,6 +240,7 @@ const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
 const CanvasInsetProbe = () => {
   const canvasInsets = useCanvasInsets();
+
   return <output data-testid="canvas-right-inset">{canvasInsets.right}</output>;
 };
 
@@ -247,6 +252,7 @@ const EditorTestProvider = ({
   value: EditorContextValue;
 }) => {
   const [collapsed, setCollapsed] = useState(value.isAiAssistantCollapsed);
+
   return (
     <EditorContext
       value={{
@@ -261,8 +267,38 @@ const EditorTestProvider = ({
   );
 };
 
+/**
+ * Owns the active assistant tab as the editor does in production: the panel
+ * always passes `activeTabId` down controlled, so a tab switch needs an owner.
+ */
+const TabbedAiAssistantPanel = ({
+  initialActiveTabId,
+  onActiveTabChange,
+  ...props
+}: Omit<ComponentProps<typeof AiAssistantPanel>, "activeTabId"> & {
+  initialActiveTabId?: string;
+}) => {
+  const [activeTabId, setActiveTabId] = useState(
+    initialActiveTabId ?? CHAT_TAB_ID,
+  );
+
+  return (
+    <AiAssistantPanel
+      {...props}
+      activeTabId={activeTabId}
+      onActiveTabChange={(tabId) => {
+        setActiveTabId(tabId);
+        onActiveTabChange?.(tabId);
+      }}
+    />
+  );
+};
+
 const renderTestPanel = ({
   aiAssistant,
+  tabs,
+  activeTabId,
+  onActiveTabChange,
   editorContext = editorContextValue,
   errorTracker = { captureException: () => {} },
   initialInteractionMode,
@@ -279,6 +315,11 @@ const renderTestPanel = ({
   experimentHost,
 }: {
   aiAssistant: PetrinautAiAssistant;
+  /** Tabs the assistant plugin adds beside the chat. */
+  tabs?: readonly PetrinautAssistantTab[];
+  /** Seeds the harness-owned active tab; `CHAT_TAB_ID` when omitted. */
+  activeTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
   editorContext?: EditorContextValue;
   errorTracker?: ErrorTracker;
   initialInteractionMode?: PetrinautAiInputMode;
@@ -296,6 +337,16 @@ const renderTestPanel = ({
   });
   const instance = createPetrinaut({ document: handle });
   testInstances.push(instance);
+  // The canvas reserves space for the window only while a plugin assistant is
+  // active, so the assistant under test is installed as one. Built once per
+  // render so rerenders keep the install.
+  const plugins = [
+    createAssistantPlugin({
+      id: "test.assistant",
+      label: aiAssistant.primaryLabel ?? "AI",
+      assistant: aiAssistant,
+    }),
+  ];
   const sdcpnContext: SDCPNContextValue = {
     createNewNet: () => {},
     existingNets: [],
@@ -318,29 +369,40 @@ const renderTestPanel = ({
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <ErrorTrackerContext.Provider value={errorTracker}>
-        <ExperimentHostContext
-          value={
-            experimentHost ?? {
-              runExperiment: () =>
-                Promise.reject(new Error("Experiment host unavailable")),
-            }
-          }
+        <PetrinautPluginsProvider
+          plugins={plugins}
+          document={{ id: handle.id, handle }}
         >
-          <NotificationsProvider>
-            <EditorTestProvider value={nextEditorContext}>
-              <SDCPNContext.Provider value={sdcpnContext}>
-                <AiAssistantPanel
-                  aiAssistant={nextAiAssistant}
-                  initialInteractionMode={nextInitialInteractionMode}
-                  initialMessage={nextInitialMessage}
-                  onInitialInteractionModeConsumed={
-                    onInitialInteractionModeConsumed
-                  }
-                />
-              </SDCPNContext.Provider>
-            </EditorTestProvider>
-          </NotificationsProvider>
-        </ExperimentHostContext>
+          <ExperimentHostContext
+            value={
+              experimentHost ?? {
+                runExperiment: () =>
+                  Promise.reject(new Error("Experiment host unavailable")),
+              }
+            }
+          >
+            <NotificationsProvider>
+              <EditorTestProvider value={nextEditorContext}>
+                <SDCPNContext.Provider value={sdcpnContext}>
+                  <TabbedAiAssistantPanel
+                    aiAssistant={nextAiAssistant}
+                    tabs={tabs?.map((tab) => ({
+                      ...tab,
+                      pluginId: "test.assistant",
+                    }))}
+                    initialActiveTabId={activeTabId}
+                    onActiveTabChange={onActiveTabChange}
+                    initialInteractionMode={nextInitialInteractionMode}
+                    initialMessage={nextInitialMessage}
+                    onInitialInteractionModeConsumed={
+                      onInitialInteractionModeConsumed
+                    }
+                  />
+                </SDCPNContext.Provider>
+              </EditorTestProvider>
+            </NotificationsProvider>
+          </ExperimentHostContext>
+        </PetrinautPluginsProvider>
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
@@ -374,6 +436,12 @@ const renderTestPanel = ({
         ),
       ),
   };
+};
+
+const ledgerTab: PetrinautAssistantTab = {
+  id: "ledger",
+  label: "Ledger",
+  content: <p>Ledger body</p>,
 };
 
 afterEach(() => {
@@ -445,6 +513,7 @@ describe("AiAssistantPanel composer submissions", () => {
           })),
         renderComposerControl: (next) => {
           context = next;
+
           return null;
         },
       },
@@ -471,6 +540,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -529,9 +599,15 @@ describe("AiAssistantPanel composer submissions", () => {
     renderTestPanel({
       aiAssistant: {
         conversationId: "host-tab",
-        additionalTab: { label: "Workpiece", content: <p>Saved workpiece</p> },
         transport: { sendMessages, reconnectToStream: async () => null },
       },
+      tabs: [
+        {
+          id: "workpiece",
+          label: "Workpiece",
+          content: <p>Saved workpiece</p>,
+        },
+      ],
     });
     const hostTab = screen.getByRole("tab", { name: "Workpiece" });
     screen.getByRole("tab", { name: "AI" }).focus();
@@ -550,91 +626,6 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("baselines, deduplicates, caps and acknowledges host activity", async () => {
-    const transport = {
-      sendMessages: vi.fn<PetrinautAiTransport["sendMessages"]>(),
-      reconnectToStream: async () => null,
-    };
-    const config = (activityIdentities: readonly string[]) => ({
-      conversationId: "host-attention",
-      primaryLabel: "Chat",
-      additionalTab: {
-        label: "Ledger",
-        content: <p>Ledger body</p>,
-        activityIdentities,
-      },
-      transport,
-    });
-    const mounted = renderTestPanel({ aiAssistant: config(["baseline"]) });
-    expect(screen.queryByText("9+")).toBeNull();
-
-    mounted.rerenderPanel(
-      config([
-        "baseline",
-        ...Array.from({ length: 11 }, (_, index) => `revision-${index}`),
-      ]),
-    );
-    expect(await screen.findByText("9+")).not.toBeNull();
-    mounted.rerenderPanel(
-      config([
-        "baseline",
-        ...Array.from({ length: 11 }, (_, index) => `revision-${index}`),
-      ]),
-    );
-    const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
-    expect(ledgerTab.querySelector('[aria-hidden="true"]')).not.toBeNull();
-
-    fireEvent.click(ledgerTab);
-    await waitFor(() => expect(screen.queryByText("9+")).toBeNull());
-
-    mounted.rerenderPanel(config(["baseline", "revision-0"]), {
-      ...editorContextValue,
-      isAiAssistantOpen: false,
-    });
-    mounted.rerenderPanel(
-      config(["baseline", "revision-0", "closed-revision"]),
-      {
-        ...editorContextValue,
-        isAiAssistantOpen: false,
-      },
-    );
-    expect(await screen.findByText("1")).not.toBeNull();
-    expect(
-      document.querySelector('[role="tab"][aria-label="Ledger"]'),
-    ).not.toBeNull();
-  });
-
-  test("clears live text after a tick so an identical announcement can fire later", async () => {
-    const transport = {
-      sendMessages: vi.fn<PetrinautAiTransport["sendMessages"]>(),
-      reconnectToStream: async () => null,
-    };
-    const config = (activityIdentities: readonly string[]) => ({
-      conversationId: "repeat-announcement",
-      primaryLabel: "Chat",
-      additionalTab: {
-        label: "Ledger",
-        content: <p>Ledger body</p>,
-        activityIdentities,
-      },
-      transport,
-    });
-    const mounted = renderTestPanel({ aiAssistant: config(["baseline"]) });
-
-    mounted.rerenderPanel(config(["baseline", "revision-1"]));
-    const attentionAnnouncement = screen.getByText("1 unseen Ledger update");
-    expect(attentionAnnouncement.getAttribute("role")).toBe("status");
-    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
-    expect(attentionAnnouncement.textContent).toBe("");
-
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Chat" }));
-    mounted.rerenderPanel(config(["baseline", "revision-1", "revision-2"]));
-    expect(screen.getByText("1 unseen Ledger update")).toBe(
-      attentionAnnouncement,
-    );
-  });
-
   test("marks the labelled chat when a response terminates behind the host tab", async () => {
     const transport: PetrinautAiTransport = {
       reconnectToStream: async () => null,
@@ -648,17 +639,10 @@ describe("AiAssistantPanel composer submissions", () => {
         ]),
     };
     renderTestPanel({
-      aiAssistant: {
-        primaryLabel: "Chat",
-        additionalTab: {
-          label: "Ledger",
-          content: <p>Ledger body</p>,
-          activityIdentities: [],
-        },
-        transport,
-      },
+      aiAssistant: { primaryLabel: "Chat", transport },
+      tabs: [ledgerTab],
+      activeTabId: "ledger",
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
@@ -683,11 +667,6 @@ describe("AiAssistantPanel composer submissions", () => {
     renderTestPanel({
       aiAssistant: {
         primaryLabel: "Chat",
-        additionalTab: {
-          label: "Ledger",
-          content: <p>Ledger body</p>,
-          activityIdentities: [],
-        },
         transport: {
           reconnectToStream: async () => null,
           sendMessages: async () => {
@@ -695,8 +674,9 @@ describe("AiAssistantPanel composer submissions", () => {
           },
         },
       },
+      tabs: [ledgerTab],
+      activeTabId: "ledger",
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
@@ -747,6 +727,7 @@ describe("AiAssistantPanel composer submissions", () => {
         transport: { reconnectToStream: async () => null, sendMessages },
         renderComposerControl: (context) => {
           latest = context;
+
           return null;
         },
       },
@@ -774,6 +755,7 @@ describe("AiAssistantPanel composer submissions", () => {
       observedNames.push(boundInstance?.definition.get().places[0]?.name);
       const output = call.execute();
       observedNames.push(boundInstance?.definition.get().places[0]?.name);
+
       return output;
     });
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
@@ -786,6 +768,7 @@ describe("AiAssistantPanel composer submissions", () => {
             output: expect.objectContaining({ applied: true }) as unknown,
           }),
         );
+
         return streamChunks([
           ...textChunks("a3-reply", "Continued after observation."),
           { type: "finish", finishReason: "stop" },
@@ -878,6 +861,7 @@ describe("AiAssistantPanel composer submissions", () => {
         followMessages,
         renderComposerControl: (context) => {
           control = context;
+
           return null;
         },
       },
@@ -1049,6 +1033,7 @@ describe("AiAssistantPanel composer submissions", () => {
       followMessages: { canReplace: () => canReplace },
       renderComposerControl: (context) => {
         control = context;
+
         return null;
       },
     };
@@ -1134,6 +1119,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: async () => null,
       sendMessages: vi.fn(async ({ messages }) => {
         requests.push(structuredClone(messages));
+
         return streamChunks(textChunks("reply", "Synthetic continuation"));
       }),
     };
@@ -1169,6 +1155,7 @@ describe("AiAssistantPanel composer submissions", () => {
         ],
         renderComposerControl: (context) => {
           control = context;
+
           return null;
         },
       },
@@ -1197,6 +1184,7 @@ describe("AiAssistantPanel composer submissions", () => {
       { answer: string }
     >) => {
       const [completion, setCompletion] = useState("pending");
+
       return (
         <>
           <button
@@ -1204,6 +1192,7 @@ describe("AiAssistantPanel composer submissions", () => {
             onClick={() => {
               if (!submitAndWait) {
                 setCompletion("unavailable");
+
                 return;
               }
               void submitAndWait({ answer: "Must not submit" }).then(
@@ -1356,6 +1345,7 @@ describe("AiAssistantPanel composer submissions", () => {
           ...(following ? { followMessages: { canReplace: () => false } } : {}),
           renderComposerControl: (context) => {
             control = context;
+
             return null;
           },
         },
@@ -1497,6 +1487,7 @@ describe("AiAssistantPanel composer submissions", () => {
       requestStop: async () => "already-settled",
       renderComposerControl: (context) => {
         latest = context;
+
         return null;
       },
     });
@@ -1552,6 +1543,7 @@ describe("AiAssistantPanel composer submissions", () => {
         await new Promise<void>((resolve) => {
           releaseLayout = resolve;
         });
+
         return applyAutoLayout();
       });
     await waitFor(() => expect(releaseLayout).toBeDefined());
@@ -1582,6 +1574,7 @@ describe("AiAssistantPanel composer submissions", () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
       ({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks([
             { type: "start-step" },
@@ -1661,6 +1654,7 @@ describe("AiAssistantPanel composer submissions", () => {
         requestMessages.push(structuredClone(messages));
         if (requestMessages.length <= 2) {
           const toolCallId = `automatic-net-read-${requestMessages.length}`;
+
           return Promise.resolve(
             streamChunks([
               { type: "start-step" },
@@ -1675,6 +1669,7 @@ describe("AiAssistantPanel composer submissions", () => {
             ]),
           );
         }
+
         return Promise.resolve(
           streamChunks(
             textChunks("automatic-complete", "Construction complete"),
@@ -1740,6 +1735,7 @@ describe("AiAssistantPanel composer submissions", () => {
             ]),
           );
         }
+
         return Promise.resolve(
           streamChunks(textChunks("batch-complete", "Both reads received")),
         );
@@ -1820,6 +1816,7 @@ describe("AiAssistantPanel composer submissions", () => {
         await new Promise<void>((resolve) => {
           releaseLayout = resolve;
         });
+
         return { commitCount: 0 };
       });
 
@@ -1843,12 +1840,14 @@ describe("AiAssistantPanel composer submissions", () => {
     let finishVoiceEnd: (() => void) | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
+
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
+
       return Promise.resolve(
         streamChunks(
           textChunks("pending-active-handoff", "Pending handoff accepted"),
@@ -1923,12 +1922,14 @@ describe("AiAssistantPanel composer submissions", () => {
     let finishVoiceEnd: (() => void) | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
+
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
+
       return Promise.resolve(
         streamChunks(textChunks("cta-handoff", "CTA handoff accepted")),
       );
@@ -2002,12 +2003,14 @@ describe("AiAssistantPanel composer submissions", () => {
     let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
+
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
+
       return Promise.resolve(
         streamChunks(textChunks("typed-handoff", "Typed handoff accepted")),
       );
@@ -2048,6 +2051,7 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
+
           return <VoiceMode context={context} />;
         },
         transport: {
@@ -2129,6 +2133,7 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
+
           return <VoiceMode context={context} />;
         },
         transport: {
@@ -2398,12 +2403,14 @@ describe("AiAssistantPanel composer submissions", () => {
     let finishVoiceEnd: (() => void) | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
+
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
+
       return Promise.resolve(
         streamChunks(textChunks("prompt-response", "Prompt accepted")),
       );
@@ -2638,10 +2645,12 @@ describe("AiAssistantPanel composer submissions", () => {
     const VoiceMode = ({ isOpen }: { isOpen: boolean }) => {
       useEffect(() => {
         voiceModeMounts += 1;
+
         return () => {
           voiceModeUnmounts += 1;
         };
       }, []);
+
       return <div>{`Voice mode ${isOpen ? "open" : "closed"}`}</div>;
     };
     const aiAssistant: PetrinautAiAssistant = {
@@ -2711,6 +2720,7 @@ describe("AiAssistantPanel composer submissions", () => {
           speakerMuted: false,
           speakerVolume: 0.25,
         });
+
         return () => reportVoiceSessionState(null);
       }, [replayAllowed, reportVoiceSessionState]);
 
@@ -2798,6 +2808,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
       useEffect(() => {
         if (!registerVoiceModeSessionControls) return;
+
         return registerVoiceModeSessionControls({
           end: async () => undefined,
           pause: vi.fn(),
@@ -2816,6 +2827,7 @@ describe("AiAssistantPanel composer submissions", () => {
           speakerMuted: false,
           speakerVolume: 0.5,
         });
+
         return () => reportVoiceSessionState(null);
       }, [reportVoiceSessionState]);
 
@@ -2874,6 +2886,7 @@ describe("AiAssistantPanel composer submissions", () => {
       const { inputMode, registerVoiceModeControls, setVoiceActive } = context;
       useEffect(() => {
         voiceModeMounts += 1;
+
         return () => {
           voiceModeUnmounts += 1;
         };
@@ -2894,6 +2907,7 @@ describe("AiAssistantPanel composer submissions", () => {
           setVoiceActive(true);
         }
       }, [inputMode, setVoiceActive]);
+
       return (
         <button type="button" onClick={() => context.setInputMode("text")}>
           {`Voice mode ${inputMode}`}
@@ -2934,6 +2948,7 @@ describe("AiAssistantPanel composer submissions", () => {
     const aiAssistant: PetrinautAiAssistant = {
       renderVoiceMode: (context) => {
         latestInputMode = context.inputMode;
+
         return <div>Voice mode</div>;
       },
       transport: {
@@ -3113,6 +3128,7 @@ describe("AiAssistantPanel composer submissions", () => {
             }),
           );
         }
+
         return Promise.resolve(
           streamChunks(textChunks("next-answer", "Next answer accepted")),
         );
@@ -3136,6 +3152,7 @@ describe("AiAssistantPanel composer submissions", () => {
         interactiveTools: [hostTool],
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
+
           return (
             <button
               type="button"
@@ -3232,6 +3249,7 @@ describe("AiAssistantPanel composer submissions", () => {
       conversationId,
       renderVoiceMode: (context) => {
         latestVoiceContext = context;
+
         return null;
       },
       transport,
@@ -3276,6 +3294,7 @@ describe("AiAssistantPanel composer submissions", () => {
         () => reportExperimentRunning?.(true),
         [reportExperimentRunning],
       );
+
       return null;
     };
     const assistant: PetrinautAiAssistant = {
@@ -3305,6 +3324,7 @@ describe("AiAssistantPanel composer submissions", () => {
         },
         renderComposerControl: (context) => {
           controls = context;
+
           return null;
         },
       },
@@ -3330,6 +3350,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ chatId }) => {
         chatIds.push(chatId);
+
         return Promise.resolve(
           streamChunks(
             textChunks("generated-id-response", "Generated ID used"),
@@ -3342,6 +3363,7 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         renderComposerControl: (context) => {
           observedConversationIds.add(context.conversationId);
+
           return (
             <button
               type="button"
@@ -3373,6 +3395,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ chatId }) => {
         chatIds.push(chatId);
+
         return Promise.resolve(
           streamChunks(textChunks("second-response", "Second chat used")),
         );
@@ -3406,6 +3429,7 @@ describe("AiAssistantPanel composer submissions", () => {
         chatIds.push(chatId);
         requestMessages.push(structuredClone(messages));
         const responseId = `response-${requestMessages.length}`;
+
         return Promise.resolve(
           streamChunks([
             { type: "start-step" },
@@ -3509,11 +3533,6 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         primaryLabel: "Chat",
         presentation: "brunch",
-        additionalTab: {
-          label: "Ledger",
-          content: <p>Ledger body</p>,
-          activityIdentities: [],
-        },
         renderComposerControl: ({ stop }) => (
           <button
             type="button"
@@ -3526,6 +3545,7 @@ describe("AiAssistantPanel composer submissions", () => {
         ),
         transport,
       },
+      tabs: [ledgerTab],
       initialMessage: "Start a long response",
     });
     await screen.findByText("Partial response");
@@ -3624,6 +3644,7 @@ describe("AiAssistantPanel composer submissions", () => {
       streamController?.enqueue({ type: "finish-step" });
       streamController?.enqueue({ type: "finish", finishReason: "stop" });
       streamController?.close();
+
       return "already-settled" as const;
     });
 
@@ -3678,6 +3699,7 @@ describe("AiAssistantPanel composer submissions", () => {
       streamController?.enqueue({ type: "finish-step" });
       streamController?.enqueue({ type: "finish", finishReason: "tool-calls" });
       streamController?.close();
+
       return "already-settled" as const;
     });
 
@@ -3743,6 +3765,7 @@ describe("AiAssistantPanel composer submissions", () => {
           transport: { reconnectToStream: async () => null, sendMessages },
           renderComposerControl: (context) => {
             latest = context;
+
             return null;
           },
         },
@@ -3808,6 +3831,7 @@ describe("AiAssistantPanel composer submissions", () => {
         transport: { reconnectToStream: async () => null, sendMessages },
         renderComposerControl: (context) => {
           latest = context;
+
           return null;
         },
       },
@@ -3920,6 +3944,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(() => {
         requestCount += 1;
+
         return Promise.resolve(
           streamChunks(
             requestCount === 1
@@ -3948,6 +3973,7 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         renderComposerControl: (context) => {
           observedStatuses.push(context.status);
+
           return null;
         },
         transport,
@@ -3984,6 +4010,7 @@ describe("AiAssistantPanel composer submissions", () => {
         if (requestCount > 1) {
           return new Promise<ReadableStream<UIMessageChunk>>(() => {});
         }
+
         return Promise.resolve(
           streamChunks([
             ...textChunks("preamble", "Checking the net"),
@@ -4005,6 +4032,7 @@ describe("AiAssistantPanel composer submissions", () => {
       conversationId,
       renderComposerControl: (context) => {
         statuses.push(`${context.conversationId}:${context.status}`);
+
         return (
           <button
             type="button"
@@ -4161,6 +4189,7 @@ describe("AiAssistantPanel composer submissions", () => {
               }),
             );
           }
+
           return Promise.resolve(
             new ReadableStream<UIMessageChunk>({
               start(controller) {
@@ -4260,6 +4289,7 @@ describe("AiAssistantPanel composer submissions", () => {
         }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) => {
           requestCount += 1;
           const isFirst = requestCount === 1;
+
           return Promise.resolve(
             new ReadableStream<UIMessageChunk>({
               start(controller) {
@@ -4371,6 +4401,7 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: {
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
+
           return null;
         },
         transport,
@@ -4568,6 +4599,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(textChunks("voice-response", "Voice message accepted")),
         );
@@ -4629,6 +4661,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(textChunks("voice-response", "Voice message accepted")),
         );
@@ -4675,6 +4708,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5113,6 +5147,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5182,6 +5217,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             textChunks(
@@ -5227,6 +5263,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5314,6 +5351,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(() => {
         requests += 1;
+
         return Promise.resolve(
           streamChunks(
             requests === 1
@@ -5385,6 +5423,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5451,6 +5490,7 @@ describe("AiAssistantPanel composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(textChunks("ordinary-response", "Message received")),
         );
@@ -5577,6 +5617,7 @@ describe("AiAssistantPanel host interactive tools", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5691,6 +5732,7 @@ describe("AiAssistantPanel host interactive tools", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
+
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5816,6 +5858,7 @@ describe("AiAssistantPanel host interactive tools", () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
       const call = turn.calls[turn.current];
       turn.current += 1;
+
       return Promise.resolve(
         streamChunks(
           call === undefined
@@ -5845,6 +5888,7 @@ describe("AiAssistantPanel host interactive tools", () => {
             execute: async ({ readDiagnosticsContext }) => {
               const context = await readDiagnosticsContext();
               diagnosticsOutputs.push(context);
+
               return { context };
             },
           },
@@ -5862,6 +5906,7 @@ describe("AiAssistantPanel host interactive tools", () => {
                 x: 0,
                 y: 0,
               });
+
               return { applied: true };
             },
           },
@@ -6009,6 +6054,7 @@ describe("AI experiment requests", () => {
     sendMessages.mockImplementation(async () =>
       streamChunks(textChunks("done", "Result received")),
     );
+
     return {
       transport: { reconnectToStream: async () => null, sendMessages },
       sendMessages,
@@ -6026,6 +6072,7 @@ describe("AI experiment requests", () => {
           runsCompleted: 3,
           runsTarget: 8,
         });
+
         return completion.promise;
       },
     );
@@ -6201,6 +6248,7 @@ describe("AI experiment requests", () => {
             metrics: [],
           }),
         );
+
         return completion.promise;
       },
     );
@@ -6268,6 +6316,7 @@ describe("AI experiment requests", () => {
           metrics: [],
         }),
       );
+
       return current.promise;
     });
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>

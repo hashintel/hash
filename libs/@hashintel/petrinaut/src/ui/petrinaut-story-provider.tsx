@@ -8,6 +8,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { Petrinaut, type PetrinautAiAssistant } from "./petrinaut";
+import { createAssistantPlugin } from "./plugins/create-assistant-plugin";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -50,6 +51,7 @@ export const PetrinautStoryProvider = ({
 }) => {
   const [nets, setNets] = useState<Record<string, StoredNet>>(() => {
     const id = "net-1";
+
     return {
       [id]: { id, title: initialTitle, sdcpn: initialDefinition },
     };
@@ -74,6 +76,7 @@ export const PetrinautStoryProvider = ({
           if (!stored) {
             return prev;
           }
+
           return { ...prev, [handle.id]: { ...stored, sdcpn: event.next } };
         });
       });
@@ -127,9 +130,21 @@ export const PetrinautStoryProvider = ({
       if (!net) {
         return prev;
       }
+
       return { ...prev, [currentNetId]: { ...net, title } };
     });
   };
+
+  // The story's assistant becomes one plugin, as a host would pass it.
+  const plugins = aiAssistant
+    ? [
+        createAssistantPlugin({
+          id: "story.assistant",
+          label: "AI",
+          assistant: aiAssistant,
+        }),
+      ]
+    : [];
 
   const currentNet = nets[currentNetId]!;
   const handle = handlesByNetId[currentNetId];
@@ -141,8 +156,8 @@ export const PetrinautStoryProvider = ({
   return (
     <>
       <Petrinaut
-        aiAssistant={aiAssistant}
         handle={handle}
+        plugins={plugins}
         existingNets={existingNets}
         createNewNet={createNewNet}
         hideNetManagementControls={hideNetManagementControls}

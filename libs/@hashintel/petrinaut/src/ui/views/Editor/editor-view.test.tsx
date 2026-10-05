@@ -3,11 +3,15 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+
 import {
   EditorContext,
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
+import { createAssistantPlugin } from "../../plugins/create-assistant-plugin";
+import { PetrinautPluginsProvider } from "../../plugins/plugins-provider";
 import { EditorView } from "./editor-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -34,8 +38,10 @@ vi.mock("./panels/ai-assistant-panel", () => ({
   AiAssistantPanel: () => {
     useEffect(() => {
       lifecycle.mount();
+
       return lifecycle.cancelPendingRequest;
     }, []);
+
     return <section aria-label="AI assistant">Pending experiment</section>;
   },
 }));
@@ -48,6 +54,7 @@ vi.mock("./panels/SimulateView/simulate-view", () => ({
 vi.mock("../Notebook/notebook-view", () => ({
   NotebookView: () => {
     const [query, setQuery] = useState("");
+
     return (
       <section aria-label="Definitions">
         <input
@@ -62,6 +69,7 @@ vi.mock("../Notebook/notebook-view", () => ({
 vi.mock("../SDCPN/sdcpn-view", () => ({
   SDCPNView: () => {
     const [zoom, setZoom] = useState(1);
+
     return (
       <button type="button" onClick={() => setZoom(zoom + 1)}>
         Canvas zoom {zoom}
@@ -105,6 +113,25 @@ const aiAssistant: PetrinautAiAssistant = {
   },
 };
 
+const plugins = [
+  createAssistantPlugin({
+    id: "test.assistant",
+    label: "AI",
+    assistant: aiAssistant,
+  }),
+];
+const handle = createJsonDocHandle({
+  id: "editor-view-test",
+  initial: {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  },
+});
+const pluginDocument = { id: handle.id, handle };
+
 const EditorAtMode = ({
   mode,
   view = "canvas",
@@ -113,6 +140,7 @@ const EditorAtMode = ({
   view?: EditViewMode;
 }) => {
   const editor = use(EditorContext);
+
   return (
     <EditorContext.Provider
       value={{
@@ -122,7 +150,9 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <EditorView aiAssistant={aiAssistant} titleEditable />
+      <PetrinautPluginsProvider plugins={plugins} document={pluginDocument}>
+        <EditorView titleEditable />
+      </PetrinautPluginsProvider>
     </EditorContext.Provider>
   );
 };
@@ -130,6 +160,7 @@ const EditorAtMode = ({
 const EditableWorkspace = () => {
   const editor = use(EditorContext);
   const [editViewMode, setEditViewMode] = useState<EditViewMode>("canvas");
+
   return (
     <EditorContext.Provider
       value={{ ...editor, editViewMode, setEditViewMode }}

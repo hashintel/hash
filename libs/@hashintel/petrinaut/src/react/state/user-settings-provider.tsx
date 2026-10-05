@@ -43,6 +43,8 @@ type PersistedUserSettings = Partial<UserSettings> & {
    */
   enableAdHocScenarios?: boolean;
   enableNotebookView?: boolean;
+  /** Gated a demo-only File menu entry. Dropped on the next write. */
+  brunchDemoMode?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -60,8 +62,10 @@ const loadSettings = (): UserSettings => {
         enableOptimizationSurface: _enableOptimizationSurface,
         enableAdHocScenarios: _enableAdHocScenarios,
         enableNotebookView: _enableNotebookView,
+        brunchDemoMode: _brunchDemoMode,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
+
       return {
         ...defaultUserSettings,
         ...parsed,
@@ -70,6 +74,7 @@ const loadSettings = (): UserSettings => {
   } catch {
     // Ignore corrupted or unavailable localStorage
   }
+
   return defaultUserSettings;
 };
 
@@ -149,8 +154,17 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ),
       }));
     },
-    setBrunchDemoMode: (value: boolean) =>
-      setState((prev) => ({ ...prev, brunchDemoMode: value })),
+    setAiAssistantId: (pluginId: string | null) =>
+      setState((prev) => ({ ...prev, aiAssistantId: pluginId })),
+    setPluginEnabled: (pluginId: string, enabled: boolean) =>
+      setState((prev) => ({
+        ...prev,
+        disabledPluginIds: enabled
+          ? prev.disabledPluginIds.filter((id) => id !== pluginId)
+          : prev.disabledPluginIds.includes(pluginId)
+            ? prev.disabledPluginIds
+            : [...prev.disabledPluginIds, pluginId],
+      })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
@@ -162,6 +176,7 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
           collapsed: existing?.collapsed ?? false,
           ...update,
         };
+
         return {
           ...prev,
           subViewPanels: {
@@ -189,6 +204,7 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const ancestor = use(UserSettingsContext);
+
   return ancestor === defaultUserSettingsContextValue ? (
     <OwnedUserSettingsProvider>{children}</OwnedUserSettingsProvider>
   ) : (

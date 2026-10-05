@@ -303,7 +303,8 @@ const TestProviders = ({
     setShowWalkthroughOnInit: () => {},
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
-    setBrunchDemoMode: () => {},
+    setAiAssistantId: () => {},
+    setPluginEnabled: () => {},
     updateSubViewSection: () => {},
   };
 
@@ -760,6 +761,7 @@ const firstConstraintSession = (
   if (!params) {
     throw new Error("expected a constraint session to have been initialized");
   }
+
   return params;
 };
 
@@ -811,6 +813,7 @@ const openConstrainedSweep = async (
   fireEvent.click(
     screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
   );
+
   return rendered;
 };
 
@@ -1612,12 +1615,14 @@ describe("CreateExperimentDrawer objective", () => {
     const order: string[] = [];
     const createExperiment = vi.fn((input: CreateExperimentInput) => {
       order.push("createExperiment");
+
       return createdSweep(input, "experiment-objective");
     });
     const createOptimization = vi.fn<
       OptimizationsContextValue["createOptimization"]
     >(() => {
       order.push("createOptimization");
+
       return Promise.resolve("study-objective");
     });
     const setSelectedExperimentId = vi.fn(() => {

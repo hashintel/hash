@@ -30,7 +30,11 @@ export type PetrinautSimulateResource =
   | { type: "metric"; id: string }
   | { type: "experiment"; id: string };
 
-export type PetrinautSettingsSection = "general" | "viewport" | "labs";
+export type PetrinautSettingsSection =
+  | "general"
+  | "viewport"
+  | "plugins"
+  | "labs";
 
 export type PetrinautNavigationOverlay =
   | { type: "user-settings"; section?: PetrinautSettingsSection }
@@ -169,6 +173,7 @@ const selectionsMatch = (
   left.length === right.length &&
   left.every((item, index) => {
     const rightItem = right[index]!;
+
     return item.type === rightItem.type && item.id === rightItem.id;
   });
 
@@ -318,6 +323,7 @@ export const PetrinautNavigationProvider = ({
           overlay: null,
         };
       }
+
       return next;
     };
     const optimistic = optimisticRef.current;
@@ -353,9 +359,11 @@ export const PetrinautNavigationProvider = ({
     } else {
       setUncontrolledState((latest) => {
         const next = updater(latest);
+
         return petrinautNavigationStatesMatch(latest, next) ? latest : next;
       });
     }
+
     return true;
   };
 

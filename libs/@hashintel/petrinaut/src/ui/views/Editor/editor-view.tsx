@@ -47,6 +47,12 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import {
+  AssistantSwitchCommands,
+  useActiveAssistantContent,
+} from "../../plugins/plugin-assistants";
+import { usePluginOverlay } from "../../plugins/plugin-overlay";
+import { PluginRoots } from "../../plugins/plugin-roots";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -55,15 +61,12 @@ import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
-import {
-  createNewNetMenuItem,
-  shouldShowBrunchCreateNew,
-} from "./editor-view/create-new-net-menu";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
+import { CHAT_TAB_ID } from "./panels/ai-assistant-panel/ai-assistant-contents";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
@@ -75,7 +78,6 @@ import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
-import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
@@ -100,6 +102,7 @@ const formatRelativeTime = (isoTimestamp: string): string => {
   } else if (diffDays < 30) {
     return relativeTimeFormat.format(-diffDays, "day");
   }
+
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
@@ -164,13 +167,11 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
 const EditorViewContent = ({
-  aiAssistant,
   hideNetManagementControls,
   slots,
   titleEditable,
   viewportActions,
 }: {
-  aiAssistant?: PetrinautAiAssistant;
   /**
    * See {@link TopBar} for the full semantics.
    */
@@ -179,6 +180,14 @@ const EditorViewContent = ({
   titleEditable: boolean;
   viewportActions?: ViewportAction[];
 }) => {
+  // The assistant window's content comes from the active assistant plugin
+  // and the plugins extending it: the chat kit's configuration and the tabs.
+  // `null` means no assistant is ready, which hides the window and every AI
+  // entry point.
+  const activeAssistant = useActiveAssistantContent();
+  const hasAiAssistant = activeAssistant !== null;
+  // A plugin covering the canvas, e.g. the welcome guide, holds back the prompts.
+  const pluginOverlay = usePluginOverlay();
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
@@ -228,25 +237,23 @@ const EditorViewContent = ({
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  const [offerStartPosture, setOfferStartPosture] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
+  // Which tab of the assistant window is shown; it survives the panel
+  // remounting for another document.
+  const [activeAssistantTabId, setActiveAssistantTabId] = useState(CHAT_TAB_ID);
 
   const {
-    brunchDemoMode,
     enableExperimentalIconPack,
     showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
-  const showBrunchCreateNew = shouldShowBrunchCreateNew({
-    brunchDemoMode,
-    hasAiAssistant: aiAssistant !== undefined,
-  });
   const walkthrough = use(WalkthroughContext);
 
   const toggleAiAssistant = () => {
     if (isAiAssistantOpen) {
       setAiAssistantOpen(false);
+
       return;
     }
     setAiAssistantCollapsed(false);
@@ -283,19 +290,11 @@ const EditorViewContent = ({
   }
 
   function handleStartBlank() {
-    setOfferStartPosture(false);
     setIsAiCtaDismissed(true);
     handleCreateEmpty();
-    if (aiAssistant !== undefined) {
+    if (hasAiAssistant) {
       setAiAssistantOpen(false);
     }
-  }
-
-  function handleBuildWithBrunch() {
-    setIsAiCtaDismissed(true);
-    setOfferStartPosture(true);
-    handleCreateEmpty();
-    setAiAssistantOpen(true);
   }
 
   function handleExport(format: DocumentFormat) {
@@ -326,6 +325,7 @@ const EditorViewContent = ({
 
     if (!result.ok) {
       setImportError(result.error);
+
       return;
     }
 
@@ -346,12 +346,14 @@ const EditorViewContent = ({
           ...sdcpnToLoad,
           places: sdcpnToLoad.places.map((place) => {
             const position = positions[place.id];
+
             return position
               ? { ...place, x: position.x, y: position.y }
               : place;
           }),
           transitions: sdcpnToLoad.transitions.map((transition) => {
             const position = positions[transition.id];
+
             return position
               ? { ...transition, x: position.x, y: position.y }
               : transition;
@@ -372,13 +374,7 @@ const EditorViewContent = ({
 
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
-      ? [
-          createNewNetMenuItem({
-            showBrunchOptions: showBrunchCreateNew,
-            onBuildWithBrunch: handleBuildWithBrunch,
-            onStartBlank: handleStartBlank,
-          }),
-        ]
+      ? [{ id: "new", text: "New", onClick: handleStartBlank }]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
       ? [
@@ -556,10 +552,11 @@ const EditorViewContent = ({
   ];
 
   const showEmptyAiHero =
-    aiAssistant !== undefined &&
+    activeAssistant !== null &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
     !willShowWalkthroughDialog(walkthrough, isWalkthroughOpen) &&
+    !pluginOverlay &&
     isEmptySDCPN(petriNetDefinition);
 
   return (
@@ -569,13 +566,13 @@ const EditorViewContent = ({
     >
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
-        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+        onToggleAiAssistant={hasAiAssistant ? toggleAiAssistant : undefined}
       />
+      <AssistantSwitchCommands />
+      <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
-        showBrunchOptions={showBrunchCreateNew}
-        onBuildWithBrunch={handleBuildWithBrunch}
         onStartBlank={handleStartBlank}
       />
       <ImportErrorDialog
@@ -654,7 +651,7 @@ const EditorViewContent = ({
                           setAiAssistantOpen(true);
                         }}
                         voiceModeAvailable={
-                          aiAssistant.renderVoiceMode !== undefined
+                          activeAssistant.chat.renderVoiceMode !== undefined
                         }
                       />
                     )}
@@ -693,22 +690,25 @@ const EditorViewContent = ({
                 onEditionModeChange={setEditionMode}
                 cursorMode={cursorMode}
                 onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
+                hasAiAssistant={hasAiAssistant}
               />
             </Activity>
             <SimulationCreationDrawer />
           </SimulationWorkspace>
-          {aiAssistant && (
+          {activeAssistant && (
             <AiAssistantPanel
-              /** Reset state (e.g. initial messages) when the active net changes */
-              key={`ai-assistant-${petriNetId ?? "no-net"}`}
-              aiAssistant={aiAssistant}
+              // The chat is built once per assistant and document: switching
+              // either starts a fresh panel.
+              key={`ai-assistant-${activeAssistant.pluginId}-${petriNetId ?? "no-net"}`}
+              aiAssistant={activeAssistant.chat}
+              tabs={activeAssistant.tabs}
+              activeTabId={activeAssistantTabId}
+              onActiveTabChange={setActiveAssistantTabId}
               applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
               focusRequest={aiAssistantFocusRequest}
               frameSceneAfterRender={frameSceneAfterRender}
               initialMessage={pendingAiAssistantMessage}
               initialInteractionMode={pendingAiInteractionMode}
-              offerStartPosture={offerStartPosture}
               onInitialMessageConsumed={() =>
                 setPendingAiAssistantMessage(null)
               }

@@ -16,6 +16,7 @@ import {
 import { PetrinautOptimizationContext } from "../react/optimization-context";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
+import { createAssistantPlugin } from "./plugins/create-assistant-plugin";
 import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
 
 import type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
@@ -140,6 +141,7 @@ const getReviewDepthOutput = (
       }
     }
   }
+
   return undefined;
 };
 
@@ -607,11 +609,21 @@ const HandleSpikeRender = ({
     });
   }, [handle]);
 
+  const plugins = aiAssistant
+    ? [
+        createAssistantPlugin({
+          id: "story.assistant",
+          label: "AI",
+          assistant: aiAssistant,
+        }),
+      ]
+    : [];
+
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
       <Petrinaut
-        aiAssistant={aiAssistant}
         handle={handle}
+        plugins={plugins}
         title={title}
         setTitle={setTitle}
         hideNetManagementControls="all"

@@ -154,11 +154,13 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
+
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [enableAutomaticArcConnections, flowStore]);
 
   const isValidOutlineConnection: IsValidConnection = (connection) => {
     const canvasConnection = toCanvasConnection(connection);
+
     return (
       !canvasConnection.sourcePortId &&
       !canvasConnection.targetPortId &&
@@ -187,6 +189,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   useEffect(() => {
     registerController(controller);
+
     return () => registerController(null);
   }, [controller, registerController]);
 

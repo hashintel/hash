@@ -374,18 +374,32 @@ export function WorkflowEditor({
 The document carries no title; `title` and `setTitle` are host state. The
 full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 
-| Prop                                                                     | Purpose                                                                                                                                  |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `handle`                                                                 | The document handle. Required; all other props are optional.                                                                             |
-| `title`, `setTitle`                                                      | Host-owned title shown in the top bar.                                                                                                   |
-| `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
-| `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
-| `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
-| `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                 |
-| `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
-| `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
-| `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
-| `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
+| Prop                                                                     | Purpose                                                                                                                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handle`                                                                 | The document handle. Required; all other props are optional.                                                                                      |
+| `title`, `setTitle`                                                      | Host-owned title shown in the top bar.                                                                                                            |
+| `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                              |
+| `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                             |
+| `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                                      |
+| `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                          |
+| `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                           |
+| `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                           |
+| `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                         |
+| `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers.          |
+| `plugins`                                                                | The plugins that provide the AI assistant, toolbar buttons, top-bar items, settings and flags. Omitted: no assistant and no plugin contributions. |
+
+The AI assistant, extra toolbar buttons and top-bar items come from plugins
+passed through `plugins`. The older `aiAssistant`, `viewportActions` and
+`slots` props still work beside them: Petrinaut runs `aiAssistant` as an
+internal assistant plugin placed first, and renders `viewportActions` and
+`slots` content next to the plugins' contributions. A plugin declares
+its contributions in a manifest and returns them from a body Petrinaut runs as
+a hook in a host component beside the editor view; after each commit the host
+publishes what the body returned to a store the view reads, so a plugin
+switched on or off never remounts the view. The Plugins section of User
+settings lists the plugins with their manifests' description and author, and
+lets the user switch each one off. See the plugin API in
+`petrinaut/src/ui/plugins/define-petrinaut-plugin.ts`.
 
 ## Capabilities
 
@@ -424,12 +438,12 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                                               | Where                                                                               |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`        |
-| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx` |
-| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`              |
-| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                     |
+| Pattern                                                               | Where                                                                        |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx` |
+| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/`          |
+| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`       |
+| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                              |
 
 All of them wrap `createJsonDocHandle`; no adapter over an external store has
 shipped yet, which is part of why the contract still has the gaps the

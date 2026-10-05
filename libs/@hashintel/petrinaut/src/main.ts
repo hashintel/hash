@@ -27,6 +27,45 @@ export { PetrinautOptimizationContext } from "./react/optimization-context";
 
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type { ViewportAction } from "./ui/types/viewport-action";
+export {
+  definePetrinautPlugin,
+  type PetrinautAssistantExtension,
+  type PetrinautAssistantProvider,
+  type PetrinautAssistantTab,
+  type PetrinautPlugin,
+  type PetrinautPluginApi,
+  type PetrinautPluginBody,
+  type PetrinautPluginButtonProvider,
+  type PetrinautPluginDocument,
+  type PetrinautPluginProviders,
+} from "./ui/plugins/define-petrinaut-plugin";
+export {
+  definePluginManifest,
+  type PetrinautFlagSpec,
+  type PetrinautPluginButtonPlace,
+  type PetrinautPluginManifest,
+  type PetrinautPluginTopBarPlace,
+  type PetrinautSettingSpec,
+} from "./ui/plugins/plugin-manifest";
+export type { PetrinautPluginStatus } from "./ui/plugins/plugin-dependencies";
+export {
+  definePluginToken,
+  type PluginToken,
+  type PluginTokenValue,
+} from "./ui/plugins/plugin-token";
+export {
+  type PetrinautPluginContribution,
+  PetrinautPluginsProvider,
+  type PetrinautPluginsProviderProps,
+  usePetrinautPluginList,
+  usePetrinautPlugins,
+} from "./ui/plugins/plugins-provider";
+export {
+  type PetrinautActiveAssistant,
+  type PetrinautResolvedAssistantTab,
+  useActiveAssistantContent as usePetrinautActiveAssistant,
+} from "./ui/plugins/plugin-assistants";
+export { createAssistantPlugin } from "./ui/plugins/create-assistant-plugin";
 export type {
   PetrinautAiComposerControl,
   PetrinautAiComposerControlContext,

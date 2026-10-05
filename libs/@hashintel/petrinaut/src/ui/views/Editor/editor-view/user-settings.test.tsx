@@ -7,22 +7,29 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   isWebGpuAvailable,
   createCommandRegistry,
+  createJsonDocHandle,
 } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { aiAssistantPropPlugin } from "../../../plugins/ai-assistant-prop-plugin";
+import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
+import { definePluginToken } from "../../../plugins/plugin-token";
+import { PetrinautPluginsProvider } from "../../../plugins/plugins-provider";
 import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 
 beforeEach(() => {
@@ -47,23 +54,55 @@ afterEach(() => {
   Reflect.deleteProperty(HTMLElement.prototype, "scrollTo");
 });
 
+const noPlugins: readonly PetrinautPlugin[] = [];
+const pluginHandle = createJsonDocHandle({
+  id: "user-settings-test",
+  initial: {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  },
+});
+const pluginDocument = { id: pluginHandle.id, handle: pluginHandle };
+
+const testPlugins: readonly PetrinautPlugin[] = [
+  definePetrinautPlugin(
+    {
+      id: "test.plugin",
+      name: "Test plugin",
+      description: "Adds a voice flag.",
+      author: "Tests",
+      flags: {
+        voice: { default: false, label: "Voice", description: "Talk." },
+      },
+    },
+    () => ({}),
+  ),
+];
+
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
+  plugins: readonly PetrinautPlugin[] = noPlugins,
   settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();
   const result = render(
     <CommandRegistryProvider registry={registry}>
       <UserSettingsProvider>
-        <PetrinautNavigationProvider initialState={initialState}>
-          <PetrinautOptimizationContext value={optimization}>
-            <UserSettings settingsLabs={settingsLabs} />
-          </PetrinautOptimizationContext>
-        </PetrinautNavigationProvider>
+        <PetrinautPluginsProvider plugins={plugins} document={pluginDocument}>
+          <PetrinautNavigationProvider initialState={initialState}>
+            <PetrinautOptimizationContext value={optimization}>
+              <UserSettings settingsLabs={settingsLabs} />
+            </PetrinautOptimizationContext>
+          </PetrinautNavigationProvider>
+        </PetrinautPluginsProvider>
       </UserSettingsProvider>
     </CommandRegistryProvider>,
   );
+
   return { ...result, registry };
 };
 
@@ -306,6 +345,7 @@ describe("user settings", () => {
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "General",
       "Viewport",
+      "Plugins",
       "Labs",
     ]);
     for (const name of [
@@ -432,6 +472,184 @@ describe("Labs settings", () => {
     ).toBeNull();
   });
 
+  it("renders a plugin's flags as Labs rows after the built-in groups and persists a toggle", async () => {
+    const withoutPlugin = renderSettings({
+      overlay: { type: "user-settings", section: "labs" },
+    });
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(screen.queryByRole("region", { name: "Test plugin" })).toBeNull();
+    withoutPlugin.unmount();
+
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      testPlugins,
+    );
+    await screen.findByRole("heading", { name: "Labs" });
+    const regions = screen.getAllByRole("region");
+    expect(
+      regions.indexOf(screen.getByRole("region", { name: "Test plugin" })),
+    ).toBeGreaterThan(
+      regions.indexOf(screen.getByRole("region", { name: "Developer tools" })),
+    );
+    const voice = screen.getByRole("checkbox", {
+      name: "Voice",
+    }) as HTMLInputElement;
+    expect(voice.checked).toBe(false);
+    expect(screen.getByText("Talk.")).toBeTruthy();
+
+    await act(async () => fireEvent.click(voice));
+    expect(voice.checked).toBe(true);
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:plugin:test.plugin") ?? "{}"),
+    ).toEqual({ voice: true });
+  });
+
+  it("lists plugins with what they contribute and switches one off", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "plugins" } },
+      null,
+      testPlugins,
+    );
+    await screen.findByRole("heading", { name: "Plugins" });
+    expect(
+      screen.getByRole("region", { name: "Installed plugins" }).textContent,
+    ).toContain("1 plugin1 running");
+    const row = screen.getByRole("group", { name: "Test plugin" });
+
+    // Collapsed, the row is its one line; the description and the
+    // contributions are hidden from assistive technology until it opens.
+    const disclosure = within(row).getByRole("button", {
+      name: "Test plugin by Tests",
+    });
+    const details = () =>
+      within(row).getByText("Adds a voice flag.").closest("[aria-hidden]");
+    expect(disclosure.getAttribute("aria-expanded")).toBe("false");
+    expect(details()?.getAttribute("aria-hidden")).toBe("true");
+    expect(within(row).queryAllByRole("listitem")).toEqual([]);
+    fireEvent.click(disclosure);
+    expect(disclosure.getAttribute("aria-expanded")).toBe("true");
+    expect(details()?.getAttribute("aria-hidden")).toBe("false");
+    expect(
+      within(row)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Flag Voice · Labs"]);
+
+    const enabled = within(row).getByRole("checkbox", {
+      name: "Test plugin",
+    }) as HTMLInputElement;
+    expect(enabled.checked).toBe(true);
+    await act(async () => fireEvent.click(enabled));
+    expect(enabled.checked).toBe(false);
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ disabledPluginIds: ["test.plugin"] });
+    expect(
+      screen.getByRole("region", { name: "Installed plugins" }).textContent,
+    ).toContain("1 plugin0 running");
+
+    // A plugin that is off contributes nothing: its Labs rows are gone. The
+    // dialog stays open: switching a plugin never remounts the view.
+    fireEvent.click(screen.getByRole("tab", { name: "Labs" }));
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(screen.queryByRole("region", { name: "Test plugin" })).toBeNull();
+  });
+
+  it("leaves the aiAssistant prop's plugin out of the Plugins section", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "plugins" } },
+      null,
+      [aiAssistantPropPlugin],
+    );
+    await screen.findByRole("heading", { name: "Plugins" });
+    expect(
+      screen.getByText("No plugins are passed to this editor."),
+    ).toBeTruthy();
+  });
+
+  it("names the plugin that keeps a dependent off and greys the dependent's switch", async () => {
+    localStorage.setItem(
+      "petrinaut:user-settings",
+      JSON.stringify({ disabledPluginIds: ["test.provider"] }),
+    );
+    const Service = definePluginToken<string>("test.service");
+    renderSettings(
+      { overlay: { type: "user-settings", section: "plugins" } },
+      null,
+      [
+        definePetrinautPlugin(
+          {
+            id: "test.provider",
+            name: "Provider",
+            assistant: { label: "Provider" },
+            provides: { service: Service },
+          },
+          () => ({
+            assistant: { chat: null },
+            provides: { service: "ready" },
+          }),
+        ),
+        definePetrinautPlugin(
+          {
+            id: "test.dependent",
+            name: "Dependent",
+            requires: { service: Service },
+          },
+          () => ({}),
+        ),
+      ],
+    );
+    await screen.findByRole("heading", { name: "Plugins" });
+
+    const provider = screen.getByRole("group", { name: "Provider" });
+    expect(provider.textContent).toContain("Assistant");
+    expect(
+      (within(provider).getByRole("checkbox") as HTMLInputElement).checked,
+    ).toBe(false);
+    const dependent = screen.getByRole("group", { name: "Dependent" });
+    expect(dependent.textContent).toContain("Needs Provider");
+    const dependentSwitch = within(dependent).getByRole(
+      "checkbox",
+    ) as HTMLInputElement;
+    expect(dependentSwitch.checked).toBe(true);
+    expect(dependentSwitch.disabled).toBe(true);
+  });
+
+  it("explains that no plugins were passed", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "plugins" } });
+    await screen.findByRole("heading", { name: "Plugins" });
+    expect(
+      screen.getByText("No plugins are passed to this editor."),
+    ).toBeTruthy();
+  });
+
+  it("walks plugin Labs rows and crosses the existing focus flow", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      testPlugins,
+    );
+    await screen.findByRole("heading", { name: "Labs" });
+    const labs = screen.getByRole("tab", { name: "Labs" });
+    const compilation = screen.getByRole("checkbox", {
+      name: "Compilation output",
+    });
+    const voice = screen.getByRole("checkbox", { name: "Voice" });
+
+    act(() => compilation.focus());
+    fireEvent.keyDown(compilation, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(voice);
+    fireEvent.keyDown(voice, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(compilation);
+
+    act(() => voice.focus());
+    fireEvent.keyDown(voice, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(labs);
+    fireEvent.keyDown(labs, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(voice);
+  });
+
   it("renders host Labs content after the built-in groups", async () => {
     const withoutHost = renderSettings({
       overlay: { type: "user-settings", section: "labs" },
@@ -445,6 +663,7 @@ describe("Labs settings", () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
       null,
+      noPlugins,
       <section aria-label="Host AI settings">
         <button type="button">Use Brunch</button>
       </section>,
@@ -460,6 +679,7 @@ describe("Labs settings", () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
       null,
+      noPlugins,
       <section aria-label="Host AI settings">
         <button type="button" disabled>
           Unavailable first
@@ -496,6 +716,24 @@ describe("Labs settings", () => {
     expect(document.activeElement).toBe(labs);
     fireEvent.keyDown(labs, { key: "ArrowRight" });
     expect(document.activeElement).toBe(last);
+  });
+
+  it("renders host Labs content after plugin Labs rows", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      testPlugins,
+      <section aria-label="Host AI settings">
+        <button type="button">Use Brunch</button>
+      </section>,
+    );
+    await screen.findByRole("heading", { name: "Labs" });
+    const regions = screen.getAllByRole("region");
+    expect(
+      regions.indexOf(screen.getByRole("region", { name: "Host AI settings" })),
+    ).toBeGreaterThan(
+      regions.indexOf(screen.getByRole("region", { name: "Test plugin" })),
+    );
   });
 });
 

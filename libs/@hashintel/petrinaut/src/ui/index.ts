@@ -12,6 +12,45 @@
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 export {
+  definePetrinautPlugin,
+  type PetrinautAssistantExtension,
+  type PetrinautAssistantProvider,
+  type PetrinautAssistantTab,
+  type PetrinautPlugin,
+  type PetrinautPluginApi,
+  type PetrinautPluginBody,
+  type PetrinautPluginButtonProvider,
+  type PetrinautPluginDocument,
+  type PetrinautPluginProviders,
+} from "./plugins/define-petrinaut-plugin";
+export {
+  definePluginManifest,
+  type PetrinautFlagSpec,
+  type PetrinautPluginButtonPlace,
+  type PetrinautPluginManifest,
+  type PetrinautPluginTopBarPlace,
+  type PetrinautSettingSpec,
+} from "./plugins/plugin-manifest";
+export type { PetrinautPluginStatus } from "./plugins/plugin-dependencies";
+export {
+  definePluginToken,
+  type PluginToken,
+  type PluginTokenValue,
+} from "./plugins/plugin-token";
+export {
+  type PetrinautPluginContribution,
+  PetrinautPluginsProvider,
+  type PetrinautPluginsProviderProps,
+  usePetrinautPluginList,
+  usePetrinautPlugins,
+} from "./plugins/plugins-provider";
+export {
+  type PetrinautActiveAssistant,
+  type PetrinautResolvedAssistantTab,
+  useActiveAssistantContent as usePetrinautActiveAssistant,
+} from "./plugins/plugin-assistants";
+export { createAssistantPlugin } from "./plugins/create-assistant-plugin";
+export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,
 } from "./views/Editor/panels/ai-assistant-panel/ai-assistant-contents/experiment-execution-card";

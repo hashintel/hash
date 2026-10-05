@@ -53,6 +53,7 @@ export const UserSettings = ({
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown, true);
+
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, []);
 

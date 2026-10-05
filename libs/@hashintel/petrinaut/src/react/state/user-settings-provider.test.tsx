@@ -23,22 +23,28 @@ beforeEach(() => {
   }
 });
 
-const DemoModeProbe = ({ name }: { name: string }) => {
-  const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
+const AssistantProbe = ({ name }: { name: string }) => {
+  const { aiAssistantId, setAiAssistantId } = use(UserSettingsContext);
+
   return (
-    <button type="button" onClick={() => setBrunchDemoMode(!brunchDemoMode)}>
-      {name}: {brunchDemoMode ? "on" : "off"}
+    <button
+      type="button"
+      onClick={() =>
+        setAiAssistantId(aiAssistantId === null ? "test.assistant" : null)
+      }
+    >
+      {name}: {aiAssistantId ?? "none"}
     </button>
   );
 };
 
 /** Reads a persisted setting and writes another, so a write happens on demand. */
-const WalkthroughProbe = () => {
-  const { showWalkthroughOnInit, brunchDemoMode, setBrunchDemoMode } =
-    use(UserSettingsContext);
+const AnimationsProbe = () => {
+  const { showAnimations, setAiAssistantId } = use(UserSettingsContext);
+
   return (
-    <button type="button" onClick={() => setBrunchDemoMode(!brunchDemoMode)}>
-      walkthrough: {showWalkthroughOnInit ? "on" : "off"}
+    <button type="button" onClick={() => setAiAssistantId("test.assistant")}>
+      animations: {showAnimations ? "on" : "off"}
     </button>
   );
 };
@@ -46,6 +52,7 @@ const WalkthroughProbe = () => {
 const ArcConnectionsProbe = () => {
   const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
     use(UserSettingsContext);
+
   return (
     <button
       type="button"
@@ -102,20 +109,22 @@ describe("UserSettingsProvider", () => {
     });
   });
 
-  it("starts with Brunch demo mode off and toggles it", () => {
+  it("starts with no chosen assistant and records a choice", () => {
     render(
       <UserSettingsProvider>
-        <DemoModeProbe name="probe" />
+        <AssistantProbe name="probe" />
       </UserSettingsProvider>,
     );
 
-    const probe = screen.getByRole("button", { name: "probe: off" });
+    const probe = screen.getByRole("button", { name: "probe: none" });
     fireEvent.click(probe);
-    expect(screen.getByRole("button", { name: "probe: on" })).toBe(probe);
+    expect(screen.getByRole("button", { name: "probe: test.assistant" })).toBe(
+      probe,
+    );
   });
 
   it.each([false, true])(
-    "drops retired simulation flags from saved settings (legacy value=%s)",
+    "drops retired flags from saved settings (legacy value=%s)",
     (enabled) => {
       // An in-memory store: some Node versions expose a global `localStorage`
       // whose methods are missing, so the test owns the storage it inspects.
@@ -125,11 +134,13 @@ describe("UserSettingsProvider", () => {
           JSON.stringify({
             enableAdHocScenarios: true,
             enableNotebookView: enabled,
+            brunchDemoMode: enabled,
             webGpuEnabled: enabled,
             enableParameterSweeps: enabled,
             enableInBrowserOptimization: enabled,
             computeBackend: "webgpu",
             showWalkthroughOnInit: false,
+            showAnimations: false,
           }),
         ],
       ]);
@@ -142,12 +153,12 @@ describe("UserSettingsProvider", () => {
       try {
         render(
           <UserSettingsProvider>
-            <WalkthroughProbe />
+            <AnimationsProbe />
           </UserSettingsProvider>,
         );
 
         fireEvent.click(
-          screen.getByRole("button", { name: "walkthrough: off" }),
+          screen.getByRole("button", { name: "animations: off" }),
         );
 
         const persisted = JSON.parse(entries.get(storageKey) ?? "{}") as Record<
@@ -161,11 +172,13 @@ describe("UserSettingsProvider", () => {
           "enableParameterSweeps",
           "enableInBrowserOptimization",
           "computeBackend",
+          "brunchDemoMode",
         ]) {
           expect(key in persisted).toBe(false);
         }
         expect(persisted.showWalkthroughOnInit).toBe(false);
-        expect(persisted.brunchDemoMode).toBe(true);
+        expect(persisted.showAnimations).toBe(false);
+        expect(persisted.aiAssistantId).toBe("test.assistant");
       } finally {
         vi.unstubAllGlobals();
       }
@@ -177,15 +190,19 @@ describe("UserSettingsProvider", () => {
     // in its own components; the editor's own provider must not fork them.
     render(
       <UserSettingsProvider>
-        <DemoModeProbe name="host" />
+        <AssistantProbe name="host" />
         <UserSettingsProvider>
-          <DemoModeProbe name="editor" />
+          <AssistantProbe name="editor" />
         </UserSettingsProvider>
       </UserSettingsProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "editor: off" }));
-    expect(screen.getByRole("button", { name: "host: on" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "editor: on" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "editor: none" }));
+    expect(
+      screen.getByRole("button", { name: "host: test.assistant" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "editor: test.assistant" }),
+    ).toBeTruthy();
   });
 });

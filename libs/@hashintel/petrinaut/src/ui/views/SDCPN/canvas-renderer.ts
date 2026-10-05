@@ -51,6 +51,7 @@ export const useCanvasController = (): CanvasController => {
       "useCanvasController must be used inside a canvas renderer",
     );
   }
+
   return controller;
 };
 
