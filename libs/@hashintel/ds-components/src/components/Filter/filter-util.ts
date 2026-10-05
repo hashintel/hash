@@ -330,8 +330,9 @@ export const focusWithoutRing = (
 /**
  * Mount/creation focus for a chip: the first input when an operator is
  * already selected and takes input (only then are input slots rendered),
- * otherwise the first interactive segment — the operator trigger. Never the
- * remove button. A select input's focus target is its trigger; an empty one
+ * otherwise the operator trigger. Never the remove button, and never the
+ * property segment (even when interactive): the thing to fill in comes
+ * after it. A select input's focus target is its trigger; an empty one
  * (zag marks it `data-placeholder-shown`) also gets its dropdown opened: at
  * rest it doesn't read as pressable, so landing on it closed is
  * disorienting. zag's select trigger toggles on plain clicks, synthetic
@@ -343,7 +344,7 @@ export const focusInitialSegment = (chip: HTMLElement): void => {
       '[data-part="input-slot"] :is(input:enabled, [data-part="trigger"]:enabled)',
     ) ??
     chip.querySelector<HTMLElement>(
-      'button:enabled:not([data-part="remove"]), input:enabled',
+      'button:enabled:not([data-part="remove"]):not([data-part="property"]), input:enabled',
     );
   if (!target) {
     return;

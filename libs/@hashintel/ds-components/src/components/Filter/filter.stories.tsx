@@ -8,6 +8,7 @@ import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Story, StoryDefault } from "@ladle/react";
+import type { DistributedOmit } from "type-fest";
 
 export default {
   title: "Components/Filter",
@@ -273,7 +274,7 @@ const changeLogStyle: React.CSSProperties = {
 const Demo = <ValueMap extends Record<string, unknown>>({
   initialValue = null,
   ...filterProps
-}: Omit<
+}: DistributedOmit<
   React.ComponentProps<typeof Filter<ValueMap>>,
   "value" | "onChange" | "onInput"
 > & {
@@ -333,6 +334,60 @@ const KitchenSinkState = ({
   </>
 );
 
+const switchableProperties = [
+  { id: "name", label: "Name" },
+  { id: "age", label: "Age" },
+  { id: "score", label: "Score" },
+];
+
+/** propertyMenu harness: the menu switches the chip to another property. */
+const PropertyMenuDemo = () => {
+  const [activeProperty, setActiveProperty] = useState({
+    id: "name",
+    label: "Name",
+  });
+  return (
+    <Filter<KitchenSinkValues>
+      property={activeProperty.id}
+      propertyLabel={activeProperty.label}
+      operators={KitchenSinkOperators}
+      value={{ key: "equals", value: "hello" }}
+      onChange={noop}
+      removeable={{ onRemove: noop }}
+      propertyMenu={switchableProperties.map((entry) => ({
+        id: entry.id,
+        text: entry.label,
+        selected: entry.id === activeProperty.id,
+        selectedStyle: "tick",
+        onClick: () => setActiveProperty(entry),
+      }))}
+    />
+  );
+};
+
+/** propertyOnClick harness: counts clicks on the property segment. */
+const PropertyClickDemo = () => {
+  const [clicks, setClicks] = useState(0);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Filter<KitchenSinkValues>
+        property="value"
+        propertyLabel="Value"
+        operators={KitchenSinkOperators}
+        value={{ key: "equals", value: "hello" }}
+        onChange={noop}
+        removeable={{ onRemove: noop }}
+        propertyOnClick={() => setClicks((count) => count + 1)}
+      />
+      <pre style={changeLogStyle}>
+        {clicks === 0
+          ? "property not clicked yet"
+          : `propertyOnClick fired ${clicks}×`}
+      </pre>
+    </div>
+  );
+};
+
 export const Default: Story = () => (
   <div style={columnStyle}>
     <span style={stateLabelStyle}>empty</span>
@@ -387,6 +442,15 @@ export const Default: Story = () => (
       onChange={noop}
       removeable={{ onRemove: noop }}
     />
+    <span style={stateLabelStyle}>
+      propertyMenu — the property segment opens a menu, here switching the
+      property
+    </span>
+    <PropertyMenuDemo />
+    <span style={stateLabelStyle}>
+      propertyOnClick — the property segment is a plain button
+    </span>
+    <PropertyClickDemo />
     <span style={stateLabelStyle}>
       responsive, long content in a max-width container
     </span>

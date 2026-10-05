@@ -114,6 +114,63 @@ export const filterRecipe = sva({
         borderStartEndRadius: "[var(--filter-radius)]",
         borderEndEndRadius: "[var(--filter-radius)]",
       },
+      // propertyMenu/propertyOnClick render the segment as a button: same
+      // geometry, plus the operator trigger's hover/open/focus affordances.
+      // The label truncates in an inner span, so the button itself stays
+      // unclipped (overflow would swallow the focus ring) — flex + the
+      // span's minWidth:0 reproduce the ellipsis.
+      "&:is(button)": {
+        appearance: "none",
+        display: "flex",
+        alignItems: "center",
+        overflow: "visible",
+        background: "[transparent]",
+        font: "inherit",
+        fontSize: "[var(--filter-font-size)]",
+        borderInlineEnd: "none",
+        position: "relative",
+        cursor: "pointer",
+        outline: "none",
+        transition: "[background 0.15s ease, border-color 0.15s ease]",
+        "&:hover:not(:disabled)": {
+          background: "neutral.s25",
+          "--filter-outer-border": "var(--filter-hover-border)",
+        },
+        "&:hover:not(:disabled) + *": {
+          "--filter-divider": "var(--filter-hover-border)",
+          "--filter-remove-divider": "var(--filter-hover-border)",
+        },
+        "&[data-state=open], &[data-state=open]:hover": {
+          boxShadow: "[var(--filter-pressed-shadow)]",
+        },
+        "&[data-state=open]": {
+          background: "neutral.s20",
+        },
+        "&[data-state=open]:hover": {
+          background: "neutral.s25",
+        },
+        "&[data-state=open]:not(:hover)": {
+          "--filter-outer-border": "var(--filter-pressed-border)",
+        },
+        "&[data-state=open]:not(:hover) + *": {
+          "--filter-divider": "var(--filter-pressed-border)",
+          "--filter-remove-divider": "var(--filter-pressed-border)",
+        },
+        "&:focus-visible": {
+          zIndex: "[1]",
+        },
+        "&:focus-visible::after": {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          borderRadius: "[3px]",
+          boxShadow: "[0 0 0 2px var(--filter-ring)]",
+          pointerEvents: "none",
+        },
+        "&:disabled": {
+          cursor: "auto",
+        },
+      },
     },
     trigger: {
       appearance: "none",

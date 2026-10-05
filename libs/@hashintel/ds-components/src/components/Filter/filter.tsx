@@ -26,6 +26,7 @@ import {
 } from "../../util/SelectableList/selectable-list";
 import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
+import { Menu, type MenuItem } from "../Menu/menu";
 import { Select } from "../Select/select";
 import { BaseTooltip } from "../Tooltip/base-tooltip";
 import { RejectedKeysHint } from "./filter-keypress-hint";
@@ -61,6 +62,7 @@ import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { MultiSelectItem } from "../Select/select";
+import type { ExclusifyUnion } from "type-fest";
 
 export type FilterOperator<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: {
@@ -217,6 +219,8 @@ const FilterSelectInput = ({
 /**
  * An inline, chip-like filter control: a property label, an operator
  * dropdown, and — once an operator is chosen — that operator's input(s).
+ * The property segment is static unless `propertyMenu` (a dropdown of
+ * property-related actions) or `propertyOnClick` makes it interactive.
  *
  * `ValueMap` is hand-passed and maps each operator key to the value type its
  * input produces, e.g.
@@ -248,6 +252,8 @@ export const Filter = <
   className,
   property,
   propertyLabel,
+  propertyMenu,
+  propertyOnClick,
   operators,
   value = null,
   onChange,
@@ -293,12 +299,30 @@ export const Filter = <
    * the chip as abandoned.
    */
   removeable?: false | { onRemove: () => void };
-}) => {
+} & ExclusifyUnion<
+  | {
+      /**
+       * Renders the property segment as a menu trigger — typically for
+       * switching the filter to a different property, or other
+       * property-related actions. Mutually exclusive with `propertyOnClick`.
+       */
+      propertyMenu?: Array<ItemOrGroup<MenuItem>>;
+    }
+  | {
+      /**
+       * Renders the property segment as a button. Mutually exclusive with
+       * `propertyMenu`.
+       */
+      propertyOnClick?: () => void;
+    }
+>) => {
   const looseOperators = operators as unknown as Array<
     ItemOrGroup<LooseOperator>
   >;
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
+  // Assigned only while the property segment is interactive (a button)
+  const propertyRef = useRef<HTMLButtonElement>(null);
   const operatorTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRefs = useRef<Array<HTMLElement | null>>([]);
   const operatorDropdownOpenRef = useRef(false);
@@ -529,8 +553,9 @@ export const Filter = <
     emitInput(draftKey, next);
   };
 
-  // Left/Right move focus between the chip's segments — the operator trigger
-  // and each input, clamped to the chip (never the remove button, never
+  // Left/Right move focus between the chip's segments — the property segment
+  // (when interactive), the operator trigger and each input, clamped to the
+  // chip (never the remove button, never
   // outside it). Inside a text input the jump only happens once the caret
   // sits at the matching edge, so arrows still move the caret; a number
   // input hides its caret position, so it only jumps while empty. Open
@@ -551,6 +576,9 @@ export const Filter = <
     }
     const direction = event.key === "ArrowRight" ? 1 : -1;
     const stops: HTMLElement[] = [];
+    if (propertyRef.current) {
+      stops.push(propertyRef.current);
+    }
     if (operatorTriggerRef.current) {
       stops.push(operatorTriggerRef.current);
     }
@@ -774,6 +802,34 @@ export const Filter = <
     complete,
   });
 
+  // An interactive property segment renders as a button — the label moves
+  // into an inner truncating span (like the operator trigger's) so the
+  // button itself never clips its focus ring.
+  const propertyButton = (
+    <button
+      ref={propertyRef}
+      type="button"
+      data-part="property"
+      className={classes.property}
+      disabled={disabled}
+      onClick={propertyOnClick}
+      onMouseEnter={syncTruncationTitle}
+    >
+      <span className={classes.triggerLabel} data-truncates="">
+        {propertyLabel}
+      </span>
+    </button>
+  );
+  const propertySegment = propertyMenu ? (
+    <Menu items={propertyMenu} trigger={propertyButton} />
+  ) : propertyOnClick ? (
+    propertyButton
+  ) : (
+    <span className={classes.property} onMouseEnter={syncTruncationTitle}>
+      {propertyLabel}
+    </span>
+  );
+
   const chip = (
     <ArkSelect.Root
       collection={collection}
@@ -802,9 +858,7 @@ export const Filter = <
       data-property={property}
     >
       {selectableOperators && <ArkSelect.HiddenSelect />}
-      <span className={classes.property} onMouseEnter={syncTruncationTitle}>
-        {propertyLabel}
-      </span>
+      {propertySegment}
       {/* A single operator is fixed rather than selectable, so its segment is
           a plain non-interactive span; with no operators there is no segment */}
       {selectableOperators ? (
