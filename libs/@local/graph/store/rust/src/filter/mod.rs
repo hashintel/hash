@@ -1523,13 +1523,14 @@ mod tests {
         reason = "It's fine to error on unused arms in tests"
     )]
 
-    use core::num::NonZero;
-
     use hash_graph_types::ontology::DataTypeLookup;
     use serde_json::json;
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
-        ontology::data_type::{ClosedDataType, ConversionExpression},
+        ontology::{
+            data_type::{ClosedDataType, ConversionExpression},
+            id::OntologyTypeMajorVersion,
+        },
         principal::actor_group::WebId,
     };
     use uuid::Uuid;
@@ -1598,7 +1599,7 @@ mod tests {
             )
             .expect("invalid base url"),
             version: OntologyTypeVersion {
-                major: NonZero::<u32>::MIN,
+                major: OntologyTypeMajorVersion::MIN,
                 pre_release: None,
             },
         };

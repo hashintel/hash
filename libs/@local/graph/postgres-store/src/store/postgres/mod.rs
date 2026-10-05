@@ -3509,10 +3509,8 @@ where
             major: url
                 .version
                 .major
-                .get()
-                .checked_sub(1)
-                .and_then(NonZero::new)
-                .ok_or(OntologyVersionDoesNotExist)
+                .previous()
+                .change_context(OntologyVersionDoesNotExist)
                 .change_context(UpdateError)
                 .attach("The version of the data type is already at the lowest possible value")?,
             pre_release: None,

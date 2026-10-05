@@ -9,7 +9,6 @@
 //! The tests below verify each case from the truth tables in the protection module.
 
 use alloc::borrow::Cow;
-use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_postgres_store::store::PostgresStoreSettings;
@@ -43,7 +42,7 @@ use type_system::{
         entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
-    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
@@ -265,7 +264,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -300,7 +299,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(INVITATION_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -338,14 +337,14 @@ impl DatabaseApi<'_> {
                     VersionedUrl {
                         base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                         version: OntologyTypeVersion {
-                            major: NonZero::<u32>::MIN,
+                            major: OntologyTypeMajorVersion::MIN,
                             pre_release: None,
                         },
                     },
                     VersionedUrl {
                         base_url: BaseUrl::new(INVITATION_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                         version: OntologyTypeVersion {
-                            major: NonZero::<u32>::MIN,
+                            major: OntologyTypeMajorVersion::MIN,
                             pre_release: None,
                         },
                     },
@@ -1477,7 +1476,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -1517,7 +1516,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(INVITATION_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -2121,7 +2120,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -2161,7 +2160,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(SECRET_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -2569,7 +2568,7 @@ impl DatabaseApi<'_> {
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
                     version: OntologyTypeVersion {
-                        major: NonZero::<u32>::MIN,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -3022,7 +3021,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
     let org_type_id = VersionedUrl {
         base_url: BaseUrl::new(ORGANIZATION_TYPE_BASE_URL.to_owned()).unwrap(),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -3030,7 +3029,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
     let user_type_id = VersionedUrl {
         base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -3038,7 +3037,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
     let link_type_id = VersionedUrl {
         base_url: BaseUrl::new(HAS_MEMBER_LINK_TYPE_BASE_URL.to_owned()).unwrap(),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };

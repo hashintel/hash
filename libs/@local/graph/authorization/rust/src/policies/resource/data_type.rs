@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, fmt, iter, num::NonZeroI64, ptr, str::FromStr as _};
+use core::{error::Error, fmt, iter, ptr, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::ast;
@@ -89,9 +89,9 @@ impl DataTypeResource<'_> {
                 (
                     SmolStr::new_static("version"),
                     ast::PartialValue::Value(ast::Value::new(
-                        ast::ValueKind::Lit(ast::Literal::Long(
-                            NonZeroI64::from(self.id.as_url().version.major).get(),
-                        )),
+                        ast::ValueKind::Lit(ast::Literal::Long(i64::from(
+                            self.id.as_url().version.major.get(),
+                        ))),
                         None,
                     )),
                 ),

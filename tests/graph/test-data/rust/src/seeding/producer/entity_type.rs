@@ -1,4 +1,4 @@
-use core::{error::Error, num::NonZero};
+use core::error::Error;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
@@ -13,7 +13,7 @@ use type_system::ontology::{
             InverseEntityTypeMetadata,
         },
     },
-    id::{OntologyTypeVersion, ParseBaseUrlError},
+    id::{OntologyTypeMajorVersion, OntologyTypeVersion, ParseBaseUrlError},
     json_schema::ObjectTypeTag,
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
@@ -290,7 +290,7 @@ impl<
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: NonZero::<u32>::MIN,
+                    major: OntologyTypeMajorVersion::MIN,
                     pre_release: None,
                 },
             },

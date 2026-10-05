@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc};
-use core::{iter, num::NonZero};
+use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -1646,10 +1646,8 @@ where
                         .id
                         .version
                         .major
-                        .get()
-                        .checked_sub(1)
-                        .and_then(NonZero::new)
-                        .ok_or(OntologyVersionDoesNotExist)
+                        .previous()
+                        .change_context(OntologyVersionDoesNotExist)
                         .change_context(UpdateError)
                         .attach(
                             "The version of the entity type is already at the lowest possible \

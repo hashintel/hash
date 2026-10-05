@@ -15,7 +15,7 @@ use type_system::{
         entity::{EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
-    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
@@ -63,7 +63,7 @@ fn person_entity_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     }

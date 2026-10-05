@@ -1,4 +1,4 @@
-use core::{iter::once, num::NonZero};
+use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
@@ -18,7 +18,7 @@ use type_system::{
         },
         value::{ValueMetadata, metadata::ValueProvenance},
     },
-    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
     principal::{
         actor::{ActorEntityUuid, ActorId, ActorType},
         actor_group::WebId,
@@ -143,7 +143,7 @@ async fn read_only_modification_matrix() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };

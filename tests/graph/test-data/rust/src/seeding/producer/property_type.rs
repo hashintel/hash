@@ -1,11 +1,11 @@
-use core::{error::Error, num::NonZero};
+use core::error::Error;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{property_type::CreatePropertyTypeParams, query::ConflictBehavior};
 use rand::{distr::Distribution as _, seq::IndexedRandom as _};
 use type_system::ontology::{
     BaseUrl, VersionedUrl,
-    id::{OntologyTypeVersion, ParseBaseUrlError},
+    id::{OntologyTypeMajorVersion, OntologyTypeVersion, ParseBaseUrlError},
     property_type::{PropertyType, schema::PropertyTypeReference},
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
@@ -209,7 +209,7 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: NonZero::<u32>::MIN,
+                    major: OntologyTypeMajorVersion::MIN,
                     pre_release: None,
                 },
             },

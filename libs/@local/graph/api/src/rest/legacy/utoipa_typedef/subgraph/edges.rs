@@ -240,7 +240,6 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
-    use core::num::NonZero;
 
     use hash_graph_store::subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -251,7 +250,7 @@ mod tests {
     };
     use type_system::{
         knowledge::entity::id::{EntityId, EntityUuid},
-        ontology::id::{BaseUrl, OntologyTypeVersion},
+        ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion},
         principal::actor_group::WebId,
     };
     use uuid::Uuid;
@@ -297,7 +296,7 @@ mod tests {
                 base_id: BaseUrl::new("https://example.com/".to_owned())
                     .expect("should be valid URL"),
                 revision_id: OntologyTypeVersion {
-                    major: NonZero::<u32>::MIN,
+                    major: OntologyTypeMajorVersion::MIN,
                     pre_release: None,
                 },
             },

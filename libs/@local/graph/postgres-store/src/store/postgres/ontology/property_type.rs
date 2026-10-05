@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::num::NonZero;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -870,10 +869,8 @@ where
                         .id
                         .version
                         .major
-                        .get()
-                        .checked_sub(1)
-                        .and_then(NonZero::new)
-                        .ok_or(OntologyVersionDoesNotExist)
+                        .previous()
+                        .change_context(OntologyVersionDoesNotExist)
                         .change_context(UpdateError)
                         .attach(
                             "The version of the property type is already at the lowest possible \

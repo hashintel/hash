@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_store::{
@@ -20,7 +19,7 @@ use type_system::{
         entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
-    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
@@ -66,7 +65,7 @@ async fn insert() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -127,7 +126,7 @@ async fn insert() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -300,7 +299,7 @@ async fn get_entity_links() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -311,7 +310,7 @@ async fn get_entity_links() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -322,7 +321,7 @@ async fn get_entity_links() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -568,7 +567,7 @@ async fn remove_link() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -579,7 +578,7 @@ async fn remove_link() {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };

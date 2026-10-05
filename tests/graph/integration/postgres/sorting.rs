@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::num::NonZero;
 use std::collections::HashSet;
 
 use hash_graph_store::{
@@ -21,7 +20,7 @@ use type_system::{
     },
     ontology::{
         VersionedUrl,
-        id::{BaseUrl, OntologyTypeVersion},
+        id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion},
     },
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
@@ -161,7 +160,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };
@@ -171,7 +170,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: NonZero::<u32>::MIN,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     };

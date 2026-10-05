@@ -1,5 +1,5 @@
 use alloc::collections::BTreeSet;
-use core::{error::Error, num::NonZero};
+use core::error::Error;
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
@@ -11,7 +11,7 @@ use type_system::ontology::{
         DataType,
         schema::{DataTypeReference, DataTypeSchemaTag, DataTypeTag, ValueLabel},
     },
-    id::{OntologyTypeVersion, ParseBaseUrlError},
+    id::{OntologyTypeMajorVersion, OntologyTypeVersion, ParseBaseUrlError},
     json_schema::{SingleValueConstraints, ValueConstraints},
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
@@ -216,7 +216,7 @@ impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypePr
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: NonZero::<u32>::MIN,
+                    major: OntologyTypeMajorVersion::MIN,
                     pre_release: None,
                 },
             },

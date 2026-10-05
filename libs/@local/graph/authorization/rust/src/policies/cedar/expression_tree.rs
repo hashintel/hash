@@ -378,7 +378,7 @@ impl PolicyExpressionTree {
                     .change_context(ParseBinaryExpressionError::Right)
                     .map(|major| {
                         Self::OntologyTypeVersion(OntologyTypeVersion {
-                            major,
+                            major: major.into(),
                             pre_release: None,
                         })
                     })
