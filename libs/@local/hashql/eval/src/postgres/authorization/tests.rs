@@ -27,6 +27,13 @@ use hash_graph_authorization::policies::{
         },
     },
 };
+use hash_graph_store::filter::{
+    Parameter,
+    protection::{
+        PropertyFilter, PropertyFilterEntityQueryPath, PropertyFilterExpression,
+        PropertyFilterExpressionList, PropertyProtectionFilterConfig,
+    },
+};
 use hashql_core::{
     heap::Heap, module::std_lib::graph::types::knowledge::entity as entity_types, symbol::sym,
     r#type::environment::Environment,
@@ -38,7 +45,7 @@ use hashql_mir::{
 };
 use insta::{Settings, assert_snapshot};
 use type_system::{
-    knowledge::entity::id::EntityEditionId,
+    knowledge::entity::id::{EntityEditionId, EntityUuid},
     ontology::{
         BaseUrl, VersionedUrl,
         id::{OntologyTypeMajorVersion, OntologyTypeVersion},
@@ -51,7 +58,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::policy::PolicyTranslationUnit;
+use super::{policy::PolicyTranslationUnit, protection::ProtectionTranslationUnit};
 use crate::{
     context::CodeGenerationContext,
     postgres::{
@@ -91,6 +98,14 @@ impl Fixture {
             projections: &mut self.projections,
             parameters: &mut self.parameters,
             actor_id: None,
+        }
+    }
+
+    pub(crate) fn protection(&mut self) -> ProtectionTranslationUnit<'_, Global> {
+        ProtectionTranslationUnit {
+            projections: &mut self.projections,
+            parameters: &mut self.parameters,
+            actor_id: Some(ActorId::User(UserId::new(ACTOR_UUID))),
         }
     }
 }
@@ -354,6 +369,24 @@ pub(crate) fn forbid<'resource>(
     })
 }
 
+pub(crate) fn policy_components_admin(
+    actor_id: Option<ActorId>,
+    policies: Vec<Box<dyn Fn() -> ResolvedPolicy + Send + Sync>>,
+) -> PolicyComponents {
+    let store = MockStore {
+        actor_id,
+        is_instance_admin: true,
+        policies,
+    };
+
+    futures_lite::future::block_on(
+        PolicyComponents::builder(&store, actor_id)
+            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
+            .into_future(),
+    )
+    .expect("should build mock policy components")
+}
+
 pub(crate) fn make_url(base: &str, version: OntologyTypeMajorVersion) -> VersionedUrl {
     VersionedUrl {
         base_url: BaseUrl::new(base.to_owned()).expect("valid base URL"),
@@ -368,6 +401,7 @@ fn compile_and_patch<'heap>(
     fixture: &CompilationFixture<'heap>,
     heap: &'heap Heap,
     policy: &hash_graph_authorization::policies::PolicyComponents,
+    properties: &PropertyProtectionFilterConfig<'_>,
 ) -> String {
     let mut scratch = hashql_core::heap::Scratch::new();
     let def = fixture.def();
@@ -405,7 +439,7 @@ fn compile_and_patch<'heap>(
         "unexpected diagnostics from compilation",
     );
 
-    let patch = PreparedQueryPatch::new().layer(AuthorizationPatch::new(policy));
+    let patch = PreparedQueryPatch::new().layer(AuthorizationPatch::new(policy, properties));
     patch.apply(&mut prepared_query, Global);
 
     let body = format_body(fixture, heap);
@@ -435,6 +469,86 @@ fn snapshot_settings() -> Settings {
     settings
 }
 
+/// Compiles a property-accessing filter, then applies authorization with
+/// constrained permits, forbids, and property protection masking.
+#[test]
+fn patch_with_policy_and_protection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components(
+        actor,
+        vec![
+            permit(|| {
+                Some(
+                        hash_graph_authorization::policies::resource::ResourceConstraint::Entity(
+                            hash_graph_authorization::policies::resource::EntityResourceConstraint::Exact {
+                                id: EntityUuid::new(ENTITY_UUID_1),
+                            },
+                        ),
+                    )
+            }),
+            permit(|| {
+                Some(
+                    hash_graph_authorization::policies::resource::ResourceConstraint::Web {
+                        web_id: WebId::new(WEB_UUID_1),
+                    },
+                )
+            }),
+            forbid(|| {
+                Some(
+                        hash_graph_authorization::policies::resource::ResourceConstraint::Entity(
+                            hash_graph_authorization::policies::resource::EntityResourceConstraint::Any {
+                                filter: hash_graph_authorization::policies::resource::EntityResourceFilter::IsOfType {
+                                    entity_type: make_url(
+                                        "https://hash.ai/@h/types/entity-type/restricted/",
+                                        OntologyTypeMajorVersion::MIN,
+                                    ),
+                                },
+                            },
+                        ),
+                    )
+            }),
+        ],
+    );
+
+    let mut properties = PropertyProtectionFilterConfig::new();
+    properties.protect_property(
+        BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
+            .expect("valid base URL"),
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_with_policy_and_protection", report);
+}
+
 /// Blank permit with no protection produces minimal changes:
 /// WHERE gets TRUE, no property masking, no auxiliary joins.
 #[test]
@@ -457,8 +571,9 @@ fn patch_blank_permit_no_protection() {
 
     let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
     let policy = policy_components(actor, vec![permit(|| None)]);
+    let properties = PropertyProtectionFilterConfig::new();
 
-    let report = compile_and_patch(&compilation, &heap, &policy);
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
 
     let settings = snapshot_settings();
     let _guard = settings.bind_to_scope();
@@ -466,6 +581,7 @@ fn patch_blank_permit_no_protection() {
 }
 
 /// Blank forbid produces FALSE in WHERE regardless of other policies.
+/// Protection masking still applies as defense-in-depth.
 #[test]
 fn patch_blank_forbid_denies_all() {
     let heap = Heap::new();
@@ -490,10 +606,98 @@ fn patch_blank_forbid_denies_all() {
 
     let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
     let policy = policy_components(actor, vec![forbid(|| None)]);
+    let properties = PropertyProtectionFilterConfig::hash_default();
 
-    let report = compile_and_patch(&compilation, &heap, &policy);
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
 
     let settings = snapshot_settings();
     let _guard = settings.bind_to_scope();
     assert_snapshot!("patch_blank_forbid_denies_all", report);
+}
+
+/// Instance admin bypasses property protection entirely, even with
+/// a non-empty protection config.
+#[test]
+fn patch_instance_admin_bypasses_protection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components_admin(actor, vec![permit(|| None)]);
+    let properties = PropertyProtectionFilterConfig::hash_default();
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_instance_admin_bypasses_protection", report);
+}
+
+/// Protection filter that references `TypeBaseUrls`, requiring the
+/// `entity_edition_cache` auxiliary join to be in scope inside the
+/// `entity_editions` LATERAL mask expression.
+#[test]
+fn patch_protection_with_type_base_urls() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: (|r#type| entity_types::types::entity(r#type, r#type.unknown(), None)),
+             field_val: ?, input_val: ?, result: Bool;
+        @proj v_props = vertex.properties: ?,
+              v_name = v_props.name: ?;
+
+        bb0() {
+            field_val = load v_name;
+            input_val = input.load! "expected";
+            result = bin.== field_val input_val;
+            return result;
+        }
+    });
+
+    let compilation = CompilationFixture::new(&heap, env, body);
+
+    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let policy = policy_components(actor, vec![permit(|| None)]);
+
+    // Protection uses TypeBaseUrls path, which demands entity_edition_cache join.
+    let mut properties = PropertyProtectionFilterConfig::new();
+    properties.protect_property(
+        BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
+            .expect("valid base URL"),
+        PropertyFilter::In(
+            PropertyFilterExpression::Parameter {
+                parameter: Parameter::Text(alloc::borrow::Cow::Borrowed(
+                    "https://hash.ai/@h/types/entity-type/user/",
+                )),
+            },
+            PropertyFilterExpressionList::Path {
+                path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+            },
+        ),
+    );
+
+    let report = compile_and_patch(&compilation, &heap, &policy, &properties);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("patch_protection_with_type_base_urls", report);
 }

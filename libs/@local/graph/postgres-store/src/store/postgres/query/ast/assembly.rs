@@ -244,14 +244,6 @@ pub struct Correlation<C> {
     columns: PhantomData<fn() -> C>,
 }
 
-impl<C> Clone for Correlation<C> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<C> Copy for Correlation<C> {}
-
 impl<C> Correlation<C> {
     /// Names a derived relation.
     #[must_use]
@@ -260,6 +252,12 @@ impl<C> Correlation<C> {
             name,
             columns: PhantomData,
         }
+    }
+
+    /// Names a derived relation from a [`Table`] enum variant.
+    #[must_use]
+    pub const fn of(table: Table) -> Self {
+        Self::new(table.as_str())
     }
 
     /// Renames the standing relation: the `<self's name> AS <name>` form, keeping the vocabulary.
@@ -304,6 +302,14 @@ impl<C: DatabaseColumn<'static>> Correlation<C> {
         })
     }
 }
+
+impl<C> Clone for Correlation<C> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<C> Copy for Correlation<C> {}
 
 impl<C> From<Correlation<C>> for TableReference<'static> {
     fn from(relation: Correlation<C>) -> Self {
