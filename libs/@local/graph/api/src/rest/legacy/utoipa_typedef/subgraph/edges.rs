@@ -240,7 +240,6 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
-
     use hash_graph_store::subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
