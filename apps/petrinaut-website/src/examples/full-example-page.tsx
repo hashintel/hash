@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { useTitle } from "@hashintel/petrinaut/react";
+import { definePetrinautPlugin, Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { getOEmbedDiscoveryUrl } from "./oembed-discovery";
 import { getReadonlyExampleHandle } from "./readonly-example-handle";
@@ -28,6 +29,20 @@ const titleStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** Shows the example's title where the editable net title would be. */
+const ExampleTitle = () => <span className={titleStyle}>{useTitle()}</span>;
+
+const exampleTitleProviders = { topBarItems: { title: <ExampleTitle /> } };
+const exampleTitlePlugin = definePetrinautPlugin(
+  {
+    id: "website.example-title",
+    name: "Example title",
+    topBarItems: { title: { place: "top-bar-start" } },
+  },
+  () => exampleTitleProviders,
+);
+const examplePlugins = [exampleTitlePlugin];
+
 export type FullExamplePageProps = {
   example: LoadedExample;
   /** Writes the shared search subset back to the page URL. */
@@ -49,6 +64,7 @@ export const FullExamplePage = ({
   useEffect(() => {
     const previousTitle = document.title;
     document.title = `${example.catalog.title} · Petrinaut`;
+
     return () => {
       document.title = previousTitle;
     };
@@ -70,15 +86,11 @@ export const FullExamplePage = ({
       />
       <Petrinaut
         handle={handle}
+        plugins={examplePlugins}
         hideNetManagementControls="all"
         navigation={navigation}
         presentationProfile="review"
         readonly
-        slots={{
-          topBarStart: (
-            <span className={titleStyle}>{example.catalog.title}</span>
-          ),
-        }}
         title={example.catalog.title}
       />
     </main>
