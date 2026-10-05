@@ -1,71 +1,84 @@
 import type { PetrinautAiAssistantPresentation } from "../petrinaut";
 import type { ComponentType } from "react";
 
-/** A runtime parser such as a Zod schema. */
+/** A parser that checks an unknown value and returns it typed, like a Zod schema. */
 export type PetrinautAiInteractiveToolSchema<Value> = {
+  /** Returns the value typed, or throws when it is invalid. */
   parse: (value: unknown) => Value;
 };
 
 type InteractiveToolWidgetCommonProps<Input, Output> = {
-  /** Assistant presentation selected by the embedding host. */
+  /** The assistant's presentation, `stock` or `brunch`, for styling the widget. */
   presentation?: PetrinautAiAssistantPresentation;
-  /** Validated input supplied by the AI tool call. */
+  /** The tool call's input, parsed by `inputSchema`. */
   input: Input;
-  /** Submit one output for this tool call. Repeated calls are ignored. */
+  /** Answers the call with this output. Later calls are ignored unless it fails. */
   submit: (output: Output) => void;
   /**
-   * Submit and await host acceptance. Rejects when this rendered call has no
-   * local completion authority. Repeated calls are ignored.
+   * Like `submit`, but resolves once the chat has recorded the output.
+   * Rejects if the output fails `outputSchema` or the call is display-only,
+   * such as one observed through `followMessages`.
    */
   submitAndWait?: (output: Output) => Promise<void>;
-  /** Stable AI SDK identifier for this tool call. */
+  /** Id of this tool call, from the AI SDK. */
   toolCallId: string;
 };
 
-/** Props supplied to a host's inline interactive-tool component. */
+/**
+ * Props of an interactive tool's widget, while it awaits an answer and after.
+ * @typeParam Input - The tool call's input, as `inputSchema` returns it.
+ * @typeParam Output - The widget's answer, as `outputSchema` returns it.
+ */
 export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
   InteractiveToolWidgetCommonProps<Input, Output> &
     (
       | {
+          /** `awaiting`: the call waits for the user's answer. */
           state: "awaiting";
+          /** Absent until the call is answered. */
           submittedOutput?: never;
         }
       | {
+          /** `submitted`: the call is answered, so render it read-only. */
           state: "submitted";
+          /** The output that answered the call, parsed by `outputSchema`. */
           submittedOutput: Output;
         }
     );
 
 /**
- * Definition of a host-owned dynamic AI tool rendered inline in Petrinaut's
- * chat panel.
+ * An AI tool the user answers through a widget shown inline in the chat.
+ * Pass it to `definePetrinautAiInteractiveTool`.
+ * @typeParam Input - The tool call's input, as `inputSchema` returns it.
+ * @typeParam Output - The widget's answer, as `outputSchema` returns it.
  */
 export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
-  /** Must match the dynamic tool name emitted by the host's AI transport. */
+  /**
+   * Must match the dynamic tool name the transport emits.
+   * Must be unique, and must not reuse a built-in tool's name.
+   */
   toolName: string;
-  /** Produced cards stay below the answer rather than inside the work fold. */
+  /**
+   * Where the Brunch presentation shows the widget: among the turn's work, or
+   * as a card below the answer. Defaults to `work`.
+   */
   placement?: "work" | "card";
-  /** Runtime contract for the tool-call input. */
+  /** Validates the tool call's input before the widget receives it. */
   inputSchema: PetrinautAiInteractiveToolSchema<Input>;
-  /** Runtime contract for the widget's submitted output. */
+  /** Validates the widget's answer before the chat records it. */
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
   /**
-   * Render an interaction only for matching call identities. Defaults to all.
-   * This runs during render without parsing the input; when it
-   * depends on host state, rebuild `interactiveTools` as that state changes.
-   *
-   * Declining only suppresses the widget for tools the host executes itself
-   * (`inBandBrowserTools`). Any other registered tool is completed solely by
-   * its widget, so a declined call fails rather than waiting for a result.
+   * Whether the widget handles this call. Defaults to every call.
+   * Runs during render: rebuild `interactiveTools` when the state it reads changes.
+   * A declined call fails unless `inBandBrowserTools` runs it.
    */
   shouldHandle?: (call: { toolCallId: string }) => boolean;
   /**
-   * Optionally map text submitted through the assistant composer to this
-   * tool's output. Petrinaut validates both the pending input and mapped
-   * output before completing the tool call.
+   * Turns text sent through the composer, typed or spoken, into a pending call's output.
+   * Text that several pending calls accept is rejected.
    */
   fromComposerText?: (params: { input: Input; text: string }) => Output;
-  /** Inline component shown while awaiting input and after submission. */
+  /** The widget, shown while the call awaits an answer and read-only after. */
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<Input, Output>
   >;
@@ -85,15 +98,20 @@ type ErasedInteractiveToolDefinition = {
 
 const interactiveToolDefinition = Symbol("PetrinautAiInteractiveTool");
 
-/** Opaque, type-safe registration accepted by `aiAssistant.interactiveTools`. */
+/**
+ * An interactive tool for `PetrinautAiAssistant.interactiveTools`.
+ * Create one with `definePetrinautAiInteractiveTool`.
+ */
 export type PetrinautAiInteractiveTool = {
+  /** Name of the dynamic tool this widget answers. */
   readonly toolName: string;
+  /** The definition Petrinaut reads. */
   readonly [interactiveToolDefinition]: ErasedInteractiveToolDefinition;
 };
 
 /**
- * Define a host-owned interactive AI tool while preserving the relationship
- * between its schemas and component props.
+ * Creates an interactive tool for `PetrinautAiAssistant.interactiveTools`.
+ * The widget's props are typed from `inputSchema` and `outputSchema`.
  */
 export const definePetrinautAiInteractiveTool = <Input, Output>(
   definition: PetrinautAiInteractiveToolDefinition<Input, Output>,
@@ -125,7 +143,10 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
   };
 };
 
-/** @internal */
+/**
+ * Reads the definition stored in an interactive tool.
+ * @internal
+ */
 export const getPetrinautAiInteractiveToolDefinition = (
   tool: PetrinautAiInteractiveTool,
 ): ErasedInteractiveToolDefinition => tool[interactiveToolDefinition];

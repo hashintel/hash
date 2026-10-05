@@ -20,12 +20,15 @@ import type {
   PetrinautAssistantTab,
 } from "./define-petrinaut-plugin";
 
-/** A plugin that provides an assistant: its id and the label from its manifest. */
+/** An assistant a running plugin provides. */
 export interface InstalledAssistant {
+  /** Id of the plugin whose manifest declares `assistant: { label }`. */
   readonly pluginId: string;
+  /** Name in the assistant selector and the switch commands. */
   readonly label: string;
 }
 
+/** The assistants the running plugins provide, in dependency order. */
 export const useInstalledAssistants = (): readonly InstalledAssistant[] =>
   usePetrinautPlugins().flatMap(({ manifest }) =>
     isAssistantProvider(manifest)
@@ -33,7 +36,10 @@ export const useInstalledAssistants = (): readonly InstalledAssistant[] =>
       : [],
   );
 
-/** The assistant the editor shows, before its chat is ready. */
+/**
+ * The assistant the editor shows, whether or not its chat is ready.
+ * `undefined` while no running plugin provides one.
+ */
 export const useActiveAssistant = (): InstalledAssistant | undefined => {
   const assistants = useInstalledAssistants();
   const { aiAssistantId } = use(UserSettingsContext);
@@ -45,16 +51,24 @@ export const useActiveAssistant = (): InstalledAssistant | undefined => {
   return assistants.find(({ pluginId }) => pluginId === activeId);
 };
 
-/** A tab with the id of the plugin that contributes it, for its error boundary. */
+/** A tab of the assistant window, with the plugin that returned it. */
 export interface PetrinautResolvedAssistantTab extends PetrinautAssistantTab {
+  /** Id of the plugin that returned the tab; its failures are reported under it. */
   readonly pluginId: string;
 }
 
-/** The shown assistant's window content, with every extension applied. */
+/** What the assistant window shows: the active assistant with its extensions applied. */
 export interface PetrinautActiveAssistant {
+  /** Id of the plugin that provides the assistant. */
   readonly pluginId: string;
+  /** Label from that plugin's manifest, as in the assistant selector. */
   readonly label: string;
+  /**
+   * The provider's chat configuration with each extension's `chat` fields
+   * merged over it in dependency order, so a later extension wins.
+   */
   readonly chat: PetrinautAiAssistant;
+  /** The provider's tabs, then each extension's, in dependency order. */
   readonly tabs: readonly PetrinautResolvedAssistantTab[];
 }
 
@@ -83,10 +97,9 @@ const tabsOf = (
   (tabs ?? []).map((tab) => ({ ...tab, pluginId: contribution.manifest.id }));
 
 /**
- * The active assistant's window content: the provider's chat configuration
- * with the fields its extensions add, and the provider's tabs followed by
- * theirs. `null` while no assistant is passed to the editor or the active one
- * has no chat for this document.
+ * What the assistant window of the nearest editor shows, extensions applied.
+ * `null` while no running plugin provides an assistant or the active one
+ * returns `chat: null`.
  */
 export const useActiveAssistantContent =
   (): PetrinautActiveAssistant | null => {
@@ -131,26 +144,27 @@ export const useActiveAssistantContent =
     };
   };
 
-/**
- * Whether the AI panel has an assistant to show. One boolean from context, so
- * the canvas and the controls that make room for the panel re-render only
- * when it changes, not on every chat update.
- */
+// One boolean from context, so the canvas and the controls that make room for
+// the panel re-render only when it changes, not on every chat update.
+/** Whether the active assistant has a chat for this document. */
 export const useHasActiveAiAssistant = (): boolean =>
   use(AssistantPresenceContext);
 
-/** The assistants passed to the editor and the active one, for the settings selector. */
+/** The running assistants and the active one, for the selector in User settings. */
 export const useAssistantChoice = () => {
   const assistants = useInstalledAssistants();
   const active = useActiveAssistant();
   const { setAiAssistantId } = use(UserSettingsContext);
 
   return {
+    /** The running assistants as selector options, in dependency order. */
     assistants: assistants.map(({ pluginId, label }) => ({
       id: pluginId,
       label,
     })),
+    /** Plugin id of the assistant the editor shows; `undefined` while none runs. */
     activeId: active?.pluginId,
+    /** Records the user's pick by plugin id; `null` clears it. */
     choose: setAiAssistantId,
   };
 };
@@ -172,7 +186,7 @@ const AssistantSwitchCommand = ({
   return null;
 };
 
-/** A palette command for each assistant other than the active one, once two or more are passed. */
+/** A palette command for each assistant but the active one, once two or more run. */
 export const AssistantSwitchCommands = () => {
   const assistants = useInstalledAssistants();
   const active = useActiveAssistant();

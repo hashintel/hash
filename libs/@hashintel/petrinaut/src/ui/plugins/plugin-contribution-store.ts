@@ -10,10 +10,16 @@ import type { PetrinautPluginProvidersErased } from "./define-petrinaut-plugin";
 import type { PetrinautPluginManifest } from "./plugin-manifest";
 import type { PluginSettings } from "./plugin-settings";
 
-/** A running plugin as the editor reads it: its manifest, its latest providers and its settings. */
+/**
+ * A running plugin as the editor reads it: its manifest, providers and settings.
+ * `usePetrinautPlugins` returns one per running plugin.
+ */
 export interface PetrinautPluginContribution {
+  /** The plugin's manifest, as the host passed it. */
   readonly manifest: PetrinautPluginManifest;
+  /** What the body returned in its latest committed render, keyed as in the manifest. */
   readonly providers: PetrinautPluginProvidersErased;
+  /** The plugin's setting and flag values by key, with `set` to validate and persist one. */
   readonly settings: PluginSettings;
 }
 
@@ -23,8 +29,11 @@ export type PluginContributions = ReadonlyMap<
   PetrinautPluginContribution
 >;
 
+/** The store one editor's plugin hosts publish to and the editor reads. */
 export interface PluginContributionStore {
+  /** Calls `listener` after each change; returns the function that unsubscribes it. */
   readonly subscribe: (listener: () => void) => () => void;
+  /** The current contributions; the same map until the next change. */
   readonly getSnapshot: () => PluginContributions;
   /**
    * Records a plugin's contribution. One whose manifest, providers and
@@ -43,6 +52,7 @@ export interface PluginContributionStore {
   readonly markCommitted: () => void;
 }
 
+/** Creates an empty store for one editor's plugins. */
 export const createPluginContributionStore = (): PluginContributionStore => {
   let contributions: PluginContributions = new Map();
   let committed = false;

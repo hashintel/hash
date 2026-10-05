@@ -28,9 +28,10 @@ export const assertUniquePluginIds = (
 };
 
 /**
- * Orders plugins so that every provider of a required token comes before its
- * dependents, keeping the host's order otherwise. Throws on a missing required
- * provider, two providers of one token, or a cycle, naming the plugin ids.
+ * Orders plugins so that the provider of every token a plugin requires,
+ * optional or not, comes before it, keeping the host's order otherwise. Throws
+ * on a missing required provider, two providers of one token, or a cycle,
+ * naming the plugin ids.
  */
 export const orderPluginsByDependencies = (
   plugins: readonly PetrinautPlugin[],
@@ -130,12 +131,22 @@ export const groupPluginsByDependencies = (
   return groups;
 };
 
-/** Whether a plugin runs, and which switch stops it when it does not. */
+/**
+ * One plugin passed to the editor, and whether it is switched on.
+ * `usePetrinautPluginList` returns one per plugin, in dependency order.
+ */
 export interface PetrinautPluginStatus {
+  /** The plugin as the host passed it. */
   readonly plugin: PetrinautPlugin;
-  /** On, and every provider it requires is on too. */
+  /**
+   * Whether the plugin is switched on, along with every provider it requires.
+   * Optional requirements do not count. A body that throws leaves it `true`.
+   */
   readonly enabled: boolean;
-  /** The plugin whose switch is off: itself or a required provider; `null` while enabled. */
+  /**
+   * Id of the plugin that keeps this one off; `null` while enabled. Its own id
+   * when the user switched it off, otherwise a required provider that is off.
+   */
   readonly disabledBy: string | null;
 }
 

@@ -90,7 +90,11 @@ const runningContributions = (
     return contribution === undefined ? [] : [contribution];
   });
 
-/** The running plugins of the nearest editor, in dependency order; none outside one. */
+/**
+ * The plugins running in the nearest editor, in dependency order, with their
+ * latest providers. Leaves out plugins switched off or whose body threw, and
+ * returns none outside an editor.
+ */
 export const usePetrinautPlugins =
   (): readonly PetrinautPluginContribution[] => {
     const store = use(PluginContributionStoreContext);
@@ -104,7 +108,10 @@ export const usePetrinautPlugins =
     return runningContributions(statuses, contributions);
   };
 
-/** Every plugin passed to the nearest editor, running or switched off, in dependency order. */
+/**
+ * Every plugin passed to the nearest editor with its on/off status, in dependency order.
+ * Includes the plugin `<Petrinaut>` runs for its `aiAssistant` prop; empty outside an editor.
+ */
 export const usePetrinautPluginList = (): readonly PetrinautPluginStatus[] =>
   use(PluginStatusesContext);
 
@@ -283,9 +290,9 @@ const viewSlotStyle = { display: "contents" } as const;
  * `HostsCommitted`'s because of their order, and the state change re-renders
  * before the browser paints.
  *
- * The slot element exists from the first commit. Without it the view would be
- * inserted into its parent after the portals it opens while mounting, such as
- * a settings dialog restored from the URL, and would paint above them.
+ * The wrapper element exists from the first commit. Without it the view would
+ * be inserted into its parent after the portals it opens while mounting, such
+ * as a settings dialog restored from the URL, and would paint above them.
  */
 const ViewAfterHosts = ({
   store,
@@ -326,19 +333,28 @@ const AssistantPresence = ({ children }: { children: ReactNode }) => {
   );
 };
 
+/** What `PetrinautPluginsProvider` runs, for which document, and the view it wraps. */
 export type PetrinautPluginsProviderProps = {
-  /** The plugins to run, each once; the first assistant provider is the default assistant. */
+  /**
+   * The plugins to run, each once; the first assistant provider is the default
+   * assistant. Throws during render on a repeated id, a missing required
+   * provider, two providers of one token, or a dependency cycle.
+   */
   plugins: readonly PetrinautPlugin[];
-  /** The document the editor shows, as `api.document`. */
+  /** The document the editor shows, passed to every body as `api.document`. */
   document: PetrinautPluginDocument;
+  /**
+   * The editor view. It mounts once every plugin has committed, so its first
+   * paint shows their contributions.
+   */
   children: ReactNode;
 };
 
 /**
- * Runs `plugins` beside the editor view rendered as `children`. `<Petrinaut>`
- * mounts this from its `plugins` prop, under the document's providers; a host
- * that renders the editor's parts itself mounts it where the user settings
- * are available.
+ * Runs `plugins` beside the editor view passed as `children`.
+ * `<Petrinaut>` mounts it from its `plugins` prop. A host that composes the
+ * editor itself mounts it inside `<PetrinautProvider>`, which holds the user
+ * settings it reads.
  */
 export const PetrinautPluginsProvider = ({
   plugins,

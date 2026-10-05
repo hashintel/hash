@@ -57,14 +57,28 @@ import type {
 } from "./views/Editor/panels/ai-assistant-panel";
 import type { PetrinautAiMutationExecutor } from "./views/Editor/panels/ai-assistant-panel/types";
 
+/** AI SDK `ChatTransport` that sends the conversation and streams the reply. */
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
+/**
+ * What `requestStop` reports. `"stop-requested"`: Petrinaut also cancels the
+ * local stream. `"already-settled"`: the response had already ended.
+ */
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+/**
+ * Visual style of the chat: `"stock"` for Petrinaut's own, `"brunch"` for the
+ * Brunch assistant's.
+ */
 export type PetrinautAiAssistantPresentation = "stock" | "brunch";
 
+/**
+ * Lifecycle of a tool call: `"pending"` until it has a result, then
+ * `"success"`, or `"error"` when it failed.
+ */
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
+/** Color of a tool card in the transcript. */
 export type PetrinautAiToolPresentationTone =
   | "danger"
   | "info"
@@ -72,116 +86,150 @@ export type PetrinautAiToolPresentationTone =
   | "pending"
   | "success";
 
+/** A tool call as `resolveToolPresentation` receives it. */
 export type PetrinautAiToolPresentationContext = {
+  /** Name of the tool the model called. */
   toolName: string;
+  /** Where the call is in its lifecycle. */
   state: PetrinautAiToolPresentationState;
+  /** Arguments from the model; partial while they are still streaming. */
   input: unknown;
+  /** The tool's result; `undefined` until `state` is `"success"`. */
   output: unknown;
+  /** Error text when `state` is `"error"`, otherwise `undefined`. */
   error: string | undefined;
 };
 
+/** How the transcript shows a tool call, in place of Petrinaut's card text. */
 export type PetrinautAiToolPresentation = {
+  /** Card title, in place of Petrinaut's summary. */
   title: string;
+  /**
+   * Text under the title; a failed call shows its error text instead.
+   * Omitted: Petrinaut's own detail, unless `items` is set.
+   */
   detail?: string;
+  /** Card color. Omitted: Petrinaut picks one from the call's state and tool. */
   tone?: PetrinautAiToolPresentationTone;
+  /** Lines listed on the card, in place of Petrinaut's own list. */
   items?: readonly string[];
 };
 
+/** Returns how to show a tool call, or `undefined` to keep Petrinaut's card. */
 export type PetrinautAiToolPresentationResolver = (
   context: PetrinautAiToolPresentationContext,
 ) => PetrinautAiToolPresentation | undefined;
 
+/**
+ * An assistant's chat: transport, stored history, tools and transcript style.
+ * A plugin returns it as `assistant.chat` from its body.
+ */
 export type PetrinautAiAssistant = {
-  /** Selects the assistant's visual presentation. Defaults to "stock". */
+  /** Visual style of the chat. Defaults to `"stock"`. */
   presentation?: PetrinautAiAssistantPresentation;
   /**
-   * Host-owned content beside the AI transcript in the panel's tab bar.
-   * Switching tabs keeps both bodies mounted and the composer/Voice controls
-   * available. Omitted: the stock assistant has its unchanged single view.
+   * One tab beside the chat, read only from the `aiAssistant` prop. A plugin
+   * returns `assistant.tabs` instead.
    */
   additionalTab?: {
+    /** Text on the tab. */
     label: string;
+    /** What the tab shows. It stays mounted while another tab is shown. */
     content: React.ReactNode;
     /**
-     * Opaque, stable identities for host activity represented by this tab.
-     * `undefined` means history is not ready; the first defined collection is
-     * baseline hydration and does not attract attention.
+     * Stable ids of the activity the tab lists; ids that appear while the tab is hidden badge it.
+     * The first list is the baseline and showing the tab clears the badge; `undefined` until the activity is known.
      */
     activityIdentities?: readonly (number | string)[];
   };
-  /** Label for the transcript tab/header. Defaults to "AI". */
+  /** Label of the chat tab, or of the header without tabs. Defaults to `"AI"`. */
   primaryLabel?: string;
-  /** Status shown while a turn is submitted or streaming. */
+  /** Status text while a response is submitted or streaming. */
   workingLabel?: string;
-  /** Resolve host tool cards from their identity, lifecycle and payload. */
+  /** Customizes how the transcript shows each tool call. */
   resolveToolPresentation?: PetrinautAiToolPresentationResolver;
-  /** Whether the panel may clear this conversation. Defaults to true. */
+  /** Whether the user may clear the conversation. Defaults to `true`. */
   canClearMessages?: boolean;
-  /** Optional host-owned identity; `useChat` generates one when omitted. */
+  /**
+   * Id of the conversation; a new id remounts the chat with fresh state.
+   * Generated when omitted.
+   */
   conversationId?: string;
   /**
-   * Optional synchronous boundary around canonical mutations. Hosts can inspect
-   * their bound document before/after `execute()` or refuse without executing.
-   * The panel still owns output insertion, continuation, and cancellation.
-   * Not called for read-only refusals, schema failures, title changes or commands.
+   * Wraps each document edit that Petrinaut's built-in AI tools make. Call `execute()`
+   * at most once, before returning, or return a refusal without calling it.
+   * Not called for commands, title changes, read-only refusals or invalid input.
    */
   executeMutation?: PetrinautAiMutationExecutor;
   /**
-   * Host-run tool calls whose results the host returns itself while the
-   * response is still streaming. Omitted for Stock and legacy Flue modes.
+   * Tool calls this assistant runs itself while the response is still
+   * streaming, reporting their results itself.
    */
   inBandBrowserTools?: {
+    /** Whether this assistant runs the named tool itself. */
     has: (toolName: string) => boolean;
     /**
-     * Run one call at its turn in same-document order. The host decides
-     * whether it may start, calls `execute` at most once with the input to
-     * run, and reports the resolved output or the failure itself. `signal`
-     * aborts on Stop. Later calls wait until this promise settles, except
-     * behind an experiment, which yields once it has captured its source.
+     * Runs one tool call, once the previous call settles; `signal` aborts on Stop.
+     * Call `execute` at most once, with the input to run, to have Petrinaut run the tool.
+     * A `createExperiment` call lets the next call start once `execute` starts.
      */
     run: (
       call: {
+        /** Id of this tool call, from the AI SDK. */
         toolCallId: string;
+        /** Name of the tool the model called, one that `has` accepts. */
         toolName: string;
+        /** The arguments the model sent for this call. */
         input: unknown;
+        /**
+         * Aborts when the user stops the response, sends a new message,
+         * clears the chat or switches conversation.
+         */
         signal: AbortSignal;
       },
       execute: (input: unknown) => Promise<unknown>,
     ) => Promise<void>;
   };
-  /** Host-owned dynamic tools executed automatically against the mounted editor. */
+  /** Tools Petrinaut runs for this assistant without user input, against the mounted editor. */
   automaticTools?: readonly PetrinautAiAutomaticTool[];
-  /** Host-owned dynamic tools that render inline in the AI conversation. */
+  /** Tools the user answers through a widget shown inline in the conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
+  /**
+   * Stored transcript the conversation starts from, applied once per
+   * conversation. With `followMessages`, applied again whenever `canReplace()` allows.
+   */
   messages?: PetrinautAiMessage[];
   /**
-   * Pure presentation projection, for example host-owned voice captions.
-   * Never changes transport input, tool execution, persisted history, or the
-   * messages supplied to composer and Voice controls. Do not mutate the input.
+   * Rewrites messages for the transcript only, for example to add voice
+   * captions. What is sent, stored and passed to controls stays unchanged.
+   * Do not mutate the input.
    */
   mapMessagesForDisplay?: (
     messages: PetrinautAiMessage[],
   ) => PetrinautAiMessage[];
   /**
-   * Opt into following host history while locally idle. The predicate must
-   * describe the exact snapshot supplied in `messages`, including settlement
-   * of every local admission; message IDs alone cannot prove catch-up.
-   * Observed tools are display-only, including after reload. Only tools from
-   * this panel's own response stream may execute in this mode.
-   * Omitted: messages retain their initial-hydration/recovery behavior.
+   * Replaces the transcript with each new `messages` while the chat is idle
+   * and `canReplace()` returns true, which it should only once `messages`
+   * holds every local turn. Tool calls in followed history never run.
    */
   followMessages?: { canReplace: () => boolean };
+  /** Called when the user clears the conversation, after `onMessages([])`. */
   onClearMessages?: () => void;
+  /**
+   * Receives the whole transcript each time a response ends or is stopped,
+   * and `[]` when the user clears the conversation.
+   */
   onMessages?: (messages: PetrinautAiMessage[]) => void;
   /**
-   * Requests a host-owned durable stop. When omitted, Stop only cancels the
-   * panel's local response stream.
+   * Stops the response at its source, such as a server run.
+   * Omitted: Stop cancels only the local stream.
    */
   requestStop?: () => Promise<PetrinautAiStopResult>;
-  /** Render a host-owned control inside the assistant composer. */
+  /** Renders the assistant's own control in the composer, next to the send button. */
   renderComposerControl?: PetrinautAiComposerControl;
-  /** Render one persistent, provider-neutral Voice mode. */
+  /** Renders the assistant's Voice mode. Omitted: the composer offers no Voice mode. */
   renderVoiceMode?: PetrinautAiVoiceMode;
+  /** Sends each request and streams the reply. Each send uses the latest value. */
   transport: PetrinautAiTransport;
 };
 
@@ -191,30 +239,38 @@ import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
 
+/** Props of `<Petrinaut>`. */
 export type PetrinautProps = {
+  /** The document the editor shows and edits; a new handle starts a new editor instance. */
   handle: PetrinautDocHandle;
   /**
-   * The plugins that provide the AI assistant, toolbar buttons, top-bar items,
-   * settings and flags. Each runs once per editor; the first assistant
-   * provider is the default assistant.
+   * Plugins that add buttons, top-bar items, an assistant, settings and flags.
+   * Pass each once. The first assistant provider is the default assistant,
+   * unless `aiAssistant` is set.
    */
   plugins?: readonly PetrinautPlugin[];
+  /** The net's title, shown in the top bar. Defaults to `"Untitled"`. */
   title?: string;
+  /** Saves a new title, from the top bar or the AI assistant. Omitted: the title is read-only. */
   setTitle?: (title: string) => void;
+  /** Shows the document without allowing edits. Defaults to `false`; a change starts a new editor instance. */
   readonly?: boolean;
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
    *
-   * - [omitted] (default): show the title, includethe "New", "Open", "Import",
+   * - [omitted] (default): show the title, include the "New", "Open", "Import",
    *   and "Load example" menu items in the burger menu.
    * - `"except-title"`: hide the management menu items but keep the title
    *   viewable and editable in the top bar.
    * - `"all"`: hide the title and all net-management menu items.
    */
   hideNetManagementControls?: "all" | "except-title";
+  /** Nets listed under "Open" in the burger menu, which shows "Open" only when this is non-empty. */
   existingNets?: MinimalNetMetadata[];
+  /** Called with a new net's definition and title from "New", "Import" or "Load example". */
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
+  /** Called with the `netId` of the net the user picks under "Open". */
   loadPetriNet?: (petriNetId: string) => void;
   /**
    * One assistant passed as its chat configuration. Petrinaut runs it as an
@@ -228,13 +284,10 @@ export type PetrinautProps = {
    */
   slots?: PetrinautSlots;
   /**
-   * Optional simulation-worker factory. Provide this when the host bundler
-   * needs to own worker instantiation (e.g. when consuming the published
-   * dist) — typically via Vite's `?worker` directive against your own copy
-   * of the worker entry. When omitted, falls back to the bundled
-   * inlined-blob worker that ships with the library, which works for
-   * source-built consumers (storybook, dev) but not always for production
-   * dist consumers.
+   * Optional simulation-worker factory, for a host bundler that must own worker
+   * instantiation, as when consuming the published dist: typically via Vite's
+   * `?worker` directive against your own copy of the worker entry. Omitted: the
+   * bundled inlined-blob worker, which suits source builds but not always dist consumers.
    */
   simulationWorkerFactory?: WorkerFactory;
   /**
@@ -243,9 +296,9 @@ export type PetrinautProps = {
    */
   monteCarloWorkerFactory?: WorkerFactory;
   /**
-   * Optional language-server worker factory. Same intent as
-   * `simulationWorkerFactory` — host-supplied LSP worker, typically via
-   * `?worker` against the host's own copy of the worker source.
+   * Optional language-server worker factory, for the same reason as
+   * `simulationWorkerFactory`: typically via `?worker` against the host's own
+   * copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
   /** Optional host-controlled, router-neutral app location. */
@@ -267,7 +320,7 @@ const noPlugins: readonly PetrinautPlugin[] = [];
  * the editor.
  *
  * Net-management concerns (title, switching) are passed alongside the handle
- * because they're not part of Core — they live in the host app.
+ * because they're not part of Core: they live in the host app.
  */
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
