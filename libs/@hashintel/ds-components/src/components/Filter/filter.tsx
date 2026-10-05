@@ -203,11 +203,12 @@ const FilterSelectInput = ({
     <Select
       {...shared}
       multiple={false}
+      required
       items={resolvedItems}
       searchable={config.searchable}
       renderSelectedItem={config.renderSelectedItem}
-      value={typeof slot === "string" ? slot : null}
-      onChange={(next) => onSlotChange(next ?? null)}
+      value={typeof slot === "string" ? slot : ""}
+      onChange={(next) => onSlotChange(next)}
       hideArrow
     />
   );

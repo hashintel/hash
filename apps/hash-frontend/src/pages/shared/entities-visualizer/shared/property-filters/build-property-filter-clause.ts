@@ -49,6 +49,13 @@ const coerceValueParameter = (
 };
 
 /**
+ * The non-empty selected values of a multi-select filter (`isNoneOf`); an
+ * empty result means the filter is incomplete and contributes no constraint.
+ */
+const selectedValues = (filter: PropertyFilter): string[] =>
+  (filter.values ?? []).filter((value) => value !== "");
+
+/**
  * Both of a `between` filter's bounds as numbers, or `null` when either is
  * missing or invalid for the kind (the kind-aware coercion yields strings for
  * a string-kind filter, rendering a mismatched `between` inert like the other
@@ -107,6 +114,22 @@ export const buildPropertyFilterClause = (
           { greaterOrEqual: [{ path }, { parameter: bounds[0] }] },
           { lessOrEqual: [{ path }, { parameter: bounds[1] }] },
         ],
+      };
+    }
+
+    // Excludes every selected value — a conjunction of ≠, so it stays
+    // expressible on the AND-only table endpoint too.
+    case "isNoneOf": {
+      const values = selectedValues(filter);
+
+      if (values.length === 0) {
+        return null;
+      }
+
+      return {
+        all: values.map((value) => ({
+          notEqual: [{ path }, { parameter: value }],
+        })),
       };
     }
 
@@ -196,6 +219,13 @@ export const buildEndpointPropertyFilter = (
           ]
         : [];
     }
+    // Excludes every selected value — a conjunction of ≠ conditions.
+    case "isNoneOf":
+      return selectedValues(filter).map((value) => ({
+        type: "notEquals",
+        property,
+        value,
+      }));
     default:
       break;
   }

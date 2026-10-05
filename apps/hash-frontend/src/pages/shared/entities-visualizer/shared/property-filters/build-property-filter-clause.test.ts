@@ -55,6 +55,33 @@ describe("buildEndpointPropertyFilter", () => {
     ).toEqual([{ type: "startsWith", property: baseUrl, value: " Alice" }]);
   });
 
+  it("spans `isNoneOf` over one not-equals condition per selected value", () => {
+    expect(
+      buildEndpointPropertyFilter(
+        propertyFilter({
+          kind: "enum",
+          operator: "isNoneOf",
+          value: undefined,
+          values: ["Scheduled", "Cancelled"],
+        }),
+      ),
+    ).toEqual([
+      { type: "notEquals", property: baseUrl, value: "Scheduled" },
+      { type: "notEquals", property: baseUrl, value: "Cancelled" },
+    ]);
+    // No selection yet: inert.
+    expect(
+      buildEndpointPropertyFilter(
+        propertyFilter({
+          kind: "enum",
+          operator: "isNoneOf",
+          value: undefined,
+          values: [],
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   it("spans `between` over two inclusive endpoint conditions", () => {
     expect(
       buildEndpointPropertyFilter(
@@ -133,6 +160,7 @@ describe("buildEndpointPropertyFilter", () => {
       "lessThan",
       "lessThanOrEqual",
       "between",
+      "isNoneOf",
       "contains",
       "startsWith",
       "endsWith",
@@ -146,6 +174,7 @@ describe("buildEndpointPropertyFilter", () => {
       "number",
       "string",
       "boolean",
+      "enum",
       "textList",
       "opaque",
     ];
@@ -155,13 +184,14 @@ describe("buildEndpointPropertyFilter", () => {
       for (const kind of kinds) {
         for (const value of values) {
           // `secondValue` mirrors `value` so complete `between` combinations
-          // are exercised too.
+          // are exercised too, and `values` so `isNoneOf` selections are.
           for (const secondValue of [undefined, value]) {
             const filter = propertyFilter({
               operator,
               kind,
               value,
               secondValue,
+              values: value === undefined ? undefined : [value],
             });
 
             expect(

@@ -44,17 +44,21 @@ const scalarChipValue = (
 /**
  * The committed value the chip displays: a `[lower, upper]` pair for
  * `between` (both bounds required — a half-filled pair renders both inputs
- * empty, matching the inert filter), a scalar otherwise.
+ * empty, matching the inert filter), the selected values for a multi-select
+ * operator, a scalar otherwise.
  */
 const chipValue = (
   filter: PropertyFilter,
-): string | number | [number, number] | null => {
+): string | number | string[] | [number, number] | null => {
   if (filter.operator === "between") {
     const lower = scalarChipValue(filter.value, filter.kind);
     const upper = scalarChipValue(filter.secondValue, filter.kind);
     return typeof lower === "number" && typeof upper === "number"
       ? [lower, upper]
       : null;
+  }
+  if (filter.operator === "isNoneOf") {
+    return filter.values?.length ? filter.values : null;
   }
   return scalarChipValue(filter.value, filter.kind);
 };
@@ -76,27 +80,41 @@ export const PropertyFilterChip: FunctionComponent<{
   onCommit: (committed: PropertyFilter) => void;
   onRemove: () => void;
 }> = ({ filter, operatorDescriptors, onCommit, onRemove }) => {
-  const operators = useMemo<Array<FilterOperator<PropertyFilterValueMap>>>(
-    () =>
-      (operatorDescriptors ?? getOperatorsForKind(filter.kind)).map(
-        (descriptor) => {
-          const valueInput =
-            filter.kind === "number"
-              ? { type: "number" as const }
+  const operators = useMemo<
+    Array<FilterOperator<PropertyFilterValueMap>>
+  >(() => {
+    // Enum-kind values are picked from the data type's constants rather than
+    // typed free-form.
+    const selectItems = (filter.enumOptions ?? []).map((option) => ({
+      value: option,
+      text: option,
+    }));
+    return (operatorDescriptors ?? getOperatorsForKind(filter.kind)).map(
+      (descriptor) => {
+        const valueInput =
+          filter.kind === "number"
+            ? { type: "number" as const }
+            : filter.kind === "enum"
+              ? { type: "select" as const, items: selectItems }
               : { type: "string" as const };
-          return {
-            key: descriptor.operator,
-            label: descriptor.label,
-            input: !descriptor.requiresValue
-              ? null
+        return {
+          key: descriptor.operator,
+          label: descriptor.label,
+          input: !descriptor.requiresValue
+            ? null
+            : descriptor.multi
+              ? {
+                  type: "select" as const,
+                  multiple: true as const,
+                  items: selectItems,
+                }
               : descriptor.range
                 ? [valueInput, "and", valueInput]
                 : valueInput,
-          };
-        },
-      ),
-    [filter.kind, operatorDescriptors],
-  );
+        };
+      },
+    );
+  }, [filter.kind, filter.enumOptions, operatorDescriptors]);
 
   const value = useMemo(
     () => ({ key: filter.operator, value: chipValue(filter) }),
@@ -110,25 +128,44 @@ export const PropertyFilterChip: FunctionComponent<{
       operators={operators}
       value={value}
       onChange={(operator, committed) => {
-        // The chip's inputs produce strings, numbers, or (for `between`) a
-        // pair of numbers; a cleared commit (null) stores no value, leaving
-        // the filter inert. `secondValue` only survives on `between`, so
-        // switching operators sheds a stale upper bound.
-        const [first, second] = Array.isArray(committed)
-          ? committed
-          : [committed, undefined];
-        const asRawString = (bound: unknown): string | undefined =>
-          typeof bound === "string"
-            ? bound
-            : typeof bound === "number"
-              ? String(bound)
+        // The chip's inputs produce strings, numbers, a pair of numbers
+        // (`between`), or a list of strings (multi-select); a cleared commit
+        // (null) stores no value, leaving the filter inert. Every per-shape
+        // field is reset on each commit so switching operators sheds stale
+        // bounds and selections.
+        const asRawString = (raw: unknown): string | undefined =>
+          typeof raw === "string"
+            ? raw
+            : typeof raw === "number"
+              ? String(raw)
               : undefined;
-        onCommit({
+        const base = {
           ...filter,
           operator,
-          value: asRawString(first),
-          secondValue: asRawString(second),
-        });
+          value: undefined,
+          secondValue: undefined,
+          values: undefined,
+        };
+        if (operator === "between" && Array.isArray(committed)) {
+          onCommit({
+            ...base,
+            value: asRawString(committed[0]),
+            secondValue: asRawString(committed[1]),
+          });
+        } else if (operator === "isNoneOf") {
+          const selected = Array.isArray(committed)
+            ? committed.filter(
+                (candidate): candidate is string =>
+                  typeof candidate === "string",
+              )
+            : [];
+          onCommit({
+            ...base,
+            values: selected.length > 0 ? selected : undefined,
+          });
+        } else {
+          onCommit({ ...base, value: asRawString(committed) });
+        }
       }}
       removeable={{ onRemove }}
     />

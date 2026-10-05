@@ -6,6 +6,11 @@ import type { BaseUrl } from "@blockprotocol/type-system";
  *
  * - `number` / `string` / `boolean` — scalar values with the full operator
  *   catalog for their kind.
+ * - `enum` — a string value constrained to a fixed set of constants by its
+ *   data type. Offered as select inputs (`is` / `is not` / `is none of`)
+ *   alongside the existence operators. Number enums deliberately stay plain
+ *   `number`: their select would commit strings, and a string parameter never
+ *   equals a stored JSONB number.
  * - `textList` — a list whose elements are plain text. `contains` matches a
  *   substring anywhere within any element (verified against the entities-table
  *   endpoint), alongside the existence operators.
@@ -22,6 +27,7 @@ export type FilterValueKind =
   | "number"
   | "string"
   | "boolean"
+  | "enum"
   | "textList"
   | "opaque";
 
@@ -48,6 +54,8 @@ export type PropertyFilterOperator =
   // boolean only (value-less – the operator carries the value)
   | "isTrue"
   | "isFalse"
+  /** Enum only; excludes every one of a set of selected values (AND of ≠). */
+  | "isNoneOf"
   // existence checks, available for every kind (value-less)
   | "isEmpty"
   | "hasAnyValue"
@@ -85,6 +93,17 @@ export type PropertyFilter = {
    * Unused by every other operator.
    */
   secondValue?: string;
+  /**
+   * The selected values of a multi-select operator (`isNoneOf`); an absent or
+   * empty list means the filter is incomplete and contributes no clause.
+   * Unused by every other operator.
+   */
+  values?: string[];
+  /**
+   * The constants an `enum`-kind property permits, snapshotted from its data
+   * type when the filter is added — they populate the chip's select inputs.
+   */
+  enumOptions?: string[];
 };
 
 /**
@@ -101,6 +120,8 @@ export type FilterableProperty = {
   baseUrl: BaseUrl;
   title: string;
   kind: FilterValueKind;
+  /** The permitted constants of an `enum`-kind property. */
+  enumOptions?: string[];
   filterable: true;
 };
 

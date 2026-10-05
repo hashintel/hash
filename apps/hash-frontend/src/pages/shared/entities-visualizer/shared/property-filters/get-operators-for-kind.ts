@@ -11,6 +11,8 @@ export type OperatorDescriptor = {
   requiresValue: boolean;
   /** The operator takes two value inputs (`between`'s inclusive bounds). */
   range?: true;
+  /** The operator takes a multi-select of values (`isNoneOf`). */
+  multi?: true;
 };
 
 const hasAnyValueOperator: OperatorDescriptor = {
@@ -125,6 +127,28 @@ const booleanOperators: OperatorDescriptor[] = [
 ];
 
 /**
+ * Enum-kind properties pick their values from the data type's constants, so
+ * their value inputs are selects rather than free text. "is not" is the
+ * none-of multi-select (a single selection is just its one-value case; an
+ * AND of ≠, so it stays expressible on the AND-only entities-table
+ * endpoint). `is any of` awaits a disjunction on that endpoint.
+ */
+const enumOperators: OperatorDescriptor[] = [
+  {
+    operator: "equals",
+    label: "is",
+    requiresValue: true,
+  },
+  {
+    operator: "isNoneOf",
+    label: "is not",
+    requiresValue: true,
+    multi: true,
+  },
+  ...existenceOperators,
+];
+
+/**
  * Lists of plain text support `contains` — a substring match anywhere within
  * any element (verified against the entities-table endpoint) — plus the
  * existence operators. Equality is deliberately absent: the server compares
@@ -167,6 +191,7 @@ const operatorsByKind: Record<FilterValueKind, OperatorDescriptor[]> = {
   number: numberOperators,
   string: stringOperators,
   boolean: booleanOperators,
+  enum: enumOperators,
   textList: textListOperators,
   opaque: opaqueOperators,
 };

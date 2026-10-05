@@ -122,8 +122,13 @@ const propertyOperatorsByKind: Record<
     ...existenceOperators,
   ],
   // This builder classifies via `resolveDataTypeValueKind`, which only yields
-  // scalar kinds — the list/structured kinds exist here for type completeness
-  // with the entities table's richer classifier.
+  // scalar kinds — the enum/list/structured kinds exist here for type
+  // completeness with the entities table's richer classifier.
+  enum: [
+    { id: "equal", label: "is", requiresValue: true },
+    { id: "notEqual", label: "is not", requiresValue: true },
+    ...existenceOperators,
+  ],
   textList: [
     { id: "containsSegment", label: "contains", requiresValue: true },
     ...existenceOperators,

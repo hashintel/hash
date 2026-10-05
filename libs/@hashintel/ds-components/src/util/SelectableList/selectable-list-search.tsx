@@ -8,12 +8,37 @@ import {
 } from "./selectable-list-search.recipe";
 
 /**
+ * The dropdown content shrink-wraps its widest row, so filtering would make
+ * it jitter as rows come and go. Pin the width the content had when the
+ * query began. Set with `important` to beat recipe min-widths that are
+ * themselves `!important` (the Select list slot).
+ */
+const lockMinWidth = (content: HTMLElement) => {
+  const rect = content.getBoundingClientRect();
+  if (rect.width === 0) {
+    return;
+  }
+  const style = getComputedStyle(content);
+  const width =
+    style.boxSizing === "border-box"
+      ? rect.width
+      : rect.width -
+        parseFloat(style.borderLeftWidth) -
+        parseFloat(style.borderRightWidth) -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight);
+  content.style.setProperty("min-width", `${width}px`, "important");
+};
+
+/**
  * A search field for the header of a SelectableList
  * (`header={<SelectableListSearch ... />}`) — pair with
  * `swapHeaderFooterOnFlip` so it hugs the trigger edge when the dropdown
  * flips to open upward. It focuses itself when mounted — pair with a lazily
  * mounted dropdown so focus lands when it opens (the double rAF lets ark
- * move focus to the list content first).
+ * move focus to the list content first). While a query is active the
+ * dropdown keeps the width it had when typing began, so filtering does not
+ * change its width.
  */
 export const SelectableListSearch = ({
   value,
@@ -51,7 +76,21 @@ export const SelectableListSearch = ({
         type="text"
         className={searchInput()}
         value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        onChange={(event) => {
+          const next = event.currentTarget.value;
+          // Measure before React re-renders with the filtered items.
+          const content = inputRef.current?.closest<HTMLElement>(
+            '[data-part="content"]',
+          );
+          if (content) {
+            if (value === "" && next !== "") {
+              lockMinWidth(content);
+            } else if (next === "") {
+              content.style.removeProperty("min-width");
+            }
+          }
+          onChange(next);
+        }}
         placeholder={placeholder}
         aria-label={ariaLabel}
       />

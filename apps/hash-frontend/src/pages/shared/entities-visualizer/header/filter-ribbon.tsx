@@ -113,7 +113,10 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
    * active from the moment it is added.
    */
   const handleAddPropertyFilter = (
-    property: Pick<FilterableProperty, "baseUrl" | "title" | "kind">,
+    property: Pick<
+      FilterableProperty,
+      "baseUrl" | "title" | "kind" | "enumOptions"
+    >,
   ) => {
     setPropertyFilters((prev) => [
       ...prev,
@@ -123,6 +126,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
         title: property.title,
         kind: property.kind,
         operator: getDefaultOperatorForKind(property.kind),
+        ...(property.enumOptions ? { enumOptions: property.enumOptions } : {}),
       },
     ]);
   };
