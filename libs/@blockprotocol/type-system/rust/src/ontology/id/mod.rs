@@ -35,7 +35,7 @@
 use core::error::Error;
 use core::{
     cmp, fmt,
-    num::{IntErrorKind, NonZeroU32},
+    num::{IntErrorKind, NonZero, ParseIntError},
     str::FromStr,
 };
 
@@ -249,15 +249,15 @@ impl<'a> FromSql<'a> for BaseUrl {
     derive_more::From,
 )]
 #[serde(transparent)]
-pub struct OntologyTypeMajorVersion(NonZeroU32);
+pub struct OntologyTypeMajorVersion(NonZero<u32>);
 
 impl OntologyTypeMajorVersion {
-    pub const MAX: Self = Self(NonZeroU32::MAX);
-    pub const MIN: Self = Self(NonZeroU32::MIN);
+    pub const MAX: Self = Self(NonZero::<u32>::MAX);
+    pub const MIN: Self = Self(NonZero::<u32>::MIN);
 
     #[must_use]
     pub const fn new(value: u32) -> Option<Self> {
-        match NonZeroU32::new(value) {
+        match NonZero::new(value) {
             Some(value) => Some(Self(value)),
             None => None,
         }
@@ -266,6 +266,19 @@ impl OntologyTypeMajorVersion {
     #[must_use]
     pub const fn get(self) -> u32 {
         self.0.get()
+    }
+
+    /// Parses a major version in the given radix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is not an integer between 1 and [`u32::MAX`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `radix` is outside the range 2 to 36.
+    pub fn from_str_radix(value: &str, radix: u32) -> Result<Self, ParseIntError> {
+        NonZero::<u32>::from_str_radix(value, radix).map(Self)
     }
 
     /// # Errors
@@ -286,6 +299,32 @@ impl OntologyTypeMajorVersion {
             .checked_sub(1)
             .and_then(Self::new)
             .ok_or_else(|| Report::new(OntologyTypeMajorVersionError::Underflow))
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for OntologyTypeMajorVersion {
+    postgres_types::accepts!(INT8);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        i64::from(self.get()).to_sql(ty, out)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for OntologyTypeMajorVersion {
+    postgres_types::accepts!(INT8);
+
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self(NonZero::try_from(u32::try_from(i64::from_sql(
+            ty, raw,
+        )?)?)?))
     }
 }
 
@@ -458,15 +497,13 @@ impl FromStr for OntologyTypeVersion {
             };
 
         Ok(Self {
-            major: NonZeroU32::from_str_radix(version, 10)
-                .map(OntologyTypeMajorVersion::from)
-                .map_err(|error| {
-                    if *error.kind() == IntErrorKind::Empty {
-                        ParseOntologyTypeVersionError::MissingVersion
-                    } else {
-                        ParseOntologyTypeVersionError::ParseVersion(error.to_string())
-                    }
-                })?,
+            major: OntologyTypeMajorVersion::from_str_radix(version, 10).map_err(|error| {
+                if *error.kind() == IntErrorKind::Empty {
+                    ParseOntologyTypeVersionError::MissingVersion
+                } else {
+                    ParseOntologyTypeVersionError::ParseVersion(error.to_string())
+                }
+            })?,
             pre_release: draft_info
                 .map(|draft_info| {
                     draft_info.parse().map_err(|error| {
@@ -537,7 +574,7 @@ impl ToSql for OntologyTypeVersion {
         if self.pre_release.is_some() {
             todo!("https://linear.app/hash/issue/BE-161/allow-ids-for-pre-release-type-to-be-stored-in-postgres");
         }
-        i64::from(self.major.get()).to_sql(ty, out)
+        self.major.to_sql(ty, out)
     }
 }
 
@@ -547,7 +584,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
-            major: NonZeroU32::try_from(u32::try_from(i64::from_sql(ty, raw)?)?)?.into(),
+            major: OntologyTypeMajorVersion::from_sql(ty, raw)?,
             pre_release: None,
         })
     }
@@ -1097,6 +1134,48 @@ mod tests {
 
         OntologyTypeVersion::from_sql(&Type::INT8, &buffer)
             .expect_err("zero should be rejected as an ontology version");
+    }
+
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn major_version_sql_boundaries() {
+        for major in [OntologyTypeMajorVersion::MIN, OntologyTypeMajorVersion::MAX] {
+            let mut buffer = BytesMut::new();
+            major
+                .to_sql_checked(&Type::INT8, &mut buffer)
+                .expect("major version should serialize as a PostgreSQL integer");
+            assert_eq!(
+                i64::from_sql(&Type::INT8, &buffer)
+                    .expect("major version should use the PostgreSQL INT8 encoding"),
+                i64::from(major.get())
+            );
+            assert_eq!(
+                OntologyTypeMajorVersion::from_sql(&Type::INT8, &buffer)
+                    .expect("major version should deserialize from a PostgreSQL integer"),
+                major
+            );
+            assert_eq!(
+                OntologyTypeVersion::from_sql(&Type::INT8, &buffer)
+                    .expect("ontology version should deserialize from a PostgreSQL integer"),
+                OntologyTypeVersion {
+                    major,
+                    pre_release: None,
+                }
+            );
+        }
+    }
+
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn major_version_sql_out_of_range() {
+        for value in [-1_i64, 0, i64::from(u32::MAX) + 1] {
+            let mut buffer = BytesMut::new();
+            value
+                .to_sql(&Type::INT8, &mut buffer)
+                .expect("value should serialize as a PostgreSQL integer");
+            OntologyTypeMajorVersion::from_sql(&Type::INT8, &buffer)
+                .expect_err("value outside the major version range should be rejected");
+        }
     }
 
     #[test]
