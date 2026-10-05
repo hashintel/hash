@@ -1892,6 +1892,45 @@ test.each(["commentary", "instructions"] as const)(
   },
 );
 
+test("failed progress lines do not warn that an answer failed", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => call[0]({ phase: "connected", message: null }));
+  const progress = { kind: "commentary" as const, delegationId: null };
+  act(() => {
+    call[4]({ ...progress, eventId: "rejected", status: "unknown" });
+    call[4]({ ...progress, eventId: "rejected", status: "rejected" });
+    call[4]({ ...progress, eventId: "local", status: "local-failure" });
+    call[4]({ ...progress, eventId: "late", status: "unknown" });
+    call[6]?.started();
+    call[4]({ ...progress, eventId: "late", status: "rejected" });
+  });
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ phase: "listening", warningMessage: null }),
+  );
+});
+
+test("a wrap-up without a delegation still warns when it cannot be sent", async () => {
+  const { call, props } = await offerSettledWrapUp();
+  act(() =>
+    call[4]({
+      eventId: "summary",
+      kind: "commentary",
+      delegationId: null,
+      status: "local-failure",
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      warningMessage: expect.stringContaining(
+        "The answer could not be sent to Live locally",
+      ) as unknown,
+    }),
+  );
+});
+
 test("Live progress observes the host approval gate and stays out of written voice history", async () => {
   mockMediation();
   const tracker = new BrunchPanelConversationTracker();
