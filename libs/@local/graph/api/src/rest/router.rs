@@ -32,6 +32,7 @@ pub struct Dependencies<S> {
     pub session_auth: authentication::KratosSessionConfig,
     pub cloudflare_access: Option<authentication::CloudflareAccessConfig>,
     pub service_secret: String,
+    pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
@@ -101,6 +102,7 @@ where
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
+        .layer(Extension(dependencies.api_tokens))
         .layer(Extension(dependencies.compiler))
         .layer(Extension(dependencies.clustering));
 

@@ -6190,6 +6190,7 @@ name = "hash-graph"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "base16ct",
  "clap",
  "clap_complete",
  "derive_more",
@@ -6221,6 +6222,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "type-system",
+ "uuid",
 ]
 
 [[package]]

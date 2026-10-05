@@ -17,7 +17,10 @@ use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
         self,
-        authentication::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
+        authentication::{
+            CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig,
+            api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
+        },
         legacy::{
             ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext,
             hashql::CompilerContext,
@@ -32,7 +35,10 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
     SemanticSearchSettings,
 };
-use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
+use hash_graph_store::{
+    api_token::ApiTokenEncryptionKeyId, filter::protection::PropertyProtectionFilterConfig,
+    pool::StorePool,
+};
 use hash_graph_type_fetcher::FetchingPool;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
@@ -44,6 +50,7 @@ use tokio::{io, net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
+use uuid::Uuid;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -254,6 +261,95 @@ impl KratosSessionAuthConfig {
     }
 }
 
+/// The environment an API token belongs to.
+#[derive(Debug, Copy, Clone, clap::ValueEnum)]
+pub enum ApiTokenEnvironment {
+    Production,
+    Staging,
+    /// A deployment on a developer's machine or in CI.
+    Local,
+}
+
+impl From<ApiTokenEnvironment> for api_token::Environment {
+    fn from(environment: ApiTokenEnvironment) -> Self {
+        match environment {
+            ApiTokenEnvironment::Production => Self::Production,
+            ApiTokenEnvironment::Staging => Self::Staging,
+            ApiTokenEnvironment::Local => Self::Local,
+        }
+    }
+}
+
+/// Configuration for issuing API tokens.
+///
+/// API tokens are unavailable unless all three options are set.
+#[derive(derive_more::Debug, Clone, Parser)]
+#[expect(
+    clippy::struct_field_names,
+    reason = "the field names are the command-line options, which share the `api-token` prefix"
+)]
+pub struct ApiTokenConfig {
+    /// The AES-256-SIV key that encrypts the secret hashes of API tokens, as 128 hexadecimal
+    /// characters.
+    #[clap(
+        long,
+        env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY",
+        hide_env_values = true
+    )]
+    #[debug("***")]
+    pub api_token_encryption_key: Option<String>,
+
+    /// The ID recorded with every secret hash the key encrypts.
+    #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY_ID")]
+    pub api_token_encryption_key_id: Option<Uuid>,
+
+    /// The environment of the API tokens this server issues.
+    #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENVIRONMENT", value_enum)]
+    pub api_token_environment: Option<ApiTokenEnvironment>,
+}
+
+impl ApiTokenConfig {
+    /// Converts the CLI configuration into an API token issuer, or `None` if no API token option
+    /// is set.
+    pub(crate) fn into_issuer(self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
+        let (key, key_id, environment) = match (
+            self.api_token_encryption_key,
+            self.api_token_encryption_key_id,
+            self.api_token_environment,
+        ) {
+            (None, None, None) => {
+                tracing::warn!("API tokens are unavailable because no API token option is set");
+                return Ok(None);
+            }
+            (Some(key), Some(key_id), Some(environment)) => (key, key_id, environment),
+            _ => {
+                return Err(Report::new(GraphError).attach(
+                    "--api-token-encryption-key, --api-token-encryption-key-id and \
+                     --api-token-environment must be set together",
+                ));
+            }
+        };
+
+        let mut key_bytes = [0; 64];
+        let key_length = key_bytes.len();
+        match base16ct::mixed::decode(key.trim(), &mut key_bytes) {
+            Ok(decoded) if decoded.len() == key_length => {}
+            _ => {
+                return Err(Report::new(GraphError).attach(
+                    "--api-token-encryption-key (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 128 \
+                     hexadecimal characters",
+                ));
+            }
+        }
+
+        tracing::info!(%key_id, ?environment, "API tokens enabled");
+        Ok(Some(ApiTokenIssuer::new(
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), key_bytes),
+            api_token::Environment::from(environment),
+        )))
+    }
+}
+
 /// Configuration for the main graph API server.
 ///
 /// Groups HTTP address, RPC address, temporal client, store behavior, and
@@ -364,6 +460,9 @@ pub struct ServerConfig {
     #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
     #[debug("***")]
     pub service_secret: Option<String>,
+
+    #[clap(flatten)]
+    pub api_tokens: ApiTokenConfig,
 
     #[clap(flatten)]
     pub compiler: CompilerConfig,
@@ -568,6 +667,7 @@ pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
     pub cloudflare_access: Option<CloudflareAccessConfig>,
     pub service_secret: String,
+    pub api_tokens: Option<Arc<ApiTokenIssuer>>,
 }
 
 #[expect(
@@ -619,6 +719,7 @@ where
         session_auth: authentication.session_auth,
         cloudflare_access: authentication.cloudflare_access,
         service_secret: authentication.service_secret,
+        api_tokens: authentication.api_tokens,
         rate_limit: config.rate_limit,
         meter,
         compiler,
@@ -656,6 +757,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
                  running the server",
             )
         })?;
+    let api_tokens = args.config.api_tokens.clone().into_issuer()?.map(Arc::new);
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -764,6 +866,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             session_auth,
             cloudflare_access,
             service_secret,
+            api_tokens,
         },
         query_logger,
         telemetry.meter("Graph API"),
@@ -836,9 +939,82 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 mod tests {
     use core::num::NonZero;
 
+    use hash_graph_api::rest::authentication::api_token::Environment;
     use reqwest::Url;
+    use uuid::Uuid;
 
-    use super::KratosSessionAuthConfig;
+    use super::{ApiTokenConfig, ApiTokenEnvironment, KratosSessionAuthConfig};
+
+    /// A key of `length` hexadecimal characters.
+    fn hex_key(length: usize) -> String {
+        "0123456789abcdef".chars().cycle().take(length).collect()
+    }
+
+    #[test]
+    fn api_tokens_unset() {
+        let issuer = ApiTokenConfig {
+            api_token_encryption_key: None,
+            api_token_encryption_key_id: None,
+            api_token_environment: None,
+        }
+        .into_issuer()
+        .expect("a configuration without API token options should convert");
+
+        assert!(
+            issuer.is_none(),
+            "API tokens should be unavailable without their options"
+        );
+    }
+
+    #[test]
+    fn api_tokens_partial() {
+        let report = ApiTokenConfig {
+            api_token_encryption_key: Some(hex_key(128)),
+            api_token_encryption_key_id: None,
+            api_token_environment: Some(ApiTokenEnvironment::Local),
+        }
+        .into_issuer()
+        .expect_err("a key without its ID should not convert");
+
+        assert!(
+            format!("{report:?}").contains("must be set together"),
+            "the error should ask for all API token options"
+        );
+    }
+
+    #[test]
+    fn api_tokens_short_key() {
+        let report = ApiTokenConfig {
+            api_token_encryption_key: Some(hex_key(126)),
+            api_token_encryption_key_id: Some(Uuid::nil()),
+            api_token_environment: Some(ApiTokenEnvironment::Local),
+        }
+        .into_issuer()
+        .expect_err("a key of 63 bytes should not convert");
+
+        assert!(
+            format!("{report:?}").contains("128 hexadecimal characters"),
+            "the error should name the key length"
+        );
+    }
+
+    #[test]
+    fn api_tokens_complete() {
+        let issuer = ApiTokenConfig {
+            api_token_encryption_key: Some(hex_key(128)),
+            api_token_encryption_key_id: Some(Uuid::nil()),
+            api_token_environment: Some(ApiTokenEnvironment::Staging),
+        }
+        .into_issuer()
+        .expect("a complete configuration should convert")
+        .expect("a complete configuration should make API tokens available");
+
+        assert_eq!(
+            issuer.environment(),
+            Environment::Staging,
+            "the issuer should generate tokens for the configured environment"
+        );
+    }
 
     #[test]
     fn session_cache_ttl_zero_disables_the_cache() {
