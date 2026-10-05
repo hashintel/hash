@@ -14,11 +14,7 @@
 
 import { useCallback, useState } from "react";
 
-import {
-  Petrinaut,
-  type PetrinautPlugin,
-  WalkthroughProvider,
-} from "@hashintel/petrinaut/ui";
+import { Petrinaut, type PetrinautPlugin } from "@hashintel/petrinaut/ui";
 
 import {
   useSharedSearchNavigation,
@@ -34,11 +30,11 @@ import { commandPalettePlugin } from "../plugins/command-palette/plugin";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { sentryFeedbackPlugin } from "../plugins/sentry-feedback/plugin";
 import { voicePlugin } from "../plugins/voice/plugin";
+import { walkthroughPlugin } from "../plugins/walkthrough/plugin";
 import { resolveDefaultAssistant } from "./default-assistant";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
-import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
@@ -51,12 +47,17 @@ const defaultAssistant = resolveDefaultAssistant(
 );
 
 /**
- * The plugins this demo gives the editor: the chrome plugins, Petrinaut AI,
- * and, when an endpoint is configured, Brunch with Voice mode. The first
- * assistant in the list is the default; User settings can pick another.
+ * The plugins this demo gives the editor: the chrome plugins, the welcome
+ * guide, Petrinaut AI, and, when an endpoint is configured, Brunch with
+ * Voice mode. The first assistant in the list is the default; User settings
+ * can pick another.
  */
 const selectDemoPlugins = (): readonly PetrinautPlugin[] => {
-  const chrome = [sentryFeedbackPlugin, commandPalettePlugin];
+  const chrome = [
+    sentryFeedbackPlugin,
+    commandPalettePlugin,
+    walkthroughPlugin,
+  ];
   if (!brunchPreviewConfig.isBrunchConfigured) {
     return [...chrome, petrinautAiPlugin];
   }
@@ -166,19 +167,17 @@ export const LocalStorageDemoApp = ({
         <UnsavedChangeNotice message={unsavedChangeMessage} />
       )}
       <BrunchHostContext value={brunchHost}>
-        <WalkthroughProvider steps={walkthroughSteps}>
-          <Petrinaut
-            handle={activeHandle.handle}
-            plugins={plugins}
-            existingNets={existingNets}
-            createNewNet={createNewNet}
-            loadPetriNet={loadPetriNet}
-            navigation={navigation}
-            readonly={false}
-            setTitle={setTitle}
-            title={currentDocument.title}
-          />
-        </WalkthroughProvider>
+        <Petrinaut
+          handle={activeHandle.handle}
+          plugins={plugins}
+          existingNets={existingNets}
+          createNewNet={createNewNet}
+          loadPetriNet={loadPetriNet}
+          navigation={navigation}
+          readonly={false}
+          setTitle={setTitle}
+          title={currentDocument.title}
+        />
       </BrunchHostContext>
     </div>
   );

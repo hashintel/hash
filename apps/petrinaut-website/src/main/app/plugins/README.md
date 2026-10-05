@@ -17,6 +17,7 @@ that is the conversation contract between Brunch and Voice.
 | `brunch/`          | `website.brunch`          | The Brunch assistant and its Ledger tab; provides the conversation         |
 | `voice/`           | `website.voice`           | Voice mode on Brunch's assistant; the Voice and Realtime flags             |
 | `petrinaut-ai/`    | `website.petrinaut-ai`    | Petrinaut AI, Petrinaut's own assistant over the website's chat route      |
+| `walkthrough/`     | `website.walkthrough`     | The welcome guide and its "Show welcome guide" setting                     |
 | `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's command registry, with its top-bar button |
 | `sentry-feedback/` | `website.sentry-feedback` | A feedback button in the viewport controls                                 |
 

@@ -369,17 +369,12 @@ describe("user settings", () => {
       name: "Keep panels mounted",
     });
     expect(document.activeElement).toBe(panels);
-    fireEvent.keyDown(panels, { key: "ArrowDown" });
-    const welcome = screen.getByRole("checkbox", {
-      name: "Show welcome guide",
-    });
-    expect(document.activeElement).toBe(welcome);
-    fireEvent.keyDown(welcome, { key: "ArrowLeft" });
+    fireEvent.keyDown(panels, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(general);
     fireEvent.keyDown(general, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(welcome);
-    fireEvent.keyDown(welcome, { key: "ArrowUp" });
     expect(document.activeElement).toBe(panels);
+    fireEvent.keyDown(panels, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(animations);
   });
 
   it("keeps one content panel and lets dropdowns own their open keyboard interaction", async () => {

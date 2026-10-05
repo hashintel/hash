@@ -173,10 +173,10 @@ describe("UserSettingsProvider", () => {
           "enableInBrowserOptimization",
           "computeBackend",
           "brunchDemoMode",
+          "showWalkthroughOnInit",
         ]) {
           expect(key in persisted).toBe(false);
         }
-        expect(persisted.showWalkthroughOnInit).toBe(false);
         expect(persisted.showAnimations).toBe(false);
         expect(persisted.aiAssistantId).toBe("test.assistant");
       } finally {

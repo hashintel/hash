@@ -1,12 +1,16 @@
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { Button, ButtonGroup, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  WalkthroughContext,
-  willShowWalkthroughDialog,
-} from "./walkthrough-context";
+/** One step of the guide: a title, a short body and a looping video. */
+export type WalkthroughStep = {
+  id: string;
+  title: React.ReactNode;
+  body: React.ReactNode;
+  videoHref: string;
+  videoAlt: string;
+};
 
 const docsUrl =
   "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs";
@@ -131,15 +135,16 @@ const dividerStyle = css({
 });
 
 export type WalkthroughDialogProps = {
+  steps: readonly WalkthroughStep[];
   open: boolean;
   onClose: () => void;
 };
 
 export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
+  steps,
   open,
   onClose,
 }) => {
-  const walkthrough = use(WalkthroughContext);
   const [currentStep, setCurrentStep] = useState(0);
 
   // Reset to the first step every time the dialog opens. Using the
@@ -154,9 +159,8 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
     }
   }
 
-  if (!willShowWalkthroughDialog(walkthrough, open)) return null;
+  if (!open || steps.length === 0) return null;
 
-  const { steps } = walkthrough;
   const lastIndex = steps.length - 1;
   const step = steps[currentStep] ?? steps[0];
 

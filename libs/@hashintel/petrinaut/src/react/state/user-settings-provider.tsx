@@ -45,6 +45,8 @@ type PersistedUserSettings = Partial<UserSettings> & {
   enableNotebookView?: boolean;
   /** Gated a demo-only File menu entry. Dropped on the next write. */
   brunchDemoMode?: boolean;
+  /** Opened the welcome guide on init; the guide is a host plugin now. Dropped on the next write. */
+  showWalkthroughOnInit?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -63,6 +65,7 @@ const loadSettings = (): UserSettings => {
         enableAdHocScenarios: _enableAdHocScenarios,
         enableNotebookView: _enableNotebookView,
         brunchDemoMode: _brunchDemoMode,
+        showWalkthroughOnInit: _showWalkthroughOnInit,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
 
@@ -137,8 +140,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, partialSelection: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
-    setShowWalkthroughOnInit: (value: boolean) =>
-      setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {

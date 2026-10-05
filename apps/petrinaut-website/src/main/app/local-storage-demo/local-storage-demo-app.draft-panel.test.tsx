@@ -30,7 +30,6 @@ import type {
   DocumentRecord,
 } from "./documents/document-repository";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
-import type { ReactNode } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -88,9 +87,13 @@ vi.mock(
     };
   },
 );
-vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui")>()),
-  WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
+vi.mock("../plugins/walkthrough/plugin", () => ({
+  // The guide would open over the editor in every test; an empty plugin keeps
+  // the list shaped as in production.
+  walkthroughPlugin: {
+    manifest: { id: "website.walkthrough", name: "Welcome guide" },
+    body: () => ({}),
+  },
 }));
 vi.mock("@flue/sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/sdk")>()),

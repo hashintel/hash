@@ -88,9 +88,6 @@ vi.mock("./components/ai-cta-modal", () => ({ AiCtaModal: () => null }));
 vi.mock("./components/import-error-dialog", () => ({
   ImportErrorDialog: () => null,
 }));
-vi.mock("../../components/walkthrough/walkthrough-dialog", () => ({
-  WalkthroughDialog: () => null,
-}));
 vi.mock("./simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));

@@ -21,7 +21,6 @@ const LayoutExample = ({
     <UserSettingsContext
       value={{
         ...settings,
-        showWalkthroughOnInit: false,
       }}
     >
       <div className={css({ height: "[100vh]", width: "full" })}>

@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { isValidElement, type ComponentProps, type ReactNode } from "react";
+import { isValidElement, type ComponentProps } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
@@ -133,6 +133,14 @@ const editorProps = vi.hoisted(() => ({
   current: null as ComponentProps<typeof Petrinaut> | null,
 }));
 
+vi.mock("../plugins/walkthrough/plugin", () => ({
+  // The guide would open over the editor in every test; an empty plugin keeps
+  // the list shaped as in production.
+  walkthroughPlugin: {
+    manifest: { id: "website.walkthrough", name: "Welcome guide" },
+    body: () => ({}),
+  },
+}));
 vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
@@ -231,7 +239,6 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
       }
     },
     Petrinaut,
-    WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
     definePetrinautAiInteractiveTool: (definition: unknown) => definition,
     executePetrinautAiMutation: () => ({
       applied: false,
@@ -1750,6 +1757,7 @@ describe("assistant selection", () => {
     expect(installedPluginIds()).toEqual([
       "website.sentry-feedback",
       "website.command-palette",
+      "website.walkthrough",
       "website.petrinaut-ai",
       "website.brunch",
       "website.voice",
@@ -2294,6 +2302,7 @@ describe("assistant selection", () => {
     expect(installedPluginIds()).toEqual([
       "website.sentry-feedback",
       "website.command-palette",
+      "website.walkthrough",
       "website.petrinaut-ai",
     ]);
   });

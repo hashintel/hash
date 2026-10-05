@@ -29,7 +29,7 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -66,13 +66,20 @@ vi.mock("@flue/sdk", async (importOriginal) => {
     },
   };
 });
+vi.mock("../plugins/walkthrough/plugin", () => ({
+  // The guide would open over the editor in every test; an empty plugin keeps
+  // the list shaped as in production.
+  walkthroughPlugin: {
+    manifest: { id: "website.walkthrough", name: "Welcome guide" },
+    body: () => ({}),
+  },
+}));
 vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/petrinaut/ui")>();
 
   return {
     ...actual,
-    WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
       fixture.handle = props.handle;
 
