@@ -6,7 +6,7 @@ import {
   voiceDurationMs,
   type VoiceDiagnosticReporter,
 } from "../../../voice-diagnostics";
-import { classifyInterruption } from "./realtime-brunch-bridge/classify-interruption";
+import { classifyInterruption } from "./shared/classify-interruption";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {

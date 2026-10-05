@@ -4,6 +4,7 @@ import {
 } from "../../voice-diagnostics.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
+import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const maxSdpBytes = 65_536;
 
@@ -25,21 +26,19 @@ export const createOpenAITranscriptionSessionHandler =
     fetch: typeof globalThis.fetch;
   }) =>
   async (request: Request): Promise<Response> => {
-    if (request.method !== "POST")
+    const rejection = guardVoiceRequest(
+      request,
+      "application/sdp",
+      maxSdpBytes,
+    );
+    if (rejection === "method")
       return respond("Method not allowed.", 405, { allow: "POST" });
-    if (request.headers.get("origin") !== new URL(request.url).origin)
-      return respond("Forbidden.", 403);
-    if (
-      request.headers
-        .get("content-type")
-        ?.split(";", 1)[0]
-        ?.trim()
-        .toLowerCase() !== "application/sdp"
-    )
-      return respond("Expected SDP.", 415);
+    if (rejection === "origin") return respond("Forbidden.", 403);
+    if (rejection === "content-type") return respond("Expected SDP.", 415);
+    if (rejection === "content-length") return respond("SDP too large.", 413);
 
     const availability = getOpenAIVoiceAvailability(environment);
-    if (!availability.available || getVoiceProvider(environment) !== "live")
+    if (!availability.available)
       return respond("Transcription is unavailable.", 404);
 
     const requestId = createVoiceRequestId();
@@ -84,9 +83,6 @@ export const createOpenAITranscriptionSessionHandler =
     try {
       report("progress");
       signal.throwIfAborted();
-      if (Number(request.headers.get("content-length")) > maxSdpBytes)
-        return respond("SDP too large.", 413);
-
       const bytes = new Uint8Array(maxSdpBytes);
       let length = 0;
       try {
@@ -129,10 +125,12 @@ export const createOpenAITranscriptionSessionHandler =
               type: "transcription",
               audio: {
                 input: {
-                  transcription: { model: "gpt-4o-transcribe" },
+                  noise_reduction: { type: "far_field" },
+                  transcription: { model: "gpt-4o-transcribe", language: "en" },
                   turn_detection: { type: "semantic_vad", eagerness: "medium" },
                 },
               },
+              include: ["item.input_audio_transcription.logprobs"],
             },
           }),
         },
@@ -197,17 +195,25 @@ export const createOpenAITranscriptionSessionHandler =
                 "session.type",
                 "session.audio",
                 "session.audio.input",
+                "session.audio.input.noise_reduction",
+                "session.audio.input.noise_reduction.type",
                 "session.audio.input.transcription",
+                "session.audio.input.transcription.language",
                 "session.audio.input.transcription.model",
                 "session.audio.input.turn_detection",
                 "session.audio.input.turn_detection.type",
+                "session.include",
+                "audio.input.noise_reduction",
+                "audio.input.noise_reduction.type",
                 "audio.input.transcription",
+                "audio.input.transcription.language",
                 "audio.input.transcription.model",
                 "audio.input.turn_detection",
                 "audio.input.turn_detection.type",
                 "transcription.model",
                 "turn_detection",
                 "turn_detection.type",
+                "include",
                 "model",
               ].includes(error.param)
             )

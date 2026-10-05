@@ -14,11 +14,11 @@ For new internal work, treat `ds-components` as the source of truth.
 
 ## Public Entry Points
 
-| Entry point                       | Purpose                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------ |
-| `@hashintel/ds-components`        | Published component entrypoints from `src/components/*.tsx`                    |
-| `@hashintel/ds-components/preset` | Panda preset helpers such as `preset`, `createPreset`, and `scopedThemeConfig` |
-| `@hashintel/ds-components/tokens` | Package-owned Panda token objects such as `tokens` and `semanticTokens`        |
+| Entry point                       | Purpose                                                                                                     |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `@hashintel/ds-components`        | Published component entrypoints from `src/components/*.tsx`                                                 |
+| `@hashintel/ds-components/preset` | Panda preset helpers such as `preset`, `createPreset`, `scopedThemeConfig`, and `resolvePandaBuildInfoPath` |
+| `@hashintel/ds-components/tokens` | Package-owned Panda token objects such as `tokens` and `semanticTokens`                                     |
 
 Component implementation still uses the generated Panda runtime from `@hashintel/ds-helpers`:
 

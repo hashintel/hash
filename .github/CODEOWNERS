@@ -1,14 +1,32 @@
-# Code ownership
-/.github/CODEOWNERS @hashintel/infra-admins
+# Rust
+*.rs @hashintel/rust
+Cargo.toml @hashintel/rust
+/libs/@local/hashql/ @hashintel/rust
+/libs/@local/harpc/ @hashintel/rust
 
-# Legal
-LICENSE @hashintel/legal
-LICENSE.txt @hashintel/legal
-LICENSE.md @hashintel/legal
+# Design system
+/apps/hashdotdesign/ @hashintel/design-system
+/libs/@hashintel/ds-*/ @hashintel/design-system
+
+# Petrinaut
+/apps/petrinaut*/ @hashintel/petrinaut
+/libs/@hashintel/petrinaut*/ @hashintel/petrinaut
+/libs/@local/petrinaut*/ @hashintel/petrinaut
+
+# Core backend logic
+/apps/hash-api/ @hashintel/backend
+/apps/hash-graph/ @hashintel/backend
+/libs/@local/graph/ @hashintel/backend
 
 # Database migrations
 /libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend
 /libs/@local/graph/migrations/graph-migrations/ @hashintel/backend
+
+# Code ownership
+/.github/CODEOWNERS @hashintel/infra-admins
+
+# Legal
+LICENSE* @hashintel/legal
 
 # Turborepo configuration
 turbo.json @hashintel/infra

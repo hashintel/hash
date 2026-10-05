@@ -1,4 +1,4 @@
-//! HTTP middleware for HASH's services
+//! HTTP middleware for HASH's services.
 //!
 //! The request-handling layers a service composes into its axum router, and the contracts behind
 //! them:
@@ -9,7 +9,10 @@
 //!   credential verifiers a service supplies.
 //! - [`rate_limit`] budgets requests by client address ahead of authentication and by resolved
 //!   caller behind it — its module documentation states the ordering contract.
-//! - [`telemetry`] spans every request and joins the caller's OpenTelemetry trace.
+//! - [`telemetry`] spans every request, joins the caller's OpenTelemetry trace, and records the
+//!   error behind every response a [`Rejection`] became.
+//! - [`problem`] defines [`InternalServerError`], the problem variant of an error that stays
+//!   internal.
 //! - [`response`] renders a problem document as an `application/problem+json` response.
 //!
 //! The providers are the extension point, and the credential vocabulary is not. A new failure
@@ -21,6 +24,8 @@
 //! [`Caller`]: authentication::provider::Caller
 //! [`AuthenticatedActorId`]: authentication::AuthenticatedActorId
 //! [`AuthenticationErrorKind`]: authentication::request::AuthenticationErrorKind
+//! [`InternalServerError`]: problem::InternalServerError
+//! [`Rejection`]: problematic::Rejection
 //!
 //! # Example
 //!
@@ -125,7 +130,7 @@
 //!
 //! # Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(impl_trait_in_assoc_type, generic_atomic, error_generic_member_access)]
+#![feature(impl_trait_in_assoc_type)]
 #![cfg_attr(test, feature(variant_count))]
 
 extern crate alloc;
@@ -133,8 +138,11 @@ extern crate alloc;
 #[cfg(feature = "aide")]
 mod aide;
 pub mod authentication;
+pub mod problem;
 pub mod rate_limit;
 pub mod response;
 pub mod telemetry;
 #[cfg(test)]
 mod test_metrics;
+#[cfg(test)]
+mod test_tracing;

@@ -276,6 +276,11 @@ export const styles = sva({
           "&[data-highlighted]": {
             backgroundColor: "neutral.a35",
           },
+          "[data-highlight-navigated] &": {
+            "&[data-highlighted]": {
+              backgroundColor: "neutral.a25",
+            },
+          },
           "&[data-highlighted]:hover": {
             backgroundColor: "neutral.a25",
           },
@@ -292,6 +297,11 @@ export const styles = sva({
           "&[data-highlighted]": {
             backgroundColor: "blue.a40",
           },
+          "[data-highlight-navigated] &": {
+            "&[data-highlighted]": {
+              backgroundColor: "blue.a30",
+            },
+          },
           "&[data-highlighted]:hover": {
             backgroundColor: "blue.a30",
           },
@@ -307,6 +317,11 @@ export const styles = sva({
           backgroundColor: "red.a40",
           "&[data-highlighted]": {
             backgroundColor: "red.a40",
+          },
+          "[data-highlight-navigated] &": {
+            "&[data-highlighted]": {
+              backgroundColor: "red.a30",
+            },
           },
           "&[data-highlighted]:hover": {
             backgroundColor: "red.a30",

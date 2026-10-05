@@ -25,13 +25,45 @@ const tabButtonStyle = cva({
     minWidth: "[0]",
   },
   variants: {
+    styleVariant: {
+      stock: {},
+      brunch: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "1.5",
+        padding: "[4px 8px]",
+        borderRadius: "md",
+        color: "neutral.s90",
+        fontSize: "xs",
+        textTransform: "none",
+        "& [data-mark]": { display: "inline-flex", color: "neutral.s80" },
+        "&[aria-selected=true]": {
+          backgroundColor: "neutral.bg.subtle",
+          color: "neutral.s120",
+          "& [data-mark]": { color: "neutral.s90" },
+        },
+        _hover: { backgroundColor: "neutral.bg.subtle" },
+      },
+    },
     active: {
-      true: {
+      true: {},
+      false: {},
+    },
+  },
+  compoundVariants: [
+    {
+      styleVariant: "stock",
+      active: true,
+      css: {
         opacity: "[1]",
         backgroundColor: "[rgba(0, 0, 0, 0.08)]",
         color: "neutral.s125",
       },
-      false: {
+    },
+    {
+      styleVariant: "stock",
+      active: false,
+      css: {
         opacity: "[0.6]",
         color: "neutral.s105",
         _hover: {
@@ -41,7 +73,7 @@ const tabButtonStyle = cva({
         },
       },
     },
-  },
+  ],
 });
 
 /**
@@ -98,6 +130,7 @@ const liveRegionStyle = css({
 });
 
 export type HorizontalTabView = Pick<SubView, "id" | "title" | "tooltip"> & {
+  mark?: React.ReactNode;
   attention?: { count?: number; marker?: boolean };
 };
 
@@ -122,12 +155,14 @@ interface TabButtonProps {
   subView: HorizontalTabView;
   isActive: boolean;
   onClick: () => void;
+  styleVariant: "stock" | "brunch";
 }
 
 const TabButton: React.FC<TabButtonProps> = ({
   subView,
   isActive,
   onClick,
+  styleVariant,
 }) => {
   const tabId = `tab-${subView.id}`;
   const tabpanelId = `tabpanel-${subView.id}`;
@@ -137,7 +172,7 @@ const TabButton: React.FC<TabButtonProps> = ({
       type="button"
       id={tabId}
       onClick={onClick}
-      className={tabButtonStyle({ active: isActive })}
+      className={tabButtonStyle({ active: isActive, styleVariant })}
       aria-label={subView.title}
       aria-selected={isActive}
       tabIndex={isActive ? 0 : -1}
@@ -145,13 +180,26 @@ const TabButton: React.FC<TabButtonProps> = ({
       role="tab"
     >
       <span className={tabButtonLabelStyle}>
+        {subView.mark && (
+          <span data-mark aria-hidden="true">
+            {subView.mark}
+          </span>
+        )}
         {subView.title}
         {subView.attention?.count ? (
-          <span className={attentionBadgeStyle} aria-hidden="true">
+          <span
+            className={attentionBadgeStyle}
+            aria-hidden="true"
+            data-attention
+          >
             {subView.attention.count > 9 ? "9+" : subView.attention.count}
           </span>
         ) : subView.attention?.marker ? (
-          <span className={attentionMarkerStyle} aria-hidden="true" />
+          <span
+            className={attentionMarkerStyle}
+            aria-hidden="true"
+            data-attention
+          />
         ) : null}
         {subView.tooltip && <HelpTooltip content={subView.tooltip} />}
       </span>
@@ -168,11 +216,19 @@ export const HorizontalTabsHeader: React.FC<{
   activeTabId: string;
   onTabChange: (tabId: string) => void;
   announcement?: string;
-}> = ({ subViews, activeTabId, onTabChange, announcement }) => {
+  styleVariant?: "stock" | "brunch";
+}> = ({
+  subViews,
+  activeTabId,
+  onTabChange,
+  announcement,
+  styleVariant = "stock",
+}) => {
   return (
     <>
       <div
         className={tabsContainerStyle}
+        data-style-variant={styleVariant}
         role="tablist"
         tabIndex={-1}
         onKeyDown={(event) => {
@@ -209,6 +265,7 @@ export const HorizontalTabsHeader: React.FC<{
             subView={subView}
             isActive={activeTabId === subView.id}
             onClick={() => onTabChange(subView.id)}
+            styleVariant={styleVariant}
           />
         ))}
       </div>

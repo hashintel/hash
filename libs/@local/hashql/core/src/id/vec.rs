@@ -210,7 +210,6 @@ where
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// use std::alloc::Global;
@@ -320,7 +319,6 @@ where
     /// # Examples
     ///
     /// ```
-    /// #![feature(allocator_api)]
     /// use hashql_core::id::{newtype, IdVec, Id as _};
     /// use std::alloc::Global;
     ///

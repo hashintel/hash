@@ -14,7 +14,7 @@
     type_alias_impl_trait,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     binary_heap_into_iter_sorted,
     bound_copied,
     clone_from_ref,

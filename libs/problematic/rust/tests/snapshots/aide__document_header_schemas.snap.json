@@ -1,0 +1,275 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "document_header_schemas",
+    "version": ""
+  },
+  "paths": {
+    "/document_header_schemas": {
+      "get": {
+        "responses": {
+          "404": {
+            "description": "- Entity not found: The entity named in the request does not exist.\n- Web not found: The web named in the request does not exist.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "title": "Entity not found",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 404
+                            },
+                            "title": {
+                              "const": "Entity not found"
+                            },
+                            "type": {
+                              "const": "/problems/entity/not-found"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "description": "The ID of the missing entity.",
+                              "type": "integer",
+                              "format": "uint64",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Web not found",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 404
+                            },
+                            "title": {
+                              "const": "Web not found"
+                            },
+                            "type": {
+                              "const": "/problems/web/not-found"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "/problems/entity/not-found": {
+                    "summary": "Entity not found",
+                    "value": {
+                      "detail": "The entity `42` does not exist.",
+                      "id": 42,
+                      "status": 404,
+                      "title": "Entity not found",
+                      "type": "/problems/entity/not-found"
+                    }
+                  },
+                  "/problems/web/not-found": {
+                    "summary": "Web not found",
+                    "value": {
+                      "status": 404,
+                      "title": "Web not found",
+                      "type": "/problems/web/not-found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "- Store busy: The store cannot take the request right now.\n- Store closed: The store is closed until a given date.\n- Store draining: The store no longer takes requests.",
+            "headers": {
+              "Retry-After": {
+                "style": "simple",
+                "required": true,
+                "schema": {
+                  "anyOf": [
+                    {
+                      "description": "Seconds before retrying the request.",
+                      "type": "integer",
+                      "format": "uint64",
+                      "minimum": 0
+                    },
+                    {
+                      "description": "The date after which to retry the request.",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "title": "Store busy",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 503
+                            },
+                            "title": {
+                              "const": "Store busy"
+                            },
+                            "type": {
+                              "const": "/problems/store/busy"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Store closed",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 503
+                            },
+                            "title": {
+                              "const": "Store closed"
+                            },
+                            "type": {
+                              "const": "/problems/store/closed"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Store draining",
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 503
+                            },
+                            "title": {
+                              "const": "Store draining"
+                            },
+                            "type": {
+                              "const": "/problems/store/draining"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "/problems/store/busy": {
+                    "summary": "Store busy",
+                    "value": {
+                      "detail": "The store is busy.",
+                      "status": 503,
+                      "title": "Store busy",
+                      "type": "/problems/store/busy"
+                    }
+                  },
+                  "/problems/store/closed": {
+                    "summary": "Store closed",
+                    "value": {
+                      "status": 503,
+                      "title": "Store closed",
+                      "type": "/problems/store/closed"
+                    }
+                  },
+                  "/problems/store/draining": {
+                    "summary": "Store draining",
+                    "value": {
+                      "status": 503,
+                      "title": "Store draining",
+                      "type": "/problems/store/draining"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProblemDetails": {
+        "title": "Problem Details",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.",
+            "type": "string"
+          },
+          "instance": {
+            "description": "A URI reference identifying this occurrence.",
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "status": {
+            "description": "The HTTP status code sent with this occurrence.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference identifying the problem type.",
+            "type": "string",
+            "format": "uri-reference",
+            "default": "about:blank"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      }
+    }
+  }
+}

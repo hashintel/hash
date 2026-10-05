@@ -167,12 +167,12 @@ const renderColorItem = (value: string): React.ReactNode => (
   </span>
 );
 
-const multiItemVariants = ["checkbox", "tick", "highlight"] as const;
+const itemSelectedStyles = ["checkbox", "tick", "highlight"] as const;
 
 const tonedItems = [
   { value: "neutral", text: "Neutral (default)" },
-  { value: "brand", text: "Brand", tone: "brand" as const },
-  { value: "error", text: "Error", tone: "error" as const },
+  { value: "brand", text: "Brand", selectedTone: "brand" as const },
+  { value: "error", text: "Error", selectedTone: "error" as const },
 ];
 
 const groupedItems: Array<ItemOrGroup<MultiSelectItem>> = [
@@ -201,7 +201,7 @@ const suffixItems: Array<MultiSelectItem> = [
     text: "Banana",
     suffix: "89 kcal",
     showOnlyButton: true,
-    tone: "brand",
+    selectedTone: "brand",
   },
   { value: "cherry", text: "Cherry", showOnlyButton: true },
   { value: "date", text: "Date", suffix: "282 kcal" },
@@ -283,7 +283,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
         />
       </div>
       <div className={groupStyle}>
-        <span style={subheadingStyle}>Item variants</span>
+        <span style={subheadingStyle}>Item selectedStyle</span>
         <div
           style={{
             display: "grid",
@@ -293,30 +293,30 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
             alignItems: "center",
           }}
         >
-          {multiItemVariants.map((itemVariant) => (
-            <span key={itemVariant} style={subheadingStyle}>
-              {itemVariant}
+          {itemSelectedStyles.map((selectedStyle) => (
+            <span key={selectedStyle} style={subheadingStyle}>
+              {selectedStyle}
             </span>
           ))}
-          {multiItemVariants.map((itemVariant) => (
+          {itemSelectedStyles.map((selectedStyle) => (
             <Select
-              key={itemVariant}
+              key={selectedStyle}
               {...spreadArgs}
               multiple
               items={sampleItems.map((item) => ({
                 ...item,
-                variant: itemVariant,
+                selectedStyle,
               }))}
-              value={byVariant[itemVariant] ?? []}
+              value={byVariant[selectedStyle] ?? []}
               onChange={(next) =>
-                setByVariant((prev) => ({ ...prev, [itemVariant]: next }))
+                setByVariant((prev) => ({ ...prev, [selectedStyle]: next }))
               }
             />
           ))}
         </div>
       </div>
       <div className={groupStyle}>
-        <span style={subheadingStyle}>Item tones (mapped to selectedTone)</span>
+        <span style={subheadingStyle}>Item selectedTone</span>
         <div
           style={{
             display: "grid",
@@ -326,23 +326,26 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
             alignItems: "center",
           }}
         >
-          {multiItemVariants.map((itemVariant) => (
-            <span key={itemVariant} style={subheadingStyle}>
-              {itemVariant}
+          {itemSelectedStyles.map((selectedStyle) => (
+            <span key={selectedStyle} style={subheadingStyle}>
+              {selectedStyle}
             </span>
           ))}
-          {multiItemVariants.map((itemVariant) => (
+          {itemSelectedStyles.map((selectedStyle) => (
             <Select
-              key={itemVariant}
+              key={selectedStyle}
               {...spreadArgs}
               multiple
               items={tonedItems.map((item) => ({
                 ...item,
-                variant: itemVariant,
+                selectedStyle,
               }))}
-              value={tonedByVariant[itemVariant] ?? []}
+              value={tonedByVariant[selectedStyle] ?? []}
               onChange={(next) =>
-                setTonedByVariant((prev) => ({ ...prev, [itemVariant]: next }))
+                setTonedByVariant((prev) => ({
+                  ...prev,
+                  [selectedStyle]: next,
+                }))
               }
             />
           ))}
@@ -378,7 +381,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
       </div>
       <div className={groupStyle}>
         <span style={subheadingStyle}>
-          renderItem + renderSelectedItem (receives all selected values)
+          renderItem + renderSelectedAll (receives all selected values)
         </span>
         <Select
           {...spreadArgs}
@@ -391,7 +394,7 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
             setColors(narrowed);
           }}
           renderItem={renderColorItem}
-          renderSelectedItem={(values) => (
+          renderSelectedAll={(values) => (
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {values.map((val) => (
                 <ColorSwatch key={val} value={val} />

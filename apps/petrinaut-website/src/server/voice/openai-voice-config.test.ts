@@ -8,8 +8,8 @@ import {
 describe("voice provider selection", () => {
   test.each([
     ["preview", "live"],
-    ["production", "realtime"],
-    [undefined, "realtime"],
+    ["production", "live"],
+    [undefined, "live"],
   ])("without an override, VERCEL_ENV=%s resolves to %s", (env, expected) => {
     expect(getVoiceProvider({ VERCEL_ENV: env })).toBe(expected);
   });
@@ -56,7 +56,7 @@ describe("OpenAI voice config handler", () => {
     expect(body).toEqual({
       available: true,
       connectionTimeoutMs: 15_000,
-      provider: "realtime",
+      provider: "live",
     });
   });
 

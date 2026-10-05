@@ -1,40 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { brunchTools } from "@hashintel/brunch-agent/constants";
+
 import {
   draftPetrinautExperimentInputSchema,
   draftPetrinautExperimentOutputSchema,
-  draftPetrinautExperimentToolName,
-  isDraftPetrinautExperimentToolName,
 } from "../src/draft-experiment";
 import { createDraftExperimentTool } from "../src/tools/draft-experiment";
 
-import type { DefinitionObservation } from "../src/mutation-record";
-import type { SDCPN } from "@hashintel/petrinaut-core";
-
-const hash = "a".repeat(64);
-const currentRevision = {
-  revisionId: "revision-1",
-  ordinal: 1,
-  markdown: "Queue work.",
-  sha256: "b".repeat(64),
-  evidence: [],
-};
-const emptyDefinition: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  differentialEquations: [],
-  parameters: [],
-};
-
-const declaredBasis = {
-  kind: "declared" as const,
-  revisionId: currentRevision.revisionId,
-  sha256: currentRevision.sha256,
-  locators: [{ start: 0, end: 5 }],
-  rationale: "The workpiece states the decision, measure and range.",
-  scope: "operation" as const,
-};
+import type { BrowserToolExecutor } from "../src/tools/petrinaut-construction";
 
 const experiment = {
   name: "Vans on the parcel route",
@@ -57,7 +31,6 @@ const experiment = {
 };
 
 const input = {
-  observation: { toolCallId: "read-1", baseHash: hash },
   experiment,
   declarations: [
     {
@@ -69,7 +42,6 @@ const input = {
       statement: "Late parcels are reported, not enforced.",
     },
   ],
-  basis: declaredBasis,
   unsupported: [
     {
       condition: "No parcel may wait more than 30 minutes.",
@@ -93,16 +65,12 @@ const withExperiment = (
 
 describe("draft_petrinaut_experiment input schema", () => {
   test("names the tool", () => {
-    expect(draftPetrinautExperimentToolName).toBe("draft_petrinaut_experiment");
-    expect(
-      isDraftPetrinautExperimentToolName("draft_petrinaut_experiment"),
-    ).toBe(true);
-    expect(isDraftPetrinautExperimentToolName("mutate_petrinaut_net")).toBe(
-      false,
+    expect(brunchTools.draftPetrinautExperiment).toBe(
+      "draft_petrinaut_experiment",
     );
   });
 
-  test("accepts an integer range, a declared basis and a disclosed restriction", () => {
+  test("accepts an integer range and a disclosed restriction without protocol identity", () => {
     const parsed = draftPetrinautExperimentInputSchema.parse(input);
     expect(parsed.experiment.execution.mode).toBe("optimize");
     expect(parsed.unsupported[0]?.reportedByMetricId).toBe("metric-late");
@@ -127,41 +95,6 @@ describe("draft_petrinaut_experiment input schema", () => {
       "unsupported",
       0,
       "reportedByMetricId",
-    ]);
-  });
-
-  test("accepts an absent basis when its reason is stated", () => {
-    expect(
-      draftPetrinautExperimentInputSchema.safeParse({
-        ...input,
-        basis: {
-          kind: "absent",
-          reason: "The range was stated in conversation and not yet settled.",
-        },
-      }).success,
-    ).toBe(true);
-  });
-
-  test("requires recorded workpiece acceptance before unblocking a reporting-only run", () => {
-    const result = draftPetrinautExperimentInputSchema.safeParse({
-      ...input,
-      basis: {
-        kind: "absent",
-        reason: "No settled acceptance was recorded.",
-      },
-      unsupported: [
-        {
-          ...input.unsupported[0],
-          blocksRun: false,
-        },
-      ],
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.path).toEqual([
-      "unsupported",
-      0,
-      "blocksRun",
     ]);
   });
 
@@ -251,19 +184,6 @@ describe("draft_petrinaut_experiment input schema", () => {
     ).toBe(false);
   });
 
-  test("requires the observation the identifiers were copied from", () => {
-    const { observation: _observation, ...withoutObservation } = input;
-    expect(
-      draftPetrinautExperimentInputSchema.safeParse(withoutObservation).success,
-    ).toBe(false);
-    expect(
-      draftPetrinautExperimentInputSchema.safeParse({
-        ...input,
-        observation: { toolCallId: "read-1", baseHash: "not-a-hash" },
-      }).success,
-    ).toBe(false);
-  });
-
   test("serialises to JSON Schema without dropping the request fields", () => {
     const jsonSchema = draftPetrinautExperimentInputSchema[
       "~standard"
@@ -272,10 +192,8 @@ describe("draft_petrinaut_experiment input schema", () => {
       | undefined;
     expect(jsonSchema?.properties).toBeDefined();
     expect(Object.keys(jsonSchema?.properties ?? {}).sort()).toEqual([
-      "basis",
       "declarations",
       "experiment",
-      "observation",
       "unsupported",
     ]);
     const experimentSchema = jsonSchema?.properties?.experiment as {
@@ -315,64 +233,47 @@ describe("draft_petrinaut_experiment output schema", () => {
 });
 
 describe("createDraftExperimentTool", () => {
-  test("validates the workpiece and exact prior observation before deferring", async () => {
-    const observationFor = vi.fn<
-      (id: string) => Promise<DefinitionObservation>
-    >(async () => ({ definition: emptyDefinition, sha256: hash }));
+  test("authorizes against a prior read, then awaits the browser preparation in band", async () => {
+    const authorizeDraft = vi.fn<() => Promise<void>>(async () => {});
+    const prepared = {
+      status: "drafted" as const,
+      summary: "Drafted.",
+      diagnostics: [],
+    };
+    const executeBrowserTool = vi.fn<BrowserToolExecutor>(async () => ({
+      output: prepared,
+    }));
     const tool = createDraftExperimentTool({
-      currentRevision,
-      retainedRevisionFor: async () => undefined,
-      observationFor,
-    });
-
-    await expect(tool.run({ data: input } as never)).resolves.toMatchObject({
-      output: { awaiting: "client" },
-      terminate: true,
-    });
-    expect(observationFor).toHaveBeenCalledWith("read-1");
-  });
-
-  test("rejects a draft whose identifiers came from a stale observation", async () => {
-    const stale = createDraftExperimentTool({
-      currentRevision,
-      retainedRevisionFor: async () => undefined,
-      observationFor: async () => ({
-        definition: emptyDefinition,
-        sha256: "c".repeat(64),
-      }),
-    });
-    await expect(stale.run({ data: input } as never)).rejects.toThrow(
-      /differs from the verified browser observation/u,
-    );
-  });
-
-  test("rejects a draft before the workpiece is settled", async () => {
-    const unsettled = createDraftExperimentTool({
-      currentRevision: null,
-      retainedRevisionFor: async () => undefined,
-      observationFor: async () => ({
-        definition: emptyDefinition,
-        sha256: hash,
-      }),
-    });
-    await expect(unsettled.run({ data: input } as never)).rejects.toThrow(
-      /Settle the workpiece/u,
-    );
-  });
-
-  test("rejects a basis citing a different workpiece revision", async () => {
-    const tool = createDraftExperimentTool({
-      currentRevision,
-      retainedRevisionFor: async () => undefined,
-      observationFor: async () => ({
-        definition: emptyDefinition,
-        sha256: hash,
-      }),
+      authorizeDraft,
+      executeBrowserTool,
     });
     await expect(
-      tool.run({
-        data: { ...input, basis: { ...declaredBasis, sha256: "d".repeat(64) } },
-      } as never),
-    ).rejects.toThrow(/citation hash mismatch/u);
+      tool.run({ data: input, toolCallId: "draft-1" } as never),
+    ).resolves.toEqual({
+      output: { brunchBrowserResult: true, output: prepared },
+      terminate: false,
+    });
+    expect(authorizeDraft).toHaveBeenCalledWith("draft-1");
+    expect(executeBrowserTool).toHaveBeenCalledWith({
+      toolName: brunchTools.draftPetrinautExperiment,
+      input,
+      toolCallId: "draft-1",
+      signal: undefined,
+    });
+  });
+
+  test("fails closed for an absent read", async () => {
+    const executeBrowserTool = vi.fn<BrowserToolExecutor>(async () => ({
+      output: null,
+    }));
+    await expect(
+      createDraftExperimentTool({
+        executeBrowserTool,
+        authorizeDraft: async () => {
+          throw new Error("Absent canonical read");
+        },
+      }).run({ toolCallId: "draft-1", data: input } as never),
+    ).rejects.toThrow(/Absent canonical read/u);
+    expect(executeBrowserTool).not.toHaveBeenCalled();
   });
 });

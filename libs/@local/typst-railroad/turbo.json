@@ -1,0 +1,33 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build:wasm": {
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--package",
+        "railroad-plugin",
+        "--lib",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--release",
+        "--artifact-dir",
+        "dist",
+        "-Z",
+        "unstable-options"
+      ],
+      "dependsOn": ["^manifest"],
+      "outputs": ["dist/railroad_plugin.wasm"]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:unit": {
+      "command": ["mise", "run", "test:unit", "railroad-plugin"]
+    }
+  }
+}

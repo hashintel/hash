@@ -5,7 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -19,9 +19,13 @@ import {
   type VoiceSessionStore,
 } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
+import { REVIEW_CHIPS } from "./ai-assistant-contents/prompt-chips";
 
 import type { VoiceAudioSettingsState } from "../../../../../react/voice-session/types";
-import type { PetrinautAiToolPresentationResolver } from "../../../../petrinaut";
+import type {
+  PetrinautAiAssistantPresentation,
+  PetrinautAiToolPresentationResolver,
+} from "../../../../petrinaut";
 import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -363,13 +367,18 @@ const createStoryVoiceSessionStore = (
 
 const Frame = ({
   additionalTab,
+  composerControl,
   error,
+  experimentStates,
+  onCancelExperiment,
   fixedNarrowWidth = false,
   initialPlacement = "docked",
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
   primaryLabel,
+  presentation,
+  promptChips,
   resolveToolPresentation,
   status = "ready",
   stopped = false,
@@ -380,13 +389,22 @@ const Frame = ({
   workingLabel,
 }: {
   additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
+  composerControl?: ComponentProps<
+    typeof AiAssistantContents
+  >["composerControl"];
   error?: Error;
+  experimentStates?: ComponentProps<
+    typeof AiAssistantContents
+  >["experimentStates"];
+  onCancelExperiment?: (toolCallId: string) => void;
   fixedNarrowWidth?: boolean;
   initialPlacement?: "docked" | "floating";
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   primaryLabel?: string;
+  presentation?: PetrinautAiAssistantPresentation;
+  promptChips?: ComponentProps<typeof AiAssistantContents>["promptChips"];
   resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   status?: "submitted" | "streaming" | "ready" | "error";
   stopped?: boolean;
@@ -427,12 +445,19 @@ const Frame = ({
         >
           <AiAssistantContents
             additionalTab={additionalTab}
+            composerControl={composerControl}
             error={error}
+            experimentStates={experimentStates}
+            onCancelExperiment={onCancelExperiment}
             input={input}
             inputMode={inputMode}
             messages={messages}
             isOpen={isOpen}
             primaryLabel={primaryLabel}
+            presentation={presentation}
+            promptChips={promptChips}
+            onSendPrompt={setInput}
+            onRetryPrompt={fn()}
             onClose={() => setOpen(false)}
             onInputChange={setInput}
             onInputModeChange={() => {}}
@@ -464,7 +489,7 @@ const liveSession = (
 });
 
 export const Empty: Story = {
-  render: () => <Frame messages={[]} />,
+  render: () => <Frame messages={[]} promptChips={REVIEW_CHIPS} />,
 };
 
 export const Floating: Story = {
@@ -497,6 +522,33 @@ export const EmptyWithVoiceAvailable: Story = {
   render: () => <Frame messages={[]} voiceModeAvailable />,
 };
 
+export const BrunchWithVoiceAvailable: Story = {
+  render: () => (
+    <Frame
+      primaryLabel="Chat"
+      presentation="brunch"
+      messages={[]}
+      voiceModeAvailable
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const textarea = canvas.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    const voice = canvas.getByRole("button", { name: "Start voice mode" });
+    await expect(voice.getBoundingClientRect().top).toBeLessThan(
+      textarea.getBoundingClientRect().bottom,
+    );
+    await userEvent.type(textarea, "Create a queue");
+    const send = canvas.getByRole("button", { name: "Send message" });
+    await expect(send.getBoundingClientRect().top).toBeLessThan(
+      textarea.getBoundingClientRect().bottom,
+    );
+    await userEvent.clear(textarea);
+  },
+};
+
 export const VoiceModeAwaitingConsent: Story = {
   render: () => (
     <Frame
@@ -525,6 +577,11 @@ export const VoiceModeAwaitingConsentCompact: Story = {
     const shell = dock.closest("aside")!;
     const initialShellHeight = shell.getBoundingClientRect().height;
     const initialDockTop = dock.getBoundingClientRect().top;
+    await expect(initialShellHeight).toBe(dock.getBoundingClientRect().height);
+    await expect(shell.getBoundingClientRect().bottom).toBe(
+      canvas.getByTestId("ai-assistant-story-frame").getBoundingClientRect()
+        .bottom - 12,
+    );
 
     // Host content can grow or disappear; neither should move the controls
     // whose position is derived from the compact shell's reported height.
@@ -536,6 +593,20 @@ export const VoiceModeAwaitingConsentCompact: Story = {
     consent.style.removeProperty("min-height");
     consent.style.removeProperty("display");
   },
+};
+
+export const FloatingVoiceModeAwaitingConsentCompact: Story = {
+  render: () => (
+    <Frame
+      initialPlacement="floating"
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+    />
+  ),
+  play: VoiceModeAwaitingConsentCompact.play,
 };
 
 export const VoiceSessionListening: Story = {
@@ -785,9 +856,27 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toHaveAccessibleDescription("Wait for the agent to finish.");
-    const realTimeToggle = canvas.getByRole("button", { name: "Real-time" });
-    await userEvent.click(realTimeToggle);
-    await expect(realTimeToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      canvas.queryByText("Wait for the agent to finish."),
+    ).not.toBeInTheDocument();
+    const info = canvas.getByRole("button", { name: "About voice selection" });
+    info.focus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(
+        canvas.getByText(
+          "Applies next session. Mute your mic while the agent is idle to preview.",
+        ),
+      ).toBeVisible(),
+    );
+    await userEvent.keyboard("{Escape}");
+    await waitFor(async () => {
+      await expect(info).toHaveFocus();
+      await expect(info).toHaveAttribute("aria-expanded", "false");
+    });
+    await expect(
+      canvas.queryByText(/Applies next session/),
+    ).not.toBeInTheDocument();
     const speed = canvas.getByRole("slider", { name: "Speed" });
     await expect(speed).toBeInTheDocument();
     await new Promise<void>((resolve) =>
@@ -796,12 +885,12 @@ export const ExtendedAudioSettings: Story = {
     await expect(positions()).toEqual(beforeOpen);
     await expect(
       dockButtons
-        .slice(0, 3)
+        .slice(0, 2)
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Hide conversation", "Audio options", "Show 1 Voice issue"]);
+    ).toEqual(["Hide conversation", "Show 1 Voice issue"]);
     speed.focus();
     await userEvent.keyboard("{ArrowLeft}");
-    await expect(speed).toHaveAttribute("aria-valuenow", "1");
+    await expect(speed).toHaveAttribute("aria-valuenow", "1.2");
     await expect(getComputedStyle(speed).cursor).toBe("pointer");
     await expect(
       getComputedStyle(canvas.getByRole("slider", { name: "Speaker volume" }))
@@ -1049,6 +1138,51 @@ export const VoiceSessionSpeaking: Story = {
   ),
 };
 
+export const FloatingVoiceSessionCollapsed: Story = {
+  render: () => (
+    <Frame
+      initialPlacement="floating"
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ microphoneLevel: 0.6 })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    const shell = dock.closest("aside")!;
+    const frame = canvas.getByTestId("ai-assistant-story-frame");
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Move AI assistant" }),
+    );
+    await userEvent.keyboard("{ArrowDown}{ArrowLeft}");
+    const expanded = shell.getBoundingClientRect();
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Hide conversation" }),
+    );
+    await waitFor(() =>
+      expect(shell.getBoundingClientRect().height).toBe(
+        dock.getBoundingClientRect().height,
+      ),
+    );
+    await expect(shell.getBoundingClientRect().bottom).toBe(
+      frame.getBoundingClientRect().bottom - 12,
+    );
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Show conversation" }),
+    );
+    await waitFor(() =>
+      expect(shell.getBoundingClientRect().height).toBe(expanded.height),
+    );
+    await expect(shell.getBoundingClientRect().top).toBe(expanded.top);
+    await expect(shell.getBoundingClientRect().right).toBe(expanded.right);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Hide conversation" }),
+    );
+  },
+};
+
 export const MicrophoneMutedWhileSpeaking: Story = {
   render: () => (
     <Frame
@@ -1105,10 +1239,23 @@ export const VoiceSessionThinking: Story = {
     <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
+      status="streaming"
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const stop = within(canvasElement).getByRole("button", {
+      name: "Stop AI response",
+    });
+    await expect(stop.getBoundingClientRect().width).toBe(28);
+    await expect(stop.getBoundingClientRect().height).toBe(28);
+    await expect(stop.querySelector("svg")).toHaveAttribute(
+      "viewBox",
+      "0 0 24 24",
+    );
+    await expect(stop.querySelector("rect")).toHaveAttribute("width", "11");
+  },
 };
 
 export const VoiceSessionMuted: Story = {
@@ -1167,6 +1314,23 @@ export const StreamingMarkdown: Story = {
   ),
 };
 
+/** Brunch Chat keeps its single action on the right while experiments run. */
+export const BrunchComposerExperimentRunning: Story = {
+  render: () => (
+    <Frame
+      experimentStates={{ running: { active: true } }}
+      messages={[userMessage, assistantMarkdownMessage]}
+      primaryLabel="Chat"
+      presentation="brunch"
+      promptChips={[
+        { id: "review", label: "Review this net", prompt: "Review this net" },
+      ]}
+      status="streaming"
+      voiceModeAvailable
+    />
+  ),
+};
+
 export const ReasoningCollapsed: Story = {
   render: () => <Frame messages={[userMessage, reasoningMessage]} />,
 };
@@ -1174,10 +1338,30 @@ export const ReasoningCollapsed: Story = {
 export const StreamingReasoning: Story = {
   render: () => (
     <Frame
+      primaryLabel="Chat"
+      presentation="brunch"
       messages={[userMessage, streamingReasoningMessage]}
       status="streaming"
     />
   ),
+  play: async ({ canvasElement }) => {
+    const stop = within(canvasElement).getByRole("button", {
+      name: "Stop AI response",
+    });
+    await expect(stop.getBoundingClientRect().width).toBe(28);
+    await expect(stop.getBoundingClientRect().height).toBe(28);
+    await expect(
+      parseFloat(getComputedStyle(stop).borderRadius),
+    ).toBeGreaterThanOrEqual(14);
+    const composer = within(canvasElement)
+      .getByRole("textbox", {
+        name: "Message AI assistant",
+      })
+      .getBoundingClientRect();
+    await expect(stop.getBoundingClientRect().left).toBeGreaterThan(
+      composer.left + composer.width / 2,
+    );
+  },
 };
 
 export const SingleCompletedToolCall: Story = {
@@ -1252,6 +1436,21 @@ export const MultipleVoiceIssues: Story = {
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const ribbon = within(canvasElement).getByTestId("voice-session-indicator");
+    await expect(ribbon).toHaveAttribute("data-phase", "error");
+    if (!(ribbon instanceof HTMLCanvasElement)) {
+      throw new Error("The error ribbon must use the animated waveform");
+    }
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Let the first paint finish so a single static draw cannot pass.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      const initialFrame = ribbon.toDataURL();
+      await waitFor(() => expect(ribbon.toDataURL()).not.toBe(initialFrame));
+    }
+  },
 };
 
 export const CollapsedVoiceIssues: Story = {
@@ -1326,6 +1525,323 @@ export const WaitingForResponse: Story = {
       status="submitted"
     />
   ),
+};
+
+const BrunchWaitingPreview = () => {
+  const [waiting, setWaiting] = useState(false);
+  const [voice, setVoice] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setWaiting((value) => !value)}>
+        Toggle waiting
+      </Button>
+      <Button onClick={() => setVoice((value) => !value)}>
+        Toggle Voice preview
+      </Button>
+      <Frame
+        key={String(voice)}
+        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        primaryLabel="Chat"
+        presentation="brunch"
+        messages={[userMessage]}
+        promptChips={REVIEW_CHIPS}
+        status={waiting ? "submitted" : "ready"}
+        workingLabel="Working…"
+        inputMode={voice ? "voice" : "text"}
+        voiceModeAvailable
+        voiceSession={voice ? liveSession({ phase: "listening" }) : undefined}
+      />
+    </>
+  );
+};
+
+export const BrunchWaitingForResponse: Story = {
+  render: () => <BrunchWaitingPreview />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const voice of [false, true]) {
+      if (voice) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Toggle Voice preview" }),
+        );
+      }
+      const transcript = canvas.getByTestId("ai-transcript");
+      const footer = voice
+        ? canvas.getByRole("region", { name: "Voice session" })
+        : canvas
+            .getByRole("textbox", { name: "Message AI assistant" })
+            .closest("form")!;
+      const positions = () =>
+        [transcript, footer].map((element) =>
+          element.getBoundingClientRect().toJSON(),
+        );
+      const before = positions();
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle waiting" }),
+      );
+      const waiting = within(transcript).getByRole("status");
+      await expect(waiting).toHaveTextContent("Working…");
+      await expect(waiting).toBeVisible();
+      await expect(positions()).toEqual(before);
+      await expect(within(waiting).queryByRole("button")).toBeNull();
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle waiting" }),
+      );
+      await expect(
+        canvasElement.querySelector('[data-work-status="pending"]'),
+      ).not.toBeInTheDocument();
+      await expect(positions()).toEqual(before);
+    }
+  },
+};
+
+const BrunchStreamingPreview = () => {
+  const [step, setStep] = useState(0);
+  const [finished, setFinished] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setStep((value) => value + 1)}>
+        Stream update {step}
+      </Button>
+      <Button onClick={() => setFinished(true)}>Finish response</Button>
+      <Frame
+        primaryLabel="Chat"
+        presentation="brunch"
+        status={finished ? "ready" : "streaming"}
+        messages={[
+          userMessage,
+          {
+            id: "streaming-activity",
+            role: "assistant",
+            parts: [
+              {
+                type: "reasoning",
+                text:
+                  "**Compare capacity**\n\n" +
+                  "Check each queue’s arrival rate against available service capacity.\n\n".repeat(
+                    8 + step * 4,
+                  ),
+                state: finished || step % 2 === 1 ? "done" : "streaming",
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "inspectModel",
+                toolCallId: "inspection",
+                input: {},
+                ...(finished || step % 2 === 1
+                  ? {
+                      state: "output-available" as const,
+                      output: { queues: 3 },
+                    }
+                  : { state: "input-available" as const }),
+              },
+              {
+                type: "text",
+                text: "I’ll compare the three queues.",
+                state: "done",
+              },
+            ],
+          },
+        ]}
+      />
+    </>
+  );
+};
+
+/** Where the Activity label sits in the transcript's content, unaffected by auto-follow scrolling. */
+const activityLabelOffset = (canvasElement: HTMLElement) => {
+  const transcript = within(canvasElement).getByTestId("ai-transcript");
+  const labels = transcript.querySelectorAll<HTMLElement>(
+    "[data-work-status] [data-label]",
+  );
+  if (labels.length !== 1) {
+    throw new Error(`Expected one Activity label, found ${labels.length}`);
+  }
+  const frame = transcript.getBoundingClientRect();
+  const label = labels[0]!.getBoundingClientRect();
+  return {
+    x: label.x - frame.x,
+    y: label.y - frame.y + transcript.scrollTop,
+  };
+};
+
+export const BrunchStreamingActivity: Story = {
+  render: () => <BrunchStreamingPreview />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const activity = canvas.getByRole("button", { name: "Working…" });
+    const details = canvasElement.querySelector<HTMLElement>(
+      "[data-work-details]",
+    )!;
+    await Promise.all(
+      canvasElement
+        .getAnimations({ subtree: true })
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished),
+    );
+    await expect(details.scrollHeight).toBe(details.clientHeight);
+    const labelOffset = activityLabelOffset(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Stream update 0" }),
+    );
+    await expect(activity).toHaveAttribute("aria-expanded", "true");
+    await expect(details.scrollHeight).toBe(details.clientHeight);
+    await expect(activityLabelOffset(canvasElement)).toEqual(labelOffset);
+    await userEvent.click(activity);
+    await waitFor(() =>
+      expect(
+        details.closest("[data-scope=collapsible][data-part=content]"),
+      ).not.toBeVisible(),
+    );
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Stream update 1" }),
+    );
+    await expect(activity).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Finish response" }),
+    );
+    await expect(activity).toHaveAttribute("aria-expanded", "false");
+    await expect(activity).toHaveTextContent(/^Activity/u);
+    await expect(activityLabelOffset(canvasElement)).toEqual(labelOffset);
+    await userEvent.click(activity);
+    await expect(activity).toHaveAttribute("aria-expanded", "true");
+  },
+};
+
+const voiceTurnRequest: PetrinautAiMessage = {
+  ...userMessage,
+  metadata: { source: "voice" },
+};
+
+const voiceTurnReply: PetrinautAiMessage = {
+  id: "voice-reply:user-1",
+  role: "assistant",
+  metadata: { source: "voice" },
+  parts: [
+    {
+      type: "data-voiceAgentReply",
+      data: {
+        text: "Sure, I’ll ask Brunch to build that supply chain.",
+        state: "done",
+      },
+    },
+  ],
+};
+
+const voiceTurnSteps: {
+  status: "submitted" | "streaming" | "ready";
+  response?: PetrinautAiMessage["parts"];
+}[] = [
+  { status: "submitted" },
+  {
+    status: "streaming",
+    response: [{ type: "reasoning", text: "Plan stages", state: "streaming" }],
+  },
+  {
+    status: "streaming",
+    response: [
+      { type: "reasoning", text: "Plan stages", state: "done" },
+      {
+        type: "dynamic-tool",
+        toolName: "inspectModel",
+        toolCallId: "voice-turn-inspection",
+        input: {},
+        state: "input-available",
+      },
+    ],
+  },
+  {
+    status: "ready",
+    response: [
+      { type: "reasoning", text: "Plan stages", state: "done" },
+      {
+        type: "dynamic-tool",
+        toolName: "inspectModel",
+        toolCallId: "voice-turn-inspection",
+        input: {},
+        state: "output-available",
+        output: { places: 4 },
+      },
+      {
+        type: "text",
+        text: "The supply chain has four stages.",
+        state: "done",
+      },
+    ],
+  },
+];
+
+const BrunchVoiceTurnPreview = () => {
+  const [step, setStep] = useState(0);
+  const [voice, setVoice] = useState(true);
+  const { status, response } = voiceTurnSteps[step]!;
+  return (
+    <>
+      <Button
+        onClick={() =>
+          setStep((value) => Math.min(value + 1, voiceTurnSteps.length - 1))
+        }
+      >
+        Next turn step
+      </Button>
+      <Button
+        onClick={() => {
+          setVoice((value) => !value);
+          setStep(0);
+        }}
+      >
+        Toggle Voice preview
+      </Button>
+      <Frame
+        key={String(voice)}
+        primaryLabel="Chat"
+        presentation="brunch"
+        messages={[
+          voiceTurnRequest,
+          voiceTurnReply,
+          ...(response
+            ? [
+                {
+                  id: "voice-turn-response",
+                  role: "assistant" as const,
+                  parts: response,
+                },
+              ]
+            : []),
+        ]}
+        status={status}
+        inputMode={voice ? "voice" : "text"}
+        voiceModeAvailable
+        voiceSession={voice ? liveSession({ phase: "thinking" }) : undefined}
+      />
+    </>
+  );
+};
+
+export const BrunchVoiceTurnActivity: Story = {
+  render: () => <BrunchVoiceTurnPreview />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const voice of [true, false]) {
+      if (!voice) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Toggle Voice preview" }),
+        );
+      }
+      await expect(
+        within(canvas.getByTestId("ai-transcript")).getByRole("status"),
+      ).toHaveTextContent("Working…");
+      const labelOffset = activityLabelOffset(canvasElement);
+      for (let i = 1; i < voiceTurnSteps.length; i++) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Next turn step" }),
+        );
+        await expect(activityLabelOffset(canvasElement)).toEqual(labelOffset);
+      }
+    }
+  },
 };
 
 export const LiveSessionSubmittedWork: Story = {
@@ -1424,7 +1940,7 @@ export const NarrowVoiceDockWithAudioOptions: Story = {
     const triggerBounds = audioOptions.getBoundingClientRect();
     const popoverBounds = popover.getBoundingClientRect();
     await expect(
-      Math.abs(popoverBounds.left - triggerBounds.left),
+      Math.abs(popoverBounds.right - triggerBounds.right),
     ).toBeLessThan(2);
     await expect(
       triggerBounds.top - popoverBounds.bottom,
@@ -1499,9 +2015,10 @@ const PendingToolLifecycleHarness = () => {
       <Frame
         messages={[userMessage, toolMessage]}
         primaryLabel="Chat"
+        presentation="brunch"
         resolveToolPresentation={toolLifecycleResolver}
         status={running ? "streaming" : "ready"}
-        workingLabel="Brunch is working"
+        workingLabel="Working…"
       />
     </>
   );
@@ -1572,4 +2089,455 @@ export const ApplyAutoLayoutDeclined: Story = {
   render: () => (
     <Frame messages={[userMessage, applyAutoLayoutDeclinedMessage]} />
   ),
+};
+
+const conversationTurn: PetrinautAiMessage = {
+  id: "support-desk",
+  role: "assistant",
+  parts: [
+    {
+      type: "reasoning",
+      text: "**Compare capacity**\n\nUse the stated arrival and handling rates; leave the unknown peak rate open.",
+      state: "done",
+      providerMetadata: { petrinaut: { startedAt: 1000, finishedAt: 8000 } },
+    },
+    ...singleToolCallMessage.parts,
+    {
+      type: "text",
+      state: "done",
+      text: "The support desk is ready to explore.\n\n- **Queue** holds incoming requests.\n- **Agents** controls available capacity.\n- Compare **2–8 agents** before choosing a staffing level.",
+    },
+  ],
+};
+const supportDeskUser: PetrinautAiMessage = {
+  id: "support-user",
+  role: "user",
+  parts: [
+    {
+      type: "text",
+      text: "Compare two to eight agents. Handling takes about six minutes, and requests wait in one queue.",
+    },
+  ],
+};
+const ledgerTab = {
+  label: "Ledger",
+  content: <p>Support desk · arrival rate still open</p>,
+};
+
+export const ChatTurn: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      additionalTab={ledgerTab}
+      messages={[supportDeskUser, conversationTurn]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const activity = canvas.getByRole("button", { name: "Activity" });
+    const assistantTurn = activity.closest("[data-role=assistant]")!;
+    await expect(getComputedStyle(assistantTurn).paddingTop).toBe("4px");
+    await expect(
+      getComputedStyle(assistantTurn.querySelector("[data-answer=brunch]")!)
+        .marginTop,
+    ).toBe("4px");
+    await userEvent.click(activity);
+    // Disclosures are inline labels, not raised action buttons or full rows.
+    await expect(getComputedStyle(activity).boxShadow).toBe("none");
+    await expect(getComputedStyle(activity).borderTopWidth).toBe("0px");
+    for (const name of ["Thought for 7s", "Used 1 tool"]) {
+      const disclosure = canvas.getByRole("button", { name });
+      await expect(disclosure.getBoundingClientRect().width).toBeLessThan(180);
+      await userEvent.click(disclosure);
+      await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+    }
+    await waitFor(() =>
+      expect(canvas.getByText("Compare capacity")).toBeVisible(),
+    );
+    await userEvent.click(activity);
+    await userEvent.keyboard("{Enter}");
+    await expect(activity).toHaveAttribute("aria-expanded", "true");
+  },
+};
+
+export const VoiceMediatedTurn: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      additionalTab={ledgerTab}
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "speaking" })}
+      messages={[
+        {
+          ...supportDeskUser,
+          metadata: { source: "voice" },
+          parts: [
+            ...supportDeskUser.parts,
+            {
+              type: "data-brief",
+              data: {
+                state: "done",
+                fields: {
+                  decide: "Compare 2–8 agents",
+                  measure: "Queue waiting time",
+                  stillOpen: "Arrival rate",
+                },
+              },
+            },
+          ],
+        },
+        {
+          ...conversationTurn,
+          parts: [
+            {
+              type: "data-voiceAgentReply",
+              data: {
+                state: "done",
+                text: "I’ll ask Brunch to compare those staffing levels.",
+              },
+            },
+            ...conversationTurn.parts,
+            {
+              type: "data-voiceAgentWrapUp",
+              data: {
+                state: "done",
+                text: "The model is ready. We still need the arrival rate before running the comparison.",
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const summary = canvas.getByText("Request sent").closest("summary")!;
+    const userTurn = summary.closest("[data-role=user]")!;
+    const assistantTurn = canvasElement.querySelector("[data-role=assistant]")!;
+    await expect(getComputedStyle(userTurn).gap).toBe("2px");
+    await expect(getComputedStyle(assistantTurn).gap).toBe("4px");
+    await expect(getComputedStyle(assistantTurn).paddingTop).toBe("6px");
+    await expect(getComputedStyle(summary).padding).toBe("2px 6px 2px 2px");
+    await userEvent.click(summary);
+    await expect(summary.closest("details")).toHaveAttribute("open");
+    await expect(
+      getComputedStyle(canvas.getByText("Prepared from what you said"))
+        .fontSize,
+    ).toBe("11px");
+    await expect(
+      getComputedStyle(canvas.getByText("Arrival rate")).fontSize,
+    ).toBe("13px");
+    await userEvent.click(summary);
+  },
+};
+
+export const ChatVoiceOrigin: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      additionalTab={ledgerTab}
+      messages={[
+        { ...supportDeskUser, metadata: { source: "voice" } },
+        conversationTurn,
+        {
+          id: "typed-follow-up",
+          role: "user",
+          parts: [{ type: "text", text: "Keep the comparison as a draft." }],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getAllByRole("img", { name: "Sent using voice" }),
+    ).toHaveLength(1);
+    await expect(
+      canvas
+        .getByRole("img", { name: "Sent using voice" })
+        .querySelector("svg"),
+    ).toHaveAttribute("width", "12");
+  },
+};
+
+export const ChatAnswerActions: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      messages={[
+        supportDeskUser,
+        conversationTurn,
+        {
+          id: "next-question",
+          role: "user",
+          parts: [{ type: "text", text: "What is still open?" }],
+        },
+        {
+          id: "next-answer",
+          role: "assistant",
+          parts: [{ type: "text", text: "We still need the arrival rate." }],
+        },
+        {
+          id: "unsent-answer",
+          role: "user",
+          parts: [{ type: "text", text: "Keep the draft." }],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const copies = canvas.getAllByRole("button", { name: "Copy answer" });
+    const older = copies[0]!;
+    const latest = copies[1]!;
+    const olderActions = older.closest("[data-answer-actions]")!;
+    const latestActions = latest.closest("[data-answer-actions]")!;
+    await expect(getComputedStyle(olderActions).opacity).toBe("0");
+    await expect(getComputedStyle(latestActions).opacity).toBe("1");
+    older.focus();
+    await expect(getComputedStyle(olderActions).opacity).toBe("1");
+    older.blur();
+    await expect(getComputedStyle(olderActions).opacity).toBe("0");
+  },
+};
+
+export const VoicePreparing: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      additionalTab={ledgerTab}
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking" })}
+      messages={[
+        {
+          ...supportDeskUser,
+          parts: [
+            ...supportDeskUser.parts,
+            {
+              type: "data-brief",
+              data: {
+                state: "streaming",
+                fields: {},
+              },
+            },
+          ],
+        },
+        {
+          id: "preparing-reply",
+          role: "assistant",
+          parts: [
+            {
+              type: "data-voiceAgentReply",
+              data: {
+                state: "streaming",
+                text: "I’ll prepare that comparison.",
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+};
+
+export const VoiceSending: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking" })}
+      messages={[
+        {
+          ...supportDeskUser,
+          parts: [
+            ...supportDeskUser.parts,
+            {
+              type: "data-brief",
+              data: {
+                state: "streaming",
+                fields: {
+                  decide: "Compare 2–8 agents",
+                  measure: "Queue waiting time",
+                },
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+};
+
+const VoicePreparationFailure = () => {
+  const [admitted, setAdmitted] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setAdmitted(true)}>Confirm admission</Button>
+      <Frame
+        presentation="brunch"
+        inputMode="voice"
+        voiceModeAvailable
+        voiceSession={liveSession({ phase: "thinking" })}
+        messages={[
+          {
+            ...supportDeskUser,
+            parts: [
+              ...supportDeskUser.parts,
+              {
+                type: "data-brief",
+                data: {
+                  state: admitted ? "done" : "streaming",
+                  fields: {},
+                  preparationFailed: true,
+                },
+              },
+            ],
+          },
+        ]}
+      />
+    </>
+  );
+};
+
+export const VoicePreparationFailed: Story = {
+  render: () => <VoicePreparationFailure />,
+};
+
+export const VoiceStopped: Story = {
+  render: () => (
+    <Frame
+      presentation="brunch"
+      additionalTab={ledgerTab}
+      inputMode="voice"
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "listening" })}
+      stopped
+      messages={[supportDeskUser, conversationTurn]}
+    />
+  ),
+};
+
+const ExperimentExample = ({
+  finished = false,
+  optimization = true,
+}: {
+  finished?: boolean;
+  optimization?: boolean;
+}) => {
+  const [cancelled, setCancelled] = useState(false);
+  return (
+    <Frame
+      presentation="brunch"
+      additionalTab={ledgerTab}
+      onCancelExperiment={() => setCancelled(true)}
+      messages={[
+        supportDeskUser,
+        {
+          ...conversationTurn,
+          parts: [
+            ...conversationTurn.parts,
+            {
+              type: "tool-createExperiment",
+              state: "input-available",
+              toolCallId: "running-experiment",
+              input: {
+                name: "Compare staffing",
+                scenarioId: "staffing",
+                scenarioParameterValues: {},
+                runCount: 12,
+                seed: 1,
+                dt: 1,
+                maxTime: 60,
+                metricIds: ["wait"],
+                execution: optimization
+                  ? {
+                      mode: "optimize",
+                      objectiveMetricId: "wait",
+                      direction: "minimize",
+                      steps: 8,
+                      runsPerStep: 12,
+                    }
+                  : { mode: "simulate" },
+              },
+            },
+          ],
+        },
+      ]}
+      experimentStates={{
+        "running-experiment": {
+          active: !cancelled && !finished,
+          result:
+            cancelled || finished
+              ? {
+                  name: "Compare staffing",
+                  experimentId: "staffing",
+                  status: cancelled ? "cancelled" : "complete",
+                  runsCompleted: cancelled ? 29 : 96,
+                  metrics: finished
+                    ? [
+                        { id: "wait", label: "Lowest wait (min)", value: 0.3 },
+                        { id: "agents", label: "Agents", value: 8 },
+                      ]
+                    : [],
+                }
+              : undefined,
+          progress: {
+            name: "Compare staffing",
+            experimentId: "staffing",
+            phase: optimization ? "optimizing" : "running",
+            runsCompleted: 5,
+            runsTarget: 12,
+            step: 3,
+            steps: 8,
+          },
+        },
+      }}
+    />
+  );
+};
+
+export const RunningExperiment: Story = {
+  render: () => <ExperimentExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const card = canvas.getByRole("region", {
+      name: "Experiment: Compare staffing",
+    });
+    const progress = within(card).getByRole("progressbar");
+    await expect(getComputedStyle(card).backgroundImage).toContain(
+      "linear-gradient",
+    );
+    await expect(getComputedStyle(progress).height).toBe("5px");
+    await expect(
+      card.querySelector("strong")?.nextElementSibling?.textContent,
+    ).toContain("5 of 12 runs");
+  },
+};
+
+export const RunningSimulation: Story = {
+  ...RunningExperiment,
+  render: () => <ExperimentExample optimization={false} />,
+};
+
+export const FinishedExperiment: Story = {
+  render: () => <ExperimentExample finished />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const card = canvas.getByRole("region", {
+      name: "Experiment: Compare staffing",
+    });
+    const metrics = card.querySelector("dl")!;
+    await expect(getComputedStyle(metrics).display).toBe("flex");
+    for (const metric of metrics.children) {
+      await expect(getComputedStyle(metric).borderTopWidth).toBe("0px");
+      await expect(getComputedStyle(metric).padding).toBe("0px");
+    }
+    await expect(within(card).queryByRole("progressbar")).toBeNull();
+    await expect(within(card).getByRole("status")).toHaveTextContent(
+      "Finished",
+    );
+  },
 };

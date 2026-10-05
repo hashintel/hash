@@ -13,6 +13,7 @@
     "hash-middleware",
     "hash-temporal-client",
     "hashql-core",
+    "problematic",
     "type-system"
   ],
   "tasks": {

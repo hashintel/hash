@@ -73,6 +73,8 @@ Install these on the host first:
 
 Give Docker at least **8 GB RAM** (Preferences → Resources) and keep ~15 GB of disk free for build artefacts, images and volumes.
 
+On Windows, run the setup and development commands in **Git Bash**. Repository scripts call Bash and use POSIX shell commands. PowerShell can resolve `bash` to the Windows Subsystem for Linux executable instead. Activate `mise` in Git Bash using the linked instructions before running `yarn`; then check `yarn --version` in that shell.
+
 Check your versions:
 
 ```sh

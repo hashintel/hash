@@ -5,8 +5,8 @@ import {
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 
 import type {
-  SessionDraft,
-  SessionDraftsState,
+  EditorDraft,
+  EditorDraftsState,
 } from "../../shared/brunch-draft-experiment-drafts";
 import type { PetrinautExperimentResult } from "@hashintel/petrinaut-core";
 
@@ -65,7 +65,7 @@ type Note = {
 };
 
 const noteFor = (
-  draft: SessionDraft,
+  draft: EditorDraft,
   options: { readonly current: boolean; readonly replaces: boolean },
 ): Note | null => {
   const id = draft.toolCallId;
@@ -144,7 +144,7 @@ export class ExperimentVoiceRelay {
     this.#stopped = true;
   }
 
-  public update(state: SessionDraftsState): void {
+  public update(state: EditorDraftsState): void {
     if (this.#stopped) return;
     if (!this.#primed) {
       // History from before this voice session is context, never news: a

@@ -15,6 +15,8 @@ export type ExperimentExecutionCardProps = {
   result?: PetrinautExperimentResult;
   error?: string;
   onCancel?: () => void;
+  /** Supply for a failed execution that can be attempted again. */
+  onRetry?: () => void;
   /** Supply only while the caller can open the experiment's record. */
   onViewExperiment?: () => void;
 };
@@ -217,6 +219,7 @@ export const ExperimentExecutionCard = ({
   result,
   error: errorText,
   onCancel,
+  onRetry,
   onViewExperiment,
 }: ExperimentExecutionCardProps) => {
   const name = result?.name ?? progress?.name ?? request?.name ?? "Experiment";
@@ -360,6 +363,7 @@ export const ExperimentExecutionCard = ({
       )}
       {result?.metrics.length ||
       available ||
+      (errorText && onRetry) ||
       (pending && onCancel) ||
       result?.experimentId ? (
         <div
@@ -386,8 +390,21 @@ export const ExperimentExecutionCard = ({
               ))}
             </dl>
           )}
-          {(available || (pending && onCancel) || result?.experimentId) && (
+          {(available ||
+            (errorText && onRetry) ||
+            (pending && onCancel) ||
+            result?.experimentId) && (
             <div className={actionsStyle}>
+              {errorText && onRetry && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  tone="neutral"
+                  onClick={onRetry}
+                >
+                  Retry run
+                </Button>
+              )}
               {available && (
                 <Button
                   size="xs"

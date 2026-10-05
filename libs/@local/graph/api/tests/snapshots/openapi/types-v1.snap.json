@@ -5,43 +5,71 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "credentials are malformed",
               "status": 400,
               "title": "Bad Request",
               "type": "about:blank"
             },
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails",
-              "properties": {
-                "status": {
-                  "const": 400,
-                  "examples": [
-                    400
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 400
+                    },
+                    "title": {
+                      "const": "Bad Request"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
                   ]
                 }
-              }
+              ],
+              "title": "Bad Request"
             }
           }
         },
-        "description": "Malformed credentials or actor header."
+        "description": "The credentials are malformed."
       },
       "InternalServerError": {
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "An internal error prevented the request from completing.",
               "status": 500,
               "title": "Internal Server Error",
               "type": "about:blank"
             },
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails",
-              "properties": {
-                "status": {
-                  "const": 500,
-                  "examples": [
-                    500
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 500
+                    },
+                    "title": {
+                      "const": "Internal Server Error"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
                   ]
                 }
-              }
+              ],
+              "title": "Internal Server Error"
             }
           }
         },
@@ -51,43 +79,71 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "authentication is temporarily unavailable",
               "status": 503,
               "title": "Service Unavailable",
               "type": "about:blank"
             },
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails",
-              "properties": {
-                "status": {
-                  "const": 503,
-                  "examples": [
-                    503
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 503
+                    },
+                    "title": {
+                      "const": "Service Unavailable"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
                   ]
                 }
-              }
+              ],
+              "title": "Service Unavailable"
             }
           }
         },
-        "description": "The credential provider or actor store is unavailable."
+        "description": "Authentication is temporarily unavailable."
       },
       "TooManyRequests": {
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "The request exceeded its rate-limit budget.",
               "status": 429,
               "title": "Too Many Requests",
               "type": "about:blank"
             },
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails",
-              "properties": {
-                "status": {
-                  "const": 429,
-                  "examples": [
-                    429
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 429
+                    },
+                    "title": {
+                      "const": "Too Many Requests"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
                   ]
                 }
-              }
+              ],
+              "title": "Too Many Requests"
             }
           }
         },
@@ -97,6 +153,7 @@
             "description": "Whole seconds before retrying the request.",
             "required": true,
             "schema": {
+              "format": "uint64",
               "minimum": 1,
               "type": "integer"
             },
@@ -108,24 +165,38 @@
         "content": {
           "application/problem+json": {
             "example": {
+              "detail": "no credentials provided",
               "status": 401,
               "title": "Unauthorized",
               "type": "about:blank"
             },
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails",
-              "properties": {
-                "status": {
-                  "const": 401,
-                  "examples": [
-                    401
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 401
+                    },
+                    "title": {
+                      "const": "Unauthorized"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
                   ]
                 }
-              }
+              ],
+              "title": "Unauthorized"
             }
           }
         },
-        "description": "The credentials cannot resolve to a permitted caller."
+        "description": "The request carries no credentials, or they do not identify a permitted caller."
       }
     },
     "schemas": {
@@ -229,46 +300,27 @@
         "type": "object"
       },
       "ProblemDetails": {
-        "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
         "properties": {
           "detail": {
-            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-            "examples": [
-              "This operation requires a machine actor."
-            ],
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.",
             "type": "string"
           },
           "instance": {
-            "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
-            "examples": [
-              "https://example.com/problem-occurrences/42"
-            ],
+            "description": "A URI reference identifying this occurrence.",
             "format": "uri-reference",
             "type": "string"
           },
           "status": {
             "description": "The HTTP status code sent with this occurrence.",
-            "examples": [
-              403
-            ],
-            "format": "uint16",
-            "maximum": 599,
-            "minimum": 100,
             "type": "integer"
           },
           "title": {
-            "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-            "examples": [
-              "Wrong actor type"
-            ],
+            "description": "A short, human-readable summary of the problem type.",
             "type": "string"
           },
           "type": {
             "default": "about:blank",
-            "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
-            "examples": [
-              "https://example.com/problems/wrong-actor-type"
-            ],
+            "description": "A URI reference identifying the problem type.",
             "format": "uri-reference",
             "type": "string"
           }

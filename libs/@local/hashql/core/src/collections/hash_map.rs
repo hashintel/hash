@@ -37,7 +37,6 @@ pub trait HashMapExt<K, V, S> {
     /// # Examples
     ///
     /// ```
-    /// #![feature(allocator_api)]
     /// use std::alloc::Global;
     ///
     /// use hashql_core::collections::{FastHashMap, HashMapExt as _};
@@ -56,7 +55,6 @@ pub trait HashMapExt<K, V, S> {
     /// This example will panic:
     ///
     /// ```should_panic
-    /// #![feature(allocator_api)]
     /// use std::alloc::Global;
     ///
     /// use hashql_core::collections::{FastHashMap, HashMapExt as _};

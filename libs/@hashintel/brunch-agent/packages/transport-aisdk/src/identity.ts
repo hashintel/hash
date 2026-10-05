@@ -1,4 +1,4 @@
-import { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
+import { brunchHeaders } from "@hashintel/brunch-agent/constants";
 
 export interface ConversationIdentity {
   readonly conversationId: string;
@@ -26,20 +26,22 @@ const hexFromDigest = (digest: ArrayBuffer): string =>
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 
+const sha256Hex = async (payload: Uint8Array): Promise<string> => {
+  const bytes = new ArrayBuffer(payload.byteLength);
+  new Uint8Array(bytes).set(payload);
+  return hexFromDigest(await globalThis.crypto.subtle.digest("SHA-256", bytes));
+};
+
 /** Browser-safe counterpart to the server's synchronous instance-id hash. */
 export const flueConversationIdWeb = async (
   identity: ConversationIdentity,
 ): Promise<string> => {
-  const payload = identityPayload(identity);
-  const bytes = new ArrayBuffer(payload.byteLength);
-  new Uint8Array(bytes).set(payload);
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
-  return hexFromDigest(digest);
+  return sha256Hex(identityPayload(identity));
 };
 
 export const agentOwnershipHeaders = (
   identity: ConversationIdentity,
 ): Record<string, string> => ({
-  [BRUNCH_PRINCIPAL_HEADER]: identity.principalKey,
-  [BRUNCH_CONVERSATION_HEADER]: identity.conversationId,
+  [brunchHeaders.principal]: identity.principalKey,
+  [brunchHeaders.conversation]: identity.conversationId,
 });

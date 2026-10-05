@@ -8,22 +8,11 @@
  * names what the tool does, which is the one thing the name must not fix.
  *
  * Core names operations abstractly; the binding renders substrate tool names
- * from them (spec §10, §4).
+ * from them (spec §10, §4). The product name itself is `brunchProductName`
+ * in `../constants`.
  */
 
-/**
- * The product name.
- *
- * Settled as `brunch` (ADR-0001), which is a deliberate exception to the
- * spec's "nothing bakes 'brunch' into structure": the name-fog resolved in
- * favour of the working label rather than away from it. The rule that still
- * binds is the one about *function* — the prefix names who the tool belongs
- * to, never what it does, so `elicit_*` stays forbidden.
- *
- * Should the name ever move again, this constant is the only line that
- * changes; everything model-facing derives from it.
- */
-export const PRODUCT_NAME = "brunch";
+import { brunchProductName } from "../constants";
 
 /**
  * The abstract operations core names. The binding renders each into its
@@ -36,7 +25,7 @@ export const OPERATIONS = ["ask", "sweep"] as const;
 
 export type Operation = (typeof OPERATIONS)[number];
 export type ToolName<OperationName extends Operation = Operation> =
-  `${typeof PRODUCT_NAME}_${OperationName}`;
+  `${typeof brunchProductName}_${OperationName}`;
 
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 
@@ -47,7 +36,7 @@ const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
  * Refuses rather than silently emptying — a nameless prefix would collide with
  * the substrate's reserved tool names (spec §10, recorded Flue facts).
  */
-export function toolPrefix(productName: string = PRODUCT_NAME): string {
+export function toolPrefix(productName: string = brunchProductName): string {
   const normalized = productName.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (!/^[a-z][a-z0-9]*$/.test(normalized)) {
     throw new Error(
@@ -70,7 +59,7 @@ export function toolName<OperationName extends Operation>(
 export function toolName(operation: Operation, productName: string): string;
 export function toolName(
   operation: Operation,
-  productName: string = PRODUCT_NAME,
+  productName: string = brunchProductName,
 ): string {
   if (!IDENTIFIER.test(operation)) {
     throw new Error(

@@ -13,15 +13,14 @@
 //! still fails the request. Routes that take no actor at all use [`ServiceSecretLayer`]
 //! instead.
 //!
-//! Rejections return Problem Details with the `application/problem+json` content type.
-//! The first problem in report frame order supplies the public response, including its extensions.
-//! Problems come from error contexts through `Error::provide` or explicit attachments.
-//! A report without a problem produces a generic internal server error. Built-in problems use
-//! `about:blank`, the HTTP status phrase as the title, and a client-safe explanation as `detail`
-//! when available.
+//! Rejections return Problem Details with the `application/problem+json` content type. The kind
+//! of the [`AuthenticationError`] decides the public problem: `about:blank`, the HTTP status
+//! phrase as the title, and a client-safe explanation as `detail`. A kind that stays internal,
+//! and a route wired without the middleware, answer with a generic internal server error.
 //! HASH treats replacing `about:blank` with a specific problem type URI as a non-breaking API
 //! change. Clients should handle unrecognized problem types using the HTTP status code.
 
+mod problem;
 pub mod provider;
 pub mod request;
 pub mod service_secret;
@@ -30,6 +29,7 @@ pub mod service_secret;
 mod aide;
 use alloc::sync::Arc;
 use core::{
+    error::Error,
     future,
     marker::PhantomData,
     sync::atomic::{AtomicBool, Ordering},
@@ -46,19 +46,21 @@ use futures::{TryFutureExt as _, future::Either};
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
+    trace::TraceContextExt as _,
 };
-use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::ReportExt as _};
-use serde_core::Serialize;
+use problematic::{Answer, Expose, Rejection};
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 use type_system::principal::actor::ActorId;
 
 #[cfg(feature = "aide")]
 pub use self::aide::document;
+pub use self::problem::AuthenticationProblem;
 use self::{
     provider::{AuthenticationProvider, Caller},
     request::{AuthenticationError, AuthenticationErrorKind, resolve_request_actor},
     service_secret::{presents_service_secret, service_credential},
 };
-use crate::response::{problem_response, status_problem};
+use crate::problem::InternalServerError;
 
 /// How a request proceeded although its credential resolution failed.
 #[derive(Copy, Clone)]
@@ -75,6 +77,24 @@ impl Degradation {
             Self::Anonymous => "anonymous",
             Self::Bootstrap => "bootstrap",
         }
+    }
+}
+
+/// Adds the report of a failed credential to the current span, for a request that proceeds
+/// without it.
+///
+/// No rejection answers the request, so the telemetry layer never sees the failure.
+fn trace_degradation(report: &Report<AuthenticationError>, degradation: Degradation) {
+    let span = tracing::Span::current();
+    // A span that is not recorded drops the event, so the report is not formatted.
+    if span.context().span().is_recording() {
+        span.add_event(
+            "request proceeds despite a failed credential",
+            vec![
+                KeyValue::new("mechanism", degradation.as_str()),
+                KeyValue::new("error", format!("{report:?}")),
+            ],
+        );
     }
 }
 
@@ -130,103 +150,74 @@ impl AuthenticationMetrics {
 
 /// The response a request that failed authentication is answered with.
 ///
-/// A rejection records itself when it drops, whether or not a response was rendered from it,
-/// so no holder logs or counts one. The log latches on the error — shared across the requests
-/// one verification answered — and the count on the request, so every rejected request counts
-/// once.
-#[derive(Clone)]
+/// A rejection counts itself when a response is rendered from it, or when it drops without one,
+/// so no holder counts one. The count latches on the request, so every rejected request counts
+/// once. The response carries the report to the telemetry layer.
+#[derive(Clone, derive_more::Debug, derive_more::Display)]
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
+    #[display("{report}")]
     Authentication {
         /// Why the credentials were rejected.
         report: Arc<Report<AuthenticationError>>,
         /// The instruments the rejection is counted on.
+        #[debug(skip)]
         metrics: Arc<AuthenticationMetrics>,
         /// Whether this request's rejection has been counted.
+        #[debug(skip)]
         recorded: Arc<AtomicBool>,
     },
     /// [`AuthenticatedActorId`] was extracted on a route without [`AuthenticationLayer`].
     ///
     /// Answered as an internal error: the fault is the router's wiring, never the request.
+    #[display(
+        "`AuthenticatedActorId` extracted on `{method} {path}` without authentication middleware"
+    )]
     Misconfigured { method: http::Method, path: String },
 }
 
-#[derive(serde::Serialize)]
-#[serde(untagged)]
-enum RejectionExtensions<E> {
-    Attached(E),
-    Empty(NoExtensions),
+impl Error for AuthenticationRejection {}
+
+impl Expose<AuthenticationProblem> for AuthenticationRejection {
+    fn expose(&self) -> Answer<'_, AuthenticationProblem> {
+        match self {
+            Self::Authentication { report, .. } => report.expose(),
+            Self::Misconfigured { .. } => Answer::new(InternalServerError),
+        }
+    }
 }
 
-impl Problem for AuthenticationRejection {
-    type Extensions<'a> = impl Serialize + 'a;
-
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        match self {
-            Self::Authentication { report, .. } => {
-                if let Some(ProblemDetails {
-                    type_uri,
-                    title,
-                    status,
-                    detail,
-                    instance,
-                    extensions,
-                }) = report.problem_details().next()
-                {
-                    ProblemDetails {
-                        type_uri,
-                        title,
-                        status,
-                        detail,
-                        instance,
-                        extensions: RejectionExtensions::Attached(extensions),
-                    }
-                } else {
-                    tracing::error!(
-                        error = ?report,
-                        "authentication rejection carries no problem details"
-                    );
-                    status_problem(http::StatusCode::INTERNAL_SERVER_ERROR)
-                        .extensions(RejectionExtensions::Empty(NoExtensions {}))
-                }
+impl AuthenticationRejection {
+    /// Counts the rejection, once.
+    fn record(&self) {
+        if let Self::Authentication {
+            report,
+            metrics,
+            recorded,
+        } = self
+        {
+            // `Relaxed` is permissible here, as it is only used to avoid double-counting.
+            if recorded
+                .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                .is_ok()
+            {
+                metrics.record_rejection(report.current_context());
             }
-            Self::Misconfigured { .. } => status_problem(http::StatusCode::INTERNAL_SERVER_ERROR)
-                .extensions(RejectionExtensions::Empty(NoExtensions {})),
         }
     }
 }
 
 impl IntoResponse for AuthenticationRejection {
     fn into_response(self) -> Response {
-        problem_response(&self.details())
+        // The response keeps the rejection until it is dropped, after it has been sent.
+        self.record();
+        Rejection::<AuthenticationProblem>::from(self).into_response()
     }
 }
 
 impl Drop for AuthenticationRejection {
     fn drop(&mut self) {
-        match self {
-            Self::Authentication {
-                report,
-                metrics,
-                recorded,
-            } => {
-                AuthenticationError::ensure_logged(report);
-                // `Relaxed` is permissible here, as it is only used to avoid double-counting.
-                if recorded
-                    .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
-                    .is_ok()
-                {
-                    metrics.record_rejection(report.current_context());
-                }
-            }
-            Self::Misconfigured { method, path } => {
-                tracing::error!(
-                    %method,
-                    %path,
-                    "`AuthenticatedActorId` extracted on a route without authentication middleware"
-                );
-            }
-        }
+        self.record();
     }
 }
 
@@ -546,6 +537,7 @@ where
                         ) =>
                 {
                     metrics.record_degradation(report.current_context(), Degradation::Bootstrap);
+                    trace_degradation(&report, Degradation::Bootstrap);
                     Err(report)
                 }
                 Err(report) => {
@@ -657,23 +649,22 @@ mod tests {
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
     use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
-    use problematic::{Problem as _, error_stack::ReportExt as _};
-    use serde::Serialize;
+    use problematic::{Answer, Rejected};
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{
-        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationRejection,
-        ServiceSecretLayer,
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationProblem,
+        AuthenticationRejection, ServiceSecretLayer,
     };
     use crate::{
         authentication::{
             provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
             request::{AuthenticationError, AuthenticationErrorKind},
         },
-        response::status_problem,
+        problem::InternalServerError,
         test_metrics::{RecordedMetrics, noop_meter},
     };
 
@@ -1006,19 +997,28 @@ mod tests {
 
     #[tokio::test]
     async fn secret_gate_reports_a_wrong_secret_as_invalid() {
-        let response = secret_gated_router()
+        let recorded = RecordedMetrics::new();
+        let response = routes()
+            .layer(ServiceSecretLayer {
+                service_secret: Arc::from(SERVICE_SECRET),
+                metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            })
             .oneshot(request_with_secret("/protected", "hash-svc-wrong"))
             .await
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        let body = axum::body::to_bytes(response.into_body(), 1024)
-            .await
-            .expect("the response body should be readable");
-        let body = String::from_utf8_lossy(&body);
-        assert!(
-            body.contains("invalid"),
-            "a wrong secret should be reported as invalid, not missing, got {body}"
+        // The response does not tell a wrong secret from a missing one, the metric does.
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("reason", "invalid_service_secret"),
+                    ("fault_domain", "operator")
+                ],
+            ),
+            1,
+            "a wrong secret should be counted as invalid, not missing"
         );
     }
 
@@ -1089,6 +1089,13 @@ mod tests {
             .await
             .expect("the router should respond");
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(
+            response
+                .extensions()
+                .get::<Rejected>()
+                .is_some_and(|rejected| rejected.error().is::<AuthenticationRejection>()),
+            "the response should carry the rejection to the telemetry layer"
+        );
 
         assert_eq!(
             recorded.counter(
@@ -1332,7 +1339,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rejection_provided_problem() {
+    async fn rejection_exposed_problem() {
         let report =
             Report::new(AuthenticationError::missing_credentials()).attach("private diagnostic");
         let response = routes()
@@ -1360,110 +1367,7 @@ mod tests {
                 "status": 401,
                 "detail": "no credentials provided",
             }),
-            "the context should provide the public problem without exposing diagnostic attachments",
-        );
-    }
-
-    #[tokio::test]
-    async fn rejection_attached_problem() {
-        #[derive(Serialize)]
-        struct Challenge {
-            required_method: &'static str,
-        }
-
-        let recorded = RecordedMetrics::new();
-        let report = Report::new(core::fmt::Error)
-            .attach("private diagnostic")
-            .change_context(AuthenticationError::missing_credentials())
-            .attach_problem(
-                status_problem(StatusCode::FORBIDDEN)
-                    .detail("This route requires a passkey.")
-                    .instance("/problem-occurrences/42")
-                    .extensions(Challenge {
-                        required_method: "passkey",
-                    }),
-            );
-        let rejection = AuthenticationRejection::Authentication {
-            report: Arc::new(report),
-            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
-            recorded: Arc::new(AtomicBool::new(false)),
-        };
-        let expected = json!({
-            "type": "about:blank",
-            "title": "Forbidden",
-            "status": 403,
-            "detail": "This route requires a passkey.",
-            "instance": "/problem-occurrences/42",
-            "required_method": "passkey",
-        });
-        assert_eq!(
-            serde_json::to_value(rejection.details()).expect("the problem should serialize"),
-            expected,
-        );
-
-        let response = rejection.into_response();
-        assert_eq!(response.status(), StatusCode::FORBIDDEN);
-        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
-        assert_eq!(
-            recorded.counter(
-                "hash.authentication.rejections",
-                &[
-                    ("reason", "missing_credentials"),
-                    ("fault_domain", "caller")
-                ],
-            ),
-            1,
-            "the custom problem should preserve the authentication reason in the metric",
-        );
-        let body = axum::body::to_bytes(response.into_body(), 1024)
-            .await
-            .expect("the response body should be readable");
-        assert_eq!(
-            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
-            expected,
-        );
-    }
-
-    #[tokio::test]
-    async fn rejection_invalid_attached_extensions() {
-        let recorded = RecordedMetrics::new();
-        let report = Report::new(AuthenticationError::missing_credentials())
-            .attach_problem(status_problem(StatusCode::FORBIDDEN).extensions("private diagnostic"));
-        let response = AuthenticationRejection::Authentication {
-            report: Arc::new(report),
-            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
-            recorded: Arc::new(AtomicBool::new(false)),
-        }
-        .into_response();
-
-        assert_eq!(
-            response.status(),
-            StatusCode::FORBIDDEN,
-            "the decided status should survive extensions that do not serialize"
-        );
-        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
-        assert_eq!(
-            recorded.counter(
-                "hash.authentication.rejections",
-                &[
-                    ("reason", "missing_credentials"),
-                    ("fault_domain", "caller")
-                ],
-            ),
-            1,
-            "a serialization failure should preserve the authentication reason in the metric",
-        );
-        let body = axum::body::to_bytes(response.into_body(), 1024)
-            .await
-            .expect("the response body should be readable");
-        assert_eq!(
-            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
-            json!({
-                "type": "about:blank",
-                "title": "Forbidden",
-                "status": 403,
-            }),
-            "the body should fall back to the bare problem of the decided status"
+            "the kind should decide the public problem without exposing diagnostic attachments",
         );
     }
 
@@ -1471,21 +1375,12 @@ mod tests {
     async fn rejection_private_diagnostics() {
         let actor_id = ActorEntityUuid::new(Uuid::new_v4());
         let cases = [
-            (
-                AuthenticationError::not_provisioned("private-identity"),
-                "identity has no Graph actor provisioned",
-            ),
-            (
-                AuthenticationError::actor_not_found(actor_id),
-                "actor does not exist",
-            ),
-            (
-                AuthenticationError::not_a_user(actor_id),
-                "actor is not a user actor",
-            ),
+            AuthenticationError::not_provisioned("private-identity"),
+            AuthenticationError::actor_not_found(actor_id),
+            AuthenticationError::not_a_user(actor_id),
         ];
 
-        for (error, detail) in cases {
+        for error in cases {
             let rejection = AuthenticationRejection::Authentication {
                 report: Arc::new(Report::new(error).attach("private diagnostic")),
                 metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
@@ -1503,7 +1398,7 @@ mod tests {
                     "type": "about:blank",
                     "title": "Unauthorized",
                     "status": 401,
-                    "detail": detail,
+                    "detail": "credentials are not accepted",
                 }),
                 "the response should omit internal identifiers and report attachments"
             );
@@ -1564,11 +1459,11 @@ mod tests {
             .expect("the response body should be readable");
         assert_eq!(
             serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
-            json!({
-                "type": "about:blank",
-                "title": "Internal Server Error",
-                "status": 500,
-            })
+            serde_json::to_value(
+                Answer::<AuthenticationProblem>::new(InternalServerError).details()
+            )
+            .expect("the internal server error should serialize"),
+            "a route without the middleware should answer with the internal server error"
         );
     }
 }

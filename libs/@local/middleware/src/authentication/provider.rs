@@ -85,12 +85,8 @@ impl Caller for Option<ActorId> {
 /// and [`Report`] is not [`Clone`], so the [`Arc`] carries the one report to every request it
 /// rejected.
 ///
-/// [`AuthenticationError`] provides its public problem through [`Error::provide`]. Use
-/// [`attach_problem`] to supply custom fields and extensions. The middleware selects the first
-/// problem in [`Report::frames`] order.
-///
-/// [`attach_problem`]: problematic::error_stack::ReportExt::attach_problem
-/// [`Error::provide`]: core::error::Error::provide
+/// The kind of the [`AuthenticationError`] decides the public problem the rejection is answered
+/// with.
 pub trait AuthenticationProvider<C: Caller>: Send + Sync {
     /// Resolves the credential of a request.
     fn authenticate(

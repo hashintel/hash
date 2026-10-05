@@ -1,3 +1,4 @@
+import type { PetrinautAiAssistantPresentation } from "../petrinaut";
 import type { ComponentType } from "react";
 
 /** A runtime parser such as a Zod schema. */
@@ -6,6 +7,8 @@ export type PetrinautAiInteractiveToolSchema<Value> = {
 };
 
 type InteractiveToolWidgetCommonProps<Input, Output> = {
+  /** Assistant presentation selected by the embedding host. */
+  presentation?: PetrinautAiAssistantPresentation;
   /** Validated input supplied by the AI tool call. */
   input: Input;
   /** Submit one output for this tool call. Repeated calls are ignored. */
@@ -40,10 +43,22 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
 export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
   toolName: string;
+  /** Produced cards stay below the answer rather than inside the work fold. */
+  placement?: "work" | "card";
   /** Runtime contract for the tool-call input. */
   inputSchema: PetrinautAiInteractiveToolSchema<Input>;
   /** Runtime contract for the widget's submitted output. */
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
+  /**
+   * Render an interaction only for matching call identities. Defaults to all.
+   * This runs during render without parsing the input; when it
+   * depends on host state, rebuild `interactiveTools` as that state changes.
+   *
+   * Declining only suppresses the widget for tools the host executes itself
+   * (`inBandBrowserTools`). Any other registered tool is completed solely by
+   * its widget, so a declined call fails rather than waiting for a result.
+   */
+  shouldHandle?: (call: { toolCallId: string }) => boolean;
   /**
    * Optionally map text submitted through the assistant composer to this
    * tool's output. Petrinaut validates both the pending input and mapped
@@ -58,8 +73,10 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
 
 type ErasedInteractiveToolDefinition = {
   toolName: string;
+  placement?: "work" | "card";
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
+  shouldHandle?: (call: { toolCallId: string }) => boolean;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
@@ -82,13 +99,16 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
   definition: PetrinautAiInteractiveToolDefinition<Input, Output>,
 ): PetrinautAiInteractiveTool => {
   const fromComposerText = definition.fromComposerText;
+  const shouldHandle = definition.shouldHandle;
 
   return {
     toolName: definition.toolName,
     [interactiveToolDefinition]: {
       toolName: definition.toolName,
+      placement: definition.placement,
       parseInput: (value) => definition.inputSchema.parse(value),
       parseOutput: (value) => definition.outputSchema.parse(value),
+      shouldHandle,
       fromComposerText: fromComposerText
         ? ({ input, text }) =>
             definition.outputSchema.parse(

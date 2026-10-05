@@ -14,7 +14,6 @@ use super::{
 /// Use for short-lived temporary allocations that can be freed in bulk.
 ///
 /// ```
-/// # #![feature(allocator_api)]
 /// # use hashql_core::heap::{Scratch, ResetAllocator};
 /// let mut scratch = Scratch::new();
 /// let mut vec: Vec<u32, &Scratch> = Vec::new_in(&scratch);

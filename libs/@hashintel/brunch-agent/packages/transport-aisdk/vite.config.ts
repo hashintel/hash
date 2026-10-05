@@ -1,43 +1,5 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { defineBrunchLibraryConfig } from "../core/library-vite-config.ts";
 
-import { defineConfig } from "vitest/config";
-
-const packageRoot = fileURLToPath(new URL(".", import.meta.url));
-const packageManifest = JSON.parse(
-  readFileSync(new URL("package.json", import.meta.url), "utf8"),
-) as {
-  readonly dependencies?: Readonly<Record<string, string>>;
-  readonly peerDependencies?: Readonly<Record<string, string>>;
-};
-const externalPackageNames = Object.keys({
-  ...packageManifest.dependencies,
-  ...packageManifest.peerDependencies,
-});
-const isExternal = (moduleId: string): boolean =>
-  moduleId.startsWith("node:") ||
-  externalPackageNames.some(
-    (packageName) =>
-      moduleId === packageName || moduleId.startsWith(`${packageName}/`),
-  );
-
-export default defineConfig({
-  build: {
-    lib: {
-      entry: {
-        headers: fileURLToPath(new URL("src/headers.ts", import.meta.url)),
-        index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
-      },
-      fileName: (_format, entryName) => `${entryName}.js`,
-      formats: ["es"],
-    },
-    rolldownOptions: {
-      external: isExternal,
-    },
-    sourcemap: true,
-  },
-  root: packageRoot,
-  test: {
-    include: ["test/**/*.test.ts"],
-  },
+export default defineBrunchLibraryConfig(import.meta.url, {
+  index: "src/index.ts",
 });

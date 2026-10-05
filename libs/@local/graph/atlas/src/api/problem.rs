@@ -23,9 +23,14 @@ use futures::TryFutureExt as _;
 use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
 use hash_graph_store::filter::ParameterConversionError;
 use hash_middleware::{
-    authentication::{AuthenticationRejection, request::AuthenticationError},
+    authentication::{
+        AuthenticationProblem, AuthenticationRejection, request::AuthenticationError,
+    },
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
+use opentelemetry::{KeyValue, trace::TraceContextExt as _};
+use problematic::Expose;
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
 use crate::serve::{
     document::{
@@ -354,24 +359,33 @@ impl From<Report<VisibilityProofError>> for Problem<'static> {
 
 /// Carries an authentication failure as this crate's problem document.
 ///
-/// The status and detail are [`AuthenticationError`]'s own client-safe readings. This crate
-/// never restates the middleware's status map.
-impl From<AuthenticationError> for Problem<'static> {
-    fn from(error: AuthenticationError) -> Self {
+/// The status and detail are those of the middleware's public problem, and a failure the
+/// middleware answers with status `500` becomes `/problems/atlas/internal`. A failure answered with
+/// a server error is logged with its report, and any other failure is added to the current span.
+impl From<&Report<AuthenticationError>> for Problem<'static> {
+    fn from(report: &Report<AuthenticationError>) -> Self {
+        let answer = Expose::<AuthenticationProblem>::expose(report);
+        let details = answer.details();
+        // TODO(BE-909): answer through `problematic` rejections, which the tracing layer records.
+        if details.status.is_server_error() {
+            tracing::error!(error = ?report, "credential verification failed");
+        } else {
+            let span = tracing::Span::current();
+            // A span that is not recorded drops the event, so the report is not formatted.
+            if span.context().span().is_recording() {
+                span.add_event(
+                    "credential rejected",
+                    vec![KeyValue::new("error", format!("{report:?}"))],
+                );
+            }
+        }
+        if details.status == StatusCode::INTERNAL_SERVER_ERROR {
+            return Self::internal_response(Cow::Borrowed("the credential could not be verified"));
+        }
         Self::new(
-            error.status_code(),
+            details.status,
             ProblemType::Unauthenticated,
-            error.kind().client_message(),
-        )
-    }
-}
-
-impl From<&AuthenticationError> for Problem<'static> {
-    fn from(error: &AuthenticationError) -> Self {
-        Self::new(
-            error.status_code(),
-            ProblemType::Unauthenticated,
-            error.kind().client_message(),
+            details.detail.unwrap_or(details.title).into_owned(),
         )
     }
 }
@@ -479,16 +493,16 @@ impl From<RateLimitRejection> for ProblemResponse<'static> {
 impl From<AuthenticationRejection> for ProblemResponse<'static> {
     /// Converts an authentication rejection into its problem response.
     ///
-    /// A resolved failure uses [`Problem`]'s own [`AuthenticationError`] conversion. A
-    /// misconfigured extractor, used on a route without the authentication middleware, answers as
-    /// a logged `internal` problem.
+    /// A resolved failure uses [`Problem`]'s conversion from its [`AuthenticationError`] report.
+    /// A misconfigured extractor, used on a route without the authentication middleware, answers
+    /// as a logged `internal` problem.
     fn from(error: AuthenticationRejection) -> Self {
         match error {
             AuthenticationRejection::Authentication {
                 ref report,
                 metrics: _,
                 recorded: _,
-            } => Problem::from(report.current_context()).into(),
+            } => Problem::from(&**report).into(),
             AuthenticationRejection::Misconfigured { .. } => Problem::internal_message(
                 "`Actor` extracted on a route without the authentication middleware",
                 "the caller's authentication was never resolved",
@@ -601,6 +615,7 @@ pub(crate) mod tests {
     };
     use error_stack::Report;
     use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
+    use hash_middleware::authentication::request::{AuthenticationError, AuthenticationErrorKind};
     use tracing::{
         Dispatch, Event, Level, Subscriber,
         field::{Field, Visit},
@@ -832,5 +847,17 @@ pub(crate) mod tests {
             assert_eq!(document["status"], 503);
             assert_eq!(document["type"], "/problems/atlas/visibility-unavailable");
         }
+    }
+
+    /// A failure the authentication middleware keeps internal answers the `internal` problem.
+    #[test]
+    fn authentication_internal() {
+        let report = Report::new(AuthenticationError::new(
+            AuthenticationErrorKind::InvalidProviderResponse,
+        ));
+        let document =
+            serde_json::to_value(Problem::from(&report)).expect("should serialize the problem");
+        assert_eq!(document["status"], 500);
+        assert_eq!(document["type"], "/problems/atlas/internal");
     }
 }

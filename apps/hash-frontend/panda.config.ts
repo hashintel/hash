@@ -2,7 +2,10 @@ import { createRequire } from "node:module";
 
 import { defineConfig } from "@pandacss/dev";
 
-import { scopedThemeConfig } from "@hashintel/ds-components/preset";
+import {
+  resolvePandaBuildInfoPath,
+  scopedThemeConfig,
+} from "@hashintel/ds-components/preset";
 import petrinautPandaPreset from "@hashintel/petrinaut/panda-preset";
 
 /** Panda evaluates this config through CJS, so `__filename` is available here. */
@@ -60,8 +63,14 @@ export default defineConfig({
    * route pages, and the tiled network graph.
    */
   include: [
-    require.resolve("@hashintel/ds-components/panda.buildinfo.json"),
-    require.resolve("@hashintel/petrinaut/panda.buildinfo.json"),
+    resolvePandaBuildInfoPath(
+      "@hashintel/ds-components/panda.buildinfo.json",
+      require.resolve,
+    ),
+    resolvePandaBuildInfoPath(
+      "@hashintel/petrinaut/panda.buildinfo.json",
+      require.resolve,
+    ),
     "./src/pages/supply-chain/**/*.{ts,tsx}",
     "./src/components/tiled-network-graph/**/*.{ts,tsx}",
   ],

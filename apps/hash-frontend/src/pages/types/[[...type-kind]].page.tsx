@@ -3,6 +3,7 @@ import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
@@ -39,6 +40,22 @@ type ParsedQueryParams = {
 };
 
 export type TabId = "all" | ParsedQueryKindParam;
+
+const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
+  {
+    all: { label: "Create type", href: "/new/types/entity-type" },
+    "entity-type": {
+      label: "Create entity type",
+      href: "/new/types/entity-type",
+    },
+    "link-type": {
+      label: "Create link type",
+      href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
+    },
+    // TODO(H-773): add the property type creation button
+    "property-type": null,
+    "data-type": { label: "Create data type", href: "/new/types/data-type" },
+  };
 
 type TypesPageProps = {
   currentTab: TabId;
@@ -202,6 +219,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     ],
   );
 
+  const createButton = createButtonByTab[currentTab];
+
   return (
     <>
       <NextSeo title="Types" />
@@ -257,13 +276,25 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
                 "data-type": latestDataTypes?.length,
               }}
             />
-            <CreateButton
-              href="/new/types/entity-type"
-              variant="tertiary_quiet"
-              endIcon={<PlusRegularIcon />}
-            >
-              Create type
-            </CreateButton>
+            {createButton ? (
+              <CreateButton
+                href={createButton.href}
+                variant="tertiary_quiet"
+                endIcon={<PlusRegularIcon />}
+              >
+                {createButton.label}
+              </CreateButton>
+            ) : (
+              // keeps the tab row as tall as on tabs with a create button
+              <CreateButton
+                disabled
+                variant="tertiary_quiet"
+                endIcon={<PlusRegularIcon />}
+                sx={{ visibility: "hidden" }}
+              >
+                Create type
+              </CreateButton>
+            )}
           </Stack>
         </Container>
       </Box>

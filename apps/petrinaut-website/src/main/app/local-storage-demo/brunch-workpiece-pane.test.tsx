@@ -17,9 +17,8 @@ const output = {
     markdown: "# Actual tool workpiece",
     ordinal: 1,
   },
-  disposition: "partially-supported",
-  reason: "Temporal context is not support.",
-  reconciliation: { status: "as-of", sha256: "b".repeat(64) },
+  disposition: "basis-absent",
+  reason: "Chronological association is not semantic justification.",
 };
 const messages = [
   {
@@ -39,30 +38,13 @@ const messages = [
 
 test("renders only the readable Ledger document without developer metadata", () => {
   const html = renderToStaticMarkup(
-    <BrunchWorkpiecePane
-      messages={messages}
-      binding={binding}
-      liveHash={undefined}
-    />,
+    <BrunchWorkpiecePane messages={messages} binding={binding} />,
   );
   expect(html).toContain("<h1>Actual tool workpiece</h1>");
   expect(html).not.toContain("position:fixed");
   expect(html).not.toContain("<details");
   expect(html).not.toContain("Revision 1");
-  expect(html).not.toContain("SHA-256");
   expect(html).not.toContain("why-call");
-});
-
-test("warns when the live document differs without exposing raw tool output", () => {
-  const html = renderToStaticMarkup(
-    <BrunchWorkpiecePane
-      messages={messages}
-      binding={binding}
-      liveHash={"c".repeat(64)}
-    />,
-  );
-  expect(html).toContain("Live document hash differs");
-  expect(html).not.toContain("Temporal context is not support.");
 });
 
 /**
@@ -98,7 +80,6 @@ test("shows a successful settlement body from its bound input without a model-ch
     <BrunchWorkpiecePane
       messages={[settlementMessage("settled-call", "# Settled account")]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Settled account</h1>");
@@ -137,7 +118,6 @@ test("does not display the input of a typed refused settlement or mark it newer"
         },
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Settled account</h1>");
@@ -166,7 +146,6 @@ test("does not display the input of a failed settlement", () => {
         },
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Settled account</h1>");
@@ -182,14 +161,12 @@ test("a later settlement replaces the displayed query while retaining the record
         settlementMessage("later-call", "# Later account"),
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Later account</h1>");
   expect(html).toContain(
     "recorded explanation predates a newer Ledger revision",
   );
-  expect(html).not.toContain("Temporal context is not support.");
 });
 
 test("an explicit later query replaces a recorded settlement", () => {
@@ -200,7 +177,6 @@ test("an explicit later query replaces a recorded settlement", () => {
         ...messages,
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Actual tool workpiece</h1>");
@@ -216,7 +192,6 @@ test("a later settlement whose output is not bound to its call marks the display
         settlementMessage("unbound-call", "# Unbound account", "other-call"),
       ]}
       binding={binding}
-      liveHash={undefined}
     />,
   );
   expect(html).toContain("<h1>Earlier account</h1>");
@@ -243,11 +218,9 @@ test("does not reconstruct current state from an input its output does not bind"
         },
       ]}
       binding={binding}
-      liveHash={"b".repeat(64)}
     />,
   );
   expect(html).not.toContain("History is not state");
-  expect(html).not.toContain("Current state has not been queried");
 });
 
 test("folds unique validated settlement identities without treating queries as activity", () => {
@@ -258,6 +231,46 @@ test("folds unique validated settlement identities without treating queries as a
   );
   expect(history.activityIdentities).toEqual(["settled-call"]);
   expect(history.report?.source).toBe("query");
+});
+
+test("folds a settled in-band canonical mutation revision into Ledger activity", () => {
+  const call = {
+    role: "assistant",
+    purpose: "assistant",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "addPlace",
+        toolCallId: "canonical-call",
+        state: "output-available",
+        input: { id: "queue" },
+        output: {
+          brunchBrowserResult: true,
+          output: { applied: true },
+          metadata: { documentRevision: { before: "one", after: "two" } },
+        },
+      },
+    ],
+  };
+  expect(
+    foldBrunchWorkpieceHistory([call], binding).activityIdentities,
+  ).toEqual(["canonical-call"]);
+  const unchanged = {
+    ...call,
+    parts: [
+      {
+        ...call.parts[0],
+        output: {
+          brunchBrowserResult: true,
+          output: { applied: false },
+          metadata: { documentRevision: { before: "two" } },
+        },
+      },
+    ],
+  };
+  expect(
+    foldBrunchWorkpieceHistory([unchanged], binding).activityIdentities,
+  ).toEqual([]);
 });
 
 test("does not count unbound settlement pointers as activity", () => {

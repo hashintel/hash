@@ -33,6 +33,8 @@ export type PetrinautAiComposerSubmitText = (params: {
   source?: "voice";
   /** Defaults to `auto`; use `message` for text that must not answer a pending tool. */
   target?: "auto" | "message";
+  /** Keep the user's unsent composer text when reporting a background result. */
+  preserveDraft?: boolean;
   text: string;
 }) => Promise<PetrinautAiComposerSubmitTextResult>;
 
@@ -48,6 +50,11 @@ export type PetrinautAiComposerControlContext = {
   stop: () => Promise<void>;
   /** Call from an event handler or effect, never while rendering. */
   submitText: PetrinautAiComposerSubmitText;
+  /**
+   * Report host-owned experiment activity from an effect and return its cleanup.
+   * Cleanup clears this report only, never a newer report from another control.
+   */
+  reportExperimentRunning?: (running: boolean) => () => void;
 };
 
 /** Render callback for a host-owned control inside the assistant composer. */

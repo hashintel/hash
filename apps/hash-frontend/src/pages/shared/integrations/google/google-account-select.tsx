@@ -19,7 +19,7 @@ export const GoogleAccountSelect = ({
   const authContext = useGoogleAuth();
 
   const options = useMemo(() => {
-    if (authContext.loading) {
+    if (!authContext.available || authContext.loading) {
       return [];
     }
 
@@ -55,6 +55,10 @@ export const GoogleAccountSelect = ({
 
     lastOptionsLength.current = options.length;
   }, [googleAccountId, setGoogleAccountId, options]);
+
+  if (!authContext.available) {
+    return null;
+  }
 
   return (
     <Stack direction="row" alignItems="center" gap={1.5}>

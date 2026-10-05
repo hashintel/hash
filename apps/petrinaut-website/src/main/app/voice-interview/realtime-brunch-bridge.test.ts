@@ -289,6 +289,34 @@ describe("RealtimeBrunchBridge", () => {
     );
   });
 
+  test("classes an interruption that matches both playback and the prompt as self-echo", () => {
+    const vocabulary =
+      "place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet";
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      type: "output-started",
+      connectionEpoch: 3,
+      responseId: "playing",
+      speechRequestId: "speech",
+      canonicalText: [`Let's cover ${vocabulary}.`],
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "both",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, vocabulary, "both"));
+
+    expect(harness.events.at(-1)).toEqual({
+      itemId: "both",
+      type: "transcript-rejected",
+      reason: "self-echo",
+    });
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+  });
+
   test.each([vocabularyLeak, assistantText])(
     "leaves ordinary transcripts unchanged: %s",
     (text) => {

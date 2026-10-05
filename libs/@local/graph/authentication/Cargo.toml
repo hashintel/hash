@@ -24,10 +24,11 @@ reqwest       = { workspace = true, public = true }
 
 # Private third-party dependencies
 cookie         = { workspace = true }
-derive_more    = { workspace = true, features = ["display", "error"] }
+crc32fast      = { workspace = true }
+derive_more    = { workspace = true, features = ["debug", "display", "error"] }
 hmac           = { workspace = true }
 moka           = { workspace = true, features = ["future"] }
-rand           = { workspace = true, features = ["thread_rng"] }
+rand           = { workspace = true, features = ["sys_rng", "thread_rng"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 sha2           = { workspace = true }
@@ -35,13 +36,14 @@ simple-mermaid = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true }
 uuid           = { workspace = true }
+zerocopy       = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 axum              = { workspace = true }
 hash-middleware   = { workspace = true, features = ["test-utils"] }
 jsonwebtoken      = { workspace = true, features = ["use_pem"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
-problematic       = { workspace = true, features = ["error-stack"] }
+problematic       = { workspace = true }
 rstest            = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
 uuid              = { workspace = true, features = ["v4"] }

@@ -6,18 +6,9 @@
  * fields and TLS/authentication requirements.
  */
 
-export const POSTGRES_ENV = {
-  authMode: "BRUNCH_POSTGRES_AUTH_MODE",
-  awsRegion: "BRUNCH_POSTGRES_AWS_REGION",
-  database: "BRUNCH_POSTGRES_DATABASE",
-  host: "BRUNCH_POSTGRES_HOST",
-  password: "BRUNCH_POSTGRES_PASSWORD",
-  port: "BRUNCH_POSTGRES_PORT",
-  tlsCaPath: "BRUNCH_POSTGRES_TLS_CA_PATH",
-  user: "BRUNCH_POSTGRES_USER",
-} as const;
+import { brunchEnv } from "@hashintel/brunch-agent";
 
-export interface SqliteDatabaseConfig {
+interface SqliteDatabaseConfig {
   readonly kind: "sqlite";
 }
 
@@ -56,7 +47,7 @@ const absent = (environment: NodeJS.ProcessEnv, name: string): void => {
 };
 
 const portOf = (environment: NodeJS.ProcessEnv): number => {
-  const name = POSTGRES_ENV.port;
+  const name = brunchEnv.postgres.port;
   const source = valueOf(environment, name);
   if (!/^\d+$/u.test(source)) {
     throw new Error(`${name} must be an integer between 1 and 65535.`);
@@ -70,8 +61,8 @@ const portOf = (environment: NodeJS.ProcessEnv): number => {
 
 const rejectLegacyPostgresInputs = (environment: NodeJS.ProcessEnv): void => {
   absent(environment, "DATABASE_URL");
-  absent(environment, "BRUNCH_DEV_DB_PATH");
-  absent(environment, "BRUNCH_CHAT_DB_PATH");
+  absent(environment, brunchEnv.devDbPath);
+  absent(environment, brunchEnv.chatDbPath);
 };
 
 export const loadDatabaseConfig = (
@@ -79,15 +70,17 @@ export const loadDatabaseConfig = (
 ): DatabaseConfig => {
   const production = environment.NODE_ENV === "production";
   const kind =
-    environment.BRUNCH_DB_KIND ?? (production ? "postgres" : "sqlite");
+    environment[brunchEnv.dbKind] ?? (production ? "postgres" : "sqlite");
   if (kind !== "sqlite" && kind !== "postgres") {
-    throw new Error('BRUNCH_DB_KIND must be either "sqlite" or "postgres".');
+    throw new Error(
+      `${brunchEnv.dbKind} must be either "sqlite" or "postgres".`,
+    );
   }
   if (kind === "sqlite") {
     if (production) {
-      throw new Error('BRUNCH_DB_KIND must be "postgres" in production.');
+      throw new Error(`${brunchEnv.dbKind} must be "postgres" in production.`);
     }
-    for (const name of Object.values(POSTGRES_ENV)) {
+    for (const name of Object.values(brunchEnv.postgres)) {
       absent(environment, name);
     }
     return { kind };
@@ -95,39 +88,39 @@ export const loadDatabaseConfig = (
 
   rejectLegacyPostgresInputs(environment);
 
-  const authMode = valueOf(environment, POSTGRES_ENV.authMode);
+  const authMode = valueOf(environment, brunchEnv.postgres.authMode);
   const common = {
     kind: "postgres" as const,
-    database: valueOf(environment, POSTGRES_ENV.database),
-    host: valueOf(environment, POSTGRES_ENV.host),
+    database: valueOf(environment, brunchEnv.postgres.database),
+    host: valueOf(environment, brunchEnv.postgres.host),
     port: portOf(environment),
-    tlsCaPath: valueOf(environment, POSTGRES_ENV.tlsCaPath),
-    user: valueOf(environment, POSTGRES_ENV.user),
+    tlsCaPath: valueOf(environment, brunchEnv.postgres.tlsCaPath),
+    user: valueOf(environment, brunchEnv.postgres.user),
   };
 
   if (authMode === "iam") {
-    absent(environment, POSTGRES_ENV.password);
+    absent(environment, brunchEnv.postgres.password);
     return {
       ...common,
       auth: {
         mode: "iam",
-        region: valueOf(environment, POSTGRES_ENV.awsRegion),
+        region: valueOf(environment, brunchEnv.postgres.awsRegion),
       },
     };
   }
 
   if (authMode === "password") {
-    absent(environment, POSTGRES_ENV.awsRegion);
+    absent(environment, brunchEnv.postgres.awsRegion);
     return {
       ...common,
       auth: {
         mode: "password",
-        password: valueOf(environment, POSTGRES_ENV.password),
+        password: valueOf(environment, brunchEnv.postgres.password),
       },
     };
   }
 
   throw new Error(
-    `${POSTGRES_ENV.authMode} must be either "iam" or "password".`,
+    `${brunchEnv.postgres.authMode} must be either "iam" or "password".`,
   );
 };

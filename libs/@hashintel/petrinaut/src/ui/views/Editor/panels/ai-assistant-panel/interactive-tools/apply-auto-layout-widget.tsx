@@ -36,6 +36,7 @@ const summaryStyle = css({
 });
 
 const ApplyAutoLayoutWidget = ({
+  presentation = "stock",
   state,
   submit,
   submittedOutput,
@@ -71,7 +72,7 @@ const ApplyAutoLayoutWidget = ({
             })
           }
         >
-          Yes, auto-layout
+          {presentation === "brunch" ? "Allow" : "Yes, auto-layout"}
         </Button>
         <Button
           size="sm"
@@ -81,7 +82,7 @@ const ApplyAutoLayoutWidget = ({
             submit({ applied: false, reason: "User declined auto-layout." })
           }
         >
-          No, keep current layout
+          {presentation === "brunch" ? "Deny" : "No, keep current layout"}
         </Button>
       </ButtonGroup>
     </div>

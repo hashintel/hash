@@ -20,15 +20,9 @@ import {
 export {
   exampleCatalog,
   exampleSlugs,
-  getExampleCatalogEntry,
   isExampleSlug,
 } from "./catalog-metadata";
-export type {
-  ExampleCatalogEntry,
-  ExampleSimulationParameterBounds,
-  ExampleSlug,
-  ExampleSource,
-} from "./catalog-metadata";
+export type { ExampleCatalogEntry, ExampleSlug } from "./catalog-metadata";
 
 export type LoadedExample = Readonly<{
   catalog: ExampleCatalogEntry;

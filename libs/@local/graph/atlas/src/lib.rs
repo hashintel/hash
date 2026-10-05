@@ -100,7 +100,7 @@
     macro_metavar_expr,
 
     // Library Features
-    allocator_api,
+    allocator_ext,
     alloc_io,
     arc_is_unique,
     clone_from_ref,
@@ -137,7 +137,6 @@
     sync_nonpoison,
     time_saturating_systemtime,
     unboxed_closures,
-    unwrap_infallible,
     variant_count,
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]

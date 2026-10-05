@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const brunchInputArcSchema = z
+const brunchInputArcSchema = z
   .object({
     placeId: z.string(),
     weight: z.number(),
@@ -11,14 +11,14 @@ export const brunchInputArcSchema = z
   })
   .strict();
 
-export const brunchOutputArcSchema = z
+const brunchOutputArcSchema = z
   .object({
     placeId: z.string(),
     weight: z.number(),
   })
   .strict();
 
-export const brunchPlaceSchema = z
+const brunchPlaceSchema = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -27,7 +27,7 @@ export const brunchPlaceSchema = z
   })
   .strict();
 
-export const brunchTransitionSchema = z
+const brunchTransitionSchema = z
   .object({
     id: z.string(),
     name: z.string(),

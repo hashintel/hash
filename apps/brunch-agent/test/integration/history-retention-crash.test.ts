@@ -57,13 +57,7 @@ const withRetainedFailureTraces = async (
   await rm(directory, { recursive: true, force: true });
 };
 
-test.each([
-  "plain",
-  "observe",
-  "after-outcome",
-  "before-outcome",
-  "direct-after-outcome",
-] as const)(
+test.each(["plain", "after-outcome", "before-outcome"] as const)(
   "crash recovery restores exact state after %s",
   async (kind) => {
     await withRetainedFailureTraces(
@@ -73,9 +67,8 @@ test.each([
           kind === "plain"
             ? await runCrashPhase(directory, { A4_FAULT: kind })
             : await instrumented(directory, { A4_FAULT: kind });
-        const createSurvived = kind === "plain" || kind === "observe";
         expect(
-          createSurvived ? create.exitCode === 0 : wasKilled(create),
+          kind === "plain" ? create.exitCode === 0 : wasKilled(create),
           create.stderr + create.stdout,
         ).toBe(true);
         const recover = await runCrashPhase(directory, { A4_PHASE: "recover" });

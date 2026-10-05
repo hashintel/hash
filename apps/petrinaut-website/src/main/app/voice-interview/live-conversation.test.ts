@@ -2,10 +2,133 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { createLiveConversation } from "./live-conversation";
+import { createOutputEchoTrace } from "./live-conversation/echo-diagnostics";
+import { createUtteranceLevels } from "./live-conversation/utterance-levels";
 import { VoiceAudioSettings } from "./voice-audio-settings";
 
 beforeEach(() => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
+});
+
+const traceRecords = (calls: readonly (readonly unknown[])[], event: string) =>
+  calls
+    .map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === event);
+
+test("does not carry an output transcript span into the next audible stretch", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const echoTrace = createOutputEchoTrace("session");
+  const sample = (at: number, audible: boolean) =>
+    echoTrace.sample(at, {
+      audible,
+      microphoneLevel: 0,
+      echoReturnLoss: undefined,
+      echoReturnLossEnhancement: undefined,
+      microphoneMuted: false,
+      selectedSpeaker: false,
+    });
+
+  sample(0, true);
+  echoTrace.liveOutputFragment(5_000, 5_400);
+  sample(1_000, false);
+
+  sample(2_000, true);
+  echoTrace.liveInputFragment(7_000);
+  sample(3_000, false);
+
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({ liveInputFragments: 0 }),
+    expect.objectContaining({ liveInputFragments: 0 }),
+  ]);
+});
+
+test("audible output a full tail after the last starts a new output stretch", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const echoTrace = createOutputEchoTrace("session");
+  const sample = (at: number) =>
+    echoTrace.sample(at, {
+      audible: true,
+      microphoneLevel: 0,
+      echoReturnLoss: undefined,
+      echoReturnLossEnhancement: undefined,
+      microphoneMuted: false,
+      selectedSpeaker: false,
+    });
+
+  sample(0);
+  sample(999);
+  sample(1_999);
+  echoTrace.end();
+
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({ sessionEnded: false, outputMs: 999 }),
+    expect.objectContaining({ sessionEnded: true, outputMs: 0 }),
+  ]);
+});
+
+test("counts speech as started during output only when its start is reported within half a second", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const echoTrace = createOutputEchoTrace("session");
+  const sample = (at: number, audible: boolean) =>
+    echoTrace.sample(at, {
+      audible,
+      microphoneLevel: 0,
+      echoReturnLoss: undefined,
+      echoReturnLossEnhancement: undefined,
+      microphoneMuted: false,
+      selectedSpeaker: false,
+    });
+
+  sample(0, true);
+  echoTrace.transcriptionSpeechStarted("during", 50);
+  sample(100, false);
+  echoTrace.transcriptionSpeechStarted("inside", 499);
+  echoTrace.transcriptionSpeechStarted("outside", 500);
+  sample(1_000, false);
+  echoTrace.transcriptionSpeechStarted("quiet", 1_100);
+
+  const itemIds = ["during", "inside", "outside", "quiet"];
+  expect(
+    itemIds.map((itemId) => echoTrace.startedDuringOutput(itemId)),
+  ).toEqual([true, true, false, false]);
+  expect(itemIds.map((itemId) => echoTrace.sinceOutputMs(itemId))).toEqual([
+    50,
+    499,
+    500,
+    undefined,
+  ]);
+  echoTrace.forget("during");
+  expect(echoTrace.sinceOutputMs("during")).toBeUndefined();
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({ transcriptionSpeechStarts: 3 }),
+  ]);
+});
+
+test("records each utterance's peak microphone level from the second before its reported start until it stops", () => {
+  const levels = createUtteranceLevels();
+
+  levels.sample(0, 0.9);
+  levels.sample(600, 0.5);
+  levels.speechStarted("yes", 1_500);
+  levels.sample(1_600, 0.2);
+  levels.speechStopped("yes");
+  levels.sample(1_700, 0.95);
+  levels.speechStarted("noise", 3_000);
+  levels.sample(3_100, 0.123);
+
+  expect(levels.peak("yes")).toBe(0.5);
+  expect(levels.peak("noise")).toBe(0.12);
+  expect(levels.peak("unheard")).toBeUndefined();
+  levels.forget("yes");
+  expect(levels.peak("yes")).toBeUndefined();
 });
 
 const setup = ({
@@ -90,6 +213,12 @@ const setup = ({
     vi.fn<Parameters<typeof createLiveConversation>[2]>();
   const onDelegation = vi.fn<Parameters<typeof createLiveConversation>[3]>();
   const onAppendResult = vi.fn<Parameters<typeof createLiveConversation>[4]>();
+  const speech = {
+    started: vi.fn(),
+    input: vi.fn(),
+    output: vi.fn(),
+    closed: vi.fn(),
+  };
   const conversation = createLiveConversation(
     onState,
     15_000,
@@ -97,6 +226,7 @@ const setup = ({
     onDelegation,
     onAppendResult,
     audioSettings,
+    speech,
   );
   const emit = (connection: 0 | 1, data: unknown) =>
     channels[connection].dispatchEvent(
@@ -118,6 +248,7 @@ const setup = ({
     onFinalizedInput,
     onDelegation,
     onAppendResult,
+    speech,
   };
 };
 
@@ -133,6 +264,95 @@ const connect = async (fixture: ReturnType<typeof setup>) => {
   fixture.emit(0, { type: "session.started" });
   fixture.emit(1, { type: "session.created" });
 };
+
+test("a transcript finalized after newer speech keeps its identity but cannot revive old speech", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "old",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "old",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "new",
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "old",
+    content_index: 0,
+    transcript: "Old request",
+  });
+  expect(fixture.onFinalizedInput).toHaveBeenCalledWith(
+    expect.objectContaining({ text: "Old request", superseded: true }),
+  );
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("projects only actual Live transcript deltas and reports injection time without claiming playback", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "input",
+  });
+  expect(fixture.speech.started).toHaveBeenCalledOnce();
+  fixture.emit(0, {
+    type: "session.input_transcript.delta",
+    event_id: "in",
+    delta: "Hello",
+    start_ms: 100,
+    end_ms: 200,
+  });
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    event_id: "out",
+    delta: "I can help.",
+    start_ms: 300,
+    end_ms: 400,
+  });
+  expect(fixture.speech.input).toHaveBeenCalledWith({
+    id: "in",
+    text: "Hello",
+    startMs: 100,
+    endMs: 200,
+  });
+  expect(fixture.speech.output).toHaveBeenCalledExactlyOnceWith({
+    id: "out",
+    text: "I can help.",
+    startMs: 300,
+    endMs: 400,
+  });
+  fixture.conversation.appendCommentary("Not a caption", null);
+  const sent = JSON.parse(fixture.sent[0].at(-1)!) as { event_id: string };
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: sent.event_id,
+    start_ms: 500,
+    end_ms: 600,
+  });
+  expect(fixture.onAppendResult).toHaveBeenLastCalledWith(
+    expect.objectContaining({ status: "accepted", startMs: 500 }),
+  );
+  expect(fixture.speech.output).toHaveBeenCalledOnce();
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    delta: "Malformed",
+    start_ms: -1,
+    end_ms: "400",
+  });
+  expect(fixture.speech.output).toHaveBeenCalledOnce();
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+  expect(fixture.speech.closed).toHaveBeenCalled();
+});
 
 test("stops voice preview before reopening the Live microphone", async () => {
   const settings = new VoiceAudioSettings("live", undefined);
@@ -1298,7 +1518,7 @@ test("telemetry shows activity but silence and late samples never settle or revi
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
 });
 
-test("thinking appends are quiet context: acknowledged by their own event and never closing a delegation", async () => {
+test("quiet interruption context requires its own acknowledgement and leaves the delegation open", async () => {
   const fixture = setup();
   await connect(fixture);
   fixture.emit(0, {
@@ -1306,7 +1526,10 @@ test("thinking appends are quiet context: acknowledged by their own event and ne
     delegation: { id: "opaque", target: "client" },
   });
   expect(
-    fixture.conversation.appendThinking("Ledger settled arrivals.", null),
+    fixture.conversation.appendThinking(
+      "The previous answer was interrupted.",
+      null,
+    ),
   ).toBe(true);
   const pending = fixture.onAppendResult.mock.lastCall![0];
   expect(pending).toMatchObject({
@@ -1318,7 +1541,7 @@ test("thinking appends are quiet context: acknowledged by their own event and ne
     type: "session.thinking.append",
     event_id: pending.eventId,
     delegation_id: null,
-    content: "Ledger settled arrivals.",
+    content: "The previous answer was interrupted.",
   });
   fixture.emit(0, {
     type: "session.commentary.appended",
@@ -1333,16 +1556,620 @@ test("thinking appends are quiet context: acknowledged by their own event and ne
     ...pending,
     status: "accepted",
   });
-
-  // Progress about a delegation leaves it open for the eventual answer.
-  expect(fixture.conversation.appendThinking("Still working.", "opaque")).toBe(
-    true,
-  );
-  const progress = fixture.onAppendResult.mock.lastCall![0];
+  expect(
+    fixture.conversation.appendThinking("Wait for a new request.", "opaque"),
+  ).toBe(true);
+  const context = fixture.onAppendResult.mock.lastCall![0];
   fixture.emit(0, {
     type: "session.thinking.appended",
-    client_event_id: progress.eventId,
+    client_event_id: context.eventId,
   });
   expect(fixture.onAppendResult.mock.lastCall![0].status).toBe("accepted");
   expect(fixture.conversation.openDelegations.has("opaque")).toBe(true);
+});
+
+test("records the microphone processing the browser applied at start and after a switch", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const settings = new VoiceAudioSettings("live", undefined);
+  const attach = vi.spyOn(settings, "attach");
+  const fixture = setup({ audioSettings: settings });
+  Object.assign(fixture.input, {
+    getSettings: () => ({
+      autoGainControl: true,
+      deviceId: "PRIVATE-DEVICE",
+      echoCancellation: true,
+      noiseSuppression: true,
+    }),
+  });
+  await connect(fixture);
+  const replacement = {
+    enabled: true,
+    stop: vi.fn(),
+    getSettings: () => ({
+      echoCancellation: "remote-only",
+      noiseSuppression: false,
+    }),
+  };
+  const connection = attach.mock.calls[0]?.[0];
+  connection?.replaceMicrophone({
+    getAudioTracks: () => [replacement],
+    getTracks: () => [replacement],
+  } as unknown as MediaStream);
+
+  expect(traceRecords(debug.mock.calls, "capture.settings")).toEqual([
+    expect.objectContaining({
+      reason: "started",
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    }),
+    expect.objectContaining({
+      reason: "microphone-switched",
+      echoCancellation: "remote-only",
+      noiseSuppression: false,
+    }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("summarises echo evidence for each stretch of audible Live output without provider text", async () => {
+  vi.useFakeTimers();
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  const getStats = vi.fn(
+    async (): Promise<Map<string, unknown>> =>
+      new Map([
+        [
+          "input",
+          {
+            type: "media-source",
+            kind: "audio",
+            audioLevel: 0.05,
+            echoReturnLoss: 10,
+            echoReturnLossEnhancement: 30,
+          },
+        ],
+        ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+      ]),
+  );
+  Object.assign(fixture.peers[0]!, { getStats });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    delta: "PRIVATE ANSWER",
+    start_ms: 5_000,
+    end_ms: 5_400,
+  });
+  await vi.advanceTimersByTimeAsync(100);
+  // A late fragment of the person's request, then the answer heard back.
+  fixture.emit(0, {
+    type: "session.input_transcript.delta",
+    delta: "PRIVATE REQUEST",
+    start_ms: 4_600,
+    end_ms: 4_900,
+  });
+  fixture.emit(0, {
+    type: "session.input_transcript.delta",
+    delta: "PRIVATE ECHO",
+    start_ms: 5_200,
+    end_ms: 5_500,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "during-output",
+    audio_start_ms: 900,
+  });
+  getStats.mockResolvedValue(
+    new Map([
+      [
+        "input",
+        {
+          type: "media-source",
+          kind: "audio",
+          audioLevel: 0.12,
+          echoReturnLoss: 20,
+        },
+      ],
+      ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+    ]),
+  );
+  await vi.advanceTimersByTimeAsync(100);
+  getStats.mockResolvedValue(
+    new Map([
+      ["input", { type: "media-source", kind: "audio", audioLevel: 0.01 }],
+    ]),
+  );
+  await vi.advanceTimersByTimeAsync(900);
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([]);
+  await vi.advanceTimersByTimeAsync(100);
+
+  expect(traceRecords(debug.mock.calls, "echo.output")).toEqual([
+    expect.objectContaining({
+      sessionEnded: false,
+      outputMs: 100,
+      microphoneMuted: false,
+      selectedSpeaker: false,
+      peakMicrophoneLevel: 0.12,
+      echoReturnLossSamples: 2,
+      echoReturnLossDb: 15,
+      echoReturnLossEnhancementSamples: 1,
+      echoReturnLossEnhancementDb: 30,
+      transcriptionSpeechStarts: 1,
+      liveOutputFragments: 1,
+      liveInputFragments: 1,
+    }),
+  ]);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "after-output",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "during-output",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "after-output",
+    previous_item_id: "during-output",
+  });
+  for (const itemId of ["during-output", "after-output"]) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "PRIVATE TRANSCRIPT",
+    });
+  }
+  const finalized = traceRecords(debug.mock.calls, "input.finalized");
+  expect(finalized).toEqual([
+    expect.objectContaining({
+      itemId: "during-output",
+      startedDuringOutput: true,
+      sinceOutputMs: 0,
+    }),
+    expect.objectContaining({
+      itemId: "after-output",
+      startedDuringOutput: false,
+    }),
+  ]);
+  expect(finalized[1]).not.toHaveProperty("sinceOutputMs");
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(
+      ([input]) => input.startedDuringOutput,
+    ),
+  ).toEqual([true, false]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("does not count speech as started during output while the speaker is muted or at zero volume", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  Object.assign(fixture.peers[0]!, {
+    getStats: vi.fn(
+      async (): Promise<Map<string, unknown>> =>
+        new Map([
+          ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+        ]),
+    ),
+  });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  const speakers = [
+    { itemId: "muted", muted: true, volume: 1 },
+    { itemId: "silent", muted: false, volume: 0 },
+    { itemId: "audible", muted: false, volume: 1 },
+  ];
+  for (const { itemId, muted, volume } of speakers) {
+    fixture.conversation.setSpeakerMuted(muted);
+    fixture.conversation.setSpeakerVolume(volume);
+    await vi.advanceTimersByTimeAsync(100);
+    fixture.emit(1, {
+      type: "input_audio_buffer.speech_started",
+      item_id: itemId,
+    });
+  }
+  let previousItemId: string | null = null;
+  for (const { itemId } of speakers) {
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previousItemId,
+    });
+    previousItemId = itemId;
+  }
+  for (const { itemId } of speakers) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "Yes.",
+    });
+  }
+
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(
+      ([input]) => input.startedDuringOutput,
+    ),
+  ).toEqual([false, false, true]);
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("records transcription confidence on input.finalized from numbers only", async () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  await connect(fixture);
+  const items: readonly (readonly [string, unknown])[] = [
+    [
+      "scored",
+      [
+        { token: "PRIVATE", logprob: -0.1, bytes: [80] },
+        { token: " hmm", logprob: -1.9004, bytes: [32, 104] },
+        { token: ".", logprob: -0.0004, bytes: [46] },
+      ],
+    ],
+    ["unscored", undefined],
+    ["malformed", [{ token: "PRIVATE", logprob: "low" }, null]],
+  ];
+  let previous: string | null = null;
+  for (const [itemId] of items) {
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previous,
+    });
+    previous = itemId;
+  }
+  for (const [itemId, logprobs] of items) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "PRIVATE hmm.",
+      ...(logprobs === undefined ? {} : { logprobs }),
+    });
+  }
+
+  const finalized = traceRecords(debug.mock.calls, "input.finalized");
+  expect(finalized).toEqual([
+    expect.objectContaining({
+      itemId: "scored",
+      logprobTokens: 3,
+      meanLogprob: -0.667,
+      minLogprob: -1.9,
+    }),
+    expect.objectContaining({ itemId: "unscored", logprobTokens: 0 }),
+    expect.objectContaining({ itemId: "malformed", logprobTokens: 0 }),
+  ]);
+  expect(finalized[1]).not.toHaveProperty("meanLogprob");
+  expect(finalized[2]).not.toHaveProperty("minLogprob");
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
+  ).toEqual([
+    ["id", "text", "startedDuringOutput", "minLogprob"],
+    ["id", "text", "startedDuringOutput"],
+    ["id", "text", "startedDuringOutput"],
+  ]);
+  expect(fixture.onFinalizedInput.mock.calls[0]?.[0].minLogprob).toBe(-1.9004);
+  const traced = JSON.stringify(debug.mock.calls);
+  expect(traced).not.toContain("PRIVATE");
+  expect(traced).not.toContain("hmm");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("records each utterance's peak microphone level on input.finalized", async () => {
+  vi.useFakeTimers();
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  let microphoneLevel = 0.3;
+  Object.assign(fixture.peers[0]!, {
+    getStats: vi.fn(
+      async (): Promise<Map<string, unknown>> =>
+        new Map([
+          [
+            "input",
+            {
+              type: "media-source",
+              kind: "audio",
+              audioLevel: microphoneLevel,
+            },
+          ],
+        ]),
+    ),
+  });
+  await connect(fixture);
+  await vi.advanceTimersByTimeAsync(100);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "answer",
+  });
+  microphoneLevel = 0.5;
+  await vi.advanceTimersByTimeAsync(100);
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_stopped",
+    item_id: "answer",
+  });
+  microphoneLevel = 0.9;
+  await vi.advanceTimersByTimeAsync(100);
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "answer",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "answer",
+    content_index: 0,
+    transcript: "PRIVATE",
+  });
+
+  expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([
+    expect.objectContaining({ itemId: "answer", peakMicrophoneLevel: 0.5 }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("flushes an unfinished output summary, with its mute state, when voice ends", async () => {
+  vi.useFakeTimers();
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  Object.assign(fixture.peers[0]!, {
+    getStats: vi.fn(
+      async (): Promise<Map<string, unknown>> =>
+        new Map([
+          ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+        ]),
+    ),
+  });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  await vi.advanceTimersByTimeAsync(100);
+  fixture.conversation.setMicrophoneMuted(true);
+  fixture.conversation.setSpeakerMuted(true);
+  await vi.advanceTimersByTimeAsync(100);
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+
+  const summaries = traceRecords(debug.mock.calls, "echo.output");
+  expect(summaries).toEqual([
+    expect.objectContaining({
+      sessionEnded: true,
+      outputMs: 0,
+      microphoneMuted: true,
+      echoReturnLossSamples: 0,
+      echoReturnLossEnhancementSamples: 0,
+    }),
+  ]);
+  expect(summaries[0]).not.toHaveProperty("echoReturnLossDb");
+});
+
+test("passes Live's recent words only with speech that overlapped its audible output", async () => {
+  vi.useFakeTimers();
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const fixture = setup();
+  let outputLevel = 0;
+  Object.assign(fixture.peers[0]!, {
+    getStats: vi.fn(
+      async (): Promise<Map<string, unknown>> =>
+        new Map([
+          [
+            "output",
+            { type: "inbound-rtp", kind: "audio", audioLevel: outputLevel },
+          ],
+        ]),
+    ),
+  });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  const liveWords = (delta: string) =>
+    fixture.emit(0, { type: "session.output_transcript.delta", delta });
+  const speech = (type: "started" | "stopped", itemId: string) =>
+    fixture.emit(1, {
+      type: `input_audio_buffer.speech_${type}`,
+      item_id: itemId,
+    });
+
+  liveWords("PRIVATE STALE ");
+  await vi.advanceTimersByTimeAsync(3_500);
+  speech("started", "early");
+  await vi.advanceTimersByTimeAsync(1_000);
+  liveWords("PRIVATE ANSWER");
+  outputLevel = 0.2;
+  await vi.advanceTimersByTimeAsync(500);
+  speech("stopped", "early");
+  outputLevel = 0;
+  await vi.advanceTimersByTimeAsync(2_000);
+  speech("started", "late");
+  await vi.advanceTimersByTimeAsync(500);
+  speech("stopped", "late");
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "early",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "late",
+    previous_item_id: "early",
+  });
+  for (const itemId of ["early", "late"]) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: `PRIVATE ${itemId}`,
+    });
+  }
+
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(([input]) => [
+      input.text,
+      input.liveOutputText,
+    ]),
+  ).toEqual([
+    ["PRIVATE early", "PRIVATE ANSWER"],
+    ["PRIVATE late", undefined],
+  ]);
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
+  ).toEqual([
+    ["id", "text", "superseded", "startedDuringOutput", "liveOutputText"],
+    ["id", "text", "startedDuringOutput"],
+  ]);
+  expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([
+    expect.objectContaining({ itemId: "early", overlappedOutput: true }),
+    expect.objectContaining({ itemId: "late", overlappedOutput: false }),
+  ]);
+  expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("does not count speech as overlapping output while the speaker is muted or at zero volume", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  Object.assign(fixture.peers[0]!, {
+    getStats: vi.fn(
+      async (): Promise<Map<string, unknown>> =>
+        new Map([
+          ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+        ]),
+    ),
+  });
+  await connect(fixture);
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0],
+      streams: [fixture.stream],
+    }),
+  );
+  fixture.emit(0, {
+    type: "session.output_transcript.delta",
+    delta: "Yes.",
+  });
+  const speakers = [
+    { itemId: "muted", muted: true, volume: 1 },
+    { itemId: "silent", muted: false, volume: 0 },
+    { itemId: "audible", muted: false, volume: 1 },
+  ];
+  for (const { itemId, muted, volume } of speakers) {
+    fixture.conversation.setSpeakerMuted(muted);
+    fixture.conversation.setSpeakerVolume(volume);
+    await vi.advanceTimersByTimeAsync(100);
+    for (const type of ["started", "stopped"]) {
+      fixture.emit(1, {
+        type: `input_audio_buffer.speech_${type}`,
+        item_id: itemId,
+      });
+    }
+  }
+  let previousItemId: string | null = null;
+  for (const { itemId } of speakers) {
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previousItemId,
+    });
+    previousItemId = itemId;
+  }
+  for (const { itemId } of speakers) {
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "Yes.",
+    });
+  }
+
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(([input]) => input.liveOutputText),
+  ).toEqual([undefined, undefined, "Yes."]);
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
+test("reports speech as pending from its start until its transcript is finalized", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  const pendingAtFinalize: boolean[] = [];
+  fixture.onFinalizedInput.mockImplementation(() => {
+    pendingAtFinalize.push(fixture.conversation.speechPending());
+  });
+  const speechStarted = (itemId: string) =>
+    fixture.emit(1, {
+      type: "input_audio_buffer.speech_started",
+      item_id: itemId,
+    });
+  const finalize = (itemId: string, previousItemId: string | null) => {
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previousItemId,
+    });
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "Yes.",
+    });
+  };
+
+  expect(fixture.conversation.speechPending()).toBe(false);
+  speechStarted("one");
+  expect(fixture.conversation.speechPending()).toBe(true);
+  speechStarted("two");
+  finalize("one", null);
+  expect(pendingAtFinalize).toEqual([true]);
+  finalize("two", "one");
+  expect(pendingAtFinalize).toEqual([true, false]);
+  expect(fixture.conversation.speechPending()).toBe(false);
+
+  speechStarted("three");
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+  expect(fixture.conversation.speechPending()).toBe(false);
 });

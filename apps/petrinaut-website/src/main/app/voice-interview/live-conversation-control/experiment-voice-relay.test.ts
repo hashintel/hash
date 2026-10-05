@@ -8,8 +8,8 @@ import {
 } from "./experiment-voice-relay";
 
 import type {
-  SessionDraft,
-  SessionDraftsState,
+  EditorDraft,
+  EditorDraftsState,
 } from "../../shared/brunch-draft-experiment-drafts";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
@@ -72,8 +72,8 @@ const input = {
 
 const draft = (
   toolCallId: string,
-  overrides: Partial<SessionDraft> = {},
-): SessionDraft => ({
+  overrides: Partial<EditorDraft> = {},
+): EditorDraft => ({
   toolCallId,
   input,
   definition,
@@ -86,8 +86,8 @@ const draft = (
 
 const state = (
   current: string | null,
-  ...drafts: SessionDraft[]
-): SessionDraftsState => ({
+  ...drafts: EditorDraft[]
+): EditorDraftsState => ({
   currentToolCallId: current,
   drafts: new Map(drafts.map((entry) => [entry.toolCallId, entry])),
 });

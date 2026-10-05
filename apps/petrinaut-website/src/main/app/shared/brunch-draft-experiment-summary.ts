@@ -1,10 +1,8 @@
+import type { PreparedExperiment } from "./brunch-draft-experiment-drafts";
 import type {
   PetrinautExperimentRequest,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { prepareExperiment } from "@hashintel/petrinaut/react";
-
-export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 
 const nameOfScenario = (definition: SDCPN, scenarioId: string) =>
   definition.scenarios?.find((scenario) => scenario.id === scenarioId)?.name ??
@@ -97,7 +95,7 @@ export const summarizeForAgent = (
   definition: SDCPN,
   unsupportedCount: number,
 ): string =>
-  `Drafted for this session, not run and not saved with the document: ${describeExperiment(prepared, definition)} ${describeBudget(prepared.request)} ${
+  `Drafted for review in this editor, not run and not saved with the document: ${describeExperiment(prepared, definition)} ${describeBudget(prepared.request)} ${
     unsupportedCount === 0
       ? "No restrictions were stated; none are enforced."
       : `${unsupportedCount} stated ${unsupportedCount === 1 ? "restriction is" : "restrictions are"} not carried into execution.`

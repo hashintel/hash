@@ -23,9 +23,11 @@ const defaultProps = {
   assistantReady: true,
   brunchConfigured: true,
   brunchSelected: false,
-  forceBrunch: false,
   openAIVoiceConfig: voiceConfig,
+  realtimeEnabled: false,
+  realtimePreferenceReady: true,
   selectAssistant: vi.fn(),
+  setRealtimeEnabled: vi.fn(),
   setVoiceEnabled: vi.fn(),
   voiceEnabled: false,
   voicePreferenceReady: true,
@@ -81,6 +83,37 @@ test("selects Brunch, enables Voice, and explains when Voice is unavailable", as
   ).toBeDefined();
 });
 
+test("shows Realtime only for enabled Brunch Voice and waits for capability", async () => {
+  const view = render(<AssistantLabsSettings {...defaultProps} voiceEnabled />);
+  expect(screen.queryByRole("checkbox", { name: "Realtime mode" })).toBeNull();
+  view.rerender(<AssistantLabsSettings {...defaultProps} brunchSelected />);
+  expect(screen.queryByRole("checkbox", { name: "Realtime mode" })).toBeNull();
+
+  for (const capability of [undefined, null]) {
+    view.rerender(
+      <AssistantLabsSettings
+        {...defaultProps}
+        brunchSelected
+        voiceEnabled
+        openAIVoiceConfig={capability}
+      />,
+    );
+    expect(
+      screen.getByRole("checkbox", { name: "Realtime mode" }),
+    ).toHaveProperty("disabled", true);
+  }
+  view.rerender(
+    <AssistantLabsSettings {...defaultProps} brunchSelected voiceEnabled />,
+  );
+  const toggle = screen.getByRole("checkbox", { name: "Realtime mode" });
+  expect(toggle).toHaveProperty("checked", false);
+  expect(toggle).toHaveProperty("disabled", false);
+  fireEvent.click(toggle);
+  await waitFor(() =>
+    expect(defaultProps.setRealtimeEnabled).toHaveBeenCalledWith(true),
+  );
+});
+
 test.each([
   {
     name: "assistant preference loading",
@@ -96,13 +129,6 @@ test.each([
     checked: false,
     description:
       "Brunch is unavailable because this site has no Brunch endpoint configured.",
-  },
-  {
-    name: "forced Brunch",
-    props: { brunchSelected: true, forceBrunch: true },
-    control: "Use Brunch",
-    checked: true,
-    description: "This document requires Brunch.",
   },
   {
     name: "Voice preference loading",

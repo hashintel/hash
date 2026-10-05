@@ -1,11 +1,14 @@
+import { resolvePandaBuildInfoPath } from "@hashintel/ds-components/preset";
+
 import {
   createNodeSpecifierResolver,
   createPetrinautPandaConfig,
-  resolveDsComponentsBuildInfoPath,
+  DS_COMPONENTS_BUILD_INFO_SUBPATH,
 } from "./panda.config.shared";
 
 const config = createPetrinautPandaConfig(
-  resolveDsComponentsBuildInfoPath(
+  resolvePandaBuildInfoPath(
+    DS_COMPONENTS_BUILD_INFO_SUBPATH,
     /** Panda evaluates this config through CJS, so `__filename` is available here. */
     createNodeSpecifierResolver(__filename),
   ),

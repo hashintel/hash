@@ -35,7 +35,6 @@ use crate::body::place::FieldIndex;
 /// # Examples
 ///
 /// ```
-/// # #![feature(allocator_api)]
 /// # extern crate alloc;
 /// use alloc::alloc::Global;
 ///
@@ -114,7 +113,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -144,7 +142,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -170,7 +167,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -197,7 +193,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -221,7 +216,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -252,7 +246,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -289,7 +282,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -327,7 +319,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -362,7 +353,6 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -508,7 +498,6 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// use hashql_mir::interpret::value::StructBuilder;
@@ -580,7 +569,6 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;
@@ -611,7 +599,6 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// # Examples
     ///
     /// ```
-    /// # #![feature(allocator_api)]
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
     /// # use hashql_core::heap::Heap;

@@ -182,11 +182,11 @@ seed-users.json
 out/
 **/out/
 
-# Personal scratch/holding directories (can be placed anywhere in tree)
-**/_temp/
-**/_trash/
-**/_scratch/
-**/_holding/
+# Local-only directories: `_scratch/` anywhere, and any top-level `_*/`
+# (matches `.gitignore`; Docker drops trailing slashes, so `/**` limits these
+# to directory contents)
+**/_scratch/**
+_*/**
 
 # Jujutsu
 .jj/

@@ -264,10 +264,7 @@ export const nativeOpenaiProvider = (
           assert(typeof init?.body === "string");
           const serialized = JSON.parse(init.body) as Record<string, unknown>;
           assert.deepEqual(serialized, payload);
-          assert.equal(serialized.model, "gpt-5.6-sol");
-          assert.partialDeepStrictEqual(serialized.reasoning, {
-            effort: "low",
-          });
+          assert.equal(serialized.model, model.id);
           const tools = serialized.tools as ReturnType<
             typeof convertResponsesTools
           >;

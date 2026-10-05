@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn bootstrap_route_reports_a_wrong_secret_as_invalid() {
+    async fn bootstrap_wrong_secret() {
         let response = delegation_router()
             .oneshot(request_with_secret("/policies/seed", "hash-svc-wrong"))
             .await
@@ -169,10 +169,11 @@ mod tests {
         let body = axum::body::to_bytes(response.into_body(), 1024)
             .await
             .expect("the response body should be readable");
-        let body = String::from_utf8_lossy(&body);
-        assert!(
-            body.contains("invalid"),
-            "a wrong secret should be reported as invalid, not missing, got {body}"
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON")
+                ["detail"],
+            "credentials are not accepted",
+            "a wrong secret should not tell the caller about the service credential"
         );
     }
 

@@ -20,14 +20,11 @@ type LiveToolCallEvent<Kind extends string> = LiveToolCorrelation & {
   readonly toolName: string;
 };
 
-export type LiveToolTurnFinishedEvent = LiveToolCorrelation & {
+type LiveToolTurnFinishedEvent = LiveToolCorrelation & {
   readonly kind: "turn-finished";
 };
 
-export type LiveToolSubmissionFinishedEvent = Omit<
-  LiveToolCorrelation,
-  "turnId"
-> & {
+type LiveToolSubmissionFinishedEvent = Omit<LiveToolCorrelation, "turnId"> & {
   readonly kind: "submission-finished";
   readonly outcome: "aborted" | "completed" | "failed";
 };

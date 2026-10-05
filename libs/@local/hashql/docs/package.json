@@ -1,0 +1,10 @@
+{
+  "name": "@local/hashql-docs",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "HashQL Reference",
+  "scripts": {
+    "build": "typst compile --root ../../../.. --features html,bundle --format bundle main.typ dist",
+    "dev": "typst watch --root ../../../.. --features html,bundle --format bundle --no-serve main.typ dist"
+  }
+}

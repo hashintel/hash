@@ -1,17 +1,45 @@
 const conversationStorageKey = "brunch-conversation-id-v1";
 
 /** Incarnation-scoped Flue conversation for ordinary configured Brunch. */
-export const ordinaryConstructionConversationIdPrefix =
-  "brunch-construction-v1";
+const ordinaryConstructionConversationIdPrefix = "brunch-construction-v1";
 
 export const ordinaryConstructionConversationIdFrom = (
   incarnationId: string,
 ): string => `${ordinaryConstructionConversationIdPrefix}:${incarnationId}`;
 
+/** Preserve the `evaluation-I` conversation namespace for existing local history. */
+export const brunchEvaluationConversationIdFrom = (
+  conversationId: string,
+): string => `${conversationId}:evaluation-I`;
+
 interface ConversationStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
+
+/** Change only the pointer; old conversation history and the model are retained. */
+export const replaceBrunchConversationId = (
+  netId: string,
+  conversationId: string,
+  storage: ConversationStorage = window.localStorage,
+): void => {
+  let stored: Record<string, string> = {};
+  try {
+    stored = JSON.parse(
+      storage.getItem(conversationStorageKey) ?? "{}",
+    ) as Record<string, string>;
+  } catch {
+    // A broken pointer cache must not prevent starting a new conversation.
+  }
+  try {
+    storage.setItem(
+      conversationStorageKey,
+      JSON.stringify({ ...stored, [netId]: conversationId }),
+    );
+  } catch {
+    // The host retains the new id for this page load.
+  }
+};
 
 export const getOrCreateBrunchConversationId = (
   netId: string,

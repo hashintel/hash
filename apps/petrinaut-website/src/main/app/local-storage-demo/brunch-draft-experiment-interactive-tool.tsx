@@ -1,13 +1,16 @@
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
+  browserToolMutatesDocument,
   canonicalContent,
   type DraftPetrinautExperimentInput,
   draftPetrinautExperimentInputSchema,
   type DraftPetrinautExperimentOutput,
   draftPetrinautExperimentOutputSchema,
-  draftPetrinautExperimentToolName,
+  parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
@@ -25,8 +28,9 @@ import {
 } from "@hashintel/petrinaut/ui";
 
 import {
-  resetSessionDrafts,
-  sessionDraftsFor,
+  editorDraftsFor,
+  type PreparedExperiment,
+  resetEditorDrafts,
 } from "../shared/brunch-draft-experiment-drafts";
 import {
   describeBudget,
@@ -35,9 +39,10 @@ import {
   preparationDiffers,
   summarizeForAgent,
 } from "../shared/brunch-draft-experiment-summary";
-import { observeBrowserDefinition } from "./mutation-record";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
-import type { PreparedExperiment } from "../shared/brunch-draft-experiment-summary";
+import type { createInBandBrowserCalls } from "./in-band-browser-call";
+import type { FlueConversationState } from "@flue/sdk";
 import type {
   PetrinautExperimentRequest,
   SDCPN,
@@ -56,7 +61,7 @@ const containerStyle = css({
 });
 
 const statusStyle = css({
-  color: "neutral.s80",
+  color: "neutral.s90",
   fontSize: "xs",
   fontWeight: "medium",
   letterSpacing: "wide",
@@ -123,63 +128,97 @@ const errorStyle = css({
 
 const actionsStyle = css({
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
   justifyContent: "flex-end",
   marginTop: "1",
 });
 
-const primaryButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderRadius: "md",
-  backgroundColor: "blue.a85",
-  color: "white",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  _hover: { backgroundColor: "blue.a100" },
-  _disabled: { cursor: "not-allowed", opacity: 0.45 },
-});
-
-const secondaryButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a30",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-  color: "neutral.s90",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  _hover: { backgroundColor: "neutral.a10" },
-});
-
 /** Forget every draft, as a reload would. For tests that share the module. */
-export const resetBrunchDraftExperimentSession = resetSessionDrafts;
+export const resetBrunchEditorDrafts = resetEditorDrafts;
+
+/** Resolve only the history before the exact issued call, never a model-supplied citation. */
+export const resolveDraftAuthorityFromHistory = async (
+  snapshot: FlueConversationState,
+  draftCallId: string,
+): Promise<string> => {
+  const positions = snapshot.messages.flatMap((message, messageIndex) =>
+    message.role === "assistant" && message.purpose === "assistant"
+      ? message.parts.flatMap((part, partIndex) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === draftCallId &&
+          part.toolName === brunchTools.draftPetrinautExperiment
+            ? [{ messageIndex, partIndex }]
+            : [],
+        )
+      : [],
+  );
+  const position = positions[0];
+  if (!position)
+    throw new Error("Issued draft is absent from conversation history.");
+  const message = snapshot.messages[position.messageIndex];
+  if (!message) throw new Error("Draft history is incomplete.");
+  const prefix = {
+    ...snapshot,
+    messages: [
+      ...snapshot.messages.slice(0, position.messageIndex),
+      { ...message, parts: message.parts.slice(0, position.partIndex) },
+    ],
+  } satisfies FlueConversationState;
+  const calls = prefix.messages.flatMap((entry) =>
+    entry.role === "assistant" && entry.purpose === "assistant"
+      ? entry.parts.filter((part) => part.type === "dynamic-tool")
+      : [],
+  );
+  // The draft must follow a net read with no document change after it.
+  const relevant = calls.filter(
+    (call) =>
+      canonicalPetrinautClientToolNames.has(call.toolName) &&
+      (call.toolName === "getLatestNetDefinition" ||
+        browserToolMutatesDocument(call.toolName)),
+  );
+  const latest = relevant.at(-1);
+  if (
+    latest?.toolName !== "getLatestNetDefinition" ||
+    latest.state !== "output-available"
+  )
+    throw new Error(
+      "Draft requires the latest settled canonical net read after changes.",
+    );
+  const envelope = latest.output;
+  const metadata =
+    typeof envelope === "object" && envelope !== null && "metadata" in envelope
+      ? parseClientToolResultMetadata(envelope.metadata)
+      : undefined;
+  const revision = metadata?.documentRevision.before;
+  if (revision === undefined)
+    throw new Error("The latest canonical read has no document revision.");
+  return revision;
+};
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput
 >;
 
+// `false` is a disclosed reporting-only semantic judgment, not host-verified consent.
+// Hard restrictions and omitted blocksRun fail closed; no request constraints are enforced.
 const conditionBlocksRun = (
   condition: DraftPetrinautExperimentInput["unsupported"][number],
 ) => condition.blocksRun !== false;
 
 // Two stable snapshots rather than one fresh object: useSyncExternalStore
 // compares snapshots by identity and would re-render without end otherwise.
-const useSessionDraft = (
-  sessionDrafts: ReturnType<typeof sessionDraftsFor>,
+const useEditorDraft = (
+  editorDrafts: ReturnType<typeof editorDraftsFor>,
   toolCallId: string,
 ) => {
-  const draft = useSyncExternalStore(sessionDrafts.subscribe, () =>
-    sessionDrafts.get().drafts.get(toolCallId),
+  const draft = useSyncExternalStore(editorDrafts.subscribe, () =>
+    editorDrafts.get().drafts.get(toolCallId),
   );
   const isCurrent = useSyncExternalStore(
-    sessionDrafts.subscribe,
-    () => sessionDrafts.get().currentToolCallId === toolCallId,
+    editorDrafts.subscribe,
+    () => editorDrafts.get().currentToolCallId === toolCallId,
   );
   return { draft, isCurrent };
 };
@@ -212,10 +251,18 @@ const prepareOrExplain = (
 export const BrunchDraftExperimentWidget = ({
   input,
   readTitle,
+  readDraftAuthority,
   state,
-  submitAndWait,
+  claimAndSubmit,
   toolCallId,
-}: WidgetProps & { readTitle: () => string }) => {
+}: WidgetProps & {
+  readTitle: () => string;
+  readDraftAuthority: (toolCallId: string) => Promise<string>;
+  /** Claim the issued call, then submit what `prepareOutput` resolves to, so the lease covers preparation. */
+  claimAndSubmit: (
+    prepareOutput: () => Promise<DraftPetrinautExperimentOutput>,
+  ) => Promise<void>;
+}) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
   const { experiments } = use(ExperimentsContext);
@@ -226,8 +273,8 @@ export const BrunchDraftExperimentWidget = ({
     input.experiment.execution.mode === "optimize"
       ? optimizationUnavailableReason
       : null;
-  const sessionDrafts = sessionDraftsFor(instance.definition);
-  const { draft, isCurrent } = useSessionDraft(sessionDrafts, toolCallId);
+  const editorDrafts = editorDraftsFor(instance.definition);
+  const { draft, isCurrent } = useEditorDraft(editorDrafts, toolCallId);
   const preparedOnceRef = useRef(false);
   const [reviewed, setReviewed] = useState<{
     prepared: PreparedExperiment;
@@ -235,92 +282,95 @@ export const BrunchDraftExperimentWidget = ({
   } | null>(null);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  const [submissionAttempt, setSubmissionAttempt] = useState(0);
   const [preparationFailure, setPreparationFailure] = useState<{
     kind: "prepare" | "submit";
     message: string;
   } | null>(null);
   const [submissionPending, setSubmissionPending] = useState(
-    state === "awaiting" && submitAndWait !== undefined,
+    state === "awaiting",
   );
 
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
   // not reported through the tool result.
   useEffect(() => {
-    if (
-      state !== "awaiting" ||
-      preparedOnceRef.current ||
-      submitAndWait === undefined
-    )
-      return;
+    if (state !== "awaiting" || preparedOnceRef.current) return;
     preparedOnceRef.current = true;
-    setPreparationFailure(null);
-    setSubmissionPending(true);
-    // The server hashes the handle snapshot; the readable store may normalize
-    // its property order and therefore produce a different serialized hash.
-    let observation: ReturnType<typeof observeBrowserDefinition>;
-    try {
-      observation = observeBrowserDefinition(instance.handle);
-    } catch (caught) {
+    const initialDefinition = instance.handle.doc();
+    if (!initialDefinition) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
         kind: "prepare",
-        message: caught instanceof Error ? caught.message : String(caught),
+        message: "The bound browser document is unavailable.",
       });
       setSubmissionPending(false);
       return;
     }
-    const definition = observation.definition;
-    const outcome =
-      observation.sha256 === input.observation.baseHash
-        ? prepareOrExplain(input.experiment, definition, readTitle())
-        : {
-            prepared: null,
-            error:
-              "The model changed since the verified observation. Ask Brunch to read the current model and draft again.",
-          };
-    const candidate = {
-      toolCallId,
-      input,
-      definition,
-      prepared: outcome.prepared,
-      invalid: outcome.error,
-      dismissed: false,
-      run: { phase: "idle" as const },
-    };
-    const submissionDraft =
-      sessionDrafts.get().drafts.get(toolCallId) ?? candidate;
-    const output: DraftPetrinautExperimentOutput = submissionDraft.prepared
-      ? {
-          status: "drafted",
-          summary: `${summarizeForAgent(
-            submissionDraft.prepared,
-            submissionDraft.definition,
-            submissionDraft.input.unsupported.length,
-          )}${
-            executionUnavailable === null
-              ? ""
-              : ` Execution unavailable: ${executionUnavailable}.`
-          }`,
-          diagnostics: [
-            "No constraints or constraint policy are carried; nothing is enforced.",
-            ...submissionDraft.input.unsupported.map(
-              (condition) =>
-                `${conditionBlocksRun(condition) ? "Run blocked" : "Not carried"}: ${condition.condition}`,
-            ),
-            ...(executionUnavailable === null
-              ? []
-              : [`Execution unavailable: ${executionUnavailable}`]),
-          ],
-        }
-      : {
-          status: "invalid",
-          summary: `The browser could not prepare this experiment against the current model: ${submissionDraft.invalid}`,
-          diagnostics: [submissionDraft.invalid ?? "Preparation failed"],
+    let candidate: Parameters<typeof editorDrafts.register>[0] | undefined;
+    const prepareOutput = async (): Promise<DraftPetrinautExperimentOutput> => {
+      let definition: SDCPN = initialDefinition;
+      let outcome: ReturnType<typeof prepareOrExplain>;
+      try {
+        const readRevision = await readDraftAuthority(toolCallId);
+        const latestDefinition = instance.handle.doc();
+        if (latestDefinition) definition = latestDefinition;
+        outcome =
+          latestDefinition && instance.handle.revisionId.get() === readRevision
+            ? prepareOrExplain(input.experiment, definition, readTitle())
+            : {
+                prepared: null,
+                error:
+                  "The model changed since the canonical read. Ask Brunch to read the current model and draft again.",
+              };
+      } catch (caught) {
+        outcome = {
+          prepared: null,
+          error: caught instanceof Error ? caught.message : String(caught),
         };
+      }
+      candidate = {
+        toolCallId,
+        input,
+        definition,
+        prepared: outcome.prepared,
+        invalid: outcome.error,
+        dismissed: false,
+        run: { phase: "idle" as const },
+      };
+      const submissionDraft =
+        editorDrafts.get().drafts.get(toolCallId) ?? candidate;
+      return submissionDraft.prepared
+        ? {
+            status: "drafted",
+            summary: `${summarizeForAgent(
+              submissionDraft.prepared,
+              submissionDraft.definition,
+              submissionDraft.input.unsupported.length,
+            )}${
+              executionUnavailable === null
+                ? ""
+                : ` Execution unavailable: ${executionUnavailable}.`
+            }`,
+            diagnostics: [
+              "No constraints or constraint policy are carried; nothing is enforced.",
+              ...submissionDraft.input.unsupported.map(
+                (condition) =>
+                  `${conditionBlocksRun(condition) ? "Run blocked" : "Not carried"}: ${condition.condition}`,
+              ),
+              ...(executionUnavailable === null
+                ? []
+                : [`Execution unavailable: ${executionUnavailable}`]),
+            ],
+          }
+        : {
+            status: "invalid",
+            summary: `The browser could not prepare this experiment against the current model: ${submissionDraft.invalid}`,
+            diagnostics: [submissionDraft.invalid ?? "Preparation failed"],
+          };
+    };
     const submitAndRegister = async () => {
       try {
-        await submitAndWait(output);
+        await claimAndSubmit(prepareOutput);
       } catch (caught) {
         setPreparationFailure({
           kind: "submit",
@@ -329,7 +379,7 @@ export const BrunchDraftExperimentWidget = ({
         setSubmissionPending(false);
         return;
       }
-      sessionDrafts.register(candidate);
+      if (candidate) editorDrafts.register(candidate);
       setSubmissionPending(false);
     };
     void submitAndRegister();
@@ -338,10 +388,10 @@ export const BrunchDraftExperimentWidget = ({
     input,
     instance,
     readTitle,
-    sessionDrafts,
+    readDraftAuthority,
+    editorDrafts,
     state,
-    submissionAttempt,
-    submitAndWait,
+    claimAndSubmit,
     toolCallId,
   ]);
 
@@ -356,7 +406,7 @@ export const BrunchDraftExperimentWidget = ({
   const onRun = async () => {
     // Read synchronously, not from the render closure: duplicate clicks or a
     // remounted copy of the same card must never start a second experiment.
-    const latest = sessionDrafts.get();
+    const latest = editorDrafts.get();
     const pending = latest.drafts.get(toolCallId);
     if (
       !pending?.prepared ||
@@ -397,8 +447,12 @@ export const BrunchDraftExperimentWidget = ({
     }
     if (reviewed && !reviewAccepted) return;
     setRunError(null);
+    // The accepted model becomes the draft's own below, so a later failure
+    // shows the run error instead of an empty model-change review.
+    setReviewed(null);
+    setReviewAccepted(false);
     const controller = new AbortController();
-    sessionDrafts.update(toolCallId, {
+    editorDrafts.update(toolCallId, {
       prepared: current.prepared,
       definition: currentDefinition,
       run: { phase: "running", controller, progress: null },
@@ -409,14 +463,23 @@ export const BrunchDraftExperimentWidget = ({
         {
           signal: controller.signal,
           onProgress: (progress) =>
-            sessionDrafts.update(toolCallId, {
+            editorDrafts.update(toolCallId, {
               run: { phase: "running", controller, progress },
             }),
         },
       );
-      sessionDrafts.update(toolCallId, { run: { phase: "finished", result } });
+      editorDrafts.update(toolCallId, {
+        run:
+          result.status === "error"
+            ? {
+                phase: "failed",
+                message: result.message ?? "The experiment failed.",
+                result,
+              }
+            : { phase: "finished", result },
+      });
     } catch (caught) {
-      sessionDrafts.update(toolCallId, {
+      editorDrafts.update(toolCallId, {
         run: {
           phase: "failed",
           message: caught instanceof Error ? caught.message : String(caught),
@@ -432,20 +495,16 @@ export const BrunchDraftExperimentWidget = ({
         ? preparationFailure.kind === "prepare"
           ? "Draft could not be prepared"
           : "Draft could not be submitted"
-        : "Not retained in this session"
+        : "Not retained in this editor"
     : draft.invalid !== null
       ? "Could not be prepared"
       : draft.dismissed
         ? "Dismissed"
-        : draft.run.phase === "running"
-          ? "Running"
-          : draft.run.phase === "finished"
-            ? `Run ${draft.run.result.status}`
-            : draft.run.phase === "failed"
-              ? "Run failed"
-              : isCurrent
-                ? "Drafted — not run · not saved with the document"
-                : "Superseded by a later draft";
+        : draft.run.phase === "failed"
+          ? "Run failed"
+          : isCurrent
+            ? "Drafted — not run · not saved with the document"
+            : "Superseded by a later draft";
 
   const canAct =
     draft !== undefined &&
@@ -455,15 +514,56 @@ export const BrunchDraftExperimentWidget = ({
     (draft.run.phase === "idle" || draft.run.phase === "failed");
   const canRun = canAct && optimizationUnavailable === null;
   const run = draft?.run;
+  const runResult =
+    run?.phase === "finished" || run?.phase === "failed"
+      ? run.result
+      : undefined;
   const experimentId =
-    run?.phase === "finished"
-      ? run.result.experimentId
-      : run?.phase === "running"
-        ? run.progress?.experimentId
-        : undefined;
+    run?.phase === "running"
+      ? run.progress?.experimentId
+      : runResult?.experimentId;
   const canViewExperiment =
     experimentId &&
     experiments.some((experiment) => experiment.id === experimentId);
+
+  if (
+    run &&
+    run.phase !== "idle" &&
+    draft.prepared &&
+    !draft.dismissed &&
+    !(run.phase === "failed" && (reviewed || runError))
+  ) {
+    return (
+      <ExperimentExecutionCard
+        request={draft.prepared.request}
+        active={run.phase === "running"}
+        progress={
+          run.phase === "running" ? (run.progress ?? undefined) : undefined
+        }
+        result={runResult}
+        error={run.phase === "failed" ? run.message : undefined}
+        onCancel={
+          run.phase === "running" ? () => run.controller.abort() : undefined
+        }
+        onRetry={
+          run.phase === "failed" && canRun ? () => void onRun() : undefined
+        }
+        onViewExperiment={
+          canViewExperiment
+            ? () => {
+                navigate(
+                  openPetrinautSimulationResource({
+                    type: "experiment",
+                    id: experimentId,
+                  }),
+                  { cause: "user", action: "simulation-resource" },
+                );
+              }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <section
@@ -506,7 +606,7 @@ export const BrunchDraftExperimentWidget = ({
                 ? preparationFailure.kind === "prepare"
                   ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
                   : `The prepared proposal could not be submitted: ${preparationFailure.message}`
-                : "This draft was prepared in an earlier session. Ask Brunch to draft it again to run it.")}
+                : "This draft was prepared before this editor was loaded. Ask Brunch to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
@@ -585,57 +685,31 @@ export const BrunchDraftExperimentWidget = ({
           </details>
         </div>
       ) : null}
-      {run && run.phase !== "idle" && draft.prepared ? (
-        <ExperimentExecutionCard
-          request={draft.prepared.request}
-          active={run.phase === "running"}
-          progress={
-            run.phase === "running" ? (run.progress ?? undefined) : undefined
-          }
-          result={run.phase === "finished" ? run.result : undefined}
-          error={run.phase === "failed" ? run.message : undefined}
-          onCancel={
-            run.phase === "running" ? () => run.controller.abort() : undefined
-          }
-          onViewExperiment={
-            canViewExperiment
-              ? () => {
-                  navigate(
-                    openPetrinautSimulationResource({
-                      type: "experiment",
-                      id: experimentId,
-                    }),
-                    { cause: "user", action: "simulation-resource" },
-                  );
-                }
-              : undefined
-          }
-        />
-      ) : null}
       {canAct ? (
         <div className={actionsStyle}>
-          <button
-            className={secondaryButtonStyle}
-            onClick={() =>
-              sessionDrafts.update(toolCallId, { dismissed: true })
-            }
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => editorDrafts.update(toolCallId, { dismissed: true })}
             type="button"
           >
             Dismiss
-          </button>
+          </Button>
           {canRun ? (
             reviewed && !reviewAccepted ? (
-              <button
-                className={primaryButtonStyle}
+              <Button
+                size="sm"
+                tone="brand"
                 disabled={blocksRun}
                 onClick={() => setReviewAccepted(true)}
                 type="button"
               >
                 Accept current model
-              </button>
+              </Button>
             ) : (
-              <button
-                className={primaryButtonStyle}
+              <Button
+                size="sm"
+                tone="brand"
                 disabled={blocksRun}
                 onClick={() => void onRun()}
                 type="button"
@@ -647,25 +721,9 @@ export const BrunchDraftExperimentWidget = ({
                   : reviewed
                     ? "Run against current model"
                     : "Run"}
-              </button>
+              </Button>
             )
           ) : null}
-        </div>
-      ) : null}
-      {!draft && preparationFailure && state === "awaiting" ? (
-        <div className={actionsStyle}>
-          <button
-            className={primaryButtonStyle}
-            onClick={() => {
-              preparedOnceRef.current = false;
-              setPreparationFailure(null);
-              setSubmissionPending(true);
-              setSubmissionAttempt((attempt) => attempt + 1);
-            }}
-            type="button"
-          >
-            Retry preparation
-          </button>
         </div>
       ) : null}
     </section>
@@ -673,25 +731,65 @@ export const BrunchDraftExperimentWidget = ({
 };
 
 /**
+ * The server awaits the draft call in band: claim the issued call, prepare
+ * under its renewed lease, then settle it with the preparation result. A draft
+ * changes no document, so a failed settlement is reported as failed, never as
+ * an unknown document effect.
+ */
+const settleIssuedDraft = async (
+  browserCalls: ReturnType<typeof createInBandBrowserCalls>,
+  call: { readonly toolCallId: string; readonly input: unknown },
+  prepareOutput: () => Promise<DraftPetrinautExperimentOutput>,
+) => {
+  const issued = await browserCalls.claim({
+    ...call,
+    toolName: brunchTools.draftPetrinautExperiment,
+    signal: new AbortController().signal,
+  });
+  try {
+    await issued.submit(await prepareOutput());
+  } catch (error) {
+    await issued.fail("failed").catch(() => {});
+    throw error;
+  }
+};
+
+/**
  * The website-owned card for a Brunch-drafted experiment. It prepares the
  * proposal against the live model, tells Brunch it is drafted (not run), and
  * lets the person Run or Dismiss it. Run reuses the stock experiment host, so
  * records, the active indicator and the Experiments view behave as shipped.
- * Only View experiment navigates; drafts stay within this browser session.
+ * Only View experiment navigates; drafts stay in this editor's memory.
  */
 export const createBrunchDraftExperimentInteractiveTool = ({
+  browserCalls,
   readTitle,
+  readDraftAuthority,
 }: {
+  browserCalls: ReturnType<typeof createInBandBrowserCalls>;
   readTitle: () => string;
+  readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
   definePetrinautAiInteractiveTool<
     DraftPetrinautExperimentInput,
     DraftPetrinautExperimentOutput
   >({
-    toolName: draftPetrinautExperimentToolName,
+    toolName: brunchTools.draftPetrinautExperiment,
+    placement: "card",
     inputSchema: draftPetrinautExperimentInputSchema,
     outputSchema: draftPetrinautExperimentOutputSchema,
     component: (props) => (
-      <BrunchDraftExperimentWidget {...props} readTitle={readTitle} />
+      <BrunchDraftExperimentWidget
+        {...props}
+        claimAndSubmit={(prepareOutput) =>
+          settleIssuedDraft(
+            browserCalls,
+            { toolCallId: props.toolCallId, input: props.input },
+            prepareOutput,
+          )
+        }
+        readTitle={readTitle}
+        readDraftAuthority={readDraftAuthority}
+      />
     ),
   });

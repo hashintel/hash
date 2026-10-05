@@ -103,6 +103,15 @@ test("one delta then silence reports the silence as last-delta to terminal and n
         inputTokens: 100,
         cacheReadTokens: 90,
         outputTokens: 20,
+        requestShape: null,
+        responseShape: {
+          finishReason: null,
+          textParts: 0,
+          textChars: 0,
+          thinkingParts: 0,
+          thinkingChars: 0,
+          toolCallParts: 0,
+        },
         toolCalls: [
           {
             toolCallId: "call-a",
@@ -126,6 +135,8 @@ test("one delta then silence reports the silence as last-delta to terminal and n
         inputTokens: null,
         cacheReadTokens: null,
         outputTokens: null,
+        requestShape: null,
+        responseShape: null,
         toolCalls: [
           {
             toolCallId: "call-b",
@@ -156,6 +167,67 @@ test("one delta then silence reports the silence as last-delta to terminal and n
     outcome: "completed",
     turns: [],
   });
+});
+
+test("a read-then-empty completion records context and response shapes without content", () => {
+  const lines: SubmissionChronology[] = [];
+  const observer = createTurnChronologyObserver("chat", (line) =>
+    lines.push(line),
+  );
+  for (const observed of [
+    event(0, { type: "turn_start", turnId: "t1", purpose: "agent" }),
+    event(10, {
+      type: "turn_request",
+      turnId: "t1",
+      purpose: "agent",
+      request: {
+        input: {
+          messages: [
+            { role: "user", content: SENTINEL },
+            { role: "user", content: "net-stale signal" },
+            {
+              role: "toolResult",
+              toolCallId: "read",
+              toolName: "getLatestNetDefinition",
+              content: [{ type: "text", text: "private document" }],
+              isError: false,
+            },
+          ],
+        },
+      },
+    }),
+    event(30, {
+      type: "turn",
+      turnId: "t1",
+      isError: false,
+      response: {
+        finishReason: "stop",
+        output: { role: "assistant", content: [] },
+        usage: { input: 3, output: 4, cacheRead: 37_000 },
+      },
+    }),
+    event(35, { type: "submission_settled", outcome: "completed" }),
+  ])
+    void observer.observe(observed, context);
+
+  expect(lines[0]?.turns[0]).toMatchObject({
+    requestShape: {
+      messages: 3,
+      userMessages: 2,
+      toolResults: 1,
+      firstUserTextChars: SENTINEL.length,
+    },
+    responseShape: {
+      finishReason: "stop",
+      textParts: 0,
+      textChars: 0,
+      thinkingParts: 0,
+      thinkingChars: 0,
+      toolCallParts: 0,
+    },
+  });
+  expect(JSON.stringify(lines)).not.toContain(SENTINEL);
+  expect(JSON.stringify(lines)).not.toContain("private document");
 });
 
 test("a turn with no model events is reported with a null time to first event", () => {

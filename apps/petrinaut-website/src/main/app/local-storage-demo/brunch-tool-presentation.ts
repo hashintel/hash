@@ -1,3 +1,4 @@
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { isWorkpieceRefusedOutput } from "@hashintel/brunch-agent/workpiece";
 
 import type {
@@ -12,19 +13,15 @@ import type {
  */
 export const visibleOrdinaryBrunchToolNames = [
   "task",
-  "activate_skill",
-  "read_skill_resource",
-  "mutate_workpiece",
-  "read_petrinaut_docs",
-  "read_petrinaut_net",
-  "read_petrinaut_diagnostics",
-  "mutate_petrinaut_net",
-  "read_workpiece",
-  "query_workpiece",
-  "ping",
+  brunchTools.activateSkill,
+  brunchTools.readSkillResource,
+  brunchTools.mutateWorkpiece,
+  brunchTools.readWorkpiece,
+  brunchTools.queryWorkpiece,
+  brunchTools.ping,
 ] as const;
 
-export type VisibleOrdinaryBrunchToolName =
+type VisibleOrdinaryBrunchToolName =
   (typeof visibleOrdinaryBrunchToolNames)[number];
 
 type LifecycleTitles = Readonly<
@@ -37,52 +34,32 @@ const lifecycleTitles = {
     success: "Completed task",
     error: "Could not complete task",
   },
-  activate_skill: {
+  [brunchTools.activateSkill]: {
     pending: "Activating skill",
     success: "Activated skill",
     error: "Could not activate skill",
   },
-  read_skill_resource: {
+  [brunchTools.readSkillResource]: {
     pending: "Reviewing modelling guidance",
     success: "Reviewed modelling guidance",
     error: "Could not review modelling guidance",
   },
-  mutate_workpiece: {
+  [brunchTools.mutateWorkpiece]: {
     pending: "Updating ledger",
     success: "Updated ledger",
     error: "Could not update ledger",
   },
-  read_petrinaut_docs: {
-    pending: "Reading Petrinaut guidance",
-    success: "Read Petrinaut guidance",
-    error: "Could not read Petrinaut guidance",
-  },
-  read_petrinaut_net: {
-    pending: "Reading current model",
-    success: "Read current model",
-    error: "Could not read current model",
-  },
-  read_petrinaut_diagnostics: {
-    pending: "Checking model diagnostics",
-    success: "Checked model diagnostics",
-    error: "Could not check model diagnostics",
-  },
-  mutate_petrinaut_net: {
-    pending: "Updating model",
-    success: "Updated model",
-    error: "Could not update model",
-  },
-  read_workpiece: {
+  [brunchTools.readWorkpiece]: {
     pending: "Reading ledger",
     success: "Read ledger",
     error: "Could not read ledger",
   },
-  query_workpiece: {
+  [brunchTools.queryWorkpiece]: {
     pending: "Checking recorded basis",
     success: "Checked recorded basis",
     error: "Could not check recorded basis",
   },
-  ping: {
+  [brunchTools.ping]: {
     pending: "Checking Brunch connection",
     success: "Checked Brunch connection",
     error: "Could not reach Brunch",
@@ -181,7 +158,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
     let titles = lifecycleTitles[toolName];
     let detail: string | undefined;
 
-    if (toolName === "activate_skill") {
+    if (toolName === brunchTools.activateSkill) {
       const skillName = stringProperty(context.input, "name");
       return withPendingTone(
         { title: withSuffix(titles[context.state], skillName) },
@@ -189,7 +166,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
       );
     }
 
-    if (toolName === "read_skill_resource") {
+    if (toolName === brunchTools.readSkillResource) {
       const resource = resourceName(stringProperty(context.input, "path"));
       return withPendingTone(
         { title: withSuffix(titles[context.state], resource) },
@@ -198,7 +175,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
     }
 
     if (
-      toolName === "mutate_workpiece" &&
+      toolName === brunchTools.mutateWorkpiece &&
       isWorkpieceRefusedOutput(context.output)
     ) {
       return {
@@ -208,13 +185,8 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
       };
     }
 
-    if (toolName === "read_workpiece") {
+    if (toolName === brunchTools.readWorkpiece) {
       titles = readWorkpiecePurpose(context.input);
-    }
-
-    if (toolName === "read_petrinaut_net") {
-      const title = stringProperty(context.output, "title");
-      detail = title ? `Model: ${title}` : undefined;
     }
 
     if (toolName === "task") {
@@ -231,7 +203,3 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
 
 /** Compile-time witness that every visible ordinary name has lifecycle copy. */
 export const brunchToolLifecycleTitles = lifecycleTitles;
-
-export const resolvePresentationForTest = (
-  context: PetrinautAiToolPresentationContext,
-) => resolveBrunchToolPresentation(context);

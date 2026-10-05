@@ -12,11 +12,13 @@ oEmbed discovery.
 
 ## Quickstart
 
-```sh
-cp .env.example .env.local
-# add your OPENAI_API_KEY to .env.local, if you want to use the chat feature
+Run these commands from the repository root after installing the toolchains and dependencies in the [root setup guide](../../README.md#setup). On Windows, use Git Bash as described there.
 
-turbo run dev
+```sh
+cp apps/petrinaut-website/.env.example apps/petrinaut-website/.env.local
+# Add OPENAI_API_KEY to apps/petrinaut-website/.env.local to use chat.
+
+turbo run dev --filter=@apps/petrinaut-website
 ```
 
 The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API functions.
@@ -48,53 +50,13 @@ updates start from the latest persisted value so another tab's documents survive
 
 ## Choosing the assistant
 
-Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and **Enable Voice** controls whether Voice mode is offered. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled` and is off when the value is missing or invalid. Both preferences belong to the website host, not Petrinaut.
+Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and automatically enables **Voice**. You can turn **Enable Voice** off manually; that choice survives reload until you select Brunch again. Voice defaults on for an already selected Brunch assistant unless explicitly disabled. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled`. These preferences belong to the website host, not Petrinaut.
+
+When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by default. Leave it off to use Live; turn it on to use Realtime. This choice is saved under `petrinaut-website:realtime-enabled` and applies to the next Voice session. Changing it does not interrupt active audio: end Voice and start it again to switch providers.
 
 A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
-
-## Worked-model documents
-
-The required worked-model copy is an independently writable copy of the
-fixture's complete connected bundle: retained conversation/session, workpiece
-history and current revision, Petrinaut document and revision history, net,
-mutation provenance and the links among them.
-
-`/?bundle=<key>` currently opens an explicitly incomplete net projection from
-the configured Brunch service. Resolution is principal-scoped: GET resumes or
-creates the principal's active net projection, **Create a fresh net projection
-from this template** issues POST and selects a fresh projection of the fixture
-net, and identity-explicit net revisions persist with PUT. The fresh projection
-mints an empty conversation and does not inherit the fixture's retained session,
-workpiece or provenance links, so this GET/POST/PUT path does not yet create a
-worked-model copy. Workpiece and history created inside the projection prove
-post-open behavior only; they do not prove that the fixture bundle was copied.
-
-The route shows **Loading document…** while resolving. Missing configuration,
-an unknown bundle, ownership failure and other resolution errors show
-**Worked-model document unavailable**. The route fails closed: it never opens
-or reads a local document as fallback.
-
-Worked-model routes always use the Brunch process assistant, regardless of the
-stored preference for ordinary documents. They state **This document uses the
-Brunch process assistant**, hide the assistant switch and preserve the
-preference unchanged for the next ordinary route. The template supplies a
-read-only title: users and the assistant may edit the net, but neither the title
-input nor `setNetTitle` permits a title change.
-
-New, Import and example creation are source transitions. When invoked from a
-worked-model route, they create a local document and navigate to the ordinary
-route; they do not write the imported or example content into the remote copy.
-
-The host implements this boundary through a `DocumentController` over
-storage-neutral repositories: the ordinary local repository and the remote
-net-projection repository. The controller alone crosses sources. A typed
-process-agent seed carries the remote document and conversation identity into
-the Brunch binding; remote adapter-private storage identities do not cross that
-host boundary. This
-repository/controller/binding split remains the document-lifecycle authority,
-but it does not instantiate or preserve the required complete connected bundle.
 
 ## Example embeds and oEmbed
 
@@ -134,7 +96,8 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
 | `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                                           |
+| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the model id; the default is `petrinautAiModel` in `@hashintel/petrinaut-core`.                        |
+| `PETRINAUT_AI_REASONING_EFFORT`    | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `petrinautAiModel.reasoningEffort`.                               |
 | `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
 | `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
 | `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
@@ -143,23 +106,28 @@ Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite
 
 ### Voice provider defaults
 
-Without an explicit `PETRINAUT_VOICE_PROVIDER`, Vercel preview deployments
-(`VERCEL_ENV=preview`) default to `live` so testers exercise the Brunch-backed
-Live interview; production and local development default to `realtime`. An
-explicit value always wins, so set `PETRINAUT_VOICE_PROVIDER=realtime` in the
-Vercel preview environment to opt out. The default only selects the provider:
-Voice still requires `PETRINAUT_OPENAI_VOICE_ENABLED=true` and a dedicated
-`OPENAI_VOICE_API_KEY`, and Live sessions started from a voice-enabled preview
-are billed to that key.
+The website defaults to Live in every environment. **Realtime mode** in Labs
+selects Realtime for this browser. `PETRINAUT_VOICE_PROVIDER` remains the
+discovery default for clients without a provider picker; it does not override
+the website's Labs choice or restrict either provider's session endpoint.
+An invalid value still disables Voice discovery. Both providers require
+`PETRINAUT_OPENAI_VOICE_ENABLED=true` and a dedicated `OPENAI_VOICE_API_KEY`;
+sessions are billed to that key.
 
 ### Experimental Brunch-backed Live interview (FE-1664)
 
-`PETRINAUT_VOICE_PROVIDER=live` uses GPT-Live-1 for conversational audio while a
+With **Realtime mode** off, Live uses GPT-Live-1 for conversational audio while a
 separate `gpt-4o-transcribe` session supplies finalized user text to Brunch.
 Brunch remains the canonical conversation, domain and tool authority. Settled
 Brunch prose is offered to Live as delegation-correlated commentary; Live has no
 tools and must not answer domain questions independently. These instructions are
 best effort, not an enforced speech boundary.
+
+Each admitted Live turn includes the complete finalized transcript and optional
+verbatim brief excerpts. Missing-field placeholders are not submitted as facts
+or unresolved questions. Brunch interprets short replies and instructions in the
+existing conversation; the extractor does not resolve their meaning. Finalized
+words are saved in Brunch history, while spoken captions remain browser-local.
 
 From the repository root, with `OPENAI_VOICE_API_KEY` already exported (or in
 this worktree's `apps/petrinaut-website/.env.local`):
@@ -176,8 +144,8 @@ PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live yarn dev:brunc
 
 Open [http://localhost:4915/new](http://localhost:4915/new), dismiss the tour if shown, open the AI panel,
 and select the waveform **Start voice mode** action in the empty composer.
-Read the short audio-processing disclosure, allow microphone audio for voice and
-transcription, then choose **Start voice**. **Cancel** returns to text without starting a session.
+Read the audio-processing and text-retention disclosure, acknowledge how voice
+data is handled, then choose **Start voice**. **Cancel** returns to text without starting a session.
 Only that last action requests microphone access and a billable Live session.
 Use headphones for the first trial. HTTPS or localhost and an OpenAI project
 with GPT-Live-1 access are required.
@@ -239,6 +207,97 @@ acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
 
+Two kinds of finalized transcript never reach Brunch. A transcript with no
+letters or digits, such as ".", is handled like empty input. A transcript of
+up to three words whose speech started while Live was audible, or within half a
+second after, is dropped: these are almost always Live's own audio leaking back
+and misheard as speech. Live isn't audible while the speaker is muted or at
+zero volume. A GPT-Live delegation doesn't exempt the transcript, because
+GPT-Live can delegate its own echo. A real interruption of three words or fewer
+still stops Live, but its words don't reach Brunch. Neither case shows a
+notice.
+
+Each GPT-Live delegation goes to the latest finalized transcript still without
+one, or waits for speech that the transcription session already reports as
+started. Live and transcription use independent sessions, so a delegation that
+arrives while neither condition is visible has unknown ordering: it is deferred,
+never attached to later speech, and closed only by Stop, a Brunch error or the
+end of Voice mode. A delegation observed while transcription speech is pending
+is closed if that speech is later filtered, instead of shifting to the next
+answer. `delegation.deferred` and `delegation.closed` record these outcomes
+with only the delegation ID and a fixed reason.
+
+#### Speaker echo check — 10 minutes
+
+The transcription session requests English, far-field noise reduction and
+per-token log probabilities. None of these removes Live's own voice from the
+microphone; only the browser's echo cancellation can. To see whether that voice
+gets through, open DevTools, enable the **Verbose** console level and filter by
+`[Petrinaut Live trace]`:
+
+- `capture.settings` shows the echo cancellation, noise suppression and
+  automatic gain control the browser applied, at start and after a microphone
+  switch.
+- `echo.output` follows each stretch of audible Live output plus a one-second
+  tail. It reports the peak microphone level, the browser's mean echo return
+  loss and mean echo return loss enhancement in dB, each when reported
+  (`echoReturnLossSamples` and `echoReturnLossEnhancementSamples` count them),
+  transcription speech starts, and GPT-Live input transcript fragments that
+  began after its output did. `liveOutputFragments` shows whether output
+  transcripts arrived; without them `liveInputFragments` stays at zero.
+- `input.finalized` marks speech that started during output with
+  `startedDuringOutput`. `sinceOutputMs`, present when Live was audible in the
+  second before, is the time from its last audible moment until the speech
+  start was reported. Below about 100 means Live was still audible; from 500,
+  the speech doesn't count as started during output. The window is measured
+  from when `speech_started` arrives, because its `audio_start_ms` is on the
+  audio stream's clock rather than the page clock the output stretches use. The same line records the
+  transcription's confidence from its per-token log probabilities:
+  `logprobTokens`, and when any were returned, `meanLogprob` and `minLogprob`.
+  `peakMicrophoneLevel` is the loudest microphone sample from a second before
+  the speech start was reported until the speech stopped. Nothing is dropped on
+  confidence or loudness yet. `overlappedOutput` is true when the speech, from
+  its reported start until it stopped, met audible output or the second after
+  it.
+- `input.ignored` with `reason: "short-during-output"` marks a short transcript
+  that started during output and was not sent to Brunch.
+- `filter.shadow` with `stage: "echo"` marks a transcript the echo check would
+  skip. The check runs in shadow, so the transcript is still handled as before
+  and can also appear as `input.ignored`. It compares speech that overlapped
+  output, in memory only, with Live's output transcript from three seconds
+  before the speech started until it stopped. Six or more words count as a
+  repeat when they mostly match Live's words in order; fewer count only when
+  they appear together, in order, in Live's words.
+- `filter.shadow` with `stage: "doubtful-short-during-output"` tries a narrower
+  three-word rule: short speech during output counts only when its least
+  likely token has a log probability below -1.9 (`minLogprob`) or it repeats
+  Live's words as the echo check defines them. The three-word rule still
+  decides. An `input.ignored` line with `reason: "short-during-output"` and no
+  `filter.shadow` line from this stage is speech the narrower rule would have
+  sent to Brunch.
+
+On laptop speakers, on a speaker chosen in the audio settings, and on
+headphones, answer three Brunch questions and stay silent while Live speaks
+each reply. Any speech start, input fragment or `startedDuringOutput: true`
+during a reply means echo reached the microphone path; also note whether Live
+stops itself mid-sentence. Then interrupt a reply once with a sentence of your
+own and once with a short answer such as "Yes". Each `filter.shadow` line
+should match a phantom in the conversation, and the interruptions should
+usually get none. After any `delegation.deferred` line, note whether Live
+speaks without a Brunch reply: what GPT-Live does with a delegation left open
+is not yet known. The traces are local development diagnostics and contain no
+audio or text.
+
+#### Noise check — 5 minutes
+
+The transcriber can turn a non-speech sound into a word, such as "Okay." or
+"Certainly.", while Live is silent. To see whether confidence or loudness tells
+those apart from real speech, wait until Live is silent, then make a few
+non-speech sounds (a cough, typing, a chair creak, a desk tap) and give a few
+short answers such as "Yes" and "Seven". Match each `input.finalized` line to
+the conversation by order, then compare `meanLogprob`, `minLogprob` and
+`peakMicrophoneLevel` between the invented words and the real answers.
+
 ### Brunch Voice mode
 
 The following describes Realtime, the default provider in production and local development. Voice mode is disabled by default. To enable it, configure a real
@@ -273,6 +332,12 @@ Flue history is the source used when the same net is reopened. Automated
 coverage guards a locally submitted turn from an older hydration snapshot and
 does not resubmit turns or replay settled audio. The real hard-reload witness is
 still pending, so reload parity is not yet claimed for this preview.
+Stopping an admitted response supplies Live with quiet, bounded context identifying
+the request and its correlated visible partial answer. Failed responses and
+unconfirmed admissions receive separate status instructions. **Continue** enters
+Brunch as a new request in the existing conversation, not a replay of the stopped
+submission or its tools. Partial-answer context never enters the completed-answer
+speech path. Delivery and provider interpretation remain best effort.
 Voice-origin client-tool results retain their markers in Flue history. Direct
 spoken user turns remain canonical text, but Flue 2.0.3 does not yet expose the
 caller delivery metadata needed to restore their Voice chip after reopening.
@@ -339,7 +404,9 @@ speech segments to Realtime. It instructs Realtime to speak only those
 segments. Generated audio is not a verbatim recording: canonical Brunch text
 remains visible and authoritative. **Interruption by speaking** is enabled by
 default: speech detection immediately cancels generation and clears output audio,
-never the input buffer. The completed answer waits if Brunch is still busy.
+never the input buffer. If new speech cancels brief preparation before admission,
+the finalized words remain in the composer as an unsent message. Stop and session
+teardown still withdraw them. The completed answer waits if Brunch is still busy.
 False speech detection may still stop playback even if the transcript is later
 discarded. Disable this browser-saved preference for half-duplex capture: the
 microphone closes during assistant output, and audio captured before a completed

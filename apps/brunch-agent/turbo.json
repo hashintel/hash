@@ -38,9 +38,6 @@
     "start": {
       "dependsOn": ["build"]
     },
-    "start:test": {
-      "dependsOn": ["build"]
-    },
     "test:integration": {
       "dependsOn": ["build", "codegen", "^build"],
       "env": ["TEST_COVERAGE"]

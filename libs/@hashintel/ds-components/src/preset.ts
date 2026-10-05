@@ -308,5 +308,23 @@ export function scopedThemeConfig(scope: string) {
   };
 }
 
+/**
+ * Resolves a shipped `panda.buildinfo.json` specifier to a path usable in
+ * Panda's `include`. Panda treats `include` entries as globs, where `\` is an
+ * escape character, so Windows paths must use forward slashes.
+ *
+ * Pass a resolver created from the consuming config file, such as
+ * `createRequire(__filename).resolve`, so resolution starts from the consumer.
+ */
+export const resolvePandaBuildInfoPath = (
+  specifier: string,
+  resolve: (specifier: string) => string,
+  platform: string = process.platform,
+) => {
+  const path = resolve(specifier);
+
+  return platform === "win32" ? path.replaceAll("\\", "/") : path;
+};
+
 export const preset = createPreset();
 export default preset;

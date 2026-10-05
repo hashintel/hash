@@ -52,6 +52,8 @@ export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+export type PetrinautAiAssistantPresentation = "stock" | "brunch";
+
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
 export type PetrinautAiToolPresentationTone =
@@ -81,6 +83,8 @@ export type PetrinautAiToolPresentationResolver = (
 ) => PetrinautAiToolPresentation | undefined;
 
 export type PetrinautAiAssistant = {
+  /** Selects the assistant's visual presentation. Defaults to "stock". */
+  presentation?: PetrinautAiAssistantPresentation;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls
@@ -113,11 +117,42 @@ export type PetrinautAiAssistant = {
    * Not called for read-only refusals, schema failures, title changes or commands.
    */
   executeMutation?: PetrinautAiMutationExecutor;
+  /**
+   * Host-run tool calls whose results the host returns itself while the
+   * response is still streaming. Omitted for Stock and legacy Flue modes.
+   */
+  inBandBrowserTools?: {
+    has: (toolName: string) => boolean;
+    /**
+     * Run one call at its turn in same-document order. The host decides
+     * whether it may start, calls `execute` at most once with the input to
+     * run, and reports the resolved output or the failure itself. `signal`
+     * aborts on Stop. Later calls wait until this promise settles, except
+     * behind an experiment, which yields once it has captured its source.
+     */
+    run: (
+      call: {
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+        signal: AbortSignal;
+      },
+      execute: (input: unknown) => Promise<unknown>,
+    ) => Promise<void>;
+  };
   /** Host-owned dynamic tools executed automatically against the mounted editor. */
   automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
+  /**
+   * Pure presentation projection, for example host-owned voice captions.
+   * Never changes transport input, tool execution, persisted history, or the
+   * messages supplied to composer and Voice controls. Do not mutate the input.
+   */
+  mapMessagesForDisplay?: (
+    messages: PetrinautAiMessage[],
+  ) => PetrinautAiMessage[];
   /**
    * Opt into following host history while locally idle. The predicate must
    * describe the exact snapshot supplied in `messages`, including settlement

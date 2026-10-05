@@ -58,7 +58,8 @@ struct ActorCache(Result<Actor, AuthenticationRejection>);
 /// # Errors
 ///
 /// Authentication failures retain the middleware's status and client-safe message under
-/// `unauthenticated`. A route missing that middleware returns an internal problem.
+/// `unauthenticated`. A failure the middleware keeps internal, and a route missing that
+/// middleware, return an internal problem.
 #[derive(Debug, Copy, Clone)]
 pub(super) struct Actor(pub ActorId);
 
@@ -84,7 +85,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Actor {
                 "the caller's authentication was never resolved",
             )),
             Err(AuthenticationRejection::Authentication { ref report, .. }) => {
-                Err(report.current_context().into())
+                Err(Problem::from(&**report))
             }
         }
     }

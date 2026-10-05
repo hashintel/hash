@@ -7,8 +7,7 @@
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
     "@hashintel/petrinaut",
-    "@hashintel/petrinaut-core",
-    "@local/petrinaut-optimizer-client"
+    "@hashintel/petrinaut-core"
   ],
   "tasks": {
     "build": {
@@ -19,7 +18,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],
@@ -41,7 +39,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],
@@ -55,8 +52,7 @@
         "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
-        "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build"
+        "@hashintel/petrinaut-core#build"
       ]
     },
     "fix:eslint": {
@@ -68,7 +64,6 @@
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen"
       ]
     },
@@ -81,7 +76,6 @@
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen"
       ],
       "env": [
@@ -96,7 +90,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ]
@@ -110,7 +103,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],
@@ -132,47 +124,18 @@
         "@local/hash-isomorphic-utils",
         "@local/internal-api-client",
         "@local/status",
-        "darwin-kperf",
-        "darwin-kperf-codegen",
-        "darwin-kperf-criterion",
-        "darwin-kperf-events",
-        "darwin-kperf-sys",
         "error-stack",
         "error-stack-macros",
-        "harpc-client",
-        "harpc-codec",
-        "harpc-net",
-        "harpc-server",
-        "harpc-system",
-        "harpc-tower",
         "harpc-types",
         "harpc-wire-protocol",
         "hash-codec",
         "hash-codegen",
         "hash-graph-api",
-        "hash-graph-authentication",
         "hash-graph-authorization",
-        "hash-graph-embeddings",
-        "hash-graph-postgres-store",
         "hash-graph-store",
         "hash-graph-temporal-versioning",
-        "hash-graph-test-data",
-        "hash-graph-type-fetcher",
         "hash-graph-types",
-        "hash-graph-validation",
-        "hash-middleware",
-        "hash-status",
-        "hash-telemetry",
         "hash-temporal-client",
-        "hashql-ast",
-        "hashql-core",
-        "hashql-diagnostics",
-        "hashql-eval",
-        "hashql-hir",
-        "hashql-macros",
-        "hashql-mir",
-        "hashql-syntax-jexpr",
-        "problematic",
         "type-system"
       ]
     },
@@ -184,7 +147,6 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/petrinaut-optimizer-client#build",
         "codegen",
         "examples:generate"
       ],

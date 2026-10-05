@@ -31,6 +31,7 @@ import {
 } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -139,7 +140,7 @@ export interface OpenAIVoiceConfig {
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
   "petrinaut:voice-interview-disclosure:v1";
 export const LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
-  "petrinaut:live-voice-interview-disclosure:v1";
+  "petrinaut:live-voice-interview-disclosure:v3";
 const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
 
 const getVoiceInterviewDisclosureStorage = (): Storage | null => {
@@ -630,6 +631,7 @@ const AvailableVoiceInterviewControl = ({
 
 const PinnedVoiceInterviewControl = ({
   config,
+  mediationHistory,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -642,6 +644,7 @@ const PinnedVoiceInterviewControl = ({
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly mediationHistory?: VoiceMediationHistory;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
@@ -652,14 +655,22 @@ const PinnedVoiceInterviewControl = ({
   readonly subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
-  // Configuration changes only apply after a new conversation mount / page load.
-  // Never replace a running provider or resubmit its input.
-  const [sessionConfig] = useState(config);
+  // Labs changes apply between Voice sessions, never during an active turn.
+  // The host ends the current session before returning to text mode.
+  const [sessionConfig, setSessionConfig] = useState(config);
+  if (
+    context.inputMode === "text" &&
+    (sessionConfig.provider !== config.provider ||
+      sessionConfig.connectionTimeoutMs !== config.connectionTimeoutMs)
+  ) {
+    setSessionConfig(config);
+  }
   if (sessionConfig.provider === "live") {
     if (!context.registerVoiceModeSessionControls) return null;
     return (
       <LiveConversationControl
         {...context}
+        mediationHistory={mediationHistory}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}

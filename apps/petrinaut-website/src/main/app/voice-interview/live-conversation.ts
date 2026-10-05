@@ -1,6 +1,18 @@
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
+import {
+  createOutputEchoTrace,
+  logCaptureSettings,
+} from "./live-conversation/echo-diagnostics";
+import { createOutputOverlap } from "./live-conversation/output-overlap";
+import {
+  roundForTrace,
+  summarizeLogprobs,
+  type TranscriptionConfidence,
+} from "./live-conversation/transcription-confidence";
+import { createUtteranceLevels } from "./live-conversation/utterance-levels";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
+import type { LiveTranscriptFragment } from "./live-speech-captions";
 import type { VoiceAudioSettings } from "./voice-audio-settings";
 
 export interface LiveConversationState {
@@ -20,9 +32,16 @@ export interface LiveConversationState {
   };
 }
 
-interface FinalizedInput {
+export interface FinalizedInput {
   readonly id: string;
   readonly text: string;
+  readonly superseded?: boolean;
+  /** Speech start was reported while Live was audible or within half a second after. */
+  readonly startedDuringOutput: boolean;
+  /** Live's words around the speech, only when it overlapped audible output. Never traced. */
+  readonly liveOutputText?: string;
+  /** The transcript's lowest per-token log probability, when any were returned. */
+  readonly minLogprob?: number;
 }
 
 type ConnectionKind = "live" | "transcription";
@@ -33,6 +52,8 @@ export interface LiveAppendResult {
   readonly delegationId: string | null;
   /** Unknown means sent locally, but provider acceptance is not yet confirmed. */
   readonly status: "local-failure" | "unknown" | "accepted" | "rejected";
+  /** Provider context-injection time, never playback completion. */
+  readonly startMs?: number;
 }
 
 /** One disposable Live plus transcription session sharing one consented capture. */
@@ -43,9 +64,18 @@ export const createLiveConversation = (
   onDelegation: (delegationId: string) => void,
   onAppendResult: (result: LiveAppendResult) => void,
   audioSettings?: VoiceAudioSettings,
+  speech?: {
+    readonly started: () => void;
+    readonly input: (fragment: LiveTranscriptFragment) => void;
+    readonly output: (fragment: LiveTranscriptFragment) => void;
+    readonly closed: () => void;
+  },
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
+  const echoTrace = createOutputEchoTrace(sessionId);
+  const outputOverlap = createOutputOverlap();
+  const utteranceLevels = createUtteranceLevels();
   const seenDelegations = new Set<string>();
   const openDelegations = new Set<string>();
   const pendingAppends = new Map<string, LiveAppendResult>();
@@ -65,8 +95,16 @@ export const createLiveConversation = (
           .map(([kind, stage]) => `${kind}: ${stage}`)
           .join("; ");
   const committedPrevious = new Map<string, string | null>();
-  const completed = new Map<string, FinalizedInput>();
+  const completed = new Map<
+    string,
+    Omit<
+      FinalizedInput,
+      "startedDuringOutput" | "liveOutputText" | "minLogprob"
+    >
+  >();
+  const confidence = new Map<string, TranscriptionConfidence>();
   const emitted = new Set<string>();
+  let latestSpeechItem: string | undefined;
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
   let microphoneMuted = false;
@@ -109,6 +147,9 @@ export const createLiveConversation = (
   };
 
   const stopMedia = () => {
+    speech?.closed();
+    echoTrace.end();
+    outputOverlap.clear();
     detachAudioSettings?.();
     detachAudioSettings = undefined;
     pendingAppends.clear();
@@ -249,6 +290,8 @@ export const createLiveConversation = (
     if (stopping || !livePeer) return;
     let microphoneLevel = 0;
     let outputLevel = 0;
+    let echoReturnLoss: number | undefined;
+    let echoReturnLossEnhancement: number | undefined;
     try {
       const stats = await livePeer.getStats();
       stats.forEach((report: unknown) => {
@@ -262,7 +305,19 @@ export const createLiveConversation = (
           !("type" in report)
         )
           return;
-        if (report.type === "media-source") microphoneLevel = report.audioLevel;
+        if (report.type === "media-source") {
+          microphoneLevel = report.audioLevel;
+          if (
+            "echoReturnLoss" in report &&
+            typeof report.echoReturnLoss === "number"
+          )
+            echoReturnLoss = report.echoReturnLoss;
+          if (
+            "echoReturnLossEnhancement" in report &&
+            typeof report.echoReturnLossEnhancement === "number"
+          )
+            echoReturnLossEnhancement = report.echoReturnLossEnhancement;
+        }
         if (report.type === "inbound-rtp") outputLevel = report.audioLevel;
       });
     } catch {
@@ -273,6 +328,21 @@ export const createLiveConversation = (
     if (recoveryTimers.size > 0) return;
     const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
+    const audible =
+      Boolean(playing) &&
+      outputLevel > 0.01 &&
+      !speakerMuted &&
+      speakerVolume > 0;
+    outputOverlap.sample(Date.now(), audible);
+    echoTrace.sample(Date.now(), {
+      audible,
+      microphoneLevel,
+      echoReturnLoss,
+      echoReturnLossEnhancement,
+      microphoneMuted,
+      selectedSpeaker: Boolean(audio?.sinkId),
+    });
+    utteranceLevels.sample(Date.now(), microphoneLevel);
     const activity = {
       microphoneLevel: microphoneMuted
         ? 0
@@ -311,13 +381,33 @@ export const createLiveConversation = (
       if (!input) return;
       if (!emitted.has(input.id)) {
         emitted.add(input.id);
+        const startedDuringOutput = echoTrace.startedDuringOutput(itemId);
+        const liveOutputText = outputOverlap.finalize(itemId, Date.now());
+        const inputConfidence = confidence.get(itemId);
         logLiveDiagnostic("input.finalized", {
           sessionId,
           itemId,
           inputId: input.id,
           characters: input.text.length,
+          startedDuringOutput,
+          sinceOutputMs: echoTrace.sinceOutputMs(itemId),
+          overlappedOutput: liveOutputText !== undefined,
+          peakMicrophoneLevel: utteranceLevels.peak(itemId),
+          ...(inputConfidence && roundForTrace(inputConfidence)),
         });
-        onFinalizedInput(input);
+        confidence.delete(itemId);
+        echoTrace.forget(itemId);
+        utteranceLevels.forget(itemId);
+        const minLogprob = inputConfidence?.minLogprob;
+        onFinalizedInput({
+          ...input,
+          ...(latestSpeechItem && latestSpeechItem !== itemId
+            ? { superseded: true }
+            : {}),
+          startedDuringOutput,
+          ...(liveOutputText === undefined ? {} : { liveOutputText }),
+          ...(minLogprob === undefined ? {} : { minLogprob }),
+        });
       }
       itemId = committedAfter(itemId);
     }
@@ -340,6 +430,7 @@ export const createLiveConversation = (
         ),
         replaceMicrophone: (stream) => {
           microphone = stream;
+          logCaptureSettings(sessionId, stream, "microphone-switched");
           applyMicrophoneMuted();
         },
       });
@@ -351,6 +442,19 @@ export const createLiveConversation = (
   const handleTranscriptionEvent = (data: Record<string, unknown>) => {
     if (data.type === "session.created" || data.type === "session.updated") {
       if (!ready.has("transcription")) markReady("transcription");
+      return;
+    }
+    if (data.type === "input_audio_buffer.speech_started") {
+      if (typeof data.item_id === "string") latestSpeechItem = data.item_id;
+      speech?.started();
+      echoTrace.transcriptionSpeechStarted(data.item_id, Date.now());
+      outputOverlap.speechStarted(data.item_id, Date.now());
+      utteranceLevels.speechStarted(data.item_id, Date.now());
+      return;
+    }
+    if (data.type === "input_audio_buffer.speech_stopped") {
+      outputOverlap.speechStopped(data.item_id, Date.now());
+      utteranceLevels.speechStopped(data.item_id);
       return;
     }
     if (data.type === "input_audio_buffer.committed") {
@@ -413,6 +517,9 @@ export const createLiveConversation = (
       ) {
         fail("Transcription identity conflicted. No automatic retry was made.");
         return;
+      }
+      if (!existing) {
+        confidence.set(data.item_id, summarizeLogprobs(data.logprobs));
       }
       completed.set(data.item_id, input);
       flushFinalizedInputs();
@@ -508,6 +615,37 @@ export const createLiveConversation = (
       handleTranscriptionEvent(data as Record<string, unknown>);
       return;
     }
+    if (
+      data.type === "session.input_transcript.delta" ||
+      data.type === "session.output_transcript.delta"
+    ) {
+      const fields = data as Record<string, unknown>;
+      if (data.type === "session.output_transcript.delta") {
+        echoTrace.liveOutputFragment(fields.start_ms, fields.end_ms);
+        outputOverlap.liveOutput(Date.now(), fields.delta);
+      } else echoTrace.liveInputFragment(fields.start_ms);
+      if (
+        typeof fields.event_id !== "string" ||
+        typeof fields.delta !== "string" ||
+        typeof fields.start_ms !== "number" ||
+        !Number.isFinite(fields.start_ms) ||
+        fields.start_ms < 0 ||
+        typeof fields.end_ms !== "number" ||
+        !Number.isFinite(fields.end_ms) ||
+        fields.end_ms < fields.start_ms
+      )
+        return;
+      const fragment = {
+        id: fields.event_id,
+        text: fields.delta,
+        startMs: fields.start_ms,
+        endMs: fields.end_ms,
+      };
+      if (data.type === "session.input_transcript.delta")
+        speech?.input(fragment);
+      else speech?.output(fragment);
+      return;
+    }
     if (data.type === "session.closed") {
       finish(true);
     } else if (
@@ -553,7 +691,16 @@ export const createLiveConversation = (
       // Quiet context does not answer a delegation; only speech or a redirect does.
       if (pending.delegationId !== null && pending.kind !== "thinking")
         openDelegations.delete(pending.delegationId);
-      reportAppendResult({ ...pending, status: "accepted" });
+      reportAppendResult({
+        ...pending,
+        status: "accepted",
+        ...("start_ms" in data &&
+        typeof data.start_ms === "number" &&
+        Number.isFinite(data.start_ms) &&
+        data.start_ms >= 0
+          ? { startMs: data.start_ms }
+          : {}),
+      });
     } else if (
       !stopping &&
       (data.type === "error" || data.type === "session.error")
@@ -755,6 +902,7 @@ export const createLiveConversation = (
         return;
       }
       microphone = stream;
+      logCaptureSettings(sessionId, stream, "started");
       applyMicrophoneMuted();
       if (!audioSettings)
         stream.getTracks().forEach((track) =>
@@ -843,6 +991,7 @@ export const createLiveConversation = (
     setSpeakerMuted,
     setSpeakerVolume,
     openDelegations: openDelegations as ReadonlySet<string>,
+    speechPending: outputOverlap.pending,
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
     appendInstructions: (text: string, delegationId: string | null) =>

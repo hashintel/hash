@@ -1,26 +1,18 @@
 //! Resolution of a request's credentials to the caller.
 
 use alloc::sync::Arc;
-use core::{
-    error::Request,
-    fmt,
-    ops::ControlFlow,
-    str::FromStr as _,
-    sync::{atomic, atomic::Atomic},
-};
+use core::{fmt, ops::ControlFlow, str::FromStr as _};
 
 use error_stack::Report;
-use http::{HeaderMap, StatusCode};
-use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::provide_problem};
+use http::HeaderMap;
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::{
-    authentication::{
-        AuthenticationMetrics, Degradation,
-        provider::{AuthenticationProvider, Caller},
-    },
-    response::status_problem,
+use crate::authentication::{
+    AuthenticationMetrics, Degradation,
+    provider::{AuthenticationProvider, Caller},
+    trace_degradation,
 };
 
 /// Name of the header carrying an unverified actor ID.
@@ -28,8 +20,7 @@ pub const ACTOR_ID_HEADER: &str = "X-Authenticated-User-Actor-Id";
 
 /// Whose fault a rejection is.
 ///
-/// The domain decides how loudly a rejection is reported: an exhaustive set, so a new domain
-/// forces every reporting site to take a position rather than defaulting to the quietest one.
+/// The domain labels the rejection and degradation metrics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaultDomain {
     /// The service cannot answer credential questions at all.
@@ -73,7 +64,7 @@ pub enum AuthenticationErrorKind {
     /// The service credential is verified but carries no delegated actor.
     #[display("the service credential carries no delegated actor")]
     MissingDelegatedActor,
-    /// The credential provider could not be reached.
+    /// The credential provider could not be reached, throttled the request, or failed.
     #[display("failed to verify the credential against the provider")]
     ProviderUnreachable,
     /// The credential provider rejected the verification request.
@@ -137,28 +128,6 @@ impl AuthenticationErrorKind {
         }
     }
 
-    /// Returns the status code of the built-in problem for this error.
-    #[must_use]
-    pub const fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidActorIdHeader | Self::MalformedCredential => StatusCode::BAD_REQUEST,
-            Self::ProviderUnreachable | Self::ProviderRejection | Self::StoreError => {
-                StatusCode::SERVICE_UNAVAILABLE
-            }
-            Self::InvalidProviderResponse => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::MissingCredentials
-            | Self::MissingServiceSecret
-            | Self::InvalidServiceSecret
-            | Self::MissingDelegatedActor
-            | Self::InvalidSession
-            | Self::InvalidAccessToken
-            | Self::IdentityWithoutActor
-            | Self::NotProvisioned { .. }
-            | Self::ActorNotFound { .. }
-            | Self::NotAUser { .. } => StatusCode::UNAUTHORIZED,
-        }
-    }
-
     /// Whether the provider verified the credential and rejected it, as opposed to failing to
     /// verify it.
     #[must_use]
@@ -182,8 +151,8 @@ impl AuthenticationErrorKind {
             | Self::ActorNotFound { .. }
             | Self::NotAUser { .. }
             | Self::InvalidServiceSecret => FaultDomain::Operator,
-            // A request arriving without the service secret says nothing about the deployment —
-            // anyone can send one, so reporting it above debug hands a caller the log volume.
+            // A request arriving without the service secret says nothing about the deployment:
+            // anyone can send one.
             Self::MissingCredentials
             | Self::MalformedCredential
             | Self::InvalidActorIdHeader
@@ -193,57 +162,22 @@ impl AuthenticationErrorKind {
             | Self::InvalidAccessToken => FaultDomain::Caller,
         }
     }
-
-    /// Returns the message reported to the client for this error.
-    ///
-    /// Never carries identifiers. Those remain in the [`Display`] representation used for
-    /// server-side logs.
-    ///
-    /// [`Display`]: core::fmt::Display
-    #[must_use]
-    pub const fn client_message(&self) -> &'static str {
-        match self {
-            Self::MissingCredentials => "no credentials provided",
-            Self::MalformedCredential => "credential is malformed",
-            Self::InvalidActorIdHeader => {
-                "`X-Authenticated-User-Actor-Id` header is not a valid UUID"
-            }
-            Self::MissingServiceSecret => "the request requires the service credential",
-            Self::InvalidServiceSecret => "service credential is invalid",
-            Self::MissingDelegatedActor => "the service credential carries no delegated actor",
-            Self::ProviderUnreachable => "failed to verify the credential against the provider",
-            Self::ProviderRejection => "the credential provider rejected the verification request",
-            Self::InvalidProviderResponse => "the credential provider returned an invalid response",
-            Self::InvalidSession => "session is invalid or expired",
-            Self::InvalidAccessToken => "access token is invalid or expired",
-            Self::IdentityWithoutActor => "the authenticated identity has no matching user actor",
-            Self::NotProvisioned { .. } => "identity has no Graph actor provisioned",
-            Self::ActorNotFound { .. } => "actor does not exist",
-            Self::NotAUser { .. } => "actor is not a user actor",
-            Self::StoreError => "failed to validate actor against the principal store",
-        }
-    }
 }
 
 /// An authentication failure, classified by its [`AuthenticationErrorKind`].
 ///
-/// The kind determines the fault domain and the built-in problem's status code and client message.
+/// The kind determines the fault domain and the public problem the failure is answered with.
 #[derive(Debug)]
 pub struct AuthenticationError {
     /// What failed.
     kind: AuthenticationErrorKind,
-    /// Whether the error has been logged.
-    logged: Atomic<bool>,
 }
 
 impl AuthenticationError {
-    /// Creates the error for `kind`, not yet logged.
+    /// Creates the error for `kind`.
     #[must_use]
     pub const fn new(kind: AuthenticationErrorKind) -> Self {
-        Self {
-            kind,
-            logged: Atomic::<bool>::new(false),
-        }
+        Self { kind }
     }
 
     #[must_use]
@@ -251,14 +185,12 @@ impl AuthenticationError {
         &self.kind
     }
 
-    pub const fn status_code(&self) -> StatusCode {
-        self.kind.status_code()
-    }
-
+    #[must_use]
     pub const fn fault_domain(&self) -> FaultDomain {
         self.kind.fault_domain()
     }
 
+    #[must_use]
     pub const fn is_verified_rejection(&self) -> bool {
         self.kind.is_verified_rejection()
     }
@@ -360,45 +292,6 @@ impl AuthenticationError {
     pub const fn store_error() -> Self {
         Self::new(AuthenticationErrorKind::StoreError)
     }
-
-    /// Ensures the report is logged, at the level its fault domain assigns.
-    ///
-    /// Service faults log as errors, operator faults as warnings, and caller faults at debug: a
-    /// caller-repairable rejection must not hand anonymous traffic the log volume. Each error
-    /// logs once: a later call on a report whose error already logged does nothing, so every
-    /// layer that sees a rejection may call this without duplicating the record. Returns whether
-    /// this call was the one that logged.
-    pub(super) fn ensure_logged(report: &Report<Self>) -> bool {
-        let this = report.current_context();
-
-        // Claim the log, but only if it hasn't been logged yet.
-        // `Relaxed` is fine here, as it's only used to avoid duplicate logs.
-        if this
-            .logged
-            .compare_exchange(
-                false,
-                true,
-                atomic::Ordering::Relaxed,
-                atomic::Ordering::Relaxed,
-            )
-            .is_err()
-        {
-            return false;
-        }
-
-        match this.kind.fault_domain() {
-            FaultDomain::Service => {
-                tracing::error!(error = ?report, "credential verification failed");
-            }
-            FaultDomain::Operator => tracing::warn!(
-                error = ?report,
-                "credential rejected, pointing at provisioning or deployment configuration"
-            ),
-            FaultDomain::Caller => tracing::debug!(error = ?report, "credential rejected"),
-        }
-
-        true
-    }
 }
 
 impl fmt::Display for AuthenticationError {
@@ -407,27 +300,16 @@ impl fmt::Display for AuthenticationError {
     }
 }
 
-impl core::error::Error for AuthenticationError {
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        provide_problem(self, request);
-    }
-}
-
-impl Problem for AuthenticationError {
-    type Extensions<'a> = NoExtensions;
-
-    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        status_problem(self.status_code()).detail(self.kind.client_message())
-    }
-}
+impl core::error::Error for AuthenticationError {}
 
 /// Resolves the caller from the request headers.
 ///
 /// The provider is the only credential path: a request without a recognized credential resolves
 /// through [`Caller::anonymous`], and so does one whose credential the provider verified and
 /// rejected — an expired session reads public data like a request without one. A failure to
-/// verify keeps failing the request. A degrade to anonymous is counted on `metrics`. Chain
-/// providers as pairs, nested for more than two, to accept several credential kinds.
+/// verify keeps failing the request. A degrade to anonymous is counted on `metrics` and added to
+/// the current span. Chain providers as pairs, nested for more than two, to accept several
+/// credential kinds.
 ///
 /// # Errors
 ///
@@ -449,8 +331,6 @@ where
     match provider.authenticate(headers).await {
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
-            AuthenticationError::ensure_logged(&report);
-
             // A verified rejection degrades to anonymous where the chain serves anonymous
             // callers — never to another credential: an ambient credential must not take over
             // an expired explicit choice.
@@ -458,6 +338,7 @@ where
                 && let Ok(caller) = C::anonymous()
             {
                 metrics.record_degradation(report.current_context(), Degradation::Anonymous);
+                trace_degradation(&report, Degradation::Anonymous);
                 Ok(caller)
             } else {
                 Err(report)
@@ -467,13 +348,12 @@ where
             if headers.contains_key(ACTOR_ID_HEADER) {
                 // An actor-ID header without its credential says the caller believed it was
                 // delegating, so resolving it as anonymous points at a configuration fault.
-                tracing::warn!("actor-ID header carried no recognized credential");
+                tracing::Span::current().add_event(
+                    "actor-ID header carried no recognized credential",
+                    Vec::new(),
+                );
             }
-            C::anonymous().map_err(|error| {
-                let report = Report::new(error);
-                AuthenticationError::ensure_logged(&report);
-                Arc::new(report)
-            })
+            C::anonymous().map_err(|error| Arc::new(Report::new(error)))
         }
     }
 }
@@ -513,11 +393,7 @@ pub(crate) fn every_error(
         let repeated = errors[..index]
             .iter()
             .any(|earlier| core::mem::discriminant(earlier) == core::mem::discriminant(error));
-        assert!(
-            !repeated,
-            "`{}` should appear exactly once",
-            error.client_message()
-        );
+        assert!(!repeated, "`{error}` should appear exactly once");
     }
 
     errors.map(AuthenticationError::new)
@@ -553,20 +429,22 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
 mod tests {
     use alloc::sync::Arc;
     use core::{assert_matches, ops::ControlFlow};
-    use std::sync::{Mutex, OnceLock};
 
     use error_stack::Report;
     use http::HeaderMap;
-    use tracing::{Dispatch, dispatcher};
-    use tracing_subscriber::layer::SubscriberExt as _;
+    use problematic::Expose;
+    use tracing::{Instrument as _, instrument::WithSubscriber as _};
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{AuthenticationError, FaultDomain, every_error, resolve_request_actor};
-    use crate::authentication::{
-        AuthenticationMetrics,
-        provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
-        request::AuthenticationErrorKind,
+    use crate::{
+        authentication::{
+            AuthenticationMetrics, AuthenticationProblem,
+            provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
+            request::AuthenticationErrorKind,
+        },
+        test_tracing::RecordedTrace,
     };
 
     /// The attachment the rejecting provider adds, standing in for what a real provider records
@@ -589,23 +467,6 @@ mod tests {
             core::future::ready(ControlFlow::Break(Err(Arc::new(
                 Report::new(AuthenticationError::new((self.0)())).attach(PROVIDER_DETAIL),
             ))))
-        }
-    }
-
-    /// Records the level of every event emitted under the subscriber it is layered onto.
-    #[derive(Clone, Default)]
-    struct EventLevels(Arc<Mutex<Vec<tracing::Level>>>);
-
-    impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for EventLevels {
-        fn on_event(
-            &self,
-            event: &tracing::Event<'_>,
-            _ctx: tracing_subscriber::layer::Context<'_, S>,
-        ) {
-            self.0
-                .lock()
-                .expect("the event log should lock")
-                .push(*event.metadata().level());
         }
     }
 
@@ -761,127 +622,48 @@ mod tests {
 
     /// A status the service reports as its own fault is the service's fault to report.
     ///
-    /// Cross-checks the domain against [`status_code`], which classifies the same errors
-    /// independently, so the two cannot drift apart unnoticed.
-    ///
-    /// [`status_code`]: AuthenticationError::status_code
+    /// Cross-checks the domain against the status of the public problem, which classifies the
+    /// same errors independently, so the two cannot drift apart unnoticed.
     #[test]
     fn server_errors_are_the_services_fault() {
         for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            let service_fault = error.fault_domain() == FaultDomain::Service;
+            let message = error.to_string();
+            let report = Report::new(error);
+            let server_error = Expose::<AuthenticationProblem>::expose(&report)
+                .details()
+                .status
+                .is_server_error();
             assert_eq!(
-                error.status_code().is_server_error(),
-                error.fault_domain() == FaultDomain::Service,
-                "`{error}` should report the same fault domain as its status code"
+                server_error, service_fault,
+                "`{message}` should report the same fault domain as its status code"
             );
         }
     }
 
-    /// Keeps the registered-dispatcher list plural for the rest of the process.
-    ///
-    /// With at most one registered dispatcher, tracing-core rebuilds a first-hit callsite's
-    /// interest from the calling thread's default dispatcher (`Rebuilder::JustOne`). A parallel
-    /// test thread with no default dispatcher then caches `never` for a callsite this test just
-    /// enabled, and the event is skipped before the scoped subscriber is consulted. Two
-    /// dispatchers that never drop keep `has_just_one` false, so every rebuild reads the real
-    /// registry list under its lock, and that list contains this test's live dispatch.
-    fn keep_dispatcher_list_plural() {
-        static KEEPERS: OnceLock<[Dispatch; 2]> = OnceLock::new();
-        KEEPERS.get_or_init(|| {
-            [
-                Dispatch::new(tracing_subscriber::registry()),
-                Dispatch::new(tracing_subscriber::registry()),
-            ]
-        });
-    }
+    /// A verified rejection that degrades to anonymous reaches the current span with what the
+    /// provider recorded, as no rejection carries it to the telemetry layer. It is not logged.
+    #[tokio::test]
+    async fn resolve_degradation_traced() {
+        let trace = RecordedTrace::new();
+        let provider = RejectingProvider(|| AuthenticationErrorKind::InvalidSession);
 
-    /// The claim is exclusive: the first call logs and every later call reads the taken latch.
-    #[test]
-    fn log_latches() {
-        keep_dispatcher_list_plural();
-
-        let report = Report::new(AuthenticationError::missing_credentials());
-
-        assert!(AuthenticationError::ensure_logged(&report));
-        assert!(!AuthenticationError::ensure_logged(&report));
-    }
-
-    /// The level a rejection is logged at follows its fault domain.
-    ///
-    /// Pins the mapping at the logging site: [`fault_domain`] alone says nothing about which
-    /// macro the resolver reaches for.
-    ///
-    /// [`fault_domain`]: AuthenticationError::fault_domain
-    #[test]
-    fn rejections_log_at_their_domains_level() {
-        keep_dispatcher_list_plural();
-
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("should be a valid runtime configuration");
-
-        let cases = [
-            (
-                (|| AuthenticationErrorKind::ProviderUnreachable)
-                    as fn() -> AuthenticationErrorKind,
-                tracing::Level::ERROR,
-            ),
-            (
-                || AuthenticationErrorKind::IdentityWithoutActor,
-                tracing::Level::WARN,
-            ),
-            (
-                || AuthenticationErrorKind::InvalidSession,
-                tracing::Level::DEBUG,
-            ),
-        ];
-
-        for (error, expected) in cases {
-            let levels = EventLevels::default();
-            let subscriber = tracing_subscriber::registry().with(levels.clone());
-            let dispatch = Dispatch::new(subscriber);
-
-            let provider = RejectingProvider(error);
-
-            dispatcher::with_default(&dispatch, || {
-                runtime.block_on(async move {
-                    let _outcome: Result<ActorId, _> =
-                        resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
-                });
-            });
-
-            let recorded = levels.0.lock().expect("the event log should lock");
-            assert_eq!(
-                recorded.as_slice(),
-                [expected],
-                "`{}` should be logged once, at its domain's level",
-                error().client_message()
-            );
+        async {
+            let _: Result<Option<ActorId>, _> =
+                resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics())
+                    .instrument(tracing::info_span!("request"))
+                    .await;
         }
+        .with_subscriber(trace.dispatch())
+        .await;
 
-        // The uncredentialed rejection takes the `Continue` path instead of a provider's
-        // rejection, so it has its own logging site to pin. Same test: the event tests share
-        // the process-global callsite interest cache and cannot run in parallel.
-        let levels = EventLevels::default();
-        let subscriber = tracing_subscriber::registry().with(levels.clone());
-
-        let dispatch = Dispatch::new(subscriber);
-        dispatcher::with_default(&dispatch, || {
-            runtime.block_on(async move {
-                let _outcome: Result<ActorId, _> = resolve_request_actor(
-                    &StaticAuthenticationProvider::NotRecognized,
-                    &HeaderMap::new(),
-                    &test_metrics(),
-                )
-                .await;
-            });
-        });
-
-        let recorded = levels.0.lock().expect("the event log should lock");
-        assert_eq!(
-            recorded.as_slice(),
-            [tracing::Level::DEBUG],
-            "the missing credentials should be logged once"
+        assert!(
+            trace.traces_error(PROVIDER_DETAIL),
+            "the trace should carry what the provider recorded"
+        );
+        assert!(
+            trace.levels().is_empty(),
+            "the degradation should not be logged"
         );
     }
 
@@ -902,18 +684,8 @@ mod tests {
         );
     }
 
-    /// Every error the client can reach reports something.
-    #[test]
-    fn client_messages_are_never_empty() {
-        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
-            assert!(
-                !error.kind().client_message().is_empty(),
-                "`{error}` should report a client message"
-            );
-        }
-    }
-
-    /// The identifiers the client never sees must still reach the logs.
+    /// The identifiers the client never sees must still reach the report the telemetry layer
+    /// records.
     #[test]
     fn log_representations_carry_their_identifiers() {
         let identity_id = "d290f1ee-6c54-4b01-90e6-d701748f0851";

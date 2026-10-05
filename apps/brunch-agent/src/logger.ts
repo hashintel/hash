@@ -12,7 +12,7 @@ export const loggerEnvironment = (
 ): LoggerEnvironment =>
   nodeEnv === "production" || nodeEnv === "test" ? nodeEnv : "development";
 
-export const createBrunchLogger = (
+const createBrunchLogger = (
   environment: LoggerEnvironment = loggerEnvironment(),
 ): Logger => new Logger({ environment, serviceName: "brunch-agent" });
 

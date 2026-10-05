@@ -9,6 +9,7 @@
 extern crate alloc;
 
 pub mod account;
+pub mod api_token;
 pub mod data_type;
 pub mod email_subscription;
 pub mod entity;

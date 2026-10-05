@@ -211,17 +211,12 @@ export const startEmptyNetInStorage = (
   return net;
 };
 
-export const useLocalStorageSDCPNs = (input?: {
-  readonly enabled: boolean;
-}) => {
-  const enabled = input?.enabled ?? true;
+export const useLocalStorageSDCPNs = () => {
   const [storedSDCPNs, setStoredSDCPNs, ready] = usePersistedState({
-    enabled,
     fallback: noStoredSDCPNs,
     read: readStoredSDCPNs,
     storageKey: rootLocalStorageKey,
     write: writeStoredSDCPNs,
-    writeWhenDisabled: true,
   });
 
   return { ready, storedSDCPNs, setStoredSDCPNs };

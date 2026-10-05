@@ -18,7 +18,6 @@ try {
 }
 
 const enforcedDevDependencies = {
-  prettier: { commands: ["prettier"], ident: "prettier" },
   waitOn: { commands: ["wait-on"], ident: "wait-on" },
   rimraf: { commands: ["rimraf"], ident: "rimraf" },
   eslint: { commands: ["eslint"], ident: "eslint" },
@@ -235,7 +234,7 @@ function enforceProtocols({ Yarn }) {
 /**
  * Enforces proper declaration of dev dependencies.
  *
- * This rule checks if certain tools (like Prettier) are used in any workspace
+ * This rule checks if certain tools (like ESLint) are used in any workspace
  * and ensures they're declared as dev dependencies in those workspaces.
  *
  * @param {Context} context - The Yarn constraint context.
@@ -257,7 +256,6 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
     }
 
     const dependsOn = {
-      prettier: false,
       waitOn: false,
       rimraf: false,
       eslint: false,
@@ -334,6 +332,7 @@ function enforceNoInstallScripts({ Yarn }) {
 
 /**
  * Keeps transport packages independent of Brunch mechanism and substrates.
+ * The one inward edge is core, for Brunch's named constants.
  *
  * @param {Context} context - The Yarn constraint context.
  */
@@ -342,8 +341,8 @@ function enforceBrunchTransportBoundary({ Yarn }) {
     if (
       !dependency.workspace.ident.startsWith(brunchAgentTransportPrefix) ||
       dependency.ident === "@flue/sdk" ||
-      (dependency.ident !== brunchAgentCore &&
-        !dependency.ident.startsWith(`${brunchAgentCore}-`) &&
+      dependency.ident === brunchAgentCore ||
+      (!dependency.ident.startsWith(`${brunchAgentCore}-`) &&
         !brunchSubstrateScopes.some((scope) =>
           dependency.ident.startsWith(scope),
         ))

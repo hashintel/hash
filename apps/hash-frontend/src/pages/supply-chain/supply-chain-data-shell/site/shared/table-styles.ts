@@ -14,6 +14,46 @@ export const tableContainer = css({
   bg: "bgSolid.min",
   overflow: "auto",
 });
+export const tableCard = css({
+  display: "flex",
+  flexDirection: "column",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "lg",
+  bg: "bgSolid.min",
+  overflow: "hidden",
+});
+// Padding lives on the rows, not this container because the filter
+// row's top border must reach the card edges, and the tab row's own height
+// is what the filter/sort controls centre against
+export const filterHeader = css({
+  flexShrink: "0",
+  borderBottomWidth: "1px",
+  borderColor: "bd.subtle",
+  display: "flex",
+  flexDirection: "column",
+});
+export const filterHeaderRow = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  px: "4",
+});
+export const filterHeaderActions = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  flexShrink: "0",
+});
+export const filterChipsRow = css({
+  px: "4",
+  py: "3",
+  borderTopWidth: "1px",
+  borderColor: "bd.subtle",
+});
+export const tableScroll = css({ flex: "1", minH: "0", overflow: "auto" });
 export const table = css({ w: "full", textStyle: "sm", lineHeight: "normal" });
 export const theadRow = css({
   textAlign: "left",
