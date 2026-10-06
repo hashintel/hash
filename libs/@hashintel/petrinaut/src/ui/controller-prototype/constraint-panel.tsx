@@ -27,7 +27,7 @@ import {
   isNestedRule,
   mapConstraintChecks,
   MAX_ROW_DEPTH,
-  negateOp,
+  negateCheck,
   newNestedRule,
   parseSubjectValue,
   ruleDepth,
@@ -1041,7 +1041,11 @@ const RuleRows: React.FC<{
   constraint: ModelConstraint;
   disabled: boolean;
   update: UpdateConstraint;
-}> = ({ constraint, disabled, update }) => {
+}> = ({ constraint, disabled, update: save }) => {
+  // An edit in the full builder keeps the rule in Custom, so the card never
+  // swaps to a pattern's slots while someone is building.
+  const update: UpdateConstraint = (change) =>
+    save((current) => ({ ...change(current), preset: "custom" }));
   const { petriNetDefinition: net } = use(SDCPNContext);
   const trigger = constraint.trigger;
 
@@ -1398,16 +1402,17 @@ const PatternSlots: React.FC<{
         {y ? (
           <ConditionRow
             constraint={constraint}
-            check={{ ...y, op: negateOp(y.op) }}
+            check={negateCheck(y)}
             disabled={disabled}
             lead={<LeadWord word="" disabled={disabled} />}
             onChange={(patch) =>
               update((current) => ({
                 ...current,
-                checks: patchFirst(current.checks, {
-                  ...patch,
-                  ...(patch.op ? { op: negateOp(patch.op) } : {}),
-                }),
+                checks: current.checks.map((item, at) =>
+                  at === 0 && !isNestedRule(item)
+                    ? negateCheck({ ...negateCheck(item), ...patch })
+                    : item,
+                ),
               }))
             }
           />
@@ -1615,16 +1620,20 @@ const CodeEditor: React.FC<{
           }}
         />
       </div>
-      {code === generated && ruleDepth(constraint) <= MAX_ROW_DEPTH ? (
+      {ruleDepth(constraint) <= MAX_ROW_DEPTH ? (
         <div className={codeActionsStyle}>
           <Button
             size="xs"
             variant="ghost"
             iconName="list"
             disabled={disabled}
+            // Keeps the textarea from blurring, which would save the draft first.
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => update(({ code: _code, ...current }) => current)}
           >
-            Edit as rows
+            {code === generated && draft.value === code
+              ? "Edit as rows"
+              : "Edit as rows (discards code edits)"}
           </Button>
         </div>
       ) : (

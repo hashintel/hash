@@ -81,6 +81,20 @@ const negatedOp: Record<CheckOp, CheckOp> = {
 /** The comparison that holds exactly when this one does not. */
 export const negateOp = (op: CheckOp): CheckOp => negatedOp[op];
 
+/** An event stored as "did not happen": "Y only after X" keeps Y this way. */
+export const isNegatedEvent = (check: Check): boolean =>
+  isEventSubject(check.subject) && check.op === "atMost" && check.bound === 0;
+
+/** The check that holds exactly when this one does not. */
+export const negateCheck = (check: Check): Check =>
+  isEventSubject(check.subject)
+    ? isNegatedEvent(check)
+      ? { ...check, op: "above", bound: null }
+      : { ...check, op: "atMost", bound: 0 }
+    : { ...check, op: negatedOp[check.op] };
+
+const unNegate = negateCheck;
+
 export const isEventSubject = (subject: CheckSubject | null): boolean =>
   subject?.kind === "fires" || subject?.kind === "leaves";
 
@@ -663,11 +677,15 @@ const patternSlots = (constraint: ModelConstraint): PatternSlots => {
       };
     }
     case "precedence":
+    {
+      // The rule stores "not Y"; the slot is Y itself.
+      const stored = firstPlain(constraint.checks);
       return {
         x: firstPlain(constraint.second),
-        y: firstPlain(constraint.checks),
+        y: stored && unNegate(stored),
         window: constraint.window,
       };
+    }
     default: {
       const x = constraint.trigger ?? firstCheck(constraint.checks) ?? null;
       const all: Check[] = [];
@@ -758,8 +776,8 @@ export const applyPattern = (
         ...kept,
         ...withWindow,
         time: "weakUntil",
-        checks: [asEvent(y, "atMost", 0)],
-        second: [asEvent(x, "above", 0)],
+        checks: [y ? negateCheck(y) : asEvent(null, "atMost", 0)],
+        second: [x ? { ...x } : asEvent(null, "above", 0)],
         preset: id,
       };
     default:
@@ -826,7 +844,7 @@ const checkExpression = (
 ): string => {
   const subject = subjectExpression(net, constraint, check.subject);
   if (isEventSubject(check.subject)) {
-    return negate ? `¬${subject}` : subject;
+    return negate !== isNegatedEvent(check) ? `¬${subject}` : subject;
   }
   const op = negate ? negatedOp[check.op] : check.op;
   return `${subject} ${checkOpSymbol[op]} ${check.bound ?? "?"}`;
@@ -876,7 +894,7 @@ const mtl = (
   const negate = rule.time === "never";
   const item = (entry: RuleItem): string =>
     isNestedRule(entry)
-      ? `(${mtl(net, constraint, entry)})`
+      ? `${negate ? "¬" : ""}(${mtl(net, constraint, entry)})`
       : checkExpression(net, constraint, entry, negate);
   const group = (items: RuleItem[], join: "all" | "any" | undefined) => {
     // Flipping every comparison under "never" swaps and/or (De Morgan).

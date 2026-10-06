@@ -467,3 +467,41 @@ describe("pattern conversions", () => {
     expect(nested && "kind" in nested ? nested.window : null).toEqual({ kind: "within", to: 2 });
   });
 });
+
+describe("review fixes", () => {
+  it("keeps Y's meaning and bounds through Y only after X", () => {
+    const response = demo("machines_back_within_2_days");
+    const back = applyPattern(applyPattern(response, "precedence"), "response");
+    expect(constraintCode(net, back)).toBe(constraintCode(net, response));
+    const always = demo("backorders_under_20");
+    const round = applyPattern(applyPattern(always, "precedence"), "always");
+    expect(round.checks[0]).toMatchObject({ op: "below", bound: 20 });
+  });
+
+  it("negates an event Y in Y only after X", () => {
+    const transition = net.transitions[0]!;
+    const start: ModelConstraint = {
+      ...newConstraint("c", "C"),
+      time: "always",
+      trigger: { subject: { kind: "placeTokens", id: "place_machine_down" }, op: "above", bound: 0 },
+      checks: [
+        {
+          kind: "rule",
+          time: "eventually",
+          window: { kind: "within", to: 2 },
+          checks: [{ subject: { kind: "fires", id: transition.id }, op: "above", bound: null }],
+        },
+      ],
+    };
+    const precedence = applyPattern(start, "precedence");
+    expect(constraintCode(net, precedence)).toMatch(/^¬fired/);
+    const back = applyPattern(precedence, "response");
+    expect(constraintCode(net, back)).toBe(constraintCode(net, start));
+  });
+
+  it("negates a nested rule under never", () => {
+    expect(
+      constraintCode(net, { ...demo("maintenance_every_30_days"), time: "never" }),
+    ).toBe("G (¬(F[0,30] (fired(Preventivemaintenance))))");
+  });
+});
