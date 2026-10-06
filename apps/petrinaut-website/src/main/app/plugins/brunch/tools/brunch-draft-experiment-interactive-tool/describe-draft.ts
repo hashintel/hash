@@ -8,7 +8,8 @@ const nameOfScenario = (definition: SDCPN, scenarioId: string) =>
   definition.scenarios?.find((scenario) => scenario.id === scenarioId)?.name ??
   scenarioId;
 
-const nameOfMetric = (definition: SDCPN, metricId: string) =>
+/** A metric's name in the live definition, or its id when the metric is gone. */
+export const nameOfMetric = (definition: SDCPN, metricId: string) =>
   definition.metrics?.find((metric) => metric.id === metricId)?.name ??
   metricId;
 
