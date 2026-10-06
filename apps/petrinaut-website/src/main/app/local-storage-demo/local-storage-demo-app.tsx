@@ -3,11 +3,7 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import {
-  createFlueClient,
-  type FlueConversationSettlement,
-  type FlueConversationState,
-} from "@flue/sdk";
+import { createFlueClient } from "@flue/sdk";
 import {
   use,
   useCallback,
@@ -32,9 +28,6 @@ import {
   Petrinaut,
   type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
-  type PetrinautAiStopResult,
-  type PetrinautAiVoiceMode,
-  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
@@ -46,7 +39,6 @@ import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import {
   BrunchPanelConversationTracker,
-  type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
 } from "../plugins/brunch/brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
@@ -65,6 +57,8 @@ import {
 } from "../plugins/brunch/conversation/use-process-agent-binding";
 import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
+import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
+import { useImmutableReplayBaseline } from "../plugins/brunch/plugin/use-immutable-replay-baseline";
 import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
 import {
   createBrunchDraftExperimentInteractiveTool,
@@ -86,11 +80,11 @@ import {
 import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
 import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
+import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
-  VoiceInterviewControl,
 } from "../plugins/voice/session/voice-interview-control";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
@@ -107,151 +101,11 @@ import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
-import type { VoiceMediationHistory } from "../plugins/voice/history/voice-mediation-history";
-import type { ToolApprovalState } from "../plugins/voice/live/live-brunch-bridge";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
-
-type ReplayReadiness<Replay> =
-  | { readonly status: "pending" }
-  | { readonly status: "ready"; readonly replay: Replay };
-
-type ReplayBaseline<Snapshot, Replay> = {
-  readonly key: string;
-  readonly snapshot: Snapshot | undefined;
-  readonly readiness: ReplayReadiness<Replay>;
-};
-
-/**
- * Captures the first authoritative history state for one mounted binding. An
- * absent history becomes an empty baseline during render; an existing history
- * is captured once and stays fail-closed until its asynchronous verification
- * completes. Later observation offsets cannot alter the ready baseline.
- */
-const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
-  readonly bindingKey: string | undefined;
-  readonly emptyReplay: Replay;
-  readonly historyPhase: string | undefined;
-  readonly snapshot: Snapshot | undefined;
-  readonly derive: (snapshot: Snapshot) => Promise<Replay>;
-}): ReplayReadiness<Replay> => {
-  const [storedBaseline, setStoredBaseline] = useState<
-    ReplayBaseline<Snapshot, Replay> | undefined
-  >(undefined);
-  let baseline = storedBaseline;
-
-  if (input.bindingKey === undefined) {
-    if (baseline !== undefined) setStoredBaseline(undefined);
-    baseline = undefined;
-  } else if (baseline === undefined || baseline.key !== input.bindingKey) {
-    baseline = {
-      key: input.bindingKey,
-      snapshot: input.snapshot,
-      readiness:
-        input.historyPhase === "absent"
-          ? { status: "ready", replay: input.emptyReplay }
-          : { status: "pending" },
-    };
-    setStoredBaseline(baseline);
-  } else if (
-    baseline.readiness.status === "pending" &&
-    baseline.snapshot === undefined &&
-    (input.historyPhase === "absent" || input.snapshot !== undefined)
-  ) {
-    baseline = {
-      ...baseline,
-      snapshot: input.snapshot,
-      readiness:
-        input.historyPhase === "absent"
-          ? { status: "ready", replay: input.emptyReplay }
-          : baseline.readiness,
-    };
-    setStoredBaseline(baseline);
-  }
-
-  const derive = input.derive;
-  useEffect(() => {
-    const capturedSnapshot = baseline?.snapshot;
-    if (
-      baseline === undefined ||
-      baseline.readiness.status === "ready" ||
-      capturedSnapshot === undefined
-    )
-      return;
-    let cancelled = false;
-    const capturedBaseline = baseline;
-    void derive(capturedSnapshot).then((replay) => {
-      if (!cancelled) {
-        setStoredBaseline((current) =>
-          current === capturedBaseline
-            ? {
-                ...capturedBaseline,
-                readiness: { status: "ready", replay },
-              }
-            : current,
-        );
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [baseline, derive]);
-
-  return baseline?.readiness ?? { status: "pending" };
-};
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
-
-export const getBrunchVoiceMode = (
-  config: OpenAIVoiceConfig | null | undefined,
-  tracker?: BrunchPanelConversationTracker,
-  settlements?: readonly FlueConversationSettlement[],
-  snapshot?: FlueConversationState,
-  mediationHistory?: VoiceMediationHistory,
-  toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
-): PetrinautAiVoiceMode | undefined => {
-  if (!config) return undefined;
-
-  const resolveInputSubmission = tracker?.submissionForInput.bind(tracker);
-  const resolveResponseSubmission =
-    tracker?.submissionsForResponse.bind(tracker);
-  const subscribeToResponseMessageCompleted =
-    tracker?.subscribeToResponseMessageCompleted.bind(tracker);
-  const subscribeToResponseMessageStarted =
-    tracker?.subscribeToResponseMessageStarted.bind(tracker);
-  const subscribeToStopRequested =
-    tracker?.subscribeToStopRequested.bind(tracker);
-  const subscribeToAdmission =
-    tracker === undefined
-      ? undefined
-      : (target: BrunchPanelAdmissionTarget, listener: (id: string) => void) =>
-          tracker.subscribeToAdmission(target, ({ admission }) =>
-            listener(admission.submissionId),
-          );
-  const subscribeToAdmissionFailure =
-    tracker?.subscribeToAdmissionFailure.bind(tracker);
-
-  return (context: PetrinautAiVoiceModeContext) => (
-    <VoiceInterviewControl
-      {...context}
-      config={config}
-      mediationHistory={mediationHistory}
-      toolApprovalState={toolApprovalState}
-      settlements={settlements}
-      // Voice only observes this snapshot. Message replacement remains gated
-      // independently by followMessages.canReplace below.
-      snapshot={snapshot}
-      resolveInputSubmission={resolveInputSubmission}
-      resolveResponseSubmission={resolveResponseSubmission}
-      subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
-      subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
-      subscribeToStopRequested={subscribeToStopRequested}
-      subscribeToAdmission={subscribeToAdmission}
-      subscribeToAdmissionFailure={subscribeToAdmissionFailure}
-    />
-  );
-};
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
@@ -279,23 +133,6 @@ const createBrunchFlueClient = async (conversationId: string) => {
     url: mountUrl.href,
     headers: () => agentOwnershipHeaders(identity),
   });
-};
-
-/**
- * Flue's `abort()` is conversation-wide and only reaches unsettled work, so a
- * Stop pressed while `send()` is still in flight must first let that admission
- * land; otherwise `aborted: false` would read as "already settled" while the
- * admitted turn keeps running.
- */
-export const requestFlueStop = async (
-  clientPromise: Promise<ReturnType<typeof createFlueClient>>,
-  tracker: BrunchPanelConversationTracker,
-): Promise<PetrinautAiStopResult> => {
-  tracker.recordStopRequested();
-  const client = await clientPromise;
-  await tracker.settleInFlightSubmissions();
-  const result = await client.abort();
-  return result.aborted ? "stop-requested" : "already-settled";
 };
 
 const createConversationTrackerFor = (

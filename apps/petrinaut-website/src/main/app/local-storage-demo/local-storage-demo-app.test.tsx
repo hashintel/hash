@@ -25,10 +25,12 @@ import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "../plugins/brunch/conversation/brunch-conversation-id";
+import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
 import {
   canonicalPetrinautClientToolNames,
   brunchPetrinautClientToolNames,
 } from "../plugins/brunch/tools/brunch-client-tools";
+import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
 import { OpenAIRealtimeSession } from "../plugins/voice/realtime/openai-realtime-session";
 import { VoiceInterviewControl } from "../plugins/voice/session/voice-interview-control";
 import {
@@ -37,11 +39,7 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
-import {
-  getBrunchVoiceMode,
-  LocalStorageDemoApp,
-  requestFlueStop,
-} from "./local-storage-demo-app";
+import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type {
