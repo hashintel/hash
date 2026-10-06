@@ -98,14 +98,10 @@ export const openRetainedPersonaBrowser = async (
     session.principalKey,
     "Original browser principal is missing or changed",
   );
-  const documents = v.parse(
-    v.record(v.string(), v.object({ incarnationId: text })),
-    saved.documents,
-  );
-  assert.equal(
-    documents[binding.documentId]?.incarnationId,
-    binding.incarnationId,
-    "Original browser document is missing or changed",
+  const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
+  assert.ok(
+    Object.hasOwn(documents, binding.documentId),
+    "Original browser document is missing",
   );
   await page.goto(new URL(route, origin).href);
 };

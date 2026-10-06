@@ -40,7 +40,6 @@ const browser = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
-    incarnationId: "incarnation",
   },
 };
 const snapshot = {

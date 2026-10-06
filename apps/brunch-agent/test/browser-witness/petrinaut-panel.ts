@@ -55,7 +55,6 @@ const draftNetId = toPetrinautId("draft-net");
 const savedDocument = (id: string, sdcpn: SDCPN) => ({
   [id]: {
     id,
-    incarnationId: `${id}-incarnation`,
     revisionId: `${id}-revision`,
     title: "Queue",
     lastUpdated: "2020-01-01T00:00:00.000Z",
@@ -186,11 +185,11 @@ const canonicalConstruction = async () => {
     ),
     ["store"],
   );
-  const stored = await fixture.storedDocument<{
-    incarnationId: string;
-    sdcpn: SDCPN;
-  }>(page, binding.documentId);
-  assert.equal(stored?.incarnationId, binding.incarnationId);
+  const stored = await fixture.storedDocument<{ sdcpn: SDCPN }>(
+    page,
+    binding.documentId,
+  );
+  assert(stored);
   assert.deepEqual(
     stored.sdcpn.differentialEquations.map(({ id, code }) => ({ id, code })),
     [{ id: "decay", code: repairedCode }],
@@ -300,7 +299,6 @@ const draftedExperiment = async () => {
   assert.equal(delivery.kind, "user");
   const { binding, client } = await fixture.conversationOf(page, delivery);
   assert.equal(binding.documentId, draftNetId);
-  assert.equal(binding.incarnationId, `${draftNetId}-incarnation`);
   const history = await client.history();
   const results = clientToolHistoryFrom(history.messages).results;
   assert.deepEqual(

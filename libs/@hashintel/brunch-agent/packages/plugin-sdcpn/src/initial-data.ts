@@ -3,7 +3,6 @@ import * as v from "valibot";
 const browserBindingSchema = v.strictObject({
   conversationId: v.string(),
   documentId: v.string(),
-  incarnationId: v.string(),
 });
 
 export const sdcpnInitialDataSchema = v.optional(
