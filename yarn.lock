@@ -7670,6 +7670,7 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
+    "@tsconfig/bases": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
     clsx: "npm:2.1.1"
