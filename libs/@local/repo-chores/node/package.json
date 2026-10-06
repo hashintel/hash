@@ -39,6 +39,7 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "^4",
     "eslint": "9.39.4",

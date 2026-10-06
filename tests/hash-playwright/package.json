@@ -30,6 +30,7 @@
     "@blockprotocol/graph": "workspace:*",
     "@graphql-codegen/cli": "^6.2.1",
     "@local/eslint": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/chrome": "0.1.40",
     "@types/js-yaml": "^4",
     "eslint": "9.39.4",

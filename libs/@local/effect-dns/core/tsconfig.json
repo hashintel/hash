@@ -1,6 +1,8 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
+    "rootDir": "../../../..",
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "nodenext"
   },

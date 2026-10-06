@@ -122,6 +122,7 @@
     "@graphql-codegen/typescript-resolvers": "5.1.7",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/app-root-path": "3.1.0",
     "@types/cors": "2.8.19",
     "@types/dedent": "0.7.2",

@@ -1,9 +1,16 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": [
+    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+    "@tsconfig/bases/recommended"
+  ],
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "../../..",
+    "target": "ES2024",
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
     "noEmit": true
   },
-  "include": ["theme-override.d.ts", "./src/"]
+  "include": ["assets.d.ts", "theme-override.d.ts", "./src/"]
 }

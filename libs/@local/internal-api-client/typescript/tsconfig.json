@@ -3,6 +3,7 @@
   "include": ["./"],
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "types": ["node"]
   }
 }
