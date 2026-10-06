@@ -2,14 +2,7 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vOrigin, vStatus } from "../shared/epistemics.ts";
-
-export const vEntityId = v.pipe(
-  v.string(),
-  v.minLength(1),
-  v.description(
-    "The stable ID of an entity, referenced in claims' entities arrays and later full updates to the same entity.",
-  ),
-);
+import { vEntityId } from "../shared/references.ts";
 
 export const vEntityName = v.pipe(
   v.string(),
@@ -141,14 +134,21 @@ export const vEntityKind = v.pipe(
 
 export const vEntity = v.pipe(
   v.strictObject({
-    id: vEntityId,
+    id: v.optional(
+      v.pipe(
+        vEntityId,
+        v.description(
+          "The known ID of an existing entity to update. Omit for a new entity; the system assigns its ID.",
+        ),
+      ),
+    ),
     name: vEntityName,
     kind: vEntityKind,
     origin: vOrigin,
     status: vStatus,
   }),
   v.description(
-    "A complete record of a named entity. Origin and status describe the entity's inclusion in the modelled account, independently of claims about it. To revise an entity, append all fields under the same ID; earlier records remain in the ledger.",
+    "Name an entity or fully update an existing one. Origin and status describe its inclusion in the modelled account, independently of claims about it. New entities omit id; updates include the existing system-issued ID and all fields. Earlier records remain in the Ledger.",
   ),
 );
 
@@ -156,4 +156,4 @@ export type EntityKind = v.InferOutput<typeof vEntityKind>;
 export type Entity = v.InferOutput<typeof vEntity>;
 
 export const EntityKindSchema = toJsonSchema(vEntityKind);
-export const EntitySchema = toJsonSchema(vEntity);
+export const EntitySchema = toJsonSchema(vEntity, { errorMode: "ignore" });

@@ -1,67 +1,79 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
-import { vElement } from "./construction/elements.ts";
-import { vMutation } from "./construction/mutations.ts";
+import { vReflection } from "./construction/reflections.ts";
 import { vClaim } from "./elicitation/claims.ts";
 import { vEntity } from "./elicitation/entities.ts";
 
+export const vLedgerEntry = v.pipe(
+  v.union([
+    v.strictTuple([v.literal("elicitation.entity"), vEntity]),
+    v.strictTuple([v.literal("elicitation.claim"), vClaim]),
+    v.strictTuple([v.literal("construction.reflection"), vReflection]),
+  ]),
+  v.description(
+    "Exactly two members: [record type, payload]. Do not add an ID, index or turn member. The type selects the payload schema.",
+  ),
+);
+
+export type LedgerEntry = v.InferOutput<typeof vLedgerEntry>;
+
+const validLocalReferences = (entries: LedgerEntry[]) => {
+  const targets = (
+    reference: string,
+    kind: LedgerEntry[0],
+    before?: number,
+  ) => {
+    if (!reference.startsWith("$")) return true;
+    const index = Number(reference.slice(1));
+    return (
+      entries[index]?.[0] === kind && (before === undefined || index < before)
+    );
+  };
+
+  return entries.every(([kind, payload], index) => {
+    if (kind === "elicitation.entity") return true;
+    if (kind === "elicitation.claim") {
+      return (
+        payload.entities.every((reference) =>
+          targets(reference, "elicitation.entity"),
+        ) &&
+        (payload.supersedes ?? []).every((reference) =>
+          targets(reference, "elicitation.claim", index),
+        )
+      );
+    }
+    return (
+      (payload.claims ?? []).every((reference) =>
+        targets(reference, "elicitation.claim"),
+      ) &&
+      (payload.entities ?? []).every((reference) =>
+        targets(reference, "elicitation.entity"),
+      )
+    );
+  });
+};
+
 export const vLedgerAppend = v.pipe(
   v.strictObject({
-    elicitation: v.optional(
-      v.pipe(
-        v.strictObject({
-          claims: v.optional(
-            v.pipe(
-              v.array(vClaim),
-              v.description(
-                "Claims made or revised in this exchange. Reference entity IDs and explicitly supersede prior claim IDs when replacing claims.",
-              ),
-            ),
-          ),
-          entities: v.optional(
-            v.pipe(
-              v.array(vEntity),
-              v.description(
-                "New entities or full updates to existing entities, each with origin and status. Give new entities new IDs; append full updates under their existing stable IDs.",
-              ),
-            ),
-          ),
-        }),
-        v.description("Learning from the USER's account and shared material."),
+    entries: v.pipe(
+      v.array(vLedgerEntry),
+      v.check(
+        validLocalReferences,
+        "Local references must target an entry of the expected kind; supersedes must target an earlier claim.",
       ),
-    ),
-    construction: v.optional(
-      v.pipe(
-        v.strictObject({
-          mutations: v.optional(
-            v.pipe(
-              v.array(vMutation),
-              v.description(
-                "Observed net changes and the claim IDs each change addresses. Record only successful changes whose net revision IDs are available.",
-              ),
-            ),
-          ),
-          elements: v.optional(
-            v.pipe(
-              v.array(vElement),
-              v.description(
-                "Interpretations of observed net elements, with their addresses, agreement statuses, and entity and claim references.",
-              ),
-            ),
-          ),
-        }),
-        v.description(
-          "Records about construction already performed, not requests to change the net.",
-        ),
+      v.description(
+        "An ordered queue of [record type, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
       ),
     ),
   }),
   v.description(
-    "One append-only Ledger batch containing any combination of elicitation and construction records. References may name entries from the same batch or earlier history. Omit unused groups or collections; empty collections are allowed. Earlier records remain in the Ledger.",
+    "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Use existing system-issued IDs or $index references in relationship fields. Earlier records remain in the Ledger.",
   ),
 );
 
 export type LedgerAppend = v.InferOutput<typeof vLedgerAppend>;
 
-export const LedgerAppendSchema = toJsonSchema(vLedgerAppend);
+export const LedgerAppendSchema = toJsonSchema(vLedgerAppend, {
+  errorMode: "ignore",
+});
