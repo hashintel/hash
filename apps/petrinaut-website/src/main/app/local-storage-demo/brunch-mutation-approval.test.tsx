@@ -242,7 +242,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       } as FlueClient),
       principalKey: "principal",
       binding,
-      metadataFor: async () => undefined,
+      metadataFor: () => undefined,
       prepareInput,
       admit: createBrunchMutationAdmission(coordinator),
     });

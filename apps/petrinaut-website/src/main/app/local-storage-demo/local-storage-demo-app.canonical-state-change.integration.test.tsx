@@ -32,7 +32,6 @@ import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { documentRevisionOf } from "./shared/document-revision";
 
-import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -46,7 +45,6 @@ const fixture = vi.hoisted(() => ({
   fetch: null as typeof fetch | null,
   client: null as FlueClient | null,
   handle: null as PetrinautDocHandle | null,
-  repository: null as DocumentRepository | null,
 }));
 vi.mock("@flue/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@flue/sdk")>();
@@ -71,22 +69,6 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
       fixture.handle = props.handle;
       return <actual.Petrinaut {...props} />;
-    },
-  };
-});
-vi.mock("./documents/use-document-controller", async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import("./documents/use-document-controller")
-    >();
-  return {
-    ...actual,
-    useDocumentController: (
-      input: Parameters<typeof actual.useDocumentController>[0],
-    ) => {
-      const result = actual.useDocumentController(input);
-      fixture.repository = result.controller.repository;
-      return result;
     },
   };
 });
@@ -121,7 +103,6 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   fixture.handle = null;
-  fixture.repository = null;
   localStorage.clear();
 });
 afterAll(() => {
@@ -343,12 +324,6 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       expect(record.sdcpn.scenarios ?? []).toEqual([]);
       expect(record.sdcpn.metrics ?? []).toEqual([]);
     });
-    const repository = fixture.repository;
-    if (!repository)
-      throw new Error("The real document repository was not mounted");
-    await expect(
-      repository.settleRevision({ documentId, revision: lastRevision }),
-    ).resolves.toBeUndefined();
     unsubscribe();
   } finally {
     unmount();

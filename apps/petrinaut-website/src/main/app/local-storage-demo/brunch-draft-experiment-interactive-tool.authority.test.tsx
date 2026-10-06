@@ -55,7 +55,7 @@ const draft = {
   input,
   output: { brunchBrowserResult: true, output: { prepared: true } },
 };
-const history = async () => {
+const history = () => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       id: binding.documentId,
@@ -71,13 +71,11 @@ const history = async () => {
   });
   const host = createCanonicalPetrinautHostTools({
     handle: instance.handle,
-    binding,
     readTitle: () => "Queue",
     replayReadiness: {
       status: "ready",
       replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
     },
-    settleRevision: async () => {},
   });
   const read = host.tools.find(
     (tool) => tool.toolName === "getLatestNetDefinition",
@@ -93,7 +91,7 @@ const history = async () => {
     viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
-  const metadata = await host.clientToolResultMetadataFor("read-1", output);
+  const metadata = host.clientToolResultMetadataFor("read-1", output);
   const definition = instance.handle.doc();
   if (!definition) throw new Error("The test document is unavailable.");
   const readCall = {
@@ -115,7 +113,7 @@ const history = async () => {
 };
 
 test("authorizes a draft from the latest read revision without a Ledger", async () => {
-  const { snapshot, revision } = await history();
+  const { snapshot, revision } = history();
   await expect(
     resolveDraftAuthorityFromHistory(snapshot, "draft-1"),
   ).resolves.toBe(revision);
@@ -125,7 +123,7 @@ test("authorizes a draft from the latest read revision without a Ledger", async 
 });
 
 test("a changed net after the read requires another canonical read before a draft", async () => {
-  const { snapshot } = await history();
+  const { snapshot } = history();
   const changed = {
     type: "dynamic-tool",
     toolName: "addPlace",

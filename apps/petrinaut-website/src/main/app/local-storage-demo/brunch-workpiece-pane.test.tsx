@@ -233,7 +233,7 @@ test("folds unique validated settlement identities without treating queries as a
   expect(history.report?.source).toBe("query");
 });
 
-test("folds a settled in-band canonical mutation revision into Ledger activity", () => {
+test("folds an in-band canonical mutation that changed the document into Ledger activity", () => {
   const call = {
     role: "assistant",
     purpose: "assistant",

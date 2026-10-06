@@ -1,7 +1,4 @@
-import {
-  type BrowserBinding,
-  browserToolMutatesDocument,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { browserToolMutatesDocument } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -87,13 +84,8 @@ export const issuedCanonicalCallsFromHistory = async ({
 
 export interface CanonicalPetrinautHostToolsInput {
   readonly handle: PetrinautDocHandle;
-  readonly binding: BrowserBinding;
   readonly readTitle: () => string;
   readonly replayReadiness: CanonicalPetrinautReplayReadiness;
-  readonly settleRevision: (input: {
-    readonly documentId: string;
-    readonly revision: DocumentRevision;
-  }) => Promise<void>;
 }
 
 const currentRevision = (
@@ -103,7 +95,7 @@ const currentRevision = (
   return definition === undefined ? undefined : documentRevisionOf(definition);
 };
 
-/** Petrinaut executes canonical actions; the host records only settled content revisions. */
+/** Petrinaut executes canonical actions; the host records the content revision before each call, and after it when the call changed the document. */
 export const createCanonicalPetrinautHostTools = (
   input: CanonicalPetrinautHostToolsInput,
 ) => {
@@ -265,10 +257,10 @@ export const createCanonicalPetrinautHostTools = (
       stampBefore(toolCallId, input.handle);
       return rawInput;
     },
-    clientToolResultMetadataFor: async (
+    clientToolResultMetadataFor: (
       toolCallId: string,
       _output?: unknown,
-    ): Promise<DocumentRevisionMetadata> => {
+    ): DocumentRevisionMetadata => {
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const revisionBefore = before.get(toolCallId);
@@ -279,11 +271,6 @@ export const createCanonicalPetrinautHostTools = (
         revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
         (toolName === undefined || browserToolMutatesDocument(toolName));
-      if (changed)
-        await input.settleRevision({
-          documentId: input.binding.documentId,
-          revision: revisionAfter,
-        });
       const result: DocumentRevisionMetadata = {
         documentRevision: {
           ...(revisionBefore === undefined ? {} : { before: revisionBefore }),

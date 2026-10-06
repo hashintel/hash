@@ -1,7 +1,6 @@
 import { castDraft, produce } from "immer";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { documentRevisionOf } from "../../shared/document-revision";
 import {
   createLocalStorageNetRecord,
   emptySDCPN,
@@ -14,7 +13,6 @@ import type {
   DocumentRecord,
   DocumentRepository,
 } from "../document-repository";
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 type StoredDocuments = Record<string, SDCPNInLocalStorage>;
 
@@ -70,21 +68,6 @@ export const useLocalDocumentRepository = (input: {
         : storedSDCPNs,
     [defaultDocument, storageReady, storedSDCPNs],
   );
-  // Mirrors the definition each stored document holds, keyed by
-  // `documentId:incarnationId`, for `settleRevision`, which has no store
-  // snapshot of its own to read. `persistRevision` advances it as it writes,
-  // and the effect below re-syncs it whenever storage changes — including
-  // writes made by another tab.
-  const persistedDefinitionsRef = useRef(new Map<string, SDCPN>());
-  useEffect(() => {
-    persistedDefinitionsRef.current = new Map(
-      Object.values(storedSDCPNs).flatMap((stored) =>
-        stored.incarnationId === undefined
-          ? []
-          : [[`${stored.id}:${stored.incarnationId}`, stored.sdcpn]],
-      ),
-    );
-  }, [storedSDCPNs]);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
     null,
   );
@@ -246,10 +229,6 @@ export const useLocalDocumentRepository = (input: {
           );
           return previous;
         }
-        persistedDefinitionsRef.current.set(
-          `${change.documentId}:${change.incarnationId}`,
-          change.definition,
-        );
         const next: SDCPNInLocalStorage = {
           ...stored,
           incarnationId: change.incarnationId,
@@ -263,24 +242,7 @@ export const useLocalDocumentRepository = (input: {
       });
       if (refusal.error !== null) throw refusal.error;
     },
-    [documents, persistedDefinitionsRef, records, setStoredSDCPNs],
-  );
-
-  const settleRevision: DocumentRepository["settleRevision"] = useCallback(
-    async ({ documentId, revision }) => {
-      const storedDocument = documents[documentId];
-      if (storedDocument === undefined)
-        throw new Error(`Local document ${documentId} is not available.`);
-      const document = toDocumentRecord(storedDocument);
-      const identityKey = `${documentId}:${document.incarnationId}`;
-      const persistedDefinition =
-        persistedDefinitionsRef.current.get(identityKey) ?? document.definition;
-      if (documentRevisionOf(persistedDefinition) !== revision)
-        throw new Error(
-          `Local document ${documentId} has not persisted revision ${revision}.`,
-        );
-    },
-    [documents],
+    [documents, records, setStoredSDCPNs],
   );
 
   const repository = useMemo<DocumentRepository>(
@@ -291,18 +253,8 @@ export const useLocalDocumentRepository = (input: {
       open,
       actions: { create, rename },
       persistRevision,
-      settleRevision,
     }),
-    [
-      create,
-      current,
-      open,
-      persistRevision,
-      records,
-      rename,
-      settleRevision,
-      storageReady,
-    ],
+    [create, current, open, persistRevision, records, rename, storageReady],
   );
 
   return { repository, storedDocuments: storedSDCPNs, updateStoredDocuments };

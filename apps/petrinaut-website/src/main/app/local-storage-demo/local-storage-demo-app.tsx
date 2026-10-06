@@ -14,7 +14,6 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -118,19 +117,8 @@ import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
-  DocumentRepository,
   RecordRevisionId,
 } from "./documents/document-repository";
-
-const useCurrentSettlementAction = (
-  settleRevision: DocumentRepository["settleRevision"],
-): DocumentRepository["settleRevision"] => {
-  const latest = useRef(settleRevision);
-  useLayoutEffect(() => {
-    latest.current = settleRevision;
-  }, [settleRevision]);
-  return useCallback((input) => latest.current(input), []);
-};
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
@@ -776,28 +764,14 @@ export const LocalStorageDemoApp = ({
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
   }) satisfies CanonicalPetrinautReplayReadiness;
-  // A persisted revision can change the repository action's identity while a
-  // canonical tool is still settling. Keep the host adapter's evidence store
-  // alive, but dispatch settlement through the latest committed action.
-  const settleConstructionRevision = useCurrentSettlementAction(
-    // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
-    repository.settleRevision,
-  );
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !activeHandle) return undefined;
     return createCanonicalPetrinautHostTools({
       handle: activeHandle.handle,
-      binding: constructionBrowser.binding,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
-      settleRevision: settleConstructionRevision,
     });
-  }, [
-    activeHandle,
-    canonicalReplayReadiness,
-    constructionBrowser,
-    settleConstructionRevision,
-  ]);
+  }, [activeHandle, canonicalReplayReadiness, constructionBrowser]);
   const mediationHistory = useVoiceMediationHistory(conversationId);
   const mapVoiceMessages = useSyncExternalStore(
     mediationHistory?.subscribe ?? subscribeToNothing,
@@ -907,7 +881,7 @@ export const LocalStorageDemoApp = ({
             client: flueClientPromise,
             principalKey: brunchPrincipal,
             binding: constructionBrowser.binding,
-            metadataFor: async (toolCallId, output) =>
+            metadataFor: (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(
                 toolCallId,
                 output,
